@@ -12,13 +12,13 @@ export const Footer = () => {
               Transformando negócios através de consultoria estratégica e desenvolvimento organizacional.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors">
+              <a href="#" className="text-gray-400 hover:text-primary transition-colors">
                 <Linkedin className="h-5 w-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors">
+              <a href="#" className="text-gray-400 hover:text-primary transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors">
+              <a href="#" className="text-gray-400 hover:text-primary transition-colors">
                 <Mail className="h-5 w-5" />
               </a>
             </div>

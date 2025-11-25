@@ -58,9 +58,7 @@ export const Services = () => {
                 key={index} 
                 className="p-6 md:p-8 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg group bg-card"
               >
-                <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
+                <Icon className="h-8 w-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-primary transition-colors">
                   {service.title}
                 </h3>
