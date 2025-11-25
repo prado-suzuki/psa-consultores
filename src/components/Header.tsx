@@ -20,7 +20,7 @@ export const Header = () => {
         <div className="flex items-center justify-between bg-[#030712]/90 backdrop-blur-lg rounded-full px-6 py-3 border border-gray-900/60 shadow-2xl">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <img src={logo} alt="PSA Consultores" className="h-8 w-auto" />
+            <img src={logo} alt="PSA Consultores" className="h-10 w-auto" />
           </div>
 
           {/* Navigation with Tubelight Effect */}
