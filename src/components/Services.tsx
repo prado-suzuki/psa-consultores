@@ -1,35 +1,28 @@
 import { Card } from "@/components/ui/card";
-import { Target, TrendingUp, Users, Cog, BarChart3, Award } from "lucide-react";
 
 export const Services = () => {
   const services = [
     {
-      icon: Target,
       title: "Planejamento Estratégico",
       description: "Desenvolvimento de estratégias customizadas para alcançar seus objetivos de negócio com clareza e direção.",
     },
     {
-      icon: TrendingUp,
       title: "Gestão de Performance",
       description: "Implementação de sistemas de gestão que otimizam resultados e maximizam a eficiência operacional.",
     },
     {
-      icon: Users,
       title: "Desenvolvimento Organizacional",
       description: "Fortalecimento da cultura e estrutura organizacional para impulsionar o crescimento sustentável.",
     },
     {
-      icon: Cog,
       title: "Otimização de Processos",
       description: "Redesenho e melhoria contínua de processos para aumentar produtividade e reduzir custos.",
     },
     {
-      icon: BarChart3,
       title: "Análise de Dados",
       description: "Transformação de dados em insights estratégicos para tomadas de decisão mais assertivas.",
     },
     {
-      icon: Award,
       title: "Governança Corporativa",
       description: "Estruturação de práticas de governança que garantem transparência e conformidade.",
     },
@@ -51,23 +44,19 @@ export const Services = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {services.map((service, index) => {
-            const Icon = service.icon;
-            return (
-              <Card 
-                key={index} 
-                className="p-6 md:p-8 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg group bg-card"
-              >
-                <Icon className="h-8 w-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
-                <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-primary transition-colors">
-                  {service.title}
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {service.description}
-                </p>
-              </Card>
-            );
-          })}
+          {services.map((service, index) => (
+            <Card 
+              key={index} 
+              className="p-6 md:p-8 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg group bg-card"
+            >
+              <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-primary transition-colors">
+                {service.title}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {service.description}
+              </p>
+            </Card>
+          ))}
         </div>
       </div>
     </section>
