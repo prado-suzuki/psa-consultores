@@ -21,9 +21,7 @@ export const CTA = () => {
 
             <div className="space-y-4 pt-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Phone className="h-5 w-5 text-primary" />
-                </div>
+                <Phone className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">Telefone</div>
                   <div className="font-semibold text-foreground">(11) 9999-9999</div>
@@ -31,9 +29,7 @@ export const CTA = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Mail className="h-5 w-5 text-primary" />
-                </div>
+                <Mail className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">E-mail</div>
                   <div className="font-semibold text-foreground">contato@psaconsultores.com.br</div>
@@ -41,9 +37,7 @@ export const CTA = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="h-5 w-5 text-primary" />
-                </div>
+                <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">Endereço</div>
                   <div className="font-semibold text-foreground">São Paulo, SP</div>

@@ -48,9 +48,7 @@ export const WhyChooseUs = () => {
             <div className="pt-4">
               <Card className="p-6 bg-primary/5 border-primary/20">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="h-6 w-6 text-primary" />
-                  </div>
+                  <CheckCircle2 className="h-8 w-8 text-primary flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-foreground mb-2">Garantia de Qualidade</h4>
                     <p className="text-sm text-muted-foreground">
