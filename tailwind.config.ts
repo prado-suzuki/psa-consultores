@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Work Sans', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +60,33 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        teal: {
+          500: "hsl(var(--teal-500))",
+          600: "hsl(var(--teal-600))",
+          700: "hsl(var(--teal-700))",
+        },
+        lime: {
+          400: "hsl(var(--lime-400))",
+          500: "hsl(var(--lime-500))",
+          600: "hsl(var(--lime-600))",
+        },
+        gray: {
+          50: "hsl(var(--gray-50))",
+          400: "hsl(var(--gray-400))",
+          500: "hsl(var(--gray-500))",
+          600: "hsl(var(--gray-600))",
+          700: "hsl(var(--gray-700))",
+          800: "hsl(var(--gray-800))",
+          900: "hsl(var(--gray-900))",
+        },
+      },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-hero': 'var(--gradient-hero)',
+      },
+      boxShadow: {
+        'lg': 'var(--shadow-lg)',
+        'xl': 'var(--shadow-xl)',
       },
       borderRadius: {
         lg: "var(--radius)",

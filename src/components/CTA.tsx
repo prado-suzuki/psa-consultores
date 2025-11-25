@@ -1,0 +1,106 @@
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Mail, Phone, MapPin } from "lucide-react";
+
+export const CTA = () => {
+  return (
+    <section className="py-20 md:py-32 bg-background relative">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary mb-4">
+              Entre em Contato
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight">
+              Pronto para Transformar Seu Negócio?
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Agende uma reunião estratégica gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
+            </p>
+
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Telefone</div>
+                  <div className="font-semibold text-foreground">(11) 9999-9999</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">E-mail</div>
+                  <div className="font-semibold text-foreground">contato@psaconsultores.com.br</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Endereço</div>
+                  <div className="font-semibold text-foreground">São Paulo, SP</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Card className="p-8 md:p-10 border-2 shadow-xl">
+            <form className="space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">Solicite uma Proposta</h3>
+                <p className="text-muted-foreground">Preencha o formulário e entraremos em contato em até 24h.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Nome Completo</label>
+                  <Input placeholder="Seu nome" className="h-12" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">E-mail Corporativo</label>
+                  <Input type="email" placeholder="seu@email.com" className="h-12" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Telefone</label>
+                  <Input placeholder="(11) 99999-9999" className="h-12" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Empresa</label>
+                  <Input placeholder="Nome da empresa" className="h-12" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Como podemos ajudar?</label>
+                  <textarea 
+                    placeholder="Conte-nos sobre seus desafios..."
+                    className="w-full min-h-[120px] px-4 py-3 rounded-lg border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground group">
+                Enviar Solicitação
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Ao enviar, você concorda com nossa política de privacidade.
+              </p>
+            </form>
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+};
