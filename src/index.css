@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 215 20% 20%;
 
-    --primary: 173 80% 40%;
+    --primary: 84 85% 35%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 84 81% 44%;
@@ -34,22 +34,22 @@ All colors MUST be HSL.
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 173 80% 40%;
+    --ring: 84 85% 35%;
 
     --radius: 0.75rem;
 
-    --teal-500: 173 80% 40%;
-    --teal-600: 173 85% 32%;
-    --teal-700: 173 90% 25%;
+    --teal-500: 84 85% 35%;
+    --teal-600: 84 90% 28%;
+    --teal-700: 84 95% 22%;
     
     --lime-400: 84 81% 56%;
     --lime-500: 84 81% 44%;
     --lime-600: 84 79% 32%;
     
-    --gray-50: 210 40% 98%;
+    --gray-50: 210 20% 98%;
     --gray-400: 220 9% 46%;
     --gray-500: 220 9% 46%;
-    --gray-600: 215 14% 34%;
+    --gray-600: 220 13% 34%;
     --gray-700: 217 19% 27%;
     --gray-800: 215 28% 17%;
     --gray-900: 220 62% 7%;
@@ -67,7 +67,7 @@ All colors MUST be HSL.
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 173 80% 40%;
+    --sidebar-ring: 84 85% 35%;
   }
 
   .dark {
@@ -80,7 +80,7 @@ All colors MUST be HSL.
     --popover: 215 28% 17%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 173 80% 40%;
+    --primary: 84 85% 35%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 84 81% 44%;
@@ -97,16 +97,16 @@ All colors MUST be HSL.
 
     --border: 217 19% 27%;
     --input: 217 19% 27%;
-    --ring: 173 80% 40%;
+    --ring: 84 85% 35%;
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 173 80% 40%;
+    --sidebar-primary: 84 85% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 173 80% 40%;
+    --sidebar-ring: 84 85% 35%;
   }
 }
 
