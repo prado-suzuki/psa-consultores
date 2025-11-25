@@ -1,11 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import logo from "@/assets/logo-psa.png";
+import heroBackground from "@/assets/hero-background.png";
 
 export const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center bg-gradient-hero overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div 
+        className="absolute inset-0 opacity-10"
+        style={{ 
+          backgroundImage: `url(${heroBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <nav className="absolute top-8 left-0 right-0 px-4 md:px-6">
