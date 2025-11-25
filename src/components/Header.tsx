@@ -17,14 +17,14 @@ export const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-6 px-4 md:px-6">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between bg-[#030712]/90 backdrop-blur-lg rounded-full px-6 py-3 border border-gray-900/60 shadow-2xl">
+        <div className="flex items-center justify-between bg-[#030712]/75 backdrop-blur-lg rounded-full px-6 py-3 border border-gray-900/60 shadow-2xl">
           {/* Logo */}
           <div className="flex items-center gap-2">
             <img src={logo} alt="PSA Consultores" className="h-10 w-auto" />
           </div>
 
           {/* Navigation with Tubelight Effect */}
-          <nav className="hidden md:flex items-center relative bg-[#030712]/70 rounded-full p-1.5">
+          <nav className="hidden md:flex items-center relative bg-[#030712]/50 rounded-full p-1.5">
             {navItems.map((item, index) => {
               const isActive = activeItem === item.id;
               const isHovered = hoveredItem === item.id;

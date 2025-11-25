@@ -6,8 +6,8 @@ export const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center bg-gradient-hero overflow-hidden">
       <div 
-        className="absolute inset-0 opacity-10"
-        style={{ 
+        className="absolute inset-0 opacity-25"
+        style={{
           backgroundImage: `url(${heroBackground})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
