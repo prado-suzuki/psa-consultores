@@ -30,8 +30,9 @@ export const WhyChooseUs = () => {
   ];
 
   return (
-    <section className="py-20 md:py-32 bg-gradient-to-b from-muted/30 to-background relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+    <section className="py-20 md:py-32 bg-[hsl(220_9%_65%/0.15)] relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[hsl(210_20%_98%)] via-[hsl(220_9%_65%/0.08)] to-[hsl(220_9%_65%/0.15)]"></div>
+      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-[hsl(220_9%_65%/0.15)] via-[hsl(220_9%_65%/0.08)] to-[hsl(210_20%_98%)]"></div>
       
       <div className="container mx-auto px-4 md:px-6 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

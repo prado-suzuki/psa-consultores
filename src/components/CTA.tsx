@@ -5,8 +5,9 @@ import { ArrowRight, Mail, Phone, MapPin } from "lucide-react";
 
 export const CTA = () => {
   return (
-    <section className="py-20 md:py-32 bg-background relative">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="py-20 md:py-32 bg-[hsl(210_20%_98%)] relative">
+      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-[hsl(210_20%_98%)] via-[hsl(220_62%_7%/0.3)] to-[hsl(220_62%_7%)]"></div>
+      <div className="container mx-auto px-4 md:px-6 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary mb-4">
