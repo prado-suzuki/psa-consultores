@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import logo from "@/assets/logo-psa.png";
 import heroBackground from "@/assets/hero-background.png";
 
 export const Hero = () => {
@@ -16,15 +15,6 @@ export const Hero = () => {
       />
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <nav className="absolute top-8 left-0 right-0 px-4 md:px-6">
-          <div className="flex items-center justify-between">
-            <img src={logo} alt="PSA Consultores" className="h-12 md:h-16 w-auto" />
-            <Button variant="outline" size="lg" className="hidden md:inline-flex border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-              Entrar em Contato
-            </Button>
-          </div>
-        </nav>
-
         <div className="pt-32 md:pt-40 pb-20">
           <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary mb-4">
