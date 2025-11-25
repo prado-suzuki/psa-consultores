@@ -65,15 +65,24 @@ export const Header = () => {
             })}
           </nav>
 
-          {/* CTA Button */}
-          <Button 
-            className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground"
-            style={{
-              boxShadow: "0 0 20px hsl(var(--primary) / 0.3)",
-            }}
-          >
-            Fale Conosco
-          </Button>
+          {/* CTA Buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            <Button 
+              variant="ghost"
+              onClick={() => window.location.href = '/auth'}
+              className="text-primary hover:text-primary/90"
+            >
+              Área do Cliente
+            </Button>
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              style={{
+                boxShadow: "0 0 20px hsl(var(--primary) / 0.3)",
+              }}
+            >
+              Fale Conosco
+            </Button>
+          </div>
 
           {/* Mobile Menu Button */}
           <Button 
