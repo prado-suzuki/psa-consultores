@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
 import logo from "@/assets/logo-psa.png";
 
 const navItems = [
@@ -16,17 +15,17 @@ export const Header = () => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pt-6 px-4 md:px-6">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between bg-[#030712]/75 backdrop-blur-lg rounded-full px-6 py-3 border border-gray-900/60 shadow-2xl">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#030712]/35 backdrop-blur-md border-b border-gray-800/20">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
             <img src={logo} alt="PSA Consultores" className="h-10 w-auto" />
           </div>
 
           {/* Navigation with Tubelight Effect */}
-          <nav className="hidden md:flex items-center relative bg-[#030712]/50 rounded-full p-1.5">
-            {navItems.map((item, index) => {
+          <nav className="hidden md:flex items-center relative bg-[#030712]/30 rounded-full p-1.5">
+            {navItems.map((item) => {
               const isActive = activeItem === item.id;
               const isHovered = hoveredItem === item.id;
               const showGlow = isActive || isHovered;
@@ -71,9 +70,8 @@ export const Header = () => {
             <Button 
               variant="ghost"
               onClick={() => window.location.href = '/equipe'}
-              className="text-muted-foreground hover:text-primary"
+              className="text-primary hover:text-primary/90"
             >
-              <Users className="h-4 w-4 mr-2" />
               Equipe
             </Button>
             <Button 
