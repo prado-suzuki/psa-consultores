@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ChevronDown,
   Menu,
-  ClipboardList
+  ClipboardList,
+  Users
 } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 
@@ -37,6 +38,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
   { icon: ClipboardList, label: 'Rotina', path: '/equipe/rotina' },
+  { icon: Users, label: 'Usuários', path: '/equipe/usuarios' },
   { 
     icon: FolderKanban, 
     label: 'Projetos', 
