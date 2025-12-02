@@ -7,13 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
-  Plus,
   Target,
   Clock,
   CheckCircle2,
   AlertCircle,
   ListTodo,
-  MessageSquare
+  MessageSquare,
+  RefreshCw
 } from 'lucide-react';
 
 interface Sprint {
@@ -41,6 +41,7 @@ const EquipeDashboard = () => {
   const [taskStats, setTaskStats] = useState<TaskStats>({ total: 0, backlog: 0, to_do: 0, in_progress: 0, review: 0, done: 0 });
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -88,6 +89,8 @@ const EquipeDashboard = () => {
 
         setMyTasks(myTasksData || []);
       }
+
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -124,13 +127,17 @@ const EquipeDashboard = () => {
       title="Dashboard" 
       subtitle="Visão geral do seu trabalho"
       headerActions={
-        <Button 
-          className="bg-primary hover:bg-primary/90"
-          onClick={() => navigate('/equipe/tarefas/nova')}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Tarefa
-        </Button>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <RefreshCw className="h-4 w-4" />
+          <span>
+            Atualizado: {lastUpdate?.toLocaleString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              day: '2-digit',
+              month: '2-digit'
+            })}
+          </span>
+        </div>
       }
     >
       {/* Active Sprint Card */}

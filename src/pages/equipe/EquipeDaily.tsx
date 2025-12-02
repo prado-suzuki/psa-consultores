@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
@@ -13,7 +14,8 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  User
+  User,
+  Users
 } from 'lucide-react';
 
 interface DailyStandup {
@@ -26,10 +28,18 @@ interface DailyStandup {
   created_at: string;
 }
 
+interface TeamMember {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
 const EquipeDaily = () => {
   const { user } = useAuth();
   const [standups, setStandups] = useState<DailyStandup[]>([]);
   const [myStandup, setMyStandup] = useState<DailyStandup | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -41,8 +51,36 @@ const EquipeDaily = () => {
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    fetchStandups();
+    if (user) {
+      setSelectedUserId(user.id);
+      fetchTeamMembers();
+      fetchStandups();
+    }
   }, [user]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['team_member', 'admin']);
+
+      if (rolesData && rolesData.length > 0) {
+        const userIds = rolesData.map(r => r.user_id);
+        
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+
+        if (profilesData) {
+          setTeamMembers(profilesData);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
 
   const fetchStandups = async () => {
     if (!user) return;
@@ -80,12 +118,12 @@ const EquipeDaily = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !selectedUserId) return;
     
     setSubmitting(true);
     
     try {
-      if (myStandup) {
+      if (myStandup && selectedUserId === user.id) {
         const { error } = await supabase
           .from('daily_standups')
           .update({
@@ -96,12 +134,12 @@ const EquipeDaily = () => {
           .eq('id', myStandup.id);
 
         if (error) throw error;
-        toast({ title: "Daily atualizado!", description: "Seu registro foi atualizado." });
+        toast({ title: "Daily atualizado", description: "Seu registro foi atualizado." });
       } else {
         const { error } = await supabase
           .from('daily_standups')
           .insert({
-            user_id: user.id,
+            user_id: selectedUserId,
             date: today,
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
@@ -109,7 +147,7 @@ const EquipeDaily = () => {
           });
 
         if (error) throw error;
-        toast({ title: "Daily registrado!", description: "Seu registro foi salvo com sucesso." });
+        toast({ title: "Daily registrado", description: "O registro foi salvo com sucesso." });
       }
 
       fetchStandups();
@@ -117,12 +155,20 @@ const EquipeDaily = () => {
       console.error('Error submitting standup:', error);
       toast({ 
         title: "Erro", 
-        description: "Não foi possível salvar seu daily.", 
+        description: "Não foi possível salvar o daily.", 
         variant: "destructive" 
       });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getMemberName = (userId: string) => {
+    const member = teamMembers.find(m => m.id === userId);
+    if (member) {
+      return `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Sem nome';
+    }
+    return userId === user?.id ? 'Você' : 'Membro da equipe';
   };
 
   const todayFormatted = new Date().toLocaleDateString('pt-BR', { 
@@ -142,9 +188,9 @@ const EquipeDaily = () => {
         <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="text-gray-900 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Meu Daily (15 min)
-              {myStandup && (
+              <Clock className="h-5 w-5 text-gray-500" />
+              Daily (15 min)
+              {myStandup && selectedUserId === user?.id && (
                 <Badge className="bg-green-100 text-green-700 ml-2">Registrado</Badge>
               )}
             </CardTitle>
@@ -153,7 +199,27 @@ const EquipeDaily = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-gray-700 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <Users className="h-4 w-4 text-gray-500" />
+                  Membro da equipe
+                </Label>
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione o membro" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.first_name} {member.last_name}
+                        {member.id === user?.id && ' (você)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-gray-500" />
                   O que fiz ontem?
                 </Label>
                 <Textarea
@@ -167,7 +233,7 @@ const EquipeDaily = () => {
 
               <div className="space-y-2">
                 <Label className="text-gray-700 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
+                  <Clock className="h-4 w-4 text-gray-500" />
                   O que vou fazer hoje?
                 </Label>
                 <Textarea
@@ -181,7 +247,7 @@ const EquipeDaily = () => {
 
               <div className="space-y-2">
                 <Label className="text-gray-700 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertTriangle className="h-4 w-4 text-gray-500" />
                   Bloqueios? (opcional)
                 </Label>
                 <Textarea
@@ -195,10 +261,10 @@ const EquipeDaily = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/90"
-                disabled={submitting}
+                disabled={submitting || !selectedUserId}
               >
                 <Send className="h-4 w-4 mr-2" />
-                {submitting ? 'Salvando...' : myStandup ? 'Atualizar Daily' : 'Registrar Daily'}
+                {submitting ? 'Salvando...' : myStandup && selectedUserId === user?.id ? 'Atualizar Daily' : 'Registrar Daily'}
               </Button>
             </form>
           </CardContent>
@@ -208,7 +274,7 @@ const EquipeDaily = () => {
         <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="text-gray-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
+              <User className="h-5 w-5 text-gray-500" />
               Daily da Equipe
             </CardTitle>
           </CardHeader>
@@ -233,7 +299,7 @@ const EquipeDaily = () => {
                         <User className="h-4 w-4 text-gray-500" />
                       </div>
                       <span className="text-gray-900 font-medium">
-                        {standup.user_id === user?.id ? 'Você' : 'Membro da equipe'}
+                        {getMemberName(standup.user_id)}
                       </span>
                       <span className="text-xs text-gray-500 ml-auto">
                         {new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -242,14 +308,14 @@ const EquipeDaily = () => {
 
                     {standup.did_yesterday && (
                       <div className="mb-2">
-                        <p className="text-xs text-green-600 mb-1">Ontem:</p>
+                        <p className="text-xs text-gray-500 mb-1">Ontem:</p>
                         <p className="text-sm text-gray-700">{standup.did_yesterday}</p>
                       </div>
                     )}
 
                     {standup.will_do_today && (
                       <div className="mb-2">
-                        <p className="text-xs text-blue-600 mb-1">Hoje:</p>
+                        <p className="text-xs text-gray-500 mb-1">Hoje:</p>
                         <p className="text-sm text-gray-700">{standup.will_do_today}</p>
                       </div>
                     )}
@@ -267,7 +333,7 @@ const EquipeDaily = () => {
               <div className="text-center py-8">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500">Nenhum daily registrado hoje</p>
-                <p className="text-sm text-gray-400">Seja o primeiro a compartilhar!</p>
+                <p className="text-sm text-gray-400">Seja o primeiro a compartilhar</p>
               </div>
             )}
           </CardContent>
