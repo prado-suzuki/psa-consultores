@@ -10,14 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { 
   Plus,
   Target,
   CheckCircle2,
   Clock,
-  Calendar
+  Calendar,
+  User,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface Sprint {
@@ -36,6 +41,12 @@ interface Project {
   name: string;
 }
 
+interface SprintHours {
+  userId: string;
+  name: string;
+  hours: number;
+}
+
 const EquipeSprints = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +55,8 @@ const EquipeSprints = () => {
   
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [sprintHoursMap, setSprintHoursMap] = useState<Record<string, SprintHours[]>>({});
+  const [expandedSprints, setExpandedSprints] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,10 +95,65 @@ const EquipeSprints = () => {
 
       const { data: sprintsData } = await query;
       setSprints(sprintsData || []);
+
+      // Fetch hours for each sprint
+      if (sprintsData && sprintsData.length > 0) {
+        await fetchSprintHours(sprintsData);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSprintHours = async (sprintsList: Sprint[]) => {
+    try {
+      // Fetch all profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name');
+
+      const profileMap: Record<string, string> = {};
+      profiles?.forEach(p => {
+        profileMap[p.id] = `${p.first_name} ${p.last_name}`.trim() || 'Sem nome';
+      });
+
+      // Fetch tasks for all sprints
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('sprint_id, assigned_to, estimated_hours')
+        .in('sprint_id', sprintsList.map(s => s.id));
+
+      const hoursMap: Record<string, Record<string, number>> = {};
+
+      tasks?.forEach(task => {
+        if (task.sprint_id && task.assigned_to && task.estimated_hours) {
+          if (!hoursMap[task.sprint_id]) {
+            hoursMap[task.sprint_id] = {};
+          }
+          if (!hoursMap[task.sprint_id][task.assigned_to]) {
+            hoursMap[task.sprint_id][task.assigned_to] = 0;
+          }
+          hoursMap[task.sprint_id][task.assigned_to] += Number(task.estimated_hours);
+        }
+      });
+
+      const result: Record<string, SprintHours[]> = {};
+      
+      Object.entries(hoursMap).forEach(([sprintId, userHours]) => {
+        result[sprintId] = Object.entries(userHours)
+          .map(([userId, hours]) => ({
+            userId,
+            name: profileMap[userId] || 'Desconhecido',
+            hours
+          }))
+          .sort((a, b) => b.hours - a.hours);
+      });
+
+      setSprintHoursMap(result);
+    } catch (error) {
+      console.error('Error fetching sprint hours:', error);
     }
   };
 
@@ -144,6 +212,18 @@ const EquipeSprints = () => {
     }
   };
 
+  const toggleSprintExpanded = (sprintId: string) => {
+    setExpandedSprints(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sprintId)) {
+        newSet.delete(sprintId);
+      } else {
+        newSet.add(sprintId);
+      }
+      return newSet;
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -161,6 +241,12 @@ const EquipeSprints = () => {
     if (!projectId) return null;
     const project = projects.find(p => p.id === projectId);
     return project?.name;
+  };
+
+  const getSprintTotalHours = (sprintId: string) => {
+    const hours = sprintHoursMap[sprintId];
+    if (!hours) return 0;
+    return hours.reduce((sum, h) => sum + h.hours, 0);
   };
 
   return (
@@ -249,81 +335,141 @@ const EquipeSprints = () => {
         </Dialog>
       }
     >
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : sprints.length > 0 ? (
-        <div className="space-y-4">
-          {sprints.map((sprint) => (
-            <Card key={sprint.id} className="bg-white border-gray-200">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Target className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-gray-900">{sprint.name}</CardTitle>
-                    {getStatusBadge(sprint.status)}
-                    {sprint.project_id && (
-                      <Badge variant="outline" className="border-gray-300 text-gray-600">
-                        {getProjectName(sprint.project_id)}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {sprint.status === 'active' ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => updateSprintStatus(sprint.id, 'completed')}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Concluir
-                      </Button>
-                    ) : sprint.status === 'completed' ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => updateSprintStatus(sprint.id, 'active')}
-                      >
-                        <Clock className="h-4 w-4 mr-1" />
-                        Reabrir
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {sprint.goal && (
-                  <p className="text-gray-600 mb-4">{sprint.goal}</p>
-                )}
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {new Date(sprint.start_date).toLocaleDateString('pt-BR')} - {new Date(sprint.end_date).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Lista de Sprints */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : sprints.length > 0 ? (
+            <div className="space-y-4">
+              {sprints.map((sprint) => {
+                const isExpanded = expandedSprints.has(sprint.id);
+                const sprintHours = sprintHoursMap[sprint.id] || [];
+                const totalHours = getSprintTotalHours(sprint.id);
+                
+                return (
+                  <Card key={sprint.id} className="bg-white border-gray-200">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Target className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-gray-900">{sprint.name}</CardTitle>
+                          {getStatusBadge(sprint.status)}
+                          {sprint.project_id && (
+                            <Badge variant="outline" className="border-gray-300 text-gray-600">
+                              {getProjectName(sprint.project_id)}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {sprint.status === 'active' ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                              onClick={() => updateSprintStatus(sprint.id, 'completed')}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Concluir
+                            </Button>
+                          ) : sprint.status === 'completed' ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                              onClick={() => updateSprintStatus(sprint.id, 'active')}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Reabrir
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {sprint.goal && (
+                        <p className="text-gray-600 mb-4">{sprint.goal}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(sprint.start_date).toLocaleDateString('pt-BR')} - {new Date(sprint.end_date).toLocaleDateString('pt-BR')}
+                        </span>
+                        {totalHours > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {totalHours.toFixed(1)}h alocadas
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Horas por pessoa - expansível */}
+                      {sprintHours.length > 0 && (
+                        <div className="border-t border-gray-100 pt-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-between text-gray-600 hover:text-gray-900"
+                            onClick={() => toggleSprintExpanded(sprint.id)}
+                          >
+                            <span className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              Horas por Pessoa ({sprintHours.length})
+                            </span>
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                          
+                          {isExpanded && (
+                            <div className="mt-3 space-y-3">
+                              {sprintHours.map((item) => (
+                                <div key={item.userId} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-700">{item.name}</span>
+                                    <span className="font-medium text-gray-900">{item.hours.toFixed(1)}h</span>
+                                  </div>
+                                  <Progress 
+                                    value={Math.min((item.hours / 40) * 100, 100)} 
+                                    className="h-1.5"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="bg-white border-gray-200">
+              <CardContent className="py-16 text-center">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
+                <p className="text-gray-500 mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Sprint
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
-      ) : (
-        <Card className="bg-white border-gray-200">
-          <CardContent className="py-16 text-center">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
-            <p className="text-gray-500 mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Sprint
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+
+        {/* Painel de Horas Acumuladas */}
+        <div className="space-y-4">
+          <HorasAcumuladas 
+            showRoutines={true}
+            title="Visão Geral de Horas"
+          />
+        </div>
+      </div>
     </EquipeLayout>
   );
 };
