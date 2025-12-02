@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo-psa.png";
 
 const navItems = [
   { id: "inicio", label: "Início", href: "#" },
@@ -18,11 +17,6 @@ export const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#030712]/35 backdrop-blur-md border-b border-gray-800/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between py-4">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="PSA Consultores" className="h-10 w-auto" />
-          </div>
-
           {/* Navigation with Tubelight Effect */}
           <nav className="hidden md:flex items-center relative bg-[#030712]/30 rounded-full p-1.5">
             {navItems.map((item) => {
