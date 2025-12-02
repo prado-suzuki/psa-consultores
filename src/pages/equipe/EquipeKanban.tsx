@@ -254,7 +254,7 @@ const EquipeKanban = () => {
                           onDrop={(e) => {
                             e.preventDefault();
                             const taskId = e.dataTransfer.getData('taskId');
-                            updateTaskStatus(taskId, column.id);
+                            updateTaskStatus(taskId, column.id as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
                           }}
                         >
                           <CardContent className="p-3">
@@ -286,7 +286,7 @@ const EquipeKanban = () => {
                     onDrop={(e) => {
                       e.preventDefault();
                       const taskId = e.dataTransfer.getData('taskId');
-                      updateTaskStatus(taskId, column.id);
+                      updateTaskStatus(taskId, column.id as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
                     }}
                   />
                 </div>
