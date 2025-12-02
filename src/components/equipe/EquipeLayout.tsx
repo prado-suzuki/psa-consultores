@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   LayoutDashboard, 
   Kanban, 
@@ -13,7 +14,9 @@ import {
   FolderKanban,
   ChevronLeft,
   ChevronRight,
-  Menu
+  ChevronDown,
+  Menu,
+  ClipboardList
 } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 
@@ -24,13 +27,27 @@ interface EquipeLayoutProps {
   headerActions?: React.ReactNode;
 }
 
-const navItems = [
+interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+  children?: NavItem[];
+}
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
-  { icon: FolderKanban, label: 'Projetos', path: '/equipe/projetos' },
-  { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
-  { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
-  { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
-  { icon: ListTodo, label: 'Tarefas', path: '/equipe/tarefas' },
+  { icon: ClipboardList, label: 'Rotina', path: '/equipe/rotina' },
+  { 
+    icon: FolderKanban, 
+    label: 'Projetos', 
+    path: '/equipe/projetos',
+    children: [
+      { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
+      { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
+      { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
+      { icon: ListTodo, label: 'Tarefas', path: '/equipe/tarefas' },
+    ]
+  },
 ];
 
 export const EquipeLayout = ({ children, title, subtitle, headerActions }: EquipeLayoutProps) => {
@@ -38,6 +55,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(true);
 
   const handleSignOut = async () => {
     await signOut();
@@ -49,6 +67,11 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
       return location.pathname.startsWith('/equipe/tarefas');
     }
     return location.pathname === path;
+  };
+
+  const isChildActive = (children?: NavItem[]) => {
+    if (!children) return false;
+    return children.some(child => isActive(child.path));
   };
 
   return (
@@ -84,20 +107,72 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1">
           {navItems.map((item) => (
-            <Button
-              key={item.path}
-              variant={isActive(item.path) ? "secondary" : "ghost"}
-              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
-                isActive(item.path) 
-                  ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-              onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
-            >
-              <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-              {!collapsed && item.label}
-            </Button>
+            item.children ? (
+              <Collapsible 
+                key={item.path} 
+                open={projectsOpen && !collapsed} 
+                onOpenChange={setProjectsOpen}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant={isActive(item.path) || isChildActive(item.children) ? "secondary" : "ghost"}
+                    className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-between'} ${
+                      isActive(item.path) || isChildActive(item.children)
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                    onClick={() => {
+                      if (collapsed) {
+                        navigate(item.path);
+                      }
+                    }}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <div className="flex items-center">
+                      <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+                      {!collapsed && item.label}
+                    </div>
+                    {!collapsed && (
+                      <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                {!collapsed && (
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {item.children.map((child) => (
+                      <Button
+                        key={child.path}
+                        variant={isActive(child.path) ? "secondary" : "ghost"}
+                        className={`w-full justify-start ${
+                          isActive(child.path) 
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                        onClick={() => navigate(child.path)}
+                      >
+                        <child.icon className="h-4 w-4 mr-3" />
+                        {child.label}
+                      </Button>
+                    ))}
+                  </CollapsibleContent>
+                )}
+              </Collapsible>
+            ) : (
+              <Button
+                key={item.path}
+                variant={isActive(item.path) ? "secondary" : "ghost"}
+                className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
+                  isActive(item.path) 
+                    ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+                onClick={() => navigate(item.path)}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+                {!collapsed && item.label}
+              </Button>
+            )
           ))}
         </nav>
 

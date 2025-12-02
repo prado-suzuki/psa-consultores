@@ -46,6 +46,7 @@ const EquipeSprints = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newSprint, setNewSprint] = useState({
     name: '',
     goal: '',
@@ -90,7 +91,9 @@ const EquipeSprints = () => {
 
   const handleCreateSprint = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     
+    setSubmitting(true);
     try {
       const { error } = await supabase.from('sprints').insert({
         name: newSprint.name,
@@ -119,6 +122,8 @@ const EquipeSprints = () => {
         description: "Não foi possível criar a sprint.",
         variant: "destructive"
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -236,8 +241,8 @@ const EquipeSprints = () => {
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                Criar Sprint
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={submitting}>
+                {submitting ? 'Criando...' : 'Criar Sprint'}
               </Button>
             </form>
           </DialogContent>
