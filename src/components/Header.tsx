@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 import logo from "@/assets/logo-psa.png";
 
 const navItems = [
@@ -67,6 +68,14 @@ export const Header = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Button 
+              variant="ghost"
+              onClick={() => window.location.href = '/equipe'}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Equipe
+            </Button>
             <Button 
               variant="ghost"
               onClick={() => window.location.href = '/auth'}
