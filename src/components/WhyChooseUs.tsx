@@ -22,7 +22,7 @@ export const WhyChooseUs = () => {
   ];
 
   return (
-    <section id="sobre" className="py-20 md:py-32 bg-gray-100 relative overflow-hidden">
+    <section id="sobre" className="py-20 md:py-32 bg-[#f5f5f5] relative overflow-hidden">
       <div className="container mx-auto px-4 md:px-6 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="space-y-6">
