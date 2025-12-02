@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
   Plus,
   Database,
   Monitor,
-  Briefcase
+  Briefcase,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 interface Task {
@@ -44,6 +47,7 @@ const EquipeKanban = () => {
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [selectedSprint, setSelectedSprint] = useState<string>('all');
   const [selectedCluster, setSelectedCluster] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,6 +106,36 @@ const EquipeKanban = () => {
     }
   };
 
+  const getPriorityBadgeColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-100 text-red-700';
+      case 'high': return 'bg-orange-100 text-orange-700';
+      case 'medium': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'done': return 'bg-green-100 text-green-700';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-700';
+      case 'review': return 'bg-purple-100 text-purple-700';
+      case 'to_do': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      backlog: 'Backlog',
+      to_do: 'A Fazer',
+      in_progress: 'Em Progresso',
+      review: 'Revisão',
+      done: 'Concluído'
+    };
+    return labels[status] || status;
+  };
+
   const getClusterIcon = (cluster: string) => {
     switch (cluster) {
       case 'database': return <Database className="h-3 w-3" />;
@@ -126,6 +160,25 @@ const EquipeKanban = () => {
       subtitle="Visualize e gerencie suas tarefas"
       headerActions={
         <div className="flex items-center gap-3">
+          <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
+            <Button
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
           <Select value={selectedSprint} onValueChange={setSelectedSprint}>
             <SelectTrigger className="w-48 bg-white border-gray-300 text-gray-900">
               <SelectValue placeholder="Sprint" />
@@ -164,7 +217,7 @@ const EquipeKanban = () => {
         <div className="flex justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         <div className="grid grid-cols-5 gap-4 min-w-[1000px]">
           {columns.map((column) => (
             <div key={column.id} className="bg-gray-50 rounded-lg p-4">
@@ -182,7 +235,7 @@ const EquipeKanban = () => {
                   .map((task) => (
                     <Card 
                       key={task.id}
-                      className={`bg-white border-gray-200 border-l-4 ${getPriorityColor(task.priority)} cursor-pointer hover:shadow-md transition-shadow`}
+                      className={`bg-white border-gray-200 border-l-4 ${getPriorityColor(task.priority)} cursor-pointer hover:shadow-md transition-shadow h-32 overflow-hidden`}
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
                       onDragOver={(e) => e.preventDefault()}
@@ -192,12 +245,9 @@ const EquipeKanban = () => {
                         updateTaskStatus(taskId, column.id as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
                       }}
                     >
-                      <CardContent className="p-3">
-                        <h4 className="text-gray-900 text-sm font-medium mb-2">{task.title}</h4>
-                        {task.description && (
-                          <p className="text-gray-500 text-xs mb-3 line-clamp-2">{task.description}</p>
-                        )}
-                        <div className="flex items-center justify-between">
+                      <CardContent className="p-3 h-full flex flex-col">
+                        <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">{task.title}</h4>
+                        <div className="mt-auto flex items-center justify-between">
                           <Badge 
                             variant="outline" 
                             className="border-gray-300 text-gray-600 text-xs flex items-center gap-1"
@@ -226,6 +276,54 @@ const EquipeKanban = () => {
             </div>
           ))}
         </div>
+      ) : (
+        <Card className="bg-white border-gray-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-gray-700">Título</TableHead>
+                <TableHead className="text-gray-700">Status</TableHead>
+                <TableHead className="text-gray-700">Prioridade</TableHead>
+                <TableHead className="text-gray-700">Cluster</TableHead>
+                <TableHead className="text-gray-700 text-right">Horas Est.</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tasks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                    Nenhuma tarefa encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                tasks.map((task) => (
+                  <TableRow key={task.id} className="cursor-pointer hover:bg-gray-50">
+                    <TableCell className="text-gray-900 font-medium">{task.title}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(task.status)}>
+                        {getStatusLabel(task.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getPriorityBadgeColor(task.priority)}>
+                        {task.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-gray-300 text-gray-600 flex items-center gap-1 w-fit">
+                        {getClusterIcon(task.cluster)}
+                        {getClusterLabel(task.cluster)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-gray-600">
+                      {task.estimated_hours ? `${task.estimated_hours}h` : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </EquipeLayout>
   );

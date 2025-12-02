@@ -58,16 +58,14 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
         className={`${collapsed ? 'w-16' : 'w-60'} bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 flex-shrink-0`}
       >
         {/* Header */}
-        <div className={`p-4 border-b border-gray-200 ${collapsed ? 'flex justify-center' : ''}`}>
+        <div className={`p-4 border-b border-gray-200 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
           {collapsed ? (
             <img src={logo} alt="PSA" className="h-8" />
           ) : (
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="PSA" className="h-10" />
-              <div>
-                <h1 className="text-gray-900 font-semibold">Equipe PSA</h1>
-                <p className="text-xs text-gray-500">Gestão de Demandas</p>
-              </div>
+            <div className="flex flex-col items-center text-center">
+              <img src={logo} alt="PSA" className="h-10 mb-2" />
+              <h1 className="text-gray-900 font-semibold text-sm">Equipe PSA</h1>
+              <p className="text-xs text-gray-500">Gestão de Demandas</p>
             </div>
           )}
         </div>
