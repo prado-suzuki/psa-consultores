@@ -18,6 +18,7 @@ import AdminClientes from "./pages/admin/AdminClientes";
 import AdminChamados from "./pages/admin/AdminChamados";
 import EquipeAuth from "./pages/equipe/EquipeAuth";
 import EquipeDashboard from "./pages/equipe/EquipeDashboard";
+import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
 import EquipeSprints from "./pages/equipe/EquipeSprints";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
@@ -52,6 +53,7 @@ const App = () => (
             {/* Equipe Routes */}
             <Route path="/equipe" element={<EquipeAuth />} />
             <Route path="/equipe/dashboard" element={<TeamRoute><EquipeDashboard /></TeamRoute>} />
+            <Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
             <Route path="/equipe/sprints" element={<TeamRoute><EquipeSprints /></TeamRoute>} />
             <Route path="/equipe/daily" element={<TeamRoute><EquipeDaily /></TeamRoute>} />

@@ -126,6 +126,45 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          client_name: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sprints: {
         Row: {
           created_at: string | null
@@ -134,6 +173,7 @@ export type Database = {
           goal: string | null
           id: string
           name: string
+          project_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -145,6 +185,7 @@ export type Database = {
           goal?: string | null
           id?: string
           name: string
+          project_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -156,11 +197,20 @@ export type Database = {
           goal?: string | null
           id?: string
           name?: string
+          project_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sprints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_comments: {
         Row: {
