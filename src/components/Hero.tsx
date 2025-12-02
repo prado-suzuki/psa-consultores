@@ -56,7 +56,7 @@ export const Hero = () => {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent via-[hsl(220_20%_10%/0.3)] to-[hsl(0_0%_98%)]"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-background"></div>
     </section>
   );
 };
