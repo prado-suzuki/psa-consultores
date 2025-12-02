@@ -7,13 +7,15 @@ export const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center bg-gradient-hero overflow-hidden">
       <div 
-        className="absolute inset-0 opacity-25"
+        className="absolute inset-0 opacity-30"
         style={{
           backgroundImage: `url(${heroBackground})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       />
+      {/* Dark overlay for better text legibility */}
+      <div className="absolute inset-0 bg-gray-900/50" />
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="pt-32 md:pt-40 pb-20">
