@@ -52,7 +52,7 @@ export const Header = () => {
                     href={item.href}
                     className="relative z-10 px-6 py-2.5 text-sm font-medium transition-colors rounded-full block"
                     style={{
-                      color: showGlow ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                      color: showGlow ? "hsl(var(--primary))" : "#FFFFFF",
                     }}
                     onMouseEnter={() => setHoveredItem(item.id)}
                     onMouseLeave={() => setHoveredItem(null)}
