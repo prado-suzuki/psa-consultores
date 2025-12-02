@@ -62,7 +62,7 @@ export const Hero = () => {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-[#f5f5f5]"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#f5f5f5]"></div>
     </section>
   );
 };
