@@ -5,20 +5,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
-  LayoutDashboard, 
-  Kanban, 
-  Calendar, 
-  MessageSquare, 
-  ListTodo, 
   Plus,
-  LogOut,
   Target,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ListTodo,
+  MessageSquare
 } from 'lucide-react';
-import logo from '@/assets/logo-psa.png';
 
 interface Sprint {
   id: string;
@@ -39,7 +35,7 @@ interface TaskStats {
 }
 
 const EquipeDashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
   const [taskStats, setTaskStats] = useState<TaskStats>({ total: 0, backlog: 0, to_do: 0, in_progress: 0, review: 0, done: 0 });
@@ -52,7 +48,6 @@ const EquipeDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch active sprint
       const { data: sprintData } = await supabase
         .from('sprints')
         .select('*')
@@ -63,7 +58,6 @@ const EquipeDashboard = () => {
 
       setActiveSprint(sprintData);
 
-      // Fetch task stats for active sprint
       if (sprintData) {
         const { data: tasks } = await supabase
           .from('tasks')
@@ -83,7 +77,6 @@ const EquipeDashboard = () => {
         }
       }
 
-      // Fetch my tasks
       if (user) {
         const { data: myTasksData } = await supabase
           .from('tasks')
@@ -102,25 +95,12 @@ const EquipeDashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
-
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard', active: true },
-    { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
-    { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
-    { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
-    { icon: ListTodo, label: 'Tarefas', path: '/equipe/tarefas' },
-  ];
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500/20 text-red-400';
-      case 'high': return 'bg-orange-500/20 text-orange-400';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+      case 'urgent': return 'bg-red-100 text-red-700';
+      case 'high': return 'bg-orange-100 text-orange-700';
+      case 'medium': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -140,213 +120,171 @@ const EquipeDashboard = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900/50 border-r border-gray-800 p-4 flex flex-col">
-        <div className="flex items-center gap-3 mb-8">
-          <img src={logo} alt="PSA" className="h-10" />
-          <div>
-            <h1 className="text-white font-semibold">Equipe PSA</h1>
-            <p className="text-xs text-gray-400">Gestão de Demandas</p>
-          </div>
-        </div>
-
-        <nav className="space-y-1 flex-1">
-          {navItems.map((item) => (
-            <Button
-              key={item.path}
-              variant={item.active ? "secondary" : "ghost"}
-              className={`w-full justify-start ${item.active ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white'}`}
-              onClick={() => navigate(item.path)}
-            >
-              <item.icon className="h-4 w-4 mr-3" />
-              {item.label}
-            </Button>
-          ))}
-        </nav>
-
+    <EquipeLayout 
+      title="Dashboard" 
+      subtitle="Visão geral do seu trabalho"
+      headerActions={
         <Button 
-          variant="ghost" 
-          className="w-full justify-start text-gray-400 hover:text-red-400"
-          onClick={handleSignOut}
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => navigate('/equipe/tarefas/nova')}
         >
-          <LogOut className="h-4 w-4 mr-3" />
-          Sair
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Tarefa
         </Button>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-              <p className="text-gray-400">Visão geral do seu trabalho</p>
+      }
+    >
+      {/* Active Sprint Card */}
+      {activeSprint ? (
+        <Card className="bg-white border-gray-200 mb-6">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Target className="h-5 w-5 text-primary" />
+                <CardTitle className="text-gray-900">{activeSprint.name}</CardTitle>
+                <Badge className="bg-green-100 text-green-700">Ativa</Badge>
+              </div>
+              <span className="text-sm text-gray-500">
+                {new Date(activeSprint.start_date).toLocaleDateString('pt-BR')} - {new Date(activeSprint.end_date).toLocaleDateString('pt-BR')}
+              </span>
             </div>
+          </CardHeader>
+          <CardContent>
+            {activeSprint.goal && (
+              <p className="text-gray-600 mb-4">{activeSprint.goal}</p>
+            )}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-primary h-3 rounded-full transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="text-gray-900 font-semibold">{progressPercent}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-white border-gray-200 mb-6">
+          <CardContent className="py-8 text-center">
+            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhuma sprint ativa</p>
             <Button 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => navigate('/equipe/tarefas/nova')}
+              variant="outline" 
+              className="mt-4 border-gray-300 text-gray-600"
+              onClick={() => navigate('/equipe/sprints')}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Tarefa
+              Criar Sprint
             </Button>
-          </div>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Active Sprint Card */}
-          {activeSprint ? (
-            <Card className="bg-gray-900/50 border-gray-800 mb-6">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Target className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-white">{activeSprint.name}</CardTitle>
-                    <Badge className="bg-green-500/20 text-green-400">Ativa</Badge>
-                  </div>
-                  <span className="text-sm text-gray-400">
-                    {new Date(activeSprint.start_date).toLocaleDateString('pt-BR')} - {new Date(activeSprint.end_date).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {activeSprint.goal && (
-                  <p className="text-gray-300 mb-4">{activeSprint.goal}</p>
-                )}
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 bg-gray-800 rounded-full h-3">
-                    <div 
-                      className="bg-primary h-3 rounded-full transition-all"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  <span className="text-white font-semibold">{progressPercent}%</span>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-gray-900/50 border-gray-800 mb-6">
-              <CardContent className="py-8 text-center">
-                <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">Nenhuma sprint ativa</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4 border-gray-700 text-gray-300"
-                  onClick={() => navigate('/equipe/sprints')}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{taskStats.total}</p>
+              </div>
+              <ListTodo className="h-8 w-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">A Fazer</p>
+                <p className="text-2xl font-bold text-blue-600">{taskStats.to_do}</p>
+              </div>
+              <Clock className="h-8 w-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Em Progresso</p>
+                <p className="text-2xl font-bold text-yellow-600">{taskStats.in_progress}</p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Revisão</p>
+                <p className="text-2xl font-bold text-purple-600">{taskStats.review}</p>
+              </div>
+              <MessageSquare className="h-8 w-8 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Concluídas</p>
+                <p className="text-2xl font-bold text-green-600">{taskStats.done}</p>
+              </div>
+              <CheckCircle2 className="h-8 w-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* My Tasks */}
+      <Card className="bg-white border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <ListTodo className="h-5 w-5 text-primary" />
+            Minhas Tarefas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : myTasks.length > 0 ? (
+            <div className="space-y-3">
+              {myTasks.map((task) => (
+                <div 
+                  key={task.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => navigate('/equipe/tarefas')}
                 >
-                  Criar Sprint
-                </Button>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center gap-3">
+                    <Badge className={getPriorityColor(task.priority)}>
+                      {task.priority}
+                    </Badge>
+                    <span className="text-gray-900">{task.title}</span>
+                  </div>
+                  <Badge variant="outline" className="border-gray-300 text-gray-600">
+                    {getStatusLabel(task.status)}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Nenhuma tarefa atribuída a você</p>
           )}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Total</p>
-                    <p className="text-2xl font-bold text-white">{taskStats.total}</p>
-                  </div>
-                  <ListTodo className="h-8 w-8 text-gray-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">A Fazer</p>
-                    <p className="text-2xl font-bold text-blue-400">{taskStats.to_do}</p>
-                  </div>
-                  <Clock className="h-8 w-8 text-blue-500/50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Em Progresso</p>
-                    <p className="text-2xl font-bold text-yellow-400">{taskStats.in_progress}</p>
-                  </div>
-                  <AlertCircle className="h-8 w-8 text-yellow-500/50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Revisão</p>
-                    <p className="text-2xl font-bold text-purple-400">{taskStats.review}</p>
-                  </div>
-                  <MessageSquare className="h-8 w-8 text-purple-500/50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Concluídas</p>
-                    <p className="text-2xl font-bold text-green-400">{taskStats.done}</p>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8 text-green-500/50" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* My Tasks */}
-          <Card className="bg-gray-900/50 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-primary" />
-                Minhas Tarefas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : myTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {myTasks.map((task) => (
-                    <div 
-                      key={task.id}
-                      className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-                      onClick={() => navigate('/equipe/tarefas')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {task.priority}
-                        </Badge>
-                        <span className="text-white">{task.title}</span>
-                      </div>
-                      <Badge variant="outline" className="border-gray-700 text-gray-400">
-                        {getStatusLabel(task.status)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400 text-center py-8">Nenhuma tarefa atribuída a você</p>
-              )}
-              
-              <Button 
-                variant="ghost" 
-                className="w-full mt-4 text-primary hover:text-primary/80"
-                onClick={() => navigate('/equipe/tarefas')}
-              >
-                Ver todas as tarefas
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+          
+          <Button 
+            variant="ghost" 
+            className="w-full mt-4 text-primary hover:text-primary/80"
+            onClick={() => navigate('/equipe/tarefas')}
+          >
+            Ver todas as tarefas
+          </Button>
+        </CardContent>
+      </Card>
+    </EquipeLayout>
   );
 };
 
