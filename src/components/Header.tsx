@@ -66,7 +66,7 @@ export const Header = () => {
           </nav>
 
           {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3 ml-auto">
             <Button 
               variant="ghost"
               onClick={() => window.location.href = '/equipe'}
@@ -80,14 +80,6 @@ export const Header = () => {
               className="text-white hover:text-primary"
             >
               Área do Cliente
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              style={{
-                boxShadow: "0 0 20px hsl(var(--primary) / 0.3)",
-              }}
-            >
-              Fale Conosco
             </Button>
           </div>
 
