@@ -96,7 +96,7 @@ export const CTA = () => {
           </Card>
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-[hsl(0_0%_98%)] via-[hsl(220_15%_20%/0.3)] to-[hsl(220_15%_12%)]"></div>
+      
     </section>
   );
 };

@@ -70,14 +70,14 @@ export const Header = () => {
             <Button 
               variant="ghost"
               onClick={() => window.location.href = '/equipe'}
-              className="text-primary hover:text-primary/90"
+              className="text-white hover:text-primary"
             >
               Equipe
             </Button>
             <Button 
               variant="ghost"
               onClick={() => window.location.href = '/auth'}
-              className="text-primary hover:text-primary/90"
+              className="text-white hover:text-primary"
             >
               Área do Cliente
             </Button>
