@@ -65,10 +65,10 @@ export default function EquipeUsuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['team-users'],
     queryFn: async () => {
-      // Fetch profiles
+      // Fetch profiles with email
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name');
+        .select('id, first_name, last_name, email');
 
       if (profilesError) throw profilesError;
 
@@ -79,7 +79,6 @@ export default function EquipeUsuarios() {
 
       if (rolesError) throw rolesError;
 
-      // Fetch emails from auth (we'll use profiles as base)
       const usersWithRoles: UserWithRoles[] = profiles.map(profile => {
         const userRoles = allRoles
           .filter(r => r.user_id === profile.id)
@@ -89,7 +88,7 @@ export default function EquipeUsuarios() {
           id: profile.id,
           first_name: profile.first_name,
           last_name: profile.last_name,
-          email: '', // We'll need to get this differently
+          email: profile.email || '',
           roles: userRoles,
         };
       });
@@ -181,9 +180,11 @@ export default function EquipeUsuarios() {
   };
 
   const filteredUsers = users.filter(user => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.last_name.toLowerCase().includes(searchTerm.toLowerCase());
+      user.first_name.toLowerCase().includes(searchLower) ||
+      user.last_name.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 
@@ -364,7 +365,7 @@ export default function EquipeUsuarios() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar por nome..."
+            placeholder="Buscar por nome ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -413,6 +414,7 @@ export default function EquipeUsuarios() {
             <TableHeader>
               <TableRow>
                 <TableHead>Usuário</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Acessos</TableHead>
                 <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
@@ -420,23 +422,29 @@ export default function EquipeUsuarios() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                     Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{user.first_name} {user.last_name}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {getRoleBadges(user.roles)}
-                      </div>
-                    </TableCell>
+                filteredUsers.map((user) => {
+                  const displayName = user.first_name || user.last_name 
+                    ? `${user.first_name} ${user.last_name}`.trim()
+                    : user.email || 'Usuário sem nome';
+                  
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <p className="font-medium">{displayName}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-muted-foreground text-sm">{user.email || '-'}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {getRoleBadges(user.roles)}
+                        </div>
+                      </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -487,7 +495,8 @@ export default function EquipeUsuarios() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
