@@ -48,7 +48,7 @@ export const Hero = () => {
             <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {[
                 { value: "200+", label: "Projetos Entregues" },
-                { value: "15+", label: "Anos de Experiência" },
+                { value: "20+", label: "Anos de Experiência" },
                 { value: "98%", label: "Satisfação Cliente" },
                 { value: "50+", label: "Empresas Atendidas" },
               ].map((stat, index) => (
