@@ -14,6 +14,7 @@ const areas = [
   { id: 'financeiro', label: 'Financeiro' },
   { id: 'operacional', label: 'Operacional' },
   { id: 'comercial', label: 'Comercial' },
+  { id: 'chamados', label: 'Chamados' },
 ];
 
 const EquipeAuth = () => {
