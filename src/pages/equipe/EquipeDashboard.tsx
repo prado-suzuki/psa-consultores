@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   AlertCircle,
   ListTodo,
-  MessageSquare,
   RefreshCw
 } from 'lucide-react';
 
@@ -25,21 +24,19 @@ interface Sprint {
   status: string;
 }
 
-interface TaskStats {
+interface DeliverableStats {
   total: number;
-  backlog: number;
-  to_do: number;
+  pending: number;
   in_progress: number;
-  review: number;
-  done: number;
+  completed: number;
 }
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
-  const [taskStats, setTaskStats] = useState<TaskStats>({ total: 0, backlog: 0, to_do: 0, in_progress: 0, review: 0, done: 0 });
-  const [myTasks, setMyTasks] = useState<any[]>([]);
+  const [stats, setStats] = useState<DeliverableStats>({ total: 0, pending: 0, in_progress: 0, completed: 0 });
+  const [myDeliverables, setMyDeliverables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
@@ -60,34 +57,32 @@ const EquipeDashboard = () => {
       setActiveSprint(sprintData);
 
       if (sprintData) {
-        const { data: tasks } = await supabase
-          .from('tasks')
+        const { data: deliverables } = await supabase
+          .from('sprint_deliverables')
           .select('status')
           .eq('sprint_id', sprintData.id);
 
-        if (tasks) {
-          const stats: TaskStats = {
-            total: tasks.length,
-            backlog: tasks.filter(t => t.status === 'backlog').length,
-            to_do: tasks.filter(t => t.status === 'to_do').length,
-            in_progress: tasks.filter(t => t.status === 'in_progress').length,
-            review: tasks.filter(t => t.status === 'review').length,
-            done: tasks.filter(t => t.status === 'done').length,
+        if (deliverables) {
+          const deliverableStats: DeliverableStats = {
+            total: deliverables.length,
+            pending: deliverables.filter(d => d.status === 'pending').length,
+            in_progress: deliverables.filter(d => d.status === 'in_progress').length,
+            completed: deliverables.filter(d => d.status === 'completed').length,
           };
-          setTaskStats(stats);
+          setStats(deliverableStats);
         }
       }
 
       if (user) {
-        const { data: myTasksData } = await supabase
-          .from('tasks')
+        const { data: myDeliverablesData } = await supabase
+          .from('sprint_deliverables')
           .select('*')
           .eq('assigned_to', user.id)
-          .neq('status', 'done')
-          .order('priority', { ascending: true })
+          .neq('status', 'completed')
+          .order('due_date', { ascending: true })
           .limit(5);
 
-        setMyTasks(myTasksData || []);
+        setMyDeliverables(myDeliverablesData || []);
       }
 
       setLastUpdate(new Date());
@@ -98,28 +93,25 @@ const EquipeDashboard = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-700';
-      case 'high': return 'bg-orange-100 text-orange-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      backlog: 'Backlog',
-      to_do: 'A Fazer',
+      pending: 'A Fazer',
       in_progress: 'Em Progresso',
-      review: 'Revisão',
-      done: 'Concluído'
+      completed: 'Concluído'
     };
     return labels[status] || status;
   };
 
-  const progressPercent = taskStats.total > 0 
-    ? Math.round((taskStats.done / taskStats.total) * 100) 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-700';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-blue-100 text-blue-700';
+    }
+  };
+
+  const progressPercent = stats.total > 0 
+    ? Math.round((stats.completed / stats.total) * 100) 
     : 0;
 
   return (
@@ -187,13 +179,13 @@ const EquipeDashboard = () => {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card className="bg-white border-gray-200">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{taskStats.total}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
               <ListTodo className="h-8 w-8 text-gray-400" />
             </div>
@@ -204,7 +196,7 @@ const EquipeDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">A Fazer</p>
-                <p className="text-2xl font-bold text-blue-600">{taskStats.to_do}</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-blue-400" />
             </div>
@@ -215,7 +207,7 @@ const EquipeDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Em Progresso</p>
-                <p className="text-2xl font-bold text-yellow-600">{taskStats.in_progress}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-yellow-400" />
             </div>
@@ -225,19 +217,8 @@ const EquipeDashboard = () => {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Revisão</p>
-                <p className="text-2xl font-bold text-purple-600">{taskStats.review}</p>
-              </div>
-              <MessageSquare className="h-8 w-8 text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
                 <p className="text-sm text-gray-500">Concluídas</p>
-                <p className="text-2xl font-bold text-green-600">{taskStats.done}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-400" />
             </div>
@@ -245,12 +226,12 @@ const EquipeDashboard = () => {
         </Card>
       </div>
 
-      {/* My Tasks */}
+      {/* My Deliverables */}
       <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle className="text-gray-900 flex items-center gap-2">
             <ListTodo className="h-5 w-5 text-primary" />
-            Minhas Tarefas
+            Meus Entregáveis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -258,36 +239,36 @@ const EquipeDashboard = () => {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : myTasks.length > 0 ? (
+          ) : myDeliverables.length > 0 ? (
             <div className="space-y-3">
-              {myTasks.map((task) => (
+              {myDeliverables.map((deliverable) => (
                 <div 
-                  key={task.id}
+                  key={deliverable.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                  onClick={() => navigate('/equipe/tarefas')}
+                  onClick={() => navigate('/equipe/sprints')}
                 >
                   <div className="flex items-center gap-3">
-                    <Badge className={getPriorityColor(task.priority)}>
-                      {task.priority}
+                    <Badge className={getStatusColor(deliverable.status)}>
+                      {new Date(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                     </Badge>
-                    <span className="text-gray-900">{task.title}</span>
+                    <span className="text-gray-900">{deliverable.title}</span>
                   </div>
                   <Badge variant="outline" className="border-gray-300 text-gray-600">
-                    {getStatusLabel(task.status)}
+                    {getStatusLabel(deliverable.status)}
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Nenhuma tarefa atribuída a você</p>
+            <p className="text-gray-500 text-center py-8">Nenhum entregável atribuído a você</p>
           )}
           
           <Button 
             variant="ghost" 
             className="w-full mt-4 text-primary hover:text-primary/80"
-            onClick={() => navigate('/equipe/tarefas')}
+            onClick={() => navigate('/equipe/sprints')}
           >
-            Ver todas as tarefas
+            Ver sprint ativa
           </Button>
         </CardContent>
       </Card>
