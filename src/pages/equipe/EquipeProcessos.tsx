@@ -465,47 +465,47 @@ const EquipeProcessos = () => {
       <Dialog open={!!selectedProcess} onOpenChange={(open) => { if (!open) { setSelectedProcess(null); setIsEditing(false); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Workflow className="h-5 w-5 text-primary" />
-                {isEditing ? 'Editar Processo' : selectedProcess?.name}
-              </DialogTitle>
-              {!isEditing && (
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={startEditing}>
-                    <Edit2 className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4 mr-1" />
+            <DialogTitle className="flex items-center gap-2">
+              <Workflow className="h-5 w-5 text-primary" />
+              {isEditing ? 'Editar Processo' : selectedProcess?.name}
+            </DialogTitle>
+            
+            {/* Botões em linha separada, distante do X de fechar */}
+            {!isEditing && (
+              <div className="flex items-center gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={startEditing}>
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Processo</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir o processo "{selectedProcess?.name}"? 
+                        Esta ação também excluirá todas as etapas e vínculos com projetos relacionados.
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={deleteProcess}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
                         Excluir
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir Processo</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir o processo "{selectedProcess?.name}"? 
-                          Esta ação também excluirá todas as etapas e vínculos com projetos relacionados.
-                          Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={deleteProcess}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              )}
-            </div>
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </DialogHeader>
 
           <Tabs defaultValue="info" className="w-full">
