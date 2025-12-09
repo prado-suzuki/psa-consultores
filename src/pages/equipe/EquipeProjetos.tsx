@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
@@ -28,7 +29,9 @@ import {
   Filter,
   AlertCircle,
   Pencil,
-  Trash2
+  Trash2,
+  ListTodo,
+  User
 } from 'lucide-react';
 
 interface Project {
@@ -40,6 +43,23 @@ interface Project {
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+}
+
+interface BacklogTask {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  cluster: string;
+  estimated_hours: number | null;
+  assigned_to: string | null;
+}
+
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 // Helper to extract area from description
@@ -74,6 +94,10 @@ const EquipeProjetos = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('info');
+  const [backlogTasks, setBacklogTasks] = useState<BacklogTask[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingBacklog, setLoadingBacklog] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -92,6 +116,7 @@ const EquipeProjetos = () => {
 
   useEffect(() => {
     fetchProjects();
+    fetchTeamMembers();
   }, []);
 
   useEffect(() => {
@@ -107,6 +132,12 @@ const EquipeProjetos = () => {
     }
   }, [selectedProject, isEditMode]);
 
+  useEffect(() => {
+    if (selectedProject && activeTab === 'backlog') {
+      fetchBacklogTasks();
+    }
+  }, [selectedProject, activeTab]);
+
   const fetchProjects = async () => {
     try {
       const { data, error } = await supabase
@@ -121,6 +152,42 @@ const EquipeProjetos = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .order('first_name');
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
+  const fetchBacklogTasks = async () => {
+    setLoadingBacklog(true);
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, description, status, priority, cluster, estimated_hours, assigned_to')
+        .is('sprint_id', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setBacklogTasks(data || []);
+    } catch (error) {
+      console.error('Error fetching backlog tasks:', error);
+    } finally {
+      setLoadingBacklog(false);
+    }
+  };
+
+  const getMemberName = (memberId: string | null) => {
+    if (!memberId) return null;
+    const member = teamMembers.find(m => m.id === memberId);
+    return member ? `${member.first_name} ${member.last_name}`.trim() : null;
   };
 
   // Get unique areas from projects
@@ -264,14 +331,18 @@ const EquipeProjetos = () => {
   };
 
   const getPriorityBadge = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase()) {
       case 'crítica':
+      case 'urgent':
         return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Crítica</Badge>;
       case 'alta':
+      case 'high':
         return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Alta</Badge>;
       case 'média':
+      case 'medium':
         return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Média</Badge>;
       case 'baixa':
+      case 'low':
         return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Baixa</Badge>;
       default:
         return <Badge variant="outline">{priority}</Badge>;
@@ -287,6 +358,16 @@ const EquipeProjetos = () => {
     };
     const colorClass = colors[area] || 'bg-gray-100 text-gray-700';
     return <Badge className={`${colorClass} hover:${colorClass}`}>{area}</Badge>;
+  };
+
+  const getClusterBadge = (cluster: string) => {
+    const config: Record<string, { label: string; className: string }> = {
+      database: { label: 'Database', className: 'bg-purple-100 text-purple-700' },
+      frontend: { label: 'Frontend', className: 'bg-blue-100 text-blue-700' },
+      management: { label: 'Gestão', className: 'bg-teal-100 text-teal-700' }
+    };
+    const { label, className } = config[cluster] || { label: cluster, className: 'bg-gray-100 text-gray-700' };
+    return <Badge className={className}>{label}</Badge>;
   };
 
   return (
@@ -456,7 +537,7 @@ const EquipeProjetos = () => {
                     <TableRow 
                       key={project.id} 
                       className="border-gray-200 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => { setSelectedProject(project); setIsEditMode(false); }}
+                      onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
                     >
                       <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
                       <TableCell>{getAreaBadge(extractArea(project.description))}</TableCell>
@@ -469,14 +550,14 @@ const EquipeProjetos = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); setActiveTab('info'); }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(false); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -496,7 +577,7 @@ const EquipeProjetos = () => {
                 <Card 
                   key={project.id} 
                   className="bg-white border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => { setSelectedProject(project); setIsEditMode(false); }}
+                  onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
@@ -536,7 +617,7 @@ const EquipeProjetos = () => {
                         variant="ghost"
                         size="sm"
                         className="text-gray-500"
-                        onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); setActiveTab('info'); }}
                       >
                         <Pencil className="h-4 w-4 mr-1" />
                         Editar
@@ -575,8 +656,8 @@ const EquipeProjetos = () => {
       )}
 
       {/* Project Details/Edit Dialog */}
-      <Dialog open={!!selectedProject} onOpenChange={() => { setSelectedProject(null); setIsEditMode(false); }}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl">
+      <Dialog open={!!selectedProject} onOpenChange={() => { setSelectedProject(null); setIsEditMode(false); setActiveTab('info'); }}>
+        <DialogContent className="bg-white border-gray-200 max-w-2xl max-h-[85vh] overflow-y-auto">
           {selectedProject && (
             <>
               <DialogHeader>
@@ -586,201 +667,281 @@ const EquipeProjetos = () => {
                 </DialogTitle>
               </DialogHeader>
 
-              {isEditMode ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Nome do Projeto *</Label>
-                    <Input
-                      value={editProject.name}
-                      onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Descrição</Label>
-                    <Textarea
-                      value={editProject.description}
-                      onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Cliente</Label>
-                    <Input
-                      value={editProject.client_name}
-                      onChange={(e) => setEditProject({ ...editProject, client_name: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700">Data Início</Label>
-                      <Input
-                        type="date"
-                        value={editProject.start_date}
-                        onChange={(e) => setEditProject({ ...editProject, start_date: e.target.value })}
-                        className="bg-white border-gray-300 text-gray-900"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700">Data Fim</Label>
-                      <Input
-                        type="date"
-                        value={editProject.end_date}
-                        onChange={(e) => setEditProject({ ...editProject, end_date: e.target.value })}
-                        className="bg-white border-gray-300 text-gray-900"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Status</Label>
-                    <Select value={editProject.status} onValueChange={(value) => setEditProject({ ...editProject, status: value })}>
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        <SelectItem value="active">Ativo</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                        <SelectItem value="blocked">Bloqueado</SelectItem>
-                        <SelectItem value="archived">Arquivado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="info" className="flex items-center gap-2">
+                    <FolderKanban className="h-4 w-4" />
+                    Informações
+                  </TabsTrigger>
+                  <TabsTrigger value="backlog" className="flex items-center gap-2">
+                    <ListTodo className="h-4 w-4" />
+                    Backlog ({backlogTasks.length})
+                  </TabsTrigger>
+                </TabsList>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Excluir
+                <TabsContent value="info">
+                  {isEditMode ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Nome do Projeto *</Label>
+                        <Input
+                          value={editProject.name}
+                          onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
+                          className="bg-white border-gray-300 text-gray-900"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Descrição</Label>
+                        <Textarea
+                          value={editProject.description}
+                          onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+                          className="bg-white border-gray-300 text-gray-900"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Cliente</Label>
+                        <Input
+                          value={editProject.client_name}
+                          onChange={(e) => setEditProject({ ...editProject, client_name: e.target.value })}
+                          className="bg-white border-gray-300 text-gray-900"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Data Início</Label>
+                          <Input
+                            type="date"
+                            value={editProject.start_date}
+                            onChange={(e) => setEditProject({ ...editProject, start_date: e.target.value })}
+                            className="bg-white border-gray-300 text-gray-900"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Data Fim</Label>
+                          <Input
+                            type="date"
+                            value={editProject.end_date}
+                            onChange={(e) => setEditProject({ ...editProject, end_date: e.target.value })}
+                            className="bg-white border-gray-300 text-gray-900"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Status</Label>
+                        <Select value={editProject.status} onValueChange={(value) => setEditProject({ ...editProject, status: value })}>
+                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-gray-200">
+                            <SelectItem value="active">Ativo</SelectItem>
+                            <SelectItem value="completed">Concluído</SelectItem>
+                            <SelectItem value="blocked">Bloqueado</SelectItem>
+                            <SelectItem value="archived">Arquivado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-white">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. O projeto "{selectedProject.name}" será permanentemente removido.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={() => setIsEditMode(false)}>
+                            Cancelar
+                          </Button>
+                          <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProject}>
+                            Salvar Alterações
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {getStatusBadge(selectedProject.status)}
+                        {getAreaBadge(extractArea(selectedProject.description))}
+                        {getPriorityBadge(extractPriority(selectedProject.description))}
+                      </div>
+
+                      {selectedProject.description && (
+                        <div className="space-y-2">
+                          <Label className="text-gray-600 text-sm">Informações</Label>
+                          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
+                            {selectedProject.description.split('|').map((part, i) => (
+                              <div key={i} className="py-1">{part.trim()}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedProject.client_name && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Building2 className="h-4 w-4" />
+                          <span>Cliente: {selectedProject.client_name}</span>
+                        </div>
+                      )}
+
+                      {(selectedProject.start_date || selectedProject.end_date) && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            {selectedProject.start_date && `Início: ${new Date(selectedProject.start_date).toLocaleDateString('pt-BR')}`}
+                            {selectedProject.start_date && selectedProject.end_date && ' | '}
+                            {selectedProject.end_date && `Fim: ${new Date(selectedProject.end_date).toLocaleDateString('pt-BR')}`}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-primary text-primary hover:bg-primary/10"
+                          onClick={() => setIsEditMode(true)}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Editar
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-white">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. O projeto "{selectedProject.name}" será permanentemente removido.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setIsEditMode(false)}>
-                        Cancelar
-                      </Button>
-                      <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProject}>
-                        Salvar Alterações
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {getStatusBadge(selectedProject.status)}
-                    {getAreaBadge(extractArea(selectedProject.description))}
-                    {getPriorityBadge(extractPriority(selectedProject.description))}
-                  </div>
-
-                  {selectedProject.description && (
-                    <div className="space-y-2">
-                      <Label className="text-gray-600 text-sm">Informações</Label>
-                      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
-                        {selectedProject.description.split('|').map((part, i) => (
-                          <div key={i} className="py-1">{part.trim()}</div>
-                        ))}
+                        {selectedProject.status === 'active' && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                              onClick={() => { updateProjectStatus(selectedProject.id, 'completed'); setSelectedProject(null); }}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Concluir
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                              onClick={() => { updateProjectStatus(selectedProject.id, 'blocked'); setSelectedProject(null); }}
+                            >
+                              <AlertCircle className="h-4 w-4 mr-1" />
+                              Bloquear
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                              onClick={() => { updateProjectStatus(selectedProject.id, 'archived'); setSelectedProject(null); }}
+                            >
+                              <Archive className="h-4 w-4 mr-1" />
+                              Arquivar
+                            </Button>
+                          </>
+                        )}
+                        {(selectedProject.status === 'completed' || selectedProject.status === 'blocked' || selectedProject.status === 'archived') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                            onClick={() => { updateProjectStatus(selectedProject.id, 'active'); setSelectedProject(null); }}
+                          >
+                            <Clock className="h-4 w-4 mr-1" />
+                            Reativar
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90 ml-auto"
+                          onClick={() => { setSelectedProject(null); navigate(`/equipe/sprints?project=${selectedProject.id}`); }}
+                        >
+                          Ver Sprints
+                        </Button>
                       </div>
                     </div>
                   )}
+                </TabsContent>
 
-                  {selectedProject.client_name && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Building2 className="h-4 w-4" />
-                      <span>Cliente: {selectedProject.client_name}</span>
-                    </div>
-                  )}
-
-                  {(selectedProject.start_date || selectedProject.end_date) && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {selectedProject.start_date && `Início: ${new Date(selectedProject.start_date).toLocaleDateString('pt-BR')}`}
-                        {selectedProject.start_date && selectedProject.end_date && ' | '}
-                        {selectedProject.end_date && `Fim: ${new Date(selectedProject.end_date).toLocaleDateString('pt-BR')}`}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-primary text-primary hover:bg-primary/10"
-                      onClick={() => setIsEditMode(true)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    {selectedProject.status === 'active' && (
-                      <>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          onClick={() => { updateProjectStatus(selectedProject.id, 'completed'); setSelectedProject(null); }}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Concluir
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          onClick={() => { updateProjectStatus(selectedProject.id, 'blocked'); setSelectedProject(null); }}
-                        >
-                          <AlertCircle className="h-4 w-4 mr-1" />
-                          Bloquear
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          onClick={() => { updateProjectStatus(selectedProject.id, 'archived'); setSelectedProject(null); }}
-                        >
-                          <Archive className="h-4 w-4 mr-1" />
-                          Arquivar
-                        </Button>
-                      </>
-                    )}
-                    {(selectedProject.status === 'completed' || selectedProject.status === 'blocked' || selectedProject.status === 'archived') && (
-                      <Button 
-                        variant="outline" 
+                <TabsContent value="backlog">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-500">
+                        Tarefas sem sprint vinculada
+                      </p>
+                      <Button
                         size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => { updateProjectStatus(selectedProject.id, 'active'); setSelectedProject(null); }}
+                        className="bg-primary hover:bg-primary/90"
+                        onClick={() => { setSelectedProject(null); navigate('/equipe/tarefas/nova'); }}
                       >
-                        <Clock className="h-4 w-4 mr-1" />
-                        Reativar
+                        <Plus className="h-4 w-4 mr-1" />
+                        Nova Tarefa
                       </Button>
+                    </div>
+
+                    {loadingBacklog ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : backlogTasks.length > 0 ? (
+                      <div className="space-y-2">
+                        {backlogTasks.map((task) => (
+                          <Card key={task.id} className="bg-gray-50 border-gray-200">
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
+                                  {task.description && (
+                                    <p className="text-sm text-gray-500 truncate">{task.description}</p>
+                                  )}
+                                  {task.assigned_to && (
+                                    <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                                      <User className="h-3 w-3" />
+                                      {getMemberName(task.assigned_to)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  {getPriorityBadge(task.priority)}
+                                  {getClusterBadge(task.cluster)}
+                                  {task.estimated_hours && (
+                                    <Badge variant="outline" className="text-xs">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {task.estimated_hours}h
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <ListTodo className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                        <h4 className="text-gray-900 font-medium mb-1">Backlog vazio</h4>
+                        <p className="text-sm text-gray-500">
+                          Nenhuma tarefa sem sprint vinculada
+                        </p>
+                      </div>
                     )}
-                    <Button 
-                      size="sm"
-                      className="bg-primary hover:bg-primary/90 ml-auto"
-                      onClick={() => { setSelectedProject(null); navigate(`/equipe/sprints?project=${selectedProject.id}`); }}
-                    >
-                      Ver Sprints
-                    </Button>
                   </div>
-                </div>
-              )}
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </DialogContent>
