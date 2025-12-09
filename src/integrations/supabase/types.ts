@@ -96,6 +96,74 @@ export type Database = {
           },
         ]
       }
+      process_stages: {
+        Row: {
+          automation_level: string | null
+          created_at: string | null
+          description: string | null
+          frequency: string | null
+          id: string
+          inputs: Json | null
+          name: string
+          outputs: Json | null
+          process_id: string | null
+          related_projects: string[] | null
+          responsible: string | null
+          stage_order: number
+          systems: Json | null
+          time_current: string | null
+          time_target: string | null
+          updated_at: string | null
+          volume: string | null
+        }
+        Insert: {
+          automation_level?: string | null
+          created_at?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          inputs?: Json | null
+          name: string
+          outputs?: Json | null
+          process_id?: string | null
+          related_projects?: string[] | null
+          responsible?: string | null
+          stage_order: number
+          systems?: Json | null
+          time_current?: string | null
+          time_target?: string | null
+          updated_at?: string | null
+          volume?: string | null
+        }
+        Update: {
+          automation_level?: string | null
+          created_at?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          inputs?: Json | null
+          name?: string
+          outputs?: Json | null
+          process_id?: string | null
+          related_projects?: string[] | null
+          responsible?: string | null
+          stage_order?: number
+          systems?: Json | null
+          time_current?: string | null
+          time_target?: string | null
+          updated_at?: string | null
+          volume?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_stages_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processes: {
         Row: {
           area: string | null
@@ -184,6 +252,48 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      project_processes: {
+        Row: {
+          created_at: string | null
+          id: string
+          impact_type: string | null
+          impacted_stages: string[] | null
+          process_id: string | null
+          project_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          impact_type?: string | null
+          impacted_stages?: string[] | null
+          process_id?: string | null
+          project_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          impact_type?: string | null
+          impacted_stages?: string[] | null
+          process_id?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_processes_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_processes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
