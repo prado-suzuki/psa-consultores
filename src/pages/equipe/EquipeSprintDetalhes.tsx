@@ -8,10 +8,12 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X } from "lucide-react";
-import { format, parseISO, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
+import { ArrowLeft, X, ChevronDown, Users, Package } from "lucide-react";
+import { format, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Sprint {
@@ -83,6 +85,18 @@ export default function EquipeSprintDetalhes() {
   const [filterResponsible, setFilterResponsible] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('all');
+
+  // Modal do Gantt
+  const [ganttModalOpen, setGanttModalOpen] = useState(false);
+  const [selectedDayData, setSelectedDayData] = useState<{
+    day: Date;
+    personName: string;
+    personId: string;
+    deliverables: Deliverable[];
+  } | null>(null);
+
+  // Métricas expandidas
+  const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id) {
@@ -161,6 +175,17 @@ export default function EquipeSprintDetalhes() {
       setDeliverables(prev => 
         prev.map(d => d.id === deliverableId ? { ...d, ...updates } : d)
       );
+
+      // Atualizar modal se aberto
+      if (selectedDayData) {
+        setSelectedDayData(prev => prev ? {
+          ...prev,
+          deliverables: prev.deliverables.map(d => 
+            d.id === deliverableId ? { ...d, ...updates } : d
+          )
+        } : null);
+      }
+
       toast({ title: "Status atualizado" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -194,21 +219,6 @@ export default function EquipeSprintDetalhes() {
   const getParticipantNames = (participantIds: string[]) => {
     if (!participantIds || participantIds.length === 0) return "Todos";
     return participantIds.map(id => getProfileName(id)).join(", ");
-  };
-
-  const calculateProgress = () => {
-    if (deliverables.length === 0) return 0;
-    const completed = deliverables.filter(d => d.status === 'completed').length;
-    return Math.round((completed / deliverables.length) * 100);
-  };
-
-  const getDaysRemaining = () => {
-    if (!sprint) return 0;
-    return differenceInDays(parseDate(sprint.end_date), new Date());
-  };
-
-  const getTotalHours = () => {
-    return deliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0);
   };
 
   const getEventTypeBadge = (type: string) => {
@@ -300,6 +310,43 @@ export default function EquipeSprintDetalhes() {
     return { days, byPerson };
   }, [sprint, filteredDeliverables]);
 
+  // Função para abrir modal do Gantt
+  const openGanttModal = (day: Date, personId: string, dayDeliverables: Deliverable[]) => {
+    setSelectedDayData({
+      day,
+      personId,
+      personName: personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId),
+      deliverables: dayDeliverables
+    });
+    setGanttModalOpen(true);
+  };
+
+  // Função para obter entregáveis relacionados a uma métrica
+  const getRelatedDeliverables = (metric: Metric) => {
+    const metricKeywords = metric.name.toLowerCase().split(' ').filter(w => w.length > 3);
+    const categoryKeywords = metric.category?.toLowerCase().split(' ').filter(w => w.length > 3) || [];
+    const allKeywords = [...metricKeywords, ...categoryKeywords];
+    
+    return deliverables.filter(d => {
+      const titleLower = d.title.toLowerCase();
+      const descLower = d.description?.toLowerCase() || '';
+      return allKeywords.some(kw => titleLower.includes(kw) || descLower.includes(kw));
+    });
+  };
+
+  // Toggle métrica expandida
+  const toggleMetricExpanded = (metricId: string) => {
+    setExpandedMetrics(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(metricId)) {
+        newSet.delete(metricId);
+      } else {
+        newSet.add(metricId);
+      }
+      return newSet;
+    });
+  };
+
   if (loading) {
     return (
       <EquipeLayout title="Carregando...">
@@ -320,19 +367,12 @@ export default function EquipeSprintDetalhes() {
     );
   }
 
-  const progress = calculateProgress();
-  const daysRemaining = getDaysRemaining();
-  const totalHours = getTotalHours();
-  const completedCount = deliverables.filter(d => d.status === 'completed').length;
   const groupedEvents = groupEventsByDate();
 
   return (
-    <EquipeLayout 
-      title={sprint.name}
-      subtitle={sprint.goal || undefined}
-    >
+    <EquipeLayout title={sprint.name}>
       <div className="space-y-6">
-        {/* Header com navegação */}
+        {/* Header Simples - Apenas navegação e status */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate("/equipe/sprints")}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
@@ -349,37 +389,6 @@ export default function EquipeSprintDetalhes() {
              sprint.status === 'planning' ? 'Planejamento' : sprint.status}
           </Badge>
         </div>
-
-        {/* Header Limpo e Moderno */}
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-6">
-            {/* Barra de progresso proeminente */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex-1 bg-gray-100 rounded-full h-3">
-                <div 
-                  className="bg-primary h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <span className="text-xl font-bold text-gray-900 min-w-[60px] text-right">{progress}%</span>
-            </div>
-            
-            {/* Informações em linha única */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-              <span>
-                {format(parseDate(sprint.start_date), "dd/MM")} - {format(parseDate(sprint.end_date), "dd/MM/yyyy")}
-              </span>
-              <span className="text-gray-300">•</span>
-              <span>{daysRemaining > 0 ? `${daysRemaining} dias restantes` : 'Encerrada'}</span>
-              <span className="text-gray-300">•</span>
-              <span>{completedCount}/{deliverables.length} entregas</span>
-              <span className="text-gray-300">•</span>
-              <span>{totalHours}h alocadas</span>
-              <span className="text-gray-300">•</span>
-              <span>{uniqueResponsibles.length} pessoas</span>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Barra de Filtros */}
         <div className="flex flex-wrap gap-3 items-center">
@@ -496,7 +505,7 @@ export default function EquipeSprintDetalhes() {
             )}
           </TabsContent>
 
-          {/* Tab Gantt */}
+          {/* Tab Gantt - Redesenhado com barras visuais */}
           <TabsContent value="gantt" className="space-y-4">
             <Card className="bg-white border-gray-200 overflow-hidden">
               <CardContent className="p-0">
@@ -504,61 +513,85 @@ export default function EquipeSprintDetalhes() {
                   <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50 w-48 sticky left-0">
+                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50 w-48 sticky left-0 z-10">
                           Responsável
                         </th>
                         {ganttData.days.map((day, i) => (
                           <th 
                             key={i} 
-                            className={`text-center py-3 px-2 font-medium text-xs min-w-[60px] ${
+                            className={`text-center py-3 px-2 font-medium text-xs min-w-[80px] ${
                               isToday(day) ? 'bg-primary/10 text-primary' : 'text-gray-600 bg-gray-50'
                             }`}
                           >
                             <div>{format(day, "EEE", { locale: ptBR })}</div>
-                            <div className="font-bold">{format(day, "dd")}</div>
+                            <div className="font-bold text-sm">{format(day, "dd")}</div>
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {Object.entries(ganttData.byPerson).map(([personId, personDeliverables]) => (
-                        <tr key={personId} className="border-b border-gray-100">
-                          <td className="py-3 px-4 font-medium text-gray-900 bg-white sticky left-0 border-r border-gray-100">
-                            {personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId)}
-                            <div className="text-xs text-gray-500 font-normal">
-                              {personDeliverables.length} entregas
+                        <tr key={personId} className="border-b border-gray-100 hover:bg-gray-50/50">
+                          <td className="py-4 px-4 font-medium text-gray-900 bg-white sticky left-0 z-10 border-r border-gray-100">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-xs font-semibold text-primary">
+                                  {(personId === 'unassigned' ? 'NA' : getProfileName(personId).split(' ').map(n => n[0]).join('')).slice(0, 2)}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="text-sm">{personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId)}</div>
+                                <div className="text-xs text-gray-500">
+                                  {personDeliverables.length} entregas • {personDeliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0)}h
+                                </div>
+                              </div>
                             </div>
                           </td>
                           {ganttData.days.map((day, i) => {
                             const dayDeliverables = personDeliverables.filter(d => 
                               isSameDay(parseDate(d.due_date), day)
                             );
+                            const hasDeliverables = dayDeliverables.length > 0;
+                            const completedCount = dayDeliverables.filter(d => d.status === 'completed').length;
+                            const inProgressCount = dayDeliverables.filter(d => d.status === 'in_progress').length;
+                            const pendingCount = dayDeliverables.length - completedCount - inProgressCount;
+
                             return (
                               <td 
                                 key={i} 
                                 className={`py-2 px-1 ${isToday(day) ? 'bg-primary/5' : ''}`}
                               >
-                                {dayDeliverables.length > 0 && (
-                                  <div className="space-y-1">
-                                    {dayDeliverables.slice(0, 2).map((d, idx) => (
-                                      <div 
-                                        key={idx}
-                                        className={`text-xs px-2 py-1 rounded truncate ${
-                                          d.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                          d.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                                          'bg-gray-100 text-gray-700'
-                                        }`}
-                                        title={d.title}
-                                      >
-                                        {d.title.length > 12 ? d.title.slice(0, 12) + '...' : d.title}
-                                      </div>
-                                    ))}
-                                    {dayDeliverables.length > 2 && (
-                                      <div className="text-xs text-gray-500 text-center">
-                                        +{dayDeliverables.length - 2}
-                                      </div>
-                                    )}
-                                  </div>
+                                {hasDeliverables && (
+                                  <button
+                                    onClick={() => openGanttModal(day, personId, dayDeliverables)}
+                                    className="w-full group cursor-pointer hover:scale-105 transition-transform"
+                                  >
+                                    {/* Barra visual com segmentos coloridos */}
+                                    <div className="h-8 rounded-lg overflow-hidden flex shadow-sm group-hover:shadow-md transition-shadow border border-gray-200">
+                                      {completedCount > 0 && (
+                                        <div 
+                                          className="bg-green-500 h-full"
+                                          style={{ flex: completedCount }}
+                                        />
+                                      )}
+                                      {inProgressCount > 0 && (
+                                        <div 
+                                          className="bg-yellow-500 h-full"
+                                          style={{ flex: inProgressCount }}
+                                        />
+                                      )}
+                                      {pendingCount > 0 && (
+                                        <div 
+                                          className="bg-gray-300 h-full"
+                                          style={{ flex: pendingCount }}
+                                        />
+                                      )}
+                                    </div>
+                                    {/* Contador abaixo da barra */}
+                                    <div className="text-xs text-gray-600 mt-1 group-hover:text-primary transition-colors">
+                                      {dayDeliverables.length} {dayDeliverables.length === 1 ? 'entrega' : 'entregas'}
+                                    </div>
+                                  </button>
                                 )}
                               </td>
                             );
@@ -581,16 +614,19 @@ export default function EquipeSprintDetalhes() {
             {/* Legenda */}
             <div className="flex gap-6 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></div>
+                <div className="w-4 h-4 rounded bg-gray-300"></div>
                 <span>Pendente</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-yellow-100 border border-yellow-200"></div>
+                <div className="w-4 h-4 rounded bg-yellow-500"></div>
                 <span>Em Progresso</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-green-100 border border-green-200"></div>
+                <div className="w-4 h-4 rounded bg-green-500"></div>
                 <span>Concluído</span>
+              </div>
+              <div className="text-gray-400 ml-4">
+                Clique em uma barra para ver detalhes
               </div>
             </div>
           </TabsContent>
@@ -649,7 +685,7 @@ export default function EquipeSprintDetalhes() {
             )}
           </TabsContent>
 
-          {/* Tab Métricas */}
+          {/* Tab Métricas - Com contexto de responsáveis e entregáveis */}
           <TabsContent value="metrics" className="space-y-4">
             {metrics.length === 0 ? (
               <Card>
@@ -658,20 +694,28 @@ export default function EquipeSprintDetalhes() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {metrics.map((metric) => {
                   const percentage = metric.target_value 
                     ? Math.round(((metric.current_value || 0) / metric.target_value) * 100)
                     : 0;
+                  const relatedDeliverables = getRelatedDeliverables(metric);
+                  const relatedResponsibles = [...new Set(relatedDeliverables.map(d => d.assigned_to).filter(Boolean))];
+                  const isExpanded = expandedMetrics.has(metric.id);
+
                   return (
                     <Card key={metric.id} className="bg-white border-gray-200">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-900">{metric.name}</CardTitle>
-                        {metric.category && (
-                          <Badge variant="outline" className="w-fit text-xs">{metric.category}</Badge>
-                        )}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-sm font-medium text-gray-900">{metric.name}</CardTitle>
+                            {metric.category && (
+                              <Badge variant="outline" className="w-fit text-xs mt-1">{metric.category}</Badge>
+                            )}
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="space-y-3">
                         <div className="flex items-end gap-2">
                           <span className="text-3xl font-bold text-gray-900">{metric.current_value || 0}</span>
                           {metric.target_value && (
@@ -680,11 +724,12 @@ export default function EquipeSprintDetalhes() {
                         </div>
                         {metric.target_value && (
                           <>
-                            <Progress value={percentage} className="mt-3" />
-                            <p className="text-xs text-gray-500 mt-1">{percentage}% concluído</p>
+                            <Progress value={percentage} className="h-2" />
+                            <p className="text-xs text-gray-500">{percentage}% concluído</p>
                           </>
                         )}
-                        <div className="flex gap-2 mt-3">
+                        
+                        <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -700,6 +745,67 @@ export default function EquipeSprintDetalhes() {
                             -1
                           </Button>
                         </div>
+
+                        {/* Seção expandível com contexto */}
+                        <Collapsible open={isExpanded} onOpenChange={() => toggleMetricExpanded(metric.id)}>
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="w-full justify-between text-gray-600 hover:text-gray-900 mt-2">
+                              <span className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                {relatedResponsibles.length} responsáveis • {relatedDeliverables.length} entregáveis
+                              </span>
+                              <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-3 space-y-3">
+                            {/* Responsáveis */}
+                            {relatedResponsibles.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Responsáveis</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {relatedResponsibles.map(rId => (
+                                    <Badge key={rId} variant="secondary" className="text-xs">
+                                      {getProfileName(rId)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Entregáveis relacionados */}
+                            {relatedDeliverables.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Entregáveis Relacionados</h4>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                  {relatedDeliverables.map(d => (
+                                    <div key={d.id} className="flex items-center gap-2 text-sm">
+                                      <Package className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                      <span className={d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-700'}>
+                                        {d.title}
+                                      </span>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`text-xs ml-auto flex-shrink-0 ${
+                                          d.status === 'completed' ? 'bg-green-50 text-green-600' :
+                                          d.status === 'in_progress' ? 'bg-yellow-50 text-yellow-600' :
+                                          'bg-gray-50 text-gray-500'
+                                        }`}
+                                      >
+                                        {d.status === 'completed' ? '✓' : d.status === 'in_progress' ? '→' : '○'}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {relatedDeliverables.length === 0 && (
+                              <p className="text-xs text-gray-400 italic">
+                                Nenhum entregável relacionado encontrado
+                              </p>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
                       </CardContent>
                     </Card>
                   );
@@ -709,6 +815,70 @@ export default function EquipeSprintDetalhes() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Detalhes do Gantt */}
+      <Dialog open={ganttModalOpen} onOpenChange={setGanttModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>{selectedDayData?.personName}</span>
+              <span className="text-gray-400">•</span>
+              <span className="font-normal text-gray-600">
+                {selectedDayData && format(selectedDayData.day, "EEEE, dd/MM", { locale: ptBR })}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3 mt-4">
+            {selectedDayData?.deliverables.map((d) => (
+              <div 
+                key={d.id} 
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  d.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                }`}
+              >
+                <Checkbox 
+                  checked={d.status === 'completed'}
+                  onCheckedChange={(checked) => {
+                    updateDeliverableStatus(d.id, checked ? 'completed' : 'pending');
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className={`font-medium ${d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                    {d.title}
+                  </p>
+                  {d.description && (
+                    <p className="text-sm text-gray-500 truncate">{d.description}</p>
+                  )}
+                </div>
+                {d.estimated_hours && (
+                  <Badge variant="outline" className="flex-shrink-0">
+                    {d.estimated_hours}h
+                  </Badge>
+                )}
+              </div>
+            ))}
+
+            {selectedDayData?.deliverables.length === 0 && (
+              <p className="text-center text-gray-500 py-4">
+                Nenhuma entrega para este dia
+              </p>
+            )}
+          </div>
+
+          {/* Resumo */}
+          {selectedDayData && selectedDayData.deliverables.length > 0 && (
+            <div className="flex items-center justify-between pt-4 border-t text-sm text-gray-600">
+              <span>
+                {selectedDayData.deliverables.filter(d => d.status === 'completed').length} de {selectedDayData.deliverables.length} concluídos
+              </span>
+              <span>
+                {selectedDayData.deliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0)}h totais
+              </span>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </EquipeLayout>
   );
 }
