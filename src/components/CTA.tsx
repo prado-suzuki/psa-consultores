@@ -23,7 +23,7 @@ export const CTA = () => {
               <Mail className="h-6 w-6 text-primary flex-shrink-0" />
               <div>
                 <div className="text-sm text-muted-foreground">E-mail</div>
-                <div className="font-semibold text-foreground">contato@pradosuzuki.com</div>
+                <div className="font-semibold text-foreground">contato@psaconsultores.com.br</div>
               </div>
             </div>
 
