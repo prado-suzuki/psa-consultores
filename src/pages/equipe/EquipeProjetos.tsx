@@ -31,7 +31,9 @@ import {
   Pencil,
   Trash2,
   ListTodo,
-  User
+  User,
+  Workflow,
+  ArrowRight
 } from 'lucide-react';
 
 interface Project {
@@ -56,11 +58,34 @@ interface BacklogTask {
   assigned_to: string | null;
 }
 
+interface Process {
+  id: string;
+  name: string;
+  description: string | null;
+  area: string | null;
+  stage: string;
+  priority: string | null;
+  frequency: string | null;
+  volume_month: number | null;
+  financial_impact: string | null;
+  project_id: string | null;
+}
+
 interface TeamMember {
   id: string;
   first_name: string;
   last_name: string;
 }
+
+// Process stages configuration
+const PROCESS_STAGES = [
+  { value: 'discovery', label: 'Descoberta', color: 'bg-gray-100 text-gray-700' },
+  { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
+  { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
+  { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },
+  { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
+  { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' }
+];
 
 // Helper to extract area from description
 const extractArea = (description: string | null): string => {
@@ -96,8 +121,12 @@ const EquipeProjetos = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('info');
   const [backlogTasks, setBacklogTasks] = useState<BacklogTask[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loadingBacklog, setLoadingBacklog] = useState(false);
+  const [loadingProcesses, setLoadingProcesses] = useState(false);
+  const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
+  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -112,6 +141,26 @@ const EquipeProjetos = () => {
     start_date: '',
     end_date: '',
     status: ''
+  });
+  const [newProcess, setNewProcess] = useState({
+    name: '',
+    description: '',
+    area: '',
+    stage: 'discovery',
+    priority: 'medium',
+    frequency: '',
+    volume_month: '',
+    financial_impact: ''
+  });
+  const [editProcess, setEditProcess] = useState({
+    name: '',
+    description: '',
+    area: '',
+    stage: '',
+    priority: '',
+    frequency: '',
+    volume_month: '',
+    financial_impact: ''
   });
 
   useEffect(() => {
@@ -133,10 +182,29 @@ const EquipeProjetos = () => {
   }, [selectedProject, isEditMode]);
 
   useEffect(() => {
-    if (selectedProject && activeTab === 'backlog') {
-      fetchBacklogTasks();
+    if (selectedProject) {
+      if (activeTab === 'backlog') {
+        fetchBacklogTasks();
+      } else if (activeTab === 'processes') {
+        fetchProcesses();
+      }
     }
   }, [selectedProject, activeTab]);
+
+  useEffect(() => {
+    if (selectedProcess) {
+      setEditProcess({
+        name: selectedProcess.name,
+        description: selectedProcess.description || '',
+        area: selectedProcess.area || '',
+        stage: selectedProcess.stage,
+        priority: selectedProcess.priority || 'medium',
+        frequency: selectedProcess.frequency || '',
+        volume_month: selectedProcess.volume_month?.toString() || '',
+        financial_impact: selectedProcess.financial_impact || ''
+      });
+    }
+  }, [selectedProcess]);
 
   const fetchProjects = async () => {
     try {
@@ -181,6 +249,25 @@ const EquipeProjetos = () => {
       console.error('Error fetching backlog tasks:', error);
     } finally {
       setLoadingBacklog(false);
+    }
+  };
+
+  const fetchProcesses = async () => {
+    if (!selectedProject) return;
+    setLoadingProcesses(true);
+    try {
+      const { data, error } = await supabase
+        .from('processes')
+        .select('*')
+        .eq('project_id', selectedProject.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setProcesses(data || []);
+    } catch (error) {
+      console.error('Error fetching processes:', error);
+    } finally {
+      setLoadingProcesses(false);
     }
   };
 
@@ -298,6 +385,130 @@ const EquipeProjetos = () => {
     }
   };
 
+  const handleCreateProcess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      const { error } = await supabase.from('processes').insert({
+        name: newProcess.name,
+        description: newProcess.description || null,
+        area: newProcess.area || null,
+        stage: newProcess.stage,
+        priority: newProcess.priority || null,
+        frequency: newProcess.frequency || null,
+        volume_month: newProcess.volume_month ? Number(newProcess.volume_month) : null,
+        financial_impact: newProcess.financial_impact || null,
+        project_id: selectedProject.id,
+        created_by: user?.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Processo criado!",
+        description: "O novo processo foi adicionado ao projeto.",
+      });
+
+      setIsProcessDialogOpen(false);
+      setNewProcess({ name: '', description: '', area: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
+      fetchProcesses();
+    } catch (error) {
+      console.error('Error creating process:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o processo.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateProcess = async () => {
+    if (!selectedProcess) return;
+
+    try {
+      const { error } = await supabase
+        .from('processes')
+        .update({
+          name: editProcess.name,
+          description: editProcess.description || null,
+          area: editProcess.area || null,
+          stage: editProcess.stage,
+          priority: editProcess.priority || null,
+          frequency: editProcess.frequency || null,
+          volume_month: editProcess.volume_month ? Number(editProcess.volume_month) : null,
+          financial_impact: editProcess.financial_impact || null
+        })
+        .eq('id', selectedProcess.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Processo atualizado!",
+        description: "As alterações foram salvas.",
+      });
+
+      setSelectedProcess(null);
+      fetchProcesses();
+    } catch (error) {
+      console.error('Error updating process:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o processo.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteProcess = async () => {
+    if (!selectedProcess) return;
+
+    try {
+      const { error } = await supabase
+        .from('processes')
+        .delete()
+        .eq('id', selectedProcess.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Processo excluído!",
+        description: "O processo foi removido.",
+      });
+
+      setSelectedProcess(null);
+      fetchProcesses();
+    } catch (error) {
+      console.error('Error deleting process:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o processo.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const advanceProcessStage = async (process: Process) => {
+    const currentIndex = PROCESS_STAGES.findIndex(s => s.value === process.stage);
+    if (currentIndex < PROCESS_STAGES.length - 1) {
+      const nextStage = PROCESS_STAGES[currentIndex + 1].value;
+      try {
+        await supabase
+          .from('processes')
+          .update({ stage: nextStage })
+          .eq('id', process.id);
+        
+        fetchProcesses();
+        toast({
+          title: "Estágio avançado!",
+          description: `Processo movido para ${PROCESS_STAGES[currentIndex + 1].label}.`,
+        });
+      } catch (error) {
+        console.error('Error advancing process:', error);
+      }
+    }
+  };
+
   const updateProjectStatus = async (projectId: string, status: string) => {
     try {
       await supabase
@@ -334,9 +545,9 @@ const EquipeProjetos = () => {
     switch (priority?.toLowerCase()) {
       case 'crítica':
       case 'urgent':
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Crítica</Badge>;
-      case 'alta':
       case 'high':
+        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Alta</Badge>;
+      case 'alta':
         return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Alta</Badge>;
       case 'média':
       case 'medium':
@@ -368,6 +579,12 @@ const EquipeProjetos = () => {
     };
     const { label, className } = config[cluster] || { label: cluster, className: 'bg-gray-100 text-gray-700' };
     return <Badge className={className}>{label}</Badge>;
+  };
+
+  const getStageBadge = (stage: string) => {
+    const stageConfig = PROCESS_STAGES.find(s => s.value === stage);
+    if (!stageConfig) return <Badge variant="outline">{stage}</Badge>;
+    return <Badge className={stageConfig.color}>{stageConfig.label}</Badge>;
   };
 
   return (
@@ -668,10 +885,14 @@ const EquipeProjetos = () => {
               </DialogHeader>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="info" className="flex items-center gap-2">
                     <FolderKanban className="h-4 w-4" />
                     Informações
+                  </TabsTrigger>
+                  <TabsTrigger value="processes" className="flex items-center gap-2">
+                    <Workflow className="h-4 w-4" />
+                    Processos ({processes.length})
                   </TabsTrigger>
                   <TabsTrigger value="backlog" className="flex items-center gap-2">
                     <ListTodo className="h-4 w-4" />
@@ -877,6 +1098,97 @@ const EquipeProjetos = () => {
                   )}
                 </TabsContent>
 
+                <TabsContent value="processes">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-500">
+                        Processos da empresa vinculados a este projeto
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90"
+                        onClick={() => setIsProcessDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Novo Processo
+                      </Button>
+                    </div>
+
+                    {/* Stages legend */}
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+                      {PROCESS_STAGES.map((stage, index) => (
+                        <div key={stage.value} className="flex items-center gap-1">
+                          <Badge className={stage.color}>{stage.label}</Badge>
+                          {index < PROCESS_STAGES.length - 1 && (
+                            <ArrowRight className="h-3 w-3 text-gray-400" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {loadingProcesses ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : processes.length > 0 ? (
+                      <div className="space-y-2">
+                        {processes.map((process) => (
+                          <Card key={process.id} className="bg-gray-50 border-gray-200">
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-gray-900">{process.name}</h4>
+                                    {getStageBadge(process.stage)}
+                                  </div>
+                                  {process.description && (
+                                    <p className="text-sm text-gray-500 truncate mt-1">{process.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                    {process.area && <span>Área: {process.area}</span>}
+                                    {process.frequency && <span>Freq: {process.frequency}</span>}
+                                    {process.volume_month && <span>Vol: {process.volume_month}/mês</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  {process.priority && getPriorityBadge(process.priority)}
+                                  {process.stage !== 'completed' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-primary hover:text-primary"
+                                      onClick={() => advanceProcessStage(process)}
+                                      title="Avançar estágio"
+                                    >
+                                      <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-500"
+                                    onClick={() => setSelectedProcess(process)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Workflow className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                        <h4 className="text-gray-900 font-medium mb-1">Nenhum processo</h4>
+                        <p className="text-sm text-gray-500">
+                          Adicione processos da empresa para acompanhar os estágios
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="backlog">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -942,6 +1254,238 @@ const EquipeProjetos = () => {
                   </div>
                 </TabsContent>
               </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Process Dialog */}
+      <Dialog open={isProcessDialogOpen} onOpenChange={setIsProcessDialogOpen}>
+        <DialogContent className="bg-white border-gray-200">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateProcess} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700">Nome do Processo *</Label>
+              <Input
+                value={newProcess.name}
+                onChange={(e) => setNewProcess({ ...newProcess, name: e.target.value })}
+                className="bg-white border-gray-300 text-gray-900"
+                placeholder="Ex: Emissão de Notas Fiscais"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Descrição</Label>
+              <Textarea
+                value={newProcess.description}
+                onChange={(e) => setNewProcess({ ...newProcess, description: e.target.value })}
+                className="bg-white border-gray-300 text-gray-900"
+                placeholder="Descreva o processo..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Área</Label>
+                <Input
+                  value={newProcess.area}
+                  onChange={(e) => setNewProcess({ ...newProcess, area: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                  placeholder="Ex: Fiscal"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700">Estágio</Label>
+                <Select value={newProcess.stage} onValueChange={(value) => setNewProcess({ ...newProcess, stage: value })}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    {PROCESS_STAGES.map(stage => (
+                      <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Prioridade</Label>
+                <Select value={newProcess.priority} onValueChange={(value) => setNewProcess({ ...newProcess, priority: value })}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="low">Baixa</SelectItem>
+                    <SelectItem value="medium">Média</SelectItem>
+                    <SelectItem value="high">Alta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700">Frequência</Label>
+                <Input
+                  value={newProcess.frequency}
+                  onChange={(e) => setNewProcess({ ...newProcess, frequency: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                  placeholder="Ex: Diária"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Volume/Mês</Label>
+                <Input
+                  type="number"
+                  value={newProcess.volume_month}
+                  onChange={(e) => setNewProcess({ ...newProcess, volume_month: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                  placeholder="Ex: 500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700">Impacto Financeiro</Label>
+                <Input
+                  value={newProcess.financial_impact}
+                  onChange={(e) => setNewProcess({ ...newProcess, financial_impact: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                  placeholder="Ex: Alto"
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+              Criar Processo
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Process Dialog */}
+      <Dialog open={!!selectedProcess} onOpenChange={() => setSelectedProcess(null)}>
+        <DialogContent className="bg-white border-gray-200">
+          {selectedProcess && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-gray-900">Editar Processo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Nome do Processo *</Label>
+                  <Input
+                    value={editProcess.name}
+                    onChange={(e) => setEditProcess({ ...editProcess, name: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Descrição</Label>
+                  <Textarea
+                    value={editProcess.description}
+                    onChange={(e) => setEditProcess({ ...editProcess, description: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Área</Label>
+                    <Input
+                      value={editProcess.area}
+                      onChange={(e) => setEditProcess({ ...editProcess, area: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Estágio</Label>
+                    <Select value={editProcess.stage} onValueChange={(value) => setEditProcess({ ...editProcess, stage: value })}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        {PROCESS_STAGES.map(stage => (
+                          <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Prioridade</Label>
+                    <Select value={editProcess.priority} onValueChange={(value) => setEditProcess({ ...editProcess, priority: value })}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="low">Baixa</SelectItem>
+                        <SelectItem value="medium">Média</SelectItem>
+                        <SelectItem value="high">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Frequência</Label>
+                    <Input
+                      value={editProcess.frequency}
+                      onChange={(e) => setEditProcess({ ...editProcess, frequency: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Volume/Mês</Label>
+                    <Input
+                      type="number"
+                      value={editProcess.volume_month}
+                      onChange={(e) => setEditProcess({ ...editProcess, volume_month: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Impacto Financeiro</Label>
+                    <Input
+                      value={editProcess.financial_impact}
+                      onChange={(e) => setEditProcess({ ...editProcess, financial_impact: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir processo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. O processo "{selectedProcess.name}" será permanentemente removido.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteProcess} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setSelectedProcess(null)}>
+                      Cancelar
+                    </Button>
+                    <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProcess}>
+                      Salvar Alterações
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </DialogContent>

@@ -429,158 +429,154 @@ const EquipeSprints = () => {
         </Dialog>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lista de Sprints */}
-        <div className="lg:col-span-2">
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          ) : sprints.length > 0 ? (
-            <div className="space-y-4">
-              {sprints.map((sprint) => {
-                const isExpanded = expandedSprints.has(sprint.id);
-                const sprintHours = sprintHoursMap[sprint.id] || [];
-                const totalHours = getSprintTotalHours(sprint.id);
-                
-                return (
-                  <Card key={sprint.id} className="bg-white border-gray-200">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Target className="h-5 w-5 text-primary" />
-                          <CardTitle className="text-gray-900">{sprint.name}</CardTitle>
-                          {getStatusBadge(sprint.status)}
-                          {sprint.project_id && (
-                            <Badge variant="outline" className="border-gray-300 text-gray-600">
-                              {getProjectName(sprint.project_id)}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-gray-500 hover:text-gray-700"
-                            onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="border-primary text-primary hover:bg-primary/10"
-                            onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver Detalhes
-                          </Button>
-                          {sprint.status === 'active' ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                              onClick={() => updateSprintStatus(sprint.id, 'completed')}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Concluir
-                            </Button>
-                          ) : sprint.status === 'completed' ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                              onClick={() => updateSprintStatus(sprint.id, 'active')}
-                            >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Reabrir
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {sprint.goal && (
-                        <p className="text-gray-600 mb-4">{sprint.goal}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(sprint.start_date).toLocaleDateString('pt-BR')} - {new Date(sprint.end_date).toLocaleDateString('pt-BR')}
-                        </span>
-                        {totalHours > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {totalHours.toFixed(1)}h alocadas
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Horas por pessoa - expansível */}
-                      {sprintHours.length > 0 && (
-                        <div className="border-t border-gray-100 pt-3">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-between text-gray-600 hover:text-gray-900"
-                            onClick={() => toggleSprintExpanded(sprint.id)}
-                          >
-                            <span className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              Horas por Pessoa ({sprintHours.length})
-                            </span>
-                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          </Button>
-                          
-                          {isExpanded && (
-                            <div className="mt-3 space-y-3">
-                              {sprintHours.map((item) => (
-                                <div key={item.userId} className="space-y-1">
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-700">{item.name}</span>
-                                    <span className="font-medium text-gray-900">{item.hours.toFixed(1)}h</span>
-                                  </div>
-                                  <Progress 
-                                    value={Math.min((item.hours / 40) * 100, 100)} 
-                                    className="h-1.5"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <Card className="bg-white border-gray-200">
-              <CardContent className="py-16 text-center">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
-                <p className="text-gray-500 mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
-                <Button 
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={() => setIsDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Sprint
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Painel de Horas Acumuladas */}
-        <div className="space-y-4">
-          <HorasAcumuladas 
-            showRoutines={true}
-            title="Visão Geral de Horas"
-          />
-        </div>
+      {/* Card de Horas no topo */}
+      <div className="mb-6">
+        <HorasAcumuladas 
+          showRoutines={true}
+          title="Visão Geral de Horas"
+        />
       </div>
+
+      {/* Lista de Sprints */}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : sprints.length > 0 ? (
+        <div className="space-y-4">
+          {sprints.map((sprint) => {
+            const isExpanded = expandedSprints.has(sprint.id);
+            const sprintHours = sprintHoursMap[sprint.id] || [];
+            const totalHours = getSprintTotalHours(sprint.id);
+            
+            return (
+              <Card key={sprint.id} className="bg-white border-gray-200">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Target className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-gray-900">{sprint.name}</CardTitle>
+                      {getStatusBadge(sprint.status)}
+                      {sprint.project_id && (
+                        <Badge variant="outline" className="border-gray-300 text-gray-600">
+                          {getProjectName(sprint.project_id)}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-gray-500 hover:text-gray-700"
+                        onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-primary text-primary hover:bg-primary/10"
+                        onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver Detalhes
+                      </Button>
+                      {sprint.status === 'active' ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                          onClick={() => updateSprintStatus(sprint.id, 'completed')}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Concluir
+                        </Button>
+                      ) : sprint.status === 'completed' ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                          onClick={() => updateSprintStatus(sprint.id, 'active')}
+                        >
+                          <Clock className="h-4 w-4 mr-1" />
+                          Reabrir
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {sprint.goal && (
+                    <p className="text-gray-600 mb-4">{sprint.goal}</p>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(sprint.start_date).toLocaleDateString('pt-BR')} - {new Date(sprint.end_date).toLocaleDateString('pt-BR')}
+                    </span>
+                    {totalHours > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {totalHours.toFixed(1)}h alocadas
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Horas por pessoa - expansível */}
+                  {sprintHours.length > 0 && (
+                    <div className="border-t border-gray-100 pt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between text-gray-600 hover:text-gray-900"
+                        onClick={() => toggleSprintExpanded(sprint.id)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Horas por Pessoa ({sprintHours.length})
+                        </span>
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                      
+                      {isExpanded && (
+                        <div className="mt-3 space-y-3">
+                          {sprintHours.map((item) => (
+                            <div key={item.userId} className="space-y-1">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-700">{item.name}</span>
+                                <span className="font-medium text-gray-900">{item.hours.toFixed(1)}h</span>
+                              </div>
+                              <Progress 
+                                value={Math.min((item.hours / 40) * 100, 100)} 
+                                className="h-1.5"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="bg-white border-gray-200">
+          <CardContent className="py-16 text-center">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
+            <p className="text-gray-500 mb-4">Crie sua primeira sprint para começar a organizar o trabalho</p>
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Sprint
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Sprint Dialog */}
       <Dialog open={!!selectedSprint && isEditMode} onOpenChange={() => { setSelectedSprint(null); setIsEditMode(false); }}>
