@@ -24,7 +24,7 @@ export const CTA = () => {
                 <Phone className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">Telefone</div>
-                  <div className="font-semibold text-foreground">(11) 9999-9999</div>
+                  <div className="font-semibold text-foreground">+55 (65) 3622-2426</div>
                 </div>
               </div>
 
@@ -32,7 +32,7 @@ export const CTA = () => {
                 <Mail className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">E-mail</div>
-                  <div className="font-semibold text-foreground">contato@psaconsultores.com.br</div>
+                  <div className="font-semibold text-foreground">contato@pradosuzuki.com</div>
                 </div>
               </div>
 
@@ -40,7 +40,7 @@ export const CTA = () => {
                 <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
                   <div className="text-sm text-muted-foreground">Endereço</div>
-                  <div className="font-semibold text-foreground">São Paulo, SP</div>
+                  <div className="font-semibold text-foreground">Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias – Cuiabá/MT, CEP 78043-292</div>
                 </div>
               </div>
             </div>
