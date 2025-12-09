@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -109,7 +110,15 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Login */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
+      <div className="w-full lg:w-1/2 flex flex-col p-8 bg-background">
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao site
+        </Link>
+        <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-foreground">
@@ -297,6 +306,7 @@ export default function Auth() {
               </div>
             </form>
           )}
+        </div>
         </div>
       </div>
 
