@@ -353,6 +353,8 @@ export default function EquipeSprintDetalhes() {
       
       return {
         ...d,
+        startDate,
+        endDate,
         startOffset,
         duration,
         barLeft: (startOffset / totalDays) * 100,
@@ -362,6 +364,66 @@ export default function EquipeSprintDetalhes() {
     
     return { days, deliverables: chartDeliverables, totalDays };
   }, [sprint, filteredDeliverables]);
+
+  // Gantt agrupado por pessoa
+  const [expandedPersons, setExpandedPersons] = useState<Set<string>>(new Set());
+
+  const ganttByPerson = useMemo(() => {
+    if (!sprint) return [];
+    
+    const sprintStart = parseDate(sprint.start_date);
+    const sprintEnd = parseDate(sprint.end_date);
+    const totalDays = ganttChartData.totalDays;
+    
+    const grouped: Record<string, typeof ganttChartData.deliverables> = {};
+    
+    ganttChartData.deliverables.forEach(d => {
+      const personId = d.assigned_to || 'unassigned';
+      if (!grouped[personId]) grouped[personId] = [];
+      grouped[personId].push(d);
+    });
+    
+    return Object.entries(grouped).map(([personId, items]) => {
+      const totalHours = items.reduce((sum, d) => sum + (d.estimated_hours || 0), 0);
+      const completedCount = items.filter(d => d.status === 'completed').length;
+      
+      // Calcular período consolidado da pessoa
+      let minStart = sprintEnd;
+      let maxEnd = sprintStart;
+      items.forEach(d => {
+        if (d.startDate < minStart) minStart = d.startDate;
+        if (d.endDate > maxEnd) maxEnd = d.endDate;
+      });
+      
+      const consolidatedStartOffset = Math.max(0, differenceInDays(minStart, sprintStart));
+      const consolidatedDuration = Math.max(1, differenceInDays(maxEnd, minStart) + 1);
+      
+      return {
+        personId,
+        personName: getProfileName(personId),
+        deliverables: items,
+        totalHours,
+        completedCount,
+        count: items.length,
+        minStart,
+        maxEnd,
+        consolidatedBarLeft: (consolidatedStartOffset / totalDays) * 100,
+        consolidatedBarWidth: (consolidatedDuration / totalDays) * 100
+      };
+    }).sort((a, b) => a.personName.localeCompare(b.personName));
+  }, [ganttChartData, sprint, getProfileName]);
+
+  const togglePersonExpanded = (personId: string) => {
+    setExpandedPersons(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(personId)) {
+        newSet.delete(personId);
+      } else {
+        newSet.add(personId);
+      }
+      return newSet;
+    });
+  };
 
   // Função para obter entregáveis relacionados a uma métrica
   const getRelatedDeliverables = (metric: Metric) => {
@@ -551,25 +613,26 @@ export default function EquipeSprintDetalhes() {
             )}
           </TabsContent>
 
-          {/* Tab Gantt - REAL com barras horizontais por entregável */}
+          {/* Tab Gantt - REAL com accordion por pessoa */}
           <TabsContent value="gantt" className="space-y-4">
             <Card className="bg-white border-gray-200 overflow-hidden">
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
+                {/* Gantt Chart Container */}
+                <div className="border border-gray-200 rounded-lg overflow-auto bg-white">
                   {/* Header com dias */}
                   <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
                     <div className="flex">
-                      <div className="w-72 flex-shrink-0 px-4 py-3 font-medium text-gray-700 border-r border-gray-200">
-                        Entregável
+                      <div className="w-[340px] flex-shrink-0 px-4 py-3 font-medium text-gray-700 border-r border-gray-200">
+                        Responsável / Entregável
                       </div>
-                      <div className="flex-1 flex min-w-[600px]">
+                      <div className="flex-1 flex min-w-[500px]">
                         {ganttChartData.days.map((day, i) => (
                           <div 
                             key={i}
                             className={`flex-1 text-center py-2 text-xs border-r border-gray-100 last:border-r-0 ${
                               isToday(day) ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'
                             }`}
-                            style={{ minWidth: '50px' }}
+                            style={{ minWidth: '45px' }}
                           >
                             <div>{format(day, "EEE", { locale: ptBR })}</div>
                             <div className="font-medium">{format(day, "dd")}</div>
@@ -579,75 +642,120 @@ export default function EquipeSprintDetalhes() {
                     </div>
                   </div>
                   
-                  {/* Linhas do Gantt - Uma por entregável */}
-                  <div className="divide-y divide-gray-100">
-                    {ganttChartData.deliverables.length === 0 ? (
+                  {/* Linhas do Gantt - Agrupado por pessoa */}
+                  <div className="divide-y divide-gray-200">
+                    {ganttByPerson.length === 0 ? (
                       <div className="py-12 text-center text-gray-500">
                         Nenhum entregável encontrado
                       </div>
                     ) : (
-                      ganttChartData.deliverables.map((d) => (
-                        <div key={d.id} className="flex hover:bg-gray-50/50 group">
-                          {/* Nome do entregável */}
-                          <div className="w-72 flex-shrink-0 px-4 py-3 border-r border-gray-100 bg-white">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => openEditModal(d)}
-                                className="flex-1 text-left group-hover:text-primary transition-colors"
-                              >
-                                <div className={`text-sm font-medium truncate ${d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                                  {d.title}
-                                </div>
-                                <div className="text-xs text-gray-500 truncate">
-                                  {getProfileName(d.assigned_to)}
-                                </div>
-                              </button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => openEditModal(d)}
-                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 h-7 w-7 p-0"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {/* Área da barra */}
-                          <div className="flex-1 relative h-14 min-w-[600px]">
-                            {/* Grid lines */}
-                            <div className="absolute inset-0 flex">
-                              {ganttChartData.days.map((day, i) => (
-                                <div 
-                                  key={i}
-                                  className={`flex-1 border-r border-gray-100 last:border-r-0 ${
-                                    isToday(day) ? 'bg-primary/5' : ''
-                                  }`}
-                                  style={{ minWidth: '50px' }}
-                                />
-                              ))}
-                            </div>
-                            
-                            {/* Barra do entregável */}
+                      ganttByPerson.map((personGroup) => {
+                        const isExpanded = expandedPersons.has(personGroup.personId);
+                        
+                        return (
+                          <div key={personGroup.personId}>
+                            {/* Header da pessoa (sempre visível) */}
                             <button
-                              onClick={() => openEditModal(d)}
-                              className={`absolute top-3 h-8 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer ${getStatusColor(d.status)} hover:scale-[1.02]`}
-                              style={{
-                                left: `${d.barLeft}%`,
-                                width: `${Math.max(d.barWidth, 3)}%`,
-                                minWidth: '30px'
-                              }}
-                              title={`${d.title} (${format(parseDate(d.start_date || sprint.start_date), "dd/MM")} - ${format(parseDate(d.due_date), "dd/MM")})`}
+                              onClick={() => togglePersonExpanded(personGroup.personId)}
+                              className="w-full flex hover:bg-gray-50/80 transition-colors"
                             >
-                              <div className="h-full flex items-center px-3 overflow-hidden">
-                                <span className="text-white text-xs font-medium truncate drop-shadow-sm">
-                                  {d.estimated_hours ? `${d.estimated_hours}h` : ''}
-                                </span>
+                              {/* Nome da pessoa + resumo */}
+                              <div className="w-[340px] flex-shrink-0 px-4 py-3 border-r border-gray-200 bg-gray-50/50 text-left">
+                                <div className="flex items-center gap-2">
+                                  <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900">{personGroup.personName}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {personGroup.count} entregável{personGroup.count !== 1 ? 'is' : ''} • {personGroup.totalHours}h • {personGroup.completedCount}/{personGroup.count} concluídos
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Barra consolidada */}
+                              <div className="flex-1 relative h-12 min-w-[500px]">
+                                {/* Grid lines */}
+                                <div className="absolute inset-0 flex">
+                                  {ganttChartData.days.map((day, i) => (
+                                    <div 
+                                      key={i}
+                                      className={`flex-1 border-r border-gray-100 last:border-r-0 ${
+                                        isToday(day) ? 'bg-primary/5' : ''
+                                      }`}
+                                      style={{ minWidth: '45px' }}
+                                    />
+                                  ))}
+                                </div>
+                                
+                                {/* Barra consolidada quando fechado */}
+                                {!isExpanded && (
+                                  <div
+                                    className="absolute top-4 h-4 rounded-full bg-primary/30 border border-primary/50"
+                                    style={{
+                                      left: `${personGroup.consolidatedBarLeft}%`,
+                                      width: `${Math.max(personGroup.consolidatedBarWidth, 3)}%`,
+                                      minWidth: '20px'
+                                    }}
+                                    title={`${format(personGroup.minStart, "dd/MM")} - ${format(personGroup.maxEnd, "dd/MM")}`}
+                                  />
+                                )}
                               </div>
                             </button>
+                            
+                            {/* Entregáveis expandidos */}
+                            {isExpanded && (
+                              <div className="divide-y divide-gray-100 bg-white">
+                                {personGroup.deliverables.map((d) => (
+                                  <div key={d.id} className="flex hover:bg-gray-50/50 group">
+                                    {/* Nome do entregável */}
+                                    <div className="w-[340px] flex-shrink-0 px-4 py-2 pl-10 border-r border-gray-100 bg-white">
+                                      <button
+                                        onClick={() => openEditModal(d)}
+                                        className="w-full text-left group-hover:text-primary transition-colors"
+                                      >
+                                        <div className={`text-sm leading-tight ${d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                          {d.title}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-0.5">
+                                          {format(d.startDate, "dd/MM")} - {format(d.endDate, "dd/MM")}
+                                        </div>
+                                      </button>
+                                    </div>
+                                    
+                                    {/* Área da barra */}
+                                    <div className="flex-1 relative h-10 min-w-[500px]">
+                                      {/* Grid lines */}
+                                      <div className="absolute inset-0 flex">
+                                        {ganttChartData.days.map((day, i) => (
+                                          <div 
+                                            key={i}
+                                            className={`flex-1 border-r border-gray-100 last:border-r-0 ${
+                                              isToday(day) ? 'bg-primary/5' : ''
+                                            }`}
+                                            style={{ minWidth: '45px' }}
+                                          />
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Barra do entregável - mais fina */}
+                                      <button
+                                        onClick={() => openEditModal(d)}
+                                        className={`absolute top-3 h-4 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer ${getStatusColor(d.status)} hover:scale-y-125`}
+                                        style={{
+                                          left: `${d.barLeft}%`,
+                                          width: `${Math.max(d.barWidth, 3)}%`,
+                                          minWidth: '20px'
+                                        }}
+                                        title={`${d.title} (${format(d.startDate, "dd/MM")} - ${format(d.endDate, "dd/MM")})`}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -655,21 +763,25 @@ export default function EquipeSprintDetalhes() {
             </Card>
 
             {/* Legenda */}
-            <div className="flex gap-6 text-sm text-gray-600">
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
                 <span>Pendente</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                 <span>Em Progresso</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 <span>Concluído</span>
               </div>
-              <div className="text-gray-400 ml-4">
-                Clique em uma barra para editar
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-3 rounded-full bg-primary/30 border border-primary/50"></div>
+                <span>Período consolidado</span>
+              </div>
+              <div className="text-gray-400 ml-2">
+                Clique para expandir/editar
               </div>
             </div>
           </TabsContent>
