@@ -27,9 +27,13 @@ const EquipeAuth = () => {
 
   useEffect(() => {
     if (!loading && user && (isTeamMember || isAdmin)) {
-      navigate('/equipe/dashboard');
+      if (selectedArea === 'chamados') {
+        navigate('/admin/chamados');
+      } else {
+        navigate('/equipe/dashboard');
+      }
     }
-  }, [user, isTeamMember, isAdmin, loading, navigate]);
+  }, [user, isTeamMember, isAdmin, loading, navigate, selectedArea]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
