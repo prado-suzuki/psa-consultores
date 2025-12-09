@@ -22,7 +22,8 @@ import {
   Calendar,
   User,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Eye
 } from 'lucide-react';
 
 interface Sprint {
@@ -364,6 +365,15 @@ const EquipeSprints = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-primary text-primary hover:bg-primary/10"
+                            onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver Detalhes
+                          </Button>
                           {sprint.status === 'active' ? (
                             <Button 
                               variant="outline" 
