@@ -136,7 +136,7 @@ export default function AdminChamados() {
     try {
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
-        .select('*')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status')
         .order('created_at', { ascending: false });
 
       if (ticketsError) throw ticketsError;
@@ -149,19 +149,33 @@ export default function AdminChamados() {
         .in('id', userIds);
 
       // Fetch profiles for agents
-      const agentIds = [...new Set(ticketsData?.filter(t => t.assigned_to).map(t => t.assigned_to) || [])];
-      const { data: agentsData } = agentIds.length > 0 
+      const agentIds = ticketsData?.filter(t => t.assigned_to).map(t => t.assigned_to as string) || [];
+      const uniqueAgentIds = [...new Set(agentIds)];
+      const { data: agentsData } = uniqueAgentIds.length > 0 
         ? await supabase
             .from('profiles')
             .select('id, first_name, last_name')
-            .in('id', agentIds)
+            .in('id', uniqueAgentIds)
         : { data: [] };
 
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]));
-      const agentsMap = new Map(agentsData?.map(a => [a.id, a]));
+      const profilesMap = new Map<string, Profile>();
+      profilesData?.forEach(p => profilesMap.set(p.id, p));
       
-      const enrichedTickets = ticketsData?.map(ticket => ({
-        ...ticket,
+      const agentsMap = new Map<string, Profile>();
+      agentsData?.forEach(a => agentsMap.set(a.id, a));
+      
+      const enrichedTickets: Ticket[] = ticketsData?.map(ticket => ({
+        id: ticket.id,
+        title: ticket.title,
+        description: ticket.description,
+        status: ticket.status || 'aberto',
+        priority: ticket.priority || 'normal',
+        department: ticket.department || '',
+        user_id: ticket.user_id,
+        created_at: ticket.created_at || '',
+        updated_at: ticket.updated_at || '',
+        assigned_to: ticket.assigned_to || null,
+        activity_status: ticket.activity_status || 'aguardando_resposta',
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined
       })) || [];

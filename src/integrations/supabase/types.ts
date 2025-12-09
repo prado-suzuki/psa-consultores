@@ -717,6 +717,8 @@ export type Database = {
       }
       tickets: {
         Row: {
+          activity_status: string | null
+          assigned_to: string | null
           created_at: string | null
           department: string | null
           description: string
@@ -728,6 +730,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activity_status?: string | null
+          assigned_to?: string | null
           created_at?: string | null
           department?: string | null
           description: string
@@ -739,6 +743,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activity_status?: string | null
+          assigned_to?: string | null
           created_at?: string | null
           department?: string | null
           description?: string
@@ -749,7 +755,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
