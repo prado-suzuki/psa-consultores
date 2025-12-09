@@ -42,7 +42,8 @@ const EquipeNovaTarefa = () => {
     cluster: '',
     priority: 'medium',
     estimated_hours: '',
-    due_date: ''
+    due_date: '',
+    status: 'backlog'
   });
 
   useEffect(() => {
@@ -84,14 +85,14 @@ const EquipeNovaTarefa = () => {
         due_date: form.due_date || null,
         created_by: user.id,
         assigned_to: user.id,
-        status: 'backlog'
+        status: form.status as any
       });
 
       if (error) throw error;
 
       toast({
         title: "Tarefa criada!",
-        description: "A tarefa foi adicionada ao backlog.",
+        description: form.status === 'backlog' ? "A tarefa foi adicionada ao backlog." : "A tarefa foi criada com status 'A Fazer'.",
       });
 
       setForm({
@@ -101,7 +102,8 @@ const EquipeNovaTarefa = () => {
         cluster: '',
         priority: 'medium',
         estimated_hours: '',
-        due_date: ''
+        due_date: '',
+        status: 'backlog'
       });
       
       fetchRecentTasks();
@@ -263,7 +265,25 @@ const EquipeNovaTarefa = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="estimated_hours" className="text-gray-700">Horas Est.</Label>
+                  <Label className="text-gray-700">Status Inicial</Label>
+                  <Select 
+                    value={form.status} 
+                    onValueChange={(value) => setForm({ ...form, status: value })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="backlog">Backlog</SelectItem>
+                      <SelectItem value="to_do">A Fazer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="estimated_hours" className="text-gray-700">Horas Estimadas</Label>
                   <Input
                     id="estimated_hours"
                     type="number"

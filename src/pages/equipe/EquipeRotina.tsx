@@ -325,9 +325,15 @@ const EquipeRotina = () => {
         </Dialog>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
+        {/* Painel de Horas - Acima das rotinas */}
+        <HorasAcumuladas 
+          showRoutines={true}
+          title="Horas por Pessoa (Semanal)"
+        />
+
         {/* Lista de Rotinas */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4">
           {loading ? (
             <div className="flex justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -403,14 +409,6 @@ const EquipeRotina = () => {
               </CardContent>
             </Card>
           )}
-        </div>
-
-        {/* Painel de Horas */}
-        <div className="space-y-4">
-          <HorasAcumuladas 
-            showRoutines={true}
-            title="Horas por Pessoa (Semanal)"
-          />
         </div>
       </div>
 

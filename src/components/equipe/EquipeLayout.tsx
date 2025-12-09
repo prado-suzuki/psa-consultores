@@ -26,6 +26,7 @@ interface EquipeLayoutProps {
   title: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
 interface NavItem {
@@ -52,7 +53,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export const EquipeLayout = ({ children, title, subtitle, headerActions }: EquipeLayoutProps) => {
+export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWidth = false }: EquipeLayoutProps) => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -221,7 +222,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6 min-w-[800px]">
+          <div className={`p-6 ${fullWidth ? 'w-full' : 'min-w-[800px]'}`}>
             {children}
           </div>
         </ScrollArea>
