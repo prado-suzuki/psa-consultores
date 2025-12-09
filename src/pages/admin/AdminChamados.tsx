@@ -7,10 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
-import { format, isToday, isWithinInterval, subDays, startOfMonth } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { format, isToday, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
 
 interface Ticket {
   id: string;
@@ -20,18 +35,22 @@ interface Ticket {
   priority: string;
   department: string;
   created_at: string;
+  updated_at: string;
   user_id: string;
-  profiles?: {
-    first_name: string;
-    last_name: string;
-  };
+  assigned_to: string | null;
+  activity_status: string | null;
+  profiles?: Profile;
+  agent?: Profile;
 }
 
+type SortDirection = 'asc' | 'desc' | null;
+type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'activity_status' | null;
+
 const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500',
-  em_andamento: 'bg-yellow-500',
-  resolvido: 'bg-green-500',
-  fechado: 'bg-gray-500',
+  aberto: 'bg-blue-500 hover:bg-blue-600',
+  em_andamento: 'bg-yellow-500 hover:bg-yellow-600',
+  resolvido: 'bg-green-500 hover:bg-green-600',
+  fechado: 'bg-gray-500 hover:bg-gray-600',
 };
 
 const statusLabels: Record<string, string> = {
@@ -39,6 +58,18 @@ const statusLabels: Record<string, string> = {
   em_andamento: 'Em Andamento',
   resolvido: 'Resolvido',
   fechado: 'Fechado',
+};
+
+const activityLabels: Record<string, string> = {
+  aguardando_resposta: 'Aguardando resposta',
+  respondido: 'Respondido',
+  em_analise: 'Em análise',
+};
+
+const activityColors: Record<string, string> = {
+  aguardando_resposta: 'bg-orange-100 text-orange-800',
+  respondido: 'bg-green-100 text-green-800',
+  em_analise: 'bg-blue-100 text-blue-800',
 };
 
 const priorityColors: Record<string, string> = {
@@ -60,7 +91,11 @@ const departmentLabels: Record<string, string> = {
 export default function AdminChamados() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [agents, setAgents] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
@@ -72,9 +107,98 @@ export default function AdminChamados() {
 
   useEffect(() => {
     fetchTickets();
+    fetchAgents();
   }, []);
 
-  const filteredTickets = useMemo(() => {
+  const fetchAgents = async () => {
+    try {
+      // Fetch team members and admins who can be assigned tickets
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['team_member', 'admin']);
+
+      if (rolesData && rolesData.length > 0) {
+        const userIds = rolesData.map(r => r.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+
+        setAgents(profilesData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
+
+  const fetchTickets = async () => {
+    try {
+      const { data: ticketsData, error: ticketsError } = await supabase
+        .from('tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ticketsError) throw ticketsError;
+
+      // Fetch profiles for creators
+      const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
+      // Fetch profiles for agents
+      const agentIds = [...new Set(ticketsData?.filter(t => t.assigned_to).map(t => t.assigned_to) || [])];
+      const { data: agentsData } = agentIds.length > 0 
+        ? await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', agentIds)
+        : { data: [] };
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]));
+      const agentsMap = new Map(agentsData?.map(a => [a.id, a]));
+      
+      const enrichedTickets = ticketsData?.map(ticket => ({
+        ...ticket,
+        profiles: profilesMap.get(ticket.user_id),
+        agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined
+      })) || [];
+
+      setTickets(enrichedTickets);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-1 h-4 w-4 text-muted-foreground" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="ml-1 h-4 w-4" />;
+    }
+    return <ArrowDown className="ml-1 h-4 w-4" />;
+  };
+
+  const filteredAndSortedTickets = useMemo(() => {
     let filtered = [...tickets];
 
     // Filtro por período
@@ -102,7 +226,7 @@ export default function AdminChamados() {
       filtered = filtered.filter(t => t.status === filters.status);
     }
 
-    // Filtro por estado (novo, em_andamento, em_espera)
+    // Filtro por estado
     if (filters.estado !== 'todos') {
       filtered = filtered.filter(t => t.status === filters.estado);
     }
@@ -124,61 +248,98 @@ export default function AdminChamados() {
       );
     }
 
-    return filtered;
-  }, [tickets, filters]);
+    // Ordenação
+    if (sortColumn && sortDirection) {
+      filtered.sort((a, b) => {
+        let aVal: string | number = '';
+        let bVal: string | number = '';
 
-  const fetchTickets = async () => {
-    try {
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from('tickets')
-        .select('*')
-        .order('created_at', { ascending: false });
+        switch (sortColumn) {
+          case 'status':
+            aVal = a.status;
+            bVal = b.status;
+            break;
+          case 'title':
+            aVal = a.title.toLowerCase();
+            bVal = b.title.toLowerCase();
+            break;
+          case 'id':
+            aVal = a.id;
+            bVal = b.id;
+            break;
+          case 'department':
+            aVal = a.department || '';
+            bVal = b.department || '';
+            break;
+          case 'created_by':
+            aVal = `${a.profiles?.first_name || ''} ${a.profiles?.last_name || ''}`.toLowerCase();
+            bVal = `${b.profiles?.first_name || ''} ${b.profiles?.last_name || ''}`.toLowerCase();
+            break;
+          case 'agent':
+            aVal = `${a.agent?.first_name || ''} ${a.agent?.last_name || ''}`.toLowerCase();
+            bVal = `${b.agent?.first_name || ''} ${b.agent?.last_name || ''}`.toLowerCase();
+            break;
+          case 'updated_at':
+            aVal = new Date(a.updated_at).getTime();
+            bVal = new Date(b.updated_at).getTime();
+            break;
+          case 'activity_status':
+            aVal = a.activity_status || '';
+            bVal = b.activity_status || '';
+            break;
+        }
 
-      if (ticketsError) throw ticketsError;
-
-      // Fetch profiles separately
-      const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]));
-      
-      const enrichedTickets = ticketsData?.map(ticket => ({
-        ...ticket,
-        profiles: profilesMap.get(ticket.user_id)
-      })) || [];
-
-      setTickets(enrichedTickets);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
     }
-  };
 
-  const updateTicketStatus = async (ticketId: string, newStatus: string) => {
+    return filtered;
+  }, [tickets, filters, sortColumn, sortDirection]);
+
+  const assignAgent = async (ticketId: string, agentId: string | null) => {
     try {
       const { error } = await supabase
         .from('tickets')
-        .update({ status: newStatus })
+        .update({ assigned_to: agentId })
         .eq('id', ticketId);
 
       if (error) throw error;
 
+      const agent = agents.find(a => a.id === agentId);
       toast({
-        title: 'Status atualizado',
-        description: 'O status do chamado foi atualizado com sucesso.',
+        title: 'Agente atribuído',
+        description: agentId 
+          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
+          : 'Atribuição removida',
       });
 
       fetchTickets();
     } catch (error) {
       toast({
-        title: 'Erro ao atualizar status',
+        title: 'Erro ao atribuir agente',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const toggleTicketSelection = (ticketId: string) => {
+    const newSelected = new Set(selectedTickets);
+    if (newSelected.has(ticketId)) {
+      newSelected.delete(ticketId);
+    } else {
+      newSelected.add(ticketId);
+    }
+    setSelectedTickets(newSelected);
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedTickets.size === filteredAndSortedTickets.length) {
+      setSelectedTickets(new Set());
+    } else {
+      setSelectedTickets(new Set(filteredAndSortedTickets.map(t => t.id)));
     }
   };
 
@@ -205,7 +366,7 @@ export default function AdminChamados() {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Gerenciar Chamados</h1>
             <p className="text-muted-foreground mt-2">
@@ -316,7 +477,7 @@ export default function AdminChamados() {
               </Button>
 
               <div className="text-sm text-muted-foreground">
-                {filteredTickets.length} de {tickets.length} chamados
+                {filteredAndSortedTickets.length} de {tickets.length} chamados
               </div>
             </div>
           </Card>
@@ -325,72 +486,180 @@ export default function AdminChamados() {
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
-          ) : filteredTickets.length === 0 ? (
+          ) : filteredAndSortedTickets.length === 0 ? (
             <Card className="p-12 text-center">
               <p className="text-muted-foreground">
                 Nenhum chamado encontrado com os filtros selecionados.
               </p>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {filteredTickets.map((ticket) => (
-                <Card key={ticket.id} className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          {ticket.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Cliente: {ticket.profiles?.first_name} {ticket.profiles?.last_name}
-                        </p>
-                        {ticket.department && (
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Departamento: {departmentLabels[ticket.department] || ticket.department}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {ticket.description}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <Badge className={priorityColors[ticket.priority]}>
-                            {ticket.priority}
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedTickets.size === filteredAndSortedTickets.length && filteredAndSortedTickets.length > 0}
+                          onCheckedChange={toggleAllSelection}
+                        />
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center">
+                          Status
+                          {getSortIcon('status')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors min-w-[200px]"
+                        onClick={() => handleSort('title')}
+                      >
+                        <div className="flex items-center">
+                          Título
+                          {getSortIcon('title')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('id')}
+                      >
+                        <div className="flex items-center">
+                          ID
+                          {getSortIcon('id')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('department')}
+                      >
+                        <div className="flex items-center">
+                          Departamento
+                          {getSortIcon('department')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('created_by')}
+                      >
+                        <div className="flex items-center">
+                          Criado por
+                          {getSortIcon('created_by')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors min-w-[180px]"
+                        onClick={() => handleSort('agent')}
+                      >
+                        <div className="flex items-center">
+                          Agente
+                          {getSortIcon('agent')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('updated_at')}
+                      >
+                        <div className="flex items-center">
+                          Last Modified
+                          {getSortIcon('updated_at')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('activity_status')}
+                      >
+                        <div className="flex items-center">
+                          Atividade
+                          {getSortIcon('activity_status')}
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAndSortedTickets.map((ticket, index) => (
+                      <TableRow 
+                        key={ticket.id}
+                        className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedTickets.has(ticket.id)}
+                            onCheckedChange={() => toggleTicketSelection(ticket.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[ticket.status]}>
+                            {statusLabels[ticket.status] || ticket.status}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy", {
-                              locale: ptBR,
+                        </TableCell>
+                        <TableCell>
+                          <button
+                            onClick={() => navigate(`/cliente/chamados/${ticket.id}`)}
+                            className="text-left font-medium text-primary hover:underline focus:outline-none"
+                          >
+                            {ticket.title}
+                          </button>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {ticket.id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {departmentLabels[ticket.department] || ticket.department || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {ticket.profiles 
+                              ? `${ticket.profiles.first_name} ${ticket.profiles.last_name}`
+                              : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={ticket.assigned_to || 'unassigned'}
+                            onValueChange={(value) => assignAgent(ticket.id, value === 'unassigned' ? null : value)}
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue placeholder="Selecionar agente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Não atribuído</SelectItem>
+                              {agents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.first_name} {agent.last_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDistanceToNow(new Date(ticket.updated_at), { 
+                              addSuffix: true, 
+                              locale: ptBR 
                             })}
                           </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 items-end">
-                        <Select
-                          value={ticket.status}
-                          onValueChange={(value) => updateTicketStatus(ticket.id, value)}
-                        >
-                          <SelectTrigger className="w-48">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="aberto">Aberto</SelectItem>
-                            <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                            <SelectItem value="resolvido">Resolvido</SelectItem>
-                            <SelectItem value="fechado">Fechado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/cliente/chamados/${ticket.id}`)}
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                        </TableCell>
+                        <TableCell>
+                          {ticket.activity_status && (
+                            <Badge 
+                              variant="outline" 
+                              className={activityColors[ticket.activity_status] || 'bg-gray-100 text-gray-800'}
+                            >
+                              {activityLabels[ticket.activity_status] || ticket.activity_status}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
           )}
         </div>
       </main>
