@@ -96,6 +96,62 @@ export type Database = {
           },
         ]
       }
+      processes: {
+        Row: {
+          area: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          financial_impact: string | null
+          frequency: string | null
+          id: string
+          name: string
+          priority: string | null
+          project_id: string | null
+          stage: string
+          updated_at: string
+          volume_month: number | null
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          financial_impact?: string | null
+          frequency?: string | null
+          id?: string
+          name: string
+          priority?: string | null
+          project_id?: string | null
+          stage?: string
+          updated_at?: string
+          volume_month?: number | null
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          financial_impact?: string | null
+          frequency?: string | null
+          id?: string
+          name?: string
+          priority?: string | null
+          project_id?: string | null
+          stage?: string
+          updated_at?: string
+          volume_month?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company: string | null
