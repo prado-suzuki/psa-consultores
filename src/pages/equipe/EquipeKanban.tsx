@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,9 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, List } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { LayoutGrid, List, CalendarIcon, X, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Deliverable {
   id: string;
@@ -19,17 +22,30 @@ interface Deliverable {
   sprint_id: string | null;
   estimated_hours: number | null;
   due_date: string | null;
+  start_date: string | null;
 }
 
 interface Sprint {
   id: string;
   name: string;
+  project_id: string | null;
 }
 
 interface Profile {
   id: string;
   first_name: string;
   last_name: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  project_id: string | null;
 }
 
 const columns = [
@@ -42,37 +58,93 @@ const EquipeKanban = () => {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [selectedSprint, setSelectedSprint] = useState<string>('all');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [loading, setLoading] = useState(true);
 
+  // Filtros
+  const [filterSprint, setFilterSprint] = useState<string>('all');
+  const [filterResponsible, setFilterResponsible] = useState<string>('all');
+  const [filterProject, setFilterProject] = useState<string>('all');
+  const [filterProcess, setFilterProcess] = useState<string>('all');
+  const [filterStartDate, setFilterStartDate] = useState<Date | undefined>();
+  const [filterEndDate, setFilterEndDate] = useState<Date | undefined>();
+
   useEffect(() => {
     fetchData();
-  }, [selectedSprint]);
+  }, []);
 
   const fetchData = async () => {
     try {
-      const [sprintsRes, profilesRes] = await Promise.all([
-        supabase.from('sprints').select('id, name').order('start_date', { ascending: false }),
-        supabase.from('profiles').select('id, first_name, last_name')
+      const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
+        supabase.from('sprints').select('id, name, project_id').order('start_date', { ascending: false }),
+        supabase.from('profiles').select('id, first_name, last_name'),
+        supabase.from('projects').select('id, name').order('name'),
+        supabase.from('processes').select('id, name, project_id').order('name'),
+        supabase.from('sprint_deliverables').select('*')
       ]);
       
       setSprints(sprintsRes.data || []);
       setProfiles(profilesRes.data || []);
-
-      let query = supabase.from('sprint_deliverables').select('*');
-      
-      if (selectedSprint !== 'all') {
-        query = query.eq('sprint_id', selectedSprint);
-      }
-
-      const { data: deliverablesData } = await query;
-      setDeliverables(deliverablesData || []);
+      setProjects(projectsRes.data || []);
+      setProcesses(processesRes.data || []);
+      setDeliverables(deliverablesRes.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Aplica todos os filtros
+  const filteredDeliverables = useMemo(() => {
+    return deliverables.filter(d => {
+      // Filtro por Sprint
+      if (filterSprint !== 'all' && d.sprint_id !== filterSprint) return false;
+
+      // Filtro por Responsável
+      if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
+
+      // Filtro por Projeto (via sprint.project_id)
+      if (filterProject !== 'all') {
+        const sprint = sprints.find(s => s.id === d.sprint_id);
+        if (!sprint || sprint.project_id !== filterProject) return false;
+      }
+
+      // Filtro por Processo (via process.project_id)
+      if (filterProcess !== 'all') {
+        const process = processes.find(p => p.id === filterProcess);
+        if (!process) return false;
+        const sprint = sprints.find(s => s.id === d.sprint_id);
+        if (!sprint || sprint.project_id !== process.project_id) return false;
+      }
+
+      // Filtro por Data Início (start_date >= filterStartDate)
+      if (filterStartDate && d.start_date) {
+        const startDate = new Date(d.start_date + 'T00:00:00');
+        if (startDate < filterStartDate) return false;
+      }
+
+      // Filtro por Data Fim (due_date <= filterEndDate)
+      if (filterEndDate && d.due_date) {
+        const dueDate = new Date(d.due_date + 'T00:00:00');
+        if (dueDate > filterEndDate) return false;
+      }
+
+      return true;
+    });
+  }, [deliverables, sprints, processes, filterSprint, filterResponsible, filterProject, filterProcess, filterStartDate, filterEndDate]);
+
+  const hasActiveFilters = filterSprint !== 'all' || filterResponsible !== 'all' || filterProject !== 'all' || filterProcess !== 'all' || filterStartDate || filterEndDate;
+
+  const clearFilters = () => {
+    setFilterSprint('all');
+    setFilterResponsible('all');
+    setFilterProject('all');
+    setFilterProcess('all');
+    setFilterStartDate(undefined);
+    setFilterEndDate(undefined);
   };
 
   const updateDeliverableStatus = async (id: string, newStatus: 'pending' | 'in_progress' | 'completed') => {
@@ -156,21 +228,141 @@ const EquipeKanban = () => {
               <List className="h-4 w-4" />
             </Button>
           </div>
-
-          <Select value={selectedSprint} onValueChange={setSelectedSprint}>
-            <SelectTrigger className="w-48 bg-white border-gray-300 text-gray-900">
+        </div>
+      }
+    >
+      {/* Barra de Filtros */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Filtros</span>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="ml-auto text-gray-500 hover:text-gray-700 h-7"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Limpar
+            </Button>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filtro Sprint */}
+          <Select value={filterSprint} onValueChange={setFilterSprint}>
+            <SelectTrigger className="w-40 bg-white border-gray-300 text-gray-900 h-9">
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
             <SelectContent className="bg-white border-gray-200">
-              <SelectItem value="all">Todas as Sprints</SelectItem>
+              <SelectItem value="all">Todas Sprints</SelectItem>
               {sprints.map((sprint) => (
                 <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {/* Filtro Responsável */}
+          <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+            <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-gray-200">
+              <SelectItem value="all">Todos Responsáveis</SelectItem>
+              {profiles.map((profile) => (
+                <SelectItem key={profile.id} value={profile.id}>
+                  {profile.first_name} {profile.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Filtro Projeto */}
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-gray-200">
+              <SelectItem value="all">Todos Projetos</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Filtro Processo */}
+          <Select value={filterProcess} onValueChange={setFilterProcess}>
+            <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+              <SelectValue placeholder="Processo" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-gray-200">
+              <SelectItem value="all">Todos Processos</SelectItem>
+              {processes.map((process) => (
+                <SelectItem key={process.id} value={process.id}>{process.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Filtro Data Início */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-3 border-gray-300 bg-white",
+                  filterStartDate && "text-gray-900"
+                )}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                {filterStartDate ? format(filterStartDate, "dd/MM/yyyy", { locale: ptBR }) : "Data Início"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-white" align="start">
+              <Calendar
+                mode="single"
+                selected={filterStartDate}
+                onSelect={setFilterStartDate}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Filtro Data Fim */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-3 border-gray-300 bg-white",
+                  filterEndDate && "text-gray-900"
+                )}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                {filterEndDate ? format(filterEndDate, "dd/MM/yyyy", { locale: ptBR }) : "Data Fim"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-white" align="start">
+              <Calendar
+                mode="single"
+                selected={filterEndDate}
+                onSelect={setFilterEndDate}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-      }
-    >
+
+        {/* Contador de resultados */}
+        <div className="mt-3 text-xs text-gray-500">
+          {filteredDeliverables.length} de {deliverables.length} entregáveis
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -183,12 +375,12 @@ const EquipeKanban = () => {
                 <div className={`w-3 h-3 rounded-full ${column.color}`} />
                 <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
                 <Badge variant="outline" className="ml-auto border-gray-300 text-gray-600">
-                  {deliverables.filter(d => d.status === column.id).length}
+                  {filteredDeliverables.filter(d => d.status === column.id).length}
                 </Badge>
               </div>
               
               <div 
-                className="space-y-3 min-h-[calc(100vh-320px)]"
+                className="space-y-3 min-h-[calc(100vh-420px)]"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -196,7 +388,7 @@ const EquipeKanban = () => {
                   updateDeliverableStatus(deliverableId, column.id as 'pending' | 'in_progress' | 'completed');
                 }}
               >
-                {deliverables
+                {filteredDeliverables
                   .filter(d => d.status === column.id)
                   .map((deliverable) => (
                     <Card 
@@ -236,14 +428,14 @@ const EquipeKanban = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {deliverables.length === 0 ? (
+              {filteredDeliverables.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                     Nenhum entregável encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                deliverables.map((deliverable) => (
+                filteredDeliverables.map((deliverable) => (
                   <TableRow key={deliverable.id} className="cursor-pointer hover:bg-gray-50">
                     <TableCell className="text-gray-900 font-medium">{deliverable.title}</TableCell>
                     <TableCell>
