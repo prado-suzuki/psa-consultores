@@ -61,21 +61,21 @@ export const HorasAcumuladas = ({
         };
       });
 
-      // Fetch sprint hours from tasks
-      let tasksQuery = supabase
-        .from('tasks')
+      // Fetch sprint hours from deliverables
+      let deliverablesQuery = supabase
+        .from('sprint_deliverables')
         .select('assigned_to, estimated_hours');
       
       if (sprintId) {
-        tasksQuery = tasksQuery.eq('sprint_id', sprintId);
+        deliverablesQuery = deliverablesQuery.eq('sprint_id', sprintId);
       }
 
-      const { data: tasks } = await tasksQuery;
+      const { data: deliverables } = await deliverablesQuery;
 
-      if (tasks) {
-        tasks.forEach(task => {
-          if (task.assigned_to && task.estimated_hours && hoursMap[task.assigned_to]) {
-            hoursMap[task.assigned_to].sprintHours += Number(task.estimated_hours);
+      if (deliverables) {
+        deliverables.forEach(deliverable => {
+          if (deliverable.assigned_to && deliverable.estimated_hours && hoursMap[deliverable.assigned_to]) {
+            hoursMap[deliverable.assigned_to].sprintHours += Number(deliverable.estimated_hours);
           }
         });
       }
