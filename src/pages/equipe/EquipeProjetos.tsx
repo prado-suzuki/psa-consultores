@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
@@ -25,7 +26,9 @@ import {
   List,
   Eye,
   Filter,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 interface Project {
@@ -67,6 +70,7 @@ const EquipeProjetos = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -77,10 +81,31 @@ const EquipeProjetos = () => {
     start_date: '',
     end_date: ''
   });
+  const [editProject, setEditProject] = useState({
+    name: '',
+    description: '',
+    client_name: '',
+    start_date: '',
+    end_date: '',
+    status: ''
+  });
 
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  useEffect(() => {
+    if (selectedProject && isEditMode) {
+      setEditProject({
+        name: selectedProject.name,
+        description: selectedProject.description || '',
+        client_name: selectedProject.client_name || '',
+        start_date: selectedProject.start_date || '',
+        end_date: selectedProject.end_date || '',
+        status: selectedProject.status
+      });
+    }
+  }, [selectedProject, isEditMode]);
 
   const fetchProjects = async () => {
     try {
@@ -137,6 +162,70 @@ const EquipeProjetos = () => {
       toast({
         title: "Erro",
         description: "Não foi possível criar o projeto.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateProject = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: editProject.name,
+          description: editProject.description || null,
+          client_name: editProject.client_name || null,
+          start_date: editProject.start_date || null,
+          end_date: editProject.end_date || null,
+          status: editProject.status
+        })
+        .eq('id', selectedProject.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Projeto atualizado!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      setSelectedProject(null);
+      setIsEditMode(false);
+      fetchProjects();
+    } catch (error) {
+      console.error('Error updating project:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o projeto.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', selectedProject.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Projeto excluído!",
+        description: "O projeto foi removido com sucesso.",
+      });
+
+      setSelectedProject(null);
+      fetchProjects();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o projeto.",
         variant: "destructive"
       });
     }
@@ -367,7 +456,7 @@ const EquipeProjetos = () => {
                     <TableRow 
                       key={project.id} 
                       className="border-gray-200 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => setSelectedProject(project)}
+                      onClick={() => { setSelectedProject(project); setIsEditMode(false); }}
                     >
                       <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
                       <TableCell>{getAreaBadge(extractArea(project.description))}</TableCell>
@@ -376,13 +465,22 @@ const EquipeProjetos = () => {
                       <TableCell className="text-gray-600 text-sm">{extractPhase(project.description)}</TableCell>
                       <TableCell className="text-gray-600">{project.client_name || '-'}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); setSelectedProject(project); }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(false); }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -398,7 +496,7 @@ const EquipeProjetos = () => {
                 <Card 
                   key={project.id} 
                   className="bg-white border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedProject(project)}
+                  onClick={() => { setSelectedProject(project); setIsEditMode(false); }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
@@ -432,6 +530,18 @@ const EquipeProjetos = () => {
                         </span>
                       </div>
                     )}
+
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500"
+                        onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); }}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -464,105 +574,213 @@ const EquipeProjetos = () => {
         </Card>
       )}
 
-      {/* Project Details Dialog */}
-      <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
+      {/* Project Details/Edit Dialog */}
+      <Dialog open={!!selectedProject} onOpenChange={() => { setSelectedProject(null); setIsEditMode(false); }}>
         <DialogContent className="bg-white border-gray-200 max-w-2xl">
           {selectedProject && (
             <>
               <DialogHeader>
                 <DialogTitle className="text-gray-900 flex items-center gap-2">
                   <FolderKanban className="h-5 w-5 text-primary" />
-                  {selectedProject.name}
+                  {isEditMode ? 'Editar Projeto' : selectedProject.name}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {getStatusBadge(selectedProject.status)}
-                  {getAreaBadge(extractArea(selectedProject.description))}
-                  {getPriorityBadge(extractPriority(selectedProject.description))}
-                </div>
 
-                {selectedProject.description && (
+              {isEditMode ? (
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-600 text-sm">Informações</Label>
-                    <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
-                      {selectedProject.description.split('|').map((part, i) => (
-                        <div key={i} className="py-1">{part.trim()}</div>
-                      ))}
+                    <Label className="text-gray-700">Nome do Projeto *</Label>
+                    <Input
+                      value={editProject.name}
+                      onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Descrição</Label>
+                    <Textarea
+                      value={editProject.description}
+                      onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Cliente</Label>
+                    <Input
+                      value={editProject.client_name}
+                      onChange={(e) => setEditProject({ ...editProject, client_name: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-gray-700">Data Início</Label>
+                      <Input
+                        type="date"
+                        value={editProject.start_date}
+                        onChange={(e) => setEditProject({ ...editProject, start_date: e.target.value })}
+                        className="bg-white border-gray-300 text-gray-900"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-gray-700">Data Fim</Label>
+                      <Input
+                        type="date"
+                        value={editProject.end_date}
+                        onChange={(e) => setEditProject({ ...editProject, end_date: e.target.value })}
+                        className="bg-white border-gray-300 text-gray-900"
+                      />
                     </div>
                   </div>
-                )}
-
-                {selectedProject.client_name && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Building2 className="h-4 w-4" />
-                    <span>Cliente: {selectedProject.client_name}</span>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Status</Label>
+                    <Select value={editProject.status} onValueChange={(value) => setEditProject({ ...editProject, status: value })}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="completed">Concluído</SelectItem>
+                        <SelectItem value="blocked">Bloqueado</SelectItem>
+                        <SelectItem value="archived">Arquivado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
 
-                {(selectedProject.start_date || selectedProject.end_date) && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {selectedProject.start_date && `Início: ${new Date(selectedProject.start_date).toLocaleDateString('pt-BR')}`}
-                      {selectedProject.start_date && selectedProject.end_date && ' | '}
-                      {selectedProject.end_date && `Fim: ${new Date(selectedProject.end_date).toLocaleDateString('pt-BR')}`}
-                    </span>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. O projeto "{selectedProject.name}" será permanentemente removido.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsEditMode(false)}>
+                        Cancelar
+                      </Button>
+                      <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProject}>
+                        Salvar Alterações
+                      </Button>
+                    </div>
                   </div>
-                )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {getStatusBadge(selectedProject.status)}
+                    {getAreaBadge(extractArea(selectedProject.description))}
+                    {getPriorityBadge(extractPriority(selectedProject.description))}
+                  </div>
 
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
-                  {selectedProject.status === 'active' && (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => { updateProjectStatus(selectedProject.id, 'completed'); setSelectedProject(null); }}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Concluir
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => { updateProjectStatus(selectedProject.id, 'blocked'); setSelectedProject(null); }}
-                      >
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Bloquear
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                        onClick={() => { updateProjectStatus(selectedProject.id, 'archived'); setSelectedProject(null); }}
-                      >
-                        <Archive className="h-4 w-4 mr-1" />
-                        Arquivar
-                      </Button>
-                    </>
+                  {selectedProject.description && (
+                    <div className="space-y-2">
+                      <Label className="text-gray-600 text-sm">Informações</Label>
+                      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
+                        {selectedProject.description.split('|').map((part, i) => (
+                          <div key={i} className="py-1">{part.trim()}</div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {(selectedProject.status === 'completed' || selectedProject.status === 'blocked' || selectedProject.status === 'archived') && (
+
+                  {selectedProject.client_name && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Building2 className="h-4 w-4" />
+                      <span>Cliente: {selectedProject.client_name}</span>
+                    </div>
+                  )}
+
+                  {(selectedProject.start_date || selectedProject.end_date) && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {selectedProject.start_date && `Início: ${new Date(selectedProject.start_date).toLocaleDateString('pt-BR')}`}
+                        {selectedProject.start_date && selectedProject.end_date && ' | '}
+                        {selectedProject.end_date && `Fim: ${new Date(selectedProject.end_date).toLocaleDateString('pt-BR')}`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                      onClick={() => { updateProjectStatus(selectedProject.id, 'active'); setSelectedProject(null); }}
+                      className="border-primary text-primary hover:bg-primary/10"
+                      onClick={() => setIsEditMode(true)}
                     >
-                      <Clock className="h-4 w-4 mr-1" />
-                      Reativar
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Editar
                     </Button>
-                  )}
-                  <Button 
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90 ml-auto"
-                    onClick={() => { setSelectedProject(null); navigate(`/equipe/sprints?project=${selectedProject.id}`); }}
-                  >
-                    Ver Sprints
-                  </Button>
+                    {selectedProject.status === 'active' && (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                          onClick={() => { updateProjectStatus(selectedProject.id, 'completed'); setSelectedProject(null); }}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Concluir
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                          onClick={() => { updateProjectStatus(selectedProject.id, 'blocked'); setSelectedProject(null); }}
+                        >
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          Bloquear
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                          onClick={() => { updateProjectStatus(selectedProject.id, 'archived'); setSelectedProject(null); }}
+                        >
+                          <Archive className="h-4 w-4 mr-1" />
+                          Arquivar
+                        </Button>
+                      </>
+                    )}
+                    {(selectedProject.status === 'completed' || selectedProject.status === 'blocked' || selectedProject.status === 'archived') && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                        onClick={() => { updateProjectStatus(selectedProject.id, 'active'); setSelectedProject(null); }}
+                      >
+                        <Clock className="h-4 w-4 mr-1" />
+                        Reativar
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90 ml-auto"
+                      onClick={() => { setSelectedProject(null); navigate(`/equipe/sprints?project=${selectedProject.id}`); }}
+                    >
+                      Ver Sprints
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </DialogContent>

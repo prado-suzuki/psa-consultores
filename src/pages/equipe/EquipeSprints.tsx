@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
@@ -23,7 +24,9 @@ import {
   User,
   ChevronDown,
   ChevronUp,
-  Eye
+  Eye,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 interface Sprint {
@@ -60,6 +63,8 @@ const EquipeSprints = () => {
   const [expandedSprints, setExpandedSprints] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [newSprint, setNewSprint] = useState({
     name: '',
@@ -68,10 +73,31 @@ const EquipeSprints = () => {
     end_date: '',
     project_id: projectFilter || ''
   });
+  const [editSprint, setEditSprint] = useState({
+    name: '',
+    goal: '',
+    start_date: '',
+    end_date: '',
+    project_id: '',
+    status: ''
+  });
 
   useEffect(() => {
     fetchData();
   }, [projectFilter]);
+
+  useEffect(() => {
+    if (selectedSprint && isEditMode) {
+      setEditSprint({
+        name: selectedSprint.name,
+        goal: selectedSprint.goal || '',
+        start_date: selectedSprint.start_date,
+        end_date: selectedSprint.end_date,
+        project_id: selectedSprint.project_id || '',
+        status: selectedSprint.status
+      });
+    }
+  }, [selectedSprint, isEditMode]);
 
   const fetchData = async () => {
     try {
@@ -193,6 +219,73 @@ const EquipeSprints = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdateSprint = async () => {
+    if (!selectedSprint || submitting) return;
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('sprints')
+        .update({
+          name: editSprint.name,
+          goal: editSprint.goal || null,
+          start_date: editSprint.start_date,
+          end_date: editSprint.end_date,
+          project_id: editSprint.project_id || null,
+          status: editSprint.status
+        })
+        .eq('id', selectedSprint.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sprint atualizada!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      setSelectedSprint(null);
+      setIsEditMode(false);
+      fetchData();
+    } catch (error) {
+      console.error('Error updating sprint:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a sprint.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteSprint = async () => {
+    if (!selectedSprint) return;
+
+    try {
+      const { error } = await supabase
+        .from('sprints')
+        .delete()
+        .eq('id', selectedSprint.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sprint excluída!",
+        description: "A sprint foi removida com sucesso.",
+      });
+
+      setSelectedSprint(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting sprint:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a sprint.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -366,6 +459,14 @@ const EquipeSprints = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-gray-500 hover:text-gray-700"
+                            onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
                             variant="outline" 
                             size="sm"
                             className="border-primary text-primary hover:bg-primary/10"
@@ -480,6 +581,124 @@ const EquipeSprints = () => {
           />
         </div>
       </div>
+
+      {/* Edit Sprint Dialog */}
+      <Dialog open={!!selectedSprint && isEditMode} onOpenChange={() => { setSelectedSprint(null); setIsEditMode(false); }}>
+        <DialogContent className="bg-white border-gray-200">
+          {selectedSprint && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-gray-900 flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Editar Sprint
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Projeto</Label>
+                  <Select 
+                    value={editSprint.project_id} 
+                    onValueChange={(value) => setEditSprint({ ...editSprint, project_id: value })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Selecione um projeto (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Nome da Sprint *</Label>
+                  <Input
+                    value={editSprint.name}
+                    onChange={(e) => setEditSprint({ ...editSprint, name: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Objetivo</Label>
+                  <Textarea
+                    value={editSprint.goal}
+                    onChange={(e) => setEditSprint({ ...editSprint, goal: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Data Início *</Label>
+                    <Input
+                      type="date"
+                      value={editSprint.start_date}
+                      onChange={(e) => setEditSprint({ ...editSprint, start_date: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Data Fim *</Label>
+                    <Input
+                      type="date"
+                      value={editSprint.end_date}
+                      onChange={(e) => setEditSprint({ ...editSprint, end_date: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Status</Label>
+                  <Select value={editSprint.status} onValueChange={(value) => setEditSprint({ ...editSprint, status: value })}>
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="active">Ativa</SelectItem>
+                      <SelectItem value="completed">Concluída</SelectItem>
+                      <SelectItem value="planned">Planejada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir sprint?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. A sprint "{selectedSprint.name}" será permanentemente removida.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSprint} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setSelectedSprint(null); setIsEditMode(false); }}>
+                      Cancelar
+                    </Button>
+                    <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateSprint} disabled={submitting}>
+                      {submitting ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </EquipeLayout>
   );
 };
