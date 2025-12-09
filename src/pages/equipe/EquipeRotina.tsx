@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Clock, CheckCircle2, AlertCircle, Repeat, User } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, AlertCircle, Repeat, User, Pencil, Trash2 } from 'lucide-react';
 
 interface Rotina {
   id: string;
@@ -45,9 +46,32 @@ const EquipeRotina = () => {
     estimated_hours: ''
   });
 
+  // Edit state
+  const [selectedRotina, setSelectedRotina] = useState<Rotina | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editRotina, setEditRotina] = useState({
+    title: '',
+    description: '',
+    frequency: 'daily',
+    assigned_to: '',
+    estimated_hours: ''
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedRotina && isEditMode) {
+      setEditRotina({
+        title: selectedRotina.title,
+        description: selectedRotina.description || '',
+        frequency: selectedRotina.frequency,
+        assigned_to: selectedRotina.assigned_to || '',
+        estimated_hours: selectedRotina.estimated_hours?.toString() || ''
+      });
+    }
+  }, [selectedRotina, isEditMode]);
 
   const fetchData = async () => {
     try {
@@ -108,6 +132,69 @@ const EquipeRotina = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdateRotina = async () => {
+    if (!selectedRotina) return;
+
+    try {
+      const { error } = await supabase
+        .from('routines')
+        .update({
+          title: editRotina.title,
+          description: editRotina.description || null,
+          frequency: editRotina.frequency,
+          assigned_to: editRotina.assigned_to || null,
+          estimated_hours: editRotina.estimated_hours ? Number(editRotina.estimated_hours) : null
+        })
+        .eq('id', selectedRotina.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Rotina atualizada!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      setSelectedRotina(null);
+      setIsEditMode(false);
+      fetchData();
+    } catch (error) {
+      console.error('Error updating routine:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a rotina.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteRotina = async () => {
+    if (!selectedRotina) return;
+
+    try {
+      const { error } = await supabase
+        .from('routines')
+        .delete()
+        .eq('id', selectedRotina.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Rotina excluída!",
+        description: "A rotina foi removida com sucesso.",
+      });
+
+      setSelectedRotina(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting routine:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a rotina.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -286,6 +373,14 @@ const EquipeRotina = () => {
                         </Badge>
                       )}
                       {getFrequencyBadge(rotina.frequency)}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                        onClick={() => { setSelectedRotina(rotina); setIsEditMode(true); }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Repeat className="h-4 w-4 text-gray-400" />
                     </div>
                   </div>
@@ -318,6 +413,118 @@ const EquipeRotina = () => {
           />
         </div>
       </div>
+
+      {/* Edit Routine Dialog */}
+      <Dialog open={!!selectedRotina && isEditMode} onOpenChange={() => { setSelectedRotina(null); setIsEditMode(false); }}>
+        <DialogContent className="bg-white border-gray-200">
+          {selectedRotina && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-gray-900">Editar Rotina</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Título *</Label>
+                  <Input
+                    value={editRotina.title}
+                    onChange={(e) => setEditRotina({ ...editRotina, title: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Descrição</Label>
+                  <Textarea
+                    value={editRotina.description}
+                    onChange={(e) => setEditRotina({ ...editRotina, description: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Frequência</Label>
+                    <Select
+                      value={editRotina.frequency}
+                      onValueChange={(value) => setEditRotina({ ...editRotina, frequency: value })}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="daily">Diária</SelectItem>
+                        <SelectItem value="weekly">Semanal</SelectItem>
+                        <SelectItem value="monthly">Mensal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Horas Estimadas</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={editRotina.estimated_hours}
+                      onChange={(e) => setEditRotina({ ...editRotina, estimated_hours: e.target.value })}
+                      className="bg-white border-gray-300 text-gray-900"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Responsável</Label>
+                  <Select
+                    value={editRotina.assigned_to}
+                    onValueChange={(value) => setEditRotina({ ...editRotina, assigned_to: value })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Selecione (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.first_name} {member.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir rotina?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. A rotina "{selectedRotina.title}" será permanentemente removida.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteRotina} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setSelectedRotina(null); setIsEditMode(false); }}>
+                      Cancelar
+                    </Button>
+                    <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateRotina}>
+                      Salvar Alterações
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </EquipeLayout>
   );
 };
