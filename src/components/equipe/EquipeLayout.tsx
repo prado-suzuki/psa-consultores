@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Menu,
   ClipboardList,
-  Users
+  Users,
+  Workflow
 } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
     label: 'Projetos', 
     path: '/equipe/projetos',
     children: [
+      { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
       { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
       { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
