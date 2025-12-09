@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { 
@@ -17,7 +19,9 @@ import {
   AlertTriangle,
   User,
   Users,
-  Filter
+  Filter,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 interface DailyStandup {
@@ -56,6 +60,15 @@ const EquipeDaily = () => {
     will_do_today: '',
     blockers: ''
   });
+
+  // Estado para edição
+  const [editingStandup, setEditingStandup] = useState<DailyStandup | null>(null);
+  const [editForm, setEditForm] = useState({
+    did_yesterday: '',
+    will_do_today: '',
+    blockers: ''
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
   
@@ -203,6 +216,68 @@ const EquipeDaily = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEdit = (standup: DailyStandup) => {
+    setEditingStandup(standup);
+    setEditForm({
+      did_yesterday: standup.did_yesterday || '',
+      will_do_today: standup.will_do_today || '',
+      blockers: standup.blockers || ''
+    });
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingStandup) return;
+    
+    setEditSubmitting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('daily_standups')
+        .update({
+          did_yesterday: editForm.did_yesterday,
+          will_do_today: editForm.will_do_today,
+          blockers: editForm.blockers || null
+        })
+        .eq('id', editingStandup.id);
+
+      if (error) throw error;
+      
+      toast({ title: "Daily atualizado", description: "O registro foi atualizado com sucesso." });
+      setEditingStandup(null);
+      fetchStandups();
+    } catch (error) {
+      console.error('Error updating standup:', error);
+      toast({ 
+        title: "Erro", 
+        description: "Não foi possível atualizar o daily.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (standupId: string) => {
+    try {
+      const { error } = await supabase
+        .from('daily_standups')
+        .delete()
+        .eq('id', standupId);
+
+      if (error) throw error;
+      
+      toast({ title: "Daily excluído", description: "O registro foi removido." });
+      fetchStandups();
+    } catch (error) {
+      console.error('Error deleting standup:', error);
+      toast({ 
+        title: "Erro", 
+        description: "Não foi possível excluir o daily.", 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -389,9 +464,52 @@ const EquipeDaily = () => {
                       <span className="text-gray-900 font-medium">
                         {getMemberName(standup.user_id)}
                       </span>
-                      <span className="text-xs text-gray-500 ml-auto">
+                      <span className="text-xs text-gray-500">
                         {new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
+                      
+                      {/* Botões de edição/exclusão apenas para o próprio usuário */}
+                      {standup.user_id === user?.id && (
+                        <div className="flex gap-1 ml-auto">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEdit(standup)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Daily?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. O registro do daily será permanentemente removido.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDelete(standup.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
                     </div>
 
                     {standup.did_yesterday && (
@@ -427,6 +545,54 @@ const EquipeDaily = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Edição */}
+      <Dialog open={editingStandup !== null} onOpenChange={(open) => !open && setEditingStandup(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Daily</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700">O que fiz ontem?</Label>
+              <Textarea
+                value={editForm.did_yesterday}
+                onChange={(e) => setEditForm({ ...editForm, did_yesterday: e.target.value })}
+                className="min-h-[80px]"
+                placeholder="Descreva suas entregas de ontem..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-700">O que vou fazer hoje?</Label>
+              <Textarea
+                value={editForm.will_do_today}
+                onChange={(e) => setEditForm({ ...editForm, will_do_today: e.target.value })}
+                className="min-h-[80px]"
+                placeholder="Suas tarefas para hoje..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-700">Bloqueios? (opcional)</Label>
+              <Textarea
+                value={editForm.blockers}
+                onChange={(e) => setEditForm({ ...editForm, blockers: e.target.value })}
+                className="min-h-[60px]"
+                placeholder="Algum impedimento ou bloqueio?"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingStandup(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={editSubmitting}>
+              {editSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </EquipeLayout>
   );
 };
