@@ -19,29 +19,51 @@ export const CTA = () => {
               Agende uma reunião estratégica gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
             </p>
 
-            <div className="space-y-4 pt-4">
-              <div className="flex items-center gap-4">
-                <Phone className="h-6 w-6 text-primary flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-muted-foreground">Telefone</div>
-                  <div className="font-semibold text-foreground">+55 (65) 3622-2426</div>
+            <div className="flex items-center gap-4 pt-4">
+              <Mail className="h-6 w-6 text-primary flex-shrink-0" />
+              <div>
+                <div className="text-sm text-muted-foreground">E-mail</div>
+                <div className="font-semibold text-foreground">contato@pradosuzuki.com</div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 pt-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+                  <span className="font-bold text-foreground">Cuiabá/MT</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias – Cuiabá/MT, CEP 78043-292
+                </p>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-foreground">+55 (65) 3622-2426</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <Mail className="h-6 w-6 text-primary flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-muted-foreground">E-mail</div>
-                  <div className="font-semibold text-foreground">contato@pradosuzuki.com</div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+                  <span className="font-bold text-foreground">Barreiras/BA</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Rua 12 de Outubro, 520, Renato Gonçalves – Barreiras/BA, CEP 47806-072
+                </p>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-foreground">+55 (77) 3611-0217</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-muted-foreground">Endereço</div>
-                  <div className="font-semibold text-foreground">Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias – Cuiabá/MT, CEP 78043-292</div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+                  <span className="font-bold text-foreground">Curitiba/PR</span>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Rua Visconde de Nácar, 1440, Sala 1937, Edifício Século XXI, Centro – Curitiba/PR, CEP 80410-201
+                </p>
               </div>
             </div>
           </div>
