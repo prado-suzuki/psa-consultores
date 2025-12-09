@@ -8,11 +8,14 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, Users, Package } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, Users, Package, Edit2 } from "lucide-react";
 import { format, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -31,6 +34,7 @@ interface Deliverable {
   title: string;
   description: string | null;
   assigned_to: string | null;
+  start_date: string | null;
   due_date: string;
   status: string;
   estimated_hours: number | null;
@@ -84,16 +88,20 @@ export default function EquipeSprintDetalhes() {
   // Filtros
   const [filterResponsible, setFilterResponsible] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDate, setFilterDate] = useState<string>('all');
 
-  // Modal do Gantt
-  const [ganttModalOpen, setGanttModalOpen] = useState(false);
-  const [selectedDayData, setSelectedDayData] = useState<{
-    day: Date;
-    personName: string;
-    personId: string;
-    deliverables: Deliverable[];
-  } | null>(null);
+  // Modal de edição
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    assigned_to: '',
+    start_date: '',
+    due_date: '',
+    estimated_hours: '',
+    status: 'pending'
+  });
+  const [saving, setSaving] = useState(false);
 
   // Métricas expandidas
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
@@ -176,19 +184,61 @@ export default function EquipeSprintDetalhes() {
         prev.map(d => d.id === deliverableId ? { ...d, ...updates } : d)
       );
 
-      // Atualizar modal se aberto
-      if (selectedDayData) {
-        setSelectedDayData(prev => prev ? {
-          ...prev,
-          deliverables: prev.deliverables.map(d => 
-            d.id === deliverableId ? { ...d, ...updates } : d
-          )
-        } : null);
-      }
-
       toast({ title: "Status atualizado" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const openEditModal = (deliverable: Deliverable) => {
+    setEditingDeliverable(deliverable);
+    setEditForm({
+      title: deliverable.title,
+      description: deliverable.description || '',
+      assigned_to: deliverable.assigned_to || '',
+      start_date: deliverable.start_date || sprint?.start_date || '',
+      due_date: deliverable.due_date,
+      estimated_hours: deliverable.estimated_hours?.toString() || '',
+      status: deliverable.status || 'pending'
+    });
+    setEditModalOpen(true);
+  };
+
+  const saveDeliverable = async () => {
+    if (!editingDeliverable) return;
+    
+    try {
+      setSaving(true);
+      
+      const updates = {
+        title: editForm.title,
+        description: editForm.description || null,
+        assigned_to: editForm.assigned_to || null,
+        start_date: editForm.start_date || null,
+        due_date: editForm.due_date,
+        estimated_hours: editForm.estimated_hours ? parseFloat(editForm.estimated_hours) : null,
+        status: editForm.status,
+        completed_at: editForm.status === 'completed' ? new Date().toISOString() : null
+      };
+
+      const { error } = await supabase
+        .from("sprint_deliverables")
+        .update(updates)
+        .eq("id", editingDeliverable.id);
+
+      if (error) throw error;
+      
+      setDeliverables(prev => 
+        prev.map(d => d.id === editingDeliverable.id ? { ...d, ...updates } : d)
+      );
+
+      setEditModalOpen(false);
+      setEditingDeliverable(null);
+      toast({ title: "Entregável atualizado" });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -269,57 +319,49 @@ export default function EquipeSprintDetalhes() {
     }).filter(Boolean) as { id: string; name: string }[];
   }, [deliverables, profiles]);
 
-  // Unique dates for filter
-  const uniqueDates = useMemo(() => {
-    return [...new Set(deliverables.map(d => d.due_date))].sort();
-  }, [deliverables]);
-
   // Filtered deliverables
   const filteredDeliverables = useMemo(() => {
     return deliverables.filter(d => {
       if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
       if (filterStatus !== 'all' && d.status !== filterStatus) return false;
-      if (filterDate !== 'all' && d.due_date !== filterDate) return false;
       return true;
     });
-  }, [deliverables, filterResponsible, filterStatus, filterDate]);
+  }, [deliverables, filterResponsible, filterStatus]);
 
   const clearFilters = () => {
     setFilterResponsible('all');
     setFilterStatus('all');
-    setFilterDate('all');
   };
 
-  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all' || filterDate !== 'all';
+  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all';
 
-  // Gantt data
-  const ganttData = useMemo(() => {
-    if (!sprint) return { days: [], byPerson: {} };
+  // Gantt real - dados calculados
+  const ganttChartData = useMemo(() => {
+    if (!sprint) return { days: [], deliverables: [], totalDays: 0 };
     
-    const startDate = parseDate(sprint.start_date);
-    const endDate = parseDate(sprint.end_date);
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
+    const sprintStart = parseDate(sprint.start_date);
+    const sprintEnd = parseDate(sprint.end_date);
+    const days = eachDayOfInterval({ start: sprintStart, end: sprintEnd });
+    const totalDays = days.length;
     
-    const byPerson: Record<string, Deliverable[]> = {};
-    filteredDeliverables.forEach(d => {
-      const personId = d.assigned_to || 'unassigned';
-      if (!byPerson[personId]) byPerson[personId] = [];
-      byPerson[personId].push(d);
+    const chartDeliverables = filteredDeliverables.map(d => {
+      const startDate = d.start_date ? parseDate(d.start_date) : sprintStart;
+      const endDate = parseDate(d.due_date);
+      
+      const startOffset = Math.max(0, differenceInDays(startDate, sprintStart));
+      const duration = Math.max(1, differenceInDays(endDate, startDate) + 1);
+      
+      return {
+        ...d,
+        startOffset,
+        duration,
+        barLeft: (startOffset / totalDays) * 100,
+        barWidth: (duration / totalDays) * 100
+      };
     });
     
-    return { days, byPerson };
+    return { days, deliverables: chartDeliverables, totalDays };
   }, [sprint, filteredDeliverables]);
-
-  // Função para abrir modal do Gantt
-  const openGanttModal = (day: Date, personId: string, dayDeliverables: Deliverable[]) => {
-    setSelectedDayData({
-      day,
-      personId,
-      personName: personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId),
-      deliverables: dayDeliverables
-    });
-    setGanttModalOpen(true);
-  };
 
   // Função para obter entregáveis relacionados a uma métrica
   const getRelatedDeliverables = (metric: Metric) => {
@@ -347,6 +389,14 @@ export default function EquipeSprintDetalhes() {
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_progress': return 'bg-yellow-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
   if (loading) {
     return (
       <EquipeLayout title="Carregando...">
@@ -372,7 +422,7 @@ export default function EquipeSprintDetalhes() {
   return (
     <EquipeLayout title={sprint.name}>
       <div className="space-y-6">
-        {/* Header Simples - Apenas navegação e status */}
+        {/* Header Simples */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate("/equipe/sprints")}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
@@ -413,18 +463,6 @@ export default function EquipeSprintDetalhes() {
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="in_progress">Em Progresso</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterDate} onValueChange={setFilterDate}>
-            <SelectTrigger className="w-[160px] bg-white">
-              <SelectValue placeholder="Data" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas datas</SelectItem>
-              {uniqueDates.map(d => (
-                <SelectItem key={d} value={d}>{format(parseDate(d), "dd/MM")}</SelectItem>
-              ))}
             </SelectContent>
           </Select>
 
@@ -486,6 +524,14 @@ export default function EquipeSprintDetalhes() {
                             {deliverable.estimated_hours && <span>{deliverable.estimated_hours}h</span>}
                           </div>
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => openEditModal(deliverable)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
                         <Badge 
                           variant="outline"
                           className={
@@ -505,108 +551,105 @@ export default function EquipeSprintDetalhes() {
             )}
           </TabsContent>
 
-          {/* Tab Gantt - Redesenhado com barras visuais */}
+          {/* Tab Gantt - REAL com barras horizontais por entregável */}
           <TabsContent value="gantt" className="space-y-4">
             <Card className="bg-white border-gray-200 overflow-hidden">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[800px]">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50 w-48 sticky left-0 z-10">
-                          Responsável
-                        </th>
-                        {ganttData.days.map((day, i) => (
-                          <th 
-                            key={i} 
-                            className={`text-center py-3 px-2 font-medium text-xs min-w-[80px] ${
-                              isToday(day) ? 'bg-primary/10 text-primary' : 'text-gray-600 bg-gray-50'
+                  {/* Header com dias */}
+                  <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+                    <div className="flex">
+                      <div className="w-72 flex-shrink-0 px-4 py-3 font-medium text-gray-700 border-r border-gray-200">
+                        Entregável
+                      </div>
+                      <div className="flex-1 flex min-w-[600px]">
+                        {ganttChartData.days.map((day, i) => (
+                          <div 
+                            key={i}
+                            className={`flex-1 text-center py-2 text-xs border-r border-gray-100 last:border-r-0 ${
+                              isToday(day) ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'
                             }`}
+                            style={{ minWidth: '50px' }}
                           >
                             <div>{format(day, "EEE", { locale: ptBR })}</div>
-                            <div className="font-bold text-sm">{format(day, "dd")}</div>
-                          </th>
+                            <div className="font-medium">{format(day, "dd")}</div>
+                          </div>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(ganttData.byPerson).map(([personId, personDeliverables]) => (
-                        <tr key={personId} className="border-b border-gray-100 hover:bg-gray-50/50">
-                          <td className="py-4 px-4 font-medium text-gray-900 bg-white sticky left-0 z-10 border-r border-gray-100">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Linhas do Gantt - Uma por entregável */}
+                  <div className="divide-y divide-gray-100">
+                    {ganttChartData.deliverables.length === 0 ? (
+                      <div className="py-12 text-center text-gray-500">
+                        Nenhum entregável encontrado
+                      </div>
+                    ) : (
+                      ganttChartData.deliverables.map((d) => (
+                        <div key={d.id} className="flex hover:bg-gray-50/50 group">
+                          {/* Nome do entregável */}
+                          <div className="w-72 flex-shrink-0 px-4 py-3 border-r border-gray-100 bg-white">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span className="text-xs font-semibold text-primary">
-                                  {(personId === 'unassigned' ? 'NA' : getProfileName(personId).split(' ').map(n => n[0]).join('')).slice(0, 2)}
+                              <button
+                                onClick={() => openEditModal(d)}
+                                className="flex-1 text-left group-hover:text-primary transition-colors"
+                              >
+                                <div className={`text-sm font-medium truncate ${d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                  {d.title}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {getProfileName(d.assigned_to)}
+                                </div>
+                              </button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => openEditModal(d)}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 h-7 w-7 p-0"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Área da barra */}
+                          <div className="flex-1 relative h-14 min-w-[600px]">
+                            {/* Grid lines */}
+                            <div className="absolute inset-0 flex">
+                              {ganttChartData.days.map((day, i) => (
+                                <div 
+                                  key={i}
+                                  className={`flex-1 border-r border-gray-100 last:border-r-0 ${
+                                    isToday(day) ? 'bg-primary/5' : ''
+                                  }`}
+                                  style={{ minWidth: '50px' }}
+                                />
+                              ))}
+                            </div>
+                            
+                            {/* Barra do entregável */}
+                            <button
+                              onClick={() => openEditModal(d)}
+                              className={`absolute top-3 h-8 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer ${getStatusColor(d.status)} hover:scale-[1.02]`}
+                              style={{
+                                left: `${d.barLeft}%`,
+                                width: `${Math.max(d.barWidth, 3)}%`,
+                                minWidth: '30px'
+                              }}
+                              title={`${d.title} (${format(parseDate(d.start_date || sprint.start_date), "dd/MM")} - ${format(parseDate(d.due_date), "dd/MM")})`}
+                            >
+                              <div className="h-full flex items-center px-3 overflow-hidden">
+                                <span className="text-white text-xs font-medium truncate drop-shadow-sm">
+                                  {d.estimated_hours ? `${d.estimated_hours}h` : ''}
                                 </span>
                               </div>
-                              <div>
-                                <div className="text-sm">{personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId)}</div>
-                                <div className="text-xs text-gray-500">
-                                  {personDeliverables.length} entregas • {personDeliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0)}h
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          {ganttData.days.map((day, i) => {
-                            const dayDeliverables = personDeliverables.filter(d => 
-                              isSameDay(parseDate(d.due_date), day)
-                            );
-                            const hasDeliverables = dayDeliverables.length > 0;
-                            const completedCount = dayDeliverables.filter(d => d.status === 'completed').length;
-                            const inProgressCount = dayDeliverables.filter(d => d.status === 'in_progress').length;
-                            const pendingCount = dayDeliverables.length - completedCount - inProgressCount;
-
-                            return (
-                              <td 
-                                key={i} 
-                                className={`py-2 px-1 ${isToday(day) ? 'bg-primary/5' : ''}`}
-                              >
-                                {hasDeliverables && (
-                                  <button
-                                    onClick={() => openGanttModal(day, personId, dayDeliverables)}
-                                    className="w-full group cursor-pointer hover:scale-105 transition-transform"
-                                  >
-                                    {/* Barra visual com segmentos coloridos */}
-                                    <div className="h-8 rounded-lg overflow-hidden flex shadow-sm group-hover:shadow-md transition-shadow border border-gray-200">
-                                      {completedCount > 0 && (
-                                        <div 
-                                          className="bg-green-500 h-full"
-                                          style={{ flex: completedCount }}
-                                        />
-                                      )}
-                                      {inProgressCount > 0 && (
-                                        <div 
-                                          className="bg-yellow-500 h-full"
-                                          style={{ flex: inProgressCount }}
-                                        />
-                                      )}
-                                      {pendingCount > 0 && (
-                                        <div 
-                                          className="bg-gray-300 h-full"
-                                          style={{ flex: pendingCount }}
-                                        />
-                                      )}
-                                    </div>
-                                    {/* Contador abaixo da barra */}
-                                    <div className="text-xs text-gray-600 mt-1 group-hover:text-primary transition-colors">
-                                      {dayDeliverables.length} {dayDeliverables.length === 1 ? 'entrega' : 'entregas'}
-                                    </div>
-                                  </button>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                      {Object.keys(ganttData.byPerson).length === 0 && (
-                        <tr>
-                          <td colSpan={ganttData.days.length + 1} className="py-8 text-center text-gray-500">
-                            Nenhum entregável encontrado
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -614,19 +657,19 @@ export default function EquipeSprintDetalhes() {
             {/* Legenda */}
             <div className="flex gap-6 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-gray-300"></div>
+                <div className="w-4 h-4 rounded-full bg-gray-400"></div>
                 <span>Pendente</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-yellow-500"></div>
+                <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
                 <span>Em Progresso</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-green-500"></div>
+                <div className="w-4 h-4 rounded-full bg-green-500"></div>
                 <span>Concluído</span>
               </div>
               <div className="text-gray-400 ml-4">
-                Clique em uma barra para ver detalhes
+                Clique em uma barra para editar
               </div>
             </div>
           </TabsContent>
@@ -685,7 +728,7 @@ export default function EquipeSprintDetalhes() {
             )}
           </TabsContent>
 
-          {/* Tab Métricas - Com contexto de responsáveis e entregáveis */}
+          {/* Tab Métricas */}
           <TabsContent value="metrics" className="space-y-4">
             {metrics.length === 0 ? (
               <Card>
@@ -758,7 +801,6 @@ export default function EquipeSprintDetalhes() {
                             </Button>
                           </CollapsibleTrigger>
                           <CollapsibleContent className="mt-3 space-y-3">
-                            {/* Responsáveis */}
                             {relatedResponsibles.length > 0 && (
                               <div>
                                 <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Responsáveis</h4>
@@ -772,7 +814,6 @@ export default function EquipeSprintDetalhes() {
                               </div>
                             )}
 
-                            {/* Entregáveis relacionados */}
                             {relatedDeliverables.length > 0 && (
                               <div>
                                 <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Entregáveis Relacionados</h4>
@@ -816,67 +857,118 @@ export default function EquipeSprintDetalhes() {
         </Tabs>
       </div>
 
-      {/* Modal de Detalhes do Gantt */}
-      <Dialog open={ganttModalOpen} onOpenChange={setGanttModalOpen}>
+      {/* Modal de Edição de Entregável */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span>{selectedDayData?.personName}</span>
-              <span className="text-gray-400">•</span>
-              <span className="font-normal text-gray-600">
-                {selectedDayData && format(selectedDayData.day, "EEEE, dd/MM", { locale: ptBR })}
-              </span>
-            </DialogTitle>
+            <DialogTitle>Editar Entregável</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-3 mt-4">
-            {selectedDayData?.deliverables.map((d) => (
-              <div 
-                key={d.id} 
-                className={`flex items-center gap-3 p-3 rounded-lg border ${
-                  d.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-                }`}
-              >
-                <Checkbox 
-                  checked={d.status === 'completed'}
-                  onCheckedChange={(checked) => {
-                    updateDeliverableStatus(d.id, checked ? 'completed' : 'pending');
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium ${d.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                    {d.title}
-                  </p>
-                  {d.description && (
-                    <p className="text-sm text-gray-500 truncate">{d.description}</p>
-                  )}
-                </div>
-                {d.estimated_hours && (
-                  <Badge variant="outline" className="flex-shrink-0">
-                    {d.estimated_hours}h
-                  </Badge>
-                )}
-              </div>
-            ))}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Título</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Título do entregável"
+              />
+            </div>
 
-            {selectedDayData?.deliverables.length === 0 && (
-              <p className="text-center text-gray-500 py-4">
-                Nenhuma entrega para este dia
-              </p>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descrição</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descrição detalhada"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-assigned">Responsável</Label>
+                <Select 
+                  value={editForm.assigned_to} 
+                  onValueChange={(value) => setEditForm(prev => ({ ...prev, assigned_to: value }))}
+                >
+                  <SelectTrigger id="edit-assigned">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Não atribuído</SelectItem>
+                    {profiles.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.first_name} {p.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => setEditForm(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="in_progress">Em Progresso</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start">Data Início</Label>
+                <Input
+                  id="edit-start"
+                  type="date"
+                  value={editForm.start_date}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, start_date: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-due">Data Entrega</Label>
+                <Input
+                  id="edit-due"
+                  type="date"
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, due_date: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-hours">Horas Estimadas</Label>
+              <Input
+                id="edit-hours"
+                type="number"
+                step="0.5"
+                min="0"
+                value={editForm.estimated_hours}
+                onChange={(e) => setEditForm(prev => ({ ...prev, estimated_hours: e.target.value }))}
+                placeholder="Ex: 4"
+              />
+            </div>
           </div>
 
-          {/* Resumo */}
-          {selectedDayData && selectedDayData.deliverables.length > 0 && (
-            <div className="flex items-center justify-between pt-4 border-t text-sm text-gray-600">
-              <span>
-                {selectedDayData.deliverables.filter(d => d.status === 'completed').length} de {selectedDayData.deliverables.length} concluídos
-              </span>
-              <span>
-                {selectedDayData.deliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0)}h totais
-              </span>
-            </div>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveDeliverable} disabled={saving || !editForm.title || !editForm.due_date}>
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </EquipeLayout>

@@ -398,6 +398,7 @@ export type Database = {
           estimated_hours: number | null
           id: string
           sprint_id: string | null
+          start_date: string | null
           status: string | null
           title: string
           updated_at: string | null
@@ -411,6 +412,7 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           sprint_id?: string | null
+          start_date?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           sprint_id?: string | null
+          start_date?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
