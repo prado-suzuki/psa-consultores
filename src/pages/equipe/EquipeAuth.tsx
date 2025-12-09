@@ -20,33 +20,34 @@ const areas = [
 const EquipeAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string>(() => {
-    // Persist selected area in sessionStorage
-    return sessionStorage.getItem('equipe_selected_area') || '';
-  });
+  const [selectedArea, setSelectedArea] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Save selected area to sessionStorage when it changes
+  // Only redirect when user explicitly selects area and confirms (or just logged in)
   useEffect(() => {
-    if (selectedArea) {
-      sessionStorage.setItem('equipe_selected_area', selectedArea);
+    if (!loading && user && (isTeamMember || isAdmin) && shouldRedirect && selectedArea) {
+      if (selectedArea === 'chamados') {
+        navigate('/admin/chamados');
+      } else {
+        navigate('/equipe/dashboard');
+      }
     }
-  }, [selectedArea]);
+  }, [user, isTeamMember, isAdmin, loading, navigate, selectedArea, shouldRedirect]);
 
-  useEffect(() => {
-    if (!loading && user && (isTeamMember || isAdmin)) {
-      const area = selectedArea || sessionStorage.getItem('equipe_selected_area');
+  const handleAreaSelect = (area: string) => {
+    setSelectedArea(area);
+    // If user is already authenticated, redirect immediately after selecting area
+    if (user && (isTeamMember || isAdmin)) {
       if (area === 'chamados') {
         navigate('/admin/chamados');
       } else {
         navigate('/equipe/dashboard');
       }
-      // Clear after navigation
-      sessionStorage.removeItem('equipe_selected_area');
     }
-  }, [user, isTeamMember, isAdmin, loading, navigate, selectedArea]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +56,7 @@ const EquipeAuth = () => {
     const { error } = await signIn(email, password);
     
     if (!error) {
-      // Navigation will happen automatically via useEffect
+      setShouldRedirect(true);
     }
     
     setIsLoading(false);
@@ -93,7 +94,7 @@ const EquipeAuth = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Select value={selectedArea} onValueChange={setSelectedArea}>
+              <Select value={selectedArea} onValueChange={handleAreaSelect}>
                 <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
                   <SelectValue placeholder="Escolha sua área" />
                 </SelectTrigger>
