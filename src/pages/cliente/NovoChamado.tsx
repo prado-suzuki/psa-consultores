@@ -13,6 +13,9 @@ import { z } from 'zod';
 
 const ticketSchema = z.object({
   title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres').max(100, 'Título deve ter no máximo 100 caracteres'),
+  department: z.enum(['contabilidade', 'icms_ipi', 'irpj_csll', 'pis_cofins', 'produtor_rural', 'outros'], {
+    errorMap: () => ({ message: 'Selecione um departamento' })
+  }),
   description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(1000, 'Descrição deve ter no máximo 1000 caracteres'),
   priority: z.enum(['baixa', 'normal', 'alta', 'urgente']),
 });
@@ -23,6 +26,7 @@ export default function NovoChamado() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: '',
+    department: '',
     description: '',
     priority: 'normal',
   });
@@ -39,6 +43,7 @@ export default function NovoChamado() {
       const { error } = await supabase.from('tickets').insert({
         user_id: user?.id,
         title: form.title,
+        department: form.department,
         description: form.description,
         priority: form.priority,
         status: 'aberto',
@@ -105,6 +110,29 @@ export default function NovoChamado() {
               />
               {errors.title && (
                 <p className="text-sm text-destructive">{errors.title}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Departamento * (Para qual área é sua dúvida?)</Label>
+              <Select 
+                value={form.department} 
+                onValueChange={(value) => setForm({ ...form, department: value })}
+              >
+                <SelectTrigger className={errors.department ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Selecione o departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contabilidade">Contabilidade/Societário</SelectItem>
+                  <SelectItem value="icms_ipi">ICMS/IPI</SelectItem>
+                  <SelectItem value="irpj_csll">IRPJ/CSLL</SelectItem>
+                  <SelectItem value="pis_cofins">PIS/COFINS</SelectItem>
+                  <SelectItem value="produtor_rural">Produtor Rural PF</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.department && (
+                <p className="text-sm text-destructive">{errors.department}</p>
               )}
             </div>
 
