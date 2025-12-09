@@ -187,10 +187,40 @@ const EquipeProcessos = () => {
     return AUTOMATION_LEVELS.find(a => a.value === level) || AUTOMATION_LEVELS[0];
   };
 
-  const parseJsonArray = (json: Json): { name: string; source?: string; format?: string; type?: string; bottleneck?: string }[] => {
-    if (Array.isArray(json)) {
-      return json as { name: string; source?: string; format?: string; type?: string; bottleneck?: string }[];
-    }
+  interface InputItem {
+    nome: string;
+    origem?: string;
+    formato?: string;
+    quantidade?: string;
+    criticidade?: string;
+  }
+
+  interface OutputItem {
+    nome: string;
+    destino?: string;
+    formato?: string;
+    proposito?: string;
+  }
+
+  interface SystemItem {
+    nome: string;
+    uso?: string;
+    frequencia?: string;
+    gargalo?: string;
+  }
+
+  const parseInputs = (json: Json): InputItem[] => {
+    if (Array.isArray(json)) return json as unknown as InputItem[];
+    return [];
+  };
+
+  const parseOutputs = (json: Json): OutputItem[] => {
+    if (Array.isArray(json)) return json as unknown as OutputItem[];
+    return [];
+  };
+
+  const parseSystems = (json: Json): SystemItem[] => {
+    if (Array.isArray(json)) return json as unknown as SystemItem[];
     return [];
   };
 
@@ -431,21 +461,22 @@ const EquipeProcessos = () => {
 
                             <Accordion type="single" collapsible className="w-full">
                               {/* Inputs */}
-                              {parseJsonArray(stage.inputs).length > 0 && (
+                              {parseInputs(stage.inputs).length > 0 && (
                                 <AccordionItem value="inputs">
                                   <AccordionTrigger className="text-sm py-2">
                                     <span className="flex items-center gap-2">
                                       <FileInput className="h-4 w-4 text-blue-500" />
-                                      Inputs ({parseJsonArray(stage.inputs).length})
+                                      Inputs ({parseInputs(stage.inputs).length})
                                     </span>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ul className="space-y-2">
-                                      {parseJsonArray(stage.inputs).map((input, i) => (
+                                      {parseInputs(stage.inputs).map((input, i) => (
                                         <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{input.name}</span>
-                                          {input.source && <span className="text-gray-500"> - {input.source}</span>}
-                                          {input.format && <Badge variant="outline" className="ml-2 text-xs">{input.format}</Badge>}
+                                          <span className="font-medium">{input.nome}</span>
+                                          {input.origem && <span className="text-gray-500"> - {input.origem}</span>}
+                                          {input.formato && <Badge variant="outline" className="ml-2 text-xs">{input.formato}</Badge>}
+                                          {input.quantidade && <span className="text-gray-400 text-xs ml-2">({input.quantidade})</span>}
                                         </li>
                                       ))}
                                     </ul>
@@ -454,19 +485,22 @@ const EquipeProcessos = () => {
                               )}
 
                               {/* Outputs */}
-                              {parseJsonArray(stage.outputs).length > 0 && (
+                              {parseOutputs(stage.outputs).length > 0 && (
                                 <AccordionItem value="outputs">
                                   <AccordionTrigger className="text-sm py-2">
                                     <span className="flex items-center gap-2">
                                       <FileOutput className="h-4 w-4 text-green-500" />
-                                      Outputs ({parseJsonArray(stage.outputs).length})
+                                      Outputs ({parseOutputs(stage.outputs).length})
                                     </span>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ul className="space-y-2">
-                                      {parseJsonArray(stage.outputs).map((output, i) => (
+                                      {parseOutputs(stage.outputs).map((output, i) => (
                                         <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{output.name}</span>
+                                          <span className="font-medium">{output.nome}</span>
+                                          {output.destino && <span className="text-gray-500"> → {output.destino}</span>}
+                                          {output.formato && <Badge variant="outline" className="ml-2 text-xs">{output.formato}</Badge>}
+                                          {output.proposito && <p className="text-gray-500 text-xs mt-1">{output.proposito}</p>}
                                         </li>
                                       ))}
                                     </ul>
@@ -475,22 +509,23 @@ const EquipeProcessos = () => {
                               )}
 
                               {/* Systems */}
-                              {parseJsonArray(stage.systems).length > 0 && (
+                              {parseSystems(stage.systems).length > 0 && (
                                 <AccordionItem value="systems">
                                   <AccordionTrigger className="text-sm py-2">
                                     <span className="flex items-center gap-2">
                                       <Monitor className="h-4 w-4 text-purple-500" />
-                                      Sistemas ({parseJsonArray(stage.systems).length})
+                                      Sistemas ({parseSystems(stage.systems).length})
                                     </span>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ul className="space-y-2">
-                                      {parseJsonArray(stage.systems).map((system, i) => (
+                                      {parseSystems(stage.systems).map((system, i) => (
                                         <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{system.name}</span>
-                                          {system.type && <span className="text-gray-500"> ({system.type})</span>}
-                                          {system.bottleneck && (
-                                            <p className="text-orange-600 text-xs mt-1">⚠️ {system.bottleneck}</p>
+                                          <span className="font-medium">{system.nome}</span>
+                                          {system.uso && <span className="text-gray-500"> ({system.uso})</span>}
+                                          {system.frequencia && <Badge variant="outline" className="ml-2 text-xs">{system.frequencia}</Badge>}
+                                          {system.gargalo && (
+                                            <p className="text-orange-600 text-xs mt-1">⚠️ Gargalo: {system.gargalo}</p>
                                           )}
                                         </li>
                                       ))}
