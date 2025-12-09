@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { id: "inicio", label: "Início", href: "#" },
-  { id: "servicos", label: "Serviços", href: "#servicos" },
-  { id: "sobre", label: "Sobre", href: "#sobre" },
-  { id: "contato", label: "Contato", href: "#contato" },
+  { id: "inicio", label: "Início", href: "#", external: false },
+  { id: "servicos", label: "Serviços", href: "#servicos", external: false },
+  { id: "sobre", label: "Sobre", href: "#sobre", external: false },
+  { id: "contato", label: "Contato", href: "#contato", external: false },
+  { id: "carreira", label: "Carreira", href: "https://www.linkedin.com/company/psaconsultores/jobs/", external: true },
 ];
 
 export const Header = () => {
@@ -44,6 +45,8 @@ export const Header = () => {
                   )}
                   <a
                     href={item.href}
+                    target={item.external ? "_blank" : undefined}
+                    rel={item.external ? "noopener noreferrer" : undefined}
                     className="relative z-10 px-6 py-2.5 text-sm font-medium transition-colors rounded-full block"
                     style={{
                       color: showGlow ? "hsl(var(--primary))" : "#FFFFFF",
