@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EquipeLayout } from "@/components/equipe/EquipeLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,21 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Target, 
-  Users, 
-  CheckCircle2, 
-  Clock, 
-  TrendingUp,
-  CalendarDays,
-  ListTodo,
-  BarChart3
-} from "lucide-react";
-import { format, parseISO, differenceInDays, isToday, isTomorrow, isPast } from "date-fns";
+import { ArrowLeft, X } from "lucide-react";
+import { format, parseISO, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Sprint {
@@ -41,6 +31,7 @@ interface Deliverable {
   assigned_to: string | null;
   due_date: string;
   status: string;
+  estimated_hours: number | null;
   profile?: { first_name: string; last_name: string };
 }
 
@@ -70,6 +61,12 @@ interface Profile {
   last_name: string;
 }
 
+// Helper para parse correto de datas (evita problema de timezone UTC)
+const parseDate = (dateStr: string) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -82,6 +79,11 @@ export default function EquipeSprintDetalhes() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filtros
+  const [filterResponsible, setFilterResponsible] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('all');
+
   useEffect(() => {
     if (id) {
       fetchSprintData();
@@ -92,7 +94,6 @@ export default function EquipeSprintDetalhes() {
     try {
       setLoading(true);
       
-      // Fetch sprint details
       const { data: sprintData, error: sprintError } = await supabase
         .from("sprints")
         .select("*")
@@ -107,13 +108,11 @@ export default function EquipeSprintDetalhes() {
       }
       setSprint(sprintData);
 
-      // Fetch all profiles for reference
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("id, first_name, last_name");
       setProfiles(profilesData || []);
 
-      // Fetch deliverables
       const { data: deliverablesData } = await supabase
         .from("sprint_deliverables")
         .select("*")
@@ -121,7 +120,6 @@ export default function EquipeSprintDetalhes() {
         .order("due_date", { ascending: true });
       setDeliverables(deliverablesData || []);
 
-      // Fetch events
       const { data: eventsData } = await supabase
         .from("sprint_events")
         .select("*")
@@ -130,7 +128,6 @@ export default function EquipeSprintDetalhes() {
         .order("start_time", { ascending: true });
       setEvents(eventsData || []);
 
-      // Fetch metrics
       const { data: metricsData } = await supabase
         .from("sprint_metrics")
         .select("*")
@@ -207,7 +204,11 @@ export default function EquipeSprintDetalhes() {
 
   const getDaysRemaining = () => {
     if (!sprint) return 0;
-    return differenceInDays(parseISO(sprint.end_date), new Date());
+    return differenceInDays(parseDate(sprint.end_date), new Date());
+  };
+
+  const getTotalHours = () => {
+    return deliverables.reduce((sum, d) => sum + (d.estimated_hours || 0), 0);
   };
 
   const getEventTypeBadge = (type: string) => {
@@ -231,10 +232,10 @@ export default function EquipeSprintDetalhes() {
   };
 
   const getDateBadge = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return <Badge className="bg-primary text-primary-foreground">Hoje</Badge>;
-    if (isTomorrow(date)) return <Badge variant="outline">Amanhã</Badge>;
-    if (isPast(date)) return <Badge variant="secondary">Passado</Badge>;
+    const date = parseDate(dateStr);
+    if (isToday(date)) return <Badge className="bg-primary text-primary-foreground text-xs">Hoje</Badge>;
+    if (isTomorrow(date)) return <Badge variant="outline" className="text-xs">Amanhã</Badge>;
+    if (isPast(date)) return <Badge variant="secondary" className="text-xs">Passado</Badge>;
     return null;
   };
 
@@ -248,6 +249,56 @@ export default function EquipeSprintDetalhes() {
     });
     return grouped;
   };
+
+  // Unique responsible people for filter
+  const uniqueResponsibles = useMemo(() => {
+    const responsibleIds = [...new Set(deliverables.map(d => d.assigned_to).filter(Boolean))];
+    return responsibleIds.map(id => {
+      const profile = profiles.find(p => p.id === id);
+      return profile ? { id: profile.id, name: `${profile.first_name} ${profile.last_name}`.trim() } : null;
+    }).filter(Boolean) as { id: string; name: string }[];
+  }, [deliverables, profiles]);
+
+  // Unique dates for filter
+  const uniqueDates = useMemo(() => {
+    return [...new Set(deliverables.map(d => d.due_date))].sort();
+  }, [deliverables]);
+
+  // Filtered deliverables
+  const filteredDeliverables = useMemo(() => {
+    return deliverables.filter(d => {
+      if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
+      if (filterStatus !== 'all' && d.status !== filterStatus) return false;
+      if (filterDate !== 'all' && d.due_date !== filterDate) return false;
+      return true;
+    });
+  }, [deliverables, filterResponsible, filterStatus, filterDate]);
+
+  const clearFilters = () => {
+    setFilterResponsible('all');
+    setFilterStatus('all');
+    setFilterDate('all');
+  };
+
+  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all' || filterDate !== 'all';
+
+  // Gantt data
+  const ganttData = useMemo(() => {
+    if (!sprint) return { days: [], byPerson: {} };
+    
+    const startDate = parseDate(sprint.start_date);
+    const endDate = parseDate(sprint.end_date);
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+    
+    const byPerson: Record<string, Deliverable[]> = {};
+    filteredDeliverables.forEach(d => {
+      const personId = d.assigned_to || 'unassigned';
+      if (!byPerson[personId]) byPerson[personId] = [];
+      byPerson[personId].push(d);
+    });
+    
+    return { days, byPerson };
+  }, [sprint, filteredDeliverables]);
 
   if (loading) {
     return (
@@ -271,6 +322,8 @@ export default function EquipeSprintDetalhes() {
 
   const progress = calculateProgress();
   const daysRemaining = getDaysRemaining();
+  const totalHours = getTotalHours();
+  const completedCount = deliverables.filter(d => d.status === 'completed').length;
   const groupedEvents = groupEventsByDate();
 
   return (
@@ -281,14 +334,14 @@ export default function EquipeSprintDetalhes() {
       <div className="space-y-6">
         {/* Header com navegação */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/equipe/sprints")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/equipe/sprints")}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Button>
           <Badge 
             className={
-              sprint.status === 'active' ? 'bg-green-100 text-green-800' :
-              sprint.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-              'bg-gray-100 text-gray-800'
+              sprint.status === 'active' ? 'bg-primary/10 text-primary border-primary/20' :
+              sprint.status === 'completed' ? 'bg-green-100 text-green-700' :
+              'bg-gray-100 text-gray-700'
             }
           >
             {sprint.status === 'active' ? 'Ativa' : 
@@ -297,98 +350,111 @@ export default function EquipeSprintDetalhes() {
           </Badge>
         </div>
 
-        {/* Cards de Visão Geral */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Progresso</p>
-                  <p className="text-2xl font-bold">{progress}%</p>
-                </div>
+        {/* Header Limpo e Moderno */}
+        <Card className="bg-white border-gray-200">
+          <CardContent className="pt-6">
+            {/* Barra de progresso proeminente */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1 bg-gray-100 rounded-full h-3">
+                <div 
+                  className="bg-primary h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
-              <Progress value={progress} className="mt-3" />
-            </CardContent>
-          </Card>
+              <span className="text-xl font-bold text-gray-900 min-w-[60px] text-right">{progress}%</span>
+            </div>
+            
+            {/* Informações em linha única */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+              <span>
+                {format(parseDate(sprint.start_date), "dd/MM")} - {format(parseDate(sprint.end_date), "dd/MM/yyyy")}
+              </span>
+              <span className="text-gray-300">•</span>
+              <span>{daysRemaining > 0 ? `${daysRemaining} dias restantes` : 'Encerrada'}</span>
+              <span className="text-gray-300">•</span>
+              <span>{completedCount}/{deliverables.length} entregas</span>
+              <span className="text-gray-300">•</span>
+              <span>{totalHours}h alocadas</span>
+              <span className="text-gray-300">•</span>
+              <span>{uniqueResponsibles.length} pessoas</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Dias Restantes</p>
-                  <p className="text-2xl font-bold">{daysRemaining > 0 ? daysRemaining : 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Barra de Filtros */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos responsáveis</SelectItem>
+              {uniqueResponsibles.map(r => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Entregáveis</p>
-                  <p className="text-2xl font-bold">
-                    {deliverables.filter(d => d.status === 'completed').length}/{deliverables.length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="in_progress">Em Progresso</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100">
-                  <Calendar className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Período</p>
-                  <p className="text-sm font-medium">
-                    {format(parseISO(sprint.start_date), "dd/MM")} - {format(parseISO(sprint.end_date), "dd/MM")}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Select value={filterDate} onValueChange={setFilterDate}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="Data" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas datas</SelectItem>
+              {uniqueDates.map(d => (
+                <SelectItem key={d} value={d}>{format(parseDate(d), "dd/MM")}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
+              <X className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          )}
+
+          {hasActiveFilters && (
+            <span className="text-sm text-gray-500 ml-auto">
+              {filteredDeliverables.length} de {deliverables.length} entregáveis
+            </span>
+          )}
         </div>
 
         {/* Tabs de conteúdo */}
         <Tabs defaultValue="deliverables" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="deliverables" className="gap-2">
-              <ListTodo className="h-4 w-4" /> Entregáveis
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="gap-2">
-              <CalendarDays className="h-4 w-4" /> Agenda
-            </TabsTrigger>
-            <TabsTrigger value="metrics" className="gap-2">
-              <BarChart3 className="h-4 w-4" /> Métricas
-            </TabsTrigger>
+            <TabsTrigger value="deliverables">Entregáveis</TabsTrigger>
+            <TabsTrigger value="gantt">Gantt</TabsTrigger>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="metrics">Métricas</TabsTrigger>
           </TabsList>
 
           {/* Tab Entregáveis */}
           <TabsContent value="deliverables" className="space-y-4">
-            {deliverables.length === 0 ? (
+            {filteredDeliverables.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
-                  Nenhum entregável cadastrado para esta sprint.
+                  {hasActiveFilters ? 'Nenhum entregável encontrado com os filtros selecionados.' : 'Nenhum entregável cadastrado para esta sprint.'}
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
-                {deliverables.map((deliverable) => (
-                  <Card key={deliverable.id} className={deliverable.status === 'completed' ? 'bg-muted/50' : ''}>
-                    <CardContent className="py-4">
-                      <div className="flex items-start gap-4">
+              <div className="space-y-2">
+                {filteredDeliverables.map((deliverable) => (
+                  <Card key={deliverable.id} className={`${deliverable.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-200`}>
+                    <CardContent className="py-3">
+                      <div className="flex items-center gap-4">
                         <Checkbox 
                           checked={deliverable.status === 'completed'}
                           onCheckedChange={(checked) => {
@@ -397,33 +463,26 @@ export default function EquipeSprintDetalhes() {
                               checked ? 'completed' : 'pending'
                             );
                           }}
-                          className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-medium ${deliverable.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${deliverable.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                               {deliverable.title}
                             </span>
                             {getDateBadge(deliverable.due_date)}
                           </div>
-                          {deliverable.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{deliverable.description}</p>
-                          )}
-                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {getProfileName(deliverable.assigned_to)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(parseISO(deliverable.due_date), "dd/MM/yyyy")}
-                            </span>
+                          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                            <span>{getProfileName(deliverable.assigned_to)}</span>
+                            <span>{format(parseDate(deliverable.due_date), "dd/MM")}</span>
+                            {deliverable.estimated_hours && <span>{deliverable.estimated_hours}h</span>}
                           </div>
                         </div>
                         <Badge 
-                          variant={
-                            deliverable.status === 'completed' ? 'default' :
-                            deliverable.status === 'in_progress' ? 'secondary' : 'outline'
+                          variant="outline"
+                          className={
+                            deliverable.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                            deliverable.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                            'bg-gray-50 text-gray-600 border-gray-200'
                           }
                         >
                           {deliverable.status === 'completed' ? 'Concluído' :
@@ -435,6 +494,105 @@ export default function EquipeSprintDetalhes() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Tab Gantt */}
+          <TabsContent value="gantt" className="space-y-4">
+            <Card className="bg-white border-gray-200 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50 w-48 sticky left-0">
+                          Responsável
+                        </th>
+                        {ganttData.days.map((day, i) => (
+                          <th 
+                            key={i} 
+                            className={`text-center py-3 px-2 font-medium text-xs min-w-[60px] ${
+                              isToday(day) ? 'bg-primary/10 text-primary' : 'text-gray-600 bg-gray-50'
+                            }`}
+                          >
+                            <div>{format(day, "EEE", { locale: ptBR })}</div>
+                            <div className="font-bold">{format(day, "dd")}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(ganttData.byPerson).map(([personId, personDeliverables]) => (
+                        <tr key={personId} className="border-b border-gray-100">
+                          <td className="py-3 px-4 font-medium text-gray-900 bg-white sticky left-0 border-r border-gray-100">
+                            {personId === 'unassigned' ? 'Não atribuído' : getProfileName(personId)}
+                            <div className="text-xs text-gray-500 font-normal">
+                              {personDeliverables.length} entregas
+                            </div>
+                          </td>
+                          {ganttData.days.map((day, i) => {
+                            const dayDeliverables = personDeliverables.filter(d => 
+                              isSameDay(parseDate(d.due_date), day)
+                            );
+                            return (
+                              <td 
+                                key={i} 
+                                className={`py-2 px-1 ${isToday(day) ? 'bg-primary/5' : ''}`}
+                              >
+                                {dayDeliverables.length > 0 && (
+                                  <div className="space-y-1">
+                                    {dayDeliverables.slice(0, 2).map((d, idx) => (
+                                      <div 
+                                        key={idx}
+                                        className={`text-xs px-2 py-1 rounded truncate ${
+                                          d.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                          d.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                                          'bg-gray-100 text-gray-700'
+                                        }`}
+                                        title={d.title}
+                                      >
+                                        {d.title.length > 12 ? d.title.slice(0, 12) + '...' : d.title}
+                                      </div>
+                                    ))}
+                                    {dayDeliverables.length > 2 && (
+                                      <div className="text-xs text-gray-500 text-center">
+                                        +{dayDeliverables.length - 2}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                      {Object.keys(ganttData.byPerson).length === 0 && (
+                        <tr>
+                          <td colSpan={ganttData.days.length + 1} className="py-8 text-center text-gray-500">
+                            Nenhum entregável encontrado
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Legenda */}
+            <div className="flex gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200"></div>
+                <span>Pendente</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-yellow-100 border border-yellow-200"></div>
+                <span>Em Progresso</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-green-100 border border-green-200"></div>
+                <span>Concluído</span>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Tab Agenda */}
@@ -450,32 +608,31 @@ export default function EquipeSprintDetalhes() {
                 {Object.entries(groupedEvents).map(([date, dayEvents]) => (
                   <div key={date}>
                     <div className="flex items-center gap-2 mb-3">
-                      <h3 className="font-semibold">
-                        {format(parseISO(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                      <h3 className="font-semibold text-gray-900">
+                        {format(parseDate(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                       </h3>
                       {getDateBadge(date)}
                     </div>
-                    <div className="space-y-2 ml-4 border-l-2 border-muted pl-4">
+                    <div className="space-y-2 ml-4 border-l-2 border-gray-200 pl-4">
                       {dayEvents.map((event) => (
-                        <Card key={event.id}>
+                        <Card key={event.id} className="bg-white border-gray-200">
                           <CardContent className="py-3">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {event.start_time && (
-                                    <span className="text-sm font-mono text-muted-foreground">
+                                    <span className="text-sm font-mono text-gray-500">
                                       {event.start_time.slice(0, 5)}
                                       {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
                                     </span>
                                   )}
-                                  <span className="font-medium">{event.title}</span>
+                                  <span className="font-medium text-gray-900">{event.title}</span>
                                 </div>
                                 {event.description && (
-                                  <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                                  <p className="text-sm text-gray-500 mt-1">{event.description}</p>
                                 )}
                                 {event.participants && event.participants.length > 0 && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    <Users className="h-3 w-3 inline mr-1" />
+                                  <p className="text-xs text-gray-500 mt-1">
                                     {getParticipantNames(event.participants)}
                                   </p>
                                 )}
@@ -507,24 +664,24 @@ export default function EquipeSprintDetalhes() {
                     ? Math.round(((metric.current_value || 0) / metric.target_value) * 100)
                     : 0;
                   return (
-                    <Card key={metric.id}>
+                    <Card key={metric.id} className="bg-white border-gray-200">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">{metric.name}</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-900">{metric.name}</CardTitle>
                         {metric.category && (
-                          <Badge variant="outline" className="w-fit">{metric.category}</Badge>
+                          <Badge variant="outline" className="w-fit text-xs">{metric.category}</Badge>
                         )}
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-end gap-2">
-                          <span className="text-3xl font-bold">{metric.current_value || 0}</span>
+                          <span className="text-3xl font-bold text-gray-900">{metric.current_value || 0}</span>
                           {metric.target_value && (
-                            <span className="text-muted-foreground mb-1">/ {metric.target_value} {metric.unit}</span>
+                            <span className="text-gray-500 mb-1">/ {metric.target_value} {metric.unit}</span>
                           )}
                         </div>
                         {metric.target_value && (
                           <>
                             <Progress value={percentage} className="mt-3" />
-                            <p className="text-xs text-muted-foreground mt-1">{percentage}% concluído</p>
+                            <p className="text-xs text-gray-500 mt-1">{percentage}% concluído</p>
                           </>
                         )}
                         <div className="flex gap-2 mt-3">

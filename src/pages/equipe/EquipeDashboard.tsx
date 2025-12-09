@@ -8,16 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
-import { 
-  Target,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  ListTodo,
-  RefreshCw,
-  BarChart3,
-  PieChart as PieChartIcon
-} from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -29,7 +19,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
 } from 'recharts';
 
 interface Sprint {
@@ -79,7 +68,6 @@ const EquipeDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch active sprint
       const { data: sprintData } = await supabase
         .from('sprints')
         .select('*')
@@ -91,7 +79,6 @@ const EquipeDashboard = () => {
       setActiveSprint(sprintData);
 
       if (sprintData) {
-        // Fetch deliverable stats
         const { data: deliverables } = await supabase
           .from('sprint_deliverables')
           .select('status')
@@ -108,7 +95,6 @@ const EquipeDashboard = () => {
         }
       }
 
-      // Fetch area data from processes
       const { data: processes } = await supabase
         .from('processes')
         .select('area');
@@ -122,7 +108,6 @@ const EquipeDashboard = () => {
         setAreaData(Object.entries(areaCounts).map(([name, count]) => ({ name, count })));
       }
 
-      // Fetch user's deliverables
       if (user) {
         const { data: myDeliverablesData } = await supabase
           .from('sprint_deliverables')
@@ -134,7 +119,6 @@ const EquipeDashboard = () => {
 
         setMyDeliverables(myDeliverablesData || []);
 
-        // Fetch user's routines
         const { data: myRoutinesData } = await supabase
           .from('routines')
           .select('*')
@@ -184,7 +168,6 @@ const EquipeDashboard = () => {
     ? Math.round((stats.completed / stats.total) * 100) 
     : 0;
 
-  // Dados para gráfico de volume por status
   const volumeData = [
     { name: 'A Fazer', value: stats.pending, fill: '#3B82F6' },
     { name: 'Em Progresso', value: stats.in_progress, fill: '#F59E0B' },
@@ -196,42 +179,36 @@ const EquipeDashboard = () => {
       title="Dashboard" 
       subtitle="Visão geral do seu trabalho"
       headerActions={
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <RefreshCw className="h-4 w-4" />
-          <span>
-            Atualizado: {lastUpdate?.toLocaleString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              day: '2-digit',
-              month: '2-digit'
-            })}
-          </span>
-        </div>
+        <span className="text-sm text-gray-500">
+          Atualizado: {lastUpdate?.toLocaleString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit'
+          })}
+        </span>
       }
     >
-      {/* Active Sprint Card */}
+      {/* Active Sprint Card - Simplified */}
       {activeSprint ? (
         <Card className="bg-white border-gray-200 mb-6">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Target className="h-5 w-5 text-primary" />
-                <CardTitle className="text-gray-900">{activeSprint.name}</CardTitle>
-                <Badge className="bg-green-100 text-green-700">Ativa</Badge>
+                <h2 className="text-lg font-semibold text-gray-900">{activeSprint.name}</h2>
+                <Badge className="bg-primary/10 text-primary border-0">Ativa</Badge>
               </div>
               <span className="text-sm text-gray-500">
                 {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}
               </span>
             </div>
-          </CardHeader>
-          <CardContent>
             {activeSprint.goal && (
-              <p className="text-gray-600 mb-4">{activeSprint.goal}</p>
+              <p className="text-gray-600 mb-4 text-sm">{activeSprint.goal}</p>
             )}
             <div className="flex items-center gap-4">
-              <div className="flex-1 bg-gray-200 rounded-full h-3">
+              <div className="flex-1 bg-gray-100 rounded-full h-2.5">
                 <div 
-                  className="bg-primary h-3 rounded-full transition-all"
+                  className="bg-primary h-2.5 rounded-full transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -242,11 +219,10 @@ const EquipeDashboard = () => {
       ) : (
         <Card className="bg-white border-gray-200 mb-6">
           <CardContent className="py-8 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhuma sprint ativa</p>
+            <p className="text-gray-500 mb-4">Nenhuma sprint ativa</p>
             <Button 
               variant="outline" 
-              className="mt-4 border-gray-300 text-gray-600"
+              className="border-gray-300 text-gray-600"
               onClick={() => navigate('/equipe/sprints')}
             >
               Criar Sprint
@@ -255,71 +231,49 @@ const EquipeDashboard = () => {
         </Card>
       )}
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Clean, no icons */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <ListTodo className="h-8 w-8 text-gray-400" />
-            </div>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-gray-500 mb-1">Total</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">A Fazer</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-400" />
-            </div>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-gray-500 mb-1">A Fazer</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Em Progresso</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-yellow-400" />
-            </div>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-gray-500 mb-1">Em Progresso</p>
+            <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Concluídas</p>
-                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-400" />
-            </div>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-gray-500 mb-1">Concluídas</p>
+            <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row - Clean titles */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Volume de Entregas Chart */}
         <Card className="bg-white border-gray-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-gray-900 text-base font-medium">
               Volume de Entregas por Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={volumeData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis type="number" tick={{ fill: '#6B7280' }} />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#6B7280' }} />
+                  <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#6B7280', fontSize: 12 }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
                     formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
@@ -335,16 +289,14 @@ const EquipeDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Impactos por Área Chart */}
         <Card className="bg-white border-gray-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-primary" />
+            <CardTitle className="text-gray-900 text-base font-medium">
               Processos por Área
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -352,7 +304,7 @@ const EquipeDashboard = () => {
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
-                    outerRadius={80}
+                    outerRadius={70}
                     paddingAngle={2}
                     dataKey="count"
                     nameKey="name"
@@ -395,8 +347,7 @@ const EquipeDashboard = () => {
         <TabsContent value="sprint">
           <Card className="bg-white border-gray-200">
             <CardHeader>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-primary" />
+              <CardTitle className="text-gray-900 text-base font-medium">
                 Meus Entregáveis da Sprint
               </CardTitle>
             </CardHeader>
@@ -406,7 +357,7 @@ const EquipeDashboard = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : myDeliverables.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {myDeliverables.map((deliverable) => (
                     <div 
                       key={deliverable.id}
@@ -448,8 +399,7 @@ const EquipeDashboard = () => {
         <TabsContent value="rotina">
           <Card className="bg-white border-gray-200">
             <CardHeader>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-gray-900 text-base font-medium">
                 Minhas Tarefas de Rotina
               </CardTitle>
             </CardHeader>
@@ -459,7 +409,7 @@ const EquipeDashboard = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : myRoutines.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {myRoutines.map((routine) => (
                     <div 
                       key={routine.id}
@@ -492,69 +442,74 @@ const EquipeDashboard = () => {
                 className="w-full mt-4 text-primary hover:text-primary/80"
                 onClick={() => navigate('/equipe/rotina')}
               >
-                Ver todas as rotinas
+                Ver rotinas
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="todos">
-          <Card className="bg-white border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-primary" />
-                Todas as Minhas Tarefas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : (myDeliverables.length > 0 || myRoutines.length > 0) ? (
-                <div className="space-y-3">
-                  {myDeliverables.map((deliverable) => (
-                    <div 
-                      key={deliverable.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                      onClick={() => navigate('/equipe/sprints')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge className="bg-blue-100 text-blue-700">Sprint</Badge>
-                        <Badge className={getStatusColor(deliverable.status)}>
-                          {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                        </Badge>
-                        <span className="text-gray-900">{deliverable.title}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="bg-white border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900 text-base font-medium">
+                  Entregáveis da Sprint
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myDeliverables.length > 0 ? (
+                  <div className="space-y-2">
+                    {myDeliverables.map((deliverable) => (
+                      <div 
+                        key={deliverable.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        onClick={() => navigate('/equipe/sprints')}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge className={getStatusColor(deliverable.status)}>
+                            {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          </Badge>
+                          <span className="text-gray-900 text-sm">{deliverable.title}</span>
+                        </div>
                       </div>
-                      <Badge variant="outline" className="border-gray-300 text-gray-600">
-                        {getStatusLabel(deliverable.status)}
-                      </Badge>
-                    </div>
-                  ))}
-                  {myRoutines.map((routine) => (
-                    <div 
-                      key={routine.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                      onClick={() => navigate('/equipe/rotina')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge className="bg-purple-100 text-purple-700">Rotina</Badge>
-                        <Badge className="bg-orange-100 text-orange-700">
-                          {getFrequencyLabel(routine.frequency)}
-                        </Badge>
-                        <span className="text-gray-900">{routine.title}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4 text-sm">Nenhum entregável</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900 text-base font-medium">
+                  Tarefas de Rotina
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myRoutines.length > 0 ? (
+                  <div className="space-y-2">
+                    {myRoutines.map((routine) => (
+                      <div 
+                        key={routine.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        onClick={() => navigate('/equipe/rotina')}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge className="bg-purple-100 text-purple-700">
+                            {getFrequencyLabel(routine.frequency)}
+                          </Badge>
+                          <span className="text-gray-900 text-sm">{routine.title}</span>
+                        </div>
                       </div>
-                      <Badge variant="outline" className="border-gray-300 text-gray-600">
-                        {getStatusLabel(routine.status)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">Nenhuma tarefa atribuída a você</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4 text-sm">Nenhuma rotina</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </EquipeLayout>
