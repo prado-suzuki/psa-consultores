@@ -158,6 +158,7 @@ const EquipeKanban = () => {
     <EquipeLayout 
       title="Quadro Kanban" 
       subtitle="Visualize e gerencie suas tarefas"
+      fullWidth={true}
       headerActions={
         <div className="flex items-center gap-3">
           <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
@@ -218,18 +219,18 @@ const EquipeKanban = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : viewMode === 'kanban' ? (
-        <div className="grid grid-cols-5 gap-4 min-w-[1000px]">
+        <div className="grid grid-cols-5 gap-3 w-full">
           {columns.map((column) => (
-            <div key={column.id} className="bg-gray-50 rounded-lg p-4">
+            <div key={column.id} className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-4">
                 <div className={`w-3 h-3 rounded-full ${column.color}`} />
-                <h3 className="text-gray-900 font-semibold">{column.title}</h3>
+                <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
                 <Badge variant="outline" className="ml-auto border-gray-300 text-gray-600">
                   {tasks.filter(t => t.status === column.id).length}
                 </Badge>
               </div>
               
-              <div className="space-y-3 min-h-[400px]">
+              <div className="space-y-3 min-h-[calc(100vh-320px)]">
                 {tasks
                   .filter(task => task.status === column.id)
                   .map((task) => (

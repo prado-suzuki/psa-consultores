@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
@@ -15,7 +16,8 @@ import {
   CheckCircle,
   AlertTriangle,
   User,
-  Users
+  Users,
+  Filter
 } from 'lucide-react';
 
 interface DailyStandup {
@@ -26,6 +28,7 @@ interface DailyStandup {
   will_do_today: string | null;
   blockers: string | null;
   created_at: string;
+  sprint_id: string | null;
 }
 
 interface TeamMember {
@@ -34,11 +37,17 @@ interface TeamMember {
   last_name: string | null;
 }
 
+interface Sprint {
+  id: string;
+  name: string;
+}
+
 const EquipeDaily = () => {
   const { user } = useAuth();
   const [standups, setStandups] = useState<DailyStandup[]>([]);
   const [myStandup, setMyStandup] = useState<DailyStandup | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,14 +58,25 @@ const EquipeDaily = () => {
   });
 
   const today = new Date().toISOString().split('T')[0];
+  
+  // Filtros para histórico
+  const [filterDate, setFilterDate] = useState<string>(today);
+  const [filterPerson, setFilterPerson] = useState<string>('all');
+  const [filterSprint, setFilterSprint] = useState<string>('all');
 
   useEffect(() => {
     if (user) {
       setSelectedUserId(user.id);
       fetchTeamMembers();
-      fetchStandups();
+      fetchSprints();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStandups();
+    }
+  }, [user, filterDate, filterPerson, filterSprint]);
 
   const fetchTeamMembers = async () => {
     try {
@@ -82,10 +102,23 @@ const EquipeDaily = () => {
     }
   };
 
+  const fetchSprints = async () => {
+    try {
+      const { data } = await supabase
+        .from('sprints')
+        .select('id, name')
+        .order('start_date', { ascending: false });
+      setSprints(data || []);
+    } catch (error) {
+      console.error('Error fetching sprints:', error);
+    }
+  };
+
   const fetchStandups = async () => {
     if (!user) return;
     
     try {
+      // Buscar o standup do usuário atual para hoje
       const { data: myData } = await supabase
         .from('daily_standups')
         .select('*')
@@ -102,12 +135,22 @@ const EquipeDaily = () => {
         });
       }
 
-      const { data: allStandups } = await supabase
+      // Buscar standups com filtros
+      let query = supabase
         .from('daily_standups')
         .select('*')
-        .eq('date', today)
+        .eq('date', filterDate)
         .order('created_at', { ascending: false });
 
+      if (filterPerson !== 'all') {
+        query = query.eq('user_id', filterPerson);
+      }
+
+      if (filterSprint !== 'all') {
+        query = query.eq('sprint_id', filterSprint);
+      }
+
+      const { data: allStandups } = await query;
       setStandups(allStandups || []);
     } catch (error) {
       console.error('Error fetching standups:', error);
@@ -183,8 +226,8 @@ const EquipeDaily = () => {
       title="Daily Standup" 
       subtitle={todayFormatted}
     >
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* My Daily Form */}
+      <div className="space-y-6">
+        {/* Formulário de Daily */}
         <Card className="bg-white border-gray-200">
           <CardHeader>
             <CardTitle className="text-gray-900 flex items-center gap-2">
@@ -270,13 +313,58 @@ const EquipeDaily = () => {
           </CardContent>
         </Card>
 
-        {/* Team Standups */}
+        {/* Histórico de Dailys com Filtros */}
         <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-gray-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-500" />
-              Daily da Equipe
-            </CardTitle>
+            <div className="flex flex-col gap-4">
+              <CardTitle className="text-gray-900 flex items-center gap-2">
+                <User className="h-5 w-5 text-gray-500" />
+                Histórico de Dailys
+              </CardTitle>
+              
+              {/* Filtros */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-500">Filtros:</span>
+                </div>
+                
+                <Input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="bg-white border-gray-300 text-gray-900 w-40"
+                />
+                
+                <Select value={filterPerson} onValueChange={setFilterPerson}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44">
+                    <SelectValue placeholder="Pessoa" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="all">Todas as pessoas</SelectItem>
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.first_name} {member.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={filterSprint} onValueChange={setFilterSprint}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44">
+                    <SelectValue placeholder="Sprint" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="all">Todas as sprints</SelectItem>
+                    {sprints.map((sprint) => (
+                      <SelectItem key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -284,7 +372,7 @@ const EquipeDaily = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : standups.length > 0 ? (
-              <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              <div className="space-y-4">
                 {standups.map((standup) => (
                   <div 
                     key={standup.id}
@@ -332,8 +420,8 @@ const EquipeDaily = () => {
             ) : (
               <div className="text-center py-8">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Nenhum daily registrado hoje</p>
-                <p className="text-sm text-gray-400">Seja o primeiro a compartilhar</p>
+                <p className="text-gray-500">Nenhum daily encontrado para os filtros selecionados</p>
+                <p className="text-sm text-gray-400">Tente alterar a data ou os filtros</p>
               </div>
             )}
           </CardContent>
