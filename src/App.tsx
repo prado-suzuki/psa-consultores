@@ -21,6 +21,7 @@ import EquipeDashboard from "./pages/equipe/EquipeDashboard";
 import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
 import EquipeSprints from "./pages/equipe/EquipeSprints";
+import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
 import EquipeTarefas from "./pages/equipe/EquipeTarefas";
 import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
             <Route path="/equipe/sprints" element={<TeamRoute><EquipeSprints /></TeamRoute>} />
+            <Route path="/equipe/sprints/:id" element={<TeamRoute><EquipeSprintDetalhes /></TeamRoute>} />
             <Route path="/equipe/daily" element={<TeamRoute><EquipeDaily /></TeamRoute>} />
             <Route path="/equipe/tarefas" element={<TeamRoute><EquipeTarefas /></TeamRoute>} />
             <Route path="/equipe/tarefas/nova" element={<TeamRoute><EquipeNovaTarefa /></TeamRoute>} />
