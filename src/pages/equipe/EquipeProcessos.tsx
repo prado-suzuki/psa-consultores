@@ -24,8 +24,15 @@ import {
   FileOutput,
   Monitor,
   FolderKanban,
-  Layers
+  Layers,
+  Edit2,
+  Trash2,
+  Save,
+  X
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Json } from '@/integrations/supabase/types';
 
 interface Process {
@@ -101,6 +108,20 @@ const EquipeProcessos = () => {
   const [processStages, setProcessStages] = useState<ProcessStage[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    area: '',
+    stage: '',
+    priority: '',
+    frequency: '',
+    volume_month: '',
+    financial_impact: ''
+  });
 
   useEffect(() => {
     fetchProcesses();
@@ -164,7 +185,120 @@ const EquipeProcessos = () => {
 
   const handleViewProcess = (process: Process) => {
     setSelectedProcess(process);
+    setIsEditing(false);
     fetchProcessDetails(process.id);
+  };
+
+  const startEditing = () => {
+    if (!selectedProcess) return;
+    setEditForm({
+      name: selectedProcess.name || '',
+      description: selectedProcess.description || '',
+      area: selectedProcess.area || '',
+      stage: selectedProcess.stage || '',
+      priority: selectedProcess.priority || '',
+      frequency: selectedProcess.frequency || '',
+      volume_month: selectedProcess.volume_month?.toString() || '',
+      financial_impact: selectedProcess.financial_impact || ''
+    });
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+  };
+
+  const saveProcess = async () => {
+    if (!selectedProcess) return;
+    
+    try {
+      setSaving(true);
+      
+      const updates = {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        area: editForm.area.trim() || null,
+        stage: editForm.stage,
+        priority: editForm.priority || null,
+        frequency: editForm.frequency.trim() || null,
+        volume_month: editForm.volume_month ? parseInt(editForm.volume_month) : null,
+        financial_impact: editForm.financial_impact.trim() || null
+      };
+
+      const { error } = await supabase
+        .from('processes')
+        .update(updates)
+        .eq('id', selectedProcess.id);
+
+      if (error) throw error;
+      
+      // Update local state
+      setProcesses(prev => 
+        prev.map(p => p.id === selectedProcess.id ? { ...p, ...updates } : p)
+      );
+      setSelectedProcess(prev => prev ? { ...prev, ...updates } : null);
+      setIsEditing(false);
+      
+      toast({
+        title: "Processo atualizado",
+        description: "As alterações foram salvas com sucesso."
+      });
+    } catch (error: any) {
+      console.error('Error saving process:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteProcess = async () => {
+    if (!selectedProcess) return;
+    
+    try {
+      setSaving(true);
+      
+      // Delete related process_stages first
+      await supabase
+        .from('process_stages')
+        .delete()
+        .eq('process_id', selectedProcess.id);
+      
+      // Delete related project_processes
+      await supabase
+        .from('project_processes')
+        .delete()
+        .eq('process_id', selectedProcess.id);
+      
+      // Delete the process
+      const { error } = await supabase
+        .from('processes')
+        .delete()
+        .eq('id', selectedProcess.id);
+
+      if (error) throw error;
+      
+      // Update local state
+      setProcesses(prev => prev.filter(p => p.id !== selectedProcess.id));
+      setSelectedProcess(null);
+      
+      toast({
+        title: "Processo excluído",
+        description: "O processo foi removido com sucesso."
+      });
+    } catch (error: any) {
+      console.error('Error deleting process:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Get unique areas
@@ -328,26 +462,63 @@ const EquipeProcessos = () => {
       )}
 
       {/* Process Detail Dialog */}
-      <Dialog open={!!selectedProcess} onOpenChange={(open) => !open && setSelectedProcess(null)}>
+      <Dialog open={!!selectedProcess} onOpenChange={(open) => { if (!open) { setSelectedProcess(null); setIsEditing(false); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Workflow className="h-5 w-5 text-primary" />
-              {selectedProcess?.name}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Workflow className="h-5 w-5 text-primary" />
+                {isEditing ? 'Editar Processo' : selectedProcess?.name}
+              </DialogTitle>
+              {!isEditing && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={startEditing}>
+                    <Edit2 className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Processo</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir o processo "{selectedProcess?.name}"? 
+                          Esta ação também excluirá todas as etapas e vínculos com projetos relacionados.
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={deleteProcess}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="info">Informações</TabsTrigger>
-              <TabsTrigger value="stages">Etapas ({processStages.length})</TabsTrigger>
-              <TabsTrigger value="projects">Projetos ({projectProcesses.length})</TabsTrigger>
+              <TabsTrigger value="stages" disabled={isEditing}>Etapas ({processStages.length})</TabsTrigger>
+              <TabsTrigger value="projects" disabled={isEditing}>Projetos ({projectProcesses.length})</TabsTrigger>
             </TabsList>
 
             <ScrollArea className="h-[60vh] mt-4">
               {/* Info Tab */}
               <TabsContent value="info" className="mt-0 space-y-4">
-                {selectedProcess && (
+                {selectedProcess && !isEditing && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -384,6 +555,123 @@ const EquipeProcessos = () => {
                       </div>
                     )}
                   </>
+                )}
+                
+                {/* Edit Form */}
+                {isEditing && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-name">Nome do Processo *</Label>
+                      <Input
+                        id="edit-name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Nome do processo"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="edit-description">Descrição</Label>
+                      <Textarea
+                        id="edit-description"
+                        value={editForm.description}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Descrição do processo"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-area">Área</Label>
+                        <Input
+                          id="edit-area"
+                          value={editForm.area}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, area: e.target.value }))}
+                          placeholder="Ex: Fiscal, Consultoria"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-stage">Fase</Label>
+                        <Select 
+                          value={editForm.stage} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, stage: value }))}
+                        >
+                          <SelectTrigger id="edit-stage">
+                            <SelectValue placeholder="Selecione a fase" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PROCESS_STAGES.map(stage => (
+                              <SelectItem key={stage.value} value={stage.value}>
+                                {stage.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-priority">Prioridade</Label>
+                        <Select 
+                          value={editForm.priority} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, priority: value }))}
+                        >
+                          <SelectTrigger id="edit-priority">
+                            <SelectValue placeholder="Selecione a prioridade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Crítica">Crítica</SelectItem>
+                            <SelectItem value="Alta">Alta</SelectItem>
+                            <SelectItem value="Média">Média</SelectItem>
+                            <SelectItem value="Baixa">Baixa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-frequency">Frequência</Label>
+                        <Input
+                          id="edit-frequency"
+                          value={editForm.frequency}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, frequency: e.target.value }))}
+                          placeholder="Ex: Diária, Semanal, Mensal"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-volume">Volume Mensal</Label>
+                        <Input
+                          id="edit-volume"
+                          type="number"
+                          value={editForm.volume_month}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, volume_month: e.target.value }))}
+                          placeholder="Quantidade por mês"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-impact">Impacto Financeiro</Label>
+                        <Input
+                          id="edit-impact"
+                          value={editForm.financial_impact}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, financial_impact: e.target.value }))}
+                          placeholder="Ex: Alto, Médio, Baixo"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button variant="outline" onClick={cancelEditing} disabled={saving}>
+                        <X className="h-4 w-4 mr-1" />
+                        Cancelar
+                      </Button>
+                      <Button onClick={saveProcess} disabled={saving || !editForm.name.trim()}>
+                        <Save className="h-4 w-4 mr-1" />
+                        {saving ? 'Salvando...' : 'Salvar Alterações'}
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </TabsContent>
 
