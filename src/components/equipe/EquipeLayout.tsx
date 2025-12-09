@@ -115,30 +115,32 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions }: Equip
                 open={projectsOpen && !collapsed} 
                 onOpenChange={setProjectsOpen}
               >
-                <CollapsibleTrigger asChild>
+                <div className="flex items-center gap-1">
                   <Button
                     variant={isActive(item.path) || isChildActive(item.children) ? "secondary" : "ghost"}
-                    className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-between'} ${
+                    className={`flex-1 ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
                       isActive(item.path) || isChildActive(item.children)
                         ? 'bg-primary/10 text-primary hover:bg-primary/20' 
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
-                    onClick={() => {
-                      if (collapsed) {
-                        navigate(item.path);
-                      }
-                    }}
+                    onClick={() => navigate(item.path)}
                     title={collapsed ? item.label : undefined}
                   >
-                    <div className="flex items-center">
-                      <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-                      {!collapsed && item.label}
-                    </div>
-                    {!collapsed && (
-                      <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
-                    )}
+                    <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+                    {!collapsed && item.label}
                   </Button>
-                </CollapsibleTrigger>
+                  {!collapsed && (
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                  )}
+                </div>
                 {!collapsed && (
                   <CollapsibleContent className="pl-4 mt-1 space-y-1">
                     {item.children.map((child) => (
