@@ -97,6 +97,11 @@ export const CTA = () => {
                 </div>
 
                 <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Assunto</label>
+                  <Input placeholder="Assunto do contato" className="h-12" />
+                </div>
+
+                <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Como podemos ajudar?</label>
                   <textarea 
                     placeholder="Conte-nos sobre seus desafios..."
