@@ -20,18 +20,31 @@ const areas = [
 const EquipeAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string>('');
+  const [selectedArea, setSelectedArea] = useState<string>(() => {
+    // Persist selected area in sessionStorage
+    return sessionStorage.getItem('equipe_selected_area') || '';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Save selected area to sessionStorage when it changes
+  useEffect(() => {
+    if (selectedArea) {
+      sessionStorage.setItem('equipe_selected_area', selectedArea);
+    }
+  }, [selectedArea]);
+
   useEffect(() => {
     if (!loading && user && (isTeamMember || isAdmin)) {
-      if (selectedArea === 'chamados') {
+      const area = selectedArea || sessionStorage.getItem('equipe_selected_area');
+      if (area === 'chamados') {
         navigate('/admin/chamados');
       } else {
         navigate('/equipe/dashboard');
       }
+      // Clear after navigation
+      sessionStorage.removeItem('equipe_selected_area');
     }
   }, [user, isTeamMember, isAdmin, loading, navigate, selectedArea]);
 
