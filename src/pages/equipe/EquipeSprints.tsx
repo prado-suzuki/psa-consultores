@@ -134,6 +134,12 @@ const EquipeSprints = () => {
     }
   };
 
+  // Helper para parse correto de datas (evita problema de timezone UTC)
+  const parseDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const fetchSprintHours = async (sprintsList: Sprint[]) => {
     try {
       // Fetch all profiles
@@ -146,23 +152,23 @@ const EquipeSprints = () => {
         profileMap[p.id] = `${p.first_name} ${p.last_name}`.trim() || 'Sem nome';
       });
 
-      // Fetch tasks for all sprints
-      const { data: tasks } = await supabase
-        .from('tasks')
+      // Fetch deliverables for all sprints
+      const { data: deliverables } = await supabase
+        .from('sprint_deliverables')
         .select('sprint_id, assigned_to, estimated_hours')
         .in('sprint_id', sprintsList.map(s => s.id));
 
       const hoursMap: Record<string, Record<string, number>> = {};
 
-      tasks?.forEach(task => {
-        if (task.sprint_id && task.assigned_to && task.estimated_hours) {
-          if (!hoursMap[task.sprint_id]) {
-            hoursMap[task.sprint_id] = {};
+      deliverables?.forEach(deliverable => {
+        if (deliverable.sprint_id && deliverable.assigned_to && deliverable.estimated_hours) {
+          if (!hoursMap[deliverable.sprint_id]) {
+            hoursMap[deliverable.sprint_id] = {};
           }
-          if (!hoursMap[task.sprint_id][task.assigned_to]) {
-            hoursMap[task.sprint_id][task.assigned_to] = 0;
+          if (!hoursMap[deliverable.sprint_id][deliverable.assigned_to]) {
+            hoursMap[deliverable.sprint_id][deliverable.assigned_to] = 0;
           }
-          hoursMap[task.sprint_id][task.assigned_to] += Number(task.estimated_hours);
+          hoursMap[deliverable.sprint_id][deliverable.assigned_to] += Number(deliverable.estimated_hours);
         }
       });
 
@@ -512,7 +518,7 @@ const EquipeSprints = () => {
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {new Date(sprint.start_date).toLocaleDateString('pt-BR')} - {new Date(sprint.end_date).toLocaleDateString('pt-BR')}
+                      {parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}
                     </span>
                     {totalHours > 0 && (
                       <span className="flex items-center gap-1">
