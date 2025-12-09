@@ -50,7 +50,6 @@ const navItems: NavItem[] = [
       { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
       { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
-      { icon: ListTodo, label: 'Tarefas', path: '/equipe/tarefas' },
     ]
   },
 ];
@@ -68,9 +67,6 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   };
 
   const isActive = (path: string) => {
-    if (path === '/equipe/tarefas') {
-      return location.pathname.startsWith('/equipe/tarefas');
-    }
     return location.pathname === path;
   };
 

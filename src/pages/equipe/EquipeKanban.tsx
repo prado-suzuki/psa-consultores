@@ -1,31 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
-import { 
-  Plus,
-  Database,
-  Monitor,
-  Briefcase,
-  LayoutGrid,
-  List
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LayoutGrid, List } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface Task {
+interface Deliverable {
   id: string;
   title: string;
   description: string | null;
   status: string;
-  priority: string;
-  cluster: string;
   assigned_to: string | null;
   sprint_id: string | null;
   estimated_hours: number | null;
+  due_date: string | null;
 }
 
 interface Sprint {
@@ -33,48 +26,48 @@ interface Sprint {
   name: string;
 }
 
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 const columns = [
-  { id: 'backlog', title: 'Backlog', color: 'bg-gray-500' },
-  { id: 'to_do', title: 'A Fazer', color: 'bg-blue-500' },
+  { id: 'pending', title: 'A Fazer', color: 'bg-blue-500' },
   { id: 'in_progress', title: 'Em Progresso', color: 'bg-yellow-500' },
-  { id: 'review', title: 'Revisão', color: 'bg-purple-500' },
-  { id: 'done', title: 'Concluído', color: 'bg-green-500' },
+  { id: 'completed', title: 'Concluído', color: 'bg-green-500' },
 ];
 
 const EquipeKanban = () => {
-  const navigate = useNavigate();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedSprint, setSelectedSprint] = useState<string>('all');
-  const [selectedCluster, setSelectedCluster] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
-  }, [selectedSprint, selectedCluster]);
+  }, [selectedSprint]);
 
   const fetchData = async () => {
     try {
-      const { data: sprintsData } = await supabase
-        .from('sprints')
-        .select('id, name')
-        .order('start_date', { ascending: false });
+      const [sprintsRes, profilesRes] = await Promise.all([
+        supabase.from('sprints').select('id, name').order('start_date', { ascending: false }),
+        supabase.from('profiles').select('id, first_name, last_name')
+      ]);
       
-      setSprints(sprintsData || []);
+      setSprints(sprintsRes.data || []);
+      setProfiles(profilesRes.data || []);
 
-      let query = supabase.from('tasks').select('*');
+      let query = supabase.from('sprint_deliverables').select('*');
       
       if (selectedSprint !== 'all') {
         query = query.eq('sprint_id', selectedSprint);
       }
-      
-      if (selectedCluster !== 'all') {
-        query = query.eq('cluster', selectedCluster as 'database' | 'frontend' | 'management');
-      }
 
-      const { data: tasksData } = await query;
-      setTasks(tasksData || []);
+      const { data: deliverablesData } = await query;
+      setDeliverables(deliverablesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -82,82 +75,66 @@ const EquipeKanban = () => {
     }
   };
 
-  const updateTaskStatus = async (taskId: string, newStatus: 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done') => {
+  const updateDeliverableStatus = async (id: string, newStatus: 'pending' | 'in_progress' | 'completed') => {
     try {
-      await supabase
-        .from('tasks')
-        .update({ status: newStatus })
-        .eq('id', taskId);
+      const updateData: { status: string; completed_at?: string | null } = { status: newStatus };
       
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status: newStatus } : task
+      if (newStatus === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      } else {
+        updateData.completed_at = null;
+      }
+
+      await supabase
+        .from('sprint_deliverables')
+        .update(updateData)
+        .eq('id', id);
+      
+      setDeliverables(deliverables.map(d => 
+        d.id === id ? { ...d, status: newStatus } : d
       ));
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error('Error updating deliverable:', error);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'border-l-red-500';
-      case 'high': return 'border-l-orange-500';
-      case 'medium': return 'border-l-yellow-500';
-      default: return 'border-l-gray-400';
-    }
-  };
-
-  const getPriorityBadgeColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-700';
-      case 'high': return 'bg-orange-100 text-orange-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
+  const getProfileName = (profileId: string | null) => {
+    if (!profileId) return 'Não atribuído';
+    const profile = profiles.find(p => p.id === profileId);
+    return profile ? `${profile.first_name} ${profile.last_name}` : 'Desconhecido';
   };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'done': return 'bg-green-100 text-green-700';
+      case 'completed': return 'bg-green-100 text-green-700';
       case 'in_progress': return 'bg-yellow-100 text-yellow-700';
-      case 'review': return 'bg-purple-100 text-purple-700';
-      case 'to_do': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-blue-100 text-blue-700';
     }
   };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      backlog: 'Backlog',
-      to_do: 'A Fazer',
+      pending: 'A Fazer',
       in_progress: 'Em Progresso',
-      review: 'Revisão',
-      done: 'Concluído'
+      completed: 'Concluído'
     };
     return labels[status] || status;
   };
 
-  const getClusterIcon = (cluster: string) => {
-    switch (cluster) {
-      case 'database': return <Database className="h-3 w-3" />;
-      case 'frontend': return <Monitor className="h-3 w-3" />;
-      case 'management': return <Briefcase className="h-3 w-3" />;
-      default: return null;
-    }
-  };
-
-  const getClusterLabel = (cluster: string) => {
-    switch (cluster) {
-      case 'database': return 'Banco de Dados';
-      case 'frontend': return 'Frontend';
-      case 'management': return 'Gestão';
-      default: return cluster;
+  const formatDueDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    try {
+      const date = new Date(dateStr + 'T00:00:00');
+      return format(date, 'dd/MM', { locale: ptBR });
+    } catch {
+      return dateStr;
     }
   };
 
   return (
     <EquipeLayout 
       title="Quadro Kanban" 
-      subtitle="Visualize e gerencie suas tarefas"
+      subtitle="Visualize e gerencie os entregáveis das sprints"
       fullWidth={true}
       headerActions={
         <div className="flex items-center gap-3">
@@ -191,26 +168,6 @@ const EquipeKanban = () => {
               ))}
             </SelectContent>
           </Select>
-          
-          <Select value={selectedCluster} onValueChange={setSelectedCluster}>
-            <SelectTrigger className="w-48 bg-white border-gray-300 text-gray-900">
-              <SelectValue placeholder="Cluster" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border-gray-200">
-              <SelectItem value="all">Todos os Clusters</SelectItem>
-              <SelectItem value="database">Banco de Dados</SelectItem>
-              <SelectItem value="frontend">Frontend</SelectItem>
-              <SelectItem value="management">Gestão</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button 
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => navigate('/equipe/tarefas/nova')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Tarefa
-          </Button>
         </div>
       }
     >
@@ -219,61 +176,50 @@ const EquipeKanban = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : viewMode === 'kanban' ? (
-        <div className="grid grid-cols-5 gap-3 w-full">
+        <div className="grid grid-cols-3 gap-4 w-full">
           {columns.map((column) => (
             <div key={column.id} className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-4">
                 <div className={`w-3 h-3 rounded-full ${column.color}`} />
                 <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
                 <Badge variant="outline" className="ml-auto border-gray-300 text-gray-600">
-                  {tasks.filter(t => t.status === column.id).length}
+                  {deliverables.filter(d => d.status === column.id).length}
                 </Badge>
               </div>
               
-              <div className="space-y-3 min-h-[calc(100vh-320px)]">
-                {tasks
-                  .filter(task => task.status === column.id)
-                  .map((task) => (
+              <div 
+                className="space-y-3 min-h-[calc(100vh-320px)]"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const deliverableId = e.dataTransfer.getData('deliverableId');
+                  updateDeliverableStatus(deliverableId, column.id as 'pending' | 'in_progress' | 'completed');
+                }}
+              >
+                {deliverables
+                  .filter(d => d.status === column.id)
+                  .map((deliverable) => (
                     <Card 
-                      key={task.id}
-                      className={`bg-white border-gray-200 border-l-4 ${getPriorityColor(task.priority)} cursor-pointer hover:shadow-md transition-shadow h-32 overflow-hidden`}
+                      key={deliverable.id}
+                      className="bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                       draggable
-                      onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = e.dataTransfer.getData('taskId');
-                        updateTaskStatus(taskId, column.id as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
-                      }}
+                      onDragStart={(e) => e.dataTransfer.setData('deliverableId', deliverable.id)}
                     >
-                      <CardContent className="p-3 h-full flex flex-col">
-                        <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">{task.title}</h4>
-                        <div className="mt-auto flex items-center justify-between">
-                          <Badge 
-                            variant="outline" 
-                            className="border-gray-300 text-gray-600 text-xs flex items-center gap-1"
-                          >
-                            {getClusterIcon(task.cluster)}
-                            {getClusterLabel(task.cluster)}
-                          </Badge>
-                          {task.estimated_hours && (
-                            <span className="text-xs text-gray-500">{task.estimated_hours}h</span>
-                          )}
+                      <CardContent className="p-3">
+                        <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">{deliverable.title}</h4>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{getProfileName(deliverable.assigned_to)}</span>
+                          <span>{formatDueDate(deliverable.due_date)}</span>
                         </div>
+                        {deliverable.estimated_hours && (
+                          <div className="mt-2 text-xs text-gray-400">
+                            {deliverable.estimated_hours}h estimadas
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
               </div>
-              
-              <div 
-                className="min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg mt-3"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const taskId = e.dataTransfer.getData('taskId');
-                  updateTaskStatus(taskId, column.id as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
-                }}
-              />
             </div>
           ))}
         </div>
@@ -284,40 +230,35 @@ const EquipeKanban = () => {
               <TableRow>
                 <TableHead className="text-gray-700">Título</TableHead>
                 <TableHead className="text-gray-700">Status</TableHead>
-                <TableHead className="text-gray-700">Prioridade</TableHead>
-                <TableHead className="text-gray-700">Cluster</TableHead>
+                <TableHead className="text-gray-700">Responsável</TableHead>
+                <TableHead className="text-gray-700">Data Limite</TableHead>
                 <TableHead className="text-gray-700 text-right">Horas Est.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.length === 0 ? (
+              {deliverables.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                    Nenhuma tarefa encontrada
+                    Nenhum entregável encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                tasks.map((task) => (
-                  <TableRow key={task.id} className="cursor-pointer hover:bg-gray-50">
-                    <TableCell className="text-gray-900 font-medium">{task.title}</TableCell>
+                deliverables.map((deliverable) => (
+                  <TableRow key={deliverable.id} className="cursor-pointer hover:bg-gray-50">
+                    <TableCell className="text-gray-900 font-medium">{deliverable.title}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusBadgeColor(task.status)}>
-                        {getStatusLabel(task.status)}
+                      <Badge className={getStatusBadgeColor(deliverable.status)}>
+                        {getStatusLabel(deliverable.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge className={getPriorityBadgeColor(task.priority)}>
-                        {task.priority}
-                      </Badge>
+                    <TableCell className="text-gray-600">
+                      {getProfileName(deliverable.assigned_to)}
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-gray-300 text-gray-600 flex items-center gap-1 w-fit">
-                        {getClusterIcon(task.cluster)}
-                        {getClusterLabel(task.cluster)}
-                      </Badge>
+                    <TableCell className="text-gray-600">
+                      {formatDueDate(deliverable.due_date)}
                     </TableCell>
                     <TableCell className="text-right text-gray-600">
-                      {task.estimated_hours ? `${task.estimated_hours}h` : '-'}
+                      {deliverable.estimated_hours ? `${deliverable.estimated_hours}h` : '-'}
                     </TableCell>
                   </TableRow>
                 ))
