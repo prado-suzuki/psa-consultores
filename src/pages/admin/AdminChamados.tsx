@@ -611,7 +611,7 @@ export default function AdminChamados() {
                         </TableCell>
                         <TableCell>
                           <button
-                            onClick={() => navigate(`/cliente/chamados/${ticket.id}`)}
+                            onClick={() => navigate(`/admin/chamados/${ticket.id}`)}
                             className="text-left font-medium text-primary hover:underline focus:outline-none"
                           >
                             {ticket.title}
