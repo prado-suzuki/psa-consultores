@@ -45,7 +45,39 @@ interface Ticket {
 }
 
 type SortDirection = 'asc' | 'desc' | null;
-type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'activity_status' | null;
+type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'prazo' | 'activity_status' | null;
+
+interface PrazoInfo {
+  dias?: number;
+  horas?: number;
+  prazoExpirado?: boolean;
+  prazoHoje?: boolean;
+  tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido';
+}
+
+const calcularPrazoResposta = (dataCriacao: string, status: string): PrazoInfo => {
+  if (status === 'resolvido' || status === 'fechado') {
+    return { tipo: 'concluido' };
+  }
+  
+  const prazoEmDias = 5;
+  const hoje = new Date();
+  const criacao = new Date(dataCriacao);
+  const prazoFinal = new Date(criacao);
+  prazoFinal.setDate(prazoFinal.getDate() + prazoEmDias);
+  
+  const diffTime = prazoFinal.getTime() - hoje.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+  
+  return {
+    dias: diffDays,
+    horas: diffHours,
+    prazoExpirado: diffTime < 0,
+    prazoHoje: diffDays === 0 && diffTime > 0,
+    tipo: diffTime < 0 ? 'expirado' : diffDays <= 1 ? 'urgente' : diffDays <= 2 ? 'atencao' : 'normal'
+  };
+};
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500 hover:bg-blue-600',
@@ -105,6 +137,7 @@ export default function AdminChamados() {
     departamento: 'todos',
     searchId: '',
   });
+  const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -276,55 +309,84 @@ export default function AdminChamados() {
       );
     }
 
-    // Ordenação
-    if (sortColumn && sortDirection) {
-      filtered.sort((a, b) => {
-        let aVal: string | number = '';
-        let bVal: string | number = '';
-
-        switch (sortColumn) {
-          case 'status':
-            aVal = a.status;
-            bVal = b.status;
-            break;
-          case 'title':
-            aVal = a.title.toLowerCase();
-            bVal = b.title.toLowerCase();
-            break;
-          case 'id':
-            aVal = a.id;
-            bVal = b.id;
-            break;
-          case 'department':
-            aVal = a.department || '';
-            bVal = b.department || '';
-            break;
-          case 'created_by':
-            aVal = `${a.profiles?.first_name || ''} ${a.profiles?.last_name || ''}`.toLowerCase();
-            bVal = `${b.profiles?.first_name || ''} ${b.profiles?.last_name || ''}`.toLowerCase();
-            break;
-          case 'agent':
-            aVal = `${a.agent?.first_name || ''} ${a.agent?.last_name || ''}`.toLowerCase();
-            bVal = `${b.agent?.first_name || ''} ${b.agent?.last_name || ''}`.toLowerCase();
-            break;
-          case 'updated_at':
-            aVal = new Date(a.updated_at).getTime();
-            bVal = new Date(b.updated_at).getTime();
-            break;
-          case 'activity_status':
-            aVal = a.activity_status || '';
-            bVal = b.activity_status || '';
-            break;
-        }
-
-        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
+    // Filtro de chamados urgentes
+    if (mostrarUrgentes) {
+      filtered = filtered.filter(t => {
+        if (t.status === 'resolvido' || t.status === 'fechado') return false;
+        const prazo = calcularPrazoResposta(t.created_at, t.status);
+        return (prazo.dias !== undefined && prazo.dias <= 2) || prazo.prazoExpirado;
       });
     }
 
+    // Ordenação
+    if (sortColumn && sortDirection) {
+      if (sortColumn === 'prazo') {
+        // Ordenação especial para prazo
+        const getPrioridade = (prazo: PrazoInfo) => {
+          if (prazo.tipo === 'concluido') return 999;
+          if (prazo.tipo === 'expirado') return -(prazo.dias || 0);
+          return prazo.dias || 0;
+        };
+
+        filtered.sort((a, b) => {
+          const prazoA = calcularPrazoResposta(a.created_at, a.status);
+          const prazoB = calcularPrazoResposta(b.created_at, b.status);
+          const prioridadeA = getPrioridade(prazoA);
+          const prioridadeB = getPrioridade(prazoB);
+
+          return sortDirection === 'asc' 
+            ? prioridadeA - prioridadeB 
+            : prioridadeB - prioridadeA;
+        });
+      } else {
+        filtered.sort((a, b) => {
+          let aVal: string | number = '';
+          let bVal: string | number = '';
+
+          switch (sortColumn) {
+            case 'status':
+              aVal = a.status;
+              bVal = b.status;
+              break;
+            case 'title':
+              aVal = a.title.toLowerCase();
+              bVal = b.title.toLowerCase();
+              break;
+            case 'id':
+              aVal = a.id;
+              bVal = b.id;
+              break;
+            case 'department':
+              aVal = a.department || '';
+              bVal = b.department || '';
+              break;
+            case 'created_by':
+              aVal = `${a.profiles?.first_name || ''} ${a.profiles?.last_name || ''}`.toLowerCase();
+              bVal = `${b.profiles?.first_name || ''} ${b.profiles?.last_name || ''}`.toLowerCase();
+              break;
+            case 'agent':
+              aVal = `${a.agent?.first_name || ''} ${a.agent?.last_name || ''}`.toLowerCase();
+              bVal = `${b.agent?.first_name || ''} ${b.agent?.last_name || ''}`.toLowerCase();
+              break;
+            case 'updated_at':
+              aVal = new Date(a.updated_at).getTime();
+              bVal = new Date(b.updated_at).getTime();
+              break;
+            case 'activity_status':
+              aVal = a.activity_status || '';
+              bVal = b.activity_status || '';
+              break;
+          }
+
+          if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+          if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+    }
+
     return filtered;
-  }, [tickets, filters, sortColumn, sortDirection]);
+  }, [tickets, filters, sortColumn, sortDirection, mostrarUrgentes]);
 
   const assignAgent = async (ticketId: string, agentId: string | null) => {
     try {
@@ -469,7 +531,7 @@ export default function AdminChamados() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
               <div className="space-y-2">
                 <Label>Departamento</Label>
                 <Select value={filters.departamento} onValueChange={(v) => setFilters({...filters, departamento: v})}>
@@ -497,9 +559,23 @@ export default function AdminChamados() {
                 />
               </div>
 
+              <div className="flex items-center gap-2 h-10">
+                <Checkbox 
+                  id="urgentes"
+                  checked={mostrarUrgentes}
+                  onCheckedChange={(checked) => setMostrarUrgentes(checked === true)}
+                />
+                <Label htmlFor="urgentes" className="text-sm cursor-pointer">
+                  Apenas urgentes (&lt; 2 dias)
+                </Label>
+              </div>
+
               <Button 
                 variant="outline"
-                onClick={resetFilters}
+                onClick={() => {
+                  resetFilters();
+                  setMostrarUrgentes(false);
+                }}
               >
                 Limpar Filtros
               </Button>
@@ -597,6 +673,15 @@ export default function AdminChamados() {
                       </TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('prazo')}
+                      >
+                        <div className="flex items-center">
+                          Prazo
+                          {getSortIcon('prazo')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('activity_status')}
                       >
                         <div className="flex items-center">
@@ -679,6 +764,57 @@ export default function AdminChamados() {
                               locale: ptBR 
                             })}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const prazo = calcularPrazoResposta(ticket.created_at, ticket.status);
+                            
+                            if (prazo.tipo === 'concluido') {
+                              return (
+                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                  Respondido
+                                </Badge>
+                              );
+                            }
+                            
+                            if (prazo.tipo === 'expirado') {
+                              return (
+                                <Badge className="bg-red-500 text-white animate-pulse hover:bg-red-500">
+                                  ⚠️ ATRASADO {Math.abs(prazo.dias || 0)}d
+                                </Badge>
+                              );
+                            }
+                            
+                            if (prazo.prazoHoje) {
+                              return (
+                                <Badge className="bg-orange-500 text-white hover:bg-orange-500">
+                                  HOJE ({prazo.horas}h)
+                                </Badge>
+                              );
+                            }
+                            
+                            if (prazo.tipo === 'urgente') {
+                              return (
+                                <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                                  Amanhã ({prazo.horas}h)
+                                </Badge>
+                              );
+                            }
+                            
+                            if (prazo.tipo === 'atencao') {
+                              return (
+                                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
+                                  {prazo.dias} dias
+                                </Badge>
+                              );
+                            }
+                            
+                            return (
+                              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                                {prazo.dias} dias
+                              </Badge>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           {ticket.activity_status && (
