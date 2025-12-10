@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, FileText, X } from 'lucide-react';
 import { z } from 'zod';
 
 const ticketSchema = z.object({
@@ -19,6 +19,8 @@ const ticketSchema = z.object({
   description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(1000, 'Descrição deve ter no máximo 1000 caracteres'),
   priority: z.enum(['baixa', 'normal', 'alta', 'urgente']),
 });
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function NovoChamado() {
   const navigate = useNavigate();
@@ -31,6 +33,53 @@ export default function NovoChamado() {
     priority: 'normal',
   });
   const [errors, setErrors] = useState<any>({});
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const validFiles = files.filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          toast({
+            title: 'Arquivo muito grande',
+            description: `${file.name} excede o limite de 10MB`,
+            variant: 'destructive',
+          });
+          return false;
+        }
+        return true;
+      });
+      setSelectedFiles([...selectedFiles, ...validFiles]);
+    }
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async (ticketId: string) => {
+    for (const file of selectedFiles) {
+      const filePath = `${ticketId}/${Date.now()}_${file.name}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('ticket-attachments')
+        .upload(filePath, file);
+      
+      if (!uploadError) {
+        await supabase
+          .from('ticket_attachments')
+          .insert({
+            ticket_id: ticketId,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user?.id,
+          });
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,16 +89,20 @@ export default function NovoChamado() {
       ticketSchema.parse(form);
       setLoading(true);
 
-      const { error } = await supabase.from('tickets').insert({
+      const { data: ticketData, error } = await supabase.from('tickets').insert({
         user_id: user?.id,
         title: form.title,
         department: form.department,
         description: form.description,
         priority: form.priority,
         status: 'aberto',
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      if (selectedFiles.length > 0 && ticketData) {
+        await uploadFiles(ticketData.id);
+      }
 
       toast({
         title: 'Chamado criado com sucesso!',
@@ -163,6 +216,41 @@ export default function NovoChamado() {
               />
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="attachments">Anexar Arquivos (opcional)</Label>
+              <Input
+                id="attachments"
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
+                onChange={handleFileChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                Formatos aceitos: PDF, Word, Excel, Imagens, ZIP (máx 10MB por arquivo)
+              </p>
+              {selectedFiles.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
+                      <FileText className="h-4 w-4" />
+                      <span className="flex-1 truncate">{file.name}</span>
+                      <span className="text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

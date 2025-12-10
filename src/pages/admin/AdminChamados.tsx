@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
 import { format, isToday, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -41,6 +41,7 @@ interface Ticket {
   activity_status: string | null;
   profiles?: Profile;
   agent?: Profile;
+  attachment_count?: number;
 }
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -163,6 +164,18 @@ export default function AdminChamados() {
       
       const agentsMap = new Map<string, Profile>();
       agentsData?.forEach(a => agentsMap.set(a.id, a));
+
+      // Fetch attachment counts for all tickets
+      const ticketIds = ticketsData?.map(t => t.id) || [];
+      const { data: attachmentCounts } = await supabase
+        .from('ticket_attachments')
+        .select('ticket_id')
+        .in('ticket_id', ticketIds);
+
+      const attachmentCountMap = new Map<string, number>();
+      attachmentCounts?.forEach(a => {
+        attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
+      });
       
       const enrichedTickets: Ticket[] = ticketsData?.map(ticket => ({
         id: ticket.id,
@@ -177,7 +190,8 @@ export default function AdminChamados() {
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
         profiles: profilesMap.get(ticket.user_id),
-        agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined
+        agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
+        attachment_count: attachmentCountMap.get(ticket.id) || 0
       })) || [];
 
       setTickets(enrichedTickets);
@@ -610,12 +624,20 @@ export default function AdminChamados() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <button
-                            onClick={() => navigate(`/admin/chamados/${ticket.id}`)}
-                            className="text-left font-medium text-primary hover:underline focus:outline-none"
-                          >
-                            {ticket.title}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate(`/admin/chamados/${ticket.id}`)}
+                              className="text-left font-medium text-primary hover:underline focus:outline-none"
+                            >
+                              {ticket.title}
+                            </button>
+                            {ticket.attachment_count && ticket.attachment_count > 0 && (
+                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                                <Paperclip className="h-3 w-3" />
+                                {ticket.attachment_count}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {ticket.id.slice(0, 8)}...

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -26,6 +26,15 @@ interface Message {
   is_admin: boolean;
   created_at: string;
   user_id: string;
+}
+
+interface Attachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  uploaded_at: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -48,6 +57,7 @@ export default function DetalhesChamado() {
   const { user } = useAuth();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -56,8 +66,52 @@ export default function DetalhesChamado() {
     if (id) {
       fetchTicketDetails();
       fetchMessages();
+      fetchAttachments();
     }
   }, [id, user]);
+
+  const fetchAttachments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ticket_attachments')
+        .select('*')
+        .eq('ticket_id', id)
+        .order('uploaded_at', { ascending: true });
+
+      if (error) throw error;
+      setAttachments(data || []);
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+    }
+  };
+
+  const downloadFile = async (attachment: Attachment) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('ticket-attachments')
+        .download(attachment.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: 'Erro ao baixar arquivo',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const isImageFile = (fileType: string) => {
+    return fileType?.startsWith('image/');
+  };
 
   const fetchTicketDetails = async () => {
     try {
@@ -160,6 +214,37 @@ export default function DetalhesChamado() {
               <div className="text-sm text-muted-foreground">
                 Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
               </div>
+
+              {attachments.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <h3 className="text-sm font-semibold mb-2">Anexos ({attachments.length})</h3>
+                  <div className="space-y-2">
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center gap-2 p-2 bg-muted rounded text-sm"
+                      >
+                        {isImageFile(attachment.file_type) ? (
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="flex-1 truncate">{attachment.file_name}</span>
+                        <span className="text-muted-foreground">
+                          ({(attachment.file_size / 1024).toFixed(1)} KB)
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => downloadFile(attachment)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 
