@@ -680,6 +680,54 @@ export type Database = {
           },
         ]
       }
+      ticket_attachments: {
+        Row: {
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string | null
+          id: string
+          ticket_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type?: string | null
+          id?: string
+          ticket_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string | null
+          id?: string
+          ticket_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_messages: {
         Row: {
           created_at: string | null
