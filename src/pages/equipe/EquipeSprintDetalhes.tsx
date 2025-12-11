@@ -1002,14 +1002,14 @@ export default function EquipeSprintDetalhes() {
               <div className="space-y-2">
                 <Label htmlFor="edit-assigned">Responsável</Label>
                 <Select 
-                  value={editForm.assigned_to} 
-                  onValueChange={(value) => setEditForm(prev => ({ ...prev, assigned_to: value }))}
+                  value={editForm.assigned_to || "unassigned"} 
+                  onValueChange={(value) => setEditForm(prev => ({ ...prev, assigned_to: value === "unassigned" ? "" : value }))}
                 >
                   <SelectTrigger id="edit-assigned">
                     <SelectValue placeholder="Selecionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Não atribuído</SelectItem>
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
                     {profiles.map(p => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.first_name} {p.last_name}
