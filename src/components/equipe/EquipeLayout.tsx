@@ -95,12 +95,12 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         className={`${collapsed ? 'w-16' : 'w-60'} bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 flex-shrink-0`}
       >
         {/* Header */}
-        <div className={`p-4 border-b border-gray-200 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
+        <div className={`p-3 border-b border-gray-200 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
           {collapsed ? (
             <img src={logo} alt="PSA" className="h-8" />
           ) : (
             <div className="flex flex-col items-center text-center">
-              <img src={logo} alt="PSA" className="h-10 mb-2" />
+              <img src={logo} alt="PSA" className="h-8 mb-1" />
               <h1 className="text-gray-900 font-semibold text-sm">Equipe PSA</h1>
               <p className="text-xs text-gray-500">Gestão de Demandas</p>
             </div>
@@ -111,7 +111,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-gray-200 bg-white hover:bg-gray-100 shadow-sm"
+          className="absolute top-3 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-gray-200 bg-white hover:bg-gray-100 shadow-sm"
           style={{ '--sidebar-width': collapsed ? '64px' : '240px' } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
