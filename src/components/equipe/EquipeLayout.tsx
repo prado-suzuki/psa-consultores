@@ -19,7 +19,8 @@ import {
   Users,
   Workflow,
   Library,
-  Settings
+  Settings,
+  ArrowLeft
 } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 
@@ -264,8 +265,17 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="p-2 border-t border-gray-200">
+        {/* Footer Actions */}
+        <div className="p-2 border-t border-gray-200 space-y-1">
+          <Button 
+            variant="ghost" 
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-gray-700 hover:bg-gray-100`}
+            onClick={() => navigate('/')}
+            title={collapsed ? 'Voltar ao site' : undefined}
+          >
+            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+            {!collapsed && 'Voltar ao site'}
+          </Button>
           <Button 
             variant="ghost" 
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-red-600 hover:bg-red-50`}

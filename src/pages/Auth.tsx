@@ -4,9 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
+import logo from '@/assets/logo-psa.png';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -108,12 +109,12 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
       {/* Left Side - Login */}
-      <div className="w-full lg:w-1/2 flex flex-col p-8 bg-background">
+      <div className="w-full lg:w-1/2 flex flex-col p-8">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar ao site
@@ -121,10 +122,10 @@ export default function Auth() {
         <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground">
+            <h2 className="text-3xl font-bold text-white">
               {isLogin ? 'Bem-vindo de volta' : 'Criar conta'}
             </h2>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mt-2 text-gray-400">
               {isLogin ? 'Faça login para acessar sua área' : 'Preencha os dados para se cadastrar'}
             </p>
           </div>
@@ -132,14 +133,14 @@ export default function Auth() {
           {isLogin ? (
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-email" className="text-gray-300">Email</Label>
                 <Input
                   id="login-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={loginForm.email}
                   onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  className={errors.email ? 'border-destructive' : ''}
+                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -147,7 +148,7 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="login-password">Senha</Label>
+                <Label htmlFor="login-password" className="text-gray-300">Senha</Label>
                 <div className="relative">
                   <Input
                     id="login-password"
@@ -155,12 +156,12 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    className={errors.password ? 'border-destructive' : ''}
+                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -170,10 +171,10 @@ export default function Auth() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Entrando...
                   </span>
                 ) : (
@@ -198,28 +199,28 @@ export default function Auth() {
             <form onSubmit={handleRegister} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Nome</Label>
+                  <Label htmlFor="firstName" className="text-gray-300">Nome</Label>
                   <Input
                     id="firstName"
                     type="text"
                     placeholder="João"
                     value={registerForm.firstName}
                     onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                    className={errors.firstName ? 'border-destructive' : ''}
+                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.firstName ? 'border-destructive' : ''}`}
                   />
                   {errors.firstName && (
                     <p className="text-sm text-destructive">{errors.firstName}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Sobrenome</Label>
+                  <Label htmlFor="lastName" className="text-gray-300">Sobrenome</Label>
                   <Input
                     id="lastName"
                     type="text"
                     placeholder="Silva"
                     value={registerForm.lastName}
                     onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                    className={errors.lastName ? 'border-destructive' : ''}
+                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.lastName ? 'border-destructive' : ''}`}
                   />
                   {errors.lastName && (
                     <p className="text-sm text-destructive">{errors.lastName}</p>
@@ -228,14 +229,14 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
+                <Label htmlFor="register-email" className="text-gray-300">Email</Label>
                 <Input
                   id="register-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={registerForm.email}
                   onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                  className={errors.email ? 'border-destructive' : ''}
+                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -243,7 +244,7 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-password">Senha</Label>
+                <Label htmlFor="register-password" className="text-gray-300">Senha</Label>
                 <div className="relative">
                   <Input
                     id="register-password"
@@ -251,12 +252,12 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={registerForm.password}
                     onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                    className={errors.password ? 'border-destructive' : ''}
+                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -267,24 +268,24 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword" className="text-gray-300">Confirmar Senha</Label>
                 <Input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={registerForm.confirmPassword}
                   onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
-                  className={errors.confirmPassword ? 'border-destructive' : ''}
+                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.confirmPassword ? 'border-destructive' : ''}`}
                 />
                 {errors.confirmPassword && (
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Criando conta...
                   </span>
                 ) : (
@@ -311,15 +312,21 @@ export default function Auth() {
       </div>
 
       {/* Right Side - Image/Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary/10 items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gray-900/80 backdrop-blur-lg items-center justify-center p-12 border-l border-gray-800">
         <div className="max-w-md text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary text-primary-foreground mb-4">
-            <LogIn className="h-10 w-10" />
+          <img src={logo} alt="PSA Consultores" className="h-20 mx-auto mb-6" />
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Users className="h-6 w-6 text-primary" />
+            <h3 className="text-3xl font-bold text-white">Área do Cliente</h3>
           </div>
-          <h3 className="text-3xl font-bold text-foreground">Área do Cliente PSA</h3>
-          <p className="text-lg text-muted-foreground">
-            Gerencie seus chamados, documentos e mantenha-se conectado com nossa equipe.
+          <p className="text-lg text-gray-300">
+            Gerencie seus chamados, documentos e mantenha-se conectado com nossa equipe de especialistas.
           </p>
+          <div className="pt-6 border-t border-gray-700">
+            <p className="text-sm text-gray-400">
+              Precisa de ajuda? Entre em contato conosco pelo email contato@psaconsultores.com.br
+            </p>
+          </div>
         </div>
       </div>
     </div>
