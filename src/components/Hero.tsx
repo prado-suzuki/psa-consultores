@@ -38,7 +38,7 @@ export const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white"
+          className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white"
         >
           Consultoria Tributária
           <motion.span
@@ -60,7 +60,7 @@ export const Hero = () => {
         >
           <Button
             size="lg"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-[0_0_30px_rgba(101,163,13,0.4)] hover:shadow-[0_0_40px_rgba(101,163,13,0.5)] transition-all duration-300 group"
+            className="bg-gray-900 hover:bg-gray-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/20"
           >
             Conheça Nossas Soluções
             <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
