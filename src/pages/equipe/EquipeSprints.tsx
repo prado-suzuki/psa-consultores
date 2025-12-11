@@ -114,7 +114,7 @@ const EquipeSprints = () => {
       let query = supabase
         .from('sprints')
         .select('*')
-        .order('start_date', { ascending: false });
+        .order('name', { ascending: true });
       
       if (projectFilter) {
         query = query.eq('project_id', projectFilter);
