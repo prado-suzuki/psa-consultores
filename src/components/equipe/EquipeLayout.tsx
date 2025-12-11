@@ -22,7 +22,7 @@ import {
   Settings,
   ArrowLeft
 } from 'lucide-react';
-import logo from '@/assets/logo-psa.png';
+import logoDark from '@/assets/logo-psa-dark.png';
 
 interface EquipeLayoutProps {
   children: React.ReactNode;
@@ -98,10 +98,10 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         {/* Header */}
         <div className={`p-3 border-b border-gray-200 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
           {collapsed ? (
-            <img src={logo} alt="PSA" className="h-8" />
+            <img src={logoDark} alt="PSA" className="h-8" />
           ) : (
             <div className="flex flex-col items-center text-center">
-              <img src={logo} alt="PSA" className="h-8 mb-1" />
+              <img src={logoDark} alt="PSA" className="h-8 mb-1" />
               <h1 className="text-gray-900 font-semibold text-sm">Equipe PSA</h1>
               <p className="text-xs text-gray-500">Gestão de Demandas</p>
             </div>
