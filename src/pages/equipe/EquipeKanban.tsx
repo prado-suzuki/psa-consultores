@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +8,15 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { LayoutGrid, List, CalendarIcon, X, Filter } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { LayoutGrid, List, CalendarIcon, X, Filter, Paperclip, Upload, Trash2, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Deliverable {
   id: string;
@@ -48,11 +53,34 @@ interface Process {
   project_id: string | null;
 }
 
+interface Attachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string | null;
+  uploaded_at: string;
+}
+
 const columns = [
   { id: 'pending', title: 'A Fazer', color: 'bg-blue-500' },
   { id: 'in_progress', title: 'Em Progresso', color: 'bg-yellow-500' },
   { id: 'completed', title: 'Concluído', color: 'bg-green-500' },
 ];
+
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/jpeg',
+  'image/png',
+  'application/zip',
+  'application/x-zip-compressed'
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const EquipeKanban = () => {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
@@ -62,6 +90,21 @@ const EquipeKanban = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [loading, setLoading] = useState(true);
+
+  // Modal de detalhes
+  const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    assigned_to: '',
+    status: '',
+    start_date: '',
+    due_date: '',
+    estimated_hours: ''
+  });
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtros
   const [filterSprint, setFilterSprint] = useState<string>('all');
@@ -100,19 +143,14 @@ const EquipeKanban = () => {
   // Aplica todos os filtros
   const filteredDeliverables = useMemo(() => {
     return deliverables.filter(d => {
-      // Filtro por Sprint
       if (filterSprint !== 'all' && d.sprint_id !== filterSprint) return false;
-
-      // Filtro por Responsável
       if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
 
-      // Filtro por Projeto (via sprint.project_id)
       if (filterProject !== 'all') {
         const sprint = sprints.find(s => s.id === d.sprint_id);
         if (!sprint || sprint.project_id !== filterProject) return false;
       }
 
-      // Filtro por Processo (via process.project_id)
       if (filterProcess !== 'all') {
         const process = processes.find(p => p.id === filterProcess);
         if (!process) return false;
@@ -120,13 +158,11 @@ const EquipeKanban = () => {
         if (!sprint || sprint.project_id !== process.project_id) return false;
       }
 
-      // Filtro por Data Início (start_date >= filterStartDate)
       if (filterStartDate && d.start_date) {
         const startDate = new Date(d.start_date + 'T00:00:00');
         if (startDate < filterStartDate) return false;
       }
 
-      // Filtro por Data Fim (due_date <= filterEndDate)
       if (filterEndDate && d.due_date) {
         const dueDate = new Date(d.due_date + 'T00:00:00');
         if (dueDate > filterEndDate) return false;
@@ -203,6 +239,185 @@ const EquipeKanban = () => {
     }
   };
 
+  // Abrir modal de detalhes
+  const openDeliverableDetail = async (deliverable: Deliverable) => {
+    setSelectedDeliverable(deliverable);
+    setEditForm({
+      title: deliverable.title,
+      description: deliverable.description || '',
+      assigned_to: deliverable.assigned_to || '',
+      status: deliverable.status,
+      start_date: deliverable.start_date || '',
+      due_date: deliverable.due_date || '',
+      estimated_hours: deliverable.estimated_hours?.toString() || ''
+    });
+
+    // Buscar anexos
+    const { data: attachmentsData } = await supabase
+      .from('deliverable_attachments')
+      .select('*')
+      .eq('deliverable_id', deliverable.id)
+      .order('uploaded_at', { ascending: false });
+    
+    setAttachments(attachmentsData || []);
+  };
+
+  // Salvar alterações
+  const saveDeliverable = async () => {
+    if (!selectedDeliverable) return;
+
+    try {
+      const updateData: Record<string, unknown> = {
+        title: editForm.title,
+        description: editForm.description || null,
+        assigned_to: editForm.assigned_to || null,
+        status: editForm.status,
+        start_date: editForm.start_date || null,
+        due_date: editForm.due_date || null,
+        estimated_hours: editForm.estimated_hours ? parseFloat(editForm.estimated_hours) : null
+      };
+
+      if (editForm.status === 'completed' && selectedDeliverable.status !== 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      } else if (editForm.status !== 'completed') {
+        updateData.completed_at = null;
+      }
+
+      const { error } = await supabase
+        .from('sprint_deliverables')
+        .update(updateData)
+        .eq('id', selectedDeliverable.id);
+
+      if (error) throw error;
+
+      setDeliverables(deliverables.map(d => 
+        d.id === selectedDeliverable.id 
+          ? { ...d, ...updateData } as Deliverable
+          : d
+      ));
+
+      toast.success('Entregável atualizado');
+      setSelectedDeliverable(null);
+    } catch (error) {
+      console.error('Error saving deliverable:', error);
+      toast.error('Erro ao salvar');
+    }
+  };
+
+  // Upload de arquivo
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !selectedDeliverable) return;
+
+    const file = files[0];
+
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      toast.error('Tipo de arquivo não permitido. Use PDF, Word, Excel, imagens ou ZIP.');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('Arquivo muito grande. Máximo 10MB.');
+      return;
+    }
+
+    setUploadingFile(true);
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Usuário não autenticado');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${selectedDeliverable.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('deliverable-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from('deliverable_attachments')
+        .insert({
+          deliverable_id: selectedDeliverable.id,
+          file_name: file.name,
+          file_path: fileName,
+          file_size: file.size,
+          file_type: file.type,
+          uploaded_by: userData.user.id
+        });
+
+      if (dbError) throw dbError;
+
+      // Recarregar anexos
+      const { data: attachmentsData } = await supabase
+        .from('deliverable_attachments')
+        .select('*')
+        .eq('deliverable_id', selectedDeliverable.id)
+        .order('uploaded_at', { ascending: false });
+
+      setAttachments(attachmentsData || []);
+      toast.success('Arquivo anexado');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Erro ao enviar arquivo');
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Download de arquivo
+  const downloadFile = async (attachment: Attachment) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('deliverable-attachments')
+        .download(attachment.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Erro ao baixar arquivo');
+    }
+  };
+
+  // Deletar arquivo
+  const deleteFile = async (attachment: Attachment) => {
+    try {
+      await supabase.storage
+        .from('deliverable-attachments')
+        .remove([attachment.file_path]);
+
+      await supabase
+        .from('deliverable_attachments')
+        .delete()
+        .eq('id', attachment.id);
+
+      setAttachments(attachments.filter(a => a.id !== attachment.id));
+      toast.success('Arquivo removido');
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Erro ao remover arquivo');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   return (
     <EquipeLayout 
       title="Quadro Kanban" 
@@ -250,7 +465,6 @@ const EquipeKanban = () => {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {/* Filtro Sprint */}
           <Select value={filterSprint} onValueChange={setFilterSprint}>
             <SelectTrigger className="w-40 bg-white border-gray-300 text-gray-900 h-9">
               <SelectValue placeholder="Sprint" />
@@ -263,7 +477,6 @@ const EquipeKanban = () => {
             </SelectContent>
           </Select>
 
-          {/* Filtro Responsável */}
           <Select value={filterResponsible} onValueChange={setFilterResponsible}>
             <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
               <SelectValue placeholder="Responsável" />
@@ -278,7 +491,6 @@ const EquipeKanban = () => {
             </SelectContent>
           </Select>
 
-          {/* Filtro Projeto */}
           <Select value={filterProject} onValueChange={setFilterProject}>
             <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
               <SelectValue placeholder="Projeto" />
@@ -291,7 +503,6 @@ const EquipeKanban = () => {
             </SelectContent>
           </Select>
 
-          {/* Filtro Processo */}
           <Select value={filterProcess} onValueChange={setFilterProcess}>
             <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
               <SelectValue placeholder="Processo" />
@@ -304,7 +515,6 @@ const EquipeKanban = () => {
             </SelectContent>
           </Select>
 
-          {/* Filtro Data Início */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -330,7 +540,6 @@ const EquipeKanban = () => {
             </PopoverContent>
           </Popover>
 
-          {/* Filtro Data Fim */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -357,7 +566,6 @@ const EquipeKanban = () => {
           </Popover>
         </div>
 
-        {/* Contador de resultados */}
         <div className="mt-3 text-xs text-gray-500">
           {filteredDeliverables.length} de {deliverables.length} entregáveis
         </div>
@@ -396,6 +604,7 @@ const EquipeKanban = () => {
                       className="bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('deliverableId', deliverable.id)}
+                      onClick={() => openDeliverableDetail(deliverable)}
                     >
                       <CardContent className="p-3">
                         <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">{deliverable.title}</h4>
@@ -436,7 +645,11 @@ const EquipeKanban = () => {
                 </TableRow>
               ) : (
                 filteredDeliverables.map((deliverable) => (
-                  <TableRow key={deliverable.id} className="cursor-pointer hover:bg-gray-50">
+                  <TableRow 
+                    key={deliverable.id} 
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => openDeliverableDetail(deliverable)}
+                  >
                     <TableCell className="text-gray-900 font-medium">{deliverable.title}</TableCell>
                     <TableCell>
                       <Badge className={getStatusBadgeColor(deliverable.status)}>
@@ -449,8 +662,8 @@ const EquipeKanban = () => {
                     <TableCell className="text-gray-600">
                       {formatDueDate(deliverable.due_date)}
                     </TableCell>
-                    <TableCell className="text-right text-gray-600">
-                      {deliverable.estimated_hours ? `${deliverable.estimated_hours}h` : '-'}
+                    <TableCell className="text-gray-600 text-right">
+                      {deliverable.estimated_hours || '-'}
                     </TableCell>
                   </TableRow>
                 ))
@@ -459,6 +672,193 @@ const EquipeKanban = () => {
           </Table>
         </Card>
       )}
+
+      {/* Modal de Detalhes */}
+      <Dialog open={!!selectedDeliverable} onOpenChange={(open) => !open && setSelectedDeliverable(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">Detalhes do Entregável</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Título */}
+            <div className="space-y-2">
+              <Label className="text-gray-700">Título</Label>
+              <Input
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="bg-white border-gray-300 text-gray-900"
+              />
+            </div>
+
+            {/* Descrição */}
+            <div className="space-y-2">
+              <Label className="text-gray-700">Descrição</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="bg-white border-gray-300 text-gray-900 min-h-[100px]"
+                placeholder="Descreva os detalhes do entregável..."
+              />
+            </div>
+
+            {/* Row: Responsável e Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Responsável</Label>
+                <Select 
+                  value={editForm.assigned_to || 'unassigned'} 
+                  onValueChange={(value) => setEditForm({ ...editForm, assigned_to: value === 'unassigned' ? '' : value })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.first_name} {profile.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700">Status</Label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="pending">A Fazer</SelectItem>
+                    <SelectItem value="in_progress">Em Progresso</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row: Datas */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Data Início</Label>
+                <Input
+                  type="date"
+                  value={editForm.start_date}
+                  onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700">Data Limite</Label>
+                <Input
+                  type="date"
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700">Horas Estimadas</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={editForm.estimated_hours}
+                  onChange={(e) => setEditForm({ ...editForm, estimated_hours: e.target.value })}
+                  className="bg-white border-gray-300 text-gray-900"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Anexos */}
+            <div className="space-y-3 border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-700 flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Anexos
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
+                  className="border-gray-300"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {uploadingFile ? 'Enviando...' : 'Anexar arquivo'}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
+                />
+              </div>
+
+              {attachments.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Nenhum anexo</p>
+              ) : (
+                <div className="space-y-2">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm text-gray-900 truncate">{attachment.file_name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(attachment.file_size)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                          onClick={() => downloadFile(attachment)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700"
+                          onClick={() => deleteFile(attachment)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Botões */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedDeliverable(null)}
+                className="border-gray-300"
+              >
+                Cancelar
+              </Button>
+              <Button onClick={saveDeliverable} className="bg-primary hover:bg-primary/90">
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </EquipeLayout>
   );
 };
