@@ -1,31 +1,58 @@
 import { ReactNode } from "react";
-import { Card } from "@/components/ui/card";
+import { ServiceCarouselCard } from "@/components/ui/service-carousel-card";
+
+// Import service images
+import imgConsultoriaTributaria from "@/assets/services/consultoria-tributaria.jpg";
+import imgReestruturacaoSocietaria from "@/assets/services/reestruturacao-societaria.jpg";
+import imgConsultoriaContabil from "@/assets/services/consultoria-contabil.jpg";
+import imgConsultoriaPessoaFisica from "@/assets/services/consultoria-pessoa-fisica.jpg";
+import imgConsultoriaPrevidenciaria from "@/assets/services/consultoria-previdenciaria.jpg";
+import imgBusinessIntelligence from "@/assets/services/business-intelligence.jpg";
+
+interface ServiceData {
+  id: number;
+  title: ReactNode;
+  description: string;
+  imgUrl: string;
+}
 
 export const Services = () => {
-  const services: { title: ReactNode; description: string }[] = [
+  const services: ServiceData[] = [
     {
+      id: 1,
       title: "Consultoria Tributária",
       description: "Apoio técnico e estratégico para otimização fiscal, mitigação de riscos e cumprimento eficiente das obrigações tributárias. Atuação preventiva, corretiva e estratégica em tributos diretos, indiretos e aduaneiros.",
+      imgUrl: imgConsultoriaTributaria,
     },
     {
+      id: 2,
       title: "Reestruturação Societária",
       description: "Assessoria na reorganização societária para otimização fiscal, governança corporativa e proteção patrimonial.",
+      imgUrl: imgReestruturacaoSocietaria,
     },
     {
+      id: 3,
       title: "Consultoria Contábil e Controladoria",
       description: "Apoio estratégico na gestão contábil, financeira e de controladoria, promovendo governança e transparência.",
+      imgUrl: imgConsultoriaContabil,
     },
     {
+      id: 4,
       title: "Consultoria para Pessoa Física",
       description: "Gestão tributária, sucessória e patrimonial para pessoas físicas e grupos familiares.",
+      imgUrl: imgConsultoriaPessoaFisica,
     },
     {
+      id: 5,
       title: "Consultoria Previdenciária",
       description: "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
+      imgUrl: imgConsultoriaPrevidenciaria,
     },
     {
+      id: 6,
       title: <>Business Intelligence (BI)<br />Fiscal e Financeiro</>,
       description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro.",
+      imgUrl: imgBusinessIntelligence,
     },
   ];
 
@@ -44,21 +71,7 @@ export const Services = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {services.map((service, index) => (
-            <Card 
-              key={index} 
-              className="p-6 md:p-8 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg group bg-card"
-            >
-              <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-primary transition-colors">
-                {service.title}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {service.description}
-              </p>
-            </Card>
-          ))}
-        </div>
+        <ServiceCarouselCard data={services} />
       </div>
     </section>
   );
