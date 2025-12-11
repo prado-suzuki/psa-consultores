@@ -50,7 +50,7 @@ export const Services = () => {
     },
     {
       id: 6,
-      title: <>Business Intelligence (BI)<br />Fiscal e Financeiro</>,
+      title: <>Data Analysis<br />Fiscal e Financeiro</>,
       description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro.",
       imgUrl: imgBusinessIntelligence,
     },
