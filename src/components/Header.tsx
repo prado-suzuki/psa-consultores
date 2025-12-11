@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 
 const navItems = [
   { id: "inicio", label: "Início", href: "#", external: false },
@@ -12,97 +12,121 @@ const navItems = [
 
 export const Header = () => {
   const [activeItem, setActiveItem] = useState("inicio");
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#030712]/35 backdrop-blur-md border-b border-gray-800/20">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex items-center justify-between py-4">
-          {/* Navigation with Tubelight Effect */}
-          <nav className="hidden md:flex items-center relative bg-[#030712]/30 rounded-full p-1.5">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between">
+          {/* Navigation - Floating Pills */}
+          <nav className="hidden md:flex items-center gap-2">
             {navItems.map((item) => {
               const isActive = activeItem === item.id;
-              const isHovered = hoveredItem === item.id;
-              const showGlow = isActive || isHovered;
 
               return (
-                <div key={item.id} className="relative">
-                  {showGlow && (
-                    <motion.div
-                      layoutId="tubelight"
-                      className="absolute inset-0 bg-primary/20 rounded-full"
-                      style={{
-                        boxShadow: `0 0 20px hsl(var(--primary) / 0.5), 
-                                    0 0 40px hsl(var(--primary) / 0.3),
-                                    inset 0 0 10px hsl(var(--primary) / 0.2)`,
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 380,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  <a
-                    href={item.href}
-                    target={item.external ? "_blank" : undefined}
-                    rel={item.external ? "noopener noreferrer" : undefined}
-                    className="relative z-10 px-6 py-2.5 text-sm font-medium transition-colors rounded-full block"
-                    style={{
-                      color: showGlow ? "hsl(var(--primary))" : "#FFFFFF",
-                    }}
-                    onMouseEnter={() => setHoveredItem(item.id)}
-                    onMouseLeave={() => setHoveredItem(null)}
-                    onClick={() => setActiveItem(item.id)}
-                  >
-                    {item.label}
-                  </a>
-                </div>
+                <motion.a
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className={`
+                    relative px-5 py-2.5 text-sm font-medium rounded-full
+                    backdrop-blur-md border transition-all duration-300
+                    ${isActive 
+                      ? "bg-primary/20 border-primary/40 text-primary shadow-[0_0_15px_rgba(101,163,13,0.3)]" 
+                      : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30"
+                    }
+                  `}
+                  onClick={() => setActiveItem(item.id)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {item.label}
+                </motion.a>
               );
             })}
           </nav>
 
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3 ml-auto">
-            <Button 
-              variant="ghost"
+          {/* CTA Buttons - Floating */}
+          <div className="hidden md:flex items-center gap-3">
+            <motion.button
               onClick={() => window.location.href = '/equipe'}
-              className="text-white hover:text-primary"
+              className="px-5 py-2.5 text-sm font-medium rounded-full backdrop-blur-md
+                bg-white/5 border border-white/15 text-white
+                hover:bg-white/15 hover:border-white/25 transition-all duration-300"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Equipe
-            </Button>
-            <Button 
-              variant="ghost"
+            </motion.button>
+            <motion.button
               onClick={() => window.location.href = '/auth'}
-              className="text-white hover:text-primary"
+              className="px-5 py-2.5 text-sm font-medium rounded-full backdrop-blur-md
+                bg-primary/90 border border-primary text-primary-foreground
+                hover:bg-primary hover:shadow-[0_0_20px_rgba(101,163,13,0.4)] transition-all duration-300"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Área do Cliente
-            </Button>
+            </motion.button>
           </div>
 
           {/* Mobile Menu Button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden text-muted-foreground hover:text-primary"
+          <motion.button
+            className="md:hidden p-2.5 rounded-full backdrop-blur-md bg-white/10 border border-white/20 text-white"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            whileTap={{ scale: 0.95 }}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="4" x2="20" y1="12" y2="12" />
-              <line x1="4" x2="20" y1="6" y2="6" />
-              <line x1="4" x2="20" y1="18" y2="18" />
-            </svg>
-          </Button>
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </motion.button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="md:hidden mt-4 p-4 rounded-2xl backdrop-blur-lg bg-gray-900/90 border border-white/10"
+          >
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className={`
+                    px-4 py-3 text-sm font-medium rounded-xl transition-all
+                    ${activeItem === item.id 
+                      ? "bg-primary/20 text-primary" 
+                      : "text-white hover:bg-white/10"
+                    }
+                  `}
+                  onClick={() => {
+                    setActiveItem(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <div className="h-px bg-white/10 my-2" />
+              <button
+                onClick={() => window.location.href = '/equipe'}
+                className="px-4 py-3 text-sm font-medium rounded-xl text-white hover:bg-white/10 text-left"
+              >
+                Equipe
+              </button>
+              <button
+                onClick={() => window.location.href = '/auth'}
+                className="px-4 py-3 text-sm font-medium rounded-xl bg-primary text-primary-foreground text-left"
+              >
+                Área do Cliente
+              </button>
+            </nav>
+          </motion.div>
+        )}
       </div>
     </header>
   );
