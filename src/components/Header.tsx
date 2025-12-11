@@ -15,7 +15,10 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] px-4 md:px-6 py-4">
+    <header 
+      className="fixed top-0 left-0 right-0 z-[100] px-4 md:px-6 py-4"
+      style={{ position: 'fixed' }}
+    >
       <div className="container mx-auto">
         <div className="flex items-center justify-between">
           {/* Navigation - Floating Pills */}
