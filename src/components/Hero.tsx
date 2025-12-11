@@ -45,7 +45,7 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="block mt-2 bg-gradient-to-r from-primary via-lime-400 to-primary bg-clip-text text-transparent"
+            className="block mt-2 pb-2 bg-gradient-to-r from-primary via-lime-400 to-primary bg-clip-text text-transparent leading-relaxed"
           >
             para o Agronegócio
           </motion.span>
