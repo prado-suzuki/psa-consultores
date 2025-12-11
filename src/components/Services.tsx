@@ -3,28 +3,28 @@ import { Card } from "@/components/ui/card";
 export const Services = () => {
   const services = [
     {
-      title: "Planejamento Estratégico",
-      description: "Desenvolvimento de estratégias customizadas para alcançar seus objetivos de negócio com clareza e direção.",
+      title: "Consultoria Tributária",
+      description: "Apoio técnico e estratégico para otimização fiscal, mitigação de riscos e cumprimento eficiente das obrigações tributárias. Atuação preventiva, corretiva e estratégica em tributos diretos, indiretos e aduaneiros.",
     },
     {
-      title: "Gestão de Performance",
-      description: "Implementação de sistemas de gestão que otimizam resultados e maximizam a eficiência operacional.",
+      title: "Reestruturação Societária",
+      description: "Assessoria na reorganização societária para otimização fiscal, governança corporativa e proteção patrimonial.",
     },
     {
-      title: "Desenvolvimento Organizacional",
-      description: "Fortalecimento da cultura e estrutura organizacional para impulsionar o crescimento sustentável.",
+      title: "Consultoria Contábil e Controladoria",
+      description: "Apoio estratégico na gestão contábil, financeira e de controladoria, promovendo governança e transparência.",
     },
     {
-      title: "Otimização de Processos",
-      description: "Redesenho e melhoria contínua de processos para aumentar produtividade e reduzir custos.",
+      title: "Consultoria para Pessoa Física",
+      description: "Gestão tributária, sucessória e patrimonial para pessoas físicas e grupos familiares.",
     },
     {
-      title: "Análise de Dados",
-      description: "Transformação de dados em insights estratégicos para tomadas de decisão mais assertivas.",
+      title: "Consultoria Previdenciária",
+      description: "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
     },
     {
-      title: "Governança Corporativa",
-      description: "Estruturação de práticas de governança que garantem transparência e conformidade.",
+      title: "Business Intelligence (BI) Fiscal e Financeiro",
+      description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro.",
     },
   ];
 
