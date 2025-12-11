@@ -18,7 +18,8 @@ import {
   ClipboardList,
   Users,
   Workflow,
-  Library
+  Library,
+  Settings
 } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 
@@ -39,8 +40,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
-  { icon: ClipboardList, label: 'Rotina', path: '/equipe/rotina' },
-  { icon: Users, label: 'Usuários', path: '/equipe/usuarios' },
+  { icon: ClipboardList, label: 'Rotinas', path: '/equipe/rotina' },
   { 
     icon: FolderKanban, 
     label: 'Projetos', 
@@ -55,12 +55,24 @@ const navItems: NavItem[] = [
   { icon: Library, label: 'Biblioteca', path: '/equipe/biblioteca' },
 ];
 
+const adminItems: NavItem[] = [
+  { 
+    icon: Settings, 
+    label: 'Administrador', 
+    path: '/equipe/admin',
+    children: [
+      { icon: Users, label: 'Usuários', path: '/equipe/usuarios' },
+    ]
+  },
+];
+
 export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWidth = false }: EquipeLayoutProps) => {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(true);
+  const [adminOpen, setAdminOpen] = useState(true);
 
   const handleSignOut = async () => {
     await signOut();
@@ -137,6 +149,78 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         className="h-8 w-8 text-gray-400 hover:text-gray-600"
                       >
                         <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                  )}
+                </div>
+                {!collapsed && (
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {item.children.map((child) => (
+                      <Button
+                        key={child.path}
+                        variant={isActive(child.path) ? "secondary" : "ghost"}
+                        className={`w-full justify-start ${
+                          isActive(child.path) 
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                        onClick={() => navigate(child.path)}
+                      >
+                        <child.icon className="h-4 w-4 mr-3" />
+                        {child.label}
+                      </Button>
+                    ))}
+                  </CollapsibleContent>
+                )}
+              </Collapsible>
+            ) : (
+              <Button
+                key={item.path}
+                variant={isActive(item.path) ? "secondary" : "ghost"}
+                className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
+                  isActive(item.path) 
+                    ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+                onClick={() => navigate(item.path)}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+                {!collapsed && item.label}
+              </Button>
+            )
+          ))}
+
+          {/* Admin Section - only visible to admins */}
+          {isAdmin && adminItems.map((item) => (
+            item.children ? (
+              <Collapsible 
+                key={item.path} 
+                open={adminOpen && !collapsed} 
+                onOpenChange={setAdminOpen}
+              >
+                <div className="flex items-center gap-1 mt-4 pt-4 border-t border-gray-200">
+                  <Button
+                    variant={isActive(item.path) || isChildActive(item.children) ? "secondary" : "ghost"}
+                    className={`flex-1 ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
+                      isActive(item.path) || isChildActive(item.children)
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                    onClick={() => item.children && navigate(item.children[0].path)}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+                    {!collapsed && item.label}
+                  </Button>
+                  {!collapsed && (
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`} />
                       </Button>
                     </CollapsibleTrigger>
                   )}
