@@ -29,6 +29,7 @@ import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 import EquipeRotina from "./pages/equipe/EquipeRotina";
 import EquipeUsuarios from "./pages/equipe/EquipeUsuarios";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
+import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/equipe/rotina" element={<TeamRoute><EquipeRotina /></TeamRoute>} />
             <Route path="/equipe/usuarios" element={<TeamRoute><EquipeUsuarios /></TeamRoute>} />
             <Route path="/equipe/processos" element={<TeamRoute><EquipeProcessos /></TeamRoute>} />
+            <Route path="/equipe/biblioteca" element={<TeamRoute><EquipeBiblioteca /></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
