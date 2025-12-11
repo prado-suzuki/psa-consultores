@@ -24,9 +24,9 @@ export const Hero = () => {
               <img src={logo} alt="PSA Consultores" className="h-16 md:h-20 w-auto" />
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground">
-              Consultoria que 
+              Líderes em Consultoria Tributária 
               <span className="block mt-2 bg-gradient-primary bg-clip-text text-transparent">
-                Impulsiona Resultados
+                para o Agronegócio
               </span>
             </h1>
 
