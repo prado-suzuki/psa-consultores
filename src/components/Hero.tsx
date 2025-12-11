@@ -31,7 +31,7 @@ export const Hero = () => {
             </h1>
 
             <p className="text-lg md:text-xl text-white max-w-2xl mx-auto leading-relaxed">
-              Soluções estratégicas em gestão, processos e desenvolvimento organizacional para empresas que buscam excelência e crescimento sustentável.
+              Há mais de 20 anos transformamos complexidade tributária em vantagem competitiva para empresas familiares do agro.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
