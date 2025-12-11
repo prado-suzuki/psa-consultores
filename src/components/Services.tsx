@@ -40,7 +40,7 @@ export const Services = () => {
             Consultoria Tributária Completa
           </h2>
           <p className="text-lg text-muted-foreground">
-            Oferecemos soluções completas e integradas para transformar desafios em oportunidades de crescimento.
+            Soluções integradas desde recuperação de créditos até reestruturação societária para empresas familiares do agronegócio.
           </p>
         </div>
 
