@@ -37,7 +37,7 @@ export const Services = () => {
             Nossas Soluções
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-foreground">
-            Serviços de Consultoria Especializada
+            Consultoria Tributária Completa
           </h2>
           <p className="text-lg text-muted-foreground">
             Oferecemos soluções completas e integradas para transformar desafios em oportunidades de crescimento.
