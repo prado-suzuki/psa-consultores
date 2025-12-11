@@ -1,7 +1,8 @@
+import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 
 export const Services = () => {
-  const services = [
+  const services: { title: ReactNode; description: string }[] = [
     {
       title: "Consultoria Tributária",
       description: "Apoio técnico e estratégico para otimização fiscal, mitigação de riscos e cumprimento eficiente das obrigações tributárias. Atuação preventiva, corretiva e estratégica em tributos diretos, indiretos e aduaneiros.",
@@ -23,7 +24,7 @@ export const Services = () => {
       description: "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
     },
     {
-      title: "Business Intelligence (BI) Fiscal e Financeiro",
+      title: <>Business Intelligence (BI)<br />Fiscal e Financeiro</>,
       description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro.",
     },
   ];
