@@ -8,7 +8,8 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -93,6 +94,8 @@ const EquipeKanban = () => {
 
   // Modal de detalhes
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
@@ -409,6 +412,50 @@ const EquipeKanban = () => {
     } catch (error) {
       console.error('Error deleting file:', error);
       toast.error('Erro ao remover arquivo');
+    }
+  };
+
+  // Excluir entregável
+  const deleteDeliverable = async () => {
+    if (!selectedDeliverable) return;
+
+    try {
+      setDeleting(true);
+
+      // Primeiro, excluir anexos do storage e da tabela
+      const { data: attachmentsToDelete } = await supabase
+        .from('deliverable_attachments')
+        .select('file_path')
+        .eq('deliverable_id', selectedDeliverable.id);
+
+      if (attachmentsToDelete && attachmentsToDelete.length > 0) {
+        await supabase.storage
+          .from('deliverable-attachments')
+          .remove(attachmentsToDelete.map(a => a.file_path));
+
+        await supabase
+          .from('deliverable_attachments')
+          .delete()
+          .eq('deliverable_id', selectedDeliverable.id);
+      }
+
+      // Excluir o entregável
+      const { error } = await supabase
+        .from('sprint_deliverables')
+        .delete()
+        .eq('id', selectedDeliverable.id);
+
+      if (error) throw error;
+
+      setDeliverables(deliverables.filter(d => d.id !== selectedDeliverable.id));
+      setSelectedDeliverable(null);
+      setDeleteDialogOpen(false);
+      toast.success('Entregável excluído');
+    } catch (error) {
+      console.error('Error deleting deliverable:', error);
+      toast.error('Erro ao excluir entregável');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -844,17 +891,51 @@ const EquipeKanban = () => {
             </div>
 
             {/* Botões */}
-            <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedDeliverable(null)}
-                className="border-gray-300"
-              >
-                Cancelar
-              </Button>
-              <Button onClick={saveDeliverable} className="bg-primary hover:bg-primary/90">
-                Salvar
-              </Button>
+            <div className="flex justify-between pt-4 border-t border-gray-200">
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-white">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir entregável?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. O entregável "{selectedDeliverable?.title}" 
+                      será permanentemente removido junto com todos os seus anexos.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={deleteDeliverable} 
+                      disabled={deleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deleting ? 'Excluindo...' : 'Excluir'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedDeliverable(null)}
+                  className="border-gray-300"
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={saveDeliverable} className="bg-primary hover:bg-primary/90">
+                  Salvar
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
