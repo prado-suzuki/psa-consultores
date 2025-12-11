@@ -98,12 +98,12 @@ const EquipeAuth = () => {
                 <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
                   <SelectValue placeholder="Escolha sua área" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectContent className="bg-gray-900 border-gray-700">
                   {areas.map((area) => (
                     <SelectItem 
                       key={area.id} 
                       value={area.id}
-                      className="text-white hover:bg-gray-700 focus:bg-gray-700"
+                      className="text-gray-100 hover:bg-primary/20 focus:bg-primary/20 focus:text-white"
                     >
                       {area.label}
                     </SelectItem>
