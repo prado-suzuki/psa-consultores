@@ -55,6 +55,47 @@ export type Database = {
           },
         ]
       }
+      deliverable_attachments: {
+        Row: {
+          deliverable_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          deliverable_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          deliverable_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverable_attachments_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
