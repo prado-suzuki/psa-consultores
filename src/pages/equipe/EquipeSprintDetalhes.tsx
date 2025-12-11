@@ -9,13 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, Users, Package, Edit2 } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2 } from "lucide-react";
 import { format, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -102,6 +103,8 @@ export default function EquipeSprintDetalhes() {
     status: 'pending'
   });
   const [saving, setSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Métricas expandidas
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
@@ -239,6 +242,49 @@ export default function EquipeSprintDetalhes() {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteDeliverable = async () => {
+    if (!editingDeliverable) return;
+
+    try {
+      setDeleting(true);
+
+      // Primeiro, excluir anexos do storage e da tabela
+      const { data: attachmentsToDelete } = await supabase
+        .from('deliverable_attachments')
+        .select('file_path')
+        .eq('deliverable_id', editingDeliverable.id);
+
+      if (attachmentsToDelete && attachmentsToDelete.length > 0) {
+        await supabase.storage
+          .from('deliverable-attachments')
+          .remove(attachmentsToDelete.map(a => a.file_path));
+
+        await supabase
+          .from('deliverable_attachments')
+          .delete()
+          .eq('deliverable_id', editingDeliverable.id);
+      }
+
+      // Excluir o entregável
+      const { error } = await supabase
+        .from('sprint_deliverables')
+        .delete()
+        .eq('id', editingDeliverable.id);
+
+      if (error) throw error;
+
+      setDeliverables(prev => prev.filter(d => d.id !== editingDeliverable.id));
+      setEditModalOpen(false);
+      setEditingDeliverable(null);
+      setDeleteDialogOpen(false);
+      toast({ title: "Entregável excluído" });
+    } catch (error: any) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1073,13 +1119,43 @@ export default function EquipeSprintDetalhes() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={saveDeliverable} disabled={saving || !editForm.title || !editForm.due_date}>
-              {saving ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Excluir
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir entregável?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. O entregável "{editingDeliverable?.title}" 
+                    será permanentemente removido junto com todos os seus anexos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={deleteDeliverable} 
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? 'Excluindo...' : 'Excluir'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveDeliverable} disabled={saving || !editForm.title || !editForm.due_date}>
+                {saving ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
