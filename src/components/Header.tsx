@@ -13,7 +13,7 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-white/80 backdrop-blur-md border-b border-gray-200/50">
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-black/30 backdrop-blur-sm">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Navigation - Left side */}
@@ -24,7 +24,7 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-primary rounded-md"
+                className="px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:text-primary rounded-md"
               >
                 {item.label}
               </a>
@@ -36,8 +36,8 @@ export const Header = () => {
             <a
               href="/equipe"
               className="px-5 py-2.5 text-sm font-medium rounded-full
-                bg-gray-100 border border-gray-200 text-gray-700
-                hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                bg-white/20 backdrop-blur-sm border border-white/30 text-white
+                hover:bg-white/30 hover:border-white/40 transition-all duration-200"
             >
               Equipe
             </a>
@@ -53,8 +53,8 @@ export const Header = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2.5 rounded-full bg-gray-100 border border-gray-200 text-gray-700
-              hover:bg-gray-200 transition-colors duration-200"
+            className="md:hidden p-2.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white
+              hover:bg-white/30 transition-colors duration-200"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -75,18 +75,18 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="block px-4 py-3 text-sm font-medium text-gray-700 rounded-xl
-                  hover:bg-gray-100 transition-colors duration-200"
+                className="block px-4 py-3 text-sm font-medium text-white rounded-xl
+                  hover:bg-white/10 transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <div className="h-px bg-gray-200 my-3" />
+            <div className="h-px bg-white/20 my-3" />
             <a
               href="/equipe"
-              className="block px-4 py-3 text-sm font-medium text-gray-700 rounded-xl
-                hover:bg-gray-100 transition-colors duration-200"
+              className="block px-4 py-3 text-sm font-medium text-white rounded-xl
+                hover:bg-white/10 transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
               Equipe
