@@ -1,6 +1,14 @@
-/* Reset styles - removed constraints that were breaking fixed positioning */
+/* Reset styles */
 #root {
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure fixed header works correctly */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .logo {
