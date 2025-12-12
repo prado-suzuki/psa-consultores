@@ -13,7 +13,7 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-transparent">
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-gray-900/80 backdrop-blur-md border-b border-white/10">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Navigation - Left side */}
