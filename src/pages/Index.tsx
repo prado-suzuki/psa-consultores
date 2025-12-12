@@ -8,11 +8,11 @@ import { Footer } from "@/components/Footer";
 const Index = () => {
   return (
     <div className="relative min-h-screen">
-      {/* Header fixo - completamente isolado */}
+      {/* Header fixo */}
       <Header />
       
-      {/* Conteúdo principal com scroll */}
-      <div className="relative">
+      {/* Conteúdo principal com padding-top para compensar header fixo */}
+      <div className="relative pt-16">
         <Hero />
         <Services />
         <WhyChooseUs />
