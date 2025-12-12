@@ -11,8 +11,8 @@ const Index = () => {
       {/* Header fixo */}
       <Header />
       
-      {/* Conteúdo principal com padding-top para compensar header fixo */}
-      <div className="relative pt-16">
+      {/* Conteúdo principal - Hero começa do topo para aparecer atrás do header */}
+      <div className="relative">
         <Hero />
         <Services />
         <WhyChooseUs />
