@@ -1,14 +1,18 @@
-/* Reset styles */
-#root {
-  min-height: 100vh;
-  width: 100%;
+/* Layout base */
+html {
+  height: 100%;
   overflow-x: hidden;
 }
 
-/* Ensure fixed header works correctly */
-html, body {
+body {
+  min-height: 100%;
   overflow-x: hidden;
-  width: 100%;
+  position: relative;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
 }
 
 .logo {
