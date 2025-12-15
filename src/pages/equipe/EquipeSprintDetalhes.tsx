@@ -17,8 +17,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock } from "lucide-react";
-import { format, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
 
 interface Sprint {
   id: string;
@@ -67,12 +68,6 @@ interface Profile {
   first_name: string;
   last_name: string;
 }
-
-// Helper para parse correto de datas (evita problema de timezone UTC)
-const parseDate = (dateStr: string) => {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
 
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
@@ -340,9 +335,9 @@ export default function EquipeSprintDetalhes() {
 
   const getDateBadge = (dateStr: string) => {
     const date = parseDate(dateStr);
-    if (isToday(date)) return <Badge className="bg-primary text-primary-foreground text-xs">Hoje</Badge>;
-    if (isTomorrow(date)) return <Badge variant="outline" className="text-xs">Amanhã</Badge>;
-    if (isPast(date)) return <Badge variant="secondary" className="text-xs">Passado</Badge>;
+    if (isTodayBrazil(date)) return <Badge className="bg-primary text-primary-foreground text-xs">Hoje</Badge>;
+    if (isTomorrowBrazil(date)) return <Badge variant="outline" className="text-xs">Amanhã</Badge>;
+    if (isPastBrazil(date)) return <Badge variant="secondary" className="text-xs">Passado</Badge>;
     return null;
   };
 
@@ -373,17 +368,17 @@ export default function EquipeSprintDetalhes() {
     const overdue = deliverables.filter(d => {
       if (d.status === 'completed') return false;
       const dueDate = parseDate(d.due_date);
-      return isPast(dueDate) && !isToday(dueDate);
+      return isPastBrazil(dueDate) && !isTodayBrazil(dueDate);
     });
     
     const dueToday = deliverables.filter(d => {
       if (d.status === 'completed') return false;
-      return isToday(parseDate(d.due_date));
+      return isTodayBrazil(parseDate(d.due_date));
     });
     
     const dueTomorrow = deliverables.filter(d => {
       if (d.status === 'completed') return false;
-      return isTomorrow(parseDate(d.due_date));
+      return isTomorrowBrazil(parseDate(d.due_date));
     });
 
     // Calcular progresso da sprint
@@ -414,14 +409,14 @@ export default function EquipeSprintDetalhes() {
       
       // Filtro por data
       if (filterDate === 'today') {
-        return isToday(parseDate(d.due_date)) && d.status !== 'completed';
+        return isTodayBrazil(parseDate(d.due_date)) && d.status !== 'completed';
       }
       if (filterDate === 'tomorrow') {
-        return isTomorrow(parseDate(d.due_date)) && d.status !== 'completed';
+        return isTomorrowBrazil(parseDate(d.due_date)) && d.status !== 'completed';
       }
       if (filterDate === 'overdue') {
         const dueDate = parseDate(d.due_date);
-        return isPast(dueDate) && !isToday(dueDate) && d.status !== 'completed';
+        return isPastBrazil(dueDate) && !isTodayBrazil(dueDate) && d.status !== 'completed';
       }
       
       return true;
@@ -826,7 +821,7 @@ export default function EquipeSprintDetalhes() {
                           <div 
                             key={i}
                             className={`flex-1 text-center py-2 text-xs border-r border-gray-100 last:border-r-0 ${
-                              isToday(day) ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'
+                              isSameDay(day, getTodayBrazil()) ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'
                             }`}
                             style={{ minWidth: '45px' }}
                           >
@@ -876,7 +871,7 @@ export default function EquipeSprintDetalhes() {
                                     <div 
                                       key={i}
                                       className={`flex-1 border-r border-gray-100 last:border-r-0 ${
-                                        isToday(day) ? 'bg-primary/5' : ''
+                                        isSameDay(day, getTodayBrazil()) ? 'bg-primary/5' : ''
                                       }`}
                                       style={{ minWidth: '45px' }}
                                     />
@@ -926,7 +921,7 @@ export default function EquipeSprintDetalhes() {
                                           <div 
                                             key={i}
                                             className={`flex-1 border-r border-gray-100 last:border-r-0 ${
-                                              isToday(day) ? 'bg-primary/5' : ''
+                                              isSameDay(day, getTodayBrazil()) ? 'bg-primary/5' : ''
                                             }`}
                                             style={{ minWidth: '45px' }}
                                           />
