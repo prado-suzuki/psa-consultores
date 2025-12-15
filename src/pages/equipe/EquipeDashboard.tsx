@@ -42,11 +42,7 @@ interface AreaData {
   count: number;
 }
 
-// Helper para parse correto de datas (evita problema de timezone UTC)
-const parseDate = (dateStr: string) => {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
+import { parseDate } from '@/lib/dateUtils';
 
 const COLORS = ['#65A30D', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 

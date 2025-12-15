@@ -17,9 +17,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
-import { format, isToday, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
+import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+import { isTodayBrazil } from '@/lib/dateUtils';
 
 interface Profile {
   id: string;
@@ -269,7 +270,7 @@ export default function AdminChamados() {
         const ticketDate = new Date(t.created_at);
         switch (filters.periodo) {
           case 'hoje':
-            return isToday(ticketDate);
+            return isTodayBrazil(ticketDate);
           case '7dias':
             return isWithinInterval(ticketDate, { start: subDays(now, 7), end: now });
           case '30dias':
