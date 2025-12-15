@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock } from "lucide-react";
 import { format, differenceInDays, isToday, isTomorrow, isPast, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -89,6 +89,7 @@ export default function EquipeSprintDetalhes() {
   // Filtros
   const [filterResponsible, setFilterResponsible] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('all'); // 'all', 'today', 'tomorrow', 'overdue'
 
   // Modal de edição
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -365,21 +366,75 @@ export default function EquipeSprintDetalhes() {
     }).filter(Boolean) as { id: string; name: string }[];
   }, [deliverables, profiles]);
 
+  // Cálculo de riscos da sprint
+  const sprintRisks = useMemo(() => {
+    const today = new Date();
+    
+    const overdue = deliverables.filter(d => {
+      if (d.status === 'completed') return false;
+      const dueDate = parseDate(d.due_date);
+      return isPast(dueDate) && !isToday(dueDate);
+    });
+    
+    const dueToday = deliverables.filter(d => {
+      if (d.status === 'completed') return false;
+      return isToday(parseDate(d.due_date));
+    });
+    
+    const dueTomorrow = deliverables.filter(d => {
+      if (d.status === 'completed') return false;
+      return isTomorrow(parseDate(d.due_date));
+    });
+
+    // Calcular progresso da sprint
+    let sprintProgress = 0;
+    if (sprint) {
+      const sprintStart = parseDate(sprint.start_date);
+      const sprintEnd = parseDate(sprint.end_date);
+      const totalDays = differenceInDays(sprintEnd, sprintStart) + 1;
+      const daysPassed = Math.max(0, differenceInDays(today, sprintStart) + 1);
+      sprintProgress = Math.min(100, (daysPassed / totalDays) * 100);
+    }
+
+    // Métricas em risco: < 50% do target quando sprint > 50%
+    const metricsAtRisk = metrics.filter(m => {
+      if (!m.target_value || m.target_value === 0) return false;
+      const progress = ((m.current_value || 0) / m.target_value) * 100;
+      return sprintProgress > 50 && progress < 50;
+    });
+
+    return { overdue, dueToday, dueTomorrow, metricsAtRisk, sprintProgress };
+  }, [deliverables, metrics, sprint]);
+
   // Filtered deliverables
   const filteredDeliverables = useMemo(() => {
     return deliverables.filter(d => {
       if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
       if (filterStatus !== 'all' && d.status !== filterStatus) return false;
+      
+      // Filtro por data
+      if (filterDate === 'today') {
+        return isToday(parseDate(d.due_date)) && d.status !== 'completed';
+      }
+      if (filterDate === 'tomorrow') {
+        return isTomorrow(parseDate(d.due_date)) && d.status !== 'completed';
+      }
+      if (filterDate === 'overdue') {
+        const dueDate = parseDate(d.due_date);
+        return isPast(dueDate) && !isToday(dueDate) && d.status !== 'completed';
+      }
+      
       return true;
     });
-  }, [deliverables, filterResponsible, filterStatus]);
+  }, [deliverables, filterResponsible, filterStatus, filterDate]);
 
   const clearFilters = () => {
     setFilterResponsible('all');
     setFilterStatus('all');
+    setFilterDate('all');
   };
 
-  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all';
+  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all' || filterDate !== 'all';
 
   // Gantt real - dados calculados
   const ganttChartData = useMemo(() => {
@@ -548,6 +603,64 @@ export default function EquipeSprintDetalhes() {
           </Badge>
         </div>
 
+        {/* Card de Riscos */}
+        {(sprintRisks.overdue.length > 0 || sprintRisks.dueToday.length > 0 || sprintRisks.metricsAtRisk.length > 0) && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="py-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  <span className="font-medium text-red-700">Atenção!</span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {sprintRisks.overdue.length > 0 && (
+                    <span className="text-red-600">
+                      {sprintRisks.overdue.length} atrasado{sprintRisks.overdue.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {sprintRisks.dueToday.length > 0 && (
+                    <span className="text-amber-600">
+                      {sprintRisks.dueToday.length} vencendo hoje
+                    </span>
+                  )}
+                  {sprintRisks.dueTomorrow.length > 0 && (
+                    <span className="text-yellow-600">
+                      {sprintRisks.dueTomorrow.length} vencendo amanhã
+                    </span>
+                  )}
+                  {sprintRisks.metricsAtRisk.length > 0 && (
+                    <span className="text-purple-600">
+                      {sprintRisks.metricsAtRisk.length} métrica{sprintRisks.metricsAtRisk.length > 1 ? 's' : ''} em risco
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2 ml-auto">
+                  {sprintRisks.overdue.length > 0 && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-red-300 text-red-700 hover:bg-red-100"
+                      onClick={() => setFilterDate('overdue')}
+                    >
+                      Ver Atrasados
+                    </Button>
+                  )}
+                  {sprintRisks.dueToday.length > 0 && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                      onClick={() => setFilterDate('today')}
+                    >
+                      Ver Hoje
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Barra de Filtros */}
         <div className="flex flex-wrap gap-3 items-center">
           <Select value={filterResponsible} onValueChange={setFilterResponsible}>
@@ -574,6 +687,37 @@ export default function EquipeSprintDetalhes() {
             </SelectContent>
           </Select>
 
+          {/* Filtros rápidos de urgência */}
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant={filterDate === 'today' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'today' ? 'all' : 'today')}
+              className={filterDate === 'today' ? '' : 'border-amber-300 text-amber-700 hover:bg-amber-50'}
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Hoje ({sprintRisks.dueToday.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterDate === 'tomorrow' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'tomorrow' ? 'all' : 'tomorrow')}
+              className={filterDate === 'tomorrow' ? '' : 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'}
+            >
+              <CalendarClock className="h-3 w-3 mr-1" />
+              Amanhã ({sprintRisks.dueTomorrow.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterDate === 'overdue' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'overdue' ? 'all' : 'overdue')}
+              className={filterDate === 'overdue' ? '' : 'border-red-300 text-red-700 hover:bg-red-50'}
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Atrasados ({sprintRisks.overdue.length})
+            </Button>
+          </div>
+
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
               <X className="h-4 w-4 mr-1" /> Limpar
@@ -594,6 +738,12 @@ export default function EquipeSprintDetalhes() {
             <TabsTrigger value="gantt">Gantt</TabsTrigger>
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
+            <TabsTrigger value="risks" className="relative">
+              Riscos
+              {(sprintRisks.overdue.length > 0 || sprintRisks.metricsAtRisk.length > 0) && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Entregáveis */}
@@ -1010,6 +1160,204 @@ export default function EquipeSprintDetalhes() {
                   );
                 })}
               </div>
+            )}
+          </TabsContent>
+
+          {/* Tab Riscos */}
+          <TabsContent value="risks" className="space-y-6">
+            {/* Resumo de Riscos */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className={sprintRisks.overdue.length > 0 ? 'border-red-200 bg-red-50' : 'bg-white'}>
+                <CardContent className="py-4 text-center">
+                  <div className="text-3xl font-bold text-red-600">{sprintRisks.overdue.length}</div>
+                  <div className="text-sm text-gray-600">Atrasados</div>
+                </CardContent>
+              </Card>
+              <Card className={sprintRisks.dueToday.length > 0 ? 'border-amber-200 bg-amber-50' : 'bg-white'}>
+                <CardContent className="py-4 text-center">
+                  <div className="text-3xl font-bold text-amber-600">{sprintRisks.dueToday.length}</div>
+                  <div className="text-sm text-gray-600">Vencendo Hoje</div>
+                </CardContent>
+              </Card>
+              <Card className={sprintRisks.dueTomorrow.length > 0 ? 'border-yellow-200 bg-yellow-50' : 'bg-white'}>
+                <CardContent className="py-4 text-center">
+                  <div className="text-3xl font-bold text-yellow-600">{sprintRisks.dueTomorrow.length}</div>
+                  <div className="text-sm text-gray-600">Vencendo Amanhã</div>
+                </CardContent>
+              </Card>
+              <Card className={sprintRisks.metricsAtRisk.length > 0 ? 'border-purple-200 bg-purple-50' : 'bg-white'}>
+                <CardContent className="py-4 text-center">
+                  <div className="text-3xl font-bold text-purple-600">{sprintRisks.metricsAtRisk.length}</div>
+                  <div className="text-sm text-gray-600">Métricas em Risco</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Progresso da Sprint */}
+            <Card className="bg-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Progresso da Sprint</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Progress value={sprintRisks.sprintProgress} className="flex-1 h-3" />
+                  <span className="text-sm font-medium text-gray-700">{Math.round(sprintRisks.sprintProgress)}%</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {sprint && `${format(parseDate(sprint.start_date), "dd/MM")} - ${format(parseDate(sprint.end_date), "dd/MM")}`}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Entregáveis Atrasados */}
+            {sprintRisks.overdue.length > 0 && (
+              <Card className="border-red-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-red-700 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Entregáveis Atrasados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sprintRisks.overdue.map(d => (
+                      <div key={d.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{d.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {getProfileName(d.assigned_to)} • Venceu em {format(parseDate(d.due_date), "dd/MM")}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">
+                            {Math.abs(differenceInDays(parseDate(d.due_date), new Date()))} dia{Math.abs(differenceInDays(parseDate(d.due_date), new Date())) !== 1 ? 's' : ''} atraso
+                          </Badge>
+                          <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Vencendo Hoje */}
+            {sprintRisks.dueToday.length > 0 && (
+              <Card className="border-amber-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-amber-700 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Vencendo Hoje
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sprintRisks.dueToday.map(d => (
+                      <div key={d.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{d.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {getProfileName(d.assigned_to)} • {d.estimated_hours ? `${d.estimated_hours}h estimadas` : 'Sem estimativa'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={
+                            d.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                            'bg-gray-100 text-gray-700 border-gray-200'
+                          }>
+                            {d.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
+                          </Badge>
+                          <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Vencendo Amanhã */}
+            {sprintRisks.dueTomorrow.length > 0 && (
+              <Card className="border-yellow-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-yellow-700 flex items-center gap-2">
+                    <CalendarClock className="h-4 w-4" />
+                    Vencendo Amanhã
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sprintRisks.dueTomorrow.map(d => (
+                      <div key={d.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{d.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {getProfileName(d.assigned_to)} • {d.estimated_hours ? `${d.estimated_hours}h estimadas` : 'Sem estimativa'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={
+                            d.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                            'bg-gray-100 text-gray-700 border-gray-200'
+                          }>
+                            {d.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
+                          </Badge>
+                          <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Métricas em Risco */}
+            {sprintRisks.metricsAtRisk.length > 0 && (
+              <Card className="border-purple-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-700 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Métricas em Risco
+                  </CardTitle>
+                  <p className="text-xs text-gray-500">Sprint está em {Math.round(sprintRisks.sprintProgress)}% do tempo, mas estas métricas estão abaixo de 50%</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {sprintRisks.metricsAtRisk.map(m => {
+                      const percentage = m.target_value ? Math.round(((m.current_value || 0) / m.target_value) * 100) : 0;
+                      return (
+                        <div key={m.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-gray-900">{m.name}</p>
+                            <span className="text-sm text-purple-700">
+                              {m.current_value || 0} / {m.target_value} {m.unit}
+                            </span>
+                          </div>
+                          <Progress value={percentage} className="h-2" />
+                          <p className="text-xs text-gray-500 mt-1">{percentage}% concluído</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sem riscos */}
+            {sprintRisks.overdue.length === 0 && sprintRisks.dueToday.length === 0 && 
+             sprintRisks.dueTomorrow.length === 0 && sprintRisks.metricsAtRisk.length === 0 && (
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="py-8 text-center">
+                  <div className="text-green-600 text-lg font-medium mb-2">Tudo em dia!</div>
+                  <p className="text-gray-600 text-sm">Nenhum risco identificado para esta sprint.</p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         </Tabs>
