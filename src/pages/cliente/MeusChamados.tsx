@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -15,7 +15,13 @@ interface Ticket {
   description: string;
   status: string;
   priority: string;
+  department?: string;
   created_at: string;
+  assigned_to?: string | null;
+  assigned_agent?: {
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -62,7 +68,10 @@ export default function MeusChamados() {
     try {
       const { data, error } = await supabase
         .from('tickets')
-        .select('*')
+        .select(`
+          *,
+          assigned_agent:profiles!assigned_to(first_name, last_name)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -133,17 +142,38 @@ export default function MeusChamados() {
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                         {ticket.description}
                       </p>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 mb-2">
                         <Badge className={statusColors[ticket.status]}>
                           {statusLabels[ticket.status]}
                         </Badge>
                         <Badge variant="outline" className={priorityColors[ticket.priority]}>
                           {priorityLabels[ticket.priority]}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                        </span>
+                        {ticket.department && (
+                          <Badge variant="outline" className="bg-teal-100 text-teal-700">
+                            {ticket.department}
+                          </Badge>
+                        )}
                       </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        {ticket.assigned_agent ? (
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <User className="h-4 w-4 text-teal-600" />
+                            <span className="font-medium">Analista responsável:</span>
+                            <span className="text-teal-700 font-semibold">
+                              {ticket.assigned_agent.first_name} {ticket.assigned_agent.last_name}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground italic">
+                            <User className="h-4 w-4" />
+                            <span>Aguardando atribuição de analista</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </span>
                     </div>
                   </div>
                 </Card>
