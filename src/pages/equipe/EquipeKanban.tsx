@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { LayoutGrid, List, CalendarIcon, X, Filter, Paperclip, Upload, Trash2, Download, FileText } from 'lucide-react';
+import { LayoutGrid, List, CalendarIcon, X, Filter, Paperclip, Upload, Trash2, Download, FileText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -116,6 +116,7 @@ const EquipeKanban = () => {
   const [filterProcess, setFilterProcess] = useState<string>('all');
   const [filterStartDate, setFilterStartDate] = useState<Date | undefined>();
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>();
+  const [sortByDueDate, setSortByDueDate] = useState<'asc' | 'desc' | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -124,7 +125,7 @@ const EquipeKanban = () => {
   const fetchData = async () => {
     try {
       const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
-        supabase.from('sprints').select('id, name, project_id').order('start_date', { ascending: false }),
+        supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
         supabase.from('profiles').select('id, first_name, last_name'),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('processes').select('id, name, project_id').order('name'),
@@ -174,6 +175,21 @@ const EquipeKanban = () => {
       return true;
     });
   }, [deliverables, sprints, processes, filterSprint, filterResponsible, filterProject, filterProcess, filterStartDate, filterEndDate]);
+
+  // Função para obter deliverables ordenados por coluna
+  const getColumnDeliverables = (columnId: string) => {
+    let items = filteredDeliverables.filter(d => d.status === columnId);
+    
+    if (sortByDueDate) {
+      items = [...items].sort((a, b) => {
+        const dateA = a.due_date ? new Date(a.due_date + 'T00:00:00').getTime() : Infinity;
+        const dateB = b.due_date ? new Date(b.due_date + 'T00:00:00').getTime() : Infinity;
+        return sortByDueDate === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+    }
+    
+    return items;
+  };
 
   const hasActiveFilters = filterSprint !== 'all' || filterResponsible !== 'all' || filterProject !== 'all' || filterProcess !== 'all' || filterStartDate || filterEndDate;
 
@@ -629,9 +645,35 @@ const EquipeKanban = () => {
               <div className="flex items-center gap-2 mb-4">
                 <div className={`w-3 h-3 rounded-full ${column.color}`} />
                 <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
-                <Badge variant="outline" className="ml-auto border-gray-300 text-gray-600">
-                  {filteredDeliverables.filter(d => d.status === column.id).length}
+                <Badge variant="outline" className="border-gray-300 text-gray-600">
+                  {getColumnDeliverables(column.id).length}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "ml-auto h-7 w-7 p-0",
+                    sortByDueDate && "text-primary"
+                  )}
+                  onClick={() => {
+                    setSortByDueDate(current => 
+                      current === null ? 'asc' : current === 'asc' ? 'desc' : null
+                    );
+                  }}
+                  title={
+                    sortByDueDate === 'asc' ? 'Ordenado: mais antigo primeiro' :
+                    sortByDueDate === 'desc' ? 'Ordenado: mais recente primeiro' :
+                    'Ordenar por data de vencimento'
+                  }
+                >
+                  {sortByDueDate === 'asc' ? (
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  ) : sortByDueDate === 'desc' ? (
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />
+                  )}
+                </Button>
               </div>
               
               <div 
@@ -643,9 +685,7 @@ const EquipeKanban = () => {
                   updateDeliverableStatus(deliverableId, column.id as 'pending' | 'in_progress' | 'completed');
                 }}
               >
-                {filteredDeliverables
-                  .filter(d => d.status === column.id)
-                  .map((deliverable) => (
+                {getColumnDeliverables(column.id).map((deliverable) => (
                     <Card 
                       key={deliverable.id}
                       className="bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
