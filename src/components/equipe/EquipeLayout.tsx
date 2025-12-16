@@ -20,7 +20,8 @@ import {
   Workflow,
   Library,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Layers
 } from 'lucide-react';
 import logoDark from '@/assets/logo-psa-dark.png';
 
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
       { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
       { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
+      { icon: Layers, label: 'Backlog', path: '/equipe/backlog' },
       { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
     ]
   },

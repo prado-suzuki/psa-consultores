@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, ArrowRight } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock } from "lucide-react";
 import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
@@ -69,18 +69,6 @@ interface Profile {
   last_name: string;
 }
 
-interface BacklogItem {
-  id: string;
-  sprint_id: string | null;
-  title: string;
-  description: string | null;
-  priority: string;
-  estimated_hours: number | null;
-  suggested_by: string | null;
-  status: string;
-  moved_to_deliverable_id: string | null;
-  created_at: string;
-}
 
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
@@ -118,17 +106,6 @@ export default function EquipeSprintDetalhes() {
   // Métricas expandidas
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
 
-  // Backlog
-  const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
-  const [backlogModalOpen, setBacklogModalOpen] = useState(false);
-  const [editingBacklogItem, setEditingBacklogItem] = useState<BacklogItem | null>(null);
-  const [backlogForm, setBacklogForm] = useState({
-    title: '',
-    description: '',
-    priority: 'medium',
-    estimated_hours: ''
-  });
-  const [savingBacklog, setSavingBacklog] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -180,14 +157,6 @@ export default function EquipeSprintDetalhes() {
         .eq("sprint_id", id);
       setMetrics(metricsData || []);
 
-      // Fetch backlog items
-      const { data: backlogData } = await supabase
-        .from("sprint_backlog_items")
-        .select("*")
-        .eq("sprint_id", id)
-        .neq("status", "moved_to_sprint")
-        .order("created_at", { ascending: false });
-      setBacklogItems(backlogData || []);
       
     } catch (error: any) {
       console.error("Error fetching sprint data:", error);
@@ -335,130 +304,6 @@ export default function EquipeSprintDetalhes() {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
   };
-
-  // Backlog functions
-  const openBacklogModal = (item?: BacklogItem) => {
-    if (item) {
-      setEditingBacklogItem(item);
-      setBacklogForm({
-        title: item.title,
-        description: item.description || '',
-        priority: item.priority,
-        estimated_hours: item.estimated_hours?.toString() || ''
-      });
-    } else {
-      setEditingBacklogItem(null);
-      setBacklogForm({
-        title: '',
-        description: '',
-        priority: 'medium',
-        estimated_hours: ''
-      });
-    }
-    setBacklogModalOpen(true);
-  };
-
-  const saveBacklogItem = async () => {
-    try {
-      setSavingBacklog(true);
-      
-      const itemData = {
-        sprint_id: id,
-        title: backlogForm.title,
-        description: backlogForm.description || null,
-        priority: backlogForm.priority,
-        estimated_hours: backlogForm.estimated_hours ? parseFloat(backlogForm.estimated_hours) : null
-      };
-
-      if (editingBacklogItem) {
-        const { error } = await supabase
-          .from("sprint_backlog_items")
-          .update(itemData)
-          .eq("id", editingBacklogItem.id);
-        if (error) throw error;
-        
-        setBacklogItems(prev => 
-          prev.map(item => item.id === editingBacklogItem.id ? { ...item, ...itemData } : item)
-        );
-        toast({ title: "Item atualizado" });
-      } else {
-        const { data, error } = await supabase
-          .from("sprint_backlog_items")
-          .insert(itemData)
-          .select()
-          .single();
-        if (error) throw error;
-        
-        setBacklogItems(prev => [data, ...prev]);
-        toast({ title: "Item adicionado ao backlog" });
-      }
-      
-      setBacklogModalOpen(false);
-      setEditingBacklogItem(null);
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } finally {
-      setSavingBacklog(false);
-    }
-  };
-
-  const deleteBacklogItem = async (itemId: string) => {
-    try {
-      const { error } = await supabase
-        .from("sprint_backlog_items")
-        .delete()
-        .eq("id", itemId);
-      if (error) throw error;
-      
-      setBacklogItems(prev => prev.filter(item => item.id !== itemId));
-      toast({ title: "Item removido do backlog" });
-    } catch (error: any) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const moveToDeliverable = async (item: BacklogItem) => {
-    try {
-      // Criar entregável a partir do item do backlog
-      const deliverableData = {
-        sprint_id: id,
-        title: item.title,
-        description: item.description,
-        estimated_hours: item.estimated_hours,
-        due_date: sprint?.end_date || new Date().toISOString().split('T')[0],
-        start_date: sprint?.start_date,
-        status: 'pending'
-      };
-
-      const { data: newDeliverable, error: deliverableError } = await supabase
-        .from("sprint_deliverables")
-        .insert(deliverableData)
-        .select()
-        .single();
-
-      if (deliverableError) throw deliverableError;
-
-      // Atualizar status do item do backlog
-      const { error: backlogError } = await supabase
-        .from("sprint_backlog_items")
-        .update({ 
-          status: 'moved_to_sprint', 
-          moved_to_deliverable_id: newDeliverable.id 
-        })
-        .eq("id", item.id);
-
-      if (backlogError) throw backlogError;
-
-      // Atualizar estados locais
-      setBacklogItems(prev => prev.filter(i => i.id !== item.id));
-      setDeliverables(prev => [...prev, newDeliverable]);
-      
-      toast({ title: "Item movido para entregáveis" });
-    } catch (error: any) {
-      toast({ title: "Erro ao mover item", description: error.message, variant: "destructive" });
-    }
-  };
-
 
   const getProfileName = (userId: string | null) => {
     if (!userId) return "Não atribuído";
@@ -888,14 +733,6 @@ export default function EquipeSprintDetalhes() {
         <Tabs defaultValue="deliverables" className="space-y-4">
           <TabsList>
             <TabsTrigger value="deliverables">Entregáveis</TabsTrigger>
-            <TabsTrigger value="backlog" className="relative">
-              Backlog
-              {backlogItems.length > 0 && (
-                <Badge variant="outline" className="ml-1 h-5 px-1.5 text-xs">
-                  {backlogItems.length}
-                </Badge>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="gantt">Gantt</TabsTrigger>
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
@@ -962,112 +799,6 @@ export default function EquipeSprintDetalhes() {
                           {deliverable.status === 'completed' ? 'Concluído' :
                            deliverable.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
                         </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Tab Backlog */}
-          <TabsContent value="backlog" className="space-y-4">
-            {/* Header com botão de adicionar */}
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Backlog da Sprint</h3>
-                <p className="text-sm text-muted-foreground">
-                  Itens planejados e ideias para esta sprint
-                </p>
-              </div>
-              <Button onClick={() => openBacklogModal()}>
-                <Plus className="h-4 w-4 mr-2" /> Adicionar Item
-              </Button>
-            </div>
-
-            {/* Lista de itens do backlog */}
-            {backlogItems.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  Nenhum item no backlog. Adicione itens para planejar a sprint.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {backlogItems.map((item) => (
-                  <Card key={item.id} className="bg-white border-gray-200 hover:shadow-sm transition-shadow">
-                    <CardContent className="py-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Badge 
-                            variant="outline" 
-                            className={
-                              item.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                              item.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                              'bg-gray-50 text-gray-600 border-gray-200'
-                            }
-                          >
-                            {item.priority === 'high' ? 'Alta' : 
-                             item.priority === 'medium' ? 'Média' : 'Baixa'}
-                          </Badge>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-gray-900">{item.title}</span>
-                            {item.description && (
-                              <p className="text-sm text-gray-500 truncate">{item.description}</p>
-                            )}
-                          </div>
-                          {item.estimated_hours && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                              {item.estimated_hours}h
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => moveToDeliverable(item)}
-                            className="text-primary border-primary/30 hover:bg-primary/10"
-                          >
-                            <ArrowRight className="h-3 w-3 mr-1" /> Mover para Sprint
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => openBacklogModal(item)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="text-gray-400 hover:text-red-500"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir item do backlog?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => deleteBacklogItem(item.id)}
-                                  className="bg-red-500 hover:bg-red-600"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1775,83 +1506,6 @@ export default function EquipeSprintDetalhes() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Backlog */}
-      <Dialog open={backlogModalOpen} onOpenChange={setBacklogModalOpen}>
-        <DialogContent className="bg-white max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingBacklogItem ? 'Editar Item' : 'Adicionar ao Backlog'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="backlog-title">Título *</Label>
-              <Input
-                id="backlog-title"
-                value={backlogForm.title}
-                onChange={(e) => setBacklogForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: Implementar relatório de vendas"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="backlog-description">Descrição</Label>
-              <Textarea
-                id="backlog-description"
-                value={backlogForm.description}
-                onChange={(e) => setBacklogForm(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Descrição detalhada do item..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="backlog-priority">Prioridade</Label>
-                <Select 
-                  value={backlogForm.priority} 
-                  onValueChange={(value) => setBacklogForm(prev => ({ ...prev, priority: value }))}
-                >
-                  <SelectTrigger id="backlog-priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">Média</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="backlog-hours">Horas Est.</Label>
-                <Input
-                  id="backlog-hours"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={backlogForm.estimated_hours}
-                  onChange={(e) => setBacklogForm(prev => ({ ...prev, estimated_hours: e.target.value }))}
-                  placeholder="Ex: 4"
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBacklogModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={saveBacklogItem} 
-              disabled={savingBacklog || !backlogForm.title}
-            >
-              {savingBacklog ? 'Salvando...' : editingBacklogItem ? 'Salvar' : 'Adicionar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </EquipeLayout>
   );
 }
