@@ -30,6 +30,7 @@ import EquipeDemandas from "./pages/equipe/EquipeDemandas";
 import EquipeUsuarios from "./pages/equipe/EquipeUsuarios";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
+import EquipeBacklog from "./pages/equipe/EquipeBacklog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/equipe/usuarios" element={<TeamRoute><EquipeUsuarios /></TeamRoute>} />
             <Route path="/equipe/processos" element={<TeamRoute><EquipeProcessos /></TeamRoute>} />
             <Route path="/equipe/biblioteca" element={<TeamRoute><EquipeBiblioteca /></TeamRoute>} />
+            <Route path="/equipe/backlog" element={<TeamRoute><EquipeBacklog /></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
