@@ -545,6 +545,70 @@ export type Database = {
           },
         ]
       }
+      sprint_backlog_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          moved_to_deliverable_id: string | null
+          priority: string | null
+          sprint_id: string | null
+          status: string | null
+          suggested_by: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          moved_to_deliverable_id?: string | null
+          priority?: string | null
+          sprint_id?: string | null
+          status?: string | null
+          suggested_by?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          moved_to_deliverable_id?: string | null
+          priority?: string | null
+          sprint_id?: string | null
+          status?: string | null
+          suggested_by?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_backlog_items_moved_to_deliverable_id_fkey"
+            columns: ["moved_to_deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_backlog_items_suggested_by_fkey"
+            columns: ["suggested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_deliverables: {
         Row: {
           assigned_to: string | null
