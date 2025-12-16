@@ -41,7 +41,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
-  { icon: ClipboardList, label: 'Rotinas', path: '/equipe/rotina' },
+  { icon: ClipboardList, label: 'Demandas', path: '/equipe/demandas' },
   { 
     icon: FolderKanban, 
     label: 'Projetos', 
