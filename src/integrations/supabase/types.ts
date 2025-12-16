@@ -96,6 +96,53 @@ export type Database = {
           },
         ]
       }
+      demand_items: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          demand_id: string
+          description: string | null
+          due_date: string
+          estimated_hours: number | null
+          id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          demand_id: string
+          description?: string | null
+          due_date: string
+          estimated_hours?: number | null
+          id?: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          demand_id?: string
+          description?: string | null
+          due_date?: string
+          estimated_hours?: number | null
+          id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_items_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
@@ -441,9 +488,12 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          due_date: string | null
           estimated_hours: number | null
           frequency: string
           id: string
+          is_recurring: boolean | null
+          start_date: string | null
           status: string
           title: string
           updated_at: string | null
@@ -453,9 +503,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          due_date?: string | null
           estimated_hours?: number | null
           frequency?: string
           id?: string
+          is_recurring?: boolean | null
+          start_date?: string | null
           status?: string
           title: string
           updated_at?: string | null
@@ -465,9 +518,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          due_date?: string | null
           estimated_hours?: number | null
           frequency?: string
           id?: string
+          is_recurring?: boolean | null
+          start_date?: string | null
           status?: string
           title?: string
           updated_at?: string | null
