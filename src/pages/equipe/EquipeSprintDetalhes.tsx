@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EquipeLayout } from "@/components/equipe/EquipeLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +16,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet } from "lucide-react";
 import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
+import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
 
 interface Sprint {
   id: string;
@@ -40,6 +41,8 @@ interface Deliverable {
   due_date: string;
   status: string;
   estimated_hours: number | null;
+  parent_id: string | null;
+  task_code: string | null;
   profile?: { first_name: string; last_name: string };
 }
 
@@ -103,8 +106,32 @@ export default function EquipeSprintDetalhes() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Modal de criação
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    title: '',
+    description: '',
+    assigned_to: '',
+    start_date: '',
+    due_date: '',
+    estimated_hours: '',
+    parent_id: ''
+  });
+  const [creating, setCreating] = useState(false);
+
+  // Modal de importação Excel
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [responsibleMapping, setResponsibleMapping] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Métricas expandidas
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
+
+  // Tarefas expandidas (para hierarquia)
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
 
   useEffect(() => {
@@ -305,6 +332,172 @@ export default function EquipeSprintDetalhes() {
     }
   };
 
+  // Criar nova tarefa
+  const createDeliverable = async () => {
+    if (!sprint) return;
+
+    try {
+      setCreating(true);
+
+      const newDeliverable = {
+        sprint_id: sprint.id,
+        title: createForm.title,
+        description: createForm.description || null,
+        assigned_to: createForm.assigned_to || null,
+        start_date: createForm.start_date || sprint.start_date,
+        due_date: createForm.due_date || sprint.end_date,
+        estimated_hours: createForm.estimated_hours ? parseFloat(createForm.estimated_hours) : null,
+        status: 'pending',
+        parent_id: createForm.parent_id || null
+      };
+
+      const { data, error } = await supabase
+        .from("sprint_deliverables")
+        .insert(newDeliverable)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setDeliverables(prev => [...prev, data]);
+      setCreateModalOpen(false);
+      setCreateForm({
+        title: '',
+        description: '',
+        assigned_to: '',
+        start_date: '',
+        due_date: '',
+        estimated_hours: '',
+        parent_id: ''
+      });
+      toast({ title: "Tarefa criada com sucesso" });
+    } catch (error: any) {
+      toast({ title: "Erro ao criar tarefa", description: error.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Processar arquivo Excel
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFile(file);
+
+    try {
+      const rows = await parseExcelFile(file);
+      const preview = processExcelData(rows, profiles);
+      setImportPreview(preview);
+
+      // Initialize mapping for unmapped responsibles
+      const initialMapping: Record<string, string> = {};
+      preview.unmappedResponsibles.forEach(name => {
+        initialMapping[name] = '';
+      });
+      setResponsibleMapping(initialMapping);
+    } catch (error: any) {
+      toast({ title: "Erro ao ler arquivo", description: error.message, variant: "destructive" });
+      setImportFile(null);
+      setImportPreview(null);
+    }
+  };
+
+  // Importar dados do Excel
+  const handleImport = async () => {
+    if (!sprint || !importPreview) return;
+
+    try {
+      setImporting(true);
+
+      // For each task group, create parent and subtasks
+      for (const group of importPreview.taskGroups) {
+        // Find responsible profile
+        const responsibleName = group.responsible;
+        let responsibleId: string | null = null;
+
+        if (responsibleName) {
+          if (responsibleMapping[responsibleName]) {
+            responsibleId = responsibleMapping[responsibleName];
+          } else {
+            const profile = findProfileByName(responsibleName, profiles);
+            responsibleId = profile?.id || null;
+          }
+        }
+
+        // Create parent task
+        const { data: parentData, error: parentError } = await supabase
+          .from("sprint_deliverables")
+          .insert({
+            sprint_id: sprint.id,
+            title: group.title,
+            description: `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
+            assigned_to: responsibleId,
+            start_date: group.minDate || sprint.start_date,
+            due_date: group.maxDate || sprint.end_date,
+            estimated_hours: group.totalHours,
+            status: 'pending',
+            parent_id: null,
+            task_code: null
+          })
+          .select()
+          .single();
+
+        if (parentError) throw parentError;
+
+        // Create subtasks with parent_id
+        const subtasks = group.subtasks.map(subtask => {
+          let subtaskResponsibleId: string | null = null;
+          if (subtask.responsible) {
+            if (responsibleMapping[subtask.responsible]) {
+              subtaskResponsibleId = responsibleMapping[subtask.responsible];
+            } else {
+              const profile = findProfileByName(subtask.responsible, profiles);
+              subtaskResponsibleId = profile?.id || null;
+            }
+          }
+
+          return {
+            sprint_id: sprint.id,
+            title: subtask.subtaskTitle || subtask.title,
+            description: subtask.description || null,
+            assigned_to: subtaskResponsibleId,
+            start_date: subtask.dueDate || sprint.start_date,
+            due_date: subtask.dueDate || sprint.end_date,
+            estimated_hours: subtask.estimatedHours || null,
+            status: 'pending',
+            parent_id: parentData.id,
+            task_code: subtask.taskCode || null
+          };
+        });
+
+        if (subtasks.length > 0) {
+          const { error: subtasksError } = await supabase
+            .from("sprint_deliverables")
+            .insert(subtasks);
+
+          if (subtasksError) throw subtasksError;
+        }
+      }
+
+      // Refresh deliverables
+      await fetchSprintData();
+
+      setImportModalOpen(false);
+      setImportFile(null);
+      setImportPreview(null);
+      setResponsibleMapping({});
+      toast({ 
+        title: "Importação concluída", 
+        description: `${importPreview.totalTasks} tarefas e ${importPreview.totalSubtasks} subtarefas importadas` 
+      });
+    } catch (error: any) {
+      toast({ title: "Erro na importação", description: error.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const getProfileName = (userId: string | null) => {
     if (!userId) return "Não atribuído";
     const profile = profiles.find(p => p.id === userId);
@@ -425,6 +618,69 @@ export default function EquipeSprintDetalhes() {
       return true;
     });
   }, [deliverables, filterResponsible, filterStatus, filterDate]);
+
+  // Hierarchical task structure (parent tasks with subtasks)
+  const hierarchicalTasks = useMemo(() => {
+    // Get parent tasks (no parent_id)
+    const parentTasks = filteredDeliverables.filter(d => !d.parent_id);
+    
+    // Get subtasks (has parent_id)
+    const subtasks = filteredDeliverables.filter(d => d.parent_id);
+    
+    // Group subtasks by parent
+    const subtasksByParent: Record<string, Deliverable[]> = {};
+    subtasks.forEach(subtask => {
+      if (subtask.parent_id) {
+        if (!subtasksByParent[subtask.parent_id]) {
+          subtasksByParent[subtask.parent_id] = [];
+        }
+        subtasksByParent[subtask.parent_id].push(subtask);
+      }
+    });
+
+    // Sort subtasks by task_code
+    Object.keys(subtasksByParent).forEach(parentId => {
+      subtasksByParent[parentId].sort((a, b) => {
+        if (a.task_code && b.task_code) {
+          return a.task_code.localeCompare(b.task_code, undefined, { numeric: true });
+        }
+        return 0;
+      });
+    });
+
+    // Build hierarchical structure
+    return parentTasks.map(parent => ({
+      ...parent,
+      subtasks: subtasksByParent[parent.id] || [],
+      subtaskCount: subtasksByParent[parent.id]?.length || 0,
+      completedSubtasks: subtasksByParent[parent.id]?.filter(s => s.status === 'completed').length || 0,
+      totalHours: (parent.estimated_hours || 0) + (subtasksByParent[parent.id]?.reduce((sum, s) => sum + (s.estimated_hours || 0), 0) || 0)
+    }));
+  }, [filteredDeliverables]);
+
+  // Also get orphan tasks (subtasks without a visible parent due to filtering)
+  const orphanSubtasks = useMemo(() => {
+    const parentIds = new Set(filteredDeliverables.filter(d => !d.parent_id).map(d => d.id));
+    return filteredDeliverables.filter(d => d.parent_id && !parentIds.has(d.parent_id));
+  }, [filteredDeliverables]);
+
+  // Toggle task expanded
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  // Get parent tasks for select dropdown
+  const parentTaskOptions = useMemo(() => {
+    return deliverables.filter(d => !d.parent_id);
+  }, [deliverables]);
 
   const clearFilters = () => {
     setFilterResponsible('all');
@@ -746,6 +1002,46 @@ export default function EquipeSprintDetalhes() {
 
           {/* Tab Entregáveis */}
           <TabsContent value="deliverables" className="space-y-4">
+            {/* Action buttons */}
+            <div className="flex justify-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setImportModalOpen(true);
+                }}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar Excel
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => {
+                  setCreateForm({
+                    title: '',
+                    description: '',
+                    assigned_to: '',
+                    start_date: sprint?.start_date || '',
+                    due_date: sprint?.end_date || '',
+                    estimated_hours: '',
+                    parent_id: ''
+                  });
+                  setCreateModalOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Tarefa
+              </Button>
+            </div>
+
             {filteredDeliverables.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -754,55 +1050,177 @@ export default function EquipeSprintDetalhes() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {filteredDeliverables.map((deliverable) => (
-                  <Card key={deliverable.id} className={`${deliverable.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-200`}>
-                    <CardContent className="py-3">
-                      <div className="flex items-center gap-4">
-                        <Checkbox 
-                          checked={deliverable.status === 'completed'}
-                          onCheckedChange={(checked) => {
-                            updateDeliverableStatus(
-                              deliverable.id, 
-                              checked ? 'completed' : 'pending'
-                            );
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
+                {/* Hierarchical tasks (parent tasks with subtasks) */}
+                {hierarchicalTasks.map((task) => {
+                  const isExpanded = expandedTasks.has(task.id);
+                  const hasSubtasks = task.subtaskCount > 0;
+
+                  return (
+                    <div key={task.id}>
+                      {/* Parent task card */}
+                      <Card className={`${task.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-200`}>
+                        <CardContent className="py-3">
                           <div className="flex items-center gap-2">
-                            <span className={`font-medium ${deliverable.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                              {deliverable.title}
-                            </span>
-                            {getDateBadge(deliverable.due_date)}
+                            {/* Expand button */}
+                            {hasSubtasks ? (
+                              <button 
+                                onClick={() => toggleTaskExpanded(task.id)}
+                                className="p-1 hover:bg-gray-100 rounded"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                                )}
+                              </button>
+                            ) : (
+                              <div className="w-6" />
+                            )}
+                            
+                            <Checkbox 
+                              checked={task.status === 'completed'}
+                              onCheckedChange={(checked) => {
+                                updateDeliverableStatus(task.id, checked ? 'completed' : 'pending');
+                              }}
+                            />
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {task.task_code && (
+                                  <span className="text-xs font-mono text-gray-400">{task.task_code}</span>
+                                )}
+                                <span className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                  {task.title}
+                                </span>
+                                {hasSubtasks && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {task.completedSubtasks}/{task.subtaskCount} subtarefas
+                                  </Badge>
+                                )}
+                                {getDateBadge(task.due_date)}
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                                <span>{getProfileName(task.assigned_to)}</span>
+                                <span>{format(parseDate(task.due_date), "dd/MM")}</span>
+                                {task.totalHours > 0 && <span>{task.totalHours}h</span>}
+                              </div>
+                            </div>
+                            
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => openEditModal(task)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            
+                            <Badge 
+                              variant="outline"
+                              className={
+                                task.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                task.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                'bg-gray-50 text-gray-600 border-gray-200'
+                              }
+                            >
+                              {task.status === 'completed' ? 'Concluído' :
+                               task.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                            <span>{getProfileName(deliverable.assigned_to)}</span>
-                            <span>{format(parseDate(deliverable.due_date), "dd/MM")}</span>
-                            {deliverable.estimated_hours && <span>{deliverable.estimated_hours}h</span>}
-                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Subtasks */}
+                      {hasSubtasks && isExpanded && (
+                        <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 pl-4">
+                          {task.subtasks.map((subtask) => (
+                            <Card key={subtask.id} className={`${subtask.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-100`}>
+                              <CardContent className="py-2">
+                                <div className="flex items-center gap-3">
+                                  <Checkbox 
+                                    checked={subtask.status === 'completed'}
+                                    onCheckedChange={(checked) => {
+                                      updateDeliverableStatus(subtask.id, checked ? 'completed' : 'pending');
+                                    }}
+                                  />
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      {subtask.task_code && (
+                                        <span className="text-xs font-mono text-gray-400">{subtask.task_code}</span>
+                                      )}
+                                      <span className={`text-sm ${subtask.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                        {subtask.title}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
+                                      <span>{getProfileName(subtask.assigned_to)}</span>
+                                      <span>{format(parseDate(subtask.due_date), "dd/MM")}</span>
+                                      {subtask.estimated_hours && <span>{subtask.estimated_hours}h</span>}
+                                    </div>
+                                  </div>
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => openEditModal(subtask)}
+                                    className="text-gray-400 hover:text-gray-600 h-7 w-7 p-0"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+
+                                  <div className={`h-2 w-2 rounded-full ${
+                                    subtask.status === 'completed' ? 'bg-green-500' :
+                                    subtask.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'
+                                  }`} />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openEditModal(deliverable)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Badge 
-                          variant="outline"
-                          className={
-                            deliverable.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                            deliverable.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                            'bg-gray-50 text-gray-600 border-gray-200'
-                          }
-                        >
-                          {deliverable.status === 'completed' ? 'Concluído' :
-                           deliverable.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Orphan subtasks (subtasks without visible parent) */}
+                {orphanSubtasks.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500 mb-2">Subtarefas avulsas:</p>
+                    {orphanSubtasks.map((subtask) => (
+                      <Card key={subtask.id} className={`${subtask.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-200 mb-1`}>
+                        <CardContent className="py-2">
+                          <div className="flex items-center gap-3">
+                            <Checkbox 
+                              checked={subtask.status === 'completed'}
+                              onCheckedChange={(checked) => {
+                                updateDeliverableStatus(subtask.id, checked ? 'completed' : 'pending');
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {subtask.task_code && (
+                                  <span className="text-xs font-mono text-gray-400">{subtask.task_code}</span>
+                                )}
+                                <span className={`text-sm ${subtask.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                  {subtask.title}
+                                </span>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => openEditModal(subtask)}
+                              className="text-gray-400 hover:text-gray-600 h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
@@ -1502,6 +1920,266 @@ export default function EquipeSprintDetalhes() {
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Criação de Tarefa */}
+      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova Tarefa</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-title">Título *</Label>
+              <Input
+                id="create-title"
+                value={createForm.title}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Título da tarefa"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-description">Descrição</Label>
+              <Textarea
+                id="create-description"
+                value={createForm.description}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descrição detalhada"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-parent">Tarefa Pai (opcional)</Label>
+              <Select 
+                value={createForm.parent_id || "none"} 
+                onValueChange={(value) => setCreateForm(prev => ({ ...prev, parent_id: value === "none" ? "" : value }))}
+              >
+                <SelectTrigger id="create-parent">
+                  <SelectValue placeholder="Nenhuma (tarefa principal)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma (tarefa principal)</SelectItem>
+                  {parentTaskOptions.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.task_code && `${p.task_code} - `}{p.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-assigned">Responsável</Label>
+                <Select 
+                  value={createForm.assigned_to || "unassigned"} 
+                  onValueChange={(value) => setCreateForm(prev => ({ ...prev, assigned_to: value === "unassigned" ? "" : value }))}
+                >
+                  <SelectTrigger id="create-assigned">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
+                    {profiles.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.first_name} {p.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-hours">Horas Estimadas</Label>
+                <Input
+                  id="create-hours"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={createForm.estimated_hours}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, estimated_hours: e.target.value }))}
+                  placeholder="Ex: 4"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-start">Data Início</Label>
+                <Input
+                  id="create-start"
+                  type="date"
+                  value={createForm.start_date}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, start_date: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-due">Data Entrega *</Label>
+                <Input
+                  id="create-due"
+                  type="date"
+                  value={createForm.due_date}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={createDeliverable} disabled={creating || !createForm.title || !createForm.due_date}>
+              {creating ? 'Criando...' : 'Criar Tarefa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Importação Excel */}
+      <Dialog open={importModalOpen} onOpenChange={(open) => {
+        setImportModalOpen(open);
+        if (!open) {
+          setImportFile(null);
+          setImportPreview(null);
+          setResponsibleMapping({});
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Importar Sprint do Excel
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {!importPreview ? (
+              <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-lg">
+                <FileSpreadsheet className="h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-4">Selecione um arquivo Excel (.xlsx)</p>
+                <Button onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar Arquivo
+                </Button>
+                <p className="text-xs text-gray-400 mt-4">
+                  O arquivo deve conter colunas: Sprint, ID, Título, Subtarefa, Responsável, Descrição, Estimativa (h), Data de Entrega
+                </p>
+              </div>
+            ) : (
+              <>
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-2 text-green-700 mb-2">
+                      <FileSpreadsheet className="h-5 w-5" />
+                      <span className="font-medium">{importFile?.name}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Tarefas principais:</span>
+                        <span className="ml-2 font-medium">{importPreview.totalTasks}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Subtarefas:</span>
+                        <span className="ml-2 font-medium">{importPreview.totalSubtasks}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Total de horas:</span>
+                        <span className="ml-2 font-medium">{importPreview.totalHours}h</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Unmapped responsibles */}
+                {importPreview.unmappedResponsibles.length > 0 && (
+                  <Card className="border-amber-200 bg-amber-50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-amber-700">
+                        Responsáveis não encontrados ({importPreview.unmappedResponsibles.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {importPreview.unmappedResponsibles.map(name => (
+                        <div key={name} className="flex items-center gap-4">
+                          <span className="text-sm w-32 truncate">{name}</span>
+                          <span className="text-gray-400">→</span>
+                          <Select 
+                            value={responsibleMapping[name] || "skip"} 
+                            onValueChange={(value) => setResponsibleMapping(prev => ({
+                              ...prev,
+                              [name]: value === "skip" ? "" : value
+                            }))}
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue placeholder="Mapear para..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="skip">Ignorar (sem atribuição)</SelectItem>
+                              {profiles.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.first_name} {p.last_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Preview of tasks */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700">Preview das tarefas:</h4>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
+                    {importPreview.taskGroups.map((group, i) => (
+                      <div key={i} className="p-3 hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900">{group.title}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {group.subtasks.length} subtarefas • {group.totalHours}h
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {group.responsible || 'Sem responsável'} • {group.minDate} - {group.maxDate}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setImportFile(null);
+                    setImportPreview(null);
+                    setResponsibleMapping({});
+                  }}
+                >
+                  Selecionar outro arquivo
+                </Button>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleImport} 
+              disabled={importing || !importPreview}
+            >
+              {importing ? 'Importando...' : `Importar ${importPreview?.totalTasks || 0} tarefas`}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -618,9 +618,11 @@ export type Database = {
           due_date: string
           estimated_hours: number | null
           id: string
+          parent_id: string | null
           sprint_id: string | null
           start_date: string | null
           status: string | null
+          task_code: string | null
           title: string
           updated_at: string | null
         }
@@ -632,9 +634,11 @@ export type Database = {
           due_date: string
           estimated_hours?: number | null
           id?: string
+          parent_id?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
+          task_code?: string | null
           title: string
           updated_at?: string | null
         }
@@ -646,9 +650,11 @@ export type Database = {
           due_date?: string
           estimated_hours?: number | null
           id?: string
+          parent_id?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
+          task_code?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -658,6 +664,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_deliverables_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
           },
           {
