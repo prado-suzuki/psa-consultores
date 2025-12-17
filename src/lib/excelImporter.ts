@@ -50,6 +50,8 @@ export interface Profile {
 function parseExcelDate(value: any): string {
   if (!value) return '';
   
+  const currentYear = new Date().getFullYear(); // 2025
+  
   // If it's a number (Excel serial date)
   if (typeof value === 'number') {
     const date = XLSX.SSF.parse_date_code(value);
@@ -61,15 +63,29 @@ function parseExcelDate(value: any): string {
     }
   }
   
-  // If it's a string like "17/12/2024"
+  // If it's a string
   if (typeof value === 'string') {
     const parts = value.split('/');
+    
+    // Format "17/12" (without year) - assume current year
+    if (parts.length === 2) {
+      const day = parts[0].padStart(2, '0');
+      const month = parts[1].padStart(2, '0');
+      return `${currentYear}-${month}-${day}`;
+    }
+    
+    // Format "17/12/2024" or "17/12/24"
     if (parts.length === 3) {
       const day = parts[0].padStart(2, '0');
       const month = parts[1].padStart(2, '0');
-      const year = parts[2];
+      let year = parts[2];
+      // Handle 2-digit year (24 -> 2024)
+      if (year.length === 2) {
+        year = `20${year}`;
+      }
       return `${year}-${month}-${day}`;
     }
+    
     // Already in ISO format
     if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
       return value;
