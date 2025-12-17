@@ -51,6 +51,10 @@ function parseExcelDate(value: any): string {
   if (!value) return '';
   
   const currentYear = new Date().getFullYear(); // 2025
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let dateStr = '';
   
   // If it's a number (Excel serial date)
   if (typeof value === 'number') {
@@ -59,7 +63,7 @@ function parseExcelDate(value: any): string {
       const year = date.y;
       const month = String(date.m).padStart(2, '0');
       const day = String(date.d).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      dateStr = `${year}-${month}-${day}`;
     }
   }
   
@@ -71,7 +75,7 @@ function parseExcelDate(value: any): string {
     if (parts.length === 2) {
       const day = parts[0].padStart(2, '0');
       const month = parts[1].padStart(2, '0');
-      return `${currentYear}-${month}-${day}`;
+      dateStr = `${currentYear}-${month}-${day}`;
     }
     
     // Format "17/12/2024" or "17/12/24"
@@ -83,16 +87,31 @@ function parseExcelDate(value: any): string {
       if (year.length === 2) {
         year = `20${year}`;
       }
-      return `${year}-${month}-${day}`;
+      dateStr = `${year}-${month}-${day}`;
     }
     
     // Already in ISO format
     if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return value;
+      dateStr = value;
     }
   }
   
-  return '';
+  // If date is more than 30 days in the past, correct to current year
+  if (dateStr) {
+    const parsedDate = new Date(dateStr + 'T00:00:00');
+    const daysDiff = (today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24);
+    
+    if (daysDiff > 30) {
+      // Extract month and day, apply current year
+      const [, month, day] = dateStr.split('-');
+      const correctedDate = new Date(currentYear, parseInt(month) - 1, parseInt(day));
+      
+      // If corrected date is still in the past, it's okay for sprint planning
+      return `${currentYear}-${month}-${day}`;
+    }
+  }
+  
+  return dateStr;
 }
 
 // Find profile by first name (fuzzy match)
