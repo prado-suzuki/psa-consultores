@@ -13,7 +13,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { LayoutGrid, List, CalendarIcon, X, Filter, Paperclip, Upload, Trash2, Download, FileText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { LayoutGrid, List, CalendarIcon, X, Filter, Paperclip, Upload, Trash2, Download, FileText, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,14 @@ interface Deliverable {
   estimated_hours: number | null;
   due_date: string | null;
   start_date: string | null;
+  parent_id: string | null;
+  task_code: string | null;
+}
+
+interface HierarchicalDeliverable extends Deliverable {
+  subtasks: Deliverable[];
+  subtaskCount: number;
+  completedSubtasks: number;
 }
 
 interface Sprint {
@@ -92,6 +102,9 @@ const EquipeKanban = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [loading, setLoading] = useState(true);
 
+  // Estado para tarefas expandidas
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
   // Modal de detalhes
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -129,7 +142,7 @@ const EquipeKanban = () => {
         supabase.from('profiles').select('id, first_name, last_name'),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('processes').select('id, name, project_id').order('name'),
-        supabase.from('sprint_deliverables').select('*')
+        supabase.from('sprint_deliverables').select('id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code')
       ]);
       
       setSprints(sprintsRes.data || []);
@@ -142,6 +155,21 @@ const EquipeKanban = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTaskExpanded = (taskId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
   };
 
   // Aplica todos os filtros
@@ -176,9 +204,43 @@ const EquipeKanban = () => {
     });
   }, [deliverables, sprints, processes, filterSprint, filterResponsible, filterProject, filterProcess, filterStartDate, filterEndDate]);
 
-  // Função para obter deliverables ordenados por coluna
+  // Agrupa tarefas com suas subtarefas
+  const hierarchicalDeliverables = useMemo(() => {
+    // Filtrar apenas tarefas principais (sem parent_id)
+    const parentTasks = filteredDeliverables.filter(d => !d.parent_id);
+    
+    // Agrupar subtarefas por parent_id
+    const subtasksByParent: Record<string, Deliverable[]> = {};
+    filteredDeliverables.filter(d => d.parent_id).forEach(subtask => {
+      if (subtask.parent_id) {
+        if (!subtasksByParent[subtask.parent_id]) {
+          subtasksByParent[subtask.parent_id] = [];
+        }
+        subtasksByParent[subtask.parent_id].push(subtask);
+      }
+    });
+    
+    // Ordenar subtarefas por task_code
+    Object.keys(subtasksByParent).forEach(parentId => {
+      subtasksByParent[parentId].sort((a, b) => {
+        if (a.task_code && b.task_code) {
+          return a.task_code.localeCompare(b.task_code, undefined, { numeric: true });
+        }
+        return 0;
+      });
+    });
+    
+    return parentTasks.map(parent => ({
+      ...parent,
+      subtasks: subtasksByParent[parent.id] || [],
+      subtaskCount: subtasksByParent[parent.id]?.length || 0,
+      completedSubtasks: subtasksByParent[parent.id]?.filter(s => s.status === 'completed').length || 0
+    })) as HierarchicalDeliverable[];
+  }, [filteredDeliverables]);
+
+  // Função para obter deliverables ordenados por coluna (apenas tarefas principais)
   const getColumnDeliverables = (columnId: string) => {
-    let items = filteredDeliverables.filter(d => d.status === columnId);
+    let items = hierarchicalDeliverables.filter(d => d.status === columnId);
     
     if (sortByDueDate) {
       items = [...items].sort((a, b) => {
@@ -223,6 +285,12 @@ const EquipeKanban = () => {
     } catch (error) {
       console.error('Error updating deliverable:', error);
     }
+  };
+
+  const toggleSubtaskComplete = async (subtask: Deliverable, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = subtask.status === 'completed' ? 'pending' : 'completed';
+    await updateDeliverableStatus(subtask.id, newStatus);
   };
 
   const getProfileName = (profileId: string | null) => {
@@ -481,6 +549,18 @@ const EquipeKanban = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Obter subtarefas para o modal de detalhes
+  const getSubtasksForDeliverable = (deliverableId: string) => {
+    return deliverables
+      .filter(d => d.parent_id === deliverableId)
+      .sort((a, b) => {
+        if (a.task_code && b.task_code) {
+          return a.task_code.localeCompare(b.task_code, undefined, { numeric: true });
+        }
+        return 0;
+      });
+  };
+
   return (
     <EquipeLayout 
       title="Quadro Kanban" 
@@ -630,7 +710,7 @@ const EquipeKanban = () => {
         </div>
 
         <div className="mt-3 text-xs text-gray-500">
-          {filteredDeliverables.length} de {deliverables.length} entregáveis
+          {hierarchicalDeliverables.length} tarefas principais ({filteredDeliverables.length} total incluindo subtarefas)
         </div>
       </div>
 
@@ -686,27 +766,95 @@ const EquipeKanban = () => {
                 }}
               >
                 {getColumnDeliverables(column.id).map((deliverable) => (
+                  <div key={deliverable.id}>
                     <Card 
-                      key={deliverable.id}
                       className="bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('deliverableId', deliverable.id)}
                       onClick={() => openDeliverableDetail(deliverable)}
                     >
                       <CardContent className="p-3">
-                        <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">{deliverable.title}</h4>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{getProfileName(deliverable.assigned_to)}</span>
-                          <span>{formatDueDate(deliverable.due_date)}</span>
-                        </div>
-                        {deliverable.estimated_hours && (
-                          <div className="mt-2 text-xs text-gray-400">
-                            {deliverable.estimated_hours}h estimadas
+                        <div className="flex items-start gap-2">
+                          {deliverable.subtaskCount > 0 && (
+                            <button
+                              onClick={(e) => toggleTaskExpanded(deliverable.id, e)}
+                              className="mt-0.5 p-0.5 hover:bg-gray-100 rounded"
+                            >
+                              {expandedTasks.has(deliverable.id) ? (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-gray-500" />
+                              )}
+                            </button>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
+                              {deliverable.task_code && (
+                                <span className="text-gray-500 font-normal mr-1">{deliverable.task_code}</span>
+                              )}
+                              {deliverable.title}
+                            </h4>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>{getProfileName(deliverable.assigned_to)}</span>
+                              <span>{formatDueDate(deliverable.due_date)}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              {deliverable.estimated_hours && (
+                                <span className="text-xs text-gray-400">
+                                  {deliverable.estimated_hours}h estimadas
+                                </span>
+                              )}
+                              {deliverable.subtaskCount > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {deliverable.completedSubtasks}/{deliverable.subtaskCount} subtarefas
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    
+                    {/* Subtarefas expandidas */}
+                    {expandedTasks.has(deliverable.id) && deliverable.subtasks.length > 0 && (
+                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-3">
+                        {deliverable.subtasks.map((subtask) => (
+                          <div
+                            key={subtask.id}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50",
+                              subtask.status === 'completed' && "opacity-60"
+                            )}
+                            onClick={() => openDeliverableDetail(subtask)}
+                          >
+                            <Checkbox
+                              checked={subtask.status === 'completed'}
+                              onCheckedChange={() => {}}
+                              onClick={(e) => toggleSubtaskComplete(subtask, e)}
+                              className="flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className={cn(
+                                "text-gray-700",
+                                subtask.status === 'completed' && "line-through"
+                              )}>
+                                {subtask.task_code && (
+                                  <span className="text-gray-400 mr-1">{subtask.task_code}</span>
+                                )}
+                                {subtask.title}
+                              </span>
+                            </div>
+                            {subtask.estimated_hours && (
+                              <span className="text-xs text-gray-400 flex-shrink-0">
+                                {subtask.estimated_hours}h
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -716,6 +864,7 @@ const EquipeKanban = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="text-gray-700 w-8"></TableHead>
                 <TableHead className="text-gray-700">Título</TableHead>
                 <TableHead className="text-gray-700">Status</TableHead>
                 <TableHead className="text-gray-700">Responsável</TableHead>
@@ -724,35 +873,108 @@ const EquipeKanban = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDeliverables.length === 0 ? (
+              {hierarchicalDeliverables.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                     Nenhum entregável encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredDeliverables.map((deliverable) => (
-                  <TableRow 
-                    key={deliverable.id} 
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => openDeliverableDetail(deliverable)}
-                  >
-                    <TableCell className="text-gray-900 font-medium">{deliverable.title}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(deliverable.status)}>
-                        {getStatusLabel(deliverable.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {getProfileName(deliverable.assigned_to)}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {formatDueDate(deliverable.due_date)}
-                    </TableCell>
-                    <TableCell className="text-gray-600 text-right">
-                      {deliverable.estimated_hours || '-'}
-                    </TableCell>
-                  </TableRow>
+                hierarchicalDeliverables.map((deliverable) => (
+                  <>
+                    <TableRow 
+                      key={deliverable.id} 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => openDeliverableDetail(deliverable)}
+                    >
+                      <TableCell className="w-8">
+                        {deliverable.subtaskCount > 0 && (
+                          <button
+                            onClick={(e) => toggleTaskExpanded(deliverable.id, e)}
+                            className="p-0.5 hover:bg-gray-100 rounded"
+                          >
+                            {expandedTasks.has(deliverable.id) ? (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                            )}
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-gray-900 font-medium">
+                        <div className="flex items-center gap-2">
+                          {deliverable.task_code && (
+                            <span className="text-gray-500 font-normal">{deliverable.task_code}</span>
+                          )}
+                          {deliverable.title}
+                          {deliverable.subtaskCount > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {deliverable.completedSubtasks}/{deliverable.subtaskCount}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeColor(deliverable.status)}>
+                          {getStatusLabel(deliverable.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {getProfileName(deliverable.assigned_to)}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {formatDueDate(deliverable.due_date)}
+                      </TableCell>
+                      <TableCell className="text-gray-600 text-right">
+                        {deliverable.estimated_hours || '-'}
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Subtarefas na tabela */}
+                    {expandedTasks.has(deliverable.id) && deliverable.subtasks.map((subtask) => (
+                      <TableRow 
+                        key={subtask.id}
+                        className={cn(
+                          "cursor-pointer hover:bg-gray-50 bg-gray-50/50",
+                          subtask.status === 'completed' && "opacity-60"
+                        )}
+                        onClick={() => openDeliverableDetail(subtask)}
+                      >
+                        <TableCell className="w-8 pl-8">
+                          <Checkbox
+                            checked={subtask.status === 'completed'}
+                            onCheckedChange={() => {}}
+                            onClick={(e) => toggleSubtaskComplete(subtask, e)}
+                          />
+                        </TableCell>
+                        <TableCell className={cn(
+                          "text-gray-700 pl-8",
+                          subtask.status === 'completed' && "line-through"
+                        )}>
+                          <div className="flex items-center gap-2">
+                            {subtask.task_code && (
+                              <span className="text-gray-400">{subtask.task_code}</span>
+                            )}
+                            {subtask.title}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(getStatusBadgeColor(subtask.status), "text-xs")}>
+                            {getStatusLabel(subtask.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm">
+                          {getProfileName(subtask.assigned_to)}
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm">
+                          {formatDueDate(subtask.due_date)}
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm text-right">
+                          {subtask.estimated_hours || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
                 ))
               )}
             </TableBody>
@@ -764,10 +986,19 @@ const EquipeKanban = () => {
       <Dialog open={!!selectedDeliverable} onOpenChange={(open) => !open && setSelectedDeliverable(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">Detalhes do Entregável</DialogTitle>
+            <DialogTitle className="text-gray-900">
+              {selectedDeliverable?.parent_id ? 'Detalhes da Subtarefa' : 'Detalhes do Entregável'}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Código da tarefa */}
+            {selectedDeliverable?.task_code && (
+              <div className="text-sm text-gray-500">
+                Código: <span className="font-mono">{selectedDeliverable.task_code}</span>
+              </div>
+            )}
+
             {/* Título */}
             <div className="space-y-2">
               <Label className="text-gray-700">Título</Label>
@@ -864,6 +1095,55 @@ const EquipeKanban = () => {
               </div>
             </div>
 
+            {/* Subtarefas (apenas para tarefas principais) */}
+            {selectedDeliverable && !selectedDeliverable.parent_id && (
+              (() => {
+                const subtasks = getSubtasksForDeliverable(selectedDeliverable.id);
+                if (subtasks.length === 0) return null;
+                
+                return (
+                  <div className="space-y-3 border-t border-gray-200 pt-4">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      Subtarefas ({subtasks.filter(s => s.status === 'completed').length}/{subtasks.length})
+                    </Label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {subtasks.map((subtask) => (
+                        <div
+                          key={subtask.id}
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-gray-100",
+                            subtask.status === 'completed' && "opacity-60"
+                          )}
+                        >
+                          <Checkbox
+                            checked={subtask.status === 'completed'}
+                            onCheckedChange={async () => {
+                              const newStatus = subtask.status === 'completed' ? 'pending' : 'completed';
+                              await updateDeliverableStatus(subtask.id, newStatus);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <span className={cn(
+                              "text-sm text-gray-700",
+                              subtask.status === 'completed' && "line-through"
+                            )}>
+                              {subtask.task_code && (
+                                <span className="text-gray-400 mr-1">{subtask.task_code}</span>
+                              )}
+                              {subtask.title}
+                            </span>
+                          </div>
+                          {subtask.estimated_hours && (
+                            <span className="text-xs text-gray-400">{subtask.estimated_hours}h</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
             {/* Anexos */}
             <div className="space-y-3 border-t border-gray-200 pt-4">
               <div className="flex items-center justify-between">
@@ -909,17 +1189,17 @@ const EquipeKanban = () => {
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                          size="sm"
                           onClick={() => downloadFile(attachment)}
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-700"
+                          size="sm"
                           onClick={() => deleteFile(attachment)}
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -929,55 +1209,45 @@ const EquipeKanban = () => {
                 </div>
               )}
             </div>
-
-            {/* Botões */}
-            <div className="flex justify-between pt-4 border-t border-gray-200">
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Excluir
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir entregável?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. O entregável "{selectedDeliverable?.title}" 
-                      será permanentemente removido junto com todos os seus anexos.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={deleteDeliverable} 
-                      disabled={deleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {deleting ? 'Excluindo...' : 'Excluir'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedDeliverable(null)}
-                  className="border-gray-300"
-                >
-                  Cancelar
-                </Button>
-                <Button onClick={saveDeliverable} className="bg-primary hover:bg-primary/90">
-                  Salvar
-                </Button>
-              </div>
-            </div>
           </div>
+
+          <DialogFooter className="flex justify-between">
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-gray-900">Confirmar exclusão</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-600">
+                    Tem certeza que deseja excluir este entregável? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-white border-gray-300 text-gray-700">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={deleteDeliverable}
+                    disabled={deleting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {deleting ? 'Excluindo...' : 'Excluir'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSelectedDeliverable(null)} className="border-gray-300">
+                Cancelar
+              </Button>
+              <Button onClick={saveDeliverable} className="bg-primary hover:bg-primary/90">
+                Salvar
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </EquipeLayout>
