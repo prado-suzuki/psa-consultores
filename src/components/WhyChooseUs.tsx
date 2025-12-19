@@ -16,7 +16,7 @@ export const WhyChooseUs = () => {
     },
     {
       number: "20+ Anos",
-      description: "Pioneiros em reestruturação contábil para empresas familiares do agronegócio em Mato Grosso",
+      description: "Liderança consolidada em consultoria tributária para empresas familiares do agronegócio desde 2004",
     },
   ];
 
