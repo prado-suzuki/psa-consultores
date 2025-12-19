@@ -14,8 +14,8 @@ export const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] w-full bg-black/30 backdrop-blur-sm">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex h-16 items-center justify-between">
+      <div className="container mx-auto px-4 md:px-6 py-2">
+        <div className="flex h-20 items-center justify-between">
           {/* Navigation - Left side */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
@@ -24,7 +24,7 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:text-primary rounded-md"
+                className="px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:text-primary rounded-md"
               >
                 {item.label}
               </a>
@@ -35,7 +35,7 @@ export const Header = () => {
           <div className="hidden md:flex items-center gap-3">
             <a
               href="/equipe"
-              className="px-5 py-2.5 text-sm font-medium rounded-full
+              className="px-6 py-3 text-sm font-medium rounded-full
                 bg-white/20 backdrop-blur-sm border border-white/30 text-white
                 hover:bg-white/30 hover:border-white/40 transition-all duration-200"
             >
@@ -43,7 +43,7 @@ export const Header = () => {
             </a>
             <a
               href="/auth"
-              className="px-5 py-2.5 text-sm font-medium rounded-full
+              className="px-6 py-3 text-sm font-medium rounded-full
                 bg-primary border border-primary text-primary-foreground
                 hover:bg-primary/90 hover:shadow-[0_0_20px_rgba(101,163,13,0.4)] transition-all duration-200"
             >
