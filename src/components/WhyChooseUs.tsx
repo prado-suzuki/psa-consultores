@@ -22,8 +22,8 @@ export const WhyChooseUs = () => {
 
   return (
     <section id="sobre" className="py-24 md:py-32 bg-white">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8">
+        <div className="max-w-4xl text-left">
           <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6">
             Por que Escolher a PSA Consultores
           </h2>
@@ -33,7 +33,7 @@ export const WhyChooseUs = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl">
           {stats.map((stat, index) => (
             <Card key={index} className="p-8 bg-muted/50 border-0">
               <h3 className="text-4xl md:text-5xl font-bold text-lime-500 mb-3">

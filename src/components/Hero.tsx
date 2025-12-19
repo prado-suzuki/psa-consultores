@@ -21,7 +21,7 @@ export const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        className="z-20 container mx-auto px-4 md:px-6 text-left flex flex-col items-start"
+        className="z-20 container mx-auto px-4 md:px-6 lg:px-8 text-left flex flex-col items-start"
       >
         {/* Logo - 96px (Fibonacci: maior elemento) */}
         <motion.div

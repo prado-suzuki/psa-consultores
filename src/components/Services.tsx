@@ -58,8 +58,8 @@ export const Services = () => {
 
   return (
     <section id="servicos" className="pt-32 pb-20 md:pt-36 md:pb-32 bg-[#f5f5f5]">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="max-w-3xl mx-auto text-center mb-10 space-y-4">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8">
+        <div className="max-w-4xl text-left mb-10 space-y-4">
           <h2 className="text-3xl md:text-5xl font-bold text-foreground">
             Consultoria Tributária Completa
           </h2>
