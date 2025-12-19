@@ -67,7 +67,7 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
   return (
     <div className="relative w-full max-w-6xl">
       {/* Main carousel container */}
-      <div className="relative h-[420px] md:h-[440px] overflow-hidden rounded-2xl">
+      <div className="relative h-[420px] md:h-[480px] overflow-hidden rounded-2xl">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentIndex}
