@@ -18,7 +18,7 @@ export const Footer = () => {
 
           {/* Social Links */}
           <div className="flex gap-4">
-            <a href="#" className="text-white hover:text-primary transition-colors">
+            <a href="https://www.linkedin.com/company/prado-consultores-associados/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors">
               <Linkedin className="h-5 w-5" />
             </a>
             <a href="https://www.instagram.com/psaconsultores.br/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary transition-colors">
