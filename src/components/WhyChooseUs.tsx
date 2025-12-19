@@ -8,7 +8,7 @@ export const WhyChooseUs = () => {
     },
     {
       number: "500+ Clientes",
-      description: "Atendimento completo desde produtores rurais pessoa física até grandes indústrias do agronegócio",
+      description: "De produtores rurais pessoa física a grandes indústrias: soluções personalizadas para cada etapa do agronegócio",
     },
     {
       number: "110+ Profissionais",
