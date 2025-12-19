@@ -21,7 +21,7 @@ export const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        className="z-20 container mx-auto px-4 md:px-6 text-center"
+        className="z-20 container mx-auto px-4 md:px-6 text-right flex flex-col items-end"
       >
         {/* Logo */}
         <motion.div
