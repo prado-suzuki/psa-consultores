@@ -33,12 +33,12 @@ export const Hero = () => {
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
 
-        {/* Main Heading - 60px (Fibonacci: elemento médio) */}
+        {/* Main Heading */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-5xl md:text-6xl font-bold tracking-tight text-white mb-20"
+          className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight text-white mb-20"
         >
           Consultoria Tributária
           <motion.span
