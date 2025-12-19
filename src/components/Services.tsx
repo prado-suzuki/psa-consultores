@@ -61,10 +61,10 @@ export const Services = () => {
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
         <div className="max-w-4xl text-left mb-10 space-y-4">
           <h2 className="text-3xl md:text-5xl font-bold text-foreground">
-            Consultoria Tributária Completa
+            Proteja Seu Patrimônio. Perpetue Seu Legado.
           </h2>
           <p className="text-lg text-muted-foreground">
-            Soluções integradas desde recuperação de créditos até reestruturação societária para empresas familiares do agronegócio.
+            Estratégias tributárias, societárias e de governança especializadas para empresas familiares do agronegócio.
           </p>
         </div>
 
