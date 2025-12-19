@@ -1,62 +1,49 @@
 import { Card } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
 
 export const WhyChooseUs = () => {
-  const benefits = [
+  const stats = [
     {
-      title: "Experiência Comprovada",
-      description: "Mais de 15 anos transformando empresas com metodologias testadas.",
+      number: "R$ 1,07 Bilhão",
+      description: "Recuperados em créditos tributários: PIS, COFINS, ICMS, IPI, Subvenções e Previdenciário",
     },
     {
-      title: "Abordagem Personalizada",
-      description: "Soluções customizadas para suas necessidades específicas.",
+      number: "500+ Clientes",
+      description: "Atendimento completo desde produtores rurais pessoa física até grandes indústrias do agronegócio",
     },
     {
-      title: "Foco em Resultados",
-      description: "Orientação por dados e métricas concretas para garantir ROI.",
+      number: "110+ Profissionais",
+      description: "Equipe multidisciplinar especializada em tributação, contabilidade e economia em 3 estados brasileiros",
     },
     {
-      title: "Acompanhamento Contínuo",
-      description: "Suporte durante toda a jornada de transformação.",
+      number: "20+ Anos",
+      description: "Pioneiros em reestruturação contábil para empresas familiares do agronegócio em Mato Grosso",
     },
   ];
 
   return (
-    <section id="sobre" className="py-20 md:py-32 bg-[#f5f5f5] relative overflow-hidden">
-      <div className="container mx-auto px-4 md:px-6 relative">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-sm font-medium text-primary mb-4">
-              Por que escolher a PSA
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight">
-              Parceiro Estratégico para o Seu Crescimento
-            </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Combinamos experiência, metodologia e tecnologia para entregar resultados que transformam organizações. Nossa abordagem vai além da consultoria tradicional.
-            </p>
-          </div>
+    <section id="sobre" className="py-24 md:py-32 bg-white">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6">
+            Por que Escolher a PSA Consultores
+          </h2>
+          <p className="text-lg text-muted-foreground mb-16">
+            Pioneiros em reestruturação contábil para o agronegócio com resultados 
+            comprovados e metodologia validada em mais de 500 empresas de médio e grande porte.
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            {benefits.map((benefit, index) => (
-              <Card 
-                key={index} 
-                className="p-6 bg-primary/5 hover:bg-primary/10 transition-all duration-300 group border-0"
-              >
-                <div className="flex items-start gap-4">
-                  <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1 group-hover:scale-110 transition-transform" />
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                      {benefit.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {benefit.description}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+          {stats.map((stat, index) => (
+            <Card key={index} className="p-8 bg-muted/50 border-0">
+              <h3 className="text-4xl md:text-5xl font-bold text-lime-500 mb-3">
+                {stat.number}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {stat.description}
+              </p>
+            </Card>
+          ))}
         </div>
       </div>
     </section>
