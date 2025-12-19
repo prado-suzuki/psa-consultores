@@ -35,7 +35,7 @@ export const Header = () => {
           <div className="hidden md:flex items-center gap-3">
             <a
               href="/equipe"
-              className="px-6 py-3 text-sm font-medium rounded-full
+              className="px-6 py-3 text-sm font-medium rounded-md
                 bg-white/20 backdrop-blur-sm border border-white/30 text-white
                 hover:bg-white/30 hover:border-white/40 transition-all duration-200"
             >
@@ -43,7 +43,7 @@ export const Header = () => {
             </a>
             <a
               href="/auth"
-              className="px-6 py-3 text-sm font-medium rounded-full
+              className="px-6 py-3 text-sm font-medium rounded-md
                 bg-primary border border-primary text-primary-foreground
                 hover:bg-primary/90 hover:shadow-[0_0_20px_rgba(101,163,13,0.4)] transition-all duration-200"
             >
@@ -53,7 +53,7 @@ export const Header = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white
+            className="md:hidden p-2.5 rounded-md bg-white/20 backdrop-blur-sm border border-white/30 text-white
               hover:bg-white/30 transition-colors duration-200"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
@@ -75,7 +75,7 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="block px-4 py-3 text-sm font-medium text-white rounded-xl
+                className="block px-4 py-3 text-sm font-medium text-white rounded-md
                   hover:bg-white/10 transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -85,7 +85,7 @@ export const Header = () => {
             <div className="h-px bg-white/20 my-3" />
             <a
               href="/equipe"
-              className="block px-4 py-3 text-sm font-medium text-white rounded-xl
+              className="block px-4 py-3 text-sm font-medium text-white rounded-md
                 hover:bg-white/10 transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -93,7 +93,7 @@ export const Header = () => {
             </a>
             <a
               href="/auth"
-              className="block px-4 py-3 text-sm font-medium rounded-xl
+              className="block px-4 py-3 text-sm font-medium rounded-md
                 bg-primary text-primary-foreground transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
