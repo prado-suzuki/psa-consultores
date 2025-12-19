@@ -60,7 +60,7 @@ export const Hero = () => {
         >
           <Button
             size="lg"
-            className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/40"
+            className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-md shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/40"
           >
             Conheça Nossas Soluções
             <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
