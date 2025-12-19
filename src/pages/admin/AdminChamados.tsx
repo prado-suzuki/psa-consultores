@@ -53,18 +53,30 @@ interface PrazoInfo {
   horas?: number;
   prazoExpirado?: boolean;
   prazoHoje?: boolean;
-  tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido';
+  tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido' | 'aguardando_cliente';
 }
 
-const calcularPrazoResposta = (dataCriacao: string, status: string): PrazoInfo => {
+const calcularPrazoResposta = (
+  dataCriacao: string, 
+  dataAtualizacao: string,
+  status: string, 
+  activityStatus: string | null
+): PrazoInfo => {
+  // Chamado resolvido ou fechado
   if (status === 'resolvido' || status === 'fechado') {
     return { tipo: 'concluido' };
   }
   
+  // Se a equipe já respondeu, aguardando ação do cliente
+  if (activityStatus === 'respondido') {
+    return { tipo: 'aguardando_cliente' };
+  }
+  
+  // Calcular prazo baseado na última atualização (quando aguardando resposta da equipe)
   const prazoEmDias = 5;
   const hoje = new Date();
-  const criacao = new Date(dataCriacao);
-  const prazoFinal = new Date(criacao);
+  const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
+  const prazoFinal = new Date(dataReferencia);
   prazoFinal.setDate(prazoFinal.getDate() + prazoEmDias);
   
   const diffTime = prazoFinal.getTime() - hoje.getTime();
@@ -314,8 +326,8 @@ export default function AdminChamados() {
     if (mostrarUrgentes) {
       filtered = filtered.filter(t => {
         if (t.status === 'resolvido' || t.status === 'fechado') return false;
-        const prazo = calcularPrazoResposta(t.created_at, t.status);
-        return (prazo.dias !== undefined && prazo.dias <= 2) || prazo.prazoExpirado;
+        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status);
+        return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
       });
     }
 
@@ -325,13 +337,14 @@ export default function AdminChamados() {
         // Ordenação especial para prazo
         const getPrioridade = (prazo: PrazoInfo) => {
           if (prazo.tipo === 'concluido') return 999;
+          if (prazo.tipo === 'aguardando_cliente') return 998;
           if (prazo.tipo === 'expirado') return -(prazo.dias || 0);
           return prazo.dias || 0;
         };
 
         filtered.sort((a, b) => {
-          const prazoA = calcularPrazoResposta(a.created_at, a.status);
-          const prazoB = calcularPrazoResposta(b.created_at, b.status);
+          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status);
+          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status);
           const prioridadeA = getPrioridade(prazoA);
           const prioridadeB = getPrioridade(prazoB);
 
@@ -768,12 +781,25 @@ export default function AdminChamados() {
                         </TableCell>
                         <TableCell>
                           {(() => {
-                            const prazo = calcularPrazoResposta(ticket.created_at, ticket.status);
+                            const prazo = calcularPrazoResposta(
+                              ticket.created_at, 
+                              ticket.updated_at,
+                              ticket.status, 
+                              ticket.activity_status
+                            );
                             
                             if (prazo.tipo === 'concluido') {
                               return (
                                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                                  Respondido
+                                  Concluído
+                                </Badge>
+                              );
+                            }
+                            
+                            if (prazo.tipo === 'aguardando_cliente') {
+                              return (
+                                <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+                                  Aguardando Cliente
                                 </Badge>
                               );
                             }
