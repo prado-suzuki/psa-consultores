@@ -23,11 +23,11 @@ export const WhyChooseUs = () => {
   return (
     <section id="sobre" className="py-24 md:py-32 bg-white">
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
-        <div className="max-w-4xl text-left">
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6">
+        <div className="max-w-4xl text-left mb-10 space-y-4">
+          <h2 className="text-3xl md:text-5xl font-bold text-foreground">
             Por que Escolher a PSA Consultores
           </h2>
-          <p className="text-lg text-muted-foreground mb-16">
+          <p className="text-lg text-muted-foreground">
             Pioneiros em reestruturação contábil para o agronegócio com resultados 
             comprovados e metodologia validada em mais de 500 empresas de médio e grande porte.
           </p>
