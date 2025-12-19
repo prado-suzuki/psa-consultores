@@ -161,6 +161,15 @@ export default function DetalhesChamado() {
 
       if (error) throw error;
 
+      // Atualizar activity_status para indicar que aguarda resposta da equipe
+      await supabase
+        .from('tickets')
+        .update({ 
+          activity_status: 'aguardando_resposta',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id);
+
       toast({
         title: 'Mensagem enviada',
         description: 'Sua mensagem foi enviada com sucesso.',
