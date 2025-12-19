@@ -65,7 +65,7 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
   const currentCard = data[currentIndex];
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto">
+    <div className="relative w-full max-w-6xl">
       {/* Main carousel container */}
       <div className="relative h-[480px] md:h-[520px] overflow-hidden rounded-2xl">
         <AnimatePresence initial={false} custom={direction} mode="wait">
@@ -105,7 +105,7 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
             </div>
 
             {/* Content */}
-            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10">
+            <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12 lg:p-16">
               <motion.h3 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
