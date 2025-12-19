@@ -28,7 +28,7 @@ export const Hero = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-end mb-8"
+          className="flex justify-start mb-8"
         >
           <img src={logo} alt="PSA Consultores" className="h-16 md:h-20 w-auto" />
         </motion.div>
