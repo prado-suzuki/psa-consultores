@@ -51,10 +51,10 @@ export const WhyChooseUs = () => {
             return (
               <Card 
                 key={index} 
-                className="p-8 bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-lg transition-all duration-300 text-center"
+                className="p-10 bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-lg transition-all duration-300 text-center"
               >
                 {/* Ícone no topo centralizado */}
-                <div className="mb-6 flex justify-center">
+                <div className="mb-8 flex justify-center">
                   <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
                     <IconComponent className="w-8 h-8 text-teal-500" />
                   </div>
