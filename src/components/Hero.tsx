@@ -38,9 +38,9 @@ export const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight text-white mb-20"
+          className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight text-white mb-6"
         >
-          Consultoria Tributária
+          Especialistas em Tributação
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -50,6 +50,16 @@ export const Hero = () => {
             para o Agronegócio
           </motion.span>
         </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.7 }}
+          className="text-lg md:text-xl text-white/80 max-w-2xl mb-12"
+        >
+          Transformamos complexidade tributária em vantagem competitiva para empresas familiares há mais de 20 anos.
+        </motion.p>
 
         {/* CTA Button - 48px altura (Fibonacci: menor elemento) */}
         <motion.div
