@@ -28,8 +28,9 @@ export const WhyChooseUs = () => {
             Por que Escolher a PSA Consultores
           </h2>
           <p className="text-lg text-muted-foreground">
-            Pioneiros em reestruturação contábil para o agronegócio com resultados 
-            comprovados e metodologia validada em mais de 500 empresas de médio e grande porte.
+            Mais de 20 anos transformando desafios tributários em oportunidades 
+            para empresas familiares do agronegócio, com metodologia comprovada 
+            em 500+ clientes de médio e grande porte
           </p>
         </div>
 
