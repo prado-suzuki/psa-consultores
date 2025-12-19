@@ -7,11 +7,8 @@ export const CTA = () => {
   return (
     <section id="contato" className="py-20 md:py-32 bg-[#f5f5f5]">
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary mb-4">
-              Entre em Contato
-            </div>
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          <div className="space-y-4">
             <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight">
               Pronto para Transformar Seu Negócio?
             </h2>
