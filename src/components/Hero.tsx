@@ -59,6 +59,9 @@ export const Hero = () => {
         >
           <Button
             size="lg"
+            onClick={() => {
+              document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' });
+            }}
             className="h-12 px-8 text-base bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-md shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/40"
           >
             Conheça Nossas Soluções
