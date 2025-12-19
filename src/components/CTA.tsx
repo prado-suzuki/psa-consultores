@@ -2,8 +2,45 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail, Phone, MapPin } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { toast } from "@/hooks/use-toast";
+
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome deve ter no máximo 100 caracteres"),
+  email: z.string().trim().min(1, "E-mail é obrigatório").email("E-mail inválido").max(255, "E-mail deve ter no máximo 255 caracteres"),
+  phone: z.string().trim().min(1, "Telefone é obrigatório").max(20, "Telefone inválido"),
+  company: z.string().trim().min(1, "Empresa é obrigatória").max(100, "Nome da empresa deve ter no máximo 100 caracteres"),
+  subject: z.string().trim().min(1, "Assunto é obrigatório").max(150, "Assunto deve ter no máximo 150 caracteres"),
+  message: z.string().trim().min(1, "Mensagem é obrigatória").max(1000, "Mensagem deve ter no máximo 1000 caracteres"),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
 
 export const CTA = () => {
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      subject: "",
+      message: "",
+    },
+  });
+
+  const onSubmit = (data: ContactFormData) => {
+    console.log("Form submitted:", data);
+    toast({
+      title: "Solicitação enviada!",
+      description: "Entraremos em contato em até 24h.",
+    });
+    form.reset();
+  };
+
   return (
     <section id="contato" className="pt-32 pb-20 md:pt-36 md:pb-32 bg-[#f5f5f5]">
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
@@ -43,57 +80,114 @@ export const CTA = () => {
           </div>
 
           <Card className="h-auto p-8 md:p-10 border-2 shadow-xl">
-            <form className="space-y-6 pb-8">
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">Solicite uma Proposta</h3>
-                <p className="text-muted-foreground">Preencha o formulário e entraremos em contato em até 24h.</p>
-              </div>
-
-              <div className="space-y-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-8">
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Nome Completo</label>
-                  <Input placeholder="Seu nome" className="h-12" />
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Solicite uma Proposta</h3>
+                  <p className="text-muted-foreground">Preencha o formulário e entraremos em contato em até 24h.</p>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">E-mail Corporativo</label>
-                  <Input type="email" placeholder="seu@email.com" className="h-12" />
-                </div>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome Completo *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Seu nome" className="h-12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Telefone</label>
-                  <Input placeholder="(11) 99999-9999" className="h-12" />
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail Corporativo *</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="seu@email.com" className="h-12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Empresa</label>
-                  <Input placeholder="Nome da empresa" className="h-12" />
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(11) 99999-9999" className="h-12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Assunto</label>
-                  <Input placeholder="Assunto do contato" className="h-12" />
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Empresa *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome da empresa" className="h-12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Como podemos ajudar?</label>
-                  <textarea 
-                    rows={4}
-                    placeholder="Conte-nos sobre seus desafios..."
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assunto *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Assunto do contato" className="h-12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Como podemos ajudar? *</FormLabel>
+                        <FormControl>
+                          <textarea 
+                            rows={4}
+                            placeholder="Conte-nos sobre seus desafios..."
+                            className="w-full px-4 py-3 rounded-lg border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
 
-              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground group">
-                Enviar Solicitação
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
+                <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground group">
+                  Enviar Solicitação
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Ao enviar, você concorda com nossa política de privacidade.
-              </p>
-            </form>
+                <p className="text-xs text-muted-foreground text-center">
+                  Ao enviar, você concorda com nossa política de privacidade.
+                </p>
+              </form>
+            </Form>
           </Card>
         </div>
       </div>
