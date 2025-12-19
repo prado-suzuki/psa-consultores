@@ -42,8 +42,8 @@ export const CTA = () => {
             </div>
           </div>
 
-          <Card className="p-8 md:p-10 border-2 shadow-xl">
-            <form className="space-y-6">
+          <Card className="h-auto p-8 md:p-10 border-2 shadow-xl">
+            <form className="space-y-6 pb-8">
               <div>
                 <h3 className="text-2xl font-bold text-foreground mb-2">Solicite uma Proposta</h3>
                 <p className="text-muted-foreground">Preencha o formulário e entraremos em contato em até 24h.</p>
@@ -78,8 +78,9 @@ export const CTA = () => {
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Como podemos ajudar?</label>
                   <textarea 
+                    rows={4}
                     placeholder="Conte-nos sobre seus desafios..."
-                    className="w-full min-h-[120px] px-4 py-3 rounded-lg border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full px-4 py-3 rounded-lg border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
               </div>
