@@ -56,7 +56,7 @@ export const CTA = () => {
               Pronto para Transformar Seu Negócio?
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Agende uma reunião estratégica gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
+              Agende uma reunião gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
             </p>
 
             <div className="flex items-center gap-4 pt-4">
