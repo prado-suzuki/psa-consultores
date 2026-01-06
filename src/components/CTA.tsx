@@ -44,53 +44,50 @@ export const CTA = () => {
   return (
     <section 
       id="contato" 
-      className="pt-32 pb-20 md:pt-36 md:pb-32 bg-white"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2314b8a6' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-      }}
+      className="pt-32 pb-20 md:pt-36 md:pb-32 bg-gray-900"
     >
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
           <div className="space-y-4">
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight">
-              Pronto para Transformar Seu Negócio?
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-50 leading-tight">
+              Pronto para <span className="text-primary">Transformar</span> Seu Negócio?
             </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
+            <p className="text-lg text-gray-300 leading-relaxed">
               Agende uma reunião gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
             </p>
 
             <div className="flex items-center gap-4 pt-4">
               <Mail className="h-6 w-6 text-primary flex-shrink-0" />
               <div>
-                <div className="text-sm text-muted-foreground">E-mail</div>
-                <div className="font-semibold text-foreground">contato@psaconsultores.com.br</div>
+                <div className="text-sm text-gray-400">E-mail</div>
+                <div className="font-semibold text-gray-50">contato@psaconsultores.com.br</div>
               </div>
             </div>
 
             <div className="flex items-center gap-4 pt-2">
               <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
               <div>
-                <div className="text-sm text-muted-foreground">Sede</div>
-                <div className="font-semibold text-foreground">Cuiabá/MT</div>
-                <div className="text-sm text-muted-foreground">Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias, CEP 78043-292</div>
+                <div className="text-sm text-gray-400">Sede</div>
+                <div className="font-semibold text-gray-50">Cuiabá/MT</div>
+                <div className="text-sm text-gray-400">Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias, CEP 78043-292</div>
               </div>
             </div>
 
             <div className="flex items-center gap-4 pt-2">
               <Phone className="h-6 w-6 text-primary flex-shrink-0" />
               <div>
-                <div className="text-sm text-muted-foreground">Telefone</div>
-                <div className="font-semibold text-foreground">+55 (65) 3622-2426</div>
+                <div className="text-sm text-gray-400">Telefone</div>
+                <div className="font-semibold text-gray-50">+55 (65) 3622-2426</div>
               </div>
             </div>
           </div>
 
-          <Card className="h-auto p-8 md:p-10 border-2 shadow-xl">
+          <Card className="h-auto p-8 md:p-10 border-0 shadow-xl bg-white">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-8">
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Solicite uma Proposta</h3>
-                  <p className="text-muted-foreground">Preencha o formulário e entraremos em contato em até 24h.</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Solicite uma Proposta</h3>
+                  <p className="text-gray-600">Preencha o formulário e entraremos em contato em até 24h.</p>
                 </div>
 
                 <div className="space-y-4">
