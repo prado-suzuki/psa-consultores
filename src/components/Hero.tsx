@@ -21,14 +21,14 @@ export const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        className="z-20 container mx-auto px-4 md:px-6 lg:px-8 text-center flex flex-col items-center"
+        className="z-20 container mx-auto px-4 md:px-6 lg:px-8 text-left flex flex-col items-start"
       >
-        {/* Logo - 96px (Fibonacci: maior elemento) */}
+        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center mt-24 mb-8"
+          className="mt-24 mb-8"
         >
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
@@ -42,14 +42,13 @@ export const Hero = () => {
         >
           Especialistas em Tributação
           <span className="block mt-2">
-            para o{" "}
             <motion.span
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
               className="text-primary"
             >
-              Agronegócio
+              para o Agronegócio
             </motion.span>
           </span>
         </motion.h1>
@@ -64,7 +63,7 @@ export const Hero = () => {
           Transformamos complexidade tributária em vantagem competitiva para empresas familiares há mais de 20 anos.
         </motion.p>
 
-        {/* CTA Button - 48px altura (Fibonacci: menor elemento) */}
+        {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
