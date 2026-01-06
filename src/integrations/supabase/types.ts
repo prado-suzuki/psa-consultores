@@ -1047,6 +1047,68 @@ export type Database = {
           },
         ]
       }
+      tool_area_access: {
+        Row: {
+          area: string
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          tool_id: string | null
+        }
+        Insert: {
+          area: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          tool_id?: string | null
+        }
+        Update: {
+          area?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          tool_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_area_access_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tools: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

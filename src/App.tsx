@@ -31,6 +31,13 @@ import EquipeUsuarios from "./pages/equipe/EquipeUsuarios";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
 import EquipeBacklog from "./pages/equipe/EquipeBacklog";
+import DigitalAreaSelector from "./pages/equipe/DigitalAreaSelector";
+import DevDashboard from "./pages/equipe/dev/DevDashboard";
+import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
+import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
+import AdminPerformance from "./pages/administracao/AdminPerformance";
+import AdminAcessos from "./pages/administracao/AdminAcessos";
+import AdminUsuarios from "./pages/administracao/AdminUsuarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +80,15 @@ const App = () => (
             <Route path="/equipe/processos" element={<TeamRoute><EquipeProcessos /></TeamRoute>} />
             <Route path="/equipe/biblioteca" element={<TeamRoute><EquipeBiblioteca /></TeamRoute>} />
             <Route path="/equipe/backlog" element={<TeamRoute><EquipeBacklog /></TeamRoute>} />
+            <Route path="/equipe/digital" element={<TeamRoute><DigitalAreaSelector /></TeamRoute>} />
+            <Route path="/equipe/dev" element={<TeamRoute><DevDashboard /></TeamRoute>} />
+            <Route path="/equipe/dev/nova-ferramenta" element={<TeamRoute><NovaFerramenta /></TeamRoute>} />
+            <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><DetalheFerramenta /></TeamRoute>} />
+            
+            {/* Administração Routes */}
+            <Route path="/administracao" element={<AdminRoute><AdminPerformance /></AdminRoute>} />
+            <Route path="/administracao/acessos" element={<AdminRoute><AdminAcessos /></AdminRoute>} />
+            <Route path="/administracao/usuarios" element={<AdminRoute><AdminUsuarios /></AdminRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
