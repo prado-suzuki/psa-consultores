@@ -107,7 +107,7 @@ const ConsultaXMLs = () => {
       title="Consulta de XMLs" 
       subtitle="Busque e visualize documentos fiscais"
     >
-      <div className="w-full max-w-full overflow-hidden space-y-6">
+      <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
         {/* Filtros */}
         <Card>
           <CardHeader className="pb-4">
@@ -117,7 +117,7 @@ const ConsultaXMLs = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1 block">CNPJ</label>
                 <Input
@@ -159,7 +159,7 @@ const ConsultaXMLs = () => {
         </Card>
 
         {/* Tabela */}
-        <Card className="overflow-hidden">
+        <Card className="w-full min-w-0 overflow-hidden">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -182,7 +182,7 @@ const ConsultaXMLs = () => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className="w-full overflow-x-auto">
                   <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow>
