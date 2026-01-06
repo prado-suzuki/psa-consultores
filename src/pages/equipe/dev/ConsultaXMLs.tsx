@@ -38,7 +38,7 @@ const ConsultaXMLs = () => {
     queryKey: ['mock-xmls'],
     queryFn: async () => {
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from('project-documents')
         .download('mock_response.json');
       
       if (error) throw error;
