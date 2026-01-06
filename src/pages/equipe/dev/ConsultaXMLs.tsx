@@ -10,20 +10,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Download, Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface XMLRecord {
-  id: string;
-  cnpj: string;
-  razao_social: string;
-  tipo: string;
-  numero: string;
-  data_emissao: string;
-  valor: number;
-  status: string;
+interface NFeProduto {
+  nItem: number;
+  cProd: string;
+  xProd: string;
+  vProd: number;
 }
 
-interface MockResponse {
-  data: XMLRecord[];
-  total: number;
+interface NFeEmit {
+  CNPJ: string;
+  xNome: string;
+  IE: string;
+  UF: string;
+}
+
+interface NFeRecord {
+  chave_nfe: string;
+  nNF: string;
+  dhEmi: string;
+  mod: string;
+  natOp: string;
+  emit: NFeEmit;
+  produtos: NFeProduto[];
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -44,11 +52,11 @@ const ConsultaXMLs = () => {
       if (error) throw error;
       
       const text = await data.text();
-      return JSON.parse(text) as MockResponse;
+      return JSON.parse(text) as NFeRecord[];
     },
   });
 
-  const records = mockData?.data || [];
+  const records = mockData || [];
   const totalRecords = records.length;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
   
@@ -189,26 +197,28 @@ const ConsultaXMLs = () => {
                   <TableBody>
                     {paginatedRecords.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           Nenhum registro encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       paginatedRecords.map((record) => (
-                        <TableRow key={record.id}>
+                        <TableRow key={record.chave_nfe}>
                           <TableCell className="font-mono text-sm">
-                            {formatCNPJ(record.cnpj)}
+                            {record.emit.CNPJ}
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate" title={record.razao_social}>
-                            {record.razao_social}
+                          <TableCell className="max-w-[200px] truncate" title={record.emit.xNome}>
+                            {record.emit.xNome}
                           </TableCell>
-                          <TableCell>{getTipoBadge(record.tipo)}</TableCell>
-                          <TableCell className="font-mono">{record.numero}</TableCell>
-                          <TableCell>{formatDate(record.data_emissao)}</TableCell>
+                          <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
+                          <TableCell className="font-mono">{record.nNF}</TableCell>
+                          <TableCell>{formatDate(record.dhEmi)}</TableCell>
                           <TableCell className="text-right font-medium">
-                            {formatCurrency(record.valor)}
+                            {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
                           </TableCell>
-                          <TableCell>{getStatusBadge(record.status)}</TableCell>
+                          <TableCell>
+                            <Badge variant="default">Autorizada</Badge>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
