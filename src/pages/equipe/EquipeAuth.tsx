@@ -15,6 +15,7 @@ const areas = [
   { id: 'operacional', label: 'Operacional' },
   { id: 'comercial', label: 'Comercial' },
   { id: 'chamados', label: 'Chamados' },
+  { id: 'administracao', label: 'Administração' },
 ];
 
 const EquipeAuth = () => {
@@ -31,6 +32,10 @@ const EquipeAuth = () => {
     if (!loading && user && (isTeamMember || isAdmin) && shouldRedirect && selectedArea) {
       if (selectedArea === 'chamados') {
         navigate('/admin/chamados');
+      } else if (selectedArea === 'digital') {
+        navigate('/equipe/digital');
+      } else if (selectedArea === 'administracao') {
+        navigate('/administracao');
       } else {
         navigate('/equipe/dashboard');
       }
@@ -43,6 +48,10 @@ const EquipeAuth = () => {
     if (user && (isTeamMember || isAdmin)) {
       if (area === 'chamados') {
         navigate('/admin/chamados');
+      } else if (area === 'digital') {
+        navigate('/equipe/digital');
+      } else if (area === 'administracao') {
+        navigate('/administracao');
       } else {
         navigate('/equipe/dashboard');
       }
