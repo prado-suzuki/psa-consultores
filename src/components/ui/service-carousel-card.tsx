@@ -58,7 +58,7 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       paginate(1);
-    }, 8000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [paginate]);
 
