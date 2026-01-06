@@ -107,171 +107,177 @@ const ConsultaXMLs = () => {
       title="Consulta de XMLs" 
       subtitle="Busque e visualize documentos fiscais"
     >
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">CNPJ</label>
-              <Input
-                placeholder="00.000.000/0000-00"
-                value={cnpjFilter}
-                onChange={(e) => setCnpjFilter(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Data</label>
-              <Input
-                type="date"
-                value={dataFilter}
-                onChange={(e) => setDataFilter(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Tipo</label>
-              <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="NFe">NFe</SelectItem>
-                  <SelectItem value="NFSe">NFSe</SelectItem>
-                  <SelectItem value="CTe">CTe</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button className="w-full" variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabela */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+      <div className="w-full max-w-full overflow-hidden space-y-6">
+        {/* Filtros */}
+        <Card>
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Documentos
+              <Search className="h-5 w-5" />
+              Filtros
             </CardTitle>
-            <span className="text-sm text-gray-500">
-              {totalRecords} registro(s) encontrado(s)
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">CNPJ</label>
+                <Input
+                  placeholder="00.000.000/0000-00"
+                  value={cnpjFilter}
+                  onChange={(e) => setCnpjFilter(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data</label>
+                <Input
+                  type="date"
+                  value={dataFilter}
+                  onChange={(e) => setDataFilter(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Tipo</label>
+                <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="NFe">NFe</SelectItem>
+                    <SelectItem value="NFSe">NFSe</SelectItem>
+                    <SelectItem value="CTe">CTe</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button className="w-full" variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </div>
             </div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-500">
-              Erro ao carregar dados: {(error as Error).message}
+          </CardContent>
+        </Card>
+
+        {/* Tabela */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Documentos
+              </CardTitle>
+              <span className="text-sm text-muted-foreground">
+                {totalRecords} registro(s) encontrado(s)
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[320px]">Chave NFe</TableHead>
-                      <TableHead>CNPJ</TableHead>
-                      <TableHead>Razão Social</TableHead>
-                      <TableHead>IE</TableHead>
-                      <TableHead>UF</TableHead>
-                      <TableHead className="min-w-[150px]">Nat. Operação</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Data Emissão</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Produtos</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedRecords.length === 0 ? (
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-destructive">
+                Erro ao carregar dados: {(error as Error).message}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[1100px]">
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                          Nenhum registro encontrado
-                        </TableCell>
+                        <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
+                        <TableHead className="whitespace-nowrap">CNPJ</TableHead>
+                        <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                        <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
+                        <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
+                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Nat. Operação</TableHead>
+                        <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                        <TableHead className="whitespace-nowrap">Número</TableHead>
+                        <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
+                        <TableHead className="whitespace-nowrap">Produtos</TableHead>
                       </TableRow>
-                    ) : (
-                      paginatedRecords.map((record) => (
-                        <TableRow key={record.chave_nfe}>
-                          <TableCell className="font-mono text-xs">
-                            <span className="truncate block max-w-[300px]" title={record.chave_nfe}>
-                              {record.chave_nfe}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {formatCNPJ(record.emit.CNPJ)}
-                          </TableCell>
-                          <TableCell className="max-w-[180px] truncate" title={record.emit.xNome}>
-                            {record.emit.xNome}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">{record.emit.IE}</TableCell>
-                          <TableCell>{record.emit.UF}</TableCell>
-                          <TableCell className="max-w-[150px] truncate" title={record.natOp}>
-                            {record.natOp}
-                          </TableCell>
-                          <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
-                          <TableCell className="font-mono">{record.nNF}</TableCell>
-                          <TableCell>{formatDate(record.dhEmi)}</TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedRecords.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                            Nenhum registro encontrado
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-sm text-gray-500">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próximo
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
+                      ) : (
+                        paginatedRecords.map((record) => (
+                          <TableRow key={record.chave_nfe}>
+                            <TableCell className="font-mono text-xs max-w-[180px]">
+                              <span className="truncate block" title={record.chave_nfe}>
+                                {record.chave_nfe.slice(0, 20)}...
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm whitespace-nowrap">
+                              {formatCNPJ(record.emit.CNPJ)}
+                            </TableCell>
+                            <TableCell className="max-w-[150px]">
+                              <span className="truncate block" title={record.emit.xNome}>
+                                {record.emit.xNome}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
+                            <TableCell className="max-w-[120px] hidden xl:table-cell">
+                              <span className="truncate block" title={record.natOp}>
+                                {record.natOp}
+                              </span>
+                            </TableCell>
+                            <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
+                            <TableCell className="font-mono">{record.nNF}</TableCell>
+                            <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
+                            <TableCell className="text-right font-medium whitespace-nowrap">
+                              {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Próximo
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </DevLayout>
   );
 };
