@@ -104,7 +104,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
           ) : (
             <div className="flex flex-col items-center text-center">
               <img src={logoDark} alt="PSA" className="h-8 mb-1" />
-              <h1 className="text-gray-900 font-semibold text-sm">Equipe PSA</h1>
+              <h1 className="text-gray-900 font-semibold text-sm">Digital Rotina</h1>
               <p className="text-xs text-gray-500">Gestão de Demandas</p>
             </div>
           )}
@@ -272,6 +272,15 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
           <Button 
             variant="ghost" 
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-gray-700 hover:bg-gray-100`}
+            onClick={() => navigate('/equipe/digital')}
+            title={collapsed ? 'Trocar área' : undefined}
+          >
+            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+            {!collapsed && 'Trocar área'}
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-gray-700 hover:bg-gray-100`}
             onClick={() => navigate('/')}
             title={collapsed ? 'Voltar ao site' : undefined}
           >
@@ -317,7 +326,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">
-          <div className={`p-6 ${fullWidth ? 'w-full' : 'min-w-[800px]'}`}>
+          <div className="p-6">
             {children}
           </div>
         </ScrollArea>
