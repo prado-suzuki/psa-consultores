@@ -21,14 +21,14 @@ export const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        className="z-20 container mx-auto px-4 md:px-6 lg:px-8 text-left flex flex-col items-start"
+        className="z-20 container mx-auto px-4 md:px-6 lg:px-8 text-center flex flex-col items-center"
       >
         {/* Logo - 96px (Fibonacci: maior elemento) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-start mt-24 mb-8"
+          className="flex justify-center mt-24 mb-8"
         >
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
@@ -38,7 +38,7 @@ export const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-white mb-8"
+          className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-white mb-8"
         >
           Especialistas em Tributação
           <span className="block mt-2">
