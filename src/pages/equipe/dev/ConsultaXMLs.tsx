@@ -185,30 +185,44 @@ const ConsultaXMLs = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="min-w-[320px]">Chave NFe</TableHead>
                       <TableHead>CNPJ</TableHead>
                       <TableHead>Razão Social</TableHead>
+                      <TableHead>IE</TableHead>
+                      <TableHead>UF</TableHead>
+                      <TableHead className="min-w-[150px]">Nat. Operação</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Número</TableHead>
                       <TableHead>Data Emissão</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Produtos</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedRecords.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           Nenhum registro encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       paginatedRecords.map((record) => (
                         <TableRow key={record.chave_nfe}>
-                          <TableCell className="font-mono text-sm">
-                            {record.emit.CNPJ}
+                          <TableCell className="font-mono text-xs">
+                            <span className="truncate block max-w-[300px]" title={record.chave_nfe}>
+                              {record.chave_nfe}
+                            </span>
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate" title={record.emit.xNome}>
+                          <TableCell className="font-mono text-sm">
+                            {formatCNPJ(record.emit.CNPJ)}
+                          </TableCell>
+                          <TableCell className="max-w-[180px] truncate" title={record.emit.xNome}>
                             {record.emit.xNome}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{record.emit.IE}</TableCell>
+                          <TableCell>{record.emit.UF}</TableCell>
+                          <TableCell className="max-w-[150px] truncate" title={record.natOp}>
+                            {record.natOp}
                           </TableCell>
                           <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
                           <TableCell className="font-mono">{record.nNF}</TableCell>
@@ -217,7 +231,7 @@ const ConsultaXMLs = () => {
                             {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="default">Autorizada</Badge>
+                            <Badge variant="outline">{record.produtos.length} item(s)</Badge>
                           </TableCell>
                         </TableRow>
                       ))
