@@ -32,6 +32,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dev' },
   { icon: Plus, label: 'Nova Ferramenta', path: '/equipe/dev/nova-ferramenta' },
+  { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
 ];
 
 export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayoutProps) => {
