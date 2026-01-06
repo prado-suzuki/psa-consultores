@@ -6,10 +6,58 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Code2, Users, Play, Pause, AlertCircle } from 'lucide-react';
+import { Plus, Code2, Users, Play, Pause, AlertCircle, Zap, Copy, CheckCircle } from 'lucide-react';
 
 const DevDashboard = () => {
   const navigate = useNavigate();
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const testApiHealth = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        setTestResult({ error: 'Usuário não autenticado' });
+        return;
+      }
+      
+      const response = await fetch(
+        'https://psa-upload-api-456879351254.southamerica-east1.run.app/health_jwt',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      const data = await response.json();
+      setTestResult({ 
+        status: response.status, 
+        ok: response.ok,
+        data 
+      });
+    } catch (error: any) {
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const copyJwt = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      navigator.clipboard.writeText(session.access_token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const { data: tools, isLoading } = useQuery({
     queryKey: ['tools'],
@@ -91,6 +139,43 @@ const DevDashboard = () => {
           </CardHeader>
         </Card>
       </div>
+
+      {/* Debug Card - Teste API */}
+      <Card className="mb-6 border-yellow-400 border-2">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-500" />
+            <CardTitle className="text-lg">Debug: Teste API Cloud Run</CardTitle>
+          </div>
+          <CardDescription>Temporário - Remover depois dos testes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3 mb-4">
+            <Button onClick={testApiHealth} disabled={testLoading}>
+              <Zap className="h-4 w-4 mr-2" />
+              {testLoading ? 'Testando...' : 'Testar API JWT'}
+            </Button>
+            <Button variant="outline" onClick={copyJwt}>
+              {copied ? <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> : <Copy className="h-4 w-4 mr-2" />}
+              {copied ? 'Copiado!' : 'Copiar JWT'}
+            </Button>
+          </div>
+          
+          {testResult && (
+            <div className={`p-4 rounded-lg font-mono text-sm ${
+              testResult.error 
+                ? 'bg-red-50 border border-red-200 text-red-800' 
+                : testResult.ok 
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+            }`}>
+              <pre className="whitespace-pre-wrap overflow-auto">
+                {JSON.stringify(testResult, null, 2)}
+              </pre>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Tools List */}
       <Card>
