@@ -35,6 +35,7 @@ import DigitalAreaSelector from "./pages/equipe/DigitalAreaSelector";
 import DevDashboard from "./pages/equipe/dev/DevDashboard";
 import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
 import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
+import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import AdminPerformance from "./pages/administracao/AdminPerformance";
 import AdminAcessos from "./pages/administracao/AdminAcessos";
 import AdminUsuarios from "./pages/administracao/AdminUsuarios";
@@ -84,6 +85,7 @@ const App = () => (
             <Route path="/equipe/dev" element={<TeamRoute><DevDashboard /></TeamRoute>} />
             <Route path="/equipe/dev/nova-ferramenta" element={<TeamRoute><NovaFerramenta /></TeamRoute>} />
             <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><DetalheFerramenta /></TeamRoute>} />
+            <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><ConsultaXMLs /></TeamRoute>} />
             
             {/* Administração Routes */}
             <Route path="/administracao" element={<AdminRoute><AdminPerformance /></AdminRoute>} />
