@@ -28,7 +28,7 @@ export const Hero = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-start mt-24 mb-12"
+          className="flex justify-start mt-24 mb-8"
         >
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
@@ -38,17 +38,20 @@ export const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight text-white mb-6"
+          className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-white mb-8"
         >
           Especialistas em Tributação
-          <motion.span
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="block mt-2 pb-2 bg-gradient-to-r from-primary via-lime-400 to-primary bg-clip-text text-transparent leading-relaxed"
-          >
-            para o Agronegócio
-          </motion.span>
+          <span className="block mt-2">
+            para o{" "}
+            <motion.span
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="text-primary"
+            >
+              Agronegócio
+            </motion.span>
+          </span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -56,7 +59,7 @@ export const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.7 }}
-          className="text-lg md:text-xl text-white/80 max-w-2xl mb-12"
+          className="text-lg md:text-xl text-white/80 max-w-2xl mb-8"
         >
           Transformamos complexidade tributária em vantagem competitiva para empresas familiares há mais de 20 anos.
         </motion.p>
