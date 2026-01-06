@@ -34,17 +34,14 @@ export const WhyChooseUs = () => {
   return (
     <section 
       id="sobre" 
-      className="pt-32 pb-20 md:pt-36 md:pb-32 bg-white"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2314b8a6' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-      }}
+      className="pt-32 pb-20 md:pt-36 md:pb-32 bg-gradient-to-b from-gray-100 via-white to-gray-900"
     >
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
         <div className="max-w-4xl text-left mb-10 space-y-4">
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground">
-            Por que Escolher a PSA Consultores
+          <h2 className="text-3xl md:text-5xl font-bold text-gray-900">
+            Por que Escolher a <span className="text-primary">PSA Consultores</span>
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-gray-600">
             Mais de 20 anos transformando desafios tributários em oportunidades 
             para empresas familiares do agronegócio, com metodologia comprovada 
             em 500+ clientes de médio e grande porte
@@ -61,21 +58,21 @@ export const WhyChooseUs = () => {
                 key={index} 
                 className={`p-10 rounded-lg border transition-all duration-300 text-center ${
                   isDark 
-                    ? 'bg-gray-900 border-gray-700 hover:border-lime-400 hover:shadow-lg' 
-                    : 'bg-white border-gray-200 hover:border-teal-500 hover:shadow-lg'
+                    ? 'bg-gray-900 border-gray-700 hover:border-primary hover:shadow-lg hover:shadow-primary/20' 
+                    : 'bg-white border-gray-200 hover:border-secondary hover:shadow-lg hover:shadow-secondary/20'
                 }`}
               >
                 {/* Ícone no topo centralizado */}
                 <div className="mb-8 flex justify-center">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    isDark ? 'bg-gray-800' : 'bg-teal-50'
+                    isDark ? 'bg-gray-800' : 'bg-secondary/10'
                   }`}>
-                    <IconComponent className={`w-8 h-8 ${isDark ? 'text-lime-400' : 'text-teal-500'}`} />
+                    <IconComponent className={`w-8 h-8 ${isDark ? 'text-primary' : 'text-secondary'}`} />
                   </div>
                 </div>
                 
                 {/* Número em destaque */}
-                <h3 className={`text-4xl font-bold mb-2 ${isDark ? 'text-lime-400' : 'text-teal-600'}`}>
+                <h3 className={`text-4xl font-bold mb-2 ${isDark ? 'text-primary' : 'text-secondary'}`}>
                   {stat.number}
                 </h3>
                 

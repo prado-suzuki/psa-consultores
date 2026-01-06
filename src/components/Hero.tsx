@@ -14,8 +14,8 @@ export const Hero = () => {
         backgroundPosition: 'center' 
       }}
     >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+      {/* Overlay escuro com gradiente */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 via-gray-900/50 to-gray-900/80" />
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -33,12 +33,12 @@ export const Hero = () => {
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
 
-        {/* Main Heading */}
+        {/* Main Heading - Texto em gray-50, destaque em primary (lime) */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-white mb-8"
+          className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-gray-50 mb-8"
         >
           Especialistas em Tributação
           <span className="block mt-2">
@@ -53,12 +53,12 @@ export const Hero = () => {
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* Subtitle - gray-50 com opacidade */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.7 }}
-          className="text-lg md:text-xl text-white/80 max-w-2xl mb-8"
+          className="text-lg md:text-xl text-gray-200 max-w-2xl mb-8"
         >
           Transformamos complexidade tributária em vantagem competitiva para empresas familiares há mais de 20 anos.
         </motion.p>
@@ -74,7 +74,7 @@ export const Hero = () => {
             onClick={() => {
               document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="h-12 px-8 text-base bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-md shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/40"
+            className="h-12 px-8 text-base bg-primary hover:bg-primary/90 text-primary-foreground rounded-md shadow-lg hover:shadow-xl transition-all duration-300 group"
           >
             Conheça Nossas Soluções
             <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
