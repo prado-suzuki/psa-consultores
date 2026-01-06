@@ -58,7 +58,7 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       paginate(1);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [paginate]);
 
@@ -77,8 +77,8 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
             animate="center"
             exit="exit"
             transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.3 },
+              x: { type: "spring", stiffness: 20, damping: 15 },
+              opacity: { duration: 2.5 },
             }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
