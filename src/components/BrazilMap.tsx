@@ -3,19 +3,19 @@ import { MapPin } from "lucide-react";
 import brazilMap from "@/assets/maps/brazil-map.png";
 
 const offices = [
-  { id: "cuiaba", name: "Cuiabá", state: "MT", top: "48%", left: "35%", isMain: true },
-  { id: "barreiras", name: "Barreiras", state: "BA", top: "38%", left: "58%", isMain: false },
-  { id: "curitiba", name: "Curitiba", state: "PR", top: "78%", left: "48%", isMain: false },
+  { id: "cuiaba", name: "Cuiabá", state: "MT", top: "52%", left: "38%", isMain: true },
+  { id: "barreiras", name: "Barreiras", state: "BA", top: "42%", left: "56%", isMain: false },
+  { id: "curitiba", name: "Curitiba", state: "PR", top: "72%", left: "50%", isMain: false },
 ];
 
 export const BrazilMap = () => {
   return (
-    <div className="relative w-full aspect-[4/5] max-w-2xl mx-auto">
+    <div className="relative w-full max-w-3xl mx-auto">
       {/* Imagem do mapa */}
       <motion.img 
         src={brazilMap} 
         alt="Mapa do Brasil" 
-        className="w-full h-full object-contain"
+        className="w-full h-auto"
         initial={{ opacity: 0, scale: 0.95 }}
         whileInView={{ opacity: 1, scale: 1 }}
         viewport={{ once: true }}
