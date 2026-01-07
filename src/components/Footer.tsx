@@ -3,24 +3,24 @@ import { Linkedin, Instagram, Mail } from "lucide-react";
 
 export const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-gray-50 py-8">
+    <footer className="bg-gray-900 text-gray-50 py-4">
       <div className="container mx-auto px-4 md:px-6">
-        {/* Botão Trabalhe Conosco */}
-        <div className="flex justify-center mb-8">
+        {/* Link Trabalhe Conosco */}
+        <div className="flex justify-center mb-2">
           <a 
             href="https://www.linkedin.com/company/prado-consultores-associados/jobs/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
+            className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
           >
             Trabalhe Conosco
           </a>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src={logo} alt="PSA Consultores" className="h-10 w-auto brightness-0 invert" />
+            <img src={logo} alt="PSA Consultores" className="h-8 w-auto brightness-0 invert" />
           </div>
 
           {/* Copyright */}

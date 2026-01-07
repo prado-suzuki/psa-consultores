@@ -12,7 +12,6 @@ const navItems = [
   { id: "inicio", label: "Início", href: "#", external: false },
   { id: "servicos", label: "Serviços", href: "#servicos", external: false },
   { id: "sobre", label: "Sobre", href: "#sobre", external: false },
-  { id: "contato", label: "Contato", href: "#contato", external: false },
 ];
 
 export const Header = () => {
