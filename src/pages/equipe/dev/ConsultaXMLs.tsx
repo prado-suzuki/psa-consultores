@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Download, Search, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface NFeProduto {
   nItem: number;
@@ -87,6 +89,7 @@ const ConsultaXMLs = () => {
   const [dataInicio, setDataInicio] = useState('2024-01-01');
   const [dataFim, setDataFim] = useState('2026-01-31');
   const [isExporting, setIsExporting] = useState(false);
+  const { fetchWithAuth } = useApiAuth();
 
   // Buscar lista de contribuintes
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
@@ -108,20 +111,9 @@ const ConsultaXMLs = () => {
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) throw new Error('Usuário não autenticado');
-
       const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchWithAuth(url, { method: 'GET' });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -131,6 +123,11 @@ const ConsultaXMLs = () => {
       return response.json() as Promise<ApiResponse>;
     },
     enabled: !!selectedContribuinte,
+    retry: (failureCount, error) => {
+      // Não tentar novamente se for erro de sessão expirada
+      if ((error as Error).message === 'Sessão expirada') return false;
+      return failureCount < 2;
+    },
   });
 
   const records = nfeData?.items || [];
@@ -181,19 +178,10 @@ const ConsultaXMLs = () => {
 
     setIsExporting(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) throw new Error('Usuário não autenticado');
-
       const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/export/${selectedContribuinte}/nfe/csv`;
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           data_inicio: dataInicio,
           data_fim: dataFim,
@@ -223,9 +211,20 @@ const ConsultaXMLs = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: "Exportação concluída",
+        description: "O arquivo CSV foi baixado com sucesso.",
+      });
     } catch (err) {
-      console.error('Erro ao exportar:', err);
-      alert(`Erro ao exportar: ${(err as Error).message}`);
+      const errorMessage = (err as Error).message;
+      if (errorMessage !== 'Sessão expirada') {
+        toast({
+          title: "Erro ao exportar",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsExporting(false);
     }

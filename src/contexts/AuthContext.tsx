@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<Session | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,8 +143,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const refreshSession = async (): Promise<Session | null> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error('Erro ao renovar sessão:', error);
+        return null;
+      }
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+      return data.session;
+    } catch (error) {
+      console.error('Erro ao renovar sessão:', error);
+      return null;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, loading, signIn, signUp, signOut, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );
