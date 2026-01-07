@@ -515,21 +515,21 @@ const EquipeDaily = () => {
                     {standup.did_yesterday && (
                       <div className="mb-2">
                         <p className="text-xs text-gray-500 mb-1">Ontem:</p>
-                        <p className="text-sm text-gray-700">{standup.did_yesterday}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{standup.did_yesterday}</p>
                       </div>
                     )}
 
                     {standup.will_do_today && (
                       <div className="mb-2">
                         <p className="text-xs text-gray-500 mb-1">Hoje:</p>
-                        <p className="text-sm text-gray-700">{standup.will_do_today}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{standup.will_do_today}</p>
                       </div>
                     )}
 
                     {standup.blockers && (
                       <div className="p-2 bg-yellow-50 rounded border border-yellow-200">
                         <p className="text-xs text-yellow-700 mb-1">Bloqueio:</p>
-                        <p className="text-sm text-yellow-800">{standup.blockers}</p>
+                        <p className="text-sm text-yellow-800 whitespace-pre-wrap">{standup.blockers}</p>
                       </div>
                     )}
                   </div>
