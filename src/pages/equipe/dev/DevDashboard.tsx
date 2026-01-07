@@ -27,7 +27,7 @@ const DevDashboard = () => {
       }
       
       const response = await fetch(
-        'https://psa-upload-api-456879351254.southamerica-east1.run.app/health_jwt',
+        'https://psa-backend-api-456879351254.southamerica-east1.run.app/auth_health',
         {
           method: 'GET',
           headers: {
