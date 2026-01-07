@@ -47,7 +47,7 @@ export const CTA = () => {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 bg-gray-800">
+    <section id="contato" className="py-20 md:py-28 bg-gray-700">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Left - Content */}
@@ -100,7 +100,7 @@ export const CTA = () => {
                       <FormControl>
                         <Input 
                           placeholder="Seu nome" 
-                          className="bg-gray-800 border-gray-700 text-gray-50 placeholder:text-gray-500"
+                          className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
                           {...field} 
                         />
                       </FormControl>
@@ -119,7 +119,7 @@ export const CTA = () => {
                           <Input 
                             type="email" 
                             placeholder="Email" 
-                            className="bg-gray-800 border-gray-700 text-gray-50 placeholder:text-gray-500"
+                            className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
                             {...field} 
                           />
                         </FormControl>
@@ -136,7 +136,7 @@ export const CTA = () => {
                           <Input 
                             type="tel" 
                             placeholder="Telefone" 
-                            className="bg-gray-800 border-gray-700 text-gray-50 placeholder:text-gray-500"
+                            className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
                             {...field} 
                           />
                         </FormControl>
@@ -154,7 +154,7 @@ export const CTA = () => {
                       <FormControl>
                         <Textarea 
                           placeholder="Sua mensagem" 
-                          className="bg-gray-800 border-gray-700 text-gray-50 placeholder:text-gray-500 min-h-[120px]"
+                          className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400 min-h-[120px]"
                           {...field} 
                         />
                       </FormControl>
