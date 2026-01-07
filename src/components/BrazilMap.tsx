@@ -1,41 +1,91 @@
 import { motion } from "framer-motion";
 
-const offices = [
-  { id: "cuiaba", x: 340, y: 420, isMain: true },
-  { id: "barreiras", x: 480, y: 360, isMain: false },
-  { id: "curitiba", x: 410, y: 580, isMain: false },
+interface Office {
+  id: string;
+  name: string;
+  state: string;
+  x: number;
+  y: number;
+  isMain: boolean;
+}
+
+const offices: Office[] = [
+  { id: "cuiaba", name: "Cuiabá", state: "MT", x: 280, y: 380, isMain: true },
+  { id: "barreiras", name: "Barreiras", state: "BA", x: 480, y: 340, isMain: false },
+  { id: "curitiba", name: "Curitiba", state: "PR", x: 380, y: 620, isMain: false },
 ];
 
-const clientDots = [
-  { x: 320, y: 380 }, { x: 360, y: 400 }, { x: 300, y: 440 },
-  { x: 380, y: 450 }, { x: 420, y: 380 }, { x: 440, y: 420 },
-  { x: 500, y: 340 }, { x: 460, y: 380 }, { x: 520, y: 380 },
-  { x: 380, y: 520 }, { x: 420, y: 540 }, { x: 440, y: 560 },
-  { x: 360, y: 560 }, { x: 400, y: 600 }, { x: 380, y: 480 },
-];
+// ViewBox configurations for zoom
+const zoomConfigs: Record<string, { viewBox: string; scale: number }> = {
+  default: { viewBox: "0 0 700 750", scale: 1 },
+  cuiaba: { viewBox: "150 280 260 220", scale: 2.5 },
+  barreiras: { viewBox: "350 240 260 220", scale: 2.5 },
+  curitiba: { viewBox: "250 520 260 220", scale: 2.5 },
+};
 
-export const BrazilMap = () => {
+interface BrazilMapProps {
+  selectedOffice?: string | null;
+  onOfficeClick?: (officeId: string | null) => void;
+}
+
+export const BrazilMap = ({ selectedOffice, onOfficeClick }: BrazilMapProps) => {
+  const currentZoom = selectedOffice ? zoomConfigs[selectedOffice] : zoomConfigs.default;
+
+  const getStateClass = (stateId: string) => {
+    const officeStates: Record<string, string> = {
+      MT: "cuiaba",
+      BA: "barreiras",
+      PR: "curitiba",
+    };
+    
+    const isOfficeState = Object.keys(officeStates).includes(stateId);
+    const isSelected = selectedOffice === officeStates[stateId];
+    
+    if (isSelected) {
+      return "fill-primary/60 stroke-primary transition-colors duration-500";
+    }
+    if (isOfficeState) {
+      return "fill-primary/30 stroke-primary/70 transition-colors duration-500";
+    }
+    return "fill-muted stroke-muted-foreground/30 transition-colors duration-500";
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.8 }}
-      className="relative w-full aspect-square max-w-md mx-auto"
+      className="relative w-full aspect-square max-w-lg mx-auto"
     >
-      <svg
-        viewBox="0 0 700 750"
+      {/* Reset button */}
+      {selectedOffice && (
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          onClick={() => onOfficeClick?.(null)}
+          className="absolute top-2 left-2 z-10 px-3 py-1.5 bg-background/90 backdrop-blur-sm border border-border rounded-md shadow-sm text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          ← Ver mapa completo
+        </motion.button>
+      )}
+
+      <motion.svg
+        viewBox={currentZoom.viewBox}
         className="w-full h-full"
         xmlns="http://www.w3.org/2000/svg"
+        animate={{ viewBox: currentZoom.viewBox }}
+        transition={{ duration: 0.7, ease: "easeInOut" }}
       >
         {/* Background glow */}
         <defs>
           <radialGradient id="mapGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.08" />
             <stop offset="100%" stopColor="transparent" stopOpacity="0" />
           </radialGradient>
           <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
             <feMerge>
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
@@ -43,176 +93,162 @@ export const BrazilMap = () => {
           </filter>
         </defs>
         
-        <ellipse cx="400" cy="420" rx="280" ry="300" fill="url(#mapGlow)" />
+        <ellipse cx="380" cy="400" rx="320" ry="340" fill="url(#mapGlow)" />
 
-        {/* Brazil States - Simplified paths */}
+        {/* Brazil States - More realistic simplified paths */}
         <g className="states">
-          {/* Amazonas - AM */}
-          <path d="M120,180 L280,150 L320,200 L300,280 L220,320 L140,280 L100,220 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
+          {/* Norte */}
+          <path d="M100,200 L180,180 L200,220 L180,280 L120,260 Z" 
+                className={getStateClass("AC")} strokeWidth="1.5" />
+          <path d="M140,100 L220,80 L240,140 L200,180 L140,160 Z" 
+                className={getStateClass("RR")} strokeWidth="1.5" />
+          <path d="M120,180 L280,140 L320,200 L300,300 L200,320 L140,280 L100,220 Z" 
+                className={getStateClass("AM")} strokeWidth="1.5" />
+          <path d="M180,280 L200,320 L240,380 L200,420 L140,400 L160,340 Z" 
+                className={getStateClass("RO")} strokeWidth="1.5" />
+          <path d="M380,80 L440,60 L460,120 L420,160 L380,140 Z" 
+                className={getStateClass("AP")} strokeWidth="1.5" />
+          <path d="M300,140 L440,120 L500,180 L480,280 L400,320 L320,280 L320,200 Z" 
+                className={getStateClass("PA")} strokeWidth="1.5" />
+          <path d="M320,280 L400,280 L400,380 L360,420 L300,380 Z" 
+                className={getStateClass("TO")} strokeWidth="1.5" />
+
+          {/* Nordeste */}
+          <path d="M480,200 L540,180 L560,240 L540,300 L500,280 L480,240 Z" 
+                className={getStateClass("MA")} strokeWidth="1.5" />
+          <path d="M520,260 L560,240 L580,300 L560,360 L520,340 L500,300 Z" 
+                className={getStateClass("PI")} strokeWidth="1.5" />
+          <path d="M560,220 L620,200 L640,260 L600,300 L560,280 Z" 
+                className={getStateClass("CE")} strokeWidth="1.5" />
+          <path d="M620,220 L660,240 L650,280 L610,270 Z" 
+                className={getStateClass("RN")} strokeWidth="1.5" />
+          <path d="M610,270 L660,280 L650,310 L600,300 Z" 
+                className={getStateClass("PB")} strokeWidth="1.5" />
+          <path d="M560,300 L650,310 L640,350 L540,340 Z" 
+                className={getStateClass("PE")} strokeWidth="1.5" />
+          <path d="M600,350 L650,350 L640,380 L590,380 Z" 
+                className={getStateClass("AL")} strokeWidth="1.5" />
+          <path d="M580,380 L630,380 L620,410 L570,410 Z" 
+                className={getStateClass("SE")} strokeWidth="1.5" />
           
-          {/* Pará - PA */}
-          <path d="M280,150 L420,140 L460,200 L440,280 L380,320 L300,280 L320,200 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
+          {/* Bahia - HIGHLIGHTED */}
+          <path d="M480,320 L570,310 L600,360 L580,440 L520,500 L440,480 L420,400 L460,360 Z" 
+                className={getStateClass("BA")} strokeWidth="2" />
+
+          {/* Centro-Oeste */}
+          {/* Mato Grosso - HIGHLIGHTED */}
+          <path d="M200,320 L300,300 L360,340 L380,420 L340,500 L260,520 L200,460 L180,380 Z" 
+                className={getStateClass("MT")} strokeWidth="2" />
           
-          {/* Maranhão - MA */}
-          <path d="M420,200 L500,180 L540,240 L520,300 L460,320 L440,280 L460,200 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
+          <path d="M260,520 L340,500 L380,560 L360,620 L300,640 L260,600 Z" 
+                className={getStateClass("MS")} strokeWidth="1.5" />
+          <path d="M340,420 L420,400 L460,460 L440,520 L380,540 L340,500 Z" 
+                className={getStateClass("GO")} strokeWidth="1.5" />
+          <circle cx="420" cy="480" r="12" className={getStateClass("DF")} strokeWidth="1.5" />
+
+          {/* Sudeste */}
+          <path d="M420,480 L520,460 L560,520 L540,580 L460,600 L420,560 Z" 
+                className={getStateClass("MG")} strokeWidth="1.5" />
+          <path d="M560,500 L600,500 L590,560 L550,560 Z" 
+                className={getStateClass("ES")} strokeWidth="1.5" />
+          <path d="M520,560 L580,560 L570,600 L510,600 Z" 
+                className={getStateClass("RJ")} strokeWidth="1.5" />
+          <path d="M380,560 L480,560 L500,620 L460,660 L380,640 L340,600 Z" 
+                className={getStateClass("SP")} strokeWidth="1.5" />
+
+          {/* Sul */}
+          {/* Paraná - HIGHLIGHTED */}
+          <path d="M340,620 L420,620 L460,680 L400,720 L320,700 L300,660 Z" 
+                className={getStateClass("PR")} strokeWidth="2" />
           
-          {/* Piauí - PI */}
-          <path d="M500,240 L540,240 L560,300 L540,360 L500,340 L480,300 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Ceará - CE */}
-          <path d="M540,200 L600,200 L620,260 L580,300 L540,280 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Rio Grande do Norte - RN */}
-          <path d="M600,200 L650,220 L640,260 L600,260 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Paraíba - PB */}
-          <path d="M600,260 L660,270 L650,300 L590,300 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Pernambuco - PE */}
-          <path d="M540,300 L650,300 L640,340 L520,340 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Alagoas - AL */}
-          <path d="M600,340 L650,340 L640,370 L590,370 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Sergipe - SE */}
-          <path d="M590,370 L630,370 L620,400 L580,400 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Bahia - BA - HIGHLIGHTED */}
-          <path d="M460,320 L580,300 L600,340 L580,420 L520,480 L440,460 L420,380 Z" 
-                className="fill-primary/50 stroke-primary" strokeWidth="2" />
-          
-          {/* Tocantins - TO */}
-          <path d="M380,280 L460,280 L460,380 L420,420 L360,380 L360,320 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Goiás - GO */}
-          <path d="M340,380 L420,380 L440,460 L400,500 L340,480 L320,420 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Mato Grosso - MT - HIGHLIGHTED */}
-          <path d="M220,320 L360,320 L360,420 L340,480 L280,500 L200,460 L180,380 Z" 
-                className="fill-primary/50 stroke-primary" strokeWidth="2" />
-          
-          {/* Mato Grosso do Sul - MS */}
-          <path d="M280,500 L340,480 L380,520 L360,580 L300,600 L260,560 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Minas Gerais - MG */}
-          <path d="M400,460 L520,440 L560,500 L520,560 L440,580 L400,540 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Espírito Santo - ES */}
-          <path d="M560,480 L600,480 L590,540 L550,540 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Rio de Janeiro - RJ */}
-          <path d="M520,540 L580,540 L570,580 L510,580 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* São Paulo - SP */}
-          <path d="M380,540 L480,540 L500,600 L440,640 L360,620 L340,580 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Paraná - PR - HIGHLIGHTED */}
-          <path d="M340,580 L420,600 L440,660 L380,700 L300,680 L300,620 Z" 
-                className="fill-primary/50 stroke-primary" strokeWidth="2" />
-          
-          {/* Santa Catarina - SC */}
-          <path d="M340,680 L420,680 L420,720 L340,720 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Rio Grande do Sul - RS */}
-          <path d="M300,700 L380,700 L400,750 L320,780 L260,760 L280,720 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Rondônia - RO */}
-          <path d="M140,340 L220,340 L240,400 L200,440 L140,420 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Acre - AC */}
-          <path d="M60,320 L140,300 L160,360 L120,400 L60,380 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Roraima - RR */}
-          <path d="M180,80 L260,60 L280,120 L240,160 L180,140 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Amapá - AP */}
-          <path d="M380,60 L440,40 L460,100 L420,140 L380,120 Z" 
-                className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
-          
-          {/* Distrito Federal - DF */}
-          <circle cx="420" cy="440" r="10" className="fill-gray-300/60 stroke-gray-400" strokeWidth="1" />
+          <path d="M340,700 L420,700 L440,740 L360,760 L320,740 Z" 
+                className={getStateClass("SC")} strokeWidth="1.5" />
+          <path d="M300,740 L360,760 L380,820 L320,860 L260,840 L260,780 Z" 
+                className={getStateClass("RS")} strokeWidth="1.5" />
         </g>
 
-        {/* Client dots */}
-        {clientDots.map((dot, index) => (
-          <motion.circle
-            key={`client-${index}`}
-            cx={dot.x}
-            cy={dot.y}
-            r={4}
-            className="fill-primary/60"
-            initial={{ opacity: 0, scale: 0 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 + index * 0.05, duration: 0.3 }}
-          />
-        ))}
+        {/* State labels when zoomed */}
+        {selectedOffice && offices.find(o => o.id === selectedOffice) && (
+          <motion.text
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            x={offices.find(o => o.id === selectedOffice)!.x}
+            y={offices.find(o => o.id === selectedOffice)!.y - 40}
+            textAnchor="middle"
+            className="fill-foreground text-sm font-semibold"
+            style={{ fontSize: "14px" }}
+          >
+            {offices.find(o => o.id === selectedOffice)!.state}
+          </motion.text>
+        )}
 
         {/* Office markers */}
-        {offices.map((office, index) => (
-          <g key={office.id}>
-            {/* Pulse ring */}
-            <motion.circle
-              cx={office.x}
-              cy={office.y}
-              r={office.isMain ? 20 : 14}
-              className="fill-none stroke-red-500/40"
-              strokeWidth="2"
-              initial={{ scale: 0.8, opacity: 0.8 }}
-              animate={{ 
-                scale: [0.8, 1.4, 0.8], 
-                opacity: [0.8, 0, 0.8] 
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity, 
-                delay: index * 0.3 
-              }}
-            />
-            {/* Main dot */}
-            <motion.circle
-              cx={office.x}
-              cy={office.y}
-              r={office.isMain ? 10 : 7}
-              className="fill-red-500"
-              filter="url(#glow)"
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 + index * 0.2, type: "spring" }}
-            />
-            {/* Inner dot */}
-            <circle
-              cx={office.x}
-              cy={office.y}
-              r={office.isMain ? 4 : 3}
-              className="fill-white"
-            />
-          </g>
-        ))}
-      </svg>
+        {offices.map((office, index) => {
+          const isSelected = selectedOffice === office.id;
+          const markerSize = isSelected ? 1.5 : 1;
+          
+          return (
+            <g 
+              key={office.id} 
+              className="cursor-pointer"
+              onClick={() => onOfficeClick?.(isSelected ? null : office.id)}
+            >
+              {/* Pulse ring */}
+              <motion.circle
+                cx={office.x}
+                cy={office.y}
+                r={(office.isMain ? 18 : 14) * markerSize}
+                className="fill-none stroke-destructive/40"
+                strokeWidth="2"
+                initial={{ scale: 0.8, opacity: 0.8 }}
+                animate={{ 
+                  scale: [0.8, 1.4, 0.8], 
+                  opacity: [0.8, 0, 0.8] 
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  delay: index * 0.3 
+                }}
+              />
+              {/* Main dot */}
+              <motion.circle
+                cx={office.x}
+                cy={office.y}
+                r={(office.isMain ? 10 : 7) * markerSize}
+                className="fill-destructive"
+                filter="url(#glow)"
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 + index * 0.2, type: "spring" }}
+              />
+              {/* Inner dot */}
+              <circle
+                cx={office.x}
+                cy={office.y}
+                r={(office.isMain ? 4 : 3) * markerSize}
+                className="fill-background"
+              />
+              
+              {/* City label */}
+              <motion.text
+                x={office.x}
+                y={office.y + (office.isMain ? 24 : 20) * markerSize}
+                textAnchor="middle"
+                className="fill-foreground font-medium pointer-events-none"
+                style={{ fontSize: isSelected ? "12px" : "9px" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 + index * 0.1 }}
+              >
+                {office.name}
+              </motion.text>
+            </g>
+          );
+        })}
+      </motion.svg>
     </motion.div>
   );
 };
