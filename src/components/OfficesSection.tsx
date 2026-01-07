@@ -30,24 +30,6 @@ export const OfficesSection = () => {
           {/* Mapa - Esquerda */}
           <div className="order-2 lg:order-1">
             <BrazilMap />
-            
-            {/* Legenda - abaixo do mapa */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6 }}
-              className="flex items-center justify-center gap-6 -mt-4 relative z-10 text-sm text-gray-500"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-400"></span>
-                <span>Escritórios</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
-                <span>Estados de atuação</span>
-              </div>
-            </motion.div>
           </div>
 
           {/* Conteúdo - Direita */}
