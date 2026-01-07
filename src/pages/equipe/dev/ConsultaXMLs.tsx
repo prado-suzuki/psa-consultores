@@ -8,13 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 interface NFeProduto {
   nItem: number;
   cProd: string;
   xProd: string;
+  NCM: string;
+  CFOP: string;
   vProd: number;
+  ICMS: {
+    CST: string;
+    vBC: number;
+    pICMS: number;
+    vICMS: number;
+  };
+  IPI: {
+    vIPI: number;
+    CST: number;
+  };
 }
 
 interface NFeEmit {
@@ -24,49 +36,113 @@ interface NFeEmit {
   UF: string;
 }
 
+interface NFeDest {
+  CNPJ: string;
+  xNome: string;
+  IE: string;
+  UF: string;
+}
+
 interface NFeRecord {
   chave_nfe: string;
-  nNF: string;
-  dhEmi: string;
-  mod: string;
+  cUF: number;
   natOp: string;
+  mod: string;
+  serie: number;
+  nNF: string;
+  dhEmi: string | null;
+  tpNF: number;
   emit: NFeEmit;
+  dest: NFeDest;
   produtos: NFeProduto[];
+  ICMSTot: {
+    vICMS: number;
+    vICMSST: number;
+  };
+  infAdic: {
+    infAdFisco: string | null;
+    infCpl: string | null;
+  };
+}
+
+interface ApiResponse {
+  items: NFeRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+}
+
+interface Contribuinte {
+  id: string;
+  nome_razao_social: string;
+  cpf_cnpj: string | null;
 }
 
 const ITEMS_PER_PAGE = 10;
 
 const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [cnpjFilter, setCnpjFilter] = useState('');
-  const [dataFilter, setDataFilter] = useState('');
-  const [tipoFilter, setTipoFilter] = useState('');
+  const [selectedContribuinte, setSelectedContribuinte] = useState('');
+  const [dataInicio, setDataInicio] = useState('2024-01-01');
+  const [dataFim, setDataFim] = useState('2026-01-31');
 
-  const { data: mockData, isLoading, error } = useQuery({
-    queryKey: ['mock-xmls'],
+  // Buscar lista de contribuintes
+  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
+    queryKey: ['contribuintes-list'],
     queryFn: async () => {
-      const { data, error } = await supabase.storage
-        .from('project-documents')
-        .download('mock_response.json');
+      const { data, error } = await supabase
+        .from('contribuinte')
+        .select('id, nome_razao_social, cpf_cnpj')
+        .order('nome_razao_social');
       
       if (error) throw error;
-      
-      const text = await data.text();
-      return JSON.parse(text) as NFeRecord[];
+      return data as Contribuinte[];
     },
   });
 
-  const records = mockData || [];
-  const totalRecords = records.length;
+  // Buscar NFes da API
+  const { data: nfeData, isLoading, error, refetch } = useQuery({
+    queryKey: ['nfes', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryFn: async () => {
+      if (!selectedContribuinte) return null;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) throw new Error('Usuário não autenticado');
+
+      const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+
+      return response.json() as Promise<ApiResponse>;
+    },
+    enabled: !!selectedContribuinte,
+  });
+
+  const records = nfeData?.items || [];
+  const totalRecords = nfeData?.total || 0;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
-  
-  const paginatedRecords = records.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
 
   const formatCNPJ = (cnpj: string) => {
-    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    if (!cnpj) return '-';
+    const cleaned = cnpj.replace(/\D/g, '');
+    if (cleaned.length === 14) {
+      return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    }
+    return cnpj;
   };
 
   const formatCurrency = (value: number) => {
@@ -76,17 +152,9 @@ const ConsultaXMLs = () => {
     }).format(value);
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('pt-BR');
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      autorizada: 'default',
-      cancelada: 'destructive',
-      pendente: 'secondary',
-    };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
   };
 
   const getTipoBadge = (tipo: string) => {
@@ -100,6 +168,11 @@ const ConsultaXMLs = () => {
         {tipo}
       </span>
     );
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    refetch();
   };
 
   return (
@@ -117,41 +190,46 @@ const ConsultaXMLs = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">CNPJ</label>
-                <Input
-                  placeholder="00.000.000/0000-00"
-                  value={cnpjFilter}
-                  onChange={(e) => setCnpjFilter(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data</label>
-                <Input
-                  type="date"
-                  value={dataFilter}
-                  onChange={(e) => setDataFilter(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Tipo</label>
-                <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-2">
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Contribuinte</label>
+                <Select value={selectedContribuinte} onValueChange={setSelectedContribuinte}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
+                    <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione um contribuinte"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="NFe">NFe</SelectItem>
-                    <SelectItem value="NFSe">NFSe</SelectItem>
-                    <SelectItem value="CTe">CTe</SelectItem>
+                    {contribuintes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ''}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <Button className="w-full" variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Início</label>
+                <Input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Fim</label>
+                <Input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <Button 
+                  className="flex-1" 
+                  onClick={handleSearch}
+                  disabled={!selectedContribuinte || isLoading}
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                  Buscar
                 </Button>
               </div>
             </div>
@@ -172,9 +250,13 @@ const ConsultaXMLs = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {isLoading ? (
+            {!selectedContribuinte ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Selecione um contribuinte para buscar os documentos fiscais
+              </div>
+            ) : isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : error ? (
               <div className="text-center py-8 text-destructive">
@@ -187,7 +269,7 @@ const ConsultaXMLs = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
-                        <TableHead className="whitespace-nowrap">CNPJ</TableHead>
+                        <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                         <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                         <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
                         <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
@@ -200,14 +282,14 @@ const ConsultaXMLs = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedRecords.length === 0 ? (
+                      {records.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                             Nenhum registro encontrado
                           </TableCell>
                         </TableRow>
                       ) : (
-                        paginatedRecords.map((record) => (
+                        records.map((record) => (
                           <TableRow key={record.chave_nfe}>
                             <TableCell className="font-mono text-xs max-w-[180px]">
                               <span className="truncate block" title={record.chave_nfe}>
@@ -256,7 +338,7 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
+                        disabled={currentPage === 1 || isLoading}
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Anterior
@@ -265,7 +347,7 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage === totalPages || isLoading}
                       >
                         Próximo
                         <ChevronRight className="h-4 w-4 ml-1" />
