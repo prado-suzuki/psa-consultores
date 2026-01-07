@@ -15,70 +15,70 @@ const services = [
   {
     icon: FileText,
     title: "Consultoria Tributária",
-    description: "Otimização fiscal e mitigação de riscos em tributos diretos, indiretos e aduaneiros.",
-  },
-  {
-    icon: RefreshCw,
-    title: "Recuperação Tributária",
-    description: "Identificação e recuperação de créditos de PIS, COFINS, ICMS, IPI e subvenções.",
-  },
-  {
-    icon: Building2,
-    title: "Reestruturação Societária",
-    description: "Reorganização para otimização fiscal, governança e proteção patrimonial.",
-  },
-  {
-    icon: Gift,
-    title: "Benefícios Fiscais",
-    description: "Identificação e implantação de incentivos fiscais regionais e setoriais.",
+    description: "Apoio técnico e estratégico para otimização fiscal, mitigação de riscos e cumprimento eficiente das obrigações tributárias em tributos diretos, indiretos e aduaneiros.",
   },
   {
     icon: Shield,
     title: "Consultoria Previdenciária",
-    description: "Revisão, planejamento e regularização previdenciária patronal.",
+    description: "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
+  },
+  {
+    icon: Building2,
+    title: "Reestruturação Societária",
+    description: "Assessoria na reorganização societária para otimização fiscal, governança corporativa e proteção patrimonial. Estruturação de Holdings.",
+  },
+  {
+    icon: Gift,
+    title: "Benefícios Fiscais",
+    description: "Consultoria para identificação, viabilização e implementação de incentivos fiscais regionais, setoriais e específicos.",
   },
   {
     icon: Calculator,
     title: "Consultoria Contábil",
-    description: "Gestão contábil e de controladoria com foco em governança e transparência.",
+    description: "Apoio estratégico na gestão contábil, financeira e de controladoria, promovendo governança e transparência.",
   },
   {
     icon: User,
     title: "Pessoa Física",
-    description: "Gestão tributária, sucessória e patrimonial para grupos familiares.",
+    description: "Gestão tributária, sucessória e patrimonial para pessoas físicas e grupos familiares. Planejamento sucessório e proteção patrimonial.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Recuperação Tributária",
+    description: "Atuação administrativa para recuperação de créditos tributários e ressarcimentos. Diagnóstico, levantamento e pedido de ressarcimento.",
   },
   {
     icon: Scale,
     title: "Antecipação de Provas",
-    description: "Estratégia jurídica preventiva para redução de riscos processuais.",
+    description: "Estratégia jurídica preventiva para levantamento de provas antes de litígios, reduzindo riscos processuais e financeiros.",
   },
   {
     icon: BarChart3,
-    title: "Data Analysis",
-    description: "Soluções de BI com foco tributário, contábil e financeiro.",
+    title: "Business Intelligence",
+    description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro. Dashboards e relatórios automatizados.",
   },
 ];
 
 export const Services = () => {
   return (
-    <section id="servicos" className="py-20 md:py-28 bg-muted/30">
+    <section id="servicos" className="py-24 md:py-32 bg-gray-950">
       <div className="container mx-auto px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl mb-12"
+          className="text-center max-w-3xl mx-auto mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
             Nossos Serviços
           </h2>
-          <p className="text-muted-foreground">
-            Estratégias tributárias, societárias e de governança especializadas para empresas do agronegócio.
+          <p className="text-gray-400 text-lg">
+            Estratégias especializadas em tributação, governança e gestão patrimonial para empresas do agronegócio.
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
           {services.map((service, index) => (
             <motion.div
               key={index}
@@ -86,13 +86,13 @@ export const Services = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.05 }}
-              className="group p-6 bg-background rounded-lg border border-border hover:border-primary/30 transition-colors duration-200"
+              className="group p-6 bg-white/5 rounded-xl border border-gray-800 hover:bg-white/10 hover:border-gray-700 transition-all duration-300"
             >
-              <service.icon className="h-5 w-5 text-primary mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
+              <service.icon className="h-6 w-6 text-primary mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-3">
                 {service.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-gray-400 leading-relaxed">
                 {service.description}
               </p>
             </motion.div>
