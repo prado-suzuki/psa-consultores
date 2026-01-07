@@ -25,7 +25,7 @@ const offices = [
 
 export const OfficesSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-gray-950">
+    <section className="py-20 md:py-28 bg-gray-50">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Mapa - Esquerda */}
@@ -42,10 +42,10 @@ export const OfficesSection = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 Onde Estamos
               </h2>
-              <p className="text-gray-400">
+              <p className="text-gray-600">
                 Presença estratégica nas principais regiões do agronegócio brasileiro, 
                 atendendo clientes em todo o território nacional.
               </p>
@@ -70,7 +70,7 @@ export const OfficesSection = () => {
                     alt="" 
                     className="w-6 h-6 object-contain" 
                   />
-                  <span className="text-lg font-semibold text-white">
+                  <span className="text-lg font-semibold text-gray-900">
                     Escritório {office.city} - {office.state}
                   </span>
                 </motion.div>
@@ -83,7 +83,7 @@ export const OfficesSection = () => {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.6 }}
-              className="flex items-center gap-6 pt-4 text-sm text-gray-400"
+              className="flex items-center gap-6 pt-4 text-sm text-gray-500"
             >
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-cyan-400"></span>
