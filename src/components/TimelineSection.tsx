@@ -10,7 +10,7 @@ const milestones = [
 
 export const TimelineSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-background">
+    <section className="py-20 md:py-28 bg-gray-800">
       <div className="container mx-auto px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -19,10 +19,10 @@ export const TimelineSection = () => {
           transition={{ duration: 0.6 }}
           className="max-w-2xl mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-50 mb-4">
             Nossa História
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-400">
             Uma trajetória de crescimento e inovação no setor tributário.
           </p>
         </motion.div>
@@ -40,7 +40,7 @@ export const TimelineSection = () => {
               <p className="text-3xl md:text-4xl font-bold text-primary">
                 {milestone.year}
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-gray-400 mt-2">
                 {milestone.title}
               </p>
             </motion.div>

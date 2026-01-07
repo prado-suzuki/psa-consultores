@@ -47,7 +47,7 @@ export const CTA = () => {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 bg-gray-900">
+    <section id="contato" className="py-20 md:py-28 bg-gray-800">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Left - Content */}
