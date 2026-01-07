@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMemo, useState } from "react";
 
 interface Office {
   id: string;
@@ -83,11 +83,17 @@ const isInsideBrazil = (lat: number, lng: number): boolean => {
   return inside;
 };
 
+const SVG_WIDTH = 200;
+const SVG_HEIGHT = 200;
+const DOT_SPACING = 4;
+const DOT_RADIUS = 1.2;
+
+// Default viewBox
+const DEFAULT_VIEWBOX = { x: 0, y: 0, width: SVG_WIDTH, height: SVG_HEIGHT };
+
 export const BrazilMap = () => {
-  const SVG_WIDTH = 200;
-  const SVG_HEIGHT = 200;
-  const DOT_SPACING = 4;
-  const DOT_RADIUS = 1.2;
+  const [selectedOffice, setSelectedOffice] = useState<string | null>(null);
+  const [viewBox, setViewBox] = useState(DEFAULT_VIEWBOX);
 
   const dots = useMemo(() => {
     const points: { x: number; y: number; isOperational: boolean }[] = [];
@@ -121,6 +127,31 @@ export const BrazilMap = () => {
     }));
   }, []);
 
+  const handleOfficeClick = (office: typeof officePositions[0]) => {
+    if (selectedOffice === office.id) {
+      // Clicked again = reset zoom
+      setSelectedOffice(null);
+      setViewBox(DEFAULT_VIEWBOX);
+    } else {
+      // Zoom into the selected city
+      setSelectedOffice(office.id);
+      const zoomSize = 50;
+      setViewBox({
+        x: office.x - zoomSize / 2,
+        y: office.y - zoomSize / 2,
+        width: zoomSize,
+        height: zoomSize
+      });
+    }
+  };
+
+  const handleResetZoom = () => {
+    setSelectedOffice(null);
+    setViewBox(DEFAULT_VIEWBOX);
+  };
+
+  const selectedOfficeData = officePositions.find(o => o.id === selectedOffice);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -129,10 +160,14 @@ export const BrazilMap = () => {
       transition={{ duration: 0.8 }}
       className="relative w-full aspect-square max-w-md mx-auto"
     >
-      <svg
-        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+      <motion.svg
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         className="w-full h-full"
         style={{ overflow: 'visible' }}
+        animate={{
+          viewBox: `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+        }}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
       >
         <defs>
           <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -149,7 +184,7 @@ export const BrazilMap = () => {
           </filter>
         </defs>
 
-        {/* Brazil dots */}
+        {/* Brazil dots - now in dark gray */}
         {dots.map((dot, i) => (
           <motion.circle
             key={i}
@@ -160,7 +195,7 @@ export const BrazilMap = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3, delay: i * 0.0005 }}
-            className={dot.isOperational ? "fill-emerald-400" : "fill-gray-300"}
+            className={dot.isOperational ? "fill-emerald-500" : "fill-gray-600"}
           />
         ))}
 
@@ -186,9 +221,13 @@ export const BrazilMap = () => {
           );
         })}
 
-        {/* Office markers */}
+        {/* Office markers - clickable */}
         {officePositions.map((office, i) => (
-          <g key={office.id}>
+          <g 
+            key={office.id} 
+            className="cursor-pointer"
+            onClick={() => handleOfficeClick(office)}
+          >
             {/* Pulse ring */}
             <motion.circle
               cx={office.x}
@@ -233,9 +272,59 @@ export const BrazilMap = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: 1 + i * 0.15 }}
             />
+
+            {/* City label when zoomed */}
+            {selectedOffice === office.id && (
+              <motion.text
+                x={office.x}
+                y={office.y - 8}
+                textAnchor="middle"
+                className="fill-white text-[4px] font-semibold"
+                initial={{ opacity: 0, y: office.y - 4 }}
+                animate={{ opacity: 1, y: office.y - 8 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              >
+                {office.name}, {office.state}
+              </motion.text>
+            )}
           </g>
         ))}
-      </svg>
+      </motion.svg>
+
+      {/* Reset button when zoomed */}
+      <AnimatePresence>
+        {selectedOffice && (
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3 }}
+            onClick={handleResetZoom}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800/90 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-full border border-gray-600 transition-colors"
+          >
+            ← Voltar ao mapa completo
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Selected office info overlay */}
+      <AnimatePresence>
+        {selectedOfficeData && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 bg-gray-800/90 text-white text-sm px-4 py-2 rounded-lg border border-cyan-500/50"
+          >
+            <span className="text-cyan-400 font-semibold">{selectedOfficeData.name}</span>
+            <span className="text-gray-400"> • {selectedOfficeData.state}</span>
+            {selectedOfficeData.isMain && (
+              <span className="ml-2 bg-cyan-500/20 text-cyan-300 text-xs px-2 py-0.5 rounded">Sede</span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
