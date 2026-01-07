@@ -1,7 +1,11 @@
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
+import { AboutSection } from "@/components/AboutSection";
 import { Services } from "@/components/Services";
-import { WhyChooseUs } from "@/components/WhyChooseUs";
+import { ResultsSection } from "@/components/ResultsSection";
+import { TimelineSection } from "@/components/TimelineSection";
+import { LocationsSection } from "@/components/LocationsSection";
+import { ClientsSection } from "@/components/ClientsSection";
 import { CTA } from "@/components/CTA";
 import { Footer } from "@/components/Footer";
 
@@ -11,11 +15,15 @@ const Index = () => {
       {/* Header fixo */}
       <Header />
       
-      {/* Conteúdo principal - Hero começa do topo para aparecer atrás do header */}
+      {/* Conteúdo principal */}
       <div className="relative">
         <Hero />
+        <AboutSection />
         <Services />
-        <WhyChooseUs />
+        <ResultsSection />
+        <TimelineSection />
+        <LocationsSection />
+        <ClientsSection />
         <CTA />
         <Footer />
       </div>

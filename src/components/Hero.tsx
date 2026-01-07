@@ -33,7 +33,7 @@ export const Hero = () => {
           <img src={logo} alt="PSA Consultores" className="h-20 md:h-24 w-auto" />
         </motion.div>
 
-        {/* Main Heading - Texto em gray-50, destaque em primary (lime) */}
+        {/* Main Heading */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,14 +53,14 @@ export const Hero = () => {
           </span>
         </motion.h1>
 
-        {/* Subtitle - gray-50 com opacidade */}
+        {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.7 }}
           className="text-lg md:text-xl text-gray-200 max-w-2xl mb-8"
         >
-          Transformamos complexidade tributária em vantagem competitiva para empresas familiares há mais de 20 anos.
+          Há mais de 20 anos a PSA se consolidou como líder em reestruturação contábil para empresas familiares do agronegócio, sendo pioneira em Mato Grosso.
         </motion.p>
 
         {/* CTA Button */}

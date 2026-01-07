@@ -50,10 +50,10 @@ export const CTA = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
           <div className="space-y-4">
             <h2 className="text-3xl md:text-5xl font-bold text-gray-50 leading-tight">
-              Pronto para <span className="text-primary">Transformar</span> Seu Negócio?
+              Transformamos Complexidade em <span className="text-primary">Vantagem Competitiva</span>
             </h2>
             <p className="text-lg text-gray-300 leading-relaxed">
-              Agende uma reunião gratuita com nossos especialistas e descubra como podemos acelerar seus resultados.
+              Agende uma reunião gratuita com nossos especialistas e descubra como podemos otimizar sua carga tributária e proteger seu patrimônio.
             </p>
 
             <div className="flex items-center gap-4 pt-4">
