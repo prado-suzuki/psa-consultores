@@ -20,12 +20,12 @@ export const Hero = () => {
         transition={{ duration: 0.8 }}
         className="relative z-10 flex flex-col items-start justify-center h-full container mx-auto px-4 md:px-6"
       >
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white max-w-4xl leading-tight drop-shadow-lg">
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-50 max-w-4xl leading-tight drop-shadow-lg">
           Especialistas em Tributação para o Agronegócio
         </h1>
         
         <p className="mt-6 text-lg md:text-xl text-white/90 max-w-2xl">
-          Há mais de 20 anos a PSA se consolidou como líder em reestruturação contábil para empresas familiares do agronegócio, sendo pioneira em Mato Grosso.
+          Há mais de duas décadas, a PSA é referência em reestruturação contábil para empresas familiares do agronegócio, sendo pioneira em Mato Grosso.
         </p>
 
         <a
