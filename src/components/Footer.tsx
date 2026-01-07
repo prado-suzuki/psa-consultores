@@ -5,6 +5,18 @@ export const Footer = () => {
   return (
     <footer className="bg-gray-900 text-gray-50 py-8">
       <div className="container mx-auto px-4 md:px-6">
+        {/* Botão Trabalhe Conosco */}
+        <div className="flex justify-center mb-8">
+          <a 
+            href="https://www.linkedin.com/company/prado-consultores-associados/jobs/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
+          >
+            Trabalhe Conosco
+          </a>
+        </div>
+
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Logo */}
           <div className="flex items-center gap-3">

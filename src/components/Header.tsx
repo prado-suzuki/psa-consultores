@@ -13,7 +13,6 @@ const navItems = [
   { id: "servicos", label: "Serviços", href: "#servicos", external: false },
   { id: "sobre", label: "Sobre", href: "#sobre", external: false },
   { id: "contato", label: "Contato", href: "#contato", external: false },
-  { id: "carreira", label: "Carreira", href: "https://www.linkedin.com/company/prado-consultores-associados/jobs/", external: true },
 ];
 
 export const Header = () => {
