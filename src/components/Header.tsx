@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import logo from "@/assets/logo-psa.png";
 
 const navItems = [
   { id: "inicio", label: "Início", href: "#", external: false },
@@ -13,10 +14,19 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-gray-900/50 backdrop-blur-md shadow-lg">
-      <div className="container mx-auto px-4 md:px-6 py-2">
-        <div className="flex h-20 items-center justify-between">
-          {/* Navigation - Left side */}
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-gray-900/80 backdrop-blur-sm">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo - Left */}
+          <a href="#" className="flex items-center">
+            <img 
+              src={logo} 
+              alt="PSA Consultores" 
+              className="h-8 w-auto brightness-0 invert" 
+            />
+          </a>
+
+          {/* Navigation - Center */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <a
@@ -24,28 +34,24 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:text-primary rounded-md"
+                className="px-4 py-2 text-sm font-medium text-gray-50/80 transition-colors duration-200 hover:text-gray-50"
               >
                 {item.label}
               </a>
             ))}
           </nav>
 
-          {/* CTA Buttons - Right side */}
+          {/* CTA Buttons - Right */}
           <div className="hidden md:flex items-center gap-3">
             <a
               href="/equipe"
-              className="px-6 py-3 text-sm font-medium rounded-md
-                bg-white/20 backdrop-blur-sm border border-white/30 text-white
-                hover:bg-white/30 hover:border-white/40 transition-all duration-200"
+              className="px-5 py-2 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
             >
               Equipe
             </a>
             <a
               href="/auth"
-              className="px-6 py-3 text-sm font-medium rounded-md
-                bg-primary border border-primary text-primary-foreground
-                hover:bg-primary/90 hover:shadow-[0_0_20px_rgba(101,163,13,0.4)] transition-all duration-200"
+              className="px-5 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-200"
             >
               Área do Cliente
             </a>
@@ -53,8 +59,7 @@ export const Header = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2.5 rounded-md bg-white/20 backdrop-blur-sm border border-white/30 text-white
-              hover:bg-white/30 transition-colors duration-200"
+            className="md:hidden p-2 text-gray-50"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -75,26 +80,23 @@ export const Header = () => {
                 href={item.href}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}
-                className="block px-4 py-3 text-sm font-medium text-white rounded-md
-                  hover:bg-white/10 transition-colors duration-200"
+                className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <div className="h-px bg-white/20 my-3" />
+            <div className="h-px bg-gray-50/10 my-3" />
             <a
               href="/equipe"
-              className="block px-4 py-3 text-sm font-medium text-white rounded-md
-                hover:bg-white/10 transition-colors duration-200"
+              className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
               Equipe
             </a>
             <a
               href="/auth"
-              className="block px-4 py-3 text-sm font-medium rounded-md
-                bg-primary text-primary-foreground transition-colors duration-200"
+              className="block px-4 py-3 text-sm font-medium text-primary transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
               Área do Cliente
