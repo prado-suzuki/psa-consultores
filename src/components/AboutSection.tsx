@@ -1,28 +1,9 @@
 import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
-import equipeCompleta from "@/assets/equipe/equipe-completa.png";
-import equipeFeminina from "@/assets/equipe/equipe-feminina.png";
-
-const teamImages = [
-  { src: equipeCompleta, alt: "Equipe completa PSA Consultores" },
-  { src: equipeFeminina, alt: "Equipe feminina PSA Consultores" }
-];
+import farmerIllustration from "@/assets/about/farmer-illustration.jpg";
 
 export const AboutSection = () => {
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: false }));
-
-  useEffect(() => {
-    if (!api) return;
-    setCurrent(api.selectedScrollSnap());
-    api.on("select", () => setCurrent(api.selectedScrollSnap()));
-  }, [api]);
-
   return (
-    <section id="sobre" className="py-20 md:py-28 bg-gray-50">
+    <section id="sobre" className="py-20 md:py-28 bg-gray-50 relative overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Text Content */}
@@ -46,61 +27,19 @@ export const AboutSection = () => {
             </p>
           </motion.div>
 
-          {/* Team Photos Carousel */}
+          {/* Ilustração Integrada */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col"
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="flex items-center justify-center"
           >
-            {/* Navigation Buttons */}
-            <div className="flex justify-end gap-2 mb-4">
-              <button 
-                onClick={() => api?.scrollPrev()}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium"
-              >
-                Anterior
-              </button>
-              <button 
-                onClick={() => api?.scrollNext()}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium"
-              >
-                Próximo
-              </button>
-            </div>
-
-            {/* Carousel */}
-            <Carousel setApi={setApi} plugins={[plugin.current]} className="w-full">
-              <CarouselContent>
-                {teamImages.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-[4/3] rounded-lg overflow-hidden">
-                      <img 
-                        src={image.src} 
-                        alt={image.alt} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-
-            {/* Indicators */}
-            <div className="flex justify-center gap-2 mt-4">
-              {teamImages.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => api?.scrollTo(index)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    index === current 
-                      ? "bg-gray-900 w-4" 
-                      : "bg-gray-300 w-2 hover:bg-gray-400"
-                  }`}
-                />
-              ))}
-            </div>
+            <img 
+              src={farmerIllustration} 
+              alt="Ilustração de agricultor trabalhando no campo"
+              className="w-full max-w-lg h-auto opacity-40 mix-blend-multiply"
+            />
           </motion.div>
         </div>
       </div>
