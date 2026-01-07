@@ -11,10 +11,10 @@ import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen bg-gray-50">
       <Header />
       
-      <div className="relative">
+      <div className="relative bg-gray-50">
         <Hero />
         <MetricsBar />
         <AboutSection />
