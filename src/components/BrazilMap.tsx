@@ -1,73 +1,126 @@
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 interface Office {
   id: string;
   name: string;
   state: string;
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
   isMain: boolean;
 }
 
 const offices: Office[] = [
-  { id: "cuiaba", name: "Cuiabá", state: "MT", x: 44, y: 52, isMain: true },
-  { id: "barreiras", name: "Barreiras", state: "BA", x: 70, y: 48, isMain: false },
-  { id: "curitiba", name: "Curitiba", state: "PR", x: 56, y: 82, isMain: false },
+  { id: "cuiaba", name: "Cuiabá", state: "MT", lat: -15.6, lng: -56.1, isMain: true },
+  { id: "barreiras", name: "Barreiras", state: "BA", lat: -12.15, lng: -45.0, isMain: false },
+  { id: "curitiba", name: "Curitiba", state: "PR", lat: -25.43, lng: -49.27, isMain: false },
 ];
 
-// Brazil outline represented as dots - simplified representation
-const brazilDots = [
-  // Northern region
-  { x: 55, y: 8 }, { x: 58, y: 10 }, { x: 62, y: 8 }, { x: 66, y: 10 }, { x: 70, y: 8 },
-  { x: 50, y: 12 }, { x: 54, y: 14 }, { x: 58, y: 12 }, { x: 62, y: 14 }, { x: 66, y: 12 }, { x: 70, y: 14 }, { x: 74, y: 12 },
-  { x: 46, y: 16 }, { x: 50, y: 18 }, { x: 54, y: 16 }, { x: 58, y: 18 }, { x: 62, y: 16 }, { x: 66, y: 18 }, { x: 70, y: 16 }, { x: 74, y: 18 }, { x: 78, y: 16 },
-  { x: 42, y: 20 }, { x: 46, y: 22 }, { x: 50, y: 20 }, { x: 54, y: 22 }, { x: 58, y: 20 }, { x: 62, y: 22 }, { x: 66, y: 20 }, { x: 70, y: 22 }, { x: 74, y: 20 }, { x: 78, y: 22 }, { x: 82, y: 20 },
-  
-  // Amazon region
-  { x: 38, y: 24 }, { x: 42, y: 26 }, { x: 46, y: 24 }, { x: 50, y: 26 }, { x: 54, y: 24 }, { x: 58, y: 26 }, { x: 62, y: 24 }, { x: 66, y: 26 }, { x: 70, y: 24 }, { x: 74, y: 26 }, { x: 78, y: 24 }, { x: 82, y: 26 }, { x: 86, y: 24 },
-  { x: 34, y: 28 }, { x: 38, y: 30 }, { x: 42, y: 28 }, { x: 46, y: 30 }, { x: 50, y: 28 }, { x: 54, y: 30 }, { x: 58, y: 28 }, { x: 62, y: 30 }, { x: 66, y: 28 }, { x: 70, y: 30 }, { x: 74, y: 28 }, { x: 78, y: 30 }, { x: 82, y: 28 }, { x: 86, y: 30 },
-  { x: 30, y: 32 }, { x: 34, y: 34 }, { x: 38, y: 32 }, { x: 42, y: 34 }, { x: 46, y: 32 }, { x: 50, y: 34 }, { x: 54, y: 32 }, { x: 58, y: 34 }, { x: 62, y: 32 }, { x: 66, y: 34 }, { x: 70, y: 32 }, { x: 74, y: 34 }, { x: 78, y: 32 }, { x: 82, y: 34 }, { x: 86, y: 32 },
-  
-  // Central-West (MT highlighted)
-  { x: 30, y: 36 }, { x: 34, y: 38 }, { x: 38, y: 36 }, { x: 42, y: 38 }, { x: 46, y: 36 }, { x: 50, y: 38 }, { x: 54, y: 36 }, { x: 58, y: 38 }, { x: 62, y: 36 }, { x: 66, y: 38 }, { x: 70, y: 36 }, { x: 74, y: 38 }, { x: 78, y: 36 }, { x: 82, y: 38 }, { x: 86, y: 36 }, { x: 90, y: 38 },
-  { x: 30, y: 40 }, { x: 34, y: 42 }, { x: 38, y: 40 }, { x: 42, y: 42 }, { x: 46, y: 40 }, { x: 50, y: 42 }, { x: 54, y: 40 }, { x: 58, y: 42 }, { x: 62, y: 40 }, { x: 66, y: 42 }, { x: 70, y: 40 }, { x: 74, y: 42 }, { x: 78, y: 40 }, { x: 82, y: 42 }, { x: 86, y: 40 }, { x: 90, y: 42 },
-  { x: 30, y: 44 }, { x: 34, y: 46 }, { x: 38, y: 44 }, { x: 42, y: 46 }, { x: 46, y: 44 }, { x: 50, y: 46 }, { x: 54, y: 44 }, { x: 58, y: 46 }, { x: 62, y: 44 }, { x: 66, y: 46 }, { x: 70, y: 44 }, { x: 74, y: 46 }, { x: 78, y: 44 }, { x: 82, y: 46 }, { x: 86, y: 44 }, { x: 90, y: 46 },
-  { x: 34, y: 48 }, { x: 38, y: 50 }, { x: 42, y: 48 }, { x: 46, y: 50 }, { x: 50, y: 48 }, { x: 54, y: 50 }, { x: 58, y: 48 }, { x: 62, y: 50 }, { x: 66, y: 48 }, { x: 70, y: 50 }, { x: 74, y: 48 }, { x: 78, y: 50 }, { x: 82, y: 48 }, { x: 86, y: 50 }, { x: 90, y: 48 },
-  
-  // Northeast (BA highlighted)
-  { x: 38, y: 52 }, { x: 42, y: 54 }, { x: 46, y: 52 }, { x: 50, y: 54 }, { x: 54, y: 52 }, { x: 58, y: 54 }, { x: 62, y: 52 }, { x: 66, y: 54 }, { x: 70, y: 52 }, { x: 74, y: 54 }, { x: 78, y: 52 }, { x: 82, y: 54 }, { x: 86, y: 52 },
-  { x: 42, y: 56 }, { x: 46, y: 58 }, { x: 50, y: 56 }, { x: 54, y: 58 }, { x: 58, y: 56 }, { x: 62, y: 58 }, { x: 66, y: 56 }, { x: 70, y: 58 }, { x: 74, y: 56 }, { x: 78, y: 58 }, { x: 82, y: 56 },
-  
-  // Southeast
-  { x: 46, y: 60 }, { x: 50, y: 62 }, { x: 54, y: 60 }, { x: 58, y: 62 }, { x: 62, y: 60 }, { x: 66, y: 62 }, { x: 70, y: 60 }, { x: 74, y: 62 }, { x: 78, y: 60 },
-  { x: 46, y: 64 }, { x: 50, y: 66 }, { x: 54, y: 64 }, { x: 58, y: 66 }, { x: 62, y: 64 }, { x: 66, y: 66 }, { x: 70, y: 64 }, { x: 74, y: 66 },
-  { x: 50, y: 68 }, { x: 54, y: 70 }, { x: 58, y: 68 }, { x: 62, y: 70 }, { x: 66, y: 68 }, { x: 70, y: 70 },
-  
-  // South (PR highlighted)
-  { x: 50, y: 72 }, { x: 54, y: 74 }, { x: 58, y: 72 }, { x: 62, y: 74 }, { x: 66, y: 72 },
-  { x: 50, y: 76 }, { x: 54, y: 78 }, { x: 58, y: 76 }, { x: 62, y: 78 }, { x: 66, y: 76 },
-  { x: 50, y: 80 }, { x: 54, y: 82 }, { x: 58, y: 80 }, { x: 62, y: 82 },
-  { x: 50, y: 84 }, { x: 54, y: 86 }, { x: 58, y: 84 },
-  { x: 50, y: 88 }, { x: 54, y: 90 },
+// Brazil bounding box
+const BRAZIL_BOUNDS = {
+  minLat: -33.75,
+  maxLat: 5.27,
+  minLng: -73.99,
+  maxLng: -32.39,
+};
+
+// State bounding boxes for highlighting
+const STATE_BOUNDS: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  MT: { minLat: -18.04, maxLat: -7.35, minLng: -61.63, maxLng: -50.22 },
+  BA: { minLat: -18.35, maxLat: -8.53, minLng: -46.62, maxLng: -37.34 },
+  PR: { minLat: -26.72, maxLat: -22.52, minLng: -54.62, maxLng: -48.02 },
+};
+
+// Convert lat/lng to SVG coordinates
+const latLngToSvg = (lat: number, lng: number, width: number, height: number) => {
+  const x = ((lng - BRAZIL_BOUNDS.minLng) / (BRAZIL_BOUNDS.maxLng - BRAZIL_BOUNDS.minLng)) * width;
+  const y = ((BRAZIL_BOUNDS.maxLat - lat) / (BRAZIL_BOUNDS.maxLat - BRAZIL_BOUNDS.minLat)) * height;
+  return { x, y };
+};
+
+// Check if point is in a state
+const isInState = (lat: number, lng: number, state: string): boolean => {
+  const bounds = STATE_BOUNDS[state];
+  if (!bounds) return false;
+  return lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng;
+};
+
+// Check if point is in any operational state
+const isOperational = (lat: number, lng: number): boolean => {
+  return Object.keys(STATE_BOUNDS).some(state => isInState(lat, lng, state));
+};
+
+// Brazil outline coordinates (simplified polygon)
+const BRAZIL_OUTLINE: [number, number][] = [
+  [-4.44, -32.39], [-2.5, -34.9], [-1.03, -36.75], [0.7, -40.0], [1.24, -44.99],
+  [2.2, -49.0], [4.38, -51.0], [5.27, -54.0], [4.5, -55.5], [3.87, -57.5],
+  [2.2, -60.0], [1.24, -65.0], [0.0, -66.5], [-2.0, -68.0], [-4.0, -69.5],
+  [-5.0, -70.5], [-7.0, -72.0], [-9.0, -73.0], [-10.0, -73.99], [-12.0, -73.5],
+  [-13.5, -72.0], [-15.0, -69.5], [-17.0, -67.0], [-18.0, -64.0], [-19.0, -60.0],
+  [-20.0, -57.5], [-22.0, -55.0], [-24.0, -54.0], [-26.0, -53.5], [-28.0, -52.0],
+  [-29.5, -50.5], [-30.5, -51.0], [-32.0, -52.5], [-33.5, -53.5], [-33.75, -53.5],
+  [-32.0, -52.0], [-30.0, -50.0], [-29.0, -49.0], [-27.5, -48.5], [-26.0, -48.5],
+  [-24.5, -47.0], [-23.0, -44.5], [-22.0, -41.0], [-21.0, -40.0], [-19.0, -39.5],
+  [-18.0, -39.0], [-15.5, -39.0], [-13.0, -38.5], [-10.0, -36.5], [-7.5, -35.0],
+  [-5.5, -35.0], [-4.44, -32.39]
 ];
 
-// Highlighted dots for operational states (MT, BA, PR regions)
-const operationalDots = [
-  // MT region
-  { x: 38, y: 44 }, { x: 42, y: 46 }, { x: 46, y: 44 }, { x: 50, y: 46 }, { x: 38, y: 48 }, { x: 42, y: 50 }, { x: 46, y: 48 }, { x: 50, y: 50 },
-  { x: 38, y: 52 }, { x: 42, y: 54 }, { x: 46, y: 52 }, { x: 50, y: 54 },
-  // BA region  
-  { x: 66, y: 40 }, { x: 70, y: 42 }, { x: 74, y: 40 }, { x: 78, y: 42 }, { x: 82, y: 40 },
-  { x: 66, y: 44 }, { x: 70, y: 46 }, { x: 74, y: 44 }, { x: 78, y: 46 }, { x: 82, y: 44 },
-  { x: 66, y: 48 }, { x: 70, y: 50 }, { x: 74, y: 48 }, { x: 78, y: 50 },
-  // PR region
-  { x: 50, y: 76 }, { x: 54, y: 78 }, { x: 58, y: 76 }, { x: 62, y: 78 },
-  { x: 50, y: 80 }, { x: 54, y: 82 }, { x: 58, y: 80 },
-];
-
-const operationalSet = new Set(operationalDots.map(d => `${d.x}-${d.y}`));
+// Check if a point is inside Brazil (simplified check using bounding boxes for states)
+const isInsideBrazil = (lat: number, lng: number): boolean => {
+  // Simple polygon point-in-polygon test (ray casting)
+  let inside = false;
+  const n = BRAZIL_OUTLINE.length;
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const [yi, xi] = BRAZIL_OUTLINE[i];
+    const [yj, xj] = BRAZIL_OUTLINE[j];
+    
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  
+  return inside;
+};
 
 export const BrazilMap = () => {
+  const SVG_WIDTH = 200;
+  const SVG_HEIGHT = 200;
+  const DOT_SPACING = 4;
+  const DOT_RADIUS = 1.2;
+
+  const dots = useMemo(() => {
+    const points: { x: number; y: number; isOperational: boolean }[] = [];
+    
+    for (let row = 0; row < SVG_HEIGHT / DOT_SPACING; row++) {
+      for (let col = 0; col < SVG_WIDTH / DOT_SPACING; col++) {
+        const x = col * DOT_SPACING + DOT_SPACING / 2;
+        const y = row * DOT_SPACING + DOT_SPACING / 2;
+        
+        // Convert back to lat/lng
+        const lng = BRAZIL_BOUNDS.minLng + (x / SVG_WIDTH) * (BRAZIL_BOUNDS.maxLng - BRAZIL_BOUNDS.minLng);
+        const lat = BRAZIL_BOUNDS.maxLat - (y / SVG_HEIGHT) * (BRAZIL_BOUNDS.maxLat - BRAZIL_BOUNDS.minLat);
+        
+        if (isInsideBrazil(lat, lng)) {
+          points.push({
+            x,
+            y,
+            isOperational: isOperational(lat, lng)
+          });
+        }
+      }
+    }
+    
+    return points;
+  }, []);
+
+  const officePositions = useMemo(() => {
+    return offices.map(office => ({
+      ...office,
+      ...latLngToSvg(office.lat, office.lng, SVG_WIDTH, SVG_HEIGHT)
+    }));
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -77,111 +130,108 @@ export const BrazilMap = () => {
       className="relative w-full aspect-square max-w-md mx-auto"
     >
       <svg
-        viewBox="0 0 120 100"
+        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         className="w-full h-full"
-        preserveAspectRatio="xMidYMid meet"
+        style={{ overflow: 'visible' }}
       >
-        {/* Background dots forming Brazil */}
-        {brazilDots.map((dot, index) => {
-          const isOperational = operationalSet.has(`${dot.x}-${dot.y}`);
-          return (
-            <motion.circle
-              key={`dot-${index}`}
-              cx={dot.x}
-              cy={dot.y}
-              r={1.2}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.003, duration: 0.3 }}
-              className={isOperational ? "fill-emerald-500/80" : "fill-gray-600"}
-            />
-          );
-        })}
-
-        {/* Connection lines between offices */}
-        <motion.path
-          d="M 44 52 Q 57 40 70 48"
-          fill="none"
-          stroke="url(#connectionGradient)"
-          strokeWidth="0.5"
-          strokeDasharray="2 2"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
-          transition={{ delay: 0.8, duration: 1 }}
-        />
-        <motion.path
-          d="M 44 52 Q 50 67 56 82"
-          fill="none"
-          stroke="url(#connectionGradient)"
-          strokeWidth="0.5"
-          strokeDasharray="2 2"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
-          transition={{ delay: 1, duration: 1 }}
-        />
-
-        {/* Gradient definition */}
         <defs>
           <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0.8" />
+            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.3" />
           </linearGradient>
           <filter id="glow">
-            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
             <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
 
+        {/* Brazil dots */}
+        {dots.map((dot, i) => (
+          <motion.circle
+            key={i}
+            cx={dot.x}
+            cy={dot.y}
+            r={DOT_RADIUS}
+            initial={{ opacity: 0, scale: 0 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.3, delay: i * 0.0005 }}
+            className={dot.isOperational ? "fill-emerald-400" : "fill-gray-300"}
+          />
+        ))}
+
+        {/* Connection lines between offices */}
+        {officePositions.slice(0, -1).map((office, i) => {
+          const nextOffice = officePositions[i + 1];
+          const midX = (office.x + nextOffice.x) / 2;
+          const midY = Math.min(office.y, nextOffice.y) - 15;
+          
+          return (
+            <motion.path
+              key={`line-${i}`}
+              d={`M ${office.x} ${office.y} Q ${midX} ${midY} ${nextOffice.x} ${nextOffice.y}`}
+              fill="none"
+              stroke="url(#connectionGradient)"
+              strokeWidth="1"
+              strokeDasharray="4 2"
+              initial={{ pathLength: 0, opacity: 0 }}
+              whileInView={{ pathLength: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.5, delay: 0.5 + i * 0.3 }}
+            />
+          );
+        })}
+
         {/* Office markers */}
-        {offices.map((office, index) => (
+        {officePositions.map((office, i) => (
           <g key={office.id}>
-            {/* Outer pulse ring */}
+            {/* Pulse ring */}
+            <motion.circle
+              cx={office.x}
+              cy={office.y}
+              r={6}
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth="1"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ 
+                scale: [0.8, 1.5, 0.8], 
+                opacity: [0.6, 0, 0.6] 
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity,
+                delay: i * 0.3
+              }}
+            />
+            
+            {/* Main marker */}
             <motion.circle
               cx={office.x}
               cy={office.y}
               r={4}
-              fill="none"
-              stroke="#22d3ee"
-              strokeWidth="0.5"
-              initial={{ scale: 0.5, opacity: 1 }}
-              animate={{ scale: 1.5, opacity: 0 }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: index * 0.3,
-                ease: "easeOut"
-              }}
-            />
-            {/* Inner glow */}
-            <motion.circle
-              cx={office.x}
-              cy={office.y}
-              r={2.5}
-              className="fill-cyan-400/30"
+              className="fill-cyan-500"
               filter="url(#glow)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              initial={{ scale: 0, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.8 + i * 0.15 }}
             />
-            {/* Main dot */}
+            
+            {/* Inner dot */}
             <motion.circle
               cx={office.x}
               cy={office.y}
               r={2}
-              className="fill-cyan-400"
+              className="fill-white"
               initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5 + index * 0.2, type: "spring" }}
-            />
-            {/* Center highlight */}
-            <circle
-              cx={office.x - 0.5}
-              cy={office.y - 0.5}
-              r={0.6}
-              className="fill-white/60"
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: 1 + i * 0.15 }}
             />
           </g>
         ))}
