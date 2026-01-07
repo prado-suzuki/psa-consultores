@@ -16,30 +16,39 @@ export type Database = {
     Tables: {
       cliente: {
         Row: {
+          ativo: boolean | null
           created_at: string
           fixo: string | null
           id: string
+          municipio: string | null
           nome: string
           setor_cliente: string | null
           telefone: string | null
+          uf: string | null
           updated_at: string
         }
         Insert: {
+          ativo?: boolean | null
           created_at?: string
           fixo?: string | null
           id?: string
+          municipio?: string | null
           nome: string
           setor_cliente?: string | null
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Update: {
+          ativo?: boolean | null
           created_at?: string
           fixo?: string | null
           id?: string
+          municipio?: string | null
           nome?: string
           setor_cliente?: string | null
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
         }
         Relationships: []
