@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import brazilMap from "@/assets/maps/brazil-map-states-transparent.png";
+import brazilMap from "@/assets/maps/brazil-map-green.png";
 
 export const BrazilMap = () => {
   return (
