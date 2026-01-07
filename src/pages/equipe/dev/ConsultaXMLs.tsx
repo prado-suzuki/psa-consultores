@@ -86,6 +86,7 @@ const ConsultaXMLs = () => {
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
   const [dataInicio, setDataInicio] = useState('2024-01-01');
   const [dataFim, setDataFim] = useState('2026-01-31');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Buscar lista de contribuintes
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
@@ -175,6 +176,61 @@ const ConsultaXMLs = () => {
     refetch();
   };
 
+  const handleExportCSV = async () => {
+    if (!selectedContribuinte) return;
+
+    setIsExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) throw new Error('Usuário não autenticado');
+
+      const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/export/${selectedContribuinte}/nfe/csv`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data_inicio: dataInicio,
+          data_fim: dataFim,
+          colunas: [
+            'chave_nfe',
+            'dEmi',
+            'emit.CNPJ',
+            'emit.xNome',
+            'dest.xNome',
+            'produtos.xProd',
+            'produtos.vProd'
+          ]
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na exportação: ${response.status} - ${errorText}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `nfe_export_${dataInicio}_${dataFim}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      alert(`Erro ao exportar: ${(err as Error).message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DevLayout 
       title="Consulta de XMLs" 
@@ -230,6 +286,14 @@ const ConsultaXMLs = () => {
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                   Buscar
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleExportCSV}
+                  disabled={!selectedContribuinte || isExporting}
+                >
+                  {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  Exportar CSV
                 </Button>
               </div>
             </div>
