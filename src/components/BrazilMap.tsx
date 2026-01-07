@@ -10,7 +10,7 @@ const offices = [
 
 export const BrazilMap = () => {
   return (
-    <div className="relative w-full aspect-square max-w-md mx-auto">
+    <div className="relative w-full aspect-square max-w-lg mx-auto">
       {/* Imagem do mapa */}
       <motion.img 
         src={brazilMap} 
@@ -36,15 +36,15 @@ export const BrazilMap = () => {
           {/* Label da cidade - acima do pin */}
           <span className="absolute left-1/2 -translate-x-1/2 -top-8 bg-gray-900/90 text-white text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap shadow-lg">
             {office.name}
-            {office.isMain && <span className="ml-1 text-cyan-400">(Sede)</span>}
+            {office.isMain && <span className="ml-1 text-emerald-400">(Sede)</span>}
           </span>
           
           {/* Pin icon */}
-          <MapPin className="w-8 h-8 md:w-10 md:h-10 text-cyan-500 fill-cyan-500 drop-shadow-lg" />
+          <MapPin className="w-8 h-8 md:w-10 md:h-10 text-gray-800 fill-emerald-400 drop-shadow-lg" />
           
           {/* Efeito pulse */}
           <motion.div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 rounded-full bg-cyan-500"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400"
             animate={{ scale: [1, 2.5, 1], opacity: [0.8, 0, 0.8] }}
             transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
           />
