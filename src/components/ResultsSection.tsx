@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Fragment } from "react";
 
 const results = [
   {
@@ -32,7 +33,7 @@ export const ResultsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl mb-12"
+          className="text-center max-w-2xl mx-auto mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-50 mb-4">
             Resultados que Transformam
@@ -42,27 +43,35 @@ export const ResultsSection = () => {
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-          {results.map((result, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-            >
-              <p className="text-4xl md:text-5xl font-bold text-primary">
-                {result.number}
-              </p>
-              <p className="text-lg font-medium text-gray-50 mt-1">
-                {result.unit}
-              </p>
-              <p className="text-sm text-gray-400 mt-2">
-                {result.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-8 md:p-12"
+        >
+          <div className="grid grid-cols-2 gap-8 md:flex md:flex-row md:items-center md:justify-between">
+            {results.map((result, index) => (
+              <Fragment key={index}>
+                <div className="flex-1 text-center md:px-8">
+                  <p className="text-3xl md:text-5xl font-bold text-primary">
+                    {result.number}
+                  </p>
+                  <p className="text-base md:text-lg font-medium text-gray-50 mt-2">
+                    {result.unit}
+                  </p>
+                  <p className="text-xs md:text-sm text-gray-400 mt-1">
+                    {result.description}
+                  </p>
+                </div>
+
+                {index < results.length - 1 && (
+                  <div className="hidden md:block w-px bg-gray-700/50 self-stretch min-h-[100px]" />
+                )}
+              </Fragment>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );
