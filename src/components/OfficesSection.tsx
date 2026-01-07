@@ -28,7 +28,7 @@ const offices = [
 
 export const OfficesSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-gray-800">
+    <section className="py-20 md:py-28 bg-gray-50">
       <div className="container mx-auto px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -37,10 +37,10 @@ export const OfficesSection = () => {
           transition={{ duration: 0.6 }}
           className="max-w-2xl mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-50 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Onde Estamos
           </h2>
-          <p className="text-gray-300">
+          <p className="text-gray-600">
             Presença estratégica nas principais regiões do agronegócio brasileiro, 
             atendendo clientes em todo o território nacional.
           </p>
@@ -63,12 +63,12 @@ export const OfficesSection = () => {
                 transition={{ duration: 0.4, delay: index * 0.15 }}
                 className="group"
               >
-                <div className="flex items-start gap-4 p-5 bg-gray-800/50 rounded-xl border border-gray-600/30 hover:border-primary/30 transition-colors">
+                <div className="flex items-start gap-4 p-5 bg-white rounded-xl border border-gray-200 hover:border-primary/30 transition-colors shadow-sm">
                   <div className="flex-shrink-0">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       office.isMain 
                         ? 'bg-primary/20 text-primary' 
-                        : 'bg-gray-600/50 text-gray-400'
+                        : 'bg-gray-100 text-gray-500'
                     }`}>
                       <MapPin className="w-5 h-5" />
                     </div>
@@ -79,7 +79,7 @@ export const OfficesSection = () => {
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                         office.isMain 
                           ? 'bg-primary/20 text-primary' 
-                          : 'bg-gray-600/50 text-gray-400'
+                          : 'bg-gray-100 text-gray-500'
                       }`}>
                         {office.type}
                       </span>
@@ -89,14 +89,14 @@ export const OfficesSection = () => {
                       </div>
                     </div>
                     
-                    <h3 className="text-xl font-semibold text-gray-50 mb-1">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
                       {office.city}
-                      <span className="text-gray-400 font-normal ml-2">
+                      <span className="text-gray-500 font-normal ml-2">
                         {office.state}
                       </span>
                     </h3>
                     
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-500">
                       {office.address}
                     </p>
                   </div>
@@ -110,7 +110,7 @@ export const OfficesSection = () => {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.6 }}
-              className="flex items-center gap-6 pt-4 text-sm text-gray-400"
+              className="flex items-center gap-6 pt-4 text-sm text-gray-500"
             >
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-red-500"></span>

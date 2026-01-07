@@ -1,6 +1,12 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Users, User } from "lucide-react";
 import logo from "@/assets/logo-psa.png";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navItems = [
   { id: "inicio", label: "Início", href: "#", external: false },
@@ -42,19 +48,38 @@ export const Header = () => {
           </nav>
 
           {/* CTA Buttons - Right */}
-          <div className="hidden md:flex items-center gap-3">
-            <a
-              href="/equipe"
-              className="px-5 py-2 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
-            >
-              Equipe
-            </a>
-            <a
-              href="/auth"
-              className="px-5 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-200"
-            >
-              Área do Cliente
-            </a>
+          <div className="hidden md:flex items-center gap-2">
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href="/equipe"
+                    className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200"
+                  >
+                    <Users className="h-5 w-5 text-primary" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Equipe</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href="/auth"
+                    className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200"
+                  >
+                    <User className="h-5 w-5 text-primary" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Área do Cliente</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* Mobile Menu Button */}

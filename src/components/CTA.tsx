@@ -47,7 +47,7 @@ export const CTA = () => {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 bg-gray-800">
+    <section id="contato" className="py-20 md:py-28 bg-gray-50">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Left - Content */}
@@ -59,24 +59,24 @@ export const CTA = () => {
             className="space-y-8"
           >
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-50 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 Vamos Conversar
               </h2>
-              <p className="text-gray-400">
+              <p className="text-gray-600">
                 Entre em contato para uma avaliação gratuita da sua situação tributária.
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-3 text-gray-400">
+              <div className="flex items-center gap-3 text-gray-600">
                 <Mail className="h-5 w-5 text-primary" />
                 <span>contato@psaconsultores.com.br</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-400">
+              <div className="flex items-center gap-3 text-gray-600">
                 <Phone className="h-5 w-5 text-primary" />
                 <span>+55 (65) 3622-2426</span>
               </div>
-              <div className="flex items-start gap-3 text-gray-400">
+              <div className="flex items-start gap-3 text-gray-600">
                 <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <span>Rua Des. José Barros do Vale, 03<br />Cuiabá - MT</span>
               </div>
@@ -100,7 +100,7 @@ export const CTA = () => {
                       <FormControl>
                         <Input 
                           placeholder="Seu nome" 
-                          className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
+                          className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                           {...field} 
                         />
                       </FormControl>
@@ -119,7 +119,7 @@ export const CTA = () => {
                           <Input 
                             type="email" 
                             placeholder="Email" 
-                            className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
+                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                             {...field} 
                           />
                         </FormControl>
@@ -136,7 +136,7 @@ export const CTA = () => {
                           <Input 
                             type="tel" 
                             placeholder="Telefone" 
-                            className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400"
+                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                             {...field} 
                           />
                         </FormControl>
@@ -154,7 +154,7 @@ export const CTA = () => {
                       <FormControl>
                         <Textarea 
                           placeholder="Sua mensagem" 
-                          className="bg-gray-600 border-gray-500 text-gray-50 placeholder:text-gray-400 min-h-[120px]"
+                          className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[120px]"
                           {...field} 
                         />
                       </FormControl>
