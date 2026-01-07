@@ -68,7 +68,7 @@ export const OfficesSection = () => {
                   <img 
                     src={chevronArrow} 
                     alt="" 
-                    className="w-10 h-10 md:w-12 md:h-12 object-contain" 
+                    className="w-16 h-16 md:w-20 md:h-20 object-contain" 
                   />
                   <span className="text-lg font-semibold text-gray-900">
                     Escritório {office.city} - {office.state}
