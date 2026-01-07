@@ -1,59 +1,39 @@
 import { motion } from "framer-motion";
-import { 
-  FileText, 
-  RefreshCw, 
-  Building2, 
-  Gift, 
-  Shield, 
-  Calculator, 
-  User, 
-  Scale, 
-  BarChart3 
-} from "lucide-react";
 
 const services = [
   {
-    icon: FileText,
     title: "Consultoria Tributária",
     description: "Apoio técnico e estratégico para otimização fiscal, mitigação de riscos e cumprimento eficiente das obrigações tributárias em tributos diretos, indiretos e aduaneiros.",
   },
   {
-    icon: Shield,
     title: "Consultoria Previdenciária",
     description: "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
   },
   {
-    icon: Building2,
     title: "Reestruturação Societária",
     description: "Assessoria na reorganização societária para otimização fiscal, governança corporativa e proteção patrimonial. Estruturação de Holdings.",
   },
   {
-    icon: Gift,
     title: "Benefícios Fiscais",
     description: "Consultoria para identificação, viabilização e implementação de incentivos fiscais regionais, setoriais e específicos.",
   },
   {
-    icon: Calculator,
     title: "Consultoria Contábil",
     description: "Apoio estratégico na gestão contábil, financeira e de controladoria, promovendo governança e transparência.",
   },
   {
-    icon: User,
     title: "Pessoa Física",
     description: "Gestão tributária, sucessória e patrimonial para pessoas físicas e grupos familiares. Planejamento sucessório e proteção patrimonial.",
   },
   {
-    icon: RefreshCw,
     title: "Recuperação Tributária",
     description: "Atuação administrativa para recuperação de créditos tributários e ressarcimentos. Diagnóstico, levantamento e pedido de ressarcimento.",
   },
   {
-    icon: Scale,
     title: "Antecipação de Provas",
     description: "Estratégia jurídica preventiva para levantamento de provas antes de litígios, reduzindo riscos processuais e financeiros.",
   },
   {
-    icon: BarChart3,
     title: "Business Intelligence",
     description: "Desenvolvimento de soluções personalizadas de BI com foco tributário, contábil e financeiro. Dashboards e relatórios automatizados.",
   },
@@ -88,7 +68,9 @@ export const Services = () => {
               transition={{ duration: 0.4, delay: index * 0.05 }}
               className="group p-6 bg-white/5 rounded-xl border border-gray-800 hover:bg-white/10 hover:border-gray-700 transition-all duration-300"
             >
-              <service.icon className="h-6 w-6 text-primary mb-4" />
+              <span className="text-2xl font-bold text-primary mb-4 block">
+                {String(index + 1).padStart(2, '0')}
+              </span>
               <h3 className="text-lg font-semibold text-white mb-3">
                 {service.title}
               </h3>
