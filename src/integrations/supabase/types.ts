@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      cliente: {
+        Row: {
+          created_at: string
+          fixo: string | null
+          id: string
+          nome: string
+          setor_cliente: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fixo?: string | null
+          id?: string
+          nome: string
+          setor_cliente?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fixo?: string | null
+          id?: string
+          nome?: string
+          setor_cliente?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contribuinte: {
+        Row: {
+          cliente_id: string
+          cod_cnae: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          id: string
+          inscricao_estadual: string | null
+          nome_razao_social: string
+          setor: string | null
+          simples_nacional: boolean | null
+          tipo_pessoa: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          cod_cnae?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          nome_razao_social: string
+          setor?: string | null
+          simples_nacional?: boolean | null
+          tipo_pessoa: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          cod_cnae?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          nome_razao_social?: string
+          setor?: string | null
+          simples_nacional?: boolean | null
+          tipo_pessoa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribuinte_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_standups: {
         Row: {
           blockers: string | null
