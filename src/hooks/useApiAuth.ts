@@ -57,47 +57,79 @@ export function useApiAuth() {
 
   const fetchWithAuth = async (
     url: string, 
-    options: RequestInit = {}
+    options: RequestInit = {},
+    timeoutMs: number = 30000
   ): Promise<Response> => {
-    const token = await getValidToken();
-    if (!token) {
-      throw new Error('Sessão expirada');
-    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const startTime = Date.now();
 
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-
-    let response = await fetch(url, { ...options, headers });
-
-    // If 401, try refreshing token and retry once
-    if (response.status === 401) {
-      console.log('Recebido 401, tentando refresh do token...');
-      const newSession = await refreshSession();
+    try {
+      console.log(`[API] Iniciando requisição: ${url}`);
       
-      if (!newSession) {
-        handleSessionExpired();
+      const token = await getValidToken();
+      if (!token) {
         throw new Error('Sessão expirada');
       }
 
-      // Retry with new token
-      const retryHeaders = {
+      const headers = {
         ...options.headers,
-        'Authorization': `Bearer ${newSession.access_token}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       };
 
-      response = await fetch(url, { ...options, headers: retryHeaders });
-      
-      if (response.status === 401) {
-        handleSessionExpired();
-        throw new Error('Sessão expirada');
-      }
-    }
+      let response = await fetch(url, { 
+        ...options, 
+        headers,
+        signal: controller.signal 
+      });
 
-    return response;
+      console.log(`[API] Resposta: ${response.status} em ${Date.now() - startTime}ms`);
+
+      // If 401, try refreshing token and retry once
+      if (response.status === 401) {
+        console.log('Recebido 401, tentando refresh do token...');
+        const newSession = await refreshSession();
+        
+        if (!newSession) {
+          handleSessionExpired();
+          throw new Error('Sessão expirada');
+        }
+
+        // Retry with new token
+        const retryHeaders = {
+          ...options.headers,
+          'Authorization': `Bearer ${newSession.access_token}`,
+          'Content-Type': 'application/json',
+        };
+
+        response = await fetch(url, { 
+          ...options, 
+          headers: retryHeaders,
+          signal: controller.signal 
+        });
+        
+        if (response.status === 401) {
+          handleSessionExpired();
+          throw new Error('Sessão expirada');
+        }
+      }
+
+      return response;
+    } catch (error) {
+      const err = error as Error;
+      console.error(`[API] Erro: ${err.name} - ${err.message}`);
+      
+      if (err.name === 'AbortError') {
+        throw new Error('Tempo limite excedido. A requisição demorou mais de 30 segundos.');
+      }
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        throw new Error('Erro de conexão. Verifique sua internet ou tente novamente.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 
   return { getAuthHeaders, getValidToken, fetchWithAuth };

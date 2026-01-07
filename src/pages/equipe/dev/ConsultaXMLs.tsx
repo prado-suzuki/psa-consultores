@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Download, Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface NFeProduto {
@@ -322,8 +322,14 @@ const ConsultaXMLs = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-destructive">
-                Erro ao carregar dados: {(error as Error).message}
+              <div className="flex flex-col items-center justify-center py-8 gap-4">
+                <p className="text-destructive text-center max-w-md">
+                  {(error as Error).message}
+                </p>
+                <Button variant="outline" onClick={() => refetch()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Tentar novamente
+                </Button>
               </div>
             ) : (
               <>
