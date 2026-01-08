@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useApiAuth() {
   const { session, refreshSession } = useAuth();
@@ -22,6 +23,15 @@ export function useApiAuth() {
 
   const getValidToken = async (): Promise<string | null> => {
     if (!session) {
+      console.warn('[Auth] Sem sessão ativa');
+      handleSessionExpired();
+      return null;
+    }
+
+    // Verificar se sessão é válida fazendo chamada ao Supabase
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      console.error('[Auth] Sessão inválida:', error?.message);
       handleSessionExpired();
       return null;
     }
@@ -33,7 +43,7 @@ export function useApiAuth() {
       const bufferSeconds = 5 * 60; // 5 minutes
       
       if (expiresAt - now < bufferSeconds) {
-        console.log('Token expirando em breve, tentando refresh...');
+        console.log('[Auth] Token expirando em breve, tentando refresh...');
         const newSession = await refreshSession();
         if (!newSession) {
           handleSessionExpired();
