@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,18 +91,36 @@ const ConsultaXMLs = () => {
   const [dataFim, setDataFim] = useState('2026-01-31');
   const [isExporting, setIsExporting] = useState(false);
   const { fetchWithAuth } = useApiAuth();
+  const navigate = useNavigate();
 
   // Buscar lista de contribuintes
-  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
+  const { data: contribuintes, isLoading: loadingContribuintes, error: errorContribuintes } = useQuery({
     queryKey: ['contribuintes-list'],
     queryFn: async () => {
+      // Verificar se usuário está autenticado
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
       const { data, error } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .order('nome_razao_social');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar contribuintes:', error);
+        if (error.message.includes('JWT')) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        }
+        throw new Error(`Erro ao carregar contribuintes: ${error.message}`);
+      }
+      
       return data as Contribuinte[];
+    },
+    retry: (failureCount, error) => {
+      if ((error as Error).message.includes('Sessão expirada')) return false;
+      return failureCount < 2;
     },
   });
 
@@ -248,18 +267,31 @@ const ConsultaXMLs = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="lg:col-span-2">
                 <label className="text-sm font-medium text-muted-foreground mb-1 block">Contribuinte</label>
-                <Select value={selectedContribuinte} onValueChange={setSelectedContribuinte}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione um contribuinte"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contribuintes?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {errorContribuintes ? (
+                  <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
+                    {(errorContribuintes as Error).message}
+                    <Button 
+                      variant="link" 
+                      className="text-destructive p-0 h-auto ml-2"
+                      onClick={() => navigate('/equipe')}
+                    >
+                      Fazer login novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={selectedContribuinte} onValueChange={setSelectedContribuinte}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione um contribuinte"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contribuintes?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Início</label>
