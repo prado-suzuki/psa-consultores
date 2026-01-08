@@ -132,40 +132,16 @@ const ConsultaXMLs = () => {
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
+      // CTe ainda não está disponível na API
+      if (tipoDocumento === 'cte') {
+        return { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false } as ApiResponse;
+      }
+
       const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
       const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 
-      if (tipoDocumento === 'todos') {
-        // Buscar ambos endpoints em paralelo
-        const [nfeResponse, cteResponse] = await Promise.all([
-          fetchWithAuth(`${baseUrl}/${selectedContribuinte}/nfes${queryParams}`, { method: 'GET' }),
-          fetchWithAuth(`${baseUrl}/${selectedContribuinte}/ctes${queryParams}`, { method: 'GET' }),
-        ]);
-
-        if (!nfeResponse.ok && !cteResponse.ok) {
-          throw new Error('Erro ao buscar documentos');
-        }
-
-        const nfeData: ApiResponse = nfeResponse.ok 
-          ? await nfeResponse.json() 
-          : { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false };
-        const cteData: ApiResponse = cteResponse.ok 
-          ? await cteResponse.json() 
-          : { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false };
-
-        // Combinar resultados
-        return {
-          items: [...nfeData.items, ...cteData.items],
-          total: nfeData.total + cteData.total,
-          page: currentPage,
-          page_size: ITEMS_PER_PAGE,
-          has_more: nfeData.has_more || cteData.has_more,
-        } as ApiResponse;
-      }
-
-      // Buscar endpoint específico
-      const endpoint = tipoDocumento === 'nfe' ? 'nfes' : 'ctes';
-      const url = `${baseUrl}/${selectedContribuinte}/${endpoint}${queryParams}`;
+      // Por enquanto, "todos" busca apenas NFe (CTe será adicionado quando a API estiver pronta)
+      const url = `${baseUrl}/${selectedContribuinte}/nfes${queryParams}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
 
@@ -345,7 +321,11 @@ const ConsultaXMLs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nfe">NFe</SelectItem>
-                    <SelectItem value="cte">CTe</SelectItem>
+                    <SelectItem value="cte">
+                      <span className="flex items-center gap-2">
+                        CTe <Badge variant="secondary" className="text-xs">Em breve</Badge>
+                      </span>
+                    </SelectItem>
                     <SelectItem value="todos">Todos</SelectItem>
                   </SelectContent>
                 </Select>
