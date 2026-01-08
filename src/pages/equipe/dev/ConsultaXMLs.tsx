@@ -326,7 +326,6 @@ const ConsultaXMLs = () => {
                         CTe <Badge variant="secondary" className="text-xs">Em breve</Badge>
                       </span>
                     </SelectItem>
-                    <SelectItem value="todos">Todos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
