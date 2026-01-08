@@ -72,8 +72,107 @@ interface NFeRecord {
   };
 }
 
-interface ApiResponse {
+// Interfaces CT-e
+interface CTeEmit {
+  CNPJ: string | null;
+  CPF: string | null;
+  IE: string | null;
+  xNome: string;
+  xFant: string | null;
+  UF: string;
+  cMun: number;
+}
+
+interface CTeDest {
+  CNPJ: string | null;
+  CPF: string | null;
+  IE: string | null;
+  xNome: string;
+  xFant: string | null;
+  UF: string;
+  cMun: number;
+  ISUF: string | null;
+}
+
+interface CTeTomador {
+  toma: number;
+  CNPJ: string | null;
+  CPF: string | null;
+  IE: string | null;
+  xNome: string;
+  UF: string;
+  cMun: number;
+}
+
+interface CTeICMS {
+  CST: string;
+  vBC: number | null;
+  pICMS: number | null;
+  vICMS: number | null;
+  pRedBC: number | null;
+  vBCSTRet: number | null;
+  vICMSSTRet: number | null;
+  vTotTrib: number | null;
+}
+
+interface CTeMedida {
+  cUnid: string;
+  tpMed: string;
+  qCarga: number;
+}
+
+interface CTeRecord {
+  chave_cte: string;
+  cCT: number;
+  cfop: string;
+  natOp: string;
+  mod: string;
+  serie: number;
+  nCT: number;
+  dEmi: string | null;
+  tpEmis: number;
+  tpCTe: number;
+  modal: string;
+  tpServ: number;
+  cMunIni: number;
+  xMunIni: string;
+  cMunFim: number;
+  xMunFim: string;
+  vTPrest: number;
+  vRec: number;
+  vCarga: number | null;
+  proPred: string | null;
+  emit: CTeEmit;
+  dest: CTeDest;
+  rems: Array<{
+    CNPJ: string | null;
+    CPF: string | null;
+    IE: string | null;
+    xNome: string;
+    xFant: string | null;
+    UF: string;
+    cMun: number;
+  }>;
+  tomador: CTeTomador;
+  icms: CTeICMS;
+  infAdic: {
+    xObs: string | null;
+    infAdFisco: string | null;
+  };
+  docs_nfe: string[];
+  medidas: CTeMedida[];
+}
+
+interface NFeApiResponse {
   items: NFeRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+}
+
+interface CTeApiResponse {
+  items: CTeRecord[];
   total: number;
   page: number;
   page_size: number;
@@ -147,21 +246,14 @@ const ConsultaXMLs = () => {
     },
   });
 
-  // Buscar documentos da API (NFe, CTe ou ambos)
-  const { data: nfeData, isLoading, error, refetch } = useQuery({
-    queryKey: ['documentos', selectedContribuinte, dataInicio, dataFim, tipoDocumento, currentPage],
+  // Buscar NFe
+  const { data: nfeData, isLoading: loadingNfe, error: errorNfe, refetch: refetchNfe } = useQuery({
+    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
-      // CTe ainda não está disponível na API
-      if (tipoDocumento === 'cte') {
-        return { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false } as ApiResponse;
-      }
-
       const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
       const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
-
-      // Por enquanto, "todos" busca apenas NFe (CTe será adicionado quando a API estiver pronta)
       const url = `${baseUrl}/${selectedContribuinte}/nfes${queryParams}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
@@ -171,17 +263,48 @@ const ConsultaXMLs = () => {
         throw new Error(`Erro na API: ${response.status} - ${errorText}`);
       }
 
-      return response.json() as Promise<ApiResponse>;
+      return response.json() as Promise<NFeApiResponse>;
     },
-    enabled: searchTriggered && !!selectedContribuinte,
+    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === 'nfe',
     retry: (failureCount, error) => {
       if ((error as Error).message === 'Sessão expirada') return false;
       return failureCount < 2;
     },
   });
 
-  const records = nfeData?.items || [];
-  const totalRecords = nfeData?.total || 0;
+  // Buscar CT-e
+  const { data: cteData, isLoading: loadingCte, error: errorCte, refetch: refetchCte } = useQuery({
+    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryFn: async () => {
+      if (!selectedContribuinte) return null;
+
+      const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
+      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      const url = `${baseUrl}/${selectedContribuinte}/ctes${queryParams}`;
+      
+      const response = await fetchWithAuth(url, { method: 'GET' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+
+      return response.json() as Promise<CTeApiResponse>;
+    },
+    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === 'cte',
+    retry: (failureCount, error) => {
+      if ((error as Error).message === 'Sessão expirada') return false;
+      return failureCount < 2;
+    },
+  });
+
+  const isLoading = tipoDocumento === 'nfe' ? loadingNfe : loadingCte;
+  const error = tipoDocumento === 'nfe' ? errorNfe : errorCte;
+  const refetch = tipoDocumento === 'nfe' ? refetchNfe : refetchCte;
+
+  const nfeRecords = nfeData?.items || [];
+  const cteRecords = cteData?.items || [];
+  const totalRecords = tipoDocumento === 'nfe' ? (nfeData?.total || 0) : (cteData?.total || 0);
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
   const formatCNPJ = (cnpj: string) => {
@@ -290,17 +413,14 @@ const ConsultaXMLs = () => {
                 <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
                   setTipoDocumento(value);
                   setSearchTriggered(false);
+                  setCurrentPage(1);
                 }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nfe">NFe</SelectItem>
-                    <SelectItem value="cte">
-                      <span className="flex items-center gap-2">
-                        CTe <Badge variant="secondary" className="text-xs">Em breve</Badge>
-                      </span>
-                    </SelectItem>
+                    <SelectItem value="cte">CTe</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -341,11 +461,13 @@ const ConsultaXMLs = () => {
                 </Button>
               )}
               <ExportDialog
-                data={records}
+                data={tipoDocumento === 'nfe' ? nfeRecords : []}
+                cteData={tipoDocumento === 'cte' ? cteRecords : []}
+                tipoDocumento={tipoDocumento}
                 totalRecords={totalRecords}
                 dataInicio={dataInicio}
                 dataFim={dataFim}
-                disabled={!selectedContribuinte || records.length === 0}
+                disabled={!selectedContribuinte || (tipoDocumento === 'nfe' ? nfeRecords.length === 0 : cteRecords.length === 0)}
               />
               <Button 
                 onClick={handleSearch}
@@ -397,66 +519,129 @@ const ConsultaXMLs = () => {
             ) : (
               <>
                 <div className="w-full overflow-x-auto">
-                  <Table className="min-w-[1100px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
-                        <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                        <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                        <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
-                        <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
-                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Nat. Operação</TableHead>
-                        <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                        <TableHead className="whitespace-nowrap">Número</TableHead>
-                        <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                        <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
-                        <TableHead className="whitespace-nowrap">Produtos</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {records.length === 0 ? (
+                  {tipoDocumento === 'nfe' ? (
+                    <Table className="min-w-[1100px]">
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                            Nenhum registro encontrado
-                          </TableCell>
+                          <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
+                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
+                          <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Nat. Operação</TableHead>
+                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                          <TableHead className="whitespace-nowrap">Número</TableHead>
+                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
+                          <TableHead className="whitespace-nowrap">Produtos</TableHead>
                         </TableRow>
-                      ) : (
-                        records.map((record) => (
-                          <TableRow key={record.chave_nfe}>
-                            <TableCell className="font-mono text-xs max-w-[180px]">
-                              <span className="truncate block" title={record.chave_nfe}>
-                                {record.chave_nfe.slice(0, 20)}...
-                              </span>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm whitespace-nowrap">
-                              {formatCNPJ(record.emit.CNPJ)}
-                            </TableCell>
-                            <TableCell className="max-w-[150px]">
-                              <span className="truncate block" title={record.emit.xNome}>
-                                {record.emit.xNome}
-                              </span>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
-                            <TableCell className="max-w-[120px] hidden xl:table-cell">
-                              <span className="truncate block" title={record.natOp}>
-                                {record.natOp}
-                              </span>
-                            </TableCell>
-                            <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
-                            <TableCell className="font-mono">{record.nNF}</TableCell>
-                            <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
-                            <TableCell className="text-right font-medium whitespace-nowrap">
-                              {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                      </TableHeader>
+                      <TableBody>
+                        {nfeRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                              Nenhum registro encontrado
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          nfeRecords.map((record) => (
+                            <TableRow key={record.chave_nfe}>
+                              <TableCell className="font-mono text-xs max-w-[180px]">
+                                <span className="truncate block" title={record.chave_nfe}>
+                                  {record.chave_nfe.slice(0, 20)}...
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm whitespace-nowrap">
+                                {formatCNPJ(record.emit.CNPJ)}
+                              </TableCell>
+                              <TableCell className="max-w-[150px]">
+                                <span className="truncate block" title={record.emit.xNome}>
+                                  {record.emit.xNome}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
+                              <TableCell className="max-w-[120px] hidden xl:table-cell">
+                                <span className="truncate block" title={record.natOp}>
+                                  {record.natOp}
+                                </span>
+                              </TableCell>
+                              <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
+                              <TableCell className="font-mono">{record.nNF}</TableCell>
+                              <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
+                              <TableCell className="text-right font-medium whitespace-nowrap">
+                                {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Table className="min-w-[1100px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="whitespace-nowrap">Chave CTe</TableHead>
+                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
+                          <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
+                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                          <TableHead className="whitespace-nowrap">Número</TableHead>
+                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cteRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                              Nenhum registro encontrado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          cteRecords.map((record) => (
+                            <TableRow key={record.chave_cte}>
+                              <TableCell className="font-mono text-xs max-w-[180px]">
+                                <span className="truncate block" title={record.chave_cte}>
+                                  {record.chave_cte.slice(0, 20)}...
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm whitespace-nowrap">
+                                {formatCNPJ(record.emit.CNPJ || '')}
+                              </TableCell>
+                              <TableCell className="max-w-[150px]">
+                                <span className="truncate block" title={record.emit.xNome}>
+                                  {record.emit.xNome}
+                                </span>
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <span className="truncate block" title={record.xMunIni}>
+                                  {record.xMunIni}
+                                </span>
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <span className="truncate block" title={record.xMunFim}>
+                                  {record.xMunFim}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono hidden lg:table-cell">{record.cfop}</TableCell>
+                              <TableCell>{getTipoBadge('CTe')}</TableCell>
+                              <TableCell className="font-mono">{record.nCT}</TableCell>
+                              <TableCell className="whitespace-nowrap">{formatDate(record.dEmi)}</TableCell>
+                              <TableCell className="text-right font-medium whitespace-nowrap">
+                                {formatCurrency(record.vTPrest)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
 
                 {/* Paginação */}

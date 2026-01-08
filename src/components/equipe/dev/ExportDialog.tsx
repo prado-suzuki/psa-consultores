@@ -39,7 +39,8 @@ export interface ColumnConfig {
   group: string;
 }
 
-export const AVAILABLE_COLUMNS: ColumnConfig[] = [
+// Colunas NFe
+export const NFE_COLUMNS: ColumnConfig[] = [
   // Documento
   { id: 'chave_nfe', label: 'Chave NFe', group: 'Documento' },
   { id: 'dhEmi', label: 'Data Emissão', group: 'Documento' },
@@ -69,8 +70,55 @@ export const AVAILABLE_COLUMNS: ColumnConfig[] = [
   { id: 'produtos.vProd', label: 'Valor Produto', group: 'Produtos' },
 ];
 
+// Colunas CT-e
+export const CTE_COLUMNS: ColumnConfig[] = [
+  // Documento
+  { id: 'chave_cte', label: 'Chave CTe', group: 'Documento' },
+  { id: 'dEmi', label: 'Data Emissão', group: 'Documento' },
+  { id: 'nCT', label: 'Número CT', group: 'Documento' },
+  { id: 'serie', label: 'Série', group: 'Documento' },
+  { id: 'natOp', label: 'Natureza Operação', group: 'Documento' },
+  { id: 'cfop', label: 'CFOP', group: 'Documento' },
+  { id: 'mod', label: 'Modelo', group: 'Documento' },
+  { id: 'modal', label: 'Modal', group: 'Documento' },
+  // Origem/Destino
+  { id: 'xMunIni', label: 'Município Origem', group: 'Trajeto' },
+  { id: 'xMunFim', label: 'Município Destino', group: 'Trajeto' },
+  { id: 'cMunIni', label: 'Código Mun. Origem', group: 'Trajeto' },
+  { id: 'cMunFim', label: 'Código Mun. Destino', group: 'Trajeto' },
+  // Emitente
+  { id: 'emit.CNPJ', label: 'CNPJ Emitente', group: 'Emitente' },
+  { id: 'emit.xNome', label: 'Razão Social Emitente', group: 'Emitente' },
+  { id: 'emit.xFant', label: 'Nome Fantasia Emitente', group: 'Emitente' },
+  { id: 'emit.IE', label: 'IE Emitente', group: 'Emitente' },
+  { id: 'emit.UF', label: 'UF Emitente', group: 'Emitente' },
+  // Destinatário
+  { id: 'dest.CNPJ', label: 'CNPJ Destinatário', group: 'Destinatário' },
+  { id: 'dest.xNome', label: 'Razão Social Destinatário', group: 'Destinatário' },
+  { id: 'dest.IE', label: 'IE Destinatário', group: 'Destinatário' },
+  { id: 'dest.UF', label: 'UF Destinatário', group: 'Destinatário' },
+  // Tomador
+  { id: 'tomador.CNPJ', label: 'CNPJ Tomador', group: 'Tomador' },
+  { id: 'tomador.xNome', label: 'Razão Social Tomador', group: 'Tomador' },
+  { id: 'tomador.IE', label: 'IE Tomador', group: 'Tomador' },
+  { id: 'tomador.UF', label: 'UF Tomador', group: 'Tomador' },
+  // Valores
+  { id: 'vTPrest', label: 'Valor Prestação', group: 'Valores' },
+  { id: 'vRec', label: 'Valor a Receber', group: 'Valores' },
+  { id: 'vCarga', label: 'Valor da Carga', group: 'Valores' },
+  // ICMS
+  { id: 'icms.CST', label: 'CST ICMS', group: 'ICMS' },
+  { id: 'icms.vBC', label: 'Base Cálculo ICMS', group: 'ICMS' },
+  { id: 'icms.pICMS', label: 'Alíquota ICMS', group: 'ICMS' },
+  { id: 'icms.vICMS', label: 'Valor ICMS', group: 'ICMS' },
+];
+
 // Grupos de colunas
-const COLUMN_GROUPS = ['Documento', 'Emitente', 'Destinatário', 'Totais', 'Produtos'];
+const NFE_COLUMN_GROUPS = ['Documento', 'Emitente', 'Destinatário', 'Totais', 'Produtos'];
+const CTE_COLUMN_GROUPS = ['Documento', 'Trajeto', 'Emitente', 'Destinatário', 'Tomador', 'Valores', 'ICMS'];
+
+// Para retrocompatibilidade
+export const AVAILABLE_COLUMNS = NFE_COLUMNS;
 
 interface NFeRecord {
   chave_nfe: string;
@@ -107,8 +155,90 @@ interface NFeRecord {
   };
 }
 
+interface CTeRecord {
+  chave_cte: string;
+  cCT: number;
+  cfop: string;
+  natOp: string;
+  mod: string;
+  serie: number;
+  nCT: number;
+  dEmi: string | null;
+  tpEmis: number;
+  tpCTe: number;
+  modal: string;
+  tpServ: number;
+  cMunIni: number;
+  xMunIni: string;
+  cMunFim: number;
+  xMunFim: string;
+  vTPrest: number;
+  vRec: number;
+  vCarga: number | null;
+  proPred: string | null;
+  emit: {
+    CNPJ: string | null;
+    CPF: string | null;
+    IE: string | null;
+    xNome: string;
+    xFant: string | null;
+    UF: string;
+    cMun: number;
+  };
+  dest: {
+    CNPJ: string | null;
+    CPF: string | null;
+    IE: string | null;
+    xNome: string;
+    xFant: string | null;
+    UF: string;
+    cMun: number;
+    ISUF: string | null;
+  };
+  tomador: {
+    toma: number;
+    CNPJ: string | null;
+    CPF: string | null;
+    IE: string | null;
+    xNome: string;
+    UF: string;
+    cMun: number;
+  };
+  icms: {
+    CST: string;
+    vBC: number | null;
+    pICMS: number | null;
+    vICMS: number | null;
+    pRedBC: number | null;
+    vBCSTRet: number | null;
+    vICMSSTRet: number | null;
+    vTotTrib: number | null;
+  };
+  infAdic: {
+    xObs: string | null;
+    infAdFisco: string | null;
+  };
+  docs_nfe: string[];
+  medidas: Array<{
+    cUnid: string;
+    tpMed: string;
+    qCarga: number;
+  }>;
+  rems: Array<{
+    CNPJ: string | null;
+    CPF: string | null;
+    IE: string | null;
+    xNome: string;
+    xFant: string | null;
+    UF: string;
+    cMun: number;
+  }>;
+}
+
 interface ExportDialogProps {
   data: NFeRecord[];
+  cteData?: CTeRecord[];
+  tipoDocumento: 'nfe' | 'cte' | 'todos';
   totalRecords: number;
   dataInicio: string;
   dataFim: string;
@@ -145,15 +275,24 @@ const formatValue = (value: any, columnId: string): string => {
   if (value === null || value === undefined || value === '') return '-';
   
   // Formatar data
-  if (columnId === 'dhEmi' && value) {
+  if ((columnId === 'dhEmi' || columnId === 'dEmi') && value) {
     return new Date(value).toLocaleDateString('pt-BR');
   }
   
   // Formatar valores monetários
-  if (columnId.includes('vProd') || columnId.includes('vICMS')) {
+  if (columnId.includes('vProd') || columnId.includes('vICMS') || columnId.includes('vTPrest') || 
+      columnId.includes('vRec') || columnId.includes('vCarga') || columnId.includes('vBC')) {
     const num = typeof value === 'number' ? value : parseFloat(value);
     if (!isNaN(num)) {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+    }
+  }
+
+  // Formatar percentual
+  if (columnId.includes('pICMS') || columnId.includes('pRedBC')) {
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (!isNaN(num)) {
+      return `${num.toFixed(2)}%`;
     }
   }
   
@@ -168,16 +307,23 @@ const formatValue = (value: any, columnId: string): string => {
   return String(value);
 };
 
-export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled }: ExportDialogProps) {
+export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, dataInicio, dataFim, disabled }: ExportDialogProps) {
+  // Determinar colunas e grupos baseado no tipo de documento
+  const availableColumns = tipoDocumento === 'cte' ? CTE_COLUMNS : NFE_COLUMNS;
+  const columnGroups = tipoDocumento === 'cte' ? CTE_COLUMN_GROUPS : NFE_COLUMN_GROUPS;
+
   const [open, setOpen] = useState(false);
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    AVAILABLE_COLUMNS.map(c => c.id)
-  );
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('colunas');
   const [isExporting, setIsExporting] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Resetar colunas selecionadas quando o tipo de documento muda
+  useEffect(() => {
+    setSelectedColumns(availableColumns.map(c => c.id));
+  }, [tipoDocumento]);
 
   const {
     profiles,
@@ -200,11 +346,11 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
   // Colunas agrupadas
   const columnsByGroup = useMemo(() => {
     const groups: Record<string, ColumnConfig[]> = {};
-    COLUMN_GROUPS.forEach(group => {
-      groups[group] = AVAILABLE_COLUMNS.filter(c => c.group === group);
+    columnGroups.forEach(group => {
+      groups[group] = availableColumns.filter(c => c.group === group);
     });
     return groups;
-  }, []);
+  }, [availableColumns, columnGroups]);
 
   // Toggle coluna
   const toggleColumn = (columnId: string) => {
@@ -217,7 +363,7 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
 
   // Selecionar todas
   const selectAll = () => {
-    setSelectedColumns(AVAILABLE_COLUMNS.map(c => c.id));
+    setSelectedColumns(availableColumns.map(c => c.id));
   };
 
   // Limpar seleção
@@ -278,13 +424,13 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
 
   // Preview dos dados (primeiros 10 registros)
   const previewData = useMemo(() => {
-    return data.slice(0, 10);
-  }, [data]);
+    return tipoDocumento === 'cte' ? cteData.slice(0, 10) : data.slice(0, 10);
+  }, [data, cteData, tipoDocumento]);
 
   // Colunas selecionadas para preview
   const selectedColumnConfigs = useMemo(() => {
-    return AVAILABLE_COLUMNS.filter(c => selectedColumns.includes(c.id));
-  }, [selectedColumns]);
+    return availableColumns.filter(c => selectedColumns.includes(c.id));
+  }, [selectedColumns, availableColumns]);
 
   // Exportar para Excel
   const handleExport = async () => {
@@ -295,40 +441,50 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
 
     setIsExporting(true);
     try {
-      // Preparar dados
       const exportRows: Record<string, any>[] = [];
       
-      // Verificar se há colunas de produtos selecionadas
-      const hasProdutoColumns = selectedColumns.some(c => c.startsWith('produtos.'));
-      
-      data.forEach(record => {
-        if (hasProdutoColumns && record.produtos && record.produtos.length > 0) {
-          // Uma linha por produto
-          record.produtos.forEach(produto => {
+      if (tipoDocumento === 'cte') {
+        // Exportar CT-e
+        cteData.forEach(record => {
+          const row: Record<string, any> = {};
+          selectedColumnConfigs.forEach(col => {
+            row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
+          });
+          exportRows.push(row);
+        });
+      } else {
+        // Exportar NF-e
+        const hasProdutoColumns = selectedColumns.some(c => c.startsWith('produtos.'));
+        
+        data.forEach(record => {
+          if (hasProdutoColumns && record.produtos && record.produtos.length > 0) {
+            // Uma linha por produto
+            record.produtos.forEach(produto => {
+              const row: Record<string, any> = {};
+              selectedColumnConfigs.forEach(col => {
+                if (col.id.startsWith('produtos.')) {
+                  const propName = col.id.split('.')[1];
+                  row[col.label] = formatValue(produto[propName as keyof typeof produto], col.id);
+                } else {
+                  row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
+                }
+              });
+              exportRows.push(row);
+            });
+          } else {
+            // Uma linha por documento
             const row: Record<string, any> = {};
             selectedColumnConfigs.forEach(col => {
               if (col.id.startsWith('produtos.')) {
-                const propName = col.id.split('.')[1];
-                row[col.label] = formatValue(produto[propName as keyof typeof produto], col.id);
+                row[col.label] = '-';
               } else {
                 row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
               }
             });
             exportRows.push(row);
-          });
-        } else {
-          // Uma linha por documento
-          const row: Record<string, any> = {};
-          selectedColumnConfigs.forEach(col => {
-            if (col.id.startsWith('produtos.')) {
-              row[col.label] = '-';
-            } else {
-              row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
-            }
-          });
-          exportRows.push(row);
-        }
-      });
+          }
+        });
+      }
 
       // Criar workbook
       const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -340,10 +496,11 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
       ws['!cols'] = colWidths;
 
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Documentos Fiscais');
+      const sheetName = tipoDocumento === 'cte' ? 'CT-e' : 'NF-e';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
       // Download
-      const fileName = `nfe_export_${dataInicio}_${dataFim}.xlsx`;
+      const fileName = `${tipoDocumento}_export_${dataInicio}_${dataFim}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -398,14 +555,15 @@ export function ExportDialog({ data, totalRecords, dataInicio, dataFim, disabled
                   Limpar Seleção
                 </Button>
                 <Badge variant="secondary" className="ml-auto">
-                  {selectedColumns.length} de {AVAILABLE_COLUMNS.length} selecionadas
+                  {selectedColumns.length} de {availableColumns.length} selecionadas
                 </Badge>
               </div>
 
               <ScrollArea className="h-[350px] pr-4">
                 <div className="space-y-6">
-                  {COLUMN_GROUPS.map(group => {
-                    const groupCols = columnsByGroup[group];
+                  {columnGroups.map(group => {
+                    const groupCols = columnsByGroup[group] || [];
+                    if (groupCols.length === 0) return null;
                     const allSelected = groupCols.every(c => selectedColumns.includes(c.id));
                     const someSelected = groupCols.some(c => selectedColumns.includes(c.id));
 
