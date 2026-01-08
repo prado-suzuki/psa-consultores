@@ -68,78 +68,104 @@ export function useApiAuth() {
   const fetchWithAuth = async (
     url: string, 
     options: RequestInit = {},
-    timeoutMs: number = 30000
+    timeoutMs: number = 30000,
+    maxRetries: number = 3
   ): Promise<Response> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const startTime = Date.now();
+    let lastError: Error | null = null;
 
-    try {
-      console.log(`[API] Iniciando requisição: ${url}`);
-      
-      const token = await getValidToken();
-      if (!token) {
-        throw new Error('Sessão expirada');
-      }
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
-      let response = await fetch(url, { 
-        ...options, 
-        headers,
-        signal: controller.signal 
-      });
-
-      console.log(`[API] Resposta: ${response.status} em ${Date.now() - startTime}ms`);
-
-      // If 401, try refreshing token and retry once
-      if (response.status === 401) {
-        console.log('Recebido 401, tentando refresh do token...');
-        const newSession = await refreshSession();
+      try {
+        console.log(`[API] Tentativa ${attempt}/${maxRetries}: ${url}`);
         
-        if (!newSession) {
-          handleSessionExpired();
+        const token = await getValidToken();
+        if (!token) {
           throw new Error('Sessão expirada');
         }
 
-        // Retry with new token
-        const retryHeaders = {
+        const headers = {
           ...options.headers,
-          'Authorization': `Bearer ${newSession.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         };
 
-        response = await fetch(url, { 
+        let response = await fetch(url, { 
           ...options, 
-          headers: retryHeaders,
+          headers,
           signal: controller.signal 
         });
-        
-        if (response.status === 401) {
-          handleSessionExpired();
-          throw new Error('Sessão expirada');
-        }
-      }
 
-      return response;
-    } catch (error) {
-      const err = error as Error;
-      console.error(`[API] Erro: ${err.name} - ${err.message}`);
-      
-      if (err.name === 'AbortError') {
-        throw new Error('Tempo limite excedido. A requisição demorou mais de 30 segundos.');
+        console.log(`[API] Resposta: ${response.status} em ${Date.now() - startTime}ms`);
+
+        // If 401, try refreshing token and retry once
+        if (response.status === 401) {
+          console.log('[API] Recebido 401, tentando refresh do token...');
+          const newSession = await refreshSession();
+          
+          if (!newSession) {
+            handleSessionExpired();
+            throw new Error('Sessão expirada');
+          }
+
+          // Retry with new token
+          const retryHeaders = {
+            ...options.headers,
+            'Authorization': `Bearer ${newSession.access_token}`,
+            'Content-Type': 'application/json',
+          };
+
+          response = await fetch(url, { 
+            ...options, 
+            headers: retryHeaders,
+            signal: controller.signal 
+          });
+          
+          if (response.status === 401) {
+            handleSessionExpired();
+            throw new Error('Sessão expirada');
+          }
+        }
+
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        const err = error as Error;
+        lastError = err;
+        
+        console.error(`[API] Erro na tentativa ${attempt}: ${err.name} - ${err.message}`);
+        
+        // Não fazer retry para erros de sessão
+        if (err.message === 'Sessão expirada') {
+          throw err;
+        }
+        
+        // Não fazer retry para timeout (já demorou muito)
+        if (err.name === 'AbortError') {
+          throw new Error('Tempo limite excedido. A requisição demorou mais de 30 segundos.');
+        }
+        
+        // Para erros de rede, tentar novamente com backoff exponencial
+        if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+          if (attempt < maxRetries) {
+            const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
+            console.log(`[API] Aguardando ${delayMs}ms antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          throw new Error('Erro de conexão. Verifique sua internet ou tente novamente.');
+        }
+        
+        // Para outros erros, não fazer retry
+        throw err;
       }
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        throw new Error('Erro de conexão. Verifique sua internet ou tente novamente.');
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeoutId);
     }
+
+    // Se chegou aqui, todas as tentativas falharam
+    throw lastError || new Error('Erro desconhecido após múltiplas tentativas');
   };
 
   return { getAuthHeaders, getValidToken, fetchWithAuth };
