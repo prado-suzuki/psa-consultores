@@ -273,6 +273,36 @@ export type Database = {
           },
         ]
       }
+      export_profiles: {
+        Row: {
+          columns: string[]
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          columns: string[]
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          columns?: string[]
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       process_stages: {
         Row: {
           automation_level: string | null

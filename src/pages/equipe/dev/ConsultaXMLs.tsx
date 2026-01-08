@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
 
 interface NFeProduto {
   nItem: number;
@@ -90,7 +90,6 @@ const ConsultaXMLs = () => {
   const [dataInicio, setDataInicio] = useState('2024-01-01');
   const [dataFim, setDataFim] = useState('2026-01-31');
   const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>('nfe');
-  const [isExporting, setIsExporting] = useState(false);
   const [searchTriggered, setSearchTriggered] = useState(false);
   const { fetchWithAuth } = useApiAuth();
   const navigate = useNavigate();
@@ -206,63 +205,6 @@ const ConsultaXMLs = () => {
     }
   };
 
-  const handleExportCSV = async () => {
-    if (!selectedContribuinte) return;
-
-    setIsExporting(true);
-    try {
-      const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/export/${selectedContribuinte}/nfe/csv`;
-      
-      const response = await fetchWithAuth(url, {
-        method: 'POST',
-        body: JSON.stringify({
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          colunas: [
-            'chave_nfe',
-            'dEmi',
-            'emit.CNPJ',
-            'emit.xNome',
-            'dest.xNome',
-            'produtos.xProd',
-            'produtos.vProd'
-          ]
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro na exportação: ${response.status} - ${errorText}`);
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `nfe_export_${dataInicio}_${dataFim}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(downloadUrl);
-      
-      toast({
-        title: "Exportação concluída",
-        description: "O arquivo CSV foi baixado com sucesso.",
-      });
-    } catch (err) {
-      const errorMessage = (err as Error).message;
-      if (errorMessage !== 'Sessão expirada') {
-        toast({
-          title: "Erro ao exportar",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   return (
     <DevLayout 
       title="Consulta de XMLs" 
@@ -360,14 +302,13 @@ const ConsultaXMLs = () => {
                   {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                   Buscar
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={handleExportCSV}
-                  disabled={!selectedContribuinte || isExporting}
-                >
-                  {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  Exportar CSV
-                </Button>
+                <ExportDialog
+                  data={records}
+                  totalRecords={totalRecords}
+                  dataInicio={dataInicio}
+                  dataFim={dataFim}
+                  disabled={!selectedContribuinte || records.length === 0}
+                />
               </div>
             </div>
           </CardContent>
