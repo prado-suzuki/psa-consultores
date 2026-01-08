@@ -251,10 +251,11 @@ const ConsultaXMLs = () => {
               Filtros
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-              <div className="lg:col-span-2">
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Contribuinte</label>
+          <CardContent className="space-y-6">
+            {/* Grid de Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 lg:col-span-1">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Contribuinte</label>
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
                     {(errorContribuintes as Error).message}
@@ -285,7 +286,7 @@ const ConsultaXMLs = () => {
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Tipo</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo</label>
                 <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
                   setTipoDocumento(value);
                   setSearchTriggered(false);
@@ -304,7 +305,7 @@ const ConsultaXMLs = () => {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Início</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Início</label>
                 <Input
                   type="date"
                   value={dataInicio}
@@ -315,7 +316,7 @@ const ConsultaXMLs = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Fim</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Fim</label>
                 <Input
                   type="date"
                   value={dataFim}
@@ -325,33 +326,34 @@ const ConsultaXMLs = () => {
                   }}
                 />
               </div>
-              <div className="flex items-end gap-2">
+            </div>
+
+            {/* Barra de Ações */}
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-border">
+              {hasActiveFilters && (
                 <Button 
-                  className="flex-1" 
-                  onClick={handleSearch}
-                  disabled={!selectedContribuinte || isLoading}
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="text-muted-foreground hover:text-destructive"
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Buscar
+                  Limpar Filtros
                 </Button>
-                {hasActiveFilters && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Limpar Filtros
-                  </Button>
-                )}
-                <ExportDialog
-                  data={records}
-                  totalRecords={totalRecords}
-                  dataInicio={dataInicio}
-                  dataFim={dataFim}
-                  disabled={!selectedContribuinte || records.length === 0}
-                />
-              </div>
+              )}
+              <ExportDialog
+                data={records}
+                totalRecords={totalRecords}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                disabled={!selectedContribuinte || records.length === 0}
+              />
+              <Button 
+                onClick={handleSearch}
+                disabled={!selectedContribuinte || isLoading}
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                Buscar
+              </Button>
             </div>
           </CardContent>
         </Card>
