@@ -89,7 +89,9 @@ const ConsultaXMLs = () => {
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
   const [dataInicio, setDataInicio] = useState('2024-01-01');
   const [dataFim, setDataFim] = useState('2026-01-31');
+  const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>('nfe');
   const [isExporting, setIsExporting] = useState(false);
+  const [searchTriggered, setSearchTriggered] = useState(false);
   const { fetchWithAuth } = useApiAuth();
   const navigate = useNavigate();
 
@@ -124,13 +126,46 @@ const ConsultaXMLs = () => {
     },
   });
 
-  // Buscar NFes da API
+  // Buscar documentos da API (NFe, CTe ou ambos)
   const { data: nfeData, isLoading, error, refetch } = useQuery({
-    queryKey: ['nfes', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['documentos', selectedContribuinte, dataInicio, dataFim, tipoDocumento, currentPage],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
-      const url = `https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
+      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+
+      if (tipoDocumento === 'todos') {
+        // Buscar ambos endpoints em paralelo
+        const [nfeResponse, cteResponse] = await Promise.all([
+          fetchWithAuth(`${baseUrl}/${selectedContribuinte}/nfes${queryParams}`, { method: 'GET' }),
+          fetchWithAuth(`${baseUrl}/${selectedContribuinte}/ctes${queryParams}`, { method: 'GET' }),
+        ]);
+
+        if (!nfeResponse.ok && !cteResponse.ok) {
+          throw new Error('Erro ao buscar documentos');
+        }
+
+        const nfeData: ApiResponse = nfeResponse.ok 
+          ? await nfeResponse.json() 
+          : { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false };
+        const cteData: ApiResponse = cteResponse.ok 
+          ? await cteResponse.json() 
+          : { items: [], total: 0, page: 1, page_size: ITEMS_PER_PAGE, has_more: false };
+
+        // Combinar resultados
+        return {
+          items: [...nfeData.items, ...cteData.items],
+          total: nfeData.total + cteData.total,
+          page: currentPage,
+          page_size: ITEMS_PER_PAGE,
+          has_more: nfeData.has_more || cteData.has_more,
+        } as ApiResponse;
+      }
+
+      // Buscar endpoint específico
+      const endpoint = tipoDocumento === 'nfe' ? 'nfes' : 'ctes';
+      const url = `${baseUrl}/${selectedContribuinte}/${endpoint}${queryParams}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
 
@@ -141,9 +176,8 @@ const ConsultaXMLs = () => {
 
       return response.json() as Promise<ApiResponse>;
     },
-    enabled: !!selectedContribuinte,
+    enabled: searchTriggered && !!selectedContribuinte,
     retry: (failureCount, error) => {
-      // Não tentar novamente se for erro de sessão expirada
       if ((error as Error).message === 'Sessão expirada') return false;
       return failureCount < 2;
     },
@@ -189,7 +223,11 @@ const ConsultaXMLs = () => {
 
   const handleSearch = () => {
     setCurrentPage(1);
-    refetch();
+    setSearchTriggered(true);
+    // Se já foi triggered antes, forçar refetch
+    if (searchTriggered) {
+      refetch();
+    }
   };
 
   const handleExportCSV = async () => {
@@ -264,7 +302,7 @@ const ConsultaXMLs = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="lg:col-span-2">
                 <label className="text-sm font-medium text-muted-foreground mb-1 block">Contribuinte</label>
                 {errorContribuintes ? (
@@ -279,7 +317,10 @@ const ConsultaXMLs = () => {
                     </Button>
                   </div>
                 ) : (
-                  <Select value={selectedContribuinte} onValueChange={setSelectedContribuinte}>
+                  <Select value={selectedContribuinte} onValueChange={(value) => {
+                    setSelectedContribuinte(value);
+                    setSearchTriggered(false);
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione um contribuinte"} />
                     </SelectTrigger>
@@ -294,11 +335,30 @@ const ConsultaXMLs = () => {
                 )}
               </div>
               <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1 block">Tipo</label>
+                <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
+                  setTipoDocumento(value);
+                  setSearchTriggered(false);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nfe">NFe</SelectItem>
+                    <SelectItem value="cte">CTe</SelectItem>
+                    <SelectItem value="todos">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1 block">Data Início</label>
                 <Input
                   type="date"
                   value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
+                  onChange={(e) => {
+                    setDataInicio(e.target.value);
+                    setSearchTriggered(false);
+                  }}
                 />
               </div>
               <div>
@@ -306,7 +366,10 @@ const ConsultaXMLs = () => {
                 <Input
                   type="date"
                   value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
+                  onChange={(e) => {
+                    setDataFim(e.target.value);
+                    setSearchTriggered(false);
+                  }}
                 />
               </div>
               <div className="flex items-end gap-2">
@@ -345,7 +408,11 @@ const ConsultaXMLs = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {!selectedContribuinte ? (
+            {!searchTriggered ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Selecione os filtros e clique em "Buscar" para visualizar os documentos fiscais
+              </div>
+            ) : !selectedContribuinte ? (
               <div className="text-center py-8 text-muted-foreground">
                 Selecione um contribuinte para buscar os documentos fiscais
               </div>
