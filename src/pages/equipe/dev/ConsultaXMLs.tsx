@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info } from 'lucide-react';
 import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
+
+const DEFAULT_DATA_INICIO = '2024-01-01';
+const DEFAULT_DATA_FIM = '2026-01-31';
+const DEFAULT_TIPO_DOCUMENTO = 'nfe';
 
 interface NFeProduto {
   nItem: number;
@@ -87,11 +91,29 @@ const ITEMS_PER_PAGE = 10;
 const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
-  const [dataInicio, setDataInicio] = useState('2024-01-01');
-  const [dataFim, setDataFim] = useState('2026-01-31');
-  const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>('nfe');
+  const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
+  const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
+  const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>(DEFAULT_TIPO_DOCUMENTO);
   const [searchTriggered, setSearchTriggered] = useState(false);
   const { fetchWithAuth } = useApiAuth();
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      selectedContribuinte !== '' ||
+      dataInicio !== DEFAULT_DATA_INICIO ||
+      dataFim !== DEFAULT_DATA_FIM ||
+      tipoDocumento !== DEFAULT_TIPO_DOCUMENTO
+    );
+  }, [selectedContribuinte, dataInicio, dataFim, tipoDocumento]);
+
+  const handleClearFilters = () => {
+    setSelectedContribuinte('');
+    setDataInicio(DEFAULT_DATA_INICIO);
+    setDataFim(DEFAULT_DATA_FIM);
+    setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
+    setSearchTriggered(false);
+    setCurrentPage(1);
+  };
   const navigate = useNavigate();
 
   // Buscar lista de contribuintes
@@ -211,6 +233,16 @@ const ConsultaXMLs = () => {
       subtitle="Busque e visualize documentos fiscais"
     >
       <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
+        {/* Alerta de Instruções */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-slate-700">
+            Utilize os filtros de <strong>Data</strong> e <strong>Contribuinte</strong> abaixo 
+            para localizar as notas fiscais desejadas. Após a busca, você pode conferir os 
+            detalhes na tabela ou gerar um relatório clicando em <strong>Exportar Excel</strong>.
+          </p>
+        </div>
+
         {/* Filtros */}
         <Card>
           <CardHeader className="pb-4">
@@ -302,6 +334,16 @@ const ConsultaXMLs = () => {
                   {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                   Buscar
                 </Button>
+                {hasActiveFilters && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
                 <ExportDialog
                   data={records}
                   totalRecords={totalRecords}
