@@ -205,12 +205,19 @@ interface Contribuinte {
   id: string;
   nome_razao_social: string;
   cpf_cnpj: string | null;
+  cliente_id: string | null;
+}
+
+interface Cliente {
+  id: string;
+  nome: string;
 }
 
 const ITEMS_PER_PAGE = 10;
 
 const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
   const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
@@ -220,14 +227,16 @@ const ConsultaXMLs = () => {
 
   const hasActiveFilters = useMemo(() => {
     return (
+      selectedCliente !== '' ||
       selectedContribuinte !== '' ||
       dataInicio !== DEFAULT_DATA_INICIO ||
       dataFim !== DEFAULT_DATA_FIM ||
       tipoDocumento !== DEFAULT_TIPO_DOCUMENTO
     );
-  }, [selectedContribuinte, dataInicio, dataFim, tipoDocumento]);
+  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento]);
 
   const handleClearFilters = () => {
+    setSelectedCliente('');
     setSelectedContribuinte('');
     setDataInicio(DEFAULT_DATA_INICIO);
     setDataFim(DEFAULT_DATA_FIM);
@@ -237,20 +246,50 @@ const ConsultaXMLs = () => {
   };
   const navigate = useNavigate();
 
-  // Buscar lista de contribuintes
-  const { data: contribuintes, isLoading: loadingContribuintes, error: errorContribuintes } = useQuery({
-    queryKey: ['contribuintes-list'],
+  // Buscar lista de clientes
+  const { data: clientes, isLoading: loadingClientes } = useQuery({
+    queryKey: ['clientes-list'],
     queryFn: async () => {
-      // Verificar se usuário está autenticado
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         throw new Error('Sessão expirada. Faça login novamente.');
       }
 
       const { data, error } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (error) {
+        console.error('Erro ao buscar clientes:', error);
+        throw new Error(`Erro ao carregar clientes: ${error.message}`);
+      }
+      
+      return data as Cliente[];
+    },
+  });
+
+  // Buscar lista de contribuintes
+  const { data: contribuintes, isLoading: loadingContribuintes, error: errorContribuintes } = useQuery({
+    queryKey: ['contribuintes-list', selectedCliente],
+    queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      let query = supabase
         .from('contribuinte')
-        .select('id, nome_razao_social, cpf_cnpj')
+        .select('id, nome_razao_social, cpf_cnpj, cliente_id')
         .order('nome_razao_social');
+      
+      // Filtrar por cliente se selecionado (e não for "all")
+      if (selectedCliente && selectedCliente !== 'all') {
+        query = query.eq('cliente_id', selectedCliente);
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error('Erro ao buscar contribuintes:', error);
@@ -398,8 +437,28 @@ const ConsultaXMLs = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Grid de Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="sm:col-span-2 lg:col-span-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Cliente</label>
+                <Select value={selectedCliente} onValueChange={(value) => {
+                  setSelectedCliente(value);
+                  setSelectedContribuinte('');
+                  setSearchTriggered(false);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingClientes ? "Carregando..." : "Todos os clientes"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    {clientes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Contribuinte</label>
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
