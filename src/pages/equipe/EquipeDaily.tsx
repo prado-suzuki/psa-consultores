@@ -21,7 +21,8 @@ import {
   Users,
   Filter,
   Pencil,
-  Trash2
+  Trash2,
+  Search
 } from 'lucide-react';
 
 interface DailyStandup {
@@ -89,7 +90,7 @@ const EquipeDaily = () => {
     if (user) {
       fetchStandups();
     }
-  }, [user, filterDate, filterPerson, filterSprint]);
+  }, [user]);
 
   const fetchTeamMembers = async () => {
     try {
@@ -441,6 +442,14 @@ const EquipeDaily = () => {
                     ))}
                   </SelectContent>
                 </Select>
+
+                <Button 
+                  onClick={() => fetchStandups()}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar
+                </Button>
               </div>
             </div>
           </CardHeader>
