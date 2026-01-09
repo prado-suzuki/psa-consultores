@@ -61,7 +61,8 @@ const EquipeDaily = () => {
   const [form, setForm] = useState({
     did_yesterday: '',
     will_do_today: '',
-    blockers: ''
+    blockers: '',
+    sprint_id: ''
   });
 
   // Estado para edição
@@ -147,7 +148,8 @@ const EquipeDaily = () => {
         setForm({
           did_yesterday: myData.did_yesterday || '',
           will_do_today: myData.will_do_today || '',
-          blockers: myData.blockers || ''
+          blockers: myData.blockers || '',
+          sprint_id: myData.sprint_id || ''
         });
       }
 
@@ -191,7 +193,8 @@ const EquipeDaily = () => {
           .update({
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
-            blockers: form.blockers || null
+            blockers: form.blockers || null,
+            sprint_id: form.sprint_id || null
           })
           .eq('id', myStandup.id);
 
@@ -205,7 +208,8 @@ const EquipeDaily = () => {
             date: today,
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
-            blockers: form.blockers || null
+            blockers: form.blockers || null,
+            sprint_id: form.sprint_id || null
           });
 
         if (error) throw error;
@@ -341,6 +345,25 @@ const EquipeDaily = () => {
                       <SelectItem key={member.id} value={member.id}>
                         {member.first_name} {member.last_name}
                         {member.id === user?.id && ' (você)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+              </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700 flex items-center gap-2">
+                  <Target className="h-4 w-4 text-gray-500" />
+                  Sprint
+                </Label>
+                <Select value={form.sprint_id} onValueChange={(value) => setForm({ ...form, sprint_id: value })}>
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione a sprint" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    {sprints.map((sprint) => (
+                      <SelectItem key={sprint.id} value={sprint.id}>
+                        {sprint.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
