@@ -24,8 +24,10 @@ import {
   Trash2,
   Search,
   Calendar,
-  Target
+  Target,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface DailyStandup {
   id: string;
@@ -305,6 +307,39 @@ const EquipeDaily = () => {
     return sprint?.name || 'Sprint não encontrada';
   };
 
+  const handleExportExcel = () => {
+    if (standups.length === 0) {
+      toast({ 
+        title: "Sem dados", 
+        description: "Não há dailys para exportar.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    const data = standups.map((standup) => ({
+      'Data': new Date(standup.date).toLocaleDateString('pt-BR'),
+      'Membro': getMemberName(standup.user_id),
+      'Sprint': getSprintName(standup.sprint_id),
+      'Horário': new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      'Ontem': standup.did_yesterday || '-',
+      'Hoje': standup.will_do_today || '-',
+      'Bloqueios': standup.blockers || '-'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dailys');
+
+    const today = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    XLSX.writeFile(wb, `dailys_${today}.xlsx`);
+
+    toast({ 
+      title: "Excel exportado", 
+      description: `${standups.length} daily(s) exportado(s) com sucesso.` 
+    });
+  };
+
   const todayFormatted = new Date().toLocaleDateString('pt-BR', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -480,6 +515,15 @@ const EquipeDaily = () => {
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Buscar
+                </Button>
+
+                <Button 
+                  onClick={handleExportExcel}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar Excel
                 </Button>
               </div>
             </div>
