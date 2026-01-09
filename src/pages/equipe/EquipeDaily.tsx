@@ -25,7 +25,8 @@ import {
   Search,
   Calendar,
   Target,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -79,7 +80,8 @@ const EquipeDaily = () => {
   const today = new Date().toISOString().split('T')[0];
   
   // Filtros para histórico
-  const [filterDate, setFilterDate] = useState<string>(today);
+  const [filterStartDate, setFilterStartDate] = useState<string>('');
+  const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [filterPerson, setFilterPerson] = useState<string>('all');
   const [filterSprint, setFilterSprint] = useState<string>('all');
 
@@ -162,13 +164,20 @@ const EquipeDaily = () => {
         .order('date', { ascending: false })
         .order('created_at', { ascending: false });
 
-      // Só aplicar filtro de data se nenhuma sprint específica estiver selecionada
-      if (filterSprint === 'all') {
-        query = query.eq('date', filterDate);
-      } else {
+      // Aplicar filtro de período
+      if (filterStartDate) {
+        query = query.gte('date', filterStartDate);
+      }
+      if (filterEndDate) {
+        query = query.lte('date', filterEndDate);
+      }
+
+      // Filtro de sprint
+      if (filterSprint !== 'all') {
         query = query.eq('sprint_id', filterSprint);
       }
 
+      // Filtro de pessoa
       if (filterPerson !== 'all') {
         query = query.eq('user_id', filterPerson);
       }
@@ -340,6 +349,17 @@ const EquipeDaily = () => {
     });
   };
 
+  const handleClearFilters = () => {
+    setFilterStartDate('');
+    setFilterEndDate('');
+    setFilterPerson('all');
+    setFilterSprint('all');
+    toast({ 
+      title: "Filtros limpos", 
+      description: "Todos os filtros foram removidos." 
+    });
+  };
+
   const todayFormatted = new Date().toLocaleDateString('pt-BR', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -474,12 +494,27 @@ const EquipeDaily = () => {
                   <span className="text-sm text-gray-500">Filtros:</span>
                 </div>
                 
-                <Input
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="bg-white border-gray-300 text-gray-900 w-40"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">De:</span>
+                  <Input
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    className="bg-white border-gray-300 text-gray-900 w-40"
+                    placeholder="Data Início"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Até:</span>
+                  <Input
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    className="bg-white border-gray-300 text-gray-900 w-40"
+                    placeholder="Data Fim"
+                  />
+                </div>
                 
                 <Select value={filterPerson} onValueChange={setFilterPerson}>
                   <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44">
@@ -515,6 +550,15 @@ const EquipeDaily = () => {
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Buscar
+                </Button>
+
+                <Button 
+                  onClick={handleClearFilters}
+                  variant="outline"
+                  className="border-gray-400 text-gray-600 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Limpar Filtros
                 </Button>
 
                 <Button 
