@@ -22,7 +22,9 @@ import {
   Filter,
   Pencil,
   Trash2,
-  Search
+  Search,
+  Calendar,
+  Target
 } from 'lucide-react';
 
 interface DailyStandup {
@@ -293,6 +295,12 @@ const EquipeDaily = () => {
     return userId === user?.id ? 'Você' : 'Membro da equipe';
   };
 
+  const getSprintName = (sprintId: string | null): string => {
+    if (!sprintId) return 'Sem sprint';
+    const sprint = sprints.find(s => s.id === sprintId);
+    return sprint?.name || 'Sprint não encontrada';
+  };
+
   const todayFormatted = new Date().toLocaleDateString('pt-BR', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -469,61 +477,77 @@ const EquipeDaily = () => {
                         : 'bg-gray-50 border-gray-200'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <div className="flex items-start gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                         <User className="h-4 w-4 text-gray-500" />
                       </div>
-                      <span className="text-gray-900 font-medium">
-                        {getMemberName(standup.user_id)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      
-                      {/* Botões de edição/exclusão apenas para o próprio usuário */}
-                      {standup.user_id === user?.id && (
-                        <div className="flex gap-1 ml-auto">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEdit(standup)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                          </Button>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-900 font-medium">
+                            {getMemberName(standup.user_id)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                           
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                          {/* Botões de edição/exclusão apenas para o próprio usuário */}
+                          {standup.user_id === user?.id && (
+                            <div className="flex gap-1 ml-auto">
                               <Button 
                                 variant="ghost" 
-                                size="sm"
+                                size="sm" 
+                                onClick={() => handleEdit(standup)}
                                 className="h-8 w-8 p-0"
                               >
-                                <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                                <Pencil className="h-4 w-4 text-gray-500 hover:text-gray-700" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir Daily?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. O registro do daily será permanentemente removido.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDelete(standup.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir Daily?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. O registro do daily será permanentemente removido.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDelete(standup.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Data e Sprint */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(standup.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Target className="h-3 w-3" />
+                            {getSprintName(standup.sprint_id)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
                     {standup.did_yesterday && (
                       <div className="mb-2">
                         <p className="text-xs text-gray-500 mb-1">Ontem:</p>
