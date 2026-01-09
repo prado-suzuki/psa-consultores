@@ -152,15 +152,18 @@ const EquipeDaily = () => {
       let query = supabase
         .from('daily_standups')
         .select('*')
-        .eq('date', filterDate)
+        .order('date', { ascending: false })
         .order('created_at', { ascending: false });
+
+      // Só aplicar filtro de data se nenhuma sprint específica estiver selecionada
+      if (filterSprint === 'all') {
+        query = query.eq('date', filterDate);
+      } else {
+        query = query.eq('sprint_id', filterSprint);
+      }
 
       if (filterPerson !== 'all') {
         query = query.eq('user_id', filterPerson);
-      }
-
-      if (filterSprint !== 'all') {
-        query = query.eq('sprint_id', filterSprint);
       }
 
       const { data: allStandups } = await query;
