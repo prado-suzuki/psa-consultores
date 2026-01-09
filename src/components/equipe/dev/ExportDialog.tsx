@@ -68,6 +68,26 @@ export const NFE_COLUMNS: ColumnConfig[] = [
   { id: 'produtos.NCM', label: 'NCM', group: 'Produtos' },
   { id: 'produtos.CFOP', label: 'CFOP', group: 'Produtos' },
   { id: 'produtos.vProd', label: 'Valor Produto', group: 'Produtos' },
+  // Produtos - PIS
+  { id: 'produtos.PIS.CST', label: 'CST PIS', group: 'Produtos' },
+  { id: 'produtos.PIS.vBC', label: 'Base Cálculo PIS', group: 'Produtos' },
+  { id: 'produtos.PIS.pPIS', label: 'Alíquota PIS (%)', group: 'Produtos' },
+  { id: 'produtos.PIS.vPIS', label: 'Valor PIS', group: 'Produtos' },
+  { id: 'produtos.PIS.qBCProd', label: 'Qtd BC PIS', group: 'Produtos' },
+  { id: 'produtos.PIS.vAliqProd', label: 'Alíq. PIS (R$)', group: 'Produtos' },
+  { id: 'produtos.PIS.vBC_ST', label: 'BC PIS ST', group: 'Produtos' },
+  { id: 'produtos.PIS.pPIS_ST', label: 'Alíq. PIS ST (%)', group: 'Produtos' },
+  { id: 'produtos.PIS.vPIS_ST', label: 'Valor PIS ST', group: 'Produtos' },
+  // Produtos - COFINS
+  { id: 'produtos.COFINS.CST', label: 'CST COFINS', group: 'Produtos' },
+  { id: 'produtos.COFINS.vBC', label: 'Base Cálculo COFINS', group: 'Produtos' },
+  { id: 'produtos.COFINS.pCOFINS', label: 'Alíquota COFINS (%)', group: 'Produtos' },
+  { id: 'produtos.COFINS.vCOFINS', label: 'Valor COFINS', group: 'Produtos' },
+  { id: 'produtos.COFINS.qBCProd', label: 'Qtd BC COFINS', group: 'Produtos' },
+  { id: 'produtos.COFINS.vAliqProd', label: 'Alíq. COFINS (R$)', group: 'Produtos' },
+  { id: 'produtos.COFINS.vBC_ST', label: 'BC COFINS ST', group: 'Produtos' },
+  { id: 'produtos.COFINS.pCOFINS_ST', label: 'Alíq. COFINS ST (%)', group: 'Produtos' },
+  { id: 'produtos.COFINS.vCOFINS_ST', label: 'Valor COFINS ST', group: 'Produtos' },
 ];
 
 // Colunas CT-e
@@ -148,6 +168,28 @@ interface NFeRecord {
     NCM: string;
     CFOP: string;
     vProd: number;
+    PIS?: {
+      CST: string | null;
+      vBC: number | null;
+      pPIS: number | null;
+      vPIS: number | null;
+      qBCProd: number | null;
+      vAliqProd: number | null;
+      vBC_ST: number | null;
+      pPIS_ST: number | null;
+      vPIS_ST: number | null;
+    };
+    COFINS?: {
+      CST: string | null;
+      vBC: number | null;
+      pCOFINS: number | null;
+      vCOFINS: number | null;
+      qBCProd: number | null;
+      vAliqProd: number | null;
+      vBC_ST: number | null;
+      pCOFINS_ST: number | null;
+      vCOFINS_ST: number | null;
+    };
   }>;
   ICMSTot: {
     vICMS: number;
@@ -245,7 +287,7 @@ interface ExportDialogProps {
   disabled?: boolean;
 }
 
-// Função para acessar valores aninhados
+// Função para acessar valores aninhados (suporta até 3 níveis: produtos.PIS.vPIS)
 const getNestedValue = (obj: any, path: string): any => {
   const parts = path.split('.');
   let current = obj;
@@ -258,10 +300,19 @@ const getNestedValue = (obj: any, path: string): any => {
       return current.produtos;
     }
     
-    // Se estiver acessando propriedade de produtos (ex: produtos.xProd)
+    // Se estiver acessando propriedade de produtos (ex: produtos.xProd ou produtos.PIS.vPIS)
     if (parts[0] === 'produtos' && Array.isArray(obj.produtos)) {
-      const propName = parts[1];
-      return obj.produtos.map((p: any) => p[propName]).join('; ');
+      if (parts.length === 2) {
+        // produtos.xProd
+        const propName = parts[1];
+        return obj.produtos.map((p: any) => p[propName]).join('; ');
+      }
+      if (parts.length === 3) {
+        // produtos.PIS.vPIS ou produtos.COFINS.vCOFINS
+        const subObj = parts[1];
+        const propName = parts[2];
+        return obj.produtos.map((p: any) => p[subObj]?.[propName]).join('; ');
+      }
     }
     
     current = current[part];
@@ -279,17 +330,19 @@ const formatValue = (value: any, columnId: string): string => {
     return new Date(value).toLocaleDateString('pt-BR');
   }
   
-  // Formatar valores monetários
+  // Formatar valores monetários (inclui PIS e COFINS)
   if (columnId.includes('vProd') || columnId.includes('vICMS') || columnId.includes('vTPrest') || 
-      columnId.includes('vRec') || columnId.includes('vCarga') || columnId.includes('vBC')) {
+      columnId.includes('vRec') || columnId.includes('vCarga') || columnId.includes('vBC') ||
+      columnId.includes('vPIS') || columnId.includes('vCOFINS') || columnId.includes('vAliqProd')) {
     const num = typeof value === 'number' ? value : parseFloat(value);
     if (!isNaN(num)) {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
     }
   }
 
-  // Formatar percentual
-  if (columnId.includes('pICMS') || columnId.includes('pRedBC')) {
+  // Formatar percentual (inclui PIS e COFINS)
+  if (columnId.includes('pICMS') || columnId.includes('pRedBC') ||
+      columnId.includes('pPIS') || columnId.includes('pCOFINS')) {
     const num = typeof value === 'number' ? value : parseFloat(value);
     if (!isNaN(num)) {
       return `${num.toFixed(2)}%`;
@@ -463,8 +516,19 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
               const row: Record<string, any> = {};
               selectedColumnConfigs.forEach(col => {
                 if (col.id.startsWith('produtos.')) {
-                  const propName = col.id.split('.')[1];
-                  row[col.label] = formatValue(produto[propName as keyof typeof produto], col.id);
+                  const pathParts = col.id.split('.');
+                  if (pathParts.length === 2) {
+                    // produtos.xProd
+                    const propName = pathParts[1];
+                    row[col.label] = formatValue(produto[propName as keyof typeof produto], col.id);
+                  } else if (pathParts.length === 3) {
+                    // produtos.PIS.vPIS ou produtos.COFINS.vCOFINS
+                    const subObj = pathParts[1] as 'PIS' | 'COFINS';
+                    const propName = pathParts[2];
+                    const subObjValue = produto[subObj];
+                    const value = subObjValue ? (subObjValue as any)[propName] : null;
+                    row[col.label] = formatValue(value, col.id);
+                  }
                 } else {
                   row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
                 }

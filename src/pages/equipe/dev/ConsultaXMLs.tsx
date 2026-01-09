@@ -34,6 +34,28 @@ interface NFeProduto {
     vIPI: number;
     CST: number;
   };
+  PIS: {
+    CST: string | null;
+    vBC: number | null;
+    pPIS: number | null;
+    vPIS: number | null;
+    qBCProd: number | null;
+    vAliqProd: number | null;
+    vBC_ST: number | null;
+    pPIS_ST: number | null;
+    vPIS_ST: number | null;
+  };
+  COFINS: {
+    CST: string | null;
+    vBC: number | null;
+    pCOFINS: number | null;
+    vCOFINS: number | null;
+    qBCProd: number | null;
+    vAliqProd: number | null;
+    vBC_ST: number | null;
+    pCOFINS_ST: number | null;
+    vCOFINS_ST: number | null;
+  };
 }
 
 interface NFeEmit {
