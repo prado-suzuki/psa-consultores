@@ -331,7 +331,7 @@ const ConsultaXMLs = () => {
 
   // Buscar NFe
   const { data: nfeData, isLoading: loadingNfe, error: errorNfe, refetch: refetchNfe } = useQuery({
-    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -340,8 +340,11 @@ const ConsultaXMLs = () => {
         data_inicio: dataInicio,
         data_fim: dataFim,
         page: currentPage.toString(),
-        page_size: '1000', // Buscar mais registros para filtrar no cliente
+        page_size: ITEMS_PER_PAGE.toString(),
+        tipo_mov: tipoMov,
       });
+      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
       
       const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
       
@@ -363,7 +366,7 @@ const ConsultaXMLs = () => {
 
   // Buscar CT-e
   const { data: cteData, isLoading: loadingCte, error: errorCte, refetch: refetchCte } = useQuery({
-    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -372,8 +375,11 @@ const ConsultaXMLs = () => {
         data_inicio: dataInicio,
         data_fim: dataFim,
         page: currentPage.toString(),
-        page_size: '1000', // Buscar mais registros para filtrar no cliente
+        page_size: ITEMS_PER_PAGE.toString(),
+        tipo_mov: tipoMov,
       });
+      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
       
       const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
       
@@ -397,74 +403,9 @@ const ConsultaXMLs = () => {
   const error = tipoDocumento === 'nfe' ? errorNfe : errorCte;
   const refetch = tipoDocumento === 'nfe' ? refetchNfe : refetchCte;
 
-  // Filtrar NFe no cliente
-  const filteredNfeRecords = useMemo(() => {
-    let records = nfeData?.items || [];
-    
-    // Filtrar por tipo_mov (campo retornado pela API)
-    records = records.filter((record: any) => record.tipo_mov === tipoMov);
-    
-    // Filtrar por emitente (CPF/CNPJ)
-    if (emitente) {
-      const cleanEmitente = emitente.replace(/\D/g, '');
-      records = records.filter((record) => 
-        record.emit.CNPJ?.replace(/\D/g, '').includes(cleanEmitente)
-      );
-    }
-    
-    // Filtrar por destinatário (CPF/CNPJ)
-    if (destinatario) {
-      const cleanDestinatario = destinatario.replace(/\D/g, '');
-      records = records.filter((record) => 
-        record.dest.CNPJ?.replace(/\D/g, '').includes(cleanDestinatario)
-      );
-    }
-    
-    return records;
-  }, [nfeData?.items, tipoMov, emitente, destinatario]);
-
-  // Filtrar CT-e no cliente
-  const filteredCteRecords = useMemo(() => {
-    let records = cteData?.items || [];
-    
-    // Filtrar por tipo_mov (campo retornado pela API)
-    records = records.filter((record: any) => record.tipo_mov === tipoMov);
-    
-    // Filtrar por emitente (CPF/CNPJ)
-    if (emitente) {
-      const cleanEmitente = emitente.replace(/\D/g, '');
-      records = records.filter((record) => {
-        const cnpj = record.emit.CNPJ?.replace(/\D/g, '') || '';
-        const cpf = record.emit.CPF?.replace(/\D/g, '') || '';
-        return cnpj.includes(cleanEmitente) || cpf.includes(cleanEmitente);
-      });
-    }
-    
-    // Filtrar por destinatário (CPF/CNPJ)
-    if (destinatario) {
-      const cleanDestinatario = destinatario.replace(/\D/g, '');
-      records = records.filter((record) => {
-        const cnpj = record.dest.CNPJ?.replace(/\D/g, '') || '';
-        const cpf = record.dest.CPF?.replace(/\D/g, '') || '';
-        return cnpj.includes(cleanDestinatario) || cpf.includes(cleanDestinatario);
-      });
-    }
-    
-    return records;
-  }, [cteData?.items, tipoMov, emitente, destinatario]);
-
-  // Paginação no cliente
-  const nfeRecords = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredNfeRecords.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredNfeRecords, currentPage]);
-
-  const cteRecords = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredCteRecords.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredCteRecords, currentPage]);
-
-  const totalRecords = tipoDocumento === 'nfe' ? filteredNfeRecords.length : filteredCteRecords.length;
+  const nfeRecords = nfeData?.items || [];
+  const cteRecords = cteData?.items || [];
+  const totalRecords = tipoDocumento === 'nfe' ? (nfeData?.total || 0) : (cteData?.total || 0);
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
   // Toast de erro automático
