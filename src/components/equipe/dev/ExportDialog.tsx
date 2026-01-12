@@ -572,12 +572,12 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
             <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4">
               {/* Toolbar de Perfis */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Select value={selectedProfileId} onValueChange={loadProfile}>
+                <Select value={selectedProfileId || "__none__"} onValueChange={(val) => loadProfile(val === "__none__" ? "" : val)}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Carregar Preset"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {profiles.map(profile => (
                       <SelectItem key={profile.id} value={profile.id}>
                         <span className="flex items-center gap-2">
