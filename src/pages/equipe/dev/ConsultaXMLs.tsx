@@ -558,7 +558,7 @@ const ConsultaXMLs = () => {
                     setDataInicio(e.target.value);
                     setSearchTriggered(false);
                   }}
-                  className="h-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
                 />
               </div>
               <div>
@@ -570,7 +570,7 @@ const ConsultaXMLs = () => {
                     setDataFim(e.target.value);
                     setSearchTriggered(false);
                   }}
-                  className="h-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
                 />
               </div>
             </div>
