@@ -467,8 +467,8 @@ const ConsultaXMLs = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Grid de Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[180px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Cliente</label>
                 <Select value={selectedCliente} onValueChange={(value) => {
                   setSelectedCliente(value);
@@ -495,7 +495,7 @@ const ConsultaXMLs = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="flex-1 min-w-[220px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Contribuinte</label>
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
@@ -533,7 +533,7 @@ const ConsultaXMLs = () => {
                   </Select>
                 )}
               </div>
-              <div>
+              <div className="w-[110px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo</label>
                 <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
                   setTipoDocumento(value);
@@ -549,29 +549,31 @@ const ConsultaXMLs = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Início</label>
-                <Input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => {
-                    setDataInicio(e.target.value);
-                    setSearchTriggered(false);
-                  }}
-                  className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Fim</label>
-                <Input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => {
-                    setDataFim(e.target.value);
-                    setSearchTriggered(false);
-                  }}
-                  className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-                />
+              <div className="flex gap-3">
+                <div className="w-[140px]">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Início</label>
+                  <Input
+                    type="date"
+                    value={dataInicio}
+                    onChange={(e) => {
+                      setDataInicio(e.target.value);
+                      setSearchTriggered(false);
+                    }}
+                    className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
+                  />
+                </div>
+                <div className="w-[140px]">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Fim</label>
+                  <Input
+                    type="date"
+                    value={dataFim}
+                    onChange={(e) => {
+                      setDataFim(e.target.value);
+                      setSearchTriggered(false);
+                    }}
+                    className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
+                  />
+                </div>
               </div>
             </div>
 
