@@ -19,6 +19,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,114 +37,18 @@ import {
 import { Download, Loader2, Save, Trash2, Star, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
 import { useExportProfiles, ExportProfile } from '@/hooks/useExportProfiles';
 import { toast } from '@/hooks/use-toast';
+import {
+  NFE_COLUMNS,
+  CTE_COLUMNS,
+  NFE_COLUMN_GROUPS,
+  CTE_COLUMN_GROUPS,
+  ColumnConfig,
+  AVAILABLE_COLUMNS,
+} from '@/constants/exportConfig';
 
-// Definição das colunas disponíveis
-export interface ColumnConfig {
-  id: string;
-  label: string;
-  group: string;
-}
-
-// Colunas NFe
-export const NFE_COLUMNS: ColumnConfig[] = [
-  // Documento
-  { id: 'chave_nfe', label: 'Chave NFe', group: 'Documento' },
-  { id: 'dhEmi', label: 'Data Emissão', group: 'Documento' },
-  { id: 'nNF', label: 'Número NF', group: 'Documento' },
-  { id: 'serie', label: 'Série', group: 'Documento' },
-  { id: 'natOp', label: 'Natureza Operação', group: 'Documento' },
-  { id: 'tpNF', label: 'Tipo NF (0=Entrada, 1=Saída)', group: 'Documento' },
-  { id: 'mod', label: 'Modelo', group: 'Documento' },
-  // Emitente
-  { id: 'emit.CNPJ', label: 'CNPJ Emitente', group: 'Emitente' },
-  { id: 'emit.xNome', label: 'Razão Social Emitente', group: 'Emitente' },
-  { id: 'emit.IE', label: 'IE Emitente', group: 'Emitente' },
-  { id: 'emit.UF', label: 'UF Emitente', group: 'Emitente' },
-  // Destinatário
-  { id: 'dest.CNPJ', label: 'CNPJ Destinatário', group: 'Destinatário' },
-  { id: 'dest.xNome', label: 'Razão Social Destinatário', group: 'Destinatário' },
-  { id: 'dest.IE', label: 'IE Destinatário', group: 'Destinatário' },
-  { id: 'dest.UF', label: 'UF Destinatário', group: 'Destinatário' },
-  // Totais
-  { id: 'ICMSTot.vICMS', label: 'Valor ICMS', group: 'Totais' },
-  { id: 'ICMSTot.vICMSST', label: 'Valor ICMS ST', group: 'Totais' },
-  // Produtos (será expandido por item)
-  { id: 'produtos.xProd', label: 'Nome Produto', group: 'Produtos' },
-  { id: 'produtos.cProd', label: 'Código Produto', group: 'Produtos' },
-  { id: 'produtos.NCM', label: 'NCM', group: 'Produtos' },
-  { id: 'produtos.CFOP', label: 'CFOP', group: 'Produtos' },
-  { id: 'produtos.vProd', label: 'Valor Produto', group: 'Produtos' },
-  // Produtos - PIS
-  { id: 'produtos.PIS.CST', label: 'CST PIS', group: 'Produtos' },
-  { id: 'produtos.PIS.vBC', label: 'Base Cálculo PIS', group: 'Produtos' },
-  { id: 'produtos.PIS.pPIS', label: 'Alíquota PIS (%)', group: 'Produtos' },
-  { id: 'produtos.PIS.vPIS', label: 'Valor PIS', group: 'Produtos' },
-  { id: 'produtos.PIS.qBCProd', label: 'Qtd BC PIS', group: 'Produtos' },
-  { id: 'produtos.PIS.vAliqProd', label: 'Alíq. PIS (R$)', group: 'Produtos' },
-  { id: 'produtos.PIS.vBC_ST', label: 'BC PIS ST', group: 'Produtos' },
-  { id: 'produtos.PIS.pPIS_ST', label: 'Alíq. PIS ST (%)', group: 'Produtos' },
-  { id: 'produtos.PIS.vPIS_ST', label: 'Valor PIS ST', group: 'Produtos' },
-  // Produtos - COFINS
-  { id: 'produtos.COFINS.CST', label: 'CST COFINS', group: 'Produtos' },
-  { id: 'produtos.COFINS.vBC', label: 'Base Cálculo COFINS', group: 'Produtos' },
-  { id: 'produtos.COFINS.pCOFINS', label: 'Alíquota COFINS (%)', group: 'Produtos' },
-  { id: 'produtos.COFINS.vCOFINS', label: 'Valor COFINS', group: 'Produtos' },
-  { id: 'produtos.COFINS.qBCProd', label: 'Qtd BC COFINS', group: 'Produtos' },
-  { id: 'produtos.COFINS.vAliqProd', label: 'Alíq. COFINS (R$)', group: 'Produtos' },
-  { id: 'produtos.COFINS.vBC_ST', label: 'BC COFINS ST', group: 'Produtos' },
-  { id: 'produtos.COFINS.pCOFINS_ST', label: 'Alíq. COFINS ST (%)', group: 'Produtos' },
-  { id: 'produtos.COFINS.vCOFINS_ST', label: 'Valor COFINS ST', group: 'Produtos' },
-];
-
-// Colunas CT-e
-export const CTE_COLUMNS: ColumnConfig[] = [
-  // Documento
-  { id: 'chave_cte', label: 'Chave CTe', group: 'Documento' },
-  { id: 'dEmi', label: 'Data Emissão', group: 'Documento' },
-  { id: 'nCT', label: 'Número CT', group: 'Documento' },
-  { id: 'serie', label: 'Série', group: 'Documento' },
-  { id: 'natOp', label: 'Natureza Operação', group: 'Documento' },
-  { id: 'cfop', label: 'CFOP', group: 'Documento' },
-  { id: 'mod', label: 'Modelo', group: 'Documento' },
-  { id: 'modal', label: 'Modal', group: 'Documento' },
-  // Origem/Destino
-  { id: 'xMunIni', label: 'Município Origem', group: 'Trajeto' },
-  { id: 'xMunFim', label: 'Município Destino', group: 'Trajeto' },
-  { id: 'cMunIni', label: 'Código Mun. Origem', group: 'Trajeto' },
-  { id: 'cMunFim', label: 'Código Mun. Destino', group: 'Trajeto' },
-  // Emitente
-  { id: 'emit.CNPJ', label: 'CNPJ Emitente', group: 'Emitente' },
-  { id: 'emit.xNome', label: 'Razão Social Emitente', group: 'Emitente' },
-  { id: 'emit.xFant', label: 'Nome Fantasia Emitente', group: 'Emitente' },
-  { id: 'emit.IE', label: 'IE Emitente', group: 'Emitente' },
-  { id: 'emit.UF', label: 'UF Emitente', group: 'Emitente' },
-  // Destinatário
-  { id: 'dest.CNPJ', label: 'CNPJ Destinatário', group: 'Destinatário' },
-  { id: 'dest.xNome', label: 'Razão Social Destinatário', group: 'Destinatário' },
-  { id: 'dest.IE', label: 'IE Destinatário', group: 'Destinatário' },
-  { id: 'dest.UF', label: 'UF Destinatário', group: 'Destinatário' },
-  // Tomador
-  { id: 'tomador.CNPJ', label: 'CNPJ Tomador', group: 'Tomador' },
-  { id: 'tomador.xNome', label: 'Razão Social Tomador', group: 'Tomador' },
-  { id: 'tomador.IE', label: 'IE Tomador', group: 'Tomador' },
-  { id: 'tomador.UF', label: 'UF Tomador', group: 'Tomador' },
-  // Valores
-  { id: 'vTPrest', label: 'Valor Prestação', group: 'Valores' },
-  { id: 'vRec', label: 'Valor a Receber', group: 'Valores' },
-  { id: 'vCarga', label: 'Valor da Carga', group: 'Valores' },
-  // ICMS
-  { id: 'icms.CST', label: 'CST ICMS', group: 'ICMS' },
-  { id: 'icms.vBC', label: 'Base Cálculo ICMS', group: 'ICMS' },
-  { id: 'icms.pICMS', label: 'Alíquota ICMS', group: 'ICMS' },
-  { id: 'icms.vICMS', label: 'Valor ICMS', group: 'ICMS' },
-];
-
-// Grupos de colunas
-const NFE_COLUMN_GROUPS = ['Documento', 'Emitente', 'Destinatário', 'Totais', 'Produtos'];
-const CTE_COLUMN_GROUPS = ['Documento', 'Trajeto', 'Emitente', 'Destinatário', 'Tomador', 'Valores', 'ICMS'];
-
-// Para retrocompatibilidade
-export const AVAILABLE_COLUMNS = NFE_COLUMNS;
+// Re-exportar para retrocompatibilidade
+export type { ColumnConfig };
+export { NFE_COLUMNS, CTE_COLUMNS, AVAILABLE_COLUMNS };
 
 interface NFeRecord {
   chave_nfe: string;
@@ -369,14 +279,13 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('colunas');
   const [isExporting, setIsExporting] = useState(false);
-  const [newProfileName, setNewProfileName] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  // Resetar colunas selecionadas quando o tipo de documento muda
-  useEffect(() => {
-    setSelectedColumns(availableColumns.map(c => c.id));
-  }, [tipoDocumento]);
+  
+  // Estados para o dialog interno de salvar perfil
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
 
   const {
     profiles,
@@ -388,13 +297,30 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
     setDefaultProfile,
   } = useExportProfiles();
 
-  // Carregar perfil padrão ao abrir
+  // Lógica unificada de auto-carregamento ao abrir o modal
   useEffect(() => {
-    if (open && defaultProfile) {
-      setSelectedColumns(defaultProfile.columns);
-      setSelectedProfileId(defaultProfile.id);
+    if (open) {
+      // Prioridade: perfil padrão > todas as colunas
+      if (defaultProfile && defaultProfile.columns.length > 0) {
+        // Filtrar apenas colunas válidas para o tipo atual
+        const validColumns = defaultProfile.columns.filter(
+          col => availableColumns.some(ac => ac.id === col)
+        );
+        if (validColumns.length > 0) {
+          setSelectedColumns(validColumns);
+          setSelectedProfileId(defaultProfile.id);
+        } else {
+          // Perfil padrão não tem colunas válidas para este tipo
+          setSelectedColumns(availableColumns.map(c => c.id));
+          setSelectedProfileId('');
+        }
+      } else {
+        // Sem perfil padrão: selecionar todas
+        setSelectedColumns(availableColumns.map(c => c.id));
+        setSelectedProfileId('');
+      }
     }
-  }, [open, defaultProfile]);
+  }, [open, defaultProfile, availableColumns]);
 
   // Colunas agrupadas
   const columnsByGroup = useMemo(() => {
@@ -438,11 +364,30 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
 
   // Carregar perfil
   const loadProfile = (profileId: string) => {
+    if (!profileId) {
+      setSelectedProfileId('');
+      return;
+    }
     const profile = profiles.find(p => p.id === profileId);
     if (profile) {
-      setSelectedColumns(profile.columns);
+      // Filtrar apenas colunas válidas para o tipo atual
+      const validColumns = profile.columns.filter(
+        col => availableColumns.some(ac => ac.id === col)
+      );
+      setSelectedColumns(validColumns.length > 0 ? validColumns : availableColumns.map(c => c.id));
       setSelectedProfileId(profileId);
     }
+  };
+
+  // Abrir dialog para salvar perfil
+  const openSaveDialog = () => {
+    if (selectedColumns.length === 0) {
+      toast({ title: 'Selecione colunas', description: 'Selecione ao menos uma coluna.', variant: 'destructive' });
+      return;
+    }
+    setNewProfileName('');
+    setSaveAsDefault(false);
+    setSaveDialogOpen(true);
   };
 
   // Salvar novo perfil
@@ -451,12 +396,12 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
       toast({ title: 'Nome obrigatório', description: 'Informe um nome para o perfil.', variant: 'destructive' });
       return;
     }
-    if (selectedColumns.length === 0) {
-      toast({ title: 'Selecione colunas', description: 'Selecione ao menos uma coluna.', variant: 'destructive' });
-      return;
+    const result = await createProfile.mutateAsync({ name: newProfileName.trim(), columns: selectedColumns });
+    if (saveAsDefault && result?.id) {
+      await setDefaultProfile.mutateAsync(result.id);
     }
-    await createProfile.mutateAsync({ name: newProfileName.trim(), columns: selectedColumns });
     setNewProfileName('');
+    setSaveDialogOpen(false);
   };
 
   // Atualizar perfil existente
@@ -474,6 +419,23 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
     }
     setDeleteConfirmId(null);
   };
+
+  // Toggle favorito/padrão
+  const handleToggleDefault = async () => {
+    if (!selectedProfileId) return;
+    const currentProfile = profiles.find(p => p.id === selectedProfileId);
+    if (currentProfile?.is_default) {
+      // Já é padrão - não faz nada (não há opção de "remover padrão" no hook)
+      toast({ title: 'Perfil já é padrão', description: 'Este perfil já está definido como padrão.' });
+      return;
+    }
+    await setDefaultProfile.mutateAsync(selectedProfileId);
+  };
+
+  // Verificar se perfil selecionado é o padrão
+  const isSelectedProfileDefault = useMemo(() => {
+    return profiles.find(p => p.id === selectedProfileId)?.is_default ?? false;
+  }, [profiles, selectedProfileId]);
 
   // Preview dos dados (primeiros 10 registros)
   const previewData = useMemo(() => {
@@ -601,183 +563,128 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="colunas">Colunas</TabsTrigger>
-              <TabsTrigger value="perfis">Perfis</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
             {/* Aba Colunas */}
             <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Button variant="outline" size="sm" onClick={selectAll}>
-                  <CheckSquare className="h-4 w-4 mr-1" />
-                  Selecionar Todas
+              {/* Toolbar de Perfis */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <Select value={selectedProfileId} onValueChange={loadProfile}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Carregar Preset"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {profiles.map(profile => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        <span className="flex items-center gap-2">
+                          {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                          {profile.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={openSaveDialog}
+                  title="Salvar como novo perfil"
+                >
+                  <Save className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={clearSelection}>
-                  <Square className="h-4 w-4 mr-1" />
-                  Limpar Seleção
+
+                {selectedProfileId && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleToggleDefault}
+                      disabled={setDefaultProfile.isPending}
+                      title={isSelectedProfileDefault ? "Perfil padrão" : "Definir como padrão"}
+                    >
+                      <Star className={`h-4 w-4 ${isSelectedProfileDefault ? 'text-yellow-500 fill-yellow-500' : ''}`} />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setDeleteConfirmId(selectedProfileId)}
+                      title="Excluir perfil"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                )}
+
+                <div className="h-6 w-px bg-border mx-1" />
+
+                <Button variant="outline" size="icon" onClick={selectAll} title="Selecionar todas">
+                  <CheckSquare className="h-4 w-4" />
                 </Button>
+                <Button variant="outline" size="icon" onClick={clearSelection} title="Limpar seleção">
+                  <Square className="h-4 w-4" />
+                </Button>
+
                 <Badge variant="secondary" className="ml-auto">
                   {selectedColumns.length} de {availableColumns.length} selecionadas
                 </Badge>
               </div>
 
+              {/* Lista de Colunas com Accordions */}
               <ScrollArea className="h-[350px] pr-4">
-                <div className="space-y-6">
+                <Accordion type="multiple" defaultValue={[]} className="w-full">
                   {columnGroups.map(group => {
                     const groupCols = columnsByGroup[group] || [];
                     if (groupCols.length === 0) return null;
-                    const allSelected = groupCols.every(c => selectedColumns.includes(c.id));
-                    const someSelected = groupCols.some(c => selectedColumns.includes(c.id));
+                    
+                    const selectedInGroup = groupCols.filter(c => selectedColumns.includes(c.id)).length;
+                    const allSelected = selectedInGroup === groupCols.length;
+                    const someSelected = selectedInGroup > 0 && selectedInGroup < groupCols.length;
 
                     return (
-                      <div key={group}>
-                        <div className="flex items-center gap-2 mb-2">
+                      <AccordionItem key={group} value={group}>
+                        <div className="flex items-center gap-2">
                           <Checkbox
                             id={`group-${group}`}
                             checked={allSelected}
                             onCheckedChange={() => toggleGroup(group)}
-                            className={someSelected && !allSelected ? 'opacity-50' : ''}
+                            onClick={(e) => e.stopPropagation()}
+                            className={someSelected ? 'opacity-50' : ''}
                           />
-                          <Label htmlFor={`group-${group}`} className="font-semibold cursor-pointer">
-                            {group}
-                          </Label>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 ml-6">
-                          {groupCols.map(col => (
-                            <div key={col.id} className="flex items-center gap-2">
-                              <Checkbox
-                                id={col.id}
-                                checked={selectedColumns.includes(col.id)}
-                                onCheckedChange={() => toggleColumn(col.id)}
-                              />
-                              <Label htmlFor={col.id} className="text-sm cursor-pointer">
-                                {col.label}
-                              </Label>
+                          <AccordionTrigger className="flex-1 py-3 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{group}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {selectedInGroup}/{groupCols.length}
+                              </Badge>
                             </div>
-                          ))}
+                          </AccordionTrigger>
                         </div>
-                      </div>
+                        <AccordionContent>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 ml-6 pt-2">
+                            {groupCols.map(col => (
+                              <div key={col.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  id={col.id}
+                                  checked={selectedColumns.includes(col.id)}
+                                  onCheckedChange={() => toggleColumn(col.id)}
+                                />
+                                <Label htmlFor={col.id} className="text-sm cursor-pointer">
+                                  {col.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
                     );
                   })}
-                </div>
+                </Accordion>
               </ScrollArea>
-            </TabsContent>
-
-            {/* Aba Perfis */}
-            <TabsContent value="perfis" className="flex-1 overflow-hidden mt-4">
-              <div className="space-y-6">
-                {/* Carregar perfil */}
-                <div className="space-y-2">
-                  <Label>Carregar Perfil Salvo</Label>
-                  <div className="flex gap-2">
-                    <Select value={selectedProfileId} onValueChange={loadProfile}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Selecione um perfil"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {profiles.map(profile => (
-                          <SelectItem key={profile.id} value={profile.id}>
-                            <span className="flex items-center gap-2">
-                              {profile.name}
-                              {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedProfileId && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleUpdateProfile}
-                          disabled={updateProfile.isPending}
-                          title="Atualizar perfil com colunas atuais"
-                        >
-                          <Save className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setDefaultProfile.mutate(selectedProfileId)}
-                          disabled={setDefaultProfile.isPending || profiles.find(p => p.id === selectedProfileId)?.is_default}
-                          title="Definir como padrão"
-                        >
-                          <Star className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setDeleteConfirmId(selectedProfileId)}
-                          title="Excluir perfil"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Criar novo perfil */}
-                <div className="space-y-2">
-                  <Label>Salvar Novo Perfil</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Nome do perfil"
-                      value={newProfileName}
-                      onChange={e => setNewProfileName(e.target.value)}
-                    />
-                    <Button onClick={handleSaveProfile} disabled={createProfile.isPending}>
-                      {createProfile.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-1" />
-                      )}
-                      Salvar
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    As {selectedColumns.length} colunas selecionadas serão salvas neste perfil.
-                  </p>
-                </div>
-
-                {/* Lista de perfis */}
-                {profiles.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Seus Perfis ({profiles.length})</Label>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-2">
-                        {profiles.map(profile => (
-                          <div
-                            key={profile.id}
-                            className={`p-3 rounded-md border cursor-pointer transition-colors ${
-                              selectedProfileId === profile.id
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                            onClick={() => loadProfile(profile.id)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium flex items-center gap-2">
-                                {profile.name}
-                                {profile.is_default && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    <Star className="h-3 w-3 mr-1 text-yellow-500 fill-yellow-500" />
-                                    Padrão
-                                  </Badge>
-                                )}
-                              </span>
-                              <Badge variant="outline">{profile.columns.length} colunas</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
-              </div>
             </TabsContent>
 
             {/* Aba Preview */}
@@ -785,7 +692,7 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {Math.min(10, data.length)} de {totalRecords} registros
+                    Mostrando {Math.min(10, tipoDocumento === 'cte' ? cteData.length : data.length)} de {totalRecords} registros
                   </p>
                   <Badge variant="secondary">{selectedColumns.length} colunas selecionadas</Badge>
                 </div>
@@ -846,6 +753,52 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
                   Exportar Excel
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog interno para salvar novo perfil */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Salvar Perfil</DialogTitle>
+            <DialogDescription>
+              As {selectedColumns.length} colunas selecionadas serão salvas neste perfil.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Nome do perfil</Label>
+              <Input
+                id="profile-name"
+                placeholder="Ex: Relatório Fiscal Completo"
+                value={newProfileName}
+                onChange={e => setNewProfileName(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="save-as-default"
+                checked={saveAsDefault}
+                onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
+              />
+              <Label htmlFor="save-as-default" className="cursor-pointer">
+                Definir como padrão
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={createProfile.isPending || !newProfileName.trim()}>
+              {createProfile.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
