@@ -18,7 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { API_BASE_URL } from '@/config/api';
+import { API_BASE_URL, TABLE_NAMES } from '@/config/api';
 
 const DEFAULT_DATA_INICIO = '2024-01-01';
 const DEFAULT_DATA_FIM = '2026-01-31';
@@ -259,7 +259,7 @@ const ConsultaXMLs = () => {
 
   // Buscar lista de clientes
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ['clientes-list'],
+    queryKey: ['clientes-list', TABLE_NAMES.cliente],
     queryFn: async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -267,7 +267,7 @@ const ConsultaXMLs = () => {
       }
 
       const { data, error } = await supabase
-        .from('cliente')
+        .from(TABLE_NAMES.cliente)
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
@@ -283,7 +283,7 @@ const ConsultaXMLs = () => {
 
   // Buscar lista de contribuintes
   const { data: contribuintes, isLoading: loadingContribuintes, error: errorContribuintes } = useQuery({
-    queryKey: ['contribuintes-list', selectedCliente],
+    queryKey: ['contribuintes-list', selectedCliente, TABLE_NAMES.contribuinte],
     queryFn: async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -291,7 +291,7 @@ const ConsultaXMLs = () => {
       }
 
       let query = supabase
-        .from('contribuinte')
+        .from(TABLE_NAMES.contribuinte)
         .select('id, nome_razao_social, cpf_cnpj, cliente_id')
         .order('nome_razao_social');
       
