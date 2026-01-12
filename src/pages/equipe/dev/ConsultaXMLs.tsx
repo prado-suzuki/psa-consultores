@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2 } from 'lucide-react';
 import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
+import { toast } from '@/hooks/use-toast';
 
 const DEFAULT_DATA_INICIO = '2024-01-01';
 const DEFAULT_DATA_FIM = '2026-01-31';
@@ -243,6 +245,10 @@ const ConsultaXMLs = () => {
     setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
     setSearchTriggered(false);
     setCurrentPage(1);
+    toast({
+      title: 'Filtros limpos',
+      description: 'Todos os filtros foram resetados para os valores padrão',
+    });
   };
   const navigate = useNavigate();
 
@@ -368,6 +374,30 @@ const ConsultaXMLs = () => {
   const totalRecords = tipoDocumento === 'nfe' ? (nfeData?.total || 0) : (cteData?.total || 0);
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
+  // Toast de erro automático
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Erro na busca',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  }, [error]);
+
+  // Toast de sucesso na busca
+  useEffect(() => {
+    if (searchTriggered && !isLoading && !error && (nfeData || cteData)) {
+      const count = tipoDocumento === 'nfe' ? nfeData?.total : cteData?.total;
+      if (count !== undefined) {
+        toast({
+          title: 'Busca concluída',
+          description: `${count} documento(s) encontrado(s)`,
+        });
+      }
+    }
+  }, [searchTriggered, isLoading, error, nfeData, cteData, tipoDocumento]);
+
   const formatCNPJ = (cnpj: string) => {
     if (!cnpj) return '-';
     const cleaned = cnpj.replace(/\D/g, '');
@@ -446,7 +476,14 @@ const ConsultaXMLs = () => {
                   setSearchTriggered(false);
                 }}>
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingClientes ? "Carregando..." : "Todos os clientes"} />
+                    <SelectValue placeholder={
+                      loadingClientes ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Carregando...
+                        </span>
+                      ) : "Todos os clientes"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os clientes</SelectItem>
@@ -477,7 +514,14 @@ const ConsultaXMLs = () => {
                     setSearchTriggered(false);
                   }}>
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione um contribuinte"} />
+                      <SelectValue placeholder={
+                        loadingContribuintes ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Carregando...
+                          </span>
+                        ) : "Selecione um contribuinte"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {contribuintes?.map((c) => (
@@ -576,16 +620,44 @@ const ConsultaXMLs = () => {
           </CardHeader>
           <CardContent className="p-0">
             {!searchTriggered ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Selecione os filtros e clique em "Buscar" para visualizar os documentos fiscais
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <Search className="h-12 w-12 text-muted-foreground/50" />
+                  <div>
+                    <p className="font-medium text-foreground">Pronto para buscar</p>
+                    <p className="text-sm text-muted-foreground">
+                      Selecione os filtros acima e clique em "Buscar" para visualizar os documentos fiscais
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : !selectedContribuinte ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Selecione um contribuinte para buscar os documentos fiscais
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <FileText className="h-12 w-12 text-muted-foreground/50" />
+                  <div>
+                    <p className="font-medium text-foreground">Contribuinte não selecionado</p>
+                    <p className="text-sm text-muted-foreground">
+                      Selecione um contribuinte para buscar os documentos fiscais
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-4 p-6">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Buscando documentos fiscais...</span>
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex gap-4">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-6 w-28" />
+                    <Skeleton className="h-6 flex-1" />
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-8 gap-4">
@@ -620,8 +692,16 @@ const ConsultaXMLs = () => {
                       <TableBody>
                         {nfeRecords.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                              Nenhum registro encontrado
+                            <TableCell colSpan={11} className="text-center py-12">
+                              <div className="flex flex-col items-center gap-3">
+                                <FileX2 className="h-12 w-12 text-amber-400" />
+                                <div>
+                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Tente ajustar o período ou selecionar outro contribuinte
+                                  </p>
+                                </div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -680,8 +760,16 @@ const ConsultaXMLs = () => {
                       <TableBody>
                         {cteRecords.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                              Nenhum registro encontrado
+                            <TableCell colSpan={10} className="text-center py-12">
+                              <div className="flex flex-col items-center gap-3">
+                                <FileX2 className="h-12 w-12 text-amber-400" />
+                                <div>
+                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Tente ajustar o período ou selecionar outro contribuinte
+                                  </p>
+                                </div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -738,7 +826,11 @@ const ConsultaXMLs = () => {
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1 || isLoading}
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                        )}
                         Anterior
                       </Button>
                       <Button
@@ -748,7 +840,11 @@ const ConsultaXMLs = () => {
                         disabled={currentPage === totalPages || isLoading}
                       >
                         Próximo
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        )}
                       </Button>
                     </div>
                   </div>
