@@ -53,6 +53,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_dev: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          fixo: string | null
+          id: string
+          municipio: string | null
+          nome: string
+          setor_cliente: string | null
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          fixo?: string | null
+          id?: string
+          municipio?: string | null
+          nome: string
+          setor_cliente?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          fixo?: string | null
+          id?: string
+          municipio?: string | null
+          nome?: string
+          setor_cliente?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contribuinte: {
         Row: {
           cliente_id: string
@@ -99,6 +138,56 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contribuinte_dev: {
+        Row: {
+          cliente_id: string
+          cod_cnae: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          id: string
+          inscricao_estadual: string | null
+          nome_razao_social: string
+          setor: string | null
+          simples_nacional: boolean | null
+          tipo_pessoa: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          cod_cnae?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          nome_razao_social: string
+          setor?: string | null
+          simples_nacional?: boolean | null
+          tipo_pessoa: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          cod_cnae?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          id?: string
+          inscricao_estadual?: string | null
+          nome_razao_social?: string
+          setor?: string | null
+          simples_nacional?: boolean | null
+          tipo_pessoa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cliente_dev"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente_dev"
             referencedColumns: ["id"]
           },
         ]

@@ -1,7 +1,8 @@
-// Configuração de URLs de API por ambiente
+// Configuração de URLs de API e tabelas por ambiente
 // Detecta automaticamente se está em produção ou desenvolvimento
 
-const isProduction = typeof window !== "undefined" && window.location.hostname === "psa-consultores.lovable.app";
+export const isProductionEnvironment = typeof window !== "undefined" && 
+  window.location.hostname === "psa-consultores.lovable.app";
 
 // URLs da API por ambiente
 const API_URLS = {
@@ -12,10 +13,16 @@ const API_URLS = {
 };
 
 // URL base da API (selecionada automaticamente)
-export const API_BASE_URL = isProduction ? API_URLS.production : API_URLS.development;
+export const API_BASE_URL = isProductionEnvironment ? API_URLS.production : API_URLS.development;
 
 // Helper para construir URLs completas
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// Exportar flag de ambiente para debug
-export const isProductionEnvironment = isProduction;
+// Nomes das tabelas por ambiente
+export const TABLE_NAMES = {
+  cliente: isProductionEnvironment ? "cliente" : "cliente_dev",
+  contribuinte: isProductionEnvironment ? "contribuinte" : "contribuinte_dev",
+} as const;
+
+// Helper para obter o nome da tabela correto para o ambiente
+export const getTableName = (table: keyof typeof TABLE_NAMES): string => TABLE_NAMES[table];
