@@ -697,10 +697,9 @@ const ConsultaXMLs = () => {
               <>
                 <div className="w-full overflow-x-auto">
                   {tipoDocumento === 'nfe' ? (
-                    <Table className="min-w-[1000px]">
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
                           <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                           <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                           <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
@@ -716,7 +715,6 @@ const ConsultaXMLs = () => {
                       {isLoading ? (
                         [...Array(5)].map((_, i) => (
                           <TableRow key={`skeleton-nfe-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                             <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
@@ -730,7 +728,7 @@ const ConsultaXMLs = () => {
                         ))
                       ) : nfeRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-12">
+                          <TableCell colSpan={9} className="text-center py-12">
                             <div className="flex flex-col items-center gap-3">
                               <FileX2 className="h-12 w-12 text-amber-400" />
                               <div>
@@ -745,15 +743,10 @@ const ConsultaXMLs = () => {
                       ) : (
                         nfeRecords.map((record) => (
                           <TableRow key={record.chave_nfe}>
-                            <TableCell className="font-mono text-xs max-w-[180px]">
-                              <span className="truncate block" title={record.chave_nfe}>
-                                {record.chave_nfe.slice(0, 20)}...
-                              </span>
-                            </TableCell>
                             <TableCell className="font-mono text-sm whitespace-nowrap">
                               {formatCNPJ(record.emit.CNPJ)}
                             </TableCell>
-                            <TableCell className="max-w-[150px]">
+                            <TableCell className="max-w-[200px]">
                               <span className="truncate block" title={record.emit.xNome}>
                                 {record.emit.xNome}
                               </span>
@@ -779,10 +772,9 @@ const ConsultaXMLs = () => {
                     </TableBody>
                   </Table>
                 ) : (
-                  <Table className="min-w-[1100px]">
+                  <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">Chave CTe</TableHead>
                         <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                         <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                         <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
@@ -798,7 +790,6 @@ const ConsultaXMLs = () => {
                       {isLoading ? (
                         [...Array(5)].map((_, i) => (
                           <TableRow key={`skeleton-cte-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                             <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
@@ -812,7 +803,7 @@ const ConsultaXMLs = () => {
                         ))
                       ) : cteRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-12">
+                          <TableCell colSpan={9} className="text-center py-12">
                             <div className="flex flex-col items-center gap-3">
                               <FileX2 className="h-12 w-12 text-amber-400" />
                               <div>
@@ -827,15 +818,10 @@ const ConsultaXMLs = () => {
                       ) : (
                           cteRecords.map((record) => (
                             <TableRow key={record.chave_cte}>
-                              <TableCell className="font-mono text-xs max-w-[180px]">
-                                <span className="truncate block" title={record.chave_cte}>
-                                  {record.chave_cte.slice(0, 20)}...
-                                </span>
-                              </TableCell>
                               <TableCell className="font-mono text-sm whitespace-nowrap">
                                 {formatCNPJ(record.emit.CNPJ || '')}
                               </TableCell>
-                              <TableCell className="max-w-[150px]">
+                              <TableCell className="max-w-[200px]">
                                 <span className="truncate block" title={record.emit.xNome}>
                                   {record.emit.xNome}
                                 </span>
