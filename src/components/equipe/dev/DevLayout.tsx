@@ -12,6 +12,7 @@ import {
   Code2,
   Plus,
   Wrench,
+  Database,
   ArrowLeft
 } from 'lucide-react';
 import logoDark from '@/assets/logo-psa-dark.png';
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dev' },
   { icon: Plus, label: 'Nova Ferramenta', path: '/equipe/dev/nova-ferramenta' },
   { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
+  { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
 export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayoutProps) => {
