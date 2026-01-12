@@ -26,6 +26,10 @@ interface Message {
   is_admin: boolean;
   created_at: string;
   user_id: string;
+  author?: {
+    first_name: string;
+    last_name: string;
+  };
 }
 
 interface Attachment {
@@ -134,14 +138,46 @@ export default function DetalhesChamado() {
 
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. Buscar mensagens do ticket
+      const { data: messagesData, error: messagesError } = await supabase
         .from('ticket_messages')
         .select('*')
         .eq('ticket_id', id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setMessages(data || []);
+      if (messagesError) throw messagesError;
+
+      // 2. Extrair IDs únicos dos colaboradores (mensagens admin)
+      const adminUserIds = [...new Set(
+        messagesData
+          ?.filter(m => m.is_admin)
+          .map(m => m.user_id) || []
+      )];
+
+      // 3. Buscar perfis dos colaboradores
+      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+
+      if (adminUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', adminUserIds);
+
+        profilesData?.forEach(p => {
+          profilesMap[p.id] = { 
+            first_name: p.first_name || '', 
+            last_name: p.last_name || '' 
+          };
+        });
+      }
+
+      // 4. Combinar mensagens com dados do autor
+      const enrichedMessages = messagesData?.map(msg => ({
+        ...msg,
+        author: msg.is_admin ? profilesMap[msg.user_id] : undefined
+      })) || [];
+
+      setMessages(enrichedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -276,7 +312,11 @@ export default function DetalhesChamado() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold">
-                        {message.is_admin ? 'Equipe PSA' : 'Você'}
+                        {message.is_admin 
+                          ? (message.author 
+                              ? `${message.author.first_name} ${message.author.last_name}`.trim() || 'Equipe PSA'
+                              : 'Equipe PSA')
+                          : 'Você'}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
