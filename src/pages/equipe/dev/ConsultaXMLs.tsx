@@ -6,14 +6,18 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2, CalendarIcon } from 'lucide-react';
 import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
 import { toast } from '@/hooks/use-toast';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_DATA_INICIO = '2024-01-01';
 const DEFAULT_DATA_FIM = '2026-01-31';
@@ -552,27 +556,69 @@ const ConsultaXMLs = () => {
               <div className="flex gap-3">
                 <div className="w-[140px]">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Início</label>
-                  <Input
-                    type="date"
-                    value={dataInicio}
-                    onChange={(e) => {
-                      setDataInicio(e.target.value);
-                      setSearchTriggered(false);
-                    }}
-                    className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-9 px-3 text-left font-normal justify-start",
+                          !dataInicio && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                        {dataInicio 
+                          ? format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') 
+                          : <span>Selecione</span>
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataInicio ? parse(dataInicio, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => {
+                          setDataInicio(date ? format(date, 'yyyy-MM-dd') : '');
+                          setSearchTriggered(false);
+                        }}
+                        initialFocus
+                        locale={ptBR}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="w-[140px]">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Fim</label>
-                  <Input
-                    type="date"
-                    value={dataFim}
-                    onChange={(e) => {
-                      setDataFim(e.target.value);
-                      setSearchTriggered(false);
-                    }}
-                    className="h-9 py-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-9 px-3 text-left font-normal justify-start",
+                          !dataFim && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                        {dataFim 
+                          ? format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') 
+                          : <span>Selecione</span>
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataFim ? parse(dataFim, 'yyyy-MM-dd', new Date()) : undefined}
+                        onSelect={(date) => {
+                          setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
+                          setSearchTriggered(false);
+                        }}
+                        initialFocus
+                        locale={ptBR}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
