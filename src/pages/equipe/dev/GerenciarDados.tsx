@@ -34,6 +34,7 @@ type TableType = 'cliente' | 'contribuinte';
 type Environment = 'dev' | 'prod';
 
 interface ParsedCliente {
+  id?: string;
   nome: string;
   ativo?: boolean;
   fixo?: string;
@@ -44,6 +45,7 @@ interface ParsedCliente {
 }
 
 interface ParsedContribuinte {
+  id?: string;
   cliente_id: string;
   tipo_pessoa: string;
   nome_razao_social: string;
@@ -110,6 +112,8 @@ const GerenciarDados = () => {
 
       if (selectedTable === 'cliente') {
         const clientes: ParsedCliente[] = rows.map(row => ({
+          // Preserva o ID original se existir (id_cliente ou id)
+          id: row.id_cliente || row.id || undefined,
           nome: row.nome || row.name || '',
           ativo: row.ativo?.toLowerCase() === 'true' || row.ativo === '1' || true,
           fixo: row.fixo || undefined,
@@ -149,6 +153,8 @@ const GerenciarDados = () => {
           const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
           
           return {
+            // Preserva o ID original se existir (id_contribuinte ou id)
+            id: row.id_contribuinte || row.id || undefined,
             cliente_id: clienteId,
             tipo_pessoa: row.tipo_pessoa || (row.cpf_cnpj?.replace(/\D/g, '').length === 11 ? 'PF' : 'PJ'),
             nome_razao_social: row.nome_razao_social || row.nome || row.razao_social || '',
