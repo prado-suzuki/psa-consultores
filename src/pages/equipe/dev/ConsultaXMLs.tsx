@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2, CalendarIcon } from 'lucide-react';
+import { Search, FileText, Loader2, RefreshCw, Info, FileX2, CalendarIcon } from 'lucide-react';
 import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
 import { toast } from '@/hooks/use-toast';
 import { format, parse } from 'date-fns';
@@ -219,10 +219,9 @@ interface Cliente {
   nome: string;
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 1000;
 
 const ConsultaXMLs = () => {
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
@@ -248,7 +247,6 @@ const ConsultaXMLs = () => {
     setDataFim(DEFAULT_DATA_FIM);
     setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
     setSearchTriggered(false);
-    setCurrentPage(1);
     toast({
       title: 'Filtros limpos',
       description: 'Todos os filtros foram resetados para os valores padrão',
@@ -319,12 +317,12 @@ const ConsultaXMLs = () => {
 
   // Buscar NFe
   const { data: nfeData, isLoading: loadingNfe, error: errorNfe, refetch: refetchNfe } = useQuery({
-    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
-      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=1&page_size=${ITEMS_PER_PAGE}`;
       const url = `${baseUrl}/${selectedContribuinte}/nfes${queryParams}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
@@ -345,12 +343,12 @@ const ConsultaXMLs = () => {
 
   // Buscar CT-e
   const { data: cteData, isLoading: loadingCte, error: errorCte, refetch: refetchCte } = useQuery({
-    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
-      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=1&page_size=${ITEMS_PER_PAGE}`;
       const url = `${baseUrl}/${selectedContribuinte}/ctes${queryParams}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
@@ -376,7 +374,6 @@ const ConsultaXMLs = () => {
   const nfeRecords = nfeData?.items || [];
   const cteRecords = cteData?.items || [];
   const totalRecords = tipoDocumento === 'nfe' ? (nfeData?.total || 0) : (cteData?.total || 0);
-  const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
   // Toast de erro automático
   useEffect(() => {
@@ -425,7 +422,6 @@ const ConsultaXMLs = () => {
   };
 
   const handleSearch = () => {
-    setCurrentPage(1);
     setSearchTriggered(true);
     // Se já foi triggered antes, forçar refetch
     if (searchTriggered) {
@@ -530,7 +526,6 @@ const ConsultaXMLs = () => {
                 <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
                   setTipoDocumento(value);
                   setSearchTriggered(false);
-                  setCurrentPage(1);
                 }}>
                   <SelectTrigger className="h-9">
                     <SelectValue />
@@ -695,12 +690,11 @@ const ConsultaXMLs = () => {
               </div>
             ) : (
               <>
-                <div className="w-full overflow-x-auto">
+                <div className="w-full overflow-auto max-h-[70vh] border rounded-md">
                   {tipoDocumento === 'nfe' ? (
-                    <Table className="min-w-[1000px]">
-                      <TableHeader>
+                    <Table className="min-w-[900px]">
+                      <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
                         <TableRow>
-                          <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
                           <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                           <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                           <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
@@ -716,7 +710,6 @@ const ConsultaXMLs = () => {
                       {isLoading ? (
                         [...Array(5)].map((_, i) => (
                           <TableRow key={`skeleton-nfe-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                             <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
@@ -730,7 +723,7 @@ const ConsultaXMLs = () => {
                         ))
                       ) : nfeRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-12">
+                          <TableCell colSpan={9} className="text-center py-12">
                             <div className="flex flex-col items-center gap-3">
                               <FileX2 className="h-12 w-12 text-amber-400" />
                               <div>
@@ -745,11 +738,6 @@ const ConsultaXMLs = () => {
                       ) : (
                         nfeRecords.map((record) => (
                           <TableRow key={record.chave_nfe}>
-                            <TableCell className="font-mono text-xs max-w-[180px]">
-                              <span className="truncate block" title={record.chave_nfe}>
-                                {record.chave_nfe.slice(0, 20)}...
-                              </span>
-                            </TableCell>
                             <TableCell className="font-mono text-sm whitespace-nowrap">
                               {formatCNPJ(record.emit.CNPJ)}
                             </TableCell>
@@ -779,10 +767,9 @@ const ConsultaXMLs = () => {
                     </TableBody>
                   </Table>
                 ) : (
-                  <Table className="min-w-[1100px]">
-                    <TableHeader>
+                  <Table className="min-w-[1000px]">
+                    <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">Chave CTe</TableHead>
                         <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                         <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                         <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
@@ -798,7 +785,6 @@ const ConsultaXMLs = () => {
                       {isLoading ? (
                         [...Array(5)].map((_, i) => (
                           <TableRow key={`skeleton-cte-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                             <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
@@ -812,7 +798,7 @@ const ConsultaXMLs = () => {
                         ))
                       ) : cteRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-12">
+                          <TableCell colSpan={9} className="text-center py-12">
                             <div className="flex flex-col items-center gap-3">
                               <FileX2 className="h-12 w-12 text-amber-400" />
                               <div>
@@ -827,11 +813,6 @@ const ConsultaXMLs = () => {
                       ) : (
                           cteRecords.map((record) => (
                             <TableRow key={record.chave_cte}>
-                              <TableCell className="font-mono text-xs max-w-[180px]">
-                                <span className="truncate block" title={record.chave_cte}>
-                                  {record.chave_cte.slice(0, 20)}...
-                                </span>
-                              </TableCell>
                               <TableCell className="font-mono text-sm whitespace-nowrap">
                                 {formatCNPJ(record.emit.CNPJ || '')}
                               </TableCell>
@@ -864,44 +845,7 @@ const ConsultaXMLs = () => {
                     </Table>
                   )}
                 </div>
-
-              {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <span className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1 || isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                      )}
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages || isLoading}
-                    >
-                      Próximo
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 ml-1 animate-spin" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+              </>
             )}
           </CardContent>
         </Card>
