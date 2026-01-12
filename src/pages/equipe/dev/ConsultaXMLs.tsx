@@ -389,18 +389,6 @@ const ConsultaXMLs = () => {
     }
   }, [error]);
 
-  // Toast de sucesso na busca
-  useEffect(() => {
-    if (searchTriggered && !isLoading && !error && (nfeData || cteData)) {
-      const count = tipoDocumento === 'nfe' ? nfeData?.total : cteData?.total;
-      if (count !== undefined) {
-        toast({
-          title: 'Busca concluída',
-          description: `${count} documento(s) encontrado(s)`,
-        });
-      }
-    }
-  }, [searchTriggered, isLoading, error, nfeData, cteData, tipoDocumento]);
 
   const formatCNPJ = (cnpj: string) => {
     if (!cnpj) return '-';
@@ -630,6 +618,7 @@ const ConsultaXMLs = () => {
                   variant="ghost" 
                   size="sm"
                   onClick={handleClearFilters}
+                  disabled={isLoading}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   Limpar Filtros
@@ -642,7 +631,7 @@ const ConsultaXMLs = () => {
                 totalRecords={totalRecords}
                 dataInicio={dataInicio}
                 dataFim={dataFim}
-                disabled={!selectedContribuinte || (tipoDocumento === 'nfe' ? nfeRecords.length === 0 : cteRecords.length === 0)}
+                disabled={isLoading || !selectedContribuinte || (tipoDocumento === 'nfe' ? nfeRecords.length === 0 : cteRecords.length === 0)}
               />
               <Button 
                 onClick={handleSearch}
@@ -694,22 +683,6 @@ const ConsultaXMLs = () => {
                   </div>
                 </div>
               </div>
-            ) : isLoading ? (
-              <div className="space-y-4 p-6">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Buscando documentos fiscais...</span>
-                </div>
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex gap-4">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-6 w-28" />
-                    <Skeleton className="h-6 flex-1" />
-                    <Skeleton className="h-6 w-20" />
-                    <Skeleton className="h-6 w-24" />
-                  </div>
-                ))}
-              </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-8 gap-4">
                 <p className="text-destructive text-center max-w-md">
@@ -724,7 +697,7 @@ const ConsultaXMLs = () => {
               <>
                 <div className="w-full overflow-x-auto">
                   {tipoDocumento === 'nfe' ? (
-                    <Table className="min-w-[1100px]">
+                    <Table className="min-w-[1000px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="whitespace-nowrap">Chave NFe</TableHead>
@@ -733,97 +706,125 @@ const ConsultaXMLs = () => {
                           <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
                           <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
                           <TableHead className="whitespace-nowrap hidden xl:table-cell">Nat. Operação</TableHead>
-                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
                           <TableHead className="whitespace-nowrap">Número</TableHead>
                           <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
                           <TableHead className="whitespace-nowrap">Produtos</TableHead>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {nfeRecords.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={11} className="text-center py-12">
-                              <div className="flex flex-col items-center gap-3">
-                                <FileX2 className="h-12 w-12 text-amber-400" />
-                                <div>
-                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Tente ajustar o período ou selecionar outro contribuinte
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        [...Array(5)].map((_, i) => (
+                          <TableRow key={`skeleton-nfe-${i}`}>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-10" /></TableCell>
+                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                           </TableRow>
-                        ) : (
-                          nfeRecords.map((record) => (
-                            <TableRow key={record.chave_nfe}>
-                              <TableCell className="font-mono text-xs max-w-[180px]">
-                                <span className="truncate block" title={record.chave_nfe}>
-                                  {record.chave_nfe.slice(0, 20)}...
-                                </span>
-                              </TableCell>
-                              <TableCell className="font-mono text-sm whitespace-nowrap">
-                                {formatCNPJ(record.emit.CNPJ)}
-                              </TableCell>
-                              <TableCell className="max-w-[150px]">
-                                <span className="truncate block" title={record.emit.xNome}>
-                                  {record.emit.xNome}
-                                </span>
-                              </TableCell>
-                              <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
-                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
-                              <TableCell className="max-w-[120px] hidden xl:table-cell">
-                                <span className="truncate block" title={record.natOp}>
-                                  {record.natOp}
-                                </span>
-                              </TableCell>
-                              <TableCell>{getTipoBadge(record.mod === '55' ? 'NFe' : 'NFSe')}</TableCell>
-                              <TableCell className="font-mono">{record.nNF}</TableCell>
-                              <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
-                              <TableCell className="text-right font-medium whitespace-nowrap">
-                                {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{record.produtos.length} item(s)</Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <Table className="min-w-[1100px]">
-                      <TableHeader>
+                        ))
+                      ) : nfeRecords.length === 0 ? (
                         <TableRow>
-                          <TableHead className="whitespace-nowrap">Chave CTe</TableHead>
-                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
-                          <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
-                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                          <TableHead className="whitespace-nowrap">Número</TableHead>
-                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                          <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {cteRecords.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={10} className="text-center py-12">
-                              <div className="flex flex-col items-center gap-3">
-                                <FileX2 className="h-12 w-12 text-amber-400" />
-                                <div>
-                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Tente ajustar o período ou selecionar outro contribuinte
-                                  </p>
-                                </div>
+                          <TableCell colSpan={10} className="text-center py-12">
+                            <div className="flex flex-col items-center gap-3">
+                              <FileX2 className="h-12 w-12 text-amber-400" />
+                              <div>
+                                <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Tente ajustar o período ou selecionar outro contribuinte
+                                </p>
                               </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        nfeRecords.map((record) => (
+                          <TableRow key={record.chave_nfe}>
+                            <TableCell className="font-mono text-xs max-w-[180px]">
+                              <span className="truncate block" title={record.chave_nfe}>
+                                {record.chave_nfe.slice(0, 20)}...
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm whitespace-nowrap">
+                              {formatCNPJ(record.emit.CNPJ)}
+                            </TableCell>
+                            <TableCell className="max-w-[150px]">
+                              <span className="truncate block" title={record.emit.xNome}>
+                                {record.emit.xNome}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
+                            <TableCell className="max-w-[120px] hidden xl:table-cell">
+                              <span className="truncate block" title={record.natOp}>
+                                {record.natOp}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono">{record.nNF}</TableCell>
+                            <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
+                            <TableCell className="text-right font-medium whitespace-nowrap">
+                              {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{record.produtos.length} item(s)</Badge>
                             </TableCell>
                           </TableRow>
-                        ) : (
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Table className="min-w-[1100px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">Chave CTe</TableHead>
+                        <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                        <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
+                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
+                        <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
+                        <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                        <TableHead className="whitespace-nowrap">Número</TableHead>
+                        <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        [...Array(5)].map((_, i) => (
+                          <TableRow key={`skeleton-cte-${i}`}>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : cteRecords.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-center py-12">
+                            <div className="flex flex-col items-center gap-3">
+                              <FileX2 className="h-12 w-12 text-amber-400" />
+                              <div>
+                                <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Tente ajustar o período ou selecionar outro contribuinte
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
                           cteRecords.map((record) => (
                             <TableRow key={record.chave_cte}>
                               <TableCell className="font-mono text-xs max-w-[180px]">
@@ -864,43 +865,43 @@ const ConsultaXMLs = () => {
                   )}
                 </div>
 
-                {/* Paginação */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between p-4 border-t">
-                    <span className="text-sm text-muted-foreground">
-                      Página {currentPage} de {totalPages}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1 || isLoading}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                        )}
-                        Anterior
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages || isLoading}
-                      >
-                        Próximo
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 ml-1 animate-spin" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        )}
-                      </Button>
-                    </div>
+              {/* Paginação */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t">
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                      )}
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages || isLoading}
+                    >
+                      Próximo
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      )}
+                    </Button>
                   </div>
-                )}
-              </>
+                </div>
+              )}
+            </>
             )}
           </CardContent>
         </Card>
