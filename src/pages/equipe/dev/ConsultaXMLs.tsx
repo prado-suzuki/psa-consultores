@@ -18,6 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { API_BASE_URL } from '@/config/api';
 
 const DEFAULT_DATA_INICIO = '2024-01-01';
 const DEFAULT_DATA_FIM = '2026-01-31';
@@ -323,7 +324,7 @@ const ConsultaXMLs = () => {
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
-      const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
+      const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
       const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
       const url = `${baseUrl}/${selectedContribuinte}/nfes${queryParams}`;
       
@@ -349,7 +350,7 @@ const ConsultaXMLs = () => {
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
-      const baseUrl = 'https://psa-backend-api-456879351254.southamerica-east1.run.app/api/v1/query/contribuintes';
+      const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
       const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
       const url = `${baseUrl}/${selectedContribuinte}/ctes${queryParams}`;
       

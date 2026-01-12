@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Code2, Users, Play, Pause, AlertCircle, Zap, Copy, CheckCircle } from 'lucide-react';
-
+import { getApiUrl } from '@/config/api';
 const DevDashboard = () => {
   const navigate = useNavigate();
   const [testLoading, setTestLoading] = useState(false);
@@ -27,7 +27,7 @@ const DevDashboard = () => {
       }
       
       const response = await fetch(
-        'https://psa-backend-api-456879351254.southamerica-east1.run.app/auth_health',
+        getApiUrl('/auth_health'),
         {
           method: 'GET',
           headers: {
