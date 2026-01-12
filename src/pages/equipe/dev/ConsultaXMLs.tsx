@@ -475,7 +475,7 @@ const ConsultaXMLs = () => {
                   setSelectedContribuinte('');
                   setSearchTriggered(false);
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue placeholder={
                       loadingClientes ? (
                         <span className="flex items-center gap-2">
@@ -513,7 +513,7 @@ const ConsultaXMLs = () => {
                     setSelectedContribuinte(value);
                     setSearchTriggered(false);
                   }}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue placeholder={
                         loadingContribuintes ? (
                           <span className="flex items-center gap-2">
@@ -540,7 +540,7 @@ const ConsultaXMLs = () => {
                   setSearchTriggered(false);
                   setCurrentPage(1);
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -558,6 +558,7 @@ const ConsultaXMLs = () => {
                     setDataInicio(e.target.value);
                     setSearchTriggered(false);
                   }}
+                  className="h-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
               <div>
@@ -569,6 +570,7 @@ const ConsultaXMLs = () => {
                     setDataFim(e.target.value);
                     setSearchTriggered(false);
                   }}
+                  className="h-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
             </div>
