@@ -597,8 +597,9 @@ const ConsultaXMLs = () => {
               <Button 
                 onClick={handleSearch}
                 disabled={!selectedContribuinte || isLoading}
+                size="sm"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                {isLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1.5" />}
                 Buscar
               </Button>
             </div>
