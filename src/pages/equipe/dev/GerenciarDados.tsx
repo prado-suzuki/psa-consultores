@@ -145,10 +145,11 @@ const GerenciarDados = () => {
 
         const contribuintes: ParsedContribuinte[] = rows.map(row => {
           const clienteNome = (row.cliente || row.cliente_nome || '').toLowerCase();
-          const clienteId = clienteMap.get(clienteNome) || row.cliente_id;
+          // Suporta id_cliente, cliente_id, ou busca por nome do cliente
+          const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
           
           return {
-            cliente_id: clienteId || '',
+            cliente_id: clienteId,
             tipo_pessoa: row.tipo_pessoa || (row.cpf_cnpj?.replace(/\D/g, '').length === 11 ? 'PF' : 'PJ'),
             nome_razao_social: row.nome_razao_social || row.nome || row.razao_social || '',
             cpf_cnpj: row.cpf_cnpj || row.cnpj || row.cpf || undefined,
