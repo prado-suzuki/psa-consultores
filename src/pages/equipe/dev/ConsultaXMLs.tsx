@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2, CalendarIcon } from 'lucide-react';
+import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2, CalendarIcon, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
 import { toast } from '@/hooks/use-toast';
 import { format, parse } from 'date-fns';
@@ -23,6 +24,7 @@ import { API_BASE_URL, TABLE_NAMES } from '@/config/api';
 const DEFAULT_DATA_INICIO = '2024-01-01';
 const DEFAULT_DATA_FIM = '2026-01-31';
 const DEFAULT_TIPO_DOCUMENTO = 'nfe';
+const DEFAULT_TIPO_MOV = 'Entrada';
 
 interface NFeProduto {
   nItem: number;
@@ -229,6 +231,9 @@ const ConsultaXMLs = () => {
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
   const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
   const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>(DEFAULT_TIPO_DOCUMENTO);
+  const [tipoMov, setTipoMov] = useState<'Entrada' | 'Saida'>(DEFAULT_TIPO_MOV);
+  const [emitente, setEmitente] = useState('');
+  const [destinatario, setDestinatario] = useState('');
   const [searchTriggered, setSearchTriggered] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
@@ -238,9 +243,12 @@ const ConsultaXMLs = () => {
       selectedContribuinte !== '' ||
       dataInicio !== DEFAULT_DATA_INICIO ||
       dataFim !== DEFAULT_DATA_FIM ||
-      tipoDocumento !== DEFAULT_TIPO_DOCUMENTO
+      tipoDocumento !== DEFAULT_TIPO_DOCUMENTO ||
+      tipoMov !== DEFAULT_TIPO_MOV ||
+      emitente !== '' ||
+      destinatario !== ''
     );
-  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento]);
+  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento, tipoMov, emitente, destinatario]);
 
   const handleClearFilters = () => {
     setSelectedCliente('');
@@ -248,6 +256,9 @@ const ConsultaXMLs = () => {
     setDataInicio(DEFAULT_DATA_INICIO);
     setDataFim(DEFAULT_DATA_FIM);
     setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
+    setTipoMov(DEFAULT_TIPO_MOV);
+    setEmitente('');
+    setDestinatario('');
     setSearchTriggered(false);
     setCurrentPage(1);
     toast({
@@ -320,13 +331,22 @@ const ConsultaXMLs = () => {
 
   // Buscar NFe
   const { data: nfeData, isLoading: loadingNfe, error: errorNfe, refetch: refetchNfe } = useQuery({
-    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
-      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
-      const url = `${baseUrl}/${selectedContribuinte}/nfes${queryParams}`;
+      const params = new URLSearchParams({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        page: currentPage.toString(),
+        page_size: ITEMS_PER_PAGE.toString(),
+        tipo_mov: tipoMov,
+      });
+      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
+      
+      const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
 
@@ -346,13 +366,22 @@ const ConsultaXMLs = () => {
 
   // Buscar CT-e
   const { data: cteData, isLoading: loadingCte, error: errorCte, refetch: refetchCte } = useQuery({
-    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
-      const queryParams = `?data_inicio=${dataInicio}&data_fim=${dataFim}&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
-      const url = `${baseUrl}/${selectedContribuinte}/ctes${queryParams}`;
+      const params = new URLSearchParams({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        page: currentPage.toString(),
+        page_size: ITEMS_PER_PAGE.toString(),
+        tipo_mov: tipoMov,
+      });
+      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
+      
+      const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
       
       const response = await fetchWithAuth(url, { method: 'GET' });
 
@@ -527,7 +556,7 @@ const ConsultaXMLs = () => {
                 )}
               </div>
               <div className="w-[110px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Doc.</label>
                 <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
                   setTipoDocumento(value);
                   setSearchTriggered(false);
@@ -539,6 +568,31 @@ const ConsultaXMLs = () => {
                   <SelectContent>
                     <SelectItem value="nfe">NFe</SelectItem>
                     <SelectItem value="cte">CTe</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[130px]">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
+                <Select value={tipoMov} onValueChange={(value: 'Entrada' | 'Saida') => {
+                  setTipoMov(value);
+                  setSearchTriggered(false);
+                }}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Entrada">
+                      <span className="flex items-center gap-1.5">
+                        <ArrowDownLeft className="h-3.5 w-3.5 text-green-600" />
+                        Entrada
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="Saida">
+                      <span className="flex items-center gap-1.5">
+                        <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
+                        Saída
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -609,6 +663,34 @@ const ConsultaXMLs = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
+            </div>
+
+            {/* Filtros de Emitente e Destinatário */}
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">CPF/CNPJ Emitente</label>
+                <Input
+                  placeholder="Digite o CPF ou CNPJ"
+                  value={emitente}
+                  onChange={(e) => {
+                    setEmitente(e.target.value);
+                    setSearchTriggered(false);
+                  }}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">CPF/CNPJ Destinatário</label>
+                <Input
+                  placeholder="Digite o CPF ou CNPJ"
+                  value={destinatario}
+                  onChange={(e) => {
+                    setDestinatario(e.target.value);
+                    setSearchTriggered(false);
+                  }}
+                  className="h-9"
+                />
               </div>
             </div>
 
