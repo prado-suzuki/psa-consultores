@@ -31,7 +31,12 @@ const EquipeAuth = () => {
   useEffect(() => {
     if (!loading && user && (isTeamMember || isAdmin) && shouldRedirect && selectedArea) {
       if (selectedArea === 'chamados') {
-        navigate('/admin/chamados');
+        // Admin sees all tickets, team_member sees only assigned tickets
+        if (isAdmin) {
+          navigate('/admin/chamados');
+        } else {
+          navigate('/equipe/chamados');
+        }
       } else if (selectedArea === 'digital') {
         navigate('/equipe/digital');
       } else if (selectedArea === 'administracao') {
@@ -47,7 +52,12 @@ const EquipeAuth = () => {
     // If user is already authenticated, redirect immediately after selecting area
     if (user && (isTeamMember || isAdmin)) {
       if (area === 'chamados') {
-        navigate('/admin/chamados');
+        // Admin sees all tickets, team_member sees only assigned tickets
+        if (isAdmin) {
+          navigate('/admin/chamados');
+        } else {
+          navigate('/equipe/chamados');
+        }
       } else if (area === 'digital') {
         navigate('/equipe/digital');
       } else if (area === 'administracao') {

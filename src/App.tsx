@@ -18,6 +18,8 @@ import AdminClientes from "./pages/admin/AdminClientes";
 import AdminChamados from "./pages/admin/AdminChamados";
 import AdminDetalhesChamado from "./pages/admin/AdminDetalhesChamado";
 import EquipeAuth from "./pages/equipe/EquipeAuth";
+import EquipeChamados from "./pages/equipe/EquipeChamados";
+import EquipeDetalhesChamado from "./pages/equipe/EquipeDetalhesChamado";
 import EquipeDashboard from "./pages/equipe/EquipeDashboard";
 import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
@@ -68,6 +70,8 @@ const App = () => (
             
             {/* Equipe Routes */}
             <Route path="/equipe" element={<EquipeAuth />} />
+            <Route path="/equipe/chamados" element={<TeamRoute><EquipeChamados /></TeamRoute>} />
+            <Route path="/equipe/chamados/:id" element={<TeamRoute><EquipeDetalhesChamado /></TeamRoute>} />
             <Route path="/equipe/dashboard" element={<TeamRoute><EquipeDashboard /></TeamRoute>} />
             <Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
