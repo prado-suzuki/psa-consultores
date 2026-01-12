@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
   Accordion,
@@ -706,8 +706,8 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
                     Nenhum dado disponível para preview.
                   </div>
                 ) : (
-                  <ScrollArea className="h-[320px]">
-                    <div className="overflow-x-auto">
+                  <ScrollArea className="h-[320px] w-full">
+                    <div className="min-w-max">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -731,6 +731,7 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
                         </TableBody>
                       </Table>
                     </div>
+                    <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                 )}
               </div>
