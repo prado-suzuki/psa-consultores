@@ -8,8 +8,16 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lightbulb, Lock, Mail, User } from "lucide-react";
 import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
+import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
 import { toast } from "sonner";
 import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
+
+const checklistItems = [
+  { id: 1, text: "Acompanhe o progresso dos seus projetos" },
+  { id: 2, text: "Acesse documentos e relatórios" },
+  { id: 3, text: "Abra chamados e solicitações" },
+  { id: 4, text: "Comunique-se diretamente com a equipe" },
+];
 
 const Ajuda = () => {
   const navigate = useNavigate();
@@ -66,22 +74,17 @@ const Ajuda = () => {
       
       <main className="flex-1 pt-24 pb-16">
         <div className="container mx-auto px-4 md:px-6">
-          {/* Two Column Layout */}
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+          
+          {/* Top Section - Centered Title and Video */}
+          <div className="text-center mb-16">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Central de Ajuda - Clientes PSA
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              Sua plataforma exclusiva de suporte e acompanhamento de projetos
+            </p>
             
-            {/* Left Column - Content */}
-            <div className="w-full lg:w-7/12">
-              {/* Header Section - sem ícone */}
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                  Central de Ajuda - Clientes PSA
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Sua plataforma exclusiva de suporte e acompanhamento de projetos
-                </p>
-              </div>
-
-              {/* Video Card */}
+            <div className="max-w-2xl mx-auto">
               <WelcomeVideoCard
                 videoThumbnail={farmersIllustration}
                 videoTitle="Bem-vindo à Plataforma PSA"
@@ -89,9 +92,22 @@ const Ajuda = () => {
                 videoUrl="#"
               />
             </div>
+          </div>
+
+          {/* Bottom Section - Two Columns */}
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+            
+            {/* Left Column - Instructions */}
+            <div className="w-full lg:w-1/2">
+              <OnboardingChecklist
+                title="Como usar a plataforma"
+                description="Tudo o que você precisa para aproveitar ao máximo os recursos disponíveis"
+                items={checklistItems}
+              />
+            </div>
 
             {/* Right Column - Login */}
-            <div className="w-full lg:w-5/12">
+            <div className="w-full lg:w-1/2">
               {/* Login Card */}
               <div className="bg-white rounded-2xl border border-border shadow-sm p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
