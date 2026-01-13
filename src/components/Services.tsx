@@ -50,7 +50,7 @@ export const Services = () => {
           transition={{ duration: 0.6 }}
           className="text-left max-w-3xl mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
             Nossos Serviços
           </h2>
           <p className="text-gray-600 text-lg">
