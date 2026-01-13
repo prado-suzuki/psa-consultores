@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin } from "lucide-react";
-import farmerIllustration from "@/assets/contact/farmer-line-art.jpg";
+import farmerIllustration from "@/assets/contact/farmer-line-art.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -247,7 +247,7 @@ export const ContactSection = () => {
               <img 
                 src={farmerIllustration} 
                 alt="" 
-                className="w-full max-w-[280px] opacity-40"
+                className="w-full max-w-md opacity-50"
               />
             </div>
           </motion.div>
