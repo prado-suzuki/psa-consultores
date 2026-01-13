@@ -173,24 +173,31 @@ export const ContactSection = () => {
     <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
+        {/* Section Header - Full Width */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="lg:col-span-2 mb-4"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Vamos Conversar
+          </h2>
+        </motion.div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          {/* Left Column - Title and Contact Info */}
+          {/* Left Column - Contact Info */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-left flex flex-col justify-center h-full"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-left flex flex-col justify-start"
           >
-            {/* Header simplificado */}
-            <div className="mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Vamos Conversar
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-md">
-                Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
-              </p>
-            </div>
+            <p className="text-muted-foreground text-lg max-w-md mb-8">
+              Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
+            </p>
 
             {/* Contato compacto */}
             <div className="space-y-4">
