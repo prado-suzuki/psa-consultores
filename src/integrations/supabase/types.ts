@@ -452,13 +452,17 @@ export type Database = {
           botao_texto: string | null
           botao_url: string | null
           categoria: string
+          conteudo_completo: string | null
           created_at: string | null
           created_by: string | null
           data_publicacao: string | null
           descricao: string
           id: string
+          imagem_lateral_posicao: string | null
+          imagem_lateral_url: string | null
           imagem_url: string | null
           itens: string[] | null
+          texto_original: string | null
           titulo: string
           updated_at: string | null
         }
@@ -467,13 +471,17 @@ export type Database = {
           botao_texto?: string | null
           botao_url?: string | null
           categoria: string
+          conteudo_completo?: string | null
           created_at?: string | null
           created_by?: string | null
           data_publicacao?: string | null
           descricao: string
           id?: string
+          imagem_lateral_posicao?: string | null
+          imagem_lateral_url?: string | null
           imagem_url?: string | null
           itens?: string[] | null
+          texto_original?: string | null
           titulo: string
           updated_at?: string | null
         }
@@ -482,13 +490,17 @@ export type Database = {
           botao_texto?: string | null
           botao_url?: string | null
           categoria?: string
+          conteudo_completo?: string | null
           created_at?: string | null
           created_by?: string | null
           data_publicacao?: string | null
           descricao?: string
           id?: string
+          imagem_lateral_posicao?: string | null
+          imagem_lateral_url?: string | null
           imagem_url?: string | null
           itens?: string[] | null
+          texto_original?: string | null
           titulo?: string
           updated_at?: string | null
         }

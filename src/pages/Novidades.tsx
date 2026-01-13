@@ -60,10 +60,9 @@ const Novidades = () => {
                   descricao={novidade.descricao}
                   itens={novidade.itens}
                   imagem={novidade.imagem_url || undefined}
-                  botao={novidade.botao_texto && novidade.botao_url ? {
-                    texto: novidade.botao_texto,
-                    url: novidade.botao_url,
-                  } : undefined}
+                  imagemLateral={(novidade as any).imagem_lateral_url || undefined}
+                  imagemLateralPosicao={((novidade as any).imagem_lateral_posicao as "esquerda" | "direita") || "direita"}
+                  conteudoCompleto={(novidade as any).conteudo_completo || undefined}
                 />
               ))}
             </div>
