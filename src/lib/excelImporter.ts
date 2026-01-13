@@ -1,5 +1,17 @@
 import * as XLSX from 'xlsx';
 
+export interface Project {
+  id: string;
+  name: string;
+  code?: string;
+}
+
+export interface Process {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 export interface ExcelRow {
   Sprint: string;
   ID: string;
