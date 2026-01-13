@@ -205,7 +205,7 @@ export const ContactSection = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-left flex flex-col justify-start"
           >
-            <p className="text-muted-foreground text-lg max-w-md mb-12">
+            <p className="text-muted-foreground text-lg max-w-md mb-12 mt-8">
               Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
             </p>
 
