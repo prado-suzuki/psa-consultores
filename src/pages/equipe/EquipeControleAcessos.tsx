@@ -1,26 +1,28 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import EquipeLayout from '@/components/equipe/EquipeLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { 
   ShieldCheck, 
   Users, 
   FileText, 
   RefreshCw,
-  Check,
-  X,
   Plus,
-  Trash2
+  Trash2,
+  ArrowLeft,
+  LogOut,
+  Repeat
 } from 'lucide-react';
+import logoPsa from '@/assets/logo-psa.png';
 
 interface PagePermission {
   id: string;
@@ -49,7 +51,8 @@ interface UserPageAccess {
 }
 
 const EquipeControleAcessos = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
@@ -168,6 +171,11 @@ const EquipeControleAcessos = () => {
     },
   });
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       rotina: 'Digital Rotina',
@@ -180,12 +188,12 @@ const EquipeControleAcessos = () => {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      rotina: 'bg-blue-500/20 text-blue-400',
-      dev: 'bg-purple-500/20 text-purple-400',
-      gestao: 'bg-amber-500/20 text-amber-400',
-      geral: 'bg-gray-500/20 text-gray-400',
+      rotina: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      dev: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      gestao: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      geral: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
     };
-    return colors[category] || 'bg-gray-500/20 text-gray-400';
+    return colors[category] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   const groupedPages = pages?.reduce((acc, page) => {
@@ -203,280 +211,320 @@ const EquipeControleAcessos = () => {
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
   return (
-    <EquipeLayout
-      title="Controle de Acessos"
-      subtitle="Gerenciamento de permissões e liberação de funcionalidades do sistema"
-    >
-      <div className="space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">Páginas Ativas</CardTitle>
-              <FileText className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {pages?.filter(p => p.is_active).length || 0}
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/80 backdrop-blur-lg">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src={logoPsa} alt="PSA" className="h-8" />
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-semibold text-white">Controle de Acessos</h1>
+                <p className="text-xs text-gray-400">Gestão de usuários e liberação de acessos</p>
               </div>
-              <p className="text-xs text-slate-500">de {pages?.length || 0} páginas</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">Usuários</CardTitle>
-              <Users className="h-4 w-4 text-green-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{users?.length || 0}</div>
-              <p className="text-xs text-slate-500">cadastrados no sistema</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">Permissões Customizadas</CardTitle>
-              <ShieldCheck className="h-4 w-4 text-amber-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{userAccess?.length || 0}</div>
-              <p className="text-xs text-slate-500">acessos individuais</p>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/equipe/digital')}
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                <Repeat className="h-4 w-4 mr-2" />
+                Trocar área
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
         </div>
+      </header>
 
-        {/* Tabs */}
-        <Tabs defaultValue="pages" className="space-y-4">
-          <TabsList className="bg-slate-800 border-slate-700">
-            <TabsTrigger value="pages" className="data-[state=active]:bg-slate-700">
-              <FileText className="h-4 w-4 mr-2" />
-              Páginas
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-slate-700">
-              <Users className="h-4 w-4 mr-2" />
-              Usuários
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Pages Tab */}
-          <TabsContent value="pages" className="space-y-4">
-            {loadingPages ? (
-              <div className="flex items-center justify-center py-8">
-                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              Object.entries(groupedPages).map(([category, categoryPages]) => (
-                <Card key={category} className="bg-slate-800/50 border-slate-700">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Badge className={getCategoryColor(category)}>
-                        {getCategoryLabel(category)}
-                      </Badge>
-                      <span className="text-xs text-slate-500">
-                        {categoryPages.length} páginas
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-slate-700 hover:bg-transparent">
-                          <TableHead className="text-slate-400">Página</TableHead>
-                          <TableHead className="text-slate-400">Caminho</TableHead>
-                          <TableHead className="text-slate-400">Requisitos</TableHead>
-                          <TableHead className="text-slate-400 text-right">Ativo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryPages.map((page) => (
-                          <TableRow key={page.id} className="border-slate-700">
-                            <TableCell>
-                              <div>
-                                <p className="font-medium text-white">{page.page_name}</p>
-                                {page.page_description && (
-                                  <p className="text-xs text-slate-500">{page.page_description}</p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-400 font-mono text-xs">
-                              {page.page_path}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                {page.requires_admin && (
-                                  <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
-                                    Admin
-                                  </Badge>
-                                )}
-                                {page.requires_team_member && (
-                                  <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400">
-                                    Team
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Switch
-                                checked={page.is_active}
-                                onCheckedChange={(checked) => 
-                                  togglePageMutation.mutate({ id: page.id, isActive: checked })
-                                }
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Users List */}
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-sm">Usuários</CardTitle>
-                  <CardDescription>Selecione um usuário para gerenciar acessos</CardDescription>
+      {/* Main Content */}
+      <ScrollArea className="h-[calc(100vh-73px)]">
+        <main className="container mx-auto px-4 py-6">
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-200">Páginas Ativas</CardTitle>
+                  <FileText className="h-4 w-4 text-blue-400" />
                 </CardHeader>
-                <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {loadingUsers ? (
-                    <div className="flex items-center justify-center py-4">
-                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    users?.map((u) => (
-                      <button
-                        key={u.id}
-                        className={`w-full p-3 rounded-lg text-left transition-colors ${
-                          selectedUserId === u.id
-                            ? 'bg-primary/20 border border-primary/50'
-                            : 'bg-slate-700/50 hover:bg-slate-700 border border-transparent'
-                        }`}
-                        onClick={() => setSelectedUserId(u.id)}
-                      >
-                        <p className="font-medium text-white text-sm">
-                          {u.first_name} {u.last_name}
-                        </p>
-                        <p className="text-xs text-slate-400">{u.email}</p>
-                        <div className="flex gap-1 mt-1">
-                          {u.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant="outline"
-                              className={`text-xs ${
-                                role === 'admin'
-                                  ? 'border-red-500/50 text-red-400'
-                                  : role === 'team_member'
-                                  ? 'border-blue-500/50 text-blue-400'
-                                  : 'border-gray-500/50 text-gray-400'
-                              }`}
-                            >
-                              {role}
-                            </Badge>
-                          ))}
-                        </div>
-                      </button>
-                    ))
-                  )}
+                <CardContent>
+                  <div className="text-3xl font-bold text-white">
+                    {pages?.filter(p => p.is_active).length || 0}
+                  </div>
+                  <p className="text-sm text-gray-400">de {pages?.length || 0} páginas</p>
                 </CardContent>
               </Card>
 
-              {/* User Permissions */}
-              <Card className="lg:col-span-2 bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-sm">
-                    {selectedUser
-                      ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
-                      : 'Selecione um usuário'}
-                  </CardTitle>
-                  <CardDescription>
-                    Gerencie as permissões individuais de acesso às páginas
-                  </CardDescription>
+              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-200">Usuários</CardTitle>
+                  <Users className="h-4 w-4 text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  {selectedUserId ? (
-                    <div className="space-y-4">
-                      {Object.entries(groupedPages).map(([category, categoryPages]) => (
-                        <div key={category} className="space-y-2">
-                          <Badge className={getCategoryColor(category)}>
-                            {getCategoryLabel(category)}
-                          </Badge>
-                          <div className="space-y-1">
-                            {categoryPages.map((page) => {
-                              const userHasAccess = hasAccess(selectedUserId, page.id);
-                              return (
-                                <div
-                                  key={page.id}
-                                  className="flex items-center justify-between p-2 rounded-lg bg-slate-700/30"
-                                >
-                                  <div>
-                                    <p className="text-sm text-white">{page.page_name}</p>
-                                    <p className="text-xs text-slate-500">{page.page_path}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {userHasAccess ? (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                        onClick={() =>
-                                          revokeAccessMutation.mutate({
-                                            userId: selectedUserId,
-                                            pageId: page.id,
-                                          })
-                                        }
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Revogar
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                                        onClick={() =>
-                                          grantAccessMutation.mutate({
-                                            userId: selectedUserId,
-                                            pageId: page.id,
-                                          })
-                                        }
-                                      >
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        Conceder
-                                      </Button>
-                                    )}
-                                    {userHasAccess && (
-                                      <Badge className="bg-green-500/20 text-green-400">
-                                        <Check className="h-3 w-3 mr-1" />
-                                        Acesso
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                      <Users className="h-12 w-12 mb-4 opacity-50" />
-                      <p>Selecione um usuário para ver e gerenciar seus acessos</p>
-                    </div>
-                  )}
+                  <div className="text-3xl font-bold text-white">{users?.length || 0}</div>
+                  <p className="text-sm text-gray-400">cadastrados no sistema</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-200">Permissões Customizadas</CardTitle>
+                  <ShieldCheck className="h-4 w-4 text-amber-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white">{userAccess?.length || 0}</div>
+                  <p className="text-sm text-gray-400">acessos individuais</p>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </EquipeLayout>
+
+            {/* Tabs */}
+            <Tabs defaultValue="pages" className="space-y-4">
+              <TabsList className="bg-gray-800/50 border border-gray-700">
+                <TabsTrigger 
+                  value="pages" 
+                  className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Páginas
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="users" 
+                  className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Usuários
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Pages Tab */}
+              <TabsContent value="pages" className="space-y-4">
+                {loadingPages ? (
+                  <div className="flex items-center justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-amber-400" />
+                  </div>
+                ) : (
+                  Object.entries(groupedPages).map(([category, categoryPages]) => (
+                    <Card key={category} className="bg-gray-800/60 border-gray-700">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge className={getCategoryColor(category)}>
+                            {getCategoryLabel(category)}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {categoryPages.length} páginas
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-gray-700 hover:bg-transparent">
+                              <TableHead className="text-gray-400">Página</TableHead>
+                              <TableHead className="text-gray-400">Caminho</TableHead>
+                              <TableHead className="text-gray-400">Requisitos</TableHead>
+                              <TableHead className="text-gray-400 text-right">Ativo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categoryPages.map((page) => (
+                              <TableRow key={page.id} className="border-gray-700 hover:bg-gray-700/30">
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium text-white">{page.page_name}</p>
+                                    {page.page_description && (
+                                      <p className="text-xs text-gray-500">{page.page_description}</p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-gray-400 font-mono text-xs">
+                                  {page.page_path}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    {page.requires_admin && (
+                                      <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
+                                        Admin
+                                      </Badge>
+                                    )}
+                                    {page.requires_team_member && (
+                                      <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400">
+                                        Team
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Switch
+                                    checked={page.is_active}
+                                    onCheckedChange={(checked) => 
+                                      togglePageMutation.mutate({ id: page.id, isActive: checked })
+                                    }
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Users Tab */}
+              <TabsContent value="users" className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Users List */}
+                  <Card className="bg-gray-800/60 border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-white text-sm">Usuários</CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Selecione um usuário para gerenciar acessos
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {loadingUsers ? (
+                        <div className="flex items-center justify-center py-4">
+                          <RefreshCw className="h-5 w-5 animate-spin text-amber-400" />
+                        </div>
+                      ) : (
+                        users?.map((u) => (
+                          <button
+                            key={u.id}
+                            className={`w-full p-3 rounded-lg text-left transition-colors ${
+                              selectedUserId === u.id
+                                ? 'bg-amber-500/20 border border-amber-500/50'
+                                : 'bg-gray-700/50 hover:bg-gray-700 border border-transparent'
+                            }`}
+                            onClick={() => setSelectedUserId(u.id)}
+                          >
+                            <p className="font-medium text-white text-sm">
+                              {u.first_name} {u.last_name}
+                            </p>
+                            <p className="text-xs text-gray-400">{u.email}</p>
+                            <div className="flex gap-1 mt-1">
+                              {u.roles.map((role) => (
+                                <Badge
+                                  key={role}
+                                  variant="outline"
+                                  className={`text-xs ${
+                                    role === 'admin'
+                                      ? 'border-red-500/50 text-red-400'
+                                      : role === 'team_member'
+                                      ? 'border-blue-500/50 text-blue-400'
+                                      : 'border-gray-500/50 text-gray-400'
+                                  }`}
+                                >
+                                  {role}
+                                </Badge>
+                              ))}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* User Permissions */}
+                  <Card className="lg:col-span-2 bg-gray-800/60 border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-white text-sm">
+                        {selectedUser
+                          ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
+                          : 'Selecione um usuário'}
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Gerencie as permissões individuais de acesso às páginas
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedUserId ? (
+                        <div className="space-y-4">
+                          {Object.entries(groupedPages).map(([category, categoryPages]) => (
+                            <div key={category} className="space-y-2">
+                              <Badge className={getCategoryColor(category)}>
+                                {getCategoryLabel(category)}
+                              </Badge>
+                              <div className="space-y-1">
+                                {categoryPages.map((page) => {
+                                  const userHasAccess = hasAccess(selectedUserId, page.id);
+                                  return (
+                                    <div
+                                      key={page.id}
+                                      className="flex items-center justify-between p-2 rounded-lg bg-gray-700/30"
+                                    >
+                                      <div>
+                                        <p className="text-sm text-white">{page.page_name}</p>
+                                        <p className="text-xs text-gray-500">{page.page_path}</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {userHasAccess ? (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            onClick={() =>
+                                              revokeAccessMutation.mutate({
+                                                userId: selectedUserId,
+                                                pageId: page.id,
+                                              })
+                                            }
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-1" />
+                                            Revogar
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                            onClick={() =>
+                                              grantAccessMutation.mutate({
+                                                userId: selectedUserId,
+                                                pageId: page.id,
+                                              })
+                                            }
+                                          >
+                                            <Plus className="h-4 w-4 mr-1" />
+                                            Conceder
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>Selecione um usuário na lista ao lado</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
+      </ScrollArea>
+    </div>
   );
 };
 
