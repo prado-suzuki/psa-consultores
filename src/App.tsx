@@ -41,6 +41,7 @@ import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
+import GestaoContatos from "./pages/gestao/GestaoContatos";
 import Novidades from "./pages/Novidades";
 import NotFound from "./pages/NotFound";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
@@ -100,6 +101,7 @@ const App = () => (
             {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
             <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
             <Route path="/gestao/chamados" element={<GestaoAccessGate><GestaoChamados /></GestaoAccessGate>} />
+            <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
