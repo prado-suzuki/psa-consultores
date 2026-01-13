@@ -620,7 +620,7 @@ const ConsultaXMLs = () => {
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
                 <Select
                   value={tipoMov}
-                  onValueChange={(value: "Entrada" | "Saida") => {
+                  onValueChange={(value: "Entrada" | "Saída") => {
                     setTipoMov(value);
                     setSearchTriggered(false);
                   }}
@@ -635,7 +635,7 @@ const ConsultaXMLs = () => {
                         Entrada
                       </span>
                     </SelectItem>
-                    <SelectItem value="Saida">
+                    <SelectItem value="Saída">
                       <span className="flex items-center gap-1.5">
                         <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
                         Saída
