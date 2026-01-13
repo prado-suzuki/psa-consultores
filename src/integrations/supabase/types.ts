@@ -125,6 +125,51 @@ export type Database = {
         }
         Relationships: []
       }
+      contatos: {
+        Row: {
+          atendido_por: string | null
+          created_at: string | null
+          email: string
+          empresa: string | null
+          id: string
+          mensagem: string
+          nome_completo: string
+          notas_internas: string | null
+          servico_interesse: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          atendido_por?: string | null
+          created_at?: string | null
+          email: string
+          empresa?: string | null
+          id?: string
+          mensagem: string
+          nome_completo: string
+          notas_internas?: string | null
+          servico_interesse?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          atendido_por?: string | null
+          created_at?: string | null
+          email?: string
+          empresa?: string | null
+          id?: string
+          mensagem?: string
+          nome_completo?: string
+          notas_internas?: string | null
+          servico_interesse?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contribuinte: {
         Row: {
           cliente_id: string

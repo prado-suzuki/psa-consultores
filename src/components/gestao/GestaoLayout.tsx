@@ -11,7 +11,8 @@ import {
   ArrowLeft,
   LayoutDashboard,
   Newspaper,
-  MessageSquare
+  MessageSquare,
+  Users
 } from 'lucide-react';
 
 interface GestaoLayoutProps {
@@ -30,6 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Newspaper, label: 'Novidades', path: '/gestao' },
   { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
+  { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
 ];
 
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
