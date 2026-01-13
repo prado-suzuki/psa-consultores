@@ -200,31 +200,42 @@ interface ExportDialogProps {
 // Função para acessar valores aninhados (suporta até 3 níveis: produtos.PIS.vPIS)
 const getNestedValue = (obj: any, path: string): any => {
   const parts = path.split('.');
-  let current = obj;
   
+  // Tratamento especial para campos de produtos - ANTES do loop
+  if (parts[0] === 'produtos' && Array.isArray(obj.produtos)) {
+    if (parts.length === 1) {
+      // Apenas "produtos" - retornar contagem ou vazio
+      return obj.produtos.length > 0 ? `${obj.produtos.length} item(s)` : '-';
+    }
+    if (parts.length === 2) {
+      // produtos.xProd, produtos.NCM, etc.
+      const propName = parts[1];
+      const values = obj.produtos.map((p: any) => {
+        const val = p[propName];
+        return val !== null && val !== undefined ? String(val) : '';
+      }).filter((v: string) => v !== '');
+      return values.length > 0 ? values.join('; ') : '-';
+    }
+    if (parts.length === 3) {
+      // produtos.PIS.vPIS, produtos.COFINS.CST, etc.
+      const subObj = parts[1];
+      const propName = parts[2];
+      const values = obj.produtos.map((p: any) => {
+        const subValue = p[subObj];
+        if (subValue && typeof subValue === 'object') {
+          const val = subValue[propName];
+          return val !== null && val !== undefined ? String(val) : '';
+        }
+        return '';
+      }).filter((v: string) => v !== '');
+      return values.length > 0 ? values.join('; ') : '-';
+    }
+  }
+  
+  // Navegação padrão para campos não-produtos
+  let current = obj;
   for (const part of parts) {
     if (current === null || current === undefined) return '';
-    
-    // Se for array de produtos, retornar lista
-    if (part === 'produtos' && Array.isArray(current.produtos)) {
-      return current.produtos;
-    }
-    
-    // Se estiver acessando propriedade de produtos (ex: produtos.xProd ou produtos.PIS.vPIS)
-    if (parts[0] === 'produtos' && Array.isArray(obj.produtos)) {
-      if (parts.length === 2) {
-        // produtos.xProd
-        const propName = parts[1];
-        return obj.produtos.map((p: any) => p[propName]).join('; ');
-      }
-      if (parts.length === 3) {
-        // produtos.PIS.vPIS ou produtos.COFINS.vCOFINS
-        const subObj = parts[1];
-        const propName = parts[2];
-        return obj.produtos.map((p: any) => p[subObj]?.[propName]).join('; ');
-      }
-    }
-    
     current = current[part];
   }
   
@@ -234,6 +245,27 @@ const getNestedValue = (obj: any, path: string): any => {
 // Formatar valor para exibição
 const formatValue = (value: any, columnId: string): string => {
   if (value === null || value === undefined || value === '') return '-';
+  
+  // Se for objeto ou array, converter para string legível
+  if (typeof value === 'object') {
+    if (Array.isArray(value)) {
+      const stringValues = value.map(v => v !== null && v !== undefined ? String(v) : '').filter(v => v !== '');
+      return stringValues.length > 0 ? stringValues.join('; ') : '-';
+    }
+    // Objeto genérico - tentar extrair valores ou retornar placeholder
+    try {
+      const keys = Object.keys(value);
+      if (keys.length === 0) return '-';
+      // Tentar extrair valores simples do objeto
+      const simpleValues = keys.map(k => value[k]).filter(v => v !== null && v !== undefined && typeof v !== 'object');
+      if (simpleValues.length > 0) {
+        return simpleValues.join('; ');
+      }
+      return JSON.stringify(value);
+    } catch {
+      return '[objeto]';
+    }
+  }
   
   // Formatar data
   if ((columnId === 'dhEmi' || columnId === 'dEmi') && value) {
