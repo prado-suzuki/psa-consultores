@@ -9,6 +9,8 @@ export interface ExcelRow {
   Descrição: string;
   'Estimativa (h)': number;
   'Data de Entrega': string;
+  Projeto?: string;
+  Processo?: string;
 }
 
 export interface ParsedTask {
