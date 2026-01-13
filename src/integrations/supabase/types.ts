@@ -392,6 +392,54 @@ export type Database = {
         }
         Relationships: []
       }
+      novidades: {
+        Row: {
+          ativo: boolean | null
+          botao_texto: string | null
+          botao_url: string | null
+          categoria: string
+          created_at: string | null
+          created_by: string | null
+          data_publicacao: string | null
+          descricao: string
+          id: string
+          imagem_url: string | null
+          itens: string[] | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          botao_texto?: string | null
+          botao_url?: string | null
+          categoria: string
+          created_at?: string | null
+          created_by?: string | null
+          data_publicacao?: string | null
+          descricao: string
+          id?: string
+          imagem_url?: string | null
+          itens?: string[] | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          botao_texto?: string | null
+          botao_url?: string | null
+          categoria?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_publicacao?: string | null
+          descricao?: string
+          id?: string
+          imagem_url?: string | null
+          itens?: string[] | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       process_stages: {
         Row: {
           automation_level: string | null

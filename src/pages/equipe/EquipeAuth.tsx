@@ -11,11 +11,7 @@ import logo from '@/assets/logo-psa.png';
 
 const areas = [
   { id: 'digital', label: 'Digital' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'operacional', label: 'Operacional' },
-  { id: 'comercial', label: 'Comercial' },
-  { id: 'chamados', label: 'Chamados' },
-  { id: 'administracao', label: 'Administração' },
+  { id: 'gestao', label: 'Gestão' },
 ];
 
 const EquipeAuth = () => {
@@ -30,17 +26,10 @@ const EquipeAuth = () => {
   // Only redirect when user explicitly selects area and confirms (or just logged in)
   useEffect(() => {
     if (!loading && user && (isTeamMember || isAdmin) && shouldRedirect && selectedArea) {
-      if (selectedArea === 'chamados') {
-        // Admin sees all tickets, team_member sees only assigned tickets
-        if (isAdmin) {
-          navigate('/admin/chamados');
-        } else {
-          navigate('/equipe/chamados');
-        }
-      } else if (selectedArea === 'digital') {
+      if (selectedArea === 'digital') {
         navigate('/equipe/digital');
-      } else if (selectedArea === 'administracao') {
-        navigate('/administracao');
+      } else if (selectedArea === 'gestao') {
+        navigate('/gestao');
       } else {
         navigate('/equipe/dashboard');
       }
@@ -51,17 +40,10 @@ const EquipeAuth = () => {
     setSelectedArea(area);
     // If user is already authenticated, redirect immediately after selecting area
     if (user && (isTeamMember || isAdmin)) {
-      if (area === 'chamados') {
-        // Admin sees all tickets, team_member sees only assigned tickets
-        if (isAdmin) {
-          navigate('/admin/chamados');
-        } else {
-          navigate('/equipe/chamados');
-        }
-      } else if (area === 'digital') {
+      if (area === 'digital') {
         navigate('/equipe/digital');
-      } else if (area === 'administracao') {
-        navigate('/administracao');
+      } else if (area === 'gestao') {
+        navigate('/gestao');
       } else {
         navigate('/equipe/dashboard');
       }
