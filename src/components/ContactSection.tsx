@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search } from "lucide-react";
+import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin, Linkedin, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -170,7 +170,7 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
+    <section id="contato" className="relative py-20 md:py-28 bg-white overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -right-1/4 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
@@ -178,247 +178,302 @@ export const ContactSection = () => {
       </div>
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-12"
-        >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Entre em Contato
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Vamos Conversar
-          </h2>
-          <p className="text-muted-foreground">
-            Preencha o formulário abaixo e nossa equipe entrará em contato para entender como podemos ajudar sua empresa.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-xl mx-auto"
-        >
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-5">
-            {/* Nome */}
-            <div className="space-y-2">
-              <Label htmlFor="nome_completo" className="text-foreground font-medium">
-                Nome Completo *
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="nome_completo"
-                  name="nome_completo"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={formData.nome_completo}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.nome_completo ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.nome_completo && (
-                <p className="text-sm text-destructive">{errors.nome_completo}</p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground font-medium">
-                Email *
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Telefone e Empresa em grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Telefone */}
-              <div className="space-y-2">
-                <Label htmlFor="telefone" className="text-foreground font-medium">
-                  Telefone
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="telefone"
-                    name="telefone"
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    value={formData.telefone}
-                    onChange={handleChange}
-                    className={`pl-10 ${errors.telefone ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.telefone && (
-                  <p className="text-sm text-destructive">{errors.telefone}</p>
-                )}
-              </div>
-
-              {/* Empresa */}
-              <div className="space-y-2">
-                <Label htmlFor="empresa" className="text-foreground font-medium">
-                  Empresa
-                </Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="empresa"
-                    name="empresa"
-                    type="text"
-                    placeholder="Nome da empresa"
-                    value={formData.empresa}
-                    onChange={handleChange}
-                    className={`pl-10 ${errors.empresa ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.empresa && (
-                  <p className="text-sm text-destructive">{errors.empresa}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Serviço de Interesse */}
-            <div className="space-y-2">
-              <Label className="text-foreground font-medium">
-                Serviço de Interesse *
-              </Label>
-              <Select
-                value={formData.servico_interesse}
-                onValueChange={(value) => handleSelectChange("servico_interesse", value)}
-              >
-                <SelectTrigger className={`w-full ${errors.servico_interesse ? 'border-destructive' : ''}`}>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Selecione o serviço" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {servicoOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.servico_interesse && (
-                <p className="text-sm text-destructive">{errors.servico_interesse}</p>
-              )}
-            </div>
-
-            {/* Porte da Empresa e Como nos conheceu em grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Porte da Empresa */}
-              <div className="space-y-2">
-                <Label className="text-foreground font-medium">
-                  Porte da Empresa
-                </Label>
-                <Select
-                  value={formData.porte_empresa}
-                  onValueChange={(value) => handleSelectChange("porte_empresa", value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                      <SelectValue placeholder="Selecione" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {porteOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Como nos conheceu */}
-              <div className="space-y-2">
-                <Label className="text-foreground font-medium">
-                  Como nos conheceu?
-                </Label>
-                <Select
-                  value={formData.como_conheceu}
-                  onValueChange={(value) => handleSelectChange("como_conheceu", value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <div className="flex items-center gap-2">
-                      <Search className="h-4 w-4 text-muted-foreground" />
-                      <SelectValue placeholder="Selecione" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {comoConheceuOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Mensagem */}
-            <div className="space-y-2">
-              <Label htmlFor="mensagem" className="text-foreground font-medium">
-                Observações <span className="text-muted-foreground font-normal">(opcional)</span>
-              </Label>
-              <div className="relative">
-                <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Textarea
-                  id="mensagem"
-                  name="mensagem"
-                  placeholder="Alguma informação adicional?"
-                  value={formData.mensagem}
-                  onChange={handleChange}
-                  rows={2}
-                  className={`pl-10 resize-none ${errors.mensagem ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.mensagem && (
-                <p className="text-sm text-destructive">{errors.mensagem}</p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 group"
-            >
-              {isSubmitting ? (
-                "Enviando..."
-              ) : (
-                <>
-                  Enviar Mensagem
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              Ao enviar, você concorda com nossa política de privacidade.
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          {/* Left Column - Title and Contact Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-left"
+          >
+            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              Entre em Contato
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Vamos Conversar
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-md">
+              Preencha o formulário e nossa equipe entrará em contato para entender como podemos ajudar sua empresa a alcançar melhores resultados.
             </p>
-          </form>
-        </motion.div>
+
+            {/* Contact Information */}
+            <div className="space-y-6">
+              {/* Email */}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <a 
+                    href="mailto:contato@psaconsultores.com.br" 
+                    className="text-foreground font-medium hover:text-primary transition-colors"
+                  >
+                    contato@psaconsultores.com.br
+                  </a>
+                </div>
+              </div>
+
+              {/* Offices */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Escritórios</p>
+                  <p className="text-foreground font-medium">
+                    Goiânia • São Paulo • Ribeirão Preto
+                  </p>
+                </div>
+              </div>
+
+              {/* Social Links */}
+              <div className="flex items-center gap-4 pt-4">
+                <a 
+                  href="https://www.linkedin.com/company/psaconsultores" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors group"
+                >
+                  <Linkedin className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
+                </a>
+                <a 
+                  href="https://www.instagram.com/psaconsultores" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors group"
+                >
+                  <Instagram className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Right Column - Form */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <form onSubmit={handleSubmit} className="bg-muted/30 rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
+              {/* Nome */}
+              <div className="space-y-2">
+                <Label htmlFor="nome_completo" className="text-foreground font-medium">
+                  Nome Completo *
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="nome_completo"
+                    name="nome_completo"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={formData.nome_completo}
+                    onChange={handleChange}
+                    className={`pl-10 bg-background ${errors.nome_completo ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.nome_completo && (
+                  <p className="text-sm text-destructive">{errors.nome_completo}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-foreground font-medium">
+                  Email *
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`pl-10 bg-background ${errors.email ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Telefone e Empresa em grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Telefone */}
+                <div className="space-y-2">
+                  <Label htmlFor="telefone" className="text-foreground font-medium">
+                    Telefone
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="telefone"
+                      name="telefone"
+                      type="tel"
+                      placeholder="(00) 00000-0000"
+                      value={formData.telefone}
+                      onChange={handleChange}
+                      className={`pl-10 bg-background ${errors.telefone ? 'border-destructive' : ''}`}
+                    />
+                  </div>
+                  {errors.telefone && (
+                    <p className="text-sm text-destructive">{errors.telefone}</p>
+                  )}
+                </div>
+
+                {/* Empresa */}
+                <div className="space-y-2">
+                  <Label htmlFor="empresa" className="text-foreground font-medium">
+                    Empresa
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="empresa"
+                      name="empresa"
+                      type="text"
+                      placeholder="Nome da empresa"
+                      value={formData.empresa}
+                      onChange={handleChange}
+                      className={`pl-10 bg-background ${errors.empresa ? 'border-destructive' : ''}`}
+                    />
+                  </div>
+                  {errors.empresa && (
+                    <p className="text-sm text-destructive">{errors.empresa}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Serviço de Interesse */}
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">
+                  Serviço de Interesse *
+                </Label>
+                <Select
+                  value={formData.servico_interesse}
+                  onValueChange={(value) => handleSelectChange("servico_interesse", value)}
+                >
+                  <SelectTrigger className={`w-full bg-background ${errors.servico_interesse ? 'border-destructive' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {servicoOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.servico_interesse && (
+                  <p className="text-sm text-destructive">{errors.servico_interesse}</p>
+                )}
+              </div>
+
+              {/* Porte da Empresa e Como nos conheceu em grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Porte da Empresa */}
+                <div className="space-y-2">
+                  <Label className="text-foreground font-medium">
+                    Porte da Empresa
+                  </Label>
+                  <Select
+                    value={formData.porte_empresa}
+                    onValueChange={(value) => handleSelectChange("porte_empresa", value)}
+                  >
+                    <SelectTrigger className="w-full bg-background">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="Selecione" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {porteOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Como nos conheceu */}
+                <div className="space-y-2">
+                  <Label className="text-foreground font-medium">
+                    Como nos conheceu?
+                  </Label>
+                  <Select
+                    value={formData.como_conheceu}
+                    onValueChange={(value) => handleSelectChange("como_conheceu", value)}
+                  >
+                    <SelectTrigger className="w-full bg-background">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="Selecione" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {comoConheceuOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Mensagem */}
+              <div className="space-y-2">
+                <Label htmlFor="mensagem" className="text-foreground font-medium">
+                  Observações <span className="text-muted-foreground font-normal">(opcional)</span>
+                </Label>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    id="mensagem"
+                    name="mensagem"
+                    placeholder="Alguma informação adicional?"
+                    value={formData.mensagem}
+                    onChange={handleChange}
+                    rows={2}
+                    className={`pl-10 resize-none bg-background ${errors.mensagem ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.mensagem && (
+                  <p className="text-sm text-destructive">{errors.mensagem}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 group"
+              >
+                {isSubmitting ? (
+                  "Enviando..."
+                ) : (
+                  <>
+                    Enviar Mensagem
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Ao enviar, você concorda com nossa política de privacidade.
+              </p>
+            </form>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
