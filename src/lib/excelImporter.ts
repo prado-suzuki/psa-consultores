@@ -62,6 +62,24 @@ export interface Profile {
   last_name: string;
 }
 
+export function findProjectByName(name: string, projects: Project[]): Project | null {
+  if (!name?.trim()) return null;
+  const normalized = name.trim().toLowerCase();
+  return projects.find(p =>
+    p.name.toLowerCase().includes(normalized) ||
+    p.code?.toLowerCase().includes(normalized)
+  ) || null;
+}
+
+export function findProcessByName(name: string, processes: Process[]): Process | null {
+  if (!name?.trim()) return null;
+  const normalized = name.trim().toLowerCase();
+  return processes.find(p =>
+    p.name.toLowerCase().includes(normalized) ||
+    p.code?.toLowerCase().includes(normalized)
+  ) || null;
+}
+
 // Parse Excel date (can be number or string)
 function parseExcelDate(value: any): string {
   if (!value) return '';
