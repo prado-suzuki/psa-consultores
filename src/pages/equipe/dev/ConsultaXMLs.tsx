@@ -243,7 +243,7 @@ const ConsultaXMLs = () => {
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
   const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
   const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos">(DEFAULT_TIPO_DOCUMENTO);
-  const [tipoMov, setTipoMov] = useState<"Entrada" | "Saída">(DEFAULT_TIPO_MOV);
+  const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida">(DEFAULT_TIPO_MOV);
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
@@ -620,7 +620,7 @@ const ConsultaXMLs = () => {
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
                 <Select
                   value={tipoMov}
-                  onValueChange={(value: "Entrada" | "Saída") => {
+                  onValueChange={(value: "Entrada" | "Saida") => {
                     setTipoMov(value);
                     setSearchTriggered(false);
                   }}
@@ -635,7 +635,7 @@ const ConsultaXMLs = () => {
                         Entrada
                       </span>
                     </SelectItem>
-                    <SelectItem value="Saída">
+                    <SelectItem value="Saida">
                       <span className="flex items-center gap-1.5">
                         <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
                         Saída
