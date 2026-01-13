@@ -44,7 +44,7 @@ import GestaoChamados from "./pages/gestao/GestaoChamados";
 import Novidades from "./pages/Novidades";
 import NotFound from "./pages/NotFound";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
-import { GestaoPasswordGate } from "./components/gestao/GestaoPasswordGate";
+import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 
 const queryClient = new QueryClient();
 
@@ -97,9 +97,9 @@ const App = () => (
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><GerenciarDados /></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             
-            {/* Gestão Routes - Protected by password gate */}
-            <Route path="/gestao" element={<AdminRoute><GestaoPasswordGate><GestaoNovidades /></GestaoPasswordGate></AdminRoute>} />
-            <Route path="/gestao/chamados" element={<AdminRoute><GestaoPasswordGate><GestaoChamados /></GestaoPasswordGate></AdminRoute>} />
+            {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
+            <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
+            <Route path="/gestao/chamados" element={<GestaoAccessGate><GestaoChamados /></GestaoAccessGate>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
