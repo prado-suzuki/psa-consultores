@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lightbulb, Lock, Mail, User } from "lucide-react";
+import { Check, Lightbulb, Lock, Mail, User } from "lucide-react";
 import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
-import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
 import { toast } from "sonner";
 import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
 
@@ -99,11 +98,16 @@ const Ajuda = () => {
             
             {/* Left Column - Instructions */}
             <div className="w-full lg:w-1/2">
-              <OnboardingChecklist
-                title="Como usar a plataforma"
-                description="Tudo o que você precisa para aproveitar ao máximo os recursos disponíveis"
-                items={checklistItems}
-              />
+              <div className="space-y-4">
+                {checklistItems.map((item) => (
+                  <div key={item.id} className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                    <p className="text-foreground">{item.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Right Column - Login */}
