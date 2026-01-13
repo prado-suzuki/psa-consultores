@@ -93,7 +93,8 @@ const Ajuda = () => {
               title="Bem-vindo à Plataforma PSA"
               description="Conheça todos os recursos disponíveis para você como nosso cliente"
               items={onboardingItems}
-              imageUrl={farmersIllustration}
+              videoThumbnailUrl="/placeholder.svg"
+              videoUrl="#"
             />
           </div>
 

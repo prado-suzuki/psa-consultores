@@ -1,16 +1,19 @@
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Play } from "lucide-react";
 
 interface ChecklistItem {
   id: number;
   text: string;
   helperText?: string;
+  helperLink?: { href: string; text: string };
 }
 
 interface OnboardingChecklistProps {
   title: string;
   description: string;
   items: ChecklistItem[];
+  videoThumbnailUrl?: string;
+  videoUrl?: string;
   imageUrl?: string;
 }
 
@@ -18,8 +21,13 @@ export function OnboardingChecklist({
   title,
   description,
   items,
+  videoThumbnailUrl,
+  videoUrl,
   imageUrl,
 }: OnboardingChecklistProps) {
+  const thumbnailSrc = videoThumbnailUrl || imageUrl;
+  const isVideo = !!videoUrl;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,7 +46,7 @@ export function OnboardingChecklist({
               {description}
             </p>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {items.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -56,7 +64,15 @@ export function OnboardingChecklist({
                     </p>
                     {item.helperText && (
                       <p className="text-muted-foreground text-xs mt-0.5">
-                        {item.helperText}
+                        {item.helperText}{" "}
+                        {item.helperLink && (
+                          <a
+                            href={item.helperLink.href}
+                            className="text-primary hover:underline"
+                          >
+                            {item.helperLink.text}
+                          </a>
+                        )}
                       </p>
                     )}
                   </div>
@@ -65,17 +81,36 @@ export function OnboardingChecklist({
             </div>
           </div>
 
-          {/* Image Side */}
-          {imageUrl && (
-            <div className="hidden md:block w-80 bg-muted/30 relative">
-              <div 
+          {/* Video/Image Side */}
+          {thumbnailSrc && (
+            <div
+              className={`hidden md:block w-80 bg-muted/30 relative overflow-hidden ${
+                isVideo ? "group cursor-pointer" : ""
+              }`}
+              onClick={() => isVideo && videoUrl && window.open(videoUrl, "_blank")}
+            >
+              {/* Thumbnail/Image */}
+              <div
                 className="absolute inset-0 bg-cover bg-center"
-                style={{ 
-                  backgroundImage: `url(${imageUrl})`,
-                  opacity: 0.9
-                }}
+                style={{ backgroundImage: `url(${thumbnailSrc})` }}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/50 to-transparent" />
+
+              {/* Dark Overlay (only for video) */}
+              {isVideo && (
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+              )}
+
+              {/* Play Button (only for video) */}
+              {isVideo && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                  </div>
+                </div>
+              )}
+
+              {/* Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-white/50" />
             </div>
           )}
         </div>
