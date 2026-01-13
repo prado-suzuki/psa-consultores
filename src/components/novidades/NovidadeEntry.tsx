@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -12,10 +13,9 @@ interface NovidadeEntryProps {
   descricao: string;
   itens?: string[];
   imagem?: string;
-  botao?: {
-    texto: string;
-    url: string;
-  };
+  imagemLateral?: string;
+  imagemLateralPosicao?: "esquerda" | "direita";
+  conteudoCompleto?: string;
 }
 
 const categoriaConfig: Record<CategoriaType, { label: string; className: string }> = {
@@ -37,6 +37,21 @@ const categoriaConfig: Record<CategoriaType, { label: string; className: string 
   },
 };
 
+// Function to render markdown-style formatting
+const renderFormattedText = (text: string) => {
+  // Split by bold markers and render
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+// Character limit for truncation
+const DESCRIPTION_LIMIT = 300;
+
 export const NovidadeEntry = ({
   categoria,
   data,
@@ -44,9 +59,31 @@ export const NovidadeEntry = ({
   descricao,
   itens,
   imagem,
-  botao,
+  imagemLateral,
+  imagemLateralPosicao = "direita",
+  conteudoCompleto,
 }: NovidadeEntryProps) => {
   const config = categoriaConfig[categoria];
+  const [expanded, setExpanded] = useState(false);
+  
+  // Check if content should be truncated
+  const shouldTruncate = descricao.length > DESCRIPTION_LIMIT || !!conteudoCompleto;
+  const displayedDescription = !expanded && descricao.length > DESCRIPTION_LIMIT 
+    ? descricao.slice(0, DESCRIPTION_LIMIT) + "..." 
+    : descricao;
+
+  // Render the side image component
+  const SideImage = imagemLateral ? (
+    <div className="flex-shrink-0 w-full md:w-[280px]">
+      <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+        <img
+          src={imagemLateral}
+          alt={`Imagem de ${titulo}`}
+          className="w-full aspect-[4/3] object-cover"
+        />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <motion.article
@@ -72,24 +109,79 @@ export const NovidadeEntry = ({
         {/* Title */}
         <h2 className="text-2xl font-bold text-gray-900">{titulo}</h2>
 
-        {/* Description */}
-        <p className="text-gray-600 leading-relaxed">{descricao}</p>
+        {/* Content with optional side image */}
+        <div className={`flex flex-col ${imagemLateral ? 'md:flex-row' : ''} gap-6`}>
+          {/* Side image on the left */}
+          {imagemLateral && imagemLateralPosicao === "esquerda" && SideImage}
+          
+          {/* Main content */}
+          <div className="flex-1 space-y-4">
+            {/* Description with formatting support */}
+            <p className="text-gray-600 leading-relaxed">
+              {renderFormattedText(displayedDescription)}
+            </p>
 
-        {/* Items list */}
-        {itens && itens.length > 0 && (
-          <ul className="space-y-2 pl-4">
-            {itens.map((item, index) => (
-              <li
-                key={index}
-                className="text-gray-600 relative before:content-['•'] before:absolute before:-left-4 before:text-primary before:font-bold"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        )}
+            {/* Expanded content */}
+            <AnimatePresence>
+              {expanded && conteudoCompleto && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="text-gray-600 leading-relaxed whitespace-pre-line">
+                    {renderFormattedText(conteudoCompleto)}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-        {/* Image */}
+            {/* Items list */}
+            {itens && itens.length > 0 && (
+              <ul className="space-y-2 pl-4">
+                {itens.map((item, index) => (
+                  <li
+                    key={index}
+                    className="text-gray-600 relative before:content-['•'] before:absolute before:-left-4 before:text-primary before:font-bold"
+                  >
+                    {renderFormattedText(item)}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Ver mais / Ver menos button */}
+            {shouldTruncate && (
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExpanded(!expanded)}
+                  className="group hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                >
+                  {expanded ? (
+                    <>
+                      Ver menos
+                      <ChevronUp className="ml-2 h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+                    </>
+                  ) : (
+                    <>
+                      Ver mais
+                      <ChevronDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Side image on the right */}
+          {imagemLateral && imagemLateralPosicao === "direita" && SideImage}
+        </div>
+
+        {/* Main Image */}
         {imagem && (
           <div className="mt-6 rounded-xl overflow-hidden border border-gray-200">
             <img
@@ -97,22 +189,6 @@ export const NovidadeEntry = ({
               alt={titulo}
               className="w-full aspect-video object-cover"
             />
-          </div>
-        )}
-
-        {/* Button */}
-        {botao && (
-          <div className="pt-2">
-            <Button
-              variant="outline"
-              asChild
-              className="group hover:bg-primary hover:text-white hover:border-primary transition-colors"
-            >
-              <a href={botao.url} target="_blank" rel="noopener noreferrer">
-                {botao.texto}
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
-            </Button>
           </div>
         )}
       </div>
