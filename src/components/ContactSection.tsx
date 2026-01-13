@@ -170,12 +170,7 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contato" className="relative py-20 md:py-28 bg-white overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/4 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/2 -left-1/4 w-full h-full bg-gradient-to-tr from-secondary/5 to-transparent rounded-full blur-3xl" />
-      </div>
+    <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
