@@ -165,12 +165,7 @@ export default function EquipeSprintDetalhes() {
 
       const { data: deliverablesData } = await supabase
         .from("sprint_deliverables")
-        .select(`
-          *,
-          project:projects(id, name, code),
-          process:processes(id, name),
-          assigned_user:profiles(id, first_name, last_name)
-        `)
+        .select("*")
         .eq("sprint_id", id)
         .order("due_date", { ascending: true });
       setDeliverables(deliverablesData || []);
