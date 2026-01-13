@@ -36,7 +36,7 @@ import { API_BASE_URL, TABLE_NAMES } from "@/config/api";
 const DEFAULT_DATA_INICIO = "2024-01-01";
 const DEFAULT_DATA_FIM = "2026-01-31";
 const DEFAULT_TIPO_DOCUMENTO = "nfe";
-const DEFAULT_TIPO_MOV = "Entrada";
+const DEFAULT_TIPO_MOV = "";
 
 interface NFeProduto {
   nItem: number;
@@ -243,7 +243,7 @@ const ConsultaXMLs = () => {
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
   const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
   const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos">(DEFAULT_TIPO_DOCUMENTO);
-  const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida">(DEFAULT_TIPO_MOV);
+  const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida" | "">(DEFAULT_TIPO_MOV);
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
@@ -368,8 +368,8 @@ const ConsultaXMLs = () => {
         data_fim: dataFim,
         page: currentPage.toString(),
         page_size: ITEMS_PER_PAGE.toString(),
-        tipo_mov: tipoMov,
       });
+      if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
 
@@ -408,8 +408,8 @@ const ConsultaXMLs = () => {
         data_fim: dataFim,
         page: currentPage.toString(),
         page_size: ITEMS_PER_PAGE.toString(),
-        tipo_mov: tipoMov,
       });
+      if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
 
@@ -620,15 +620,18 @@ const ConsultaXMLs = () => {
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
                 <Select
                   value={tipoMov}
-                  onValueChange={(value: "Entrada" | "Saida") => {
-                    setTipoMov(value);
+                  onValueChange={(value: "Entrada" | "Saida" | "todos") => {
+                    setTipoMov(value === "todos" ? "" : value);
                     setSearchTriggered(false);
                   }}
                 >
                   <SelectTrigger className="h-9">
-                    <SelectValue />
+                    <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="todos">
+                      <span className="text-muted-foreground">Todos</span>
+                    </SelectItem>
                     <SelectItem value="Entrada">
                       <span className="flex items-center gap-1.5">
                         <ArrowDownLeft className="h-3.5 w-3.5 text-green-600" />
