@@ -42,6 +42,7 @@ import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import AdminPerformance from "./pages/administracao/AdminPerformance";
 import AdminAcessos from "./pages/administracao/AdminAcessos";
 import AdminUsuarios from "./pages/administracao/AdminUsuarios";
+import Novidades from "./pages/Novidades";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/novidades" element={<Novidades />} />
             <Route path="/auth" element={<Auth />} />
             
             {/* Cliente Routes */}
