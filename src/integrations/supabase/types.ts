@@ -1031,6 +1031,8 @@ export type Database = {
           estimated_hours: number | null
           id: string
           parent_id: string | null
+          process_id: string | null
+          project_id: string | null
           sprint_id: string | null
           start_date: string | null
           status: string | null
@@ -1047,6 +1049,8 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           parent_id?: string | null
+          process_id?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -1063,6 +1067,8 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           parent_id?: string | null
+          process_id?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -1083,6 +1089,20 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_deliverables_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
