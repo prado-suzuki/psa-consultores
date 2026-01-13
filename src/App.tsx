@@ -41,9 +41,10 @@ import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
-import GestaoAcessos from "./pages/gestao/GestaoAcessos";
 import Novidades from "./pages/Novidades";
 import NotFound from "./pages/NotFound";
+import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
+import { GestaoPasswordGate } from "./components/gestao/GestaoPasswordGate";
 
 const queryClient = new QueryClient();
 
@@ -94,11 +95,11 @@ const App = () => (
             <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><DetalheFerramenta /></TeamRoute>} />
             <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><ConsultaXMLs /></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><GerenciarDados /></TeamRoute>} />
+            <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             
-            {/* Gestão Routes */}
-            <Route path="/gestao" element={<AdminRoute><GestaoNovidades /></AdminRoute>} />
-            <Route path="/gestao/chamados" element={<AdminRoute><GestaoChamados /></AdminRoute>} />
-            <Route path="/gestao/acessos" element={<AdminRoute><GestaoAcessos /></AdminRoute>} />
+            {/* Gestão Routes - Protected by password gate */}
+            <Route path="/gestao" element={<AdminRoute><GestaoPasswordGate><GestaoNovidades /></GestaoPasswordGate></AdminRoute>} />
+            <Route path="/gestao/chamados" element={<AdminRoute><GestaoPasswordGate><GestaoChamados /></GestaoPasswordGate></AdminRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
