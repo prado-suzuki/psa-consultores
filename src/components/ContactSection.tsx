@@ -111,7 +111,7 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contato" className="relative py-20 md:py-28 bg-muted overflow-hidden">
+    <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -right-1/4 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
@@ -153,7 +153,7 @@ export const ContactSection = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-xl mx-auto"
         >
-          <form onSubmit={handleSubmit} className="bg-card/80 backdrop-blur-sm rounded-xl shadow-lg p-6 md:p-8 space-y-5">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-5">
             {/* Nome */}
             <div className="space-y-2">
               <Label htmlFor="nome_completo" className="text-foreground font-medium">
