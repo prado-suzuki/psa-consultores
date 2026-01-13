@@ -77,7 +77,22 @@ const AnimatedNumber = ({ value, prefix = "", suffix = "", isDecimal = false }: 
 export const ResultsSection = () => {
   return (
     <section className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
-      <div className="container relative mx-auto px-4 md:px-6">
+      {/* Ilustração de fundo - lado esquerdo da SEÇÃO */}
+      <div 
+        className="absolute left-0 bottom-0 w-1/2 lg:w-2/5 h-full pointer-events-none"
+        style={{
+          backgroundImage: `url(${resultsGrowthIllustration})`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'left bottom',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.12
+        }}
+      />
+      
+      {/* Gradiente suave para transição */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/60 to-gray-50 pointer-events-none" />
+
+      <div className="container relative z-10 mx-auto px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -98,30 +113,15 @@ export const ResultsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-xl shadow-sm p-8 md:p-12 bg-white/80 backdrop-blur-sm"
+          className="bg-white rounded-xl shadow-sm p-8 md:p-12"
         >
-          {/* Ilustração de fundo - lado esquerdo */}
-          <div 
-            className="absolute left-0 bottom-0 w-1/2 h-full opacity-[0.08] pointer-events-none"
-            style={{
-              backgroundImage: `url(${resultsGrowthIllustration})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'left bottom',
-              backgroundRepeat: 'no-repeat'
-            }}
-          />
-          
-          {/* Overlay gradiente para transição suave */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-white/70 to-white/90 pointer-events-none" />
-          
-          {/* Conteúdo dos cards */}
-          <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0">
             {results.map((result, index) => (
               <div 
                 key={index} 
                 className={`text-center px-4 lg:px-8 ${
                   index < results.length - 1 
-                    ? 'lg:border-r lg:border-gray-200/50' 
+                    ? 'lg:border-r lg:border-gray-200' 
                     : ''
                 }`}
               >
