@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lightbulb, Lock, Mail, User } from "lucide-react";
+import { Lock, Mail, User } from "lucide-react";
 import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
 import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
@@ -70,7 +70,7 @@ const Ajuda = () => {
           {/* Top Section - Centered Title and Video */}
           <div className="text-center mb-16">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Central de Ajuda - Clientes PSA
+              Central de Ajuda
             </h1>
             <p className="text-lg text-muted-foreground mb-8">
               Sua plataforma exclusiva de suporte e acompanhamento de projetos
@@ -178,15 +178,6 @@ const Ajuda = () => {
                 </div>
               </div>
 
-              {/* Tip */}
-              <div className="mt-6">
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
-                  <Lightbulb className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-muted-foreground">
-                    <strong className="text-foreground">Dica:</strong> Use o mesmo email do seu contrato para facilitar a identificação pela nossa equipe e agilizar o atendimento.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Right Column - Feature Text Section */}
