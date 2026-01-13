@@ -51,7 +51,7 @@ const Novidades = () => {
             </div>
           ) : novidades && novidades.length > 0 ? (
             <div className="space-y-16 md:space-y-20">
-              {novidades.map((novidade, index) => (
+              {novidades.map((novidade) => (
                 <NovidadeEntry
                   key={novidade.id}
                   categoria={novidade.categoria as CategoriaType}
@@ -64,7 +64,6 @@ const Novidades = () => {
                     texto: novidade.botao_texto,
                     url: novidade.botao_url,
                   } : undefined}
-                  index={index}
                 />
               ))}
             </div>
