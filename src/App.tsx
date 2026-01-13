@@ -39,9 +39,9 @@ import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
 import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
 import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
-import AdminPerformance from "./pages/administracao/AdminPerformance";
-import AdminAcessos from "./pages/administracao/AdminAcessos";
-import AdminUsuarios from "./pages/administracao/AdminUsuarios";
+import GestaoNovidades from "./pages/gestao/GestaoNovidades";
+import GestaoChamados from "./pages/gestao/GestaoChamados";
+import GestaoAcessos from "./pages/gestao/GestaoAcessos";
 import Novidades from "./pages/Novidades";
 import NotFound from "./pages/NotFound";
 
@@ -95,10 +95,10 @@ const App = () => (
             <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><ConsultaXMLs /></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><GerenciarDados /></TeamRoute>} />
             
-            {/* Administração Routes */}
-            <Route path="/administracao" element={<AdminRoute><AdminPerformance /></AdminRoute>} />
-            <Route path="/administracao/acessos" element={<AdminRoute><AdminAcessos /></AdminRoute>} />
-            <Route path="/administracao/usuarios" element={<AdminRoute><AdminUsuarios /></AdminRoute>} />
+            {/* Gestão Routes */}
+            <Route path="/gestao" element={<AdminRoute><GestaoNovidades /></AdminRoute>} />
+            <Route path="/gestao/chamados" element={<AdminRoute><GestaoChamados /></AdminRoute>} />
+            <Route path="/gestao/acessos" element={<AdminRoute><GestaoAcessos /></AdminRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
