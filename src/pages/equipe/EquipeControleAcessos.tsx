@@ -20,7 +20,9 @@ import {
   Trash2,
   ArrowLeft,
   LogOut,
-  Repeat
+  Repeat,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
 
@@ -50,11 +52,14 @@ interface UserPageAccess {
   granted_at: string;
 }
 
+const INITIAL_VISIBLE_PAGES = 5;
+
 const EquipeControleAcessos = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   // Fetch page permissions
   const { data: pages, isLoading: loadingPages } = useQuery({
@@ -210,6 +215,18 @@ const EquipeControleAcessos = () => {
 
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
+  const handleRefreshPages = () => {
+    queryClient.invalidateQueries({ queryKey: ['page-permissions'] });
+    toast.success('Lista de páginas atualizada');
+  };
+
+  const toggleCategoryExpansion = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
       {/* Header */}
@@ -311,76 +328,126 @@ const EquipeControleAcessos = () => {
 
               {/* Pages Tab */}
               <TabsContent value="pages" className="space-y-4">
+                {/* Header com botão de atualizar */}
+                <div className="flex items-center justify-between bg-gray-800/40 rounded-lg p-4 border border-gray-700">
+                  <div>
+                    <h3 className="text-base font-medium text-white">Páginas Cadastradas</h3>
+                    <p className="text-sm text-gray-400">Atualize para ver novas páginas implementadas</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshPages}
+                    disabled={loadingPages}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingPages ? 'animate-spin' : ''}`} />
+                    Atualizar lista
+                  </Button>
+                </div>
+
                 {loadingPages ? (
                   <div className="flex items-center justify-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin text-amber-400" />
                   </div>
                 ) : (
-                  Object.entries(groupedPages).map(([category, categoryPages]) => (
-                    <Card key={category} className="bg-gray-800/60 border-gray-700">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
-                          <Badge className={getCategoryColor(category)}>
-                            {getCategoryLabel(category)}
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            {categoryPages.length} páginas
-                          </span>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-gray-700 hover:bg-transparent">
-                              <TableHead className="text-gray-400">Página</TableHead>
-                              <TableHead className="text-gray-400">Caminho</TableHead>
-                              <TableHead className="text-gray-400">Requisitos</TableHead>
-                              <TableHead className="text-gray-400 text-right">Ativo</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {categoryPages.map((page) => (
-                              <TableRow key={page.id} className="border-gray-700 hover:bg-gray-700/30">
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium text-white">{page.page_name}</p>
-                                    {page.page_description && (
-                                      <p className="text-xs text-gray-500">{page.page_description}</p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-gray-400 font-mono text-xs">
-                                  {page.page_path}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-1">
-                                    {page.requires_admin && (
-                                      <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
-                                        Admin
-                                      </Badge>
-                                    )}
-                                    {page.requires_team_member && (
-                                      <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400">
-                                        Team
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <Switch
-                                    checked={page.is_active}
-                                    onCheckedChange={(checked) => 
-                                      togglePageMutation.mutate({ id: page.id, isActive: checked })
-                                    }
-                                  />
-                                </TableCell>
+                  Object.entries(groupedPages).map(([category, categoryPages]) => {
+                    const isExpanded = expandedCategories[category];
+                    const visiblePages = isExpanded 
+                      ? categoryPages 
+                      : categoryPages.slice(0, INITIAL_VISIBLE_PAGES);
+                    const hasMore = categoryPages.length > INITIAL_VISIBLE_PAGES;
+                    const remainingCount = categoryPages.length - INITIAL_VISIBLE_PAGES;
+
+                    return (
+                      <Card key={category} className="bg-gray-800/60 border-gray-700">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge className={getCategoryColor(category)}>
+                              {getCategoryLabel(category)}
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              {categoryPages.length} páginas
+                            </span>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-gray-700 hover:bg-transparent">
+                                <TableHead className="text-gray-400">Página</TableHead>
+                                <TableHead className="text-gray-400">Caminho</TableHead>
+                                <TableHead className="text-gray-400">Requisitos</TableHead>
+                                <TableHead className="text-gray-400 text-right">Ativo</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  ))
+                            </TableHeader>
+                            <TableBody>
+                              {visiblePages.map((page) => (
+                                <TableRow key={page.id} className="border-gray-700 hover:bg-gray-700/30">
+                                  <TableCell>
+                                    <div>
+                                      <p className="font-medium text-white">{page.page_name}</p>
+                                      {page.page_description && (
+                                        <p className="text-xs text-gray-500">{page.page_description}</p>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-gray-400 font-mono text-xs">
+                                    {page.page_path}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-1">
+                                      {page.requires_admin && (
+                                        <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
+                                          Admin
+                                        </Badge>
+                                      )}
+                                      {page.requires_team_member && (
+                                        <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400">
+                                          Team
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Switch
+                                      checked={page.is_active}
+                                      onCheckedChange={(checked) => 
+                                        togglePageMutation.mutate({ id: page.id, isActive: checked })
+                                      }
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+
+                          {hasMore && (
+                            <div className="pt-3 border-t border-gray-700 mt-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                onClick={() => toggleCategoryExpansion(category)}
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-4 w-4 mr-2" />
+                                    Ocultar registros
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-4 w-4 mr-2" />
+                                    Mostrar mais {remainingCount} registros
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
                 )}
               </TabsContent>
 
