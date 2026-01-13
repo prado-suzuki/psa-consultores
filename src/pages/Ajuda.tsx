@@ -1,21 +1,60 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Headphones, LogIn, UserPlus, Lightbulb } from "lucide-react";
+import { Headphones, Lightbulb, Lock, Mail, User } from "lucide-react";
+import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
+import { toast } from "sonner";
+import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
+
+const onboardingItems = [
+  { id: 1, text: "Abrir chamados de suporte técnico e consultivo" },
+  { id: 2, text: "Acompanhar projetos e demandas em andamento" },
+  { id: 3, text: "Consultar status das suas solicitações em tempo real" },
+  { id: 4, text: "Comunicação direta com nossa equipe especializada" },
+  { id: 5, text: "Histórico completo de todos os atendimentos" },
+];
 
 const Ajuda = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!loading && user) {
       navigate("/cliente");
     }
   }, [user, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message?.includes("Invalid login credentials")) {
+          setError("Email ou senha incorretos");
+        } else {
+          setError("Erro ao fazer login. Tente novamente.");
+        }
+      } else {
+        toast.success("Login realizado com sucesso!");
+      }
+    } catch (err) {
+      setError("Erro inesperado. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -35,62 +74,120 @@ const Ajuda = () => {
       
       <main className="flex-1 pt-24 pb-16">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-3xl mx-auto text-center mb-12">
+          {/* Header Section */}
+          <div className="max-w-3xl mx-auto text-center mb-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
               <Headphones className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Central de Ajuda
+              Central de Ajuda - Clientes PSA
             </h1>
             <p className="text-lg text-muted-foreground">
-              Precisa de suporte? Acesse sua conta para abrir um chamado ou acompanhar suas solicitações.
+              Sua plataforma exclusiva de suporte e acompanhamento de projetos
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
-            <Card className="hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="text-center pb-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mx-auto mb-3">
-                  <LogIn className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Já sou cliente</CardTitle>
-                <CardDescription>
-                  Faça login para abrir um chamado ou acompanhar solicitações existentes
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button 
-                  className="w-full" 
-                  onClick={() => navigate("/auth")}
-                >
-                  Acessar minha conta
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="text-center pb-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-secondary/50 mx-auto mb-3">
-                  <UserPlus className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Quero me cadastrar</CardTitle>
-                <CardDescription>
-                  Crie uma conta para acessar nosso suporte especializado
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate("/auth?mode=register")}
-                >
-                  Criar minha conta
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Onboarding Checklist */}
+          <div className="mb-10">
+            <OnboardingChecklist
+              title="Bem-vindo à Plataforma PSA"
+              description="Conheça todos os recursos disponíveis para você como nosso cliente"
+              items={onboardingItems}
+              imageUrl={farmersIllustration}
+            />
           </div>
 
-          <div className="max-w-2xl mx-auto">
+          {/* Login Card */}
+          <div className="max-w-md mx-auto mb-8">
+            <div className="bg-white rounded-2xl border border-border shadow-sm p-6 md:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Acesso Exclusivo
+                  </h2>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  <User className="w-3 h-3" />
+                  Cliente
+                </span>
+              </div>
+
+              <p className="text-muted-foreground text-sm mb-6">
+                Entre com suas credenciais para acessar a plataforma
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-foreground">Senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="text-sm text-destructive text-center">{error}</p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Entrando...
+                    </div>
+                  ) : (
+                    "Entrar"
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-6 pt-4 border-t border-border">
+                <p className="text-center text-sm text-muted-foreground">
+                  Não tem acesso?{" "}
+                  <a 
+                    href="/#contato" 
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Entre em contato com nossa equipe
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
               <Lightbulb className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
