@@ -6,17 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, Lightbulb, Lock, Mail, User } from "lucide-react";
+import { Lightbulb, Lock, Mail, User } from "lucide-react";
 import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
 import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
-
-const checklistItems = [
-  { id: 1, text: "Acompanhe o progresso dos seus projetos" },
-  { id: 2, text: "Acesse documentos e relatórios" },
-  { id: 3, text: "Abra chamados e solicitações" },
-  { id: 4, text: "Comunique-se diretamente com a equipe" },
-];
 
 const Ajuda = () => {
   const navigate = useNavigate();
@@ -94,23 +87,9 @@ const Ajuda = () => {
           </div>
 
           {/* Bottom Section - Two Columns */}
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
-            {/* Left Column - Instructions */}
-            <div className="w-full lg:w-1/2">
-              <div className="space-y-4">
-                {checklistItems.map((item) => (
-                  <div key={item.id} className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                      <Check className="w-3 h-3 text-primary" />
-                    </div>
-                    <p className="text-foreground">{item.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Column - Login */}
+            {/* Left Column - Login */}
             <div className="w-full lg:w-1/2">
               {/* Login Card */}
               <div className="bg-white rounded-2xl border border-border shadow-sm p-6 md:p-8">
@@ -206,6 +185,44 @@ const Ajuda = () => {
                   <p className="text-sm text-muted-foreground">
                     <strong className="text-foreground">Dica:</strong> Use o mesmo email do seu contrato para facilitar a identificação pela nossa equipe e agilizar o atendimento.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Feature Text Section */}
+            <div className="w-full lg:w-1/2">
+              <div className="space-y-6">
+                {/* Badge */}
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                  Plataforma Exclusiva
+                </span>
+                
+                {/* Title with highlight */}
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+                  Acompanhe seus projetos{" "}
+                  <span className="text-primary">de forma simples e transparente</span>{" "}
+                  — do início ao resultado final.
+                </h2>
+                
+                {/* Description */}
+                <p className="text-muted-foreground text-base leading-relaxed">
+                  Nossa plataforma foi desenvolvida para que você tenha visibilidade 
+                  completa sobre o andamento dos seus projetos. Acompanhe prazos, 
+                  acesse documentos importantes, abra chamados e comunique-se 
+                  diretamente com nossa equipe especializada.
+                </p>
+                
+                {/* Feature Tags */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <span className="px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium">
+                    Suporte Dedicado
+                  </span>
+                  <span className="px-4 py-2 rounded-full border border-border text-foreground text-sm font-medium">
+                    Documentos Online
+                  </span>
+                  <span className="px-4 py-2 rounded-full border border-border text-foreground text-sm font-medium">
+                    Atendimento Ágil
+                  </span>
                 </div>
               </div>
             </div>
