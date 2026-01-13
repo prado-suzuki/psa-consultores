@@ -85,7 +85,7 @@ export const ResultsSection = () => {
           backgroundSize: 'contain',
           backgroundPosition: 'left bottom',
           backgroundRepeat: 'no-repeat',
-          opacity: 0.12
+          opacity: 0.20
         }}
       />
       
@@ -113,7 +113,7 @@ export const ResultsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="bg-white rounded-xl shadow-sm p-8 md:p-12"
+          className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm p-8 md:p-12"
         >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0">
             {results.map((result, index) => (
@@ -121,7 +121,7 @@ export const ResultsSection = () => {
                 key={index} 
                 className={`text-center px-4 lg:px-8 ${
                   index < results.length - 1 
-                    ? 'lg:border-r lg:border-gray-200' 
+                    ? 'lg:border-r lg:border-gray-300/50' 
                     : ''
                 }`}
               >
