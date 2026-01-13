@@ -195,12 +195,12 @@ export const ContactSection = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-left flex flex-col justify-start"
           >
-            <p className="text-muted-foreground text-lg max-w-md mb-10">
+            <p className="text-muted-foreground text-lg max-w-md mb-12">
               Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
             </p>
 
             {/* Benefícios simples */}
-            <div className="space-y-3 mb-10">
+            <div className="space-y-4 mb-16">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                 <span className="text-muted-foreground">Análise personalizada do seu cenário</span>
@@ -220,7 +220,7 @@ export const ContactSection = () => {
             </div>
 
             {/* Contato compacto */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               <a 
                 href="mailto:contato@psaconsultores.com.br" 
                 className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors"
