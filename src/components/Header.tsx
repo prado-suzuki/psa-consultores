@@ -14,6 +14,7 @@ const navItems = [
   { id: "servicos", label: "Serviços", href: "/#servicos", external: false, isRoute: false },
   { id: "sobre", label: "Sobre", href: "/#sobre", external: false, isRoute: false },
   { id: "novidades", label: "Novidades", href: "/novidades", external: false, isRoute: true },
+  { id: "ajuda", label: "Ajuda", href: "/ajuda", external: false, isRoute: true },
 ];
 
 export const Header = () => {
