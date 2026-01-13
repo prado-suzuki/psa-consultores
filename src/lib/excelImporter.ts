@@ -257,6 +257,8 @@ export interface CreateDeliverableData {
   status: string;
   parent_id: string | null;
   task_code: string | null;
+  project_id: string | null;
+  process_id: string | null;
 }
 
 export function convertToDeliverables(
@@ -285,7 +287,9 @@ export function convertToDeliverables(
       estimated_hours: group.totalHours,
       status: 'pending',
       parent_id: null,
-      task_code: parentTaskCode
+      task_code: parentTaskCode,
+      project_id: null,
+      process_id: null
     };
     
     deliverables.push(parentDeliverable);
@@ -306,7 +310,9 @@ export function convertToDeliverables(
         estimated_hours: subtask.estimatedHours || null,
         status: 'pending',
         parent_id: null, // Will be set after parent insert
-        task_code: subtask.taskCode || null
+        task_code: subtask.taskCode || null,
+        project_id: null,
+        process_id: null
       };
       
       deliverables.push(subtaskDeliverable);
