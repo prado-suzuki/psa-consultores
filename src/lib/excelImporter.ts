@@ -296,7 +296,11 @@ export function convertToDeliverables(
   sprintId: string,
   sprintStartDate: string,
   responsibleMapping: Record<string, string>,
-  profiles: Profile[]
+  profiles: Profile[],
+  projectMapping: Record<string, string>,
+  processMapping: Record<string, string>,
+  projects: Project[],
+  processes: Process[]
 ): CreateDeliverableData[] {
   const deliverables: CreateDeliverableData[] = [];
   
@@ -306,6 +310,11 @@ export function convertToDeliverables(
     const parentResponsible = group.responsible 
       ? (responsibleMapping[group.responsible] || findProfileByName(group.responsible, profiles)?.id || null)
       : null;
+    
+    // Get project/process from first subtask (parent inherits from children)
+    const firstSubtask = group.subtasks[0];
+    const parentProject = firstSubtask ? findProjectByName(firstSubtask.projectName, projects) : null;
+    const parentProcess = firstSubtask ? findProcessByName(firstSubtask.processName, processes) : null;
     
     const parentDeliverable: CreateDeliverableData = {
       sprint_id: sprintId,
@@ -318,8 +327,8 @@ export function convertToDeliverables(
       status: 'pending',
       parent_id: null,
       task_code: parentTaskCode,
-      project_id: null,
-      process_id: null
+      project_id: projectMapping[firstSubtask?.projectName] || parentProject?.id || null,
+      process_id: processMapping[firstSubtask?.processName] || parentProcess?.id || null
     };
     
     deliverables.push(parentDeliverable);
@@ -329,6 +338,9 @@ export function convertToDeliverables(
       const subtaskResponsible = subtask.responsible 
         ? (responsibleMapping[subtask.responsible] || findProfileByName(subtask.responsible, profiles)?.id || null)
         : null;
+      
+      const project = findProjectByName(subtask.projectName, projects);
+      const process = findProcessByName(subtask.processName, processes);
       
       const subtaskDeliverable: CreateDeliverableData = {
         sprint_id: sprintId,
@@ -341,8 +353,8 @@ export function convertToDeliverables(
         status: 'pending',
         parent_id: null, // Will be set after parent insert
         task_code: subtask.taskCode || null,
-        project_id: null,
-        process_id: null
+        project_id: projectMapping[subtask.projectName] || project?.id || null,
+        process_id: processMapping[subtask.processName] || process?.id || null
       };
       
       deliverables.push(subtaskDeliverable);
