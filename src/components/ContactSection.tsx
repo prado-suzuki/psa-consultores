@@ -195,9 +195,29 @@ export const ContactSection = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-left flex flex-col justify-start"
           >
-            <p className="text-muted-foreground text-lg max-w-md mb-8">
+            <p className="text-muted-foreground text-lg max-w-md mb-10">
               Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
             </p>
+
+            {/* Benefícios simples */}
+            <div className="space-y-3 mb-10">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-muted-foreground">Análise personalizada do seu cenário</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-muted-foreground">Identificação de oportunidades fiscais</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-muted-foreground">Soluções sob medida para seu negócio</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-muted-foreground">Atendimento ágil e consultivo</span>
+              </div>
+            </div>
 
             {/* Contato compacto */}
             <div className="space-y-4">
