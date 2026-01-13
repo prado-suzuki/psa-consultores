@@ -165,17 +165,6 @@ const Ajuda = () => {
                   </Button>
                 </form>
 
-                <div className="mt-6 pt-4 border-t border-border">
-                  <p className="text-center text-sm text-muted-foreground">
-                    Não tem acesso?{" "}
-                    <a 
-                      href="/#contato" 
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Entre em contato com nossa equipe
-                    </a>
-                  </p>
-                </div>
               </div>
 
             </div>
