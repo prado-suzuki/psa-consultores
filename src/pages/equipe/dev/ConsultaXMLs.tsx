@@ -1,30 +1,42 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { supabase } from '@/integrations/supabase/client';
-import { useApiAuth } from '@/hooks/useApiAuth';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Search, FileText, ChevronLeft, ChevronRight, Loader2, RefreshCw, Info, FileX2, CalendarIcon, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { ExportDialog } from '@/components/equipe/dev/ExportDialog';
-import { toast } from '@/hooks/use-toast';
-import { format, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { API_BASE_URL, TABLE_NAMES } from '@/config/api';
+import { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { DevLayout } from "@/components/equipe/dev/DevLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useApiAuth } from "@/hooks/useApiAuth";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Search,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  Info,
+  FileX2,
+  CalendarIcon,
+  ArrowDownLeft,
+  ArrowUpRight,
+} from "lucide-react";
+import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
+import { toast } from "@/hooks/use-toast";
+import { format, parse } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { API_BASE_URL, TABLE_NAMES } from "@/config/api";
 
-const DEFAULT_DATA_INICIO = '2024-01-01';
-const DEFAULT_DATA_FIM = '2026-01-31';
-const DEFAULT_TIPO_DOCUMENTO = 'nfe';
-const DEFAULT_TIPO_MOV = 'Entrada';
+const DEFAULT_DATA_INICIO = "2024-01-01";
+const DEFAULT_DATA_FIM = "2026-01-31";
+const DEFAULT_TIPO_DOCUMENTO = "nfe";
+const DEFAULT_TIPO_MOV = "Entrada";
 
 interface NFeProduto {
   nItem: number;
@@ -226,112 +238,127 @@ const ITEMS_PER_PAGE = 10;
 
 const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCliente, setSelectedCliente] = useState('');
-  const [selectedContribuinte, setSelectedContribuinte] = useState('');
+  const [selectedCliente, setSelectedCliente] = useState("");
+  const [selectedContribuinte, setSelectedContribuinte] = useState("");
   const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
   const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
-  const [tipoDocumento, setTipoDocumento] = useState<'nfe' | 'cte' | 'todos'>(DEFAULT_TIPO_DOCUMENTO);
-  const [tipoMov, setTipoMov] = useState<'Entrada' | 'Saida'>(DEFAULT_TIPO_MOV);
-  const [emitente, setEmitente] = useState('');
-  const [destinatario, setDestinatario] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos">(DEFAULT_TIPO_DOCUMENTO);
+  const [tipoMov, setTipoMov] = useState<"Entrada" | "Saída">(DEFAULT_TIPO_MOV);
+  const [emitente, setEmitente] = useState("");
+  const [destinatario, setDestinatario] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
     return (
-      selectedCliente !== '' ||
-      selectedContribuinte !== '' ||
+      selectedCliente !== "" ||
+      selectedContribuinte !== "" ||
       dataInicio !== DEFAULT_DATA_INICIO ||
       dataFim !== DEFAULT_DATA_FIM ||
       tipoDocumento !== DEFAULT_TIPO_DOCUMENTO ||
       tipoMov !== DEFAULT_TIPO_MOV ||
-      emitente !== '' ||
-      destinatario !== ''
+      emitente !== "" ||
+      destinatario !== ""
     );
   }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento, tipoMov, emitente, destinatario]);
 
   const handleClearFilters = () => {
-    setSelectedCliente('');
-    setSelectedContribuinte('');
+    setSelectedCliente("");
+    setSelectedContribuinte("");
     setDataInicio(DEFAULT_DATA_INICIO);
     setDataFim(DEFAULT_DATA_FIM);
     setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
     setTipoMov(DEFAULT_TIPO_MOV);
-    setEmitente('');
-    setDestinatario('');
+    setEmitente("");
+    setDestinatario("");
     setSearchTriggered(false);
     setCurrentPage(1);
     toast({
-      title: 'Filtros limpos',
-      description: 'Todos os filtros foram resetados para os valores padrão',
+      title: "Filtros limpos",
+      description: "Todos os filtros foram resetados para os valores padrão",
     });
   };
   const navigate = useNavigate();
 
   // Buscar lista de clientes
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ['clientes-list', TABLE_NAMES.cliente],
+    queryKey: ["clientes-list", TABLE_NAMES.cliente],
     queryFn: async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
       if (authError || !user) {
-        throw new Error('Sessão expirada. Faça login novamente.');
+        throw new Error("Sessão expirada. Faça login novamente.");
       }
 
       const { data, error } = await supabase
         .from(TABLE_NAMES.cliente)
-        .select('id, nome')
-        .eq('ativo', true)
-        .order('nome');
-      
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+
       if (error) {
-        console.error('Erro ao buscar clientes:', error);
+        console.error("Erro ao buscar clientes:", error);
         throw new Error(`Erro ao carregar clientes: ${error.message}`);
       }
-      
+
       return data as Cliente[];
     },
   });
 
   // Buscar lista de contribuintes
-  const { data: contribuintes, isLoading: loadingContribuintes, error: errorContribuintes } = useQuery({
-    queryKey: ['contribuintes-list', selectedCliente, TABLE_NAMES.contribuinte],
+  const {
+    data: contribuintes,
+    isLoading: loadingContribuintes,
+    error: errorContribuintes,
+  } = useQuery({
+    queryKey: ["contribuintes-list", selectedCliente, TABLE_NAMES.contribuinte],
     queryFn: async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
       if (authError || !user) {
-        throw new Error('Sessão expirada. Faça login novamente.');
+        throw new Error("Sessão expirada. Faça login novamente.");
       }
 
       let query = supabase
         .from(TABLE_NAMES.contribuinte)
-        .select('id, nome_razao_social, cpf_cnpj, cliente_id')
-        .order('nome_razao_social');
-      
+        .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .order("nome_razao_social");
+
       // Filtrar por cliente se selecionado (e não for "all")
-      if (selectedCliente && selectedCliente !== 'all') {
-        query = query.eq('cliente_id', selectedCliente);
+      if (selectedCliente && selectedCliente !== "all") {
+        query = query.eq("cliente_id", selectedCliente);
       }
 
       const { data, error } = await query;
-      
+
       if (error) {
-        console.error('Erro ao buscar contribuintes:', error);
-        if (error.message.includes('JWT')) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+        console.error("Erro ao buscar contribuintes:", error);
+        if (error.message.includes("JWT")) {
+          throw new Error("Sessão expirada. Faça login novamente.");
         }
         throw new Error(`Erro ao carregar contribuintes: ${error.message}`);
       }
-      
+
       return data as Contribuinte[];
     },
     retry: (failureCount, error) => {
-      if ((error as Error).message.includes('Sessão expirada')) return false;
+      if ((error as Error).message.includes("Sessão expirada")) return false;
       return failureCount < 2;
     },
   });
 
   // Buscar NFe
-  const { data: nfeData, isLoading: loadingNfe, error: errorNfe, refetch: refetchNfe } = useQuery({
-    queryKey: ['nfe-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
+  const {
+    data: nfeData,
+    isLoading: loadingNfe,
+    error: errorNfe,
+    refetch: refetchNfe,
+  } = useQuery({
+    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -343,12 +370,12 @@ const ConsultaXMLs = () => {
         page_size: ITEMS_PER_PAGE.toString(),
         tipo_mov: tipoMov,
       });
-      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
-      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
-      
+      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
+      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+
       const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
-      
-      const response = await fetchWithAuth(url, { method: 'GET' });
+
+      const response = await fetchWithAuth(url, { method: "GET" });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -357,16 +384,21 @@ const ConsultaXMLs = () => {
 
       return response.json() as Promise<NFeApiResponse>;
     },
-    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === 'nfe',
+    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === "nfe",
     retry: (failureCount, error) => {
-      if ((error as Error).message === 'Sessão expirada') return false;
+      if ((error as Error).message === "Sessão expirada") return false;
       return failureCount < 2;
     },
   });
 
   // Buscar CT-e
-  const { data: cteData, isLoading: loadingCte, error: errorCte, refetch: refetchCte } = useQuery({
-    queryKey: ['cte-docs', selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
+  const {
+    data: cteData,
+    isLoading: loadingCte,
+    error: errorCte,
+    refetch: refetchCte,
+  } = useQuery({
+    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -378,12 +410,12 @@ const ConsultaXMLs = () => {
         page_size: ITEMS_PER_PAGE.toString(),
         tipo_mov: tipoMov,
       });
-      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
-      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
-      
+      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
+      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+
       const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
-      
-      const response = await fetchWithAuth(url, { method: 'GET' });
+
+      const response = await fetchWithAuth(url, { method: "GET" });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -392,63 +424,62 @@ const ConsultaXMLs = () => {
 
       return response.json() as Promise<CTeApiResponse>;
     },
-    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === 'cte',
+    enabled: searchTriggered && !!selectedContribuinte && tipoDocumento === "cte",
     retry: (failureCount, error) => {
-      if ((error as Error).message === 'Sessão expirada') return false;
+      if ((error as Error).message === "Sessão expirada") return false;
       return failureCount < 2;
     },
   });
 
-  const isLoading = tipoDocumento === 'nfe' ? loadingNfe : loadingCte;
-  const error = tipoDocumento === 'nfe' ? errorNfe : errorCte;
-  const refetch = tipoDocumento === 'nfe' ? refetchNfe : refetchCte;
+  const isLoading = tipoDocumento === "nfe" ? loadingNfe : loadingCte;
+  const error = tipoDocumento === "nfe" ? errorNfe : errorCte;
+  const refetch = tipoDocumento === "nfe" ? refetchNfe : refetchCte;
 
   const nfeRecords = nfeData?.items || [];
   const cteRecords = cteData?.items || [];
-  const totalRecords = tipoDocumento === 'nfe' ? (nfeData?.total || 0) : (cteData?.total || 0);
+  const totalRecords = tipoDocumento === "nfe" ? nfeData?.total || 0 : cteData?.total || 0;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
   // Toast de erro automático
   useEffect(() => {
     if (error) {
       toast({
-        title: 'Erro na busca',
+        title: "Erro na busca",
         description: (error as Error).message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   }, [error]);
 
-
   const formatCNPJ = (cnpj: string) => {
-    if (!cnpj) return '-';
-    const cleaned = cnpj.replace(/\D/g, '');
+    if (!cnpj) return "-";
+    const cleaned = cnpj.replace(/\D/g, "");
     if (cleaned.length === 14) {
-      return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+      return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
     }
     return cnpj;
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString("pt-BR");
   };
 
   const getTipoBadge = (tipo: string) => {
     const colors: Record<string, string> = {
-      'NFe': 'bg-blue-100 text-blue-800',
-      'NFSe': 'bg-green-100 text-green-800',
-      'CTe': 'bg-purple-100 text-purple-800',
+      NFe: "bg-blue-100 text-blue-800",
+      NFSe: "bg-green-100 text-green-800",
+      CTe: "bg-purple-100 text-purple-800",
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[tipo] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[tipo] || "bg-gray-100 text-gray-800"}`}>
         {tipo}
       </span>
     );
@@ -464,18 +495,15 @@ const ConsultaXMLs = () => {
   };
 
   return (
-    <DevLayout 
-      title="Consulta de XMLs" 
-      subtitle="Busque e visualize documentos fiscais"
-    >
+    <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais">
       <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
         {/* Alerta de Instruções */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-slate-700">
-            Utilize os filtros de <strong>Data</strong> e <strong>Contribuinte</strong> abaixo 
-            para localizar as notas fiscais desejadas. Após a busca, você pode conferir os 
-            detalhes na tabela ou gerar um relatório clicando em <strong>Exportar Excel</strong>.
+            Utilize os filtros de <strong>Data</strong> e <strong>Contribuinte</strong> abaixo para localizar as notas
+            fiscais desejadas. Após a busca, você pode conferir os detalhes na tabela ou gerar um relatório clicando em{" "}
+            <strong>Exportar Excel</strong>.
           </p>
         </div>
 
@@ -492,20 +520,27 @@ const ConsultaXMLs = () => {
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[180px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Cliente</label>
-                <Select value={selectedCliente} onValueChange={(value) => {
-                  setSelectedCliente(value);
-                  setSelectedContribuinte('');
-                  setSearchTriggered(false);
-                }}>
+                <Select
+                  value={selectedCliente}
+                  onValueChange={(value) => {
+                    setSelectedCliente(value);
+                    setSelectedContribuinte("");
+                    setSearchTriggered(false);
+                  }}
+                >
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder={
-                      loadingClientes ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Carregando...
-                        </span>
-                      ) : "Todos os clientes"
-                    } />
+                    <SelectValue
+                      placeholder={
+                        loadingClientes ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Carregando...
+                          </span>
+                        ) : (
+                          "Todos os clientes"
+                        )
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os clientes</SelectItem>
@@ -522,33 +557,40 @@ const ConsultaXMLs = () => {
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
                     {(errorContribuintes as Error).message}
-                    <Button 
-                      variant="link" 
+                    <Button
+                      variant="link"
                       className="text-destructive p-0 h-auto ml-2"
-                      onClick={() => navigate('/equipe')}
+                      onClick={() => navigate("/equipe")}
                     >
                       Fazer login novamente
                     </Button>
                   </div>
                 ) : (
-                  <Select value={selectedContribuinte} onValueChange={(value) => {
-                    setSelectedContribuinte(value);
-                    setSearchTriggered(false);
-                  }}>
+                  <Select
+                    value={selectedContribuinte}
+                    onValueChange={(value) => {
+                      setSelectedContribuinte(value);
+                      setSearchTriggered(false);
+                    }}
+                  >
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder={
-                        loadingContribuintes ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Carregando...
-                          </span>
-                        ) : "Selecione um contribuinte"
-                      } />
+                      <SelectValue
+                        placeholder={
+                          loadingContribuintes ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Carregando...
+                            </span>
+                          ) : (
+                            "Selecione um contribuinte"
+                          )
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {contribuintes?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ''}
+                          {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -557,11 +599,14 @@ const ConsultaXMLs = () => {
               </div>
               <div className="w-[110px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Doc.</label>
-                <Select value={tipoDocumento} onValueChange={(value: 'nfe' | 'cte' | 'todos') => {
-                  setTipoDocumento(value);
-                  setSearchTriggered(false);
-                  setCurrentPage(1);
-                }}>
+                <Select
+                  value={tipoDocumento}
+                  onValueChange={(value: "nfe" | "cte" | "todos") => {
+                    setTipoDocumento(value);
+                    setSearchTriggered(false);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -573,10 +618,13 @@ const ConsultaXMLs = () => {
               </div>
               <div className="w-[130px]">
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
-                <Select value={tipoMov} onValueChange={(value: 'Entrada' | 'Saida') => {
-                  setTipoMov(value);
-                  setSearchTriggered(false);
-                }}>
+                <Select
+                  value={tipoMov}
+                  onValueChange={(value: "Entrada" | "Saida") => {
+                    setTipoMov(value);
+                    setSearchTriggered(false);
+                  }}
+                >
                   <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -605,22 +653,23 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         className={cn(
                           "w-full h-9 px-3 text-left font-normal justify-start",
-                          !dataInicio && "text-muted-foreground"
+                          !dataInicio && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataInicio 
-                          ? format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') 
-                          : <span>Selecione</span>
-                        }
+                        {dataInicio ? (
+                          format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        ) : (
+                          <span>Selecione</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={dataInicio ? parse(dataInicio, 'yyyy-MM-dd', new Date()) : undefined}
+                        selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
                         onSelect={(date) => {
-                          setDataInicio(date ? format(date, 'yyyy-MM-dd') : '');
+                          setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
                           setSearchTriggered(false);
                         }}
                         initialFocus
@@ -638,22 +687,23 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         className={cn(
                           "w-full h-9 px-3 text-left font-normal justify-start",
-                          !dataFim && "text-muted-foreground"
+                          !dataFim && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataFim 
-                          ? format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') 
-                          : <span>Selecione</span>
-                        }
+                        {dataFim ? (
+                          format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        ) : (
+                          <span>Selecione</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={dataFim ? parse(dataFim, 'yyyy-MM-dd', new Date()) : undefined}
+                        selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
                         onSelect={(date) => {
-                          setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
+                          setDataFim(date ? format(date, "yyyy-MM-dd") : "");
                           setSearchTriggered(false);
                         }}
                         initialFocus
@@ -697,8 +747,8 @@ const ConsultaXMLs = () => {
             {/* Barra de Ações */}
             <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-border">
               {hasActiveFilters && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleClearFilters}
                   disabled={isLoading}
@@ -708,20 +758,24 @@ const ConsultaXMLs = () => {
                 </Button>
               )}
               <ExportDialog
-                data={tipoDocumento === 'nfe' ? nfeRecords : []}
-                cteData={tipoDocumento === 'cte' ? cteRecords : []}
+                data={tipoDocumento === "nfe" ? nfeRecords : []}
+                cteData={tipoDocumento === "cte" ? cteRecords : []}
                 tipoDocumento={tipoDocumento}
                 totalRecords={totalRecords}
                 dataInicio={dataInicio}
                 dataFim={dataFim}
-                disabled={isLoading || !selectedContribuinte || (tipoDocumento === 'nfe' ? nfeRecords.length === 0 : cteRecords.length === 0)}
+                disabled={
+                  isLoading ||
+                  !selectedContribuinte ||
+                  (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
+                }
               />
-              <Button 
-                onClick={handleSearch}
-                disabled={!selectedContribuinte || isLoading}
-                size="sm"
-              >
-                {isLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1.5" />}
+              <Button onClick={handleSearch} disabled={!selectedContribuinte || isLoading} size="sm">
+                {isLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5 mr-1.5" />
+                )}
                 Buscar
               </Button>
             </div>
@@ -736,9 +790,7 @@ const ConsultaXMLs = () => {
                 <FileText className="h-5 w-5" />
                 Documentos
               </CardTitle>
-              <span className="text-sm text-muted-foreground">
-                {totalRecords} registro(s) encontrado(s)
-              </span>
+              <span className="text-sm text-muted-foreground">{totalRecords} registro(s) encontrado(s)</span>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -768,9 +820,7 @@ const ConsultaXMLs = () => {
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-8 gap-4">
-                <p className="text-destructive text-center max-w-md">
-                  {(error as Error).message}
-                </p>
+                <p className="text-destructive text-center max-w-md">{(error as Error).message}</p>
                 <Button variant="outline" onClick={() => refetch()}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Tentar novamente
@@ -779,7 +829,7 @@ const ConsultaXMLs = () => {
             ) : (
               <>
                 <div className="w-full overflow-x-auto">
-                  {tipoDocumento === 'nfe' ? (
+                  {tipoDocumento === "nfe" ? (
                     <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
@@ -793,116 +843,152 @@ const ConsultaXMLs = () => {
                           <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
                           <TableHead className="whitespace-nowrap">Produtos</TableHead>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        [...Array(5)].map((_, i) => (
-                          <TableRow key={`skeleton-nfe-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
-                            <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-10" /></TableCell>
-                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : nfeRecords.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center py-12">
-                            <div className="flex flex-col items-center gap-3">
-                              <FileX2 className="h-12 w-12 text-amber-400" />
-                              <div>
-                                <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Tente ajustar o período ou selecionar outro contribuinte
-                                </p>
+                      </TableHeader>
+                      <TableBody>
+                        {isLoading ? (
+                          [...Array(5)].map((_, i) => (
+                            <TableRow key={`skeleton-nfe-${i}`}>
+                              <TableCell>
+                                <Skeleton className="h-5 w-28" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-full" />
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <Skeleton className="h-5 w-20" />
+                              </TableCell>
+                              <TableCell className="hidden lg:table-cell">
+                                <Skeleton className="h-5 w-10" />
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <Skeleton className="h-5 w-24" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-16" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-20" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-24" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-16" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : nfeRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-12">
+                              <div className="flex flex-col items-center gap-3">
+                                <FileX2 className="h-12 w-12 text-amber-400" />
+                                <div>
+                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Tente ajustar o período ou selecionar outro contribuinte
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        nfeRecords.map((record) => (
-                          <TableRow key={record.chave_nfe}>
-                            <TableCell className="font-mono text-sm whitespace-nowrap">
-                              {formatCNPJ(record.emit.CNPJ)}
-                            </TableCell>
-                            <TableCell className="max-w-[200px]">
-                              <span className="truncate block" title={record.emit.xNome}>
-                                {record.emit.xNome}
-                              </span>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
-                            <TableCell className="max-w-[120px] hidden xl:table-cell">
-                              <span className="truncate block" title={record.natOp}>
-                                {record.natOp}
-                              </span>
-                            </TableCell>
-                            <TableCell className="font-mono">{record.nNF}</TableCell>
-                            <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
-                            <TableCell className="text-right font-medium whitespace-nowrap">
-                              {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{record.produtos.length} item(s)</Badge>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <Table className="min-w-[1000px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                        <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
-                        <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
-                        <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
-                        <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                        <TableHead className="whitespace-nowrap">Número</TableHead>
-                        <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                        <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        [...Array(5)].map((_, i) => (
-                          <TableRow key={`skeleton-cte-${i}`}>
-                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-14" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : cteRecords.length === 0 ? (
+                        ) : (
+                          nfeRecords.map((record) => (
+                            <TableRow key={record.chave_nfe}>
+                              <TableCell className="font-mono text-sm whitespace-nowrap">
+                                {formatCNPJ(record.emit.CNPJ)}
+                              </TableCell>
+                              <TableCell className="max-w-[200px]">
+                                <span className="truncate block" title={record.emit.xNome}>
+                                  {record.emit.xNome}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
+                              <TableCell className="max-w-[120px] hidden xl:table-cell">
+                                <span className="truncate block" title={record.natOp}>
+                                  {record.natOp}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-mono">{record.nNF}</TableCell>
+                              <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
+                              <TableCell className="text-right font-medium whitespace-nowrap">
+                                {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Table className="min-w-[1000px]">
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center py-12">
-                            <div className="flex flex-col items-center gap-3">
-                              <FileX2 className="h-12 w-12 text-amber-400" />
-                              <div>
-                                <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Tente ajustar o período ou selecionar outro contribuinte
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
+                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
+                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
+                          <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
+                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                          <TableHead className="whitespace-nowrap">Número</TableHead>
+                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
                         </TableRow>
-                      ) : (
+                      </TableHeader>
+                      <TableBody>
+                        {isLoading ? (
+                          [...Array(5)].map((_, i) => (
+                            <TableRow key={`skeleton-cte-${i}`}>
+                              <TableCell>
+                                <Skeleton className="h-5 w-28" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-full" />
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <Skeleton className="h-5 w-24" />
+                              </TableCell>
+                              <TableCell className="hidden xl:table-cell">
+                                <Skeleton className="h-5 w-24" />
+                              </TableCell>
+                              <TableCell className="hidden lg:table-cell">
+                                <Skeleton className="h-5 w-16" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-14" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-16" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-20" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-5 w-24" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : cteRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-12">
+                              <div className="flex flex-col items-center gap-3">
+                                <FileX2 className="h-12 w-12 text-amber-400" />
+                                <div>
+                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Tente ajustar o período ou selecionar outro contribuinte
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
                           cteRecords.map((record) => (
                             <TableRow key={record.chave_cte}>
                               <TableCell className="font-mono text-sm whitespace-nowrap">
-                                {formatCNPJ(record.emit.CNPJ || '')}
+                                {formatCNPJ(record.emit.CNPJ || "")}
                               </TableCell>
                               <TableCell className="max-w-[200px]">
                                 <span className="truncate block" title={record.emit.xNome}>
@@ -920,7 +1006,7 @@ const ConsultaXMLs = () => {
                                 </span>
                               </TableCell>
                               <TableCell className="font-mono hidden lg:table-cell">{record.cfop}</TableCell>
-                              <TableCell>{getTipoBadge('CTe')}</TableCell>
+                              <TableCell>{getTipoBadge("CTe")}</TableCell>
                               <TableCell className="font-mono">{record.nCT}</TableCell>
                               <TableCell className="whitespace-nowrap">{formatDate(record.dEmi)}</TableCell>
                               <TableCell className="text-right font-medium whitespace-nowrap">
@@ -934,43 +1020,43 @@ const ConsultaXMLs = () => {
                   )}
                 </div>
 
-              {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <span className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1 || isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                      )}
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages || isLoading}
-                    >
-                      Próximo
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 ml-1 animate-spin" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      )}
-                    </Button>
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || isLoading}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                        )}
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages || isLoading}
+                      >
+                        Próximo
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
