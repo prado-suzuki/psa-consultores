@@ -203,7 +203,7 @@ export function parseExcelFile(file: File): Promise<ExcelRow[]> {
   });
 }
 
-export function processExcelData(rows: ExcelRow[], profiles: Profile[]): ImportPreview {
+export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects: Project[], processes: Process[]): ImportPreview {
   const taskGroups: Map<string, TaskGroup> = new Map();
   const allResponsibles: Set<string> = new Set();
   let sprintName = '';
