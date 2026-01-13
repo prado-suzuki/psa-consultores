@@ -77,20 +77,20 @@ const AnimatedNumber = ({ value, prefix = "", suffix = "", isDecimal = false }: 
 export const ResultsSection = () => {
   return (
     <section className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
-      {/* Ilustração de fundo - lado esquerdo da SEÇÃO */}
+      {/* Ilustração de fundo - lado direito da SEÇÃO */}
       <div 
-        className="absolute left-0 bottom-0 w-1/2 lg:w-2/5 h-full pointer-events-none"
+        className="absolute right-0 bottom-0 w-1/2 lg:w-2/5 h-full pointer-events-none"
         style={{
           backgroundImage: `url(${resultsGrowthIllustration})`,
           backgroundSize: 'contain',
-          backgroundPosition: 'left bottom',
+          backgroundPosition: 'right bottom',
           backgroundRepeat: 'no-repeat',
           opacity: 0.35
         }}
       />
       
       {/* Gradiente suave para transição */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/30 to-gray-50/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-l from-transparent via-gray-50/30 to-gray-50/80 pointer-events-none" />
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         <motion.div
