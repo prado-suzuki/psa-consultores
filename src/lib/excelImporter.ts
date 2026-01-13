@@ -21,6 +21,8 @@ export interface ParsedTask {
   description: string;
   estimatedHours: number;
   dueDate: string;
+  projectName: string;
+  processName: string;
 }
 
 export interface TaskGroup {
@@ -193,7 +195,9 @@ export function processExcelData(rows: ExcelRow[], profiles: Profile[]): ImportP
       responsible,
       description: row.Descrição || '',
       estimatedHours: parseFloat(String(row['Estimativa (h)'] || 0)) || 0,
-      dueDate: parseExcelDate(row['Data de Entrega'])
+      dueDate: parseExcelDate(row['Data de Entrega']),
+      projectName: row.Projeto || '',
+      processName: row.Processo || ''
     };
     
     const groupKey = row.Título || 'Sem título';
