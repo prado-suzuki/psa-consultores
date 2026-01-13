@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin } from "lucide-react";
+import farmerIllustration from "@/assets/contact/farmer-line-art.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,6 +240,15 @@ export const ContactSection = () => {
                 <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
                 <span>Goiânia • São Paulo • Ribeirão Preto</span>
               </div>
+            </div>
+
+            {/* Ilustração decorativa */}
+            <div className="mt-auto pt-12">
+              <img 
+                src={farmerIllustration} 
+                alt="" 
+                className="w-full max-w-[280px] opacity-40"
+              />
             </div>
           </motion.div>
 
