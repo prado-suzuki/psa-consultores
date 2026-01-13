@@ -94,7 +94,7 @@ const Ajuda = () => {
           </div>
 
           {/* Bottom Section - Two Columns */}
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
             
             {/* Left Column - Instructions */}
             <div className="w-full lg:w-1/2">
