@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X, Users, User } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo-psa.png";
 import {
   Tooltip,
@@ -9,9 +10,10 @@ import {
 } from "@/components/ui/tooltip";
 
 const navItems = [
-  { id: "inicio", label: "Início", href: "#", external: false },
-  { id: "servicos", label: "Serviços", href: "#servicos", external: false },
-  { id: "sobre", label: "Sobre", href: "#sobre", external: false },
+  { id: "inicio", label: "Início", href: "/", external: false, isRoute: true },
+  { id: "servicos", label: "Serviços", href: "/#servicos", external: false, isRoute: false },
+  { id: "sobre", label: "Sobre", href: "/#sobre", external: false, isRoute: false },
+  { id: "novidades", label: "Novidades", href: "/novidades", external: false, isRoute: true },
 ];
 
 export const Header = () => {
@@ -32,17 +34,27 @@ export const Header = () => {
 
           {/* Navigation - Center */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
-              <a
-                key={item.id}
-                href={item.href}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
-                className="px-4 py-2 text-sm font-medium text-gray-50/80 transition-colors duration-200 hover:text-gray-50"
-              >
-                {item.label}
-              </a>
-            ))}
+            {navItems.map((item) =>
+              item.isRoute ? (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  className="px-4 py-2 text-sm font-medium text-gray-50/80 transition-colors duration-200 hover:text-gray-50"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className="px-4 py-2 text-sm font-medium text-gray-50/80 transition-colors duration-200 hover:text-gray-50"
+                >
+                  {item.label}
+                </a>
+              )
+            )}
           </nav>
 
           {/* CTA Buttons - Right */}
@@ -97,18 +109,29 @@ export const Header = () => {
           }`}
         >
           <nav className="py-4 space-y-1">
-            {navItems.map((item) => (
-              <a
-                key={item.id}
-                href={item.href}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
-                className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.label}
-              </a>
-            ))}
+            {navItems.map((item) =>
+              item.isRoute ? (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </a>
+              )
+            )}
             <div className="h-px bg-gray-50/10 my-3" />
             <a
               href="/equipe"
