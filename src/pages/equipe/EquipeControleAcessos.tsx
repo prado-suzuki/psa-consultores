@@ -10,6 +10,18 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { 
   ShieldCheck, 
@@ -22,7 +34,12 @@ import {
   LogOut,
   Repeat,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Eye,
+  EyeOff,
+  UserPlus,
+  CheckCircle2,
+  Copy
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
 
@@ -60,6 +77,21 @@ const EquipeControleAcessos = () => {
   const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  
+  // User creation states
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [newUser, setNewUser] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    is_admin: false,
+  });
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
 
   // Fetch page permissions
   const { data: pages, isLoading: loadingPages } = useQuery({
@@ -175,6 +207,57 @@ const EquipeControleAcessos = () => {
       toast.error('Erro ao revogar acesso');
     },
   });
+
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: typeof newUser) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const response = await supabase.functions.invoke('create-team-member', {
+        body: userData,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao criar usuário');
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      setCreatedCredentials({ email: newUser.email, password: newUser.password });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast.success('Usuário criado com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUser.first_name || !newUser.last_name || !newUser.email || !newUser.password) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    createUserMutation.mutate(newUser);
+  };
+
+  const handleCloseCreateDialog = () => {
+    setIsCreateOpen(false);
+    setCreatedCredentials(null);
+    setNewUser({ first_name: '', last_name: '', email: '', password: '', is_admin: false });
+    setShowPassword(false);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado para área de transferência');
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -453,6 +536,184 @@ const EquipeControleAcessos = () => {
 
               {/* Users Tab */}
               <TabsContent value="users" className="space-y-4">
+                {/* Header com botão de criar usuário */}
+                <div className="flex items-center justify-between bg-gray-800/40 rounded-lg p-4 border border-gray-700">
+                  <div>
+                    <h3 className="text-base font-medium text-white">Usuários do Sistema</h3>
+                    <p className="text-sm text-gray-400">Gerencie usuários e suas permissões de acesso</p>
+                  </div>
+                  <Dialog open={isCreateOpen} onOpenChange={(open) => {
+                    if (!open) handleCloseCreateDialog();
+                    else setIsCreateOpen(true);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black">
+                        <UserPlus className="h-4 w-4" />
+                        Criar Novo Usuário
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+                      {createdCredentials ? (
+                        <>
+                          <DialogHeader>
+                            <DialogTitle className="text-white flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                              Usuário Criado!
+                            </DialogTitle>
+                            <DialogDescription className="text-gray-400">
+                              Compartilhe as credenciais abaixo com o novo usuário
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="bg-gray-900 rounded-lg p-4 space-y-3 border border-gray-700">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-gray-400 text-xs">Email</Label>
+                                  <p className="text-white font-mono text-sm">{createdCredentials.email}</p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-gray-400 hover:text-white"
+                                  onClick={() => copyToClipboard(createdCredentials.email)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-gray-400 text-xs">Senha temporária</Label>
+                                  <p className="text-white font-mono text-sm">{createdCredentials.password}</p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-gray-400 hover:text-white"
+                                  onClick={() => copyToClipboard(createdCredentials.password)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500 text-center">
+                              O usuário deve trocar a senha no primeiro acesso
+                            </p>
+                          </div>
+                          <DialogFooter>
+                            <Button 
+                              onClick={handleCloseCreateDialog}
+                              className="w-full bg-amber-500 hover:bg-amber-600 text-black"
+                            >
+                              Fechar
+                            </Button>
+                          </DialogFooter>
+                        </>
+                      ) : (
+                        <form onSubmit={handleCreateUser}>
+                          <DialogHeader>
+                            <DialogTitle className="text-white">Criar Novo Usuário</DialogTitle>
+                            <DialogDescription className="text-gray-400">
+                              Preencha os dados para criar um novo membro da equipe
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="first_name" className="text-gray-300">Nome *</Label>
+                                <Input
+                                  id="first_name"
+                                  value={newUser.first_name}
+                                  onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
+                                  className="bg-gray-900 border-gray-600 text-white"
+                                  placeholder="Nome"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="last_name" className="text-gray-300">Sobrenome *</Label>
+                                <Input
+                                  id="last_name"
+                                  value={newUser.last_name}
+                                  onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
+                                  className="bg-gray-900 border-gray-600 text-white"
+                                  placeholder="Sobrenome"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-gray-300">Email *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                className="bg-gray-900 border-gray-600 text-white"
+                                placeholder="email@exemplo.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="password" className="text-gray-300">Senha *</Label>
+                              <div className="relative">
+                                <Input
+                                  id="password"
+                                  type={showPassword ? 'text' : 'password'}
+                                  value={newUser.password}
+                                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                  className="bg-gray-900 border-gray-600 text-white pr-10"
+                                  placeholder="Mínimo 6 caracteres"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="is_admin"
+                                checked={newUser.is_admin}
+                                onCheckedChange={(checked) => 
+                                  setNewUser({ ...newUser, is_admin: checked === true })
+                                }
+                                className="border-gray-600 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                              />
+                              <Label htmlFor="is_admin" className="text-gray-300 text-sm">
+                                Conceder acesso de administrador
+                              </Label>
+                            </div>
+                          </div>
+                          <DialogFooter className="gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleCloseCreateDialog}
+                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button 
+                              type="submit"
+                              disabled={createUserMutation.isPending}
+                              className="bg-amber-500 hover:bg-amber-600 text-black"
+                            >
+                              {createUserMutation.isPending ? (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  Criando...
+                                </>
+                              ) : (
+                                'Criar Usuário'
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Users List */}
                   <Card className="bg-gray-800/60 border-gray-700">
