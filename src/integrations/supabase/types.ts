@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_change_log: {
+        Row: {
+          action: string
+          changed_by: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changed_by: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cliente: {
         Row: {
           ativo: boolean | null

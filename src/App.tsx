@@ -29,7 +29,7 @@ import EquipeDaily from "./pages/equipe/EquipeDaily";
 import EquipeTarefas from "./pages/equipe/EquipeTarefas";
 import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 import EquipeDemandas from "./pages/equipe/EquipeDemandas";
-import EquipeUsuarios from "./pages/equipe/EquipeUsuarios";
+
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
 import EquipeBacklog from "./pages/equipe/EquipeBacklog";
@@ -85,7 +85,7 @@ const App = () => (
             <Route path="/equipe/tarefas" element={<TeamRoute><EquipeTarefas /></TeamRoute>} />
             <Route path="/equipe/tarefas/nova" element={<TeamRoute><EquipeNovaTarefa /></TeamRoute>} />
             <Route path="/equipe/demandas" element={<TeamRoute><EquipeDemandas /></TeamRoute>} />
-            <Route path="/equipe/usuarios" element={<TeamRoute><EquipeUsuarios /></TeamRoute>} />
+            
             <Route path="/equipe/processos" element={<TeamRoute><EquipeProcessos /></TeamRoute>} />
             <Route path="/equipe/biblioteca" element={<TeamRoute><EquipeBiblioteca /></TeamRoute>} />
             <Route path="/equipe/backlog" element={<TeamRoute><EquipeBacklog /></TeamRoute>} />

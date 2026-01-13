@@ -38,8 +38,8 @@ const DigitalAreaSelector = () => {
     },
     {
       id: 'acessos',
-      label: 'Controle de Acessos',
-      description: 'Gerenciamento de permissões e liberação de funcionalidades do sistema',
+      label: 'Acessos',
+      description: 'Liberação de acessos, gestão de usuários e histórico de alterações',
       icon: ShieldCheck,
       path: '/equipe/acessos',
       color: 'from-amber-500 to-orange-500',
