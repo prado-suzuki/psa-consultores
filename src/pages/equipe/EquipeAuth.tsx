@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, ArrowLeft, Mail, Lock, Building2, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
 
 const areas = [
@@ -14,39 +16,99 @@ const areas = [
   { id: 'gestao', label: 'Gestão' },
 ];
 
+// Verifica se o usuário tem acesso à área específica
+const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): Promise<boolean> => {
+  // Admins têm acesso a todas as áreas
+  if (isAdmin) return true;
+
+  try {
+    if (area === 'digital') {
+      // Para 'digital', verificar acesso a páginas de 'rotina' OU 'dev'
+      const { data: pages } = await supabase
+        .from('page_permissions')
+        .select('id')
+        .in('category', ['rotina', 'dev']);
+
+      if (!pages?.length) return false;
+
+      const { data: access } = await supabase
+        .from('user_page_access')
+        .select('id')
+        .eq('user_id', userId)
+        .in('page_permission_id', pages.map(p => p.id))
+        .limit(1);
+
+      return access !== null && access.length > 0;
+    }
+
+    if (area === 'gestao') {
+      // Para 'gestao', verificar acesso a páginas de 'gestao'
+      const { data: pages } = await supabase
+        .from('page_permissions')
+        .select('id')
+        .eq('category', 'gestao');
+
+      if (!pages?.length) return false;
+
+      const { data: access } = await supabase
+        .from('user_page_access')
+        .select('id')
+        .eq('user_id', userId)
+        .in('page_permission_id', pages.map(p => p.id))
+        .limit(1);
+
+      return access !== null && access.length > 0;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Erro ao verificar acesso:', error);
+    return false;
+  }
+};
+
+const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
+  if (area === 'digital') {
+    navigate('/equipe/digital');
+  } else if (area === 'gestao') {
+    navigate('/gestao');
+  } else {
+    navigate('/equipe/dashboard');
+  }
+};
+
 const EquipeAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Only redirect when user explicitly selects area and confirms (or just logged in)
-  useEffect(() => {
-    if (!loading && user && (isTeamMember || isAdmin) && shouldRedirect && selectedArea) {
-      if (selectedArea === 'digital') {
-        navigate('/equipe/digital');
-      } else if (selectedArea === 'gestao') {
-        navigate('/gestao');
-      } else {
-        navigate('/equipe/dashboard');
-      }
-    }
-  }, [user, isTeamMember, isAdmin, loading, navigate, selectedArea, shouldRedirect]);
-
-  const handleAreaSelect = (area: string) => {
+  const handleAreaSelect = async (area: string) => {
     setSelectedArea(area);
-    // If user is already authenticated, redirect immediately after selecting area
+    
+    // Se usuário já autenticado, verificar acesso antes de navegar
     if (user && (isTeamMember || isAdmin)) {
-      if (area === 'digital') {
-        navigate('/equipe/digital');
-      } else if (area === 'gestao') {
-        navigate('/gestao');
-      } else {
-        navigate('/equipe/dashboard');
+      setIsCheckingAccess(true);
+      
+      const hasAccess = await checkAreaAccess(user.id, area, isAdmin);
+      
+      if (!hasAccess) {
+        // Resetar seleção e mostrar toast discreto
+        setSelectedArea('');
+        toast.error('Você não possui acesso a esta área', {
+          position: 'bottom-right',
+          duration: 3000,
+        });
+        setIsCheckingAccess(false);
+        return;
       }
+      
+      // Tem acesso, pode navegar
+      setIsCheckingAccess(false);
+      navigateToArea(navigate, area);
     }
   };
 
@@ -57,7 +119,45 @@ const EquipeAuth = () => {
     const { error } = await signIn(email, password);
     
     if (!error) {
-      setShouldRedirect(true);
+      // Buscar a sessão recém criada para obter o user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Verificar roles do usuário
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        
+        const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
+        const userIsTeamMember = roles?.some(r => r.role === 'team_member') || false;
+        
+        // Verificar se é membro da equipe
+        if (!userIsAdmin && !userIsTeamMember) {
+          toast.error('Acesso restrito a membros da equipe', {
+            position: 'bottom-right',
+            duration: 3000,
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Verificar acesso à área selecionada
+        const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
+        
+        if (!hasAccess) {
+          setSelectedArea('');
+          toast.error('Você não possui acesso a esta área', {
+            position: 'bottom-right',
+            duration: 3000,
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Tem acesso, pode navegar
+        navigateToArea(navigate, selectedArea);
+      }
     }
     
     setIsLoading(false);
@@ -95,9 +195,9 @@ const EquipeAuth = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Select value={selectedArea} onValueChange={handleAreaSelect}>
+              <Select value={selectedArea} onValueChange={handleAreaSelect} disabled={isCheckingAccess}>
                 <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
-                  <SelectValue placeholder="Escolha sua área" />
+                  <SelectValue placeholder={isCheckingAccess ? "Verificando acesso..." : "Escolha sua área"} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
                   {areas.map((area) => (
@@ -176,7 +276,7 @@ const EquipeAuth = () => {
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Entrando...' : 'Entrar'}
+                  {isLoading ? 'Verificando...' : 'Entrar'}
                   {!isLoading && <ChevronRight className="h-4 w-4 ml-2" />}
                 </Button>
               </form>
