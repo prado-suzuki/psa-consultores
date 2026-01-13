@@ -37,14 +37,45 @@ interface Contato {
   email: string;
   telefone: string | null;
   empresa: string | null;
-  mensagem: string;
+  mensagem: string | null;
   servico_interesse: string | null;
+  porte_empresa: string | null;
+  como_conheceu: string | null;
   status: string;
   notas_internas: string | null;
   atendido_por: string | null;
   created_at: string;
   updated_at: string;
 }
+
+const servicoLabels: Record<string, string> = {
+  consultoria_tributaria: "Consultoria Tributária",
+  beneficios_fiscais: "Benefícios Fiscais",
+  recuperacao_tributaria: "Recuperação Tributária",
+  reestruturacao_societaria: "Reestruturação Societária",
+  pessoa_fisica: "Pessoa Física",
+  consultoria_previdenciaria: "Consultoria Previdenciária",
+  consultoria_contabil: "Consultoria Contábil",
+  business_intelligence: "Business Intelligence",
+  juridico_preventivo: "Jurídico Preventivo",
+  outros: "Outros",
+};
+
+const porteLabels: Record<string, string> = {
+  mei: "MEI",
+  micro: "Micro Empresa",
+  pequena: "Pequena Empresa",
+  media: "Média Empresa",
+  grande: "Grande Empresa",
+};
+
+const comoConheceuLabels: Record<string, string> = {
+  indicacao: "Indicação",
+  google: "Busca no Google",
+  linkedin: "LinkedIn",
+  evento: "Evento",
+  outros: "Outros",
+};
 
 const statusOptions = [
   { value: "novo", label: "Novo", color: "bg-blue-500" },
@@ -325,15 +356,53 @@ const GestaoContatos = () => {
                 </div>
               </div>
 
-              {/* Message */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" /> Mensagem
-                </label>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="whitespace-pre-wrap">{selectedContato.mensagem}</p>
+              {/* Serviço de Interesse */}
+              {selectedContato.servico_interesse && (
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Serviço de Interesse
+                  </label>
+                  <p className="font-medium">
+                    {servicoLabels[selectedContato.servico_interesse] || selectedContato.servico_interesse}
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Porte da Empresa */}
+              {selectedContato.porte_empresa && (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Porte da Empresa
+                  </label>
+                  <p className="font-medium">
+                    {porteLabels[selectedContato.porte_empresa] || selectedContato.porte_empresa}
+                  </p>
+                </div>
+              )}
+
+              {/* Como nos conheceu */}
+              {selectedContato.como_conheceu && (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Como nos conheceu
+                  </label>
+                  <p className="font-medium">
+                    {comoConheceuLabels[selectedContato.como_conheceu] || selectedContato.como_conheceu}
+                  </p>
+                </div>
+              )}
+
+              {/* Message */}
+              {selectedContato.mensagem && (
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" /> Observações
+                  </label>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="whitespace-pre-wrap">{selectedContato.mensagem}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Status */}
               <div className="space-y-2">

@@ -128,6 +128,7 @@ export type Database = {
       contatos: {
         Row: {
           atendido_por: string | null
+          como_conheceu: string | null
           created_at: string | null
           email: string
           empresa: string | null
@@ -135,6 +136,7 @@ export type Database = {
           mensagem: string
           nome_completo: string
           notas_internas: string | null
+          porte_empresa: string | null
           servico_interesse: string | null
           status: string | null
           telefone: string | null
@@ -142,6 +144,7 @@ export type Database = {
         }
         Insert: {
           atendido_por?: string | null
+          como_conheceu?: string | null
           created_at?: string | null
           email: string
           empresa?: string | null
@@ -149,6 +152,7 @@ export type Database = {
           mensagem: string
           nome_completo: string
           notas_internas?: string | null
+          porte_empresa?: string | null
           servico_interesse?: string | null
           status?: string | null
           telefone?: string | null
@@ -156,6 +160,7 @@ export type Database = {
         }
         Update: {
           atendido_por?: string | null
+          como_conheceu?: string | null
           created_at?: string | null
           email?: string
           empresa?: string | null
@@ -163,6 +168,7 @@ export type Database = {
           mensagem?: string
           nome_completo?: string
           notas_internas?: string | null
+          porte_empresa?: string | null
           servico_interesse?: string | null
           status?: string | null
           telefone?: string | null
