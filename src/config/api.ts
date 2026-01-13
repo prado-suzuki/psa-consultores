@@ -1,15 +1,15 @@
 // Configuração de URLs de API e tabelas por ambiente
 // Detecta automaticamente se está em produção ou desenvolvimento
 
-export const isProductionEnvironment = typeof window !== "undefined" && 
-  window.location.hostname === "psa-consultores.lovable.app";
+export const isProductionEnvironment =
+  typeof window !== "undefined" && window.location.hostname === "psa-consultores.lovable.app";
 
 // URLs da API por ambiente
 const API_URLS = {
   // Ambiente de desenvolvimento (preview do Lovable)
   development: "https://psa-backend-api-456879351254.southamerica-east1.run.app",
   // Ambiente de produção (domínio publicado)
-  production: "https://psa-backend-api-456879351254.southamerica-east1.run.app",
+  production: "https://psa-backend-api-1010211821554.southamerica-east1.run.app",
 };
 
 // URL base da API (selecionada automaticamente)
