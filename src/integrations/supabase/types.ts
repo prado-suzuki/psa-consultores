@@ -392,6 +392,27 @@ export type Database = {
         }
         Relationships: []
       }
+      gestao_area_password: {
+        Row: {
+          id: string
+          password_hash: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          password_hash: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          password_hash?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       novidades: {
         Row: {
           ativo: boolean | null
@@ -436,6 +457,45 @@ export type Database = {
           imagem_url?: string | null
           itens?: string[] | null
           titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      page_permissions: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          page_description: string | null
+          page_name: string
+          page_path: string
+          requires_admin: boolean | null
+          requires_team_member: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          page_description?: string | null
+          page_name: string
+          page_path: string
+          requires_admin?: boolean | null
+          requires_team_member?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          page_description?: string | null
+          page_name?: string
+          page_path?: string
+          requires_admin?: boolean | null
+          requires_team_member?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1364,6 +1424,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_page_access: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          page_permission_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          page_permission_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          page_permission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_page_access_page_permission_id_fkey"
+            columns: ["page_permission_id"]
+            isOneToOne: false
+            referencedRelation: "page_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

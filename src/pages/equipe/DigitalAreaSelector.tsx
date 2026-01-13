@@ -1,13 +1,25 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, Code2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Code2, ChevronRight, ShieldCheck } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
+
+interface AreaCard {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  color: string;
+  adminOnly?: boolean;
+}
 
 const DigitalAreaSelector = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
-  const areas = [
+  const allAreas: AreaCard[] = [
     {
       id: 'rotina',
       label: 'Digital Rotina',
@@ -24,18 +36,30 @@ const DigitalAreaSelector = () => {
       path: '/equipe/dev',
       color: 'from-purple-500 to-pink-500',
     },
+    {
+      id: 'acessos',
+      label: 'Controle de Acessos',
+      description: 'Gerenciamento de permissões e liberação de funcionalidades do sistema',
+      icon: ShieldCheck,
+      path: '/equipe/acessos',
+      color: 'from-amber-500 to-orange-500',
+      adminOnly: true,
+    },
   ];
+
+  // Filter areas based on user role
+  const areas = allAreas.filter(area => !area.adminOnly || isAdmin);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
           <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Área Digital</h1>
           <p className="text-gray-400">Selecione o ambiente de trabalho</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className={`grid gap-4 ${areas.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           {areas.map((area) => (
             <Card
               key={area.id}

@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  Shield,
   ArrowLeft,
   LayoutDashboard,
   Newspaper,
@@ -31,7 +30,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Newspaper, label: 'Novidades', path: '/gestao' },
   { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
-  { icon: Shield, label: 'Acessos', path: '/gestao/acessos' },
 ];
 
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
