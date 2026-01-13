@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin, Linkedin, Instagram } from "lucide-react";
+import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -180,23 +180,52 @@ export const ContactSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-left"
+            className="text-left space-y-8"
           >
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              Entre em Contato
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Vamos Conversar
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-md">
-              Preencha o formulário e nossa equipe entrará em contato para entender como podemos ajudar sua empresa a alcançar melhores resultados.
-            </p>
+            {/* Header */}
+            <div>
+              <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+                Entre em Contato
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Vamos Conversar
+              </h2>
+              <p className="text-muted-foreground max-w-md">
+                Estamos prontos para entender sua realidade e apresentar soluções que fazem diferença. Preencha o formulário ao lado e nossa equipe especializada entrará em contato.
+              </p>
+            </div>
+
+            {/* O que esperar */}
+            <div className="bg-white rounded-xl p-6 border border-border/50 shadow-sm">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2 text-foreground">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                O que você pode esperar
+              </h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Análise personalizada do seu cenário tributário e fiscal</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Identificação de oportunidades de economia e otimização</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Propostas de soluções adequadas ao seu negócio</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Atendimento ágil e consultivo com especialistas</span>
+                </li>
+              </ul>
+            </div>
 
             {/* Contact Information */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Email */}
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -211,8 +240,8 @@ export const ContactSection = () => {
               </div>
 
               {/* Offices */}
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <MapPin className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -223,24 +252,20 @@ export const ContactSection = () => {
                 </div>
               </div>
 
-              {/* Social Links */}
-              <div className="flex items-center gap-4 pt-4">
-                <a 
-                  href="https://www.linkedin.com/company/psaconsultores" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors group"
-                >
-                  <Linkedin className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
-                </a>
-                <a 
-                  href="https://www.instagram.com/psaconsultores" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors group"
-                >
-                  <Instagram className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
-                </a>
+              {/* Phone */}
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Telefone</p>
+                  <a 
+                    href="tel:+556239222295" 
+                    className="text-foreground font-medium hover:text-primary transition-colors"
+                  >
+                    (62) 3922-2295
+                  </a>
+                </div>
               </div>
             </div>
           </motion.div>
