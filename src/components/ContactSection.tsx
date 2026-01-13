@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin } from "lucide-react";
+import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,6 +173,14 @@ export const ContactSection = () => {
 
   return (
     <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
+      {/* Ilustração decorativa de fundo */}
+      <div className="absolute bottom-0 left-0 pointer-events-none z-0">
+        <img 
+          src={farmersIllustration} 
+          alt="" 
+          className="w-[600px] lg:w-[800px] opacity-15 object-contain"
+        />
+      </div>
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         {/* Section Header - Full Width */}
