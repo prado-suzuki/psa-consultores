@@ -387,7 +387,7 @@ export default function EquipeSprintDetalhes() {
 
     try {
       const rows = await parseExcelFile(file);
-      const preview = processExcelData(rows, profiles);
+      const preview = processExcelData(rows, profiles, [], []);
       setImportPreview(preview);
 
       // Initialize mapping for unmapped responsibles
