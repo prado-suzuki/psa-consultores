@@ -85,12 +85,12 @@ export const ResultsSection = () => {
           backgroundSize: 'contain',
           backgroundPosition: 'left bottom',
           backgroundRepeat: 'no-repeat',
-          opacity: 0.20
+          opacity: 0.35
         }}
       />
       
       {/* Gradiente suave para transição */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/60 to-gray-50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/30 to-gray-50/80 pointer-events-none" />
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         <motion.div
@@ -113,7 +113,7 @@ export const ResultsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm p-8 md:p-12"
+          className="bg-white/50 backdrop-blur-sm rounded-xl shadow-sm p-8 md:p-12"
         >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0">
             {results.map((result, index) => (
