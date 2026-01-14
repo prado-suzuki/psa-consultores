@@ -45,6 +45,8 @@ import {
   ColumnConfig,
   AVAILABLE_COLUMNS,
 } from '@/constants/exportConfig';
+import { API_BASE_URL } from '@/config/api';
+import { useApiAuth } from '@/hooks/useApiAuth';
 
 // Re-exportar para retrocompatibilidade
 export type { ColumnConfig };
@@ -195,6 +197,11 @@ interface ExportDialogProps {
   dataInicio: string;
   dataFim: string;
   disabled?: boolean;
+  // Props para buscar todos os dados
+  contribuinteId?: string;
+  tipoMov?: string;
+  emitente?: string;
+  destinatario?: string;
 }
 
 // Função para acessar valores aninhados (suporta até 3 níveis: produtos.PIS.vPIS)
@@ -302,7 +309,22 @@ const formatValue = (value: any, columnId: string): string => {
   return String(value);
 };
 
-export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, dataInicio, dataFim, disabled }: ExportDialogProps) {
+export function ExportDialog({ 
+  data, 
+  cteData = [], 
+  tipoDocumento, 
+  totalRecords, 
+  dataInicio, 
+  dataFim, 
+  disabled,
+  contribuinteId,
+  tipoMov,
+  emitente,
+  destinatario
+}: ExportDialogProps) {
+  // Hook para autenticação da API
+  const { fetchWithAuth } = useApiAuth();
+  
   // Determinar colunas e grupos baseado no tipo de documento
   const availableColumns = tipoDocumento === 'cte' ? CTE_COLUMNS : NFE_COLUMNS;
   const columnGroups = tipoDocumento === 'cte' ? CTE_COLUMN_GROUPS : NFE_COLUMN_GROUPS;
@@ -479,6 +501,79 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
     return availableColumns.filter(c => selectedColumns.includes(c.id));
   }, [selectedColumns, availableColumns]);
 
+  // Função para buscar todos os dados da API (sem paginação)
+  const fetchAllData = async (): Promise<{ nfeRecords: NFeRecord[]; cteRecords: CTeRecord[] }> => {
+    if (!contribuinteId) {
+      // Se não tiver contribuinteId, usar dados passados via props (fallback)
+      return { nfeRecords: data, cteRecords: cteData };
+    }
+
+    const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
+    const maxPageSize = 1000; // Tamanho máximo de página para exportação
+    
+    const buildParams = (page: number) => {
+      const params = new URLSearchParams({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        page: page.toString(),
+        page_size: maxPageSize.toString(),
+      });
+      if (tipoMov) params.append('tipo_mov', tipoMov);
+      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
+      return params;
+    };
+
+    const nfeRecords: NFeRecord[] = [];
+    const cteRecords: CTeRecord[] = [];
+
+    // Buscar NF-e se necessário
+    if (tipoDocumento === 'nfe' || tipoDocumento === 'todos') {
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const params = buildParams(page);
+        const url = `${baseUrl}/${contribuinteId}/nfes?${params.toString()}`;
+        
+        const response = await fetchWithAuth(url, { method: 'GET' });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erro ao buscar NF-e: ${response.status} - ${errorText}`);
+        }
+        
+        const result = await response.json();
+        nfeRecords.push(...(result.items || []));
+        hasMore = result.has_more && page < 100; // Limite de segurança
+        page++;
+      }
+    }
+
+    // Buscar CT-e se necessário
+    if (tipoDocumento === 'cte' || tipoDocumento === 'todos') {
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const params = buildParams(page);
+        const url = `${baseUrl}/${contribuinteId}/ctes?${params.toString()}`;
+        
+        const response = await fetchWithAuth(url, { method: 'GET' });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erro ao buscar CT-e: ${response.status} - ${errorText}`);
+        }
+        
+        const result = await response.json();
+        cteRecords.push(...(result.items || []));
+        hasMore = result.has_more && page < 100; // Limite de segurança
+        page++;
+      }
+    }
+
+    return { nfeRecords, cteRecords };
+  };
+
   // Exportar para Excel
   const handleExport = async () => {
     if (selectedColumns.length === 0) {
@@ -488,11 +583,14 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
 
     setIsExporting(true);
     try {
+      // Buscar TODOS os dados da API
+      const { nfeRecords, cteRecords: allCteData } = await fetchAllData();
+      
       const exportRows: Record<string, any>[] = [];
       
       if (tipoDocumento === 'cte') {
         // Exportar CT-e
-        cteData.forEach(record => {
+        allCteData.forEach(record => {
           const row: Record<string, any> = {};
           selectedColumnConfigs.forEach(col => {
             row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
@@ -503,7 +601,7 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
         // Exportar NF-e
         const hasProdutoColumns = selectedColumns.some(c => c.startsWith('produtos.'));
         
-        data.forEach(record => {
+        nfeRecords.forEach(record => {
           if (hasProdutoColumns && record.produtos && record.produtos.length > 0) {
             // Uma linha por produto
             record.produtos.forEach(produto => {
@@ -563,7 +661,7 @@ export function ExportDialog({ data, cteData = [], tipoDocumento, totalRecords, 
 
       toast({
         title: 'Exportação concluída',
-        description: `Arquivo ${fileName} baixado com sucesso.`,
+        description: `${exportRows.length} registro(s) exportados para ${fileName}`,
       });
       setOpen(false);
     } catch (error) {
