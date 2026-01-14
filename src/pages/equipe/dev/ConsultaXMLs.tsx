@@ -25,6 +25,7 @@ import {
   CalendarIcon,
   ArrowDownLeft,
   ArrowUpRight,
+  Download,
 } from "lucide-react";
 import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
 import { toast } from "@/hooks/use-toast";
@@ -247,6 +248,7 @@ const ConsultaXMLs = () => {
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
+  const [isDownloadingXml, setIsDownloadingXml] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
@@ -491,6 +493,62 @@ const ConsultaXMLs = () => {
     // Se já foi triggered antes, forçar refetch
     if (searchTriggered) {
       refetch();
+    }
+  };
+
+  const handleDownloadXml = async () => {
+    if (!selectedContribuinte) {
+      toast({
+        title: "Contribuinte não selecionado",
+        description: "Selecione um contribuinte para baixar os XMLs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDownloadingXml(true);
+    try {
+      const params = new URLSearchParams({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+      });
+      if (tipoMov) params.append("tipo_mov", tipoMov === "Entrada" ? "1" : "0");
+      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
+      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+
+      const url = `${API_BASE_URL}/api/v1/query/download/contribuintes/${selectedContribuinte}/${tipoDocumento}/xml?${params.toString()}`;
+
+      const response = await fetchWithAuth(url, { method: "GET" });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+
+      // Baixar o arquivo ZIP
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `${tipoDocumento}_${dataInicio}_${dataFim}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast({
+        title: "Download iniciado",
+        description: "O arquivo ZIP com os XMLs está sendo baixado",
+      });
+    } catch (error) {
+      console.error("Erro ao baixar XMLs:", error);
+      toast({
+        title: "Erro no download",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingXml(false);
     }
   };
 
@@ -760,6 +818,19 @@ const ConsultaXMLs = () => {
                   Limpar Filtros
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadXml}
+                disabled={isLoading || isDownloadingXml || !selectedContribuinte}
+              >
+                {isDownloadingXml ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Baixar XMLs
+              </Button>
               <ExportDialog
                 data={tipoDocumento === "nfe" ? nfeRecords : []}
                 cteData={tipoDocumento === "cte" ? cteRecords : []}
