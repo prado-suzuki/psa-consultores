@@ -508,19 +508,24 @@ export function ExportDialog({
     }
 
     const docType = tipoDocumento === 'cte' ? 'cte' : 'nfe';
-    const baseUrl = `${API_BASE_URL}/api/v1/query/export/${contribuinteId}/${docType}/csv`;
+    const url = `${API_BASE_URL}/api/v1/query/export/${contribuinteId}/${docType}/csv`;
     
-    const params = new URLSearchParams({
+    const body = {
       data_inicio: dataInicio,
       data_fim: dataFim,
-    });
-    if (tipoMov) params.append('tipo_mov', tipoMov);
-    if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
-    if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
+      ...(tipoMov && { tipo_mov: tipoMov }),
+      ...(emitente && { emitente: emitente.replace(/\D/g, '') }),
+      ...(destinatario && { destinatario: destinatario.replace(/\D/g, '') }),
+    };
 
-    const url = `${baseUrl}?${params.toString()}`;
+    const response = await fetchWithAuth(url, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
     
-    const response = await fetchWithAuth(url, { method: 'GET' });
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Erro ao exportar: ${response.status} - ${errorText}`);
