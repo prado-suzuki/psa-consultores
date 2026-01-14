@@ -767,6 +767,10 @@ const ConsultaXMLs = () => {
                 totalRecords={totalRecords}
                 dataInicio={dataInicio}
                 dataFim={dataFim}
+                contribuinteId={selectedContribuinte}
+                tipoMov={tipoMov}
+                emitente={emitente}
+                destinatario={destinatario}
                 disabled={
                   isLoading ||
                   !selectedContribuinte ||
