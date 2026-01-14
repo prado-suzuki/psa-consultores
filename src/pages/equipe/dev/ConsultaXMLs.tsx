@@ -512,7 +512,7 @@ const ConsultaXMLs = () => {
         data_inicio: dataInicio,
         data_fim: dataFim,
       });
-      if (tipoMov) params.append("tipo_mov", tipoMov === "Entrada" ? "1" : "0");
+      if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
 
