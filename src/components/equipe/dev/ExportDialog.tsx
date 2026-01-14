@@ -501,153 +501,78 @@ export function ExportDialog({
     return availableColumns.filter(c => selectedColumns.includes(c.id));
   }, [selectedColumns, availableColumns]);
 
-  // Função para buscar todos os dados da API (sem paginação)
-  const fetchAllData = async (): Promise<{ nfeRecords: NFeRecord[]; cteRecords: CTeRecord[] }> => {
+  // Função para buscar CSV do endpoint de export
+  const fetchExportCsv = async (): Promise<string> => {
     if (!contribuinteId) {
-      // Se não tiver contribuinteId, usar dados passados via props (fallback)
-      return { nfeRecords: data, cteRecords: cteData };
+      throw new Error('Contribuinte não selecionado');
     }
 
-    const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
-    const maxPageSize = 1000; // Tamanho máximo de página para exportação
+    const docType = tipoDocumento === 'cte' ? 'cte' : 'nfe';
+    const baseUrl = `${API_BASE_URL}/api/v1/query/export/${contribuinteId}/${docType}/csv`;
     
-    const buildParams = (page: number) => {
-      const params = new URLSearchParams({
-        data_inicio: dataInicio,
-        data_fim: dataFim,
-        page: page.toString(),
-        page_size: maxPageSize.toString(),
+    const params = new URLSearchParams({
+      data_inicio: dataInicio,
+      data_fim: dataFim,
+    });
+    if (tipoMov) params.append('tipo_mov', tipoMov);
+    if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
+    if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
+
+    const url = `${baseUrl}?${params.toString()}`;
+    
+    const response = await fetchWithAuth(url, { method: 'GET' });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erro ao exportar: ${response.status} - ${errorText}`);
+    }
+    
+    return response.text();
+  };
+
+  // Converter CSV para array de objetos
+  const parseCsv = (csvText: string): Record<string, string>[] => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    
+    // Detectar separador (vírgula ou ponto-e-vírgula)
+    const separator = lines[0].includes(';') ? ';' : ',';
+    
+    const headers = lines[0].split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
+    
+    return lines.slice(1).map(line => {
+      const values = line.split(separator).map(v => v.trim().replace(/^"|"$/g, ''));
+      const row: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
       });
-      if (tipoMov) params.append('tipo_mov', tipoMov);
-      if (emitente) params.append('emitente', emitente.replace(/\D/g, ''));
-      if (destinatario) params.append('destinatario', destinatario.replace(/\D/g, ''));
-      return params;
-    };
-
-    const nfeRecords: NFeRecord[] = [];
-    const cteRecords: CTeRecord[] = [];
-
-    // Buscar NF-e se necessário
-    if (tipoDocumento === 'nfe' || tipoDocumento === 'todos') {
-      let page = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const params = buildParams(page);
-        const url = `${baseUrl}/${contribuinteId}/nfes?${params.toString()}`;
-        
-        const response = await fetchWithAuth(url, { method: 'GET' });
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Erro ao buscar NF-e: ${response.status} - ${errorText}`);
-        }
-        
-        const result = await response.json();
-        nfeRecords.push(...(result.items || []));
-        hasMore = result.has_more && page < 100; // Limite de segurança
-        page++;
-      }
-    }
-
-    // Buscar CT-e se necessário
-    if (tipoDocumento === 'cte' || tipoDocumento === 'todos') {
-      let page = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const params = buildParams(page);
-        const url = `${baseUrl}/${contribuinteId}/ctes?${params.toString()}`;
-        
-        const response = await fetchWithAuth(url, { method: 'GET' });
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Erro ao buscar CT-e: ${response.status} - ${errorText}`);
-        }
-        
-        const result = await response.json();
-        cteRecords.push(...(result.items || []));
-        hasMore = result.has_more && page < 100; // Limite de segurança
-        page++;
-      }
-    }
-
-    return { nfeRecords, cteRecords };
+      return row;
+    });
   };
 
   // Exportar para Excel
   const handleExport = async () => {
-    if (selectedColumns.length === 0) {
-      toast({ title: 'Selecione colunas', description: 'Selecione ao menos uma coluna para exportar.', variant: 'destructive' });
-      return;
-    }
-
     setIsExporting(true);
     try {
-      // Buscar TODOS os dados da API
-      const { nfeRecords, cteRecords: allCteData } = await fetchAllData();
+      // Buscar CSV do endpoint de export
+      const csvText = await fetchExportCsv();
+      const csvData = parseCsv(csvText);
       
-      const exportRows: Record<string, any>[] = [];
-      
-      if (tipoDocumento === 'cte') {
-        // Exportar CT-e
-        allCteData.forEach(record => {
-          const row: Record<string, any> = {};
-          selectedColumnConfigs.forEach(col => {
-            row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
-          });
-          exportRows.push(row);
+      if (csvData.length === 0) {
+        toast({
+          title: 'Nenhum dado',
+          description: 'Não há registros para exportar.',
+          variant: 'destructive',
         });
-      } else {
-        // Exportar NF-e
-        const hasProdutoColumns = selectedColumns.some(c => c.startsWith('produtos.'));
-        
-        nfeRecords.forEach(record => {
-          if (hasProdutoColumns && record.produtos && record.produtos.length > 0) {
-            // Uma linha por produto
-            record.produtos.forEach(produto => {
-              const row: Record<string, any> = {};
-              selectedColumnConfigs.forEach(col => {
-                if (col.id.startsWith('produtos.')) {
-                  const pathParts = col.id.split('.');
-                  if (pathParts.length === 2) {
-                    // produtos.xProd
-                    const propName = pathParts[1];
-                    row[col.label] = formatValue(produto[propName as keyof typeof produto], col.id);
-                  } else if (pathParts.length === 3) {
-                    // produtos.PIS.vPIS ou produtos.COFINS.vCOFINS
-                    const subObj = pathParts[1] as 'PIS' | 'COFINS';
-                    const propName = pathParts[2];
-                    const subObjValue = produto[subObj];
-                    const value = subObjValue ? (subObjValue as any)[propName] : null;
-                    row[col.label] = formatValue(value, col.id);
-                  }
-                } else {
-                  row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
-                }
-              });
-              exportRows.push(row);
-            });
-          } else {
-            // Uma linha por documento
-            const row: Record<string, any> = {};
-            selectedColumnConfigs.forEach(col => {
-              if (col.id.startsWith('produtos.')) {
-                row[col.label] = '-';
-              } else {
-                row[col.label] = formatValue(getNestedValue(record, col.id), col.id);
-              }
-            });
-            exportRows.push(row);
-          }
-        });
+        return;
       }
 
-      // Criar workbook
-      const ws = XLSX.utils.json_to_sheet(exportRows);
+      // Criar workbook a partir do CSV
+      const ws = XLSX.utils.json_to_sheet(csvData);
       
-      // Ajustar largura das colunas
-      const colWidths = selectedColumnConfigs.map(col => ({
-        wch: Math.max(col.label.length, 15)
+      // Ajustar largura das colunas baseado nos headers
+      const headers = Object.keys(csvData[0] || {});
+      const colWidths = headers.map(h => ({
+        wch: Math.max(h.length, 15)
       }));
       ws['!cols'] = colWidths;
 
@@ -661,7 +586,7 @@ export function ExportDialog({
 
       toast({
         title: 'Exportação concluída',
-        description: `${exportRows.length} registro(s) exportados para ${fileName}`,
+        description: `${csvData.length} registro(s) exportados para ${fileName}`,
       });
       setOpen(false);
     } catch (error) {
