@@ -513,6 +513,7 @@ export function ExportDialog({
     const body = {
       data_inicio: dataInicio,
       data_fim: dataFim,
+      colunas: selectedColumns,
       ...(tipoMov && { tipo_mov: tipoMov }),
       ...(emitente && { emitente: emitente.replace(/\D/g, '') }),
       ...(destinatario && { destinatario: destinatario.replace(/\D/g, '') }),
