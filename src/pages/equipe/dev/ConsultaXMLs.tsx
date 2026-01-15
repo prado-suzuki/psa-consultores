@@ -574,7 +574,7 @@ const ConsultaXMLs = () => {
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
 
-      const url = `${API_BASE_URL}/api/v1/query/download/contribuintes/${selectedContribuinte}/${tipoDocumento}/csv?${params.toString()}`;
+      const url = `${API_BASE_URL}/api/v1/query/export/${selectedContribuinte}/${tipoDocumento}/csv?${params.toString()}`;
 
       const response = await fetchWithAuth(url, { method: "GET" });
 
