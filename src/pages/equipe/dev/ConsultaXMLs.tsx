@@ -28,6 +28,7 @@ import {
   Download,
 } from "lucide-react";
 import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
+import { NFE_COLUMNS, CTE_COLUMNS } from "@/constants/exportConfig";
 import { toast } from "@/hooks/use-toast";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -553,7 +554,7 @@ const ConsultaXMLs = () => {
     }
   };
 
-  // Função temporária para download de CSV
+  // Função temporária para download de CSV (mesmo endpoint do ExportDialog, mas entrega o CSV cru)
   const handleDownloadCsv = async () => {
     if (!selectedContribuinte) {
       toast({
@@ -566,25 +567,36 @@ const ConsultaXMLs = () => {
 
     setIsDownloadingCsv(true);
     try {
-      const params = new URLSearchParams({
+      const columns = tipoDocumento === "cte" ? CTE_COLUMNS : NFE_COLUMNS;
+      const allColumnIds = columns.map((col) => col.id);
+
+      const url = `${API_BASE_URL}/api/v1/query/export/${selectedContribuinte}/${tipoDocumento}/csv`;
+
+      const body = {
         data_inicio: dataInicio,
         data_fim: dataFim,
+        colunas: allColumnIds,
+        ...(tipoMov && { tipo_mov: tipoMov }),
+        ...(emitente && { emitente: emitente.replace(/\D/g, "") }),
+        ...(destinatario && { destinatario: destinatario.replace(/\D/g, "") }),
+      };
+
+      const response = await fetchWithAuth(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       });
-      if (tipoMov) params.append("tipo_mov", tipoMov);
-      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
-      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
-
-      const url = `${API_BASE_URL}/api/v1/query/export/${selectedContribuinte}/${tipoDocumento}/csv?${params.toString()}`;
-
-      const response = await fetchWithAuth(url, { method: "GET" });
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Erro na API: ${response.status} - ${errorText}`);
       }
 
-      // Baixar o arquivo CSV
-      const blob = await response.blob();
+      // Baixar o arquivo CSV cru
+      const csvText = await response.text();
+      const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = downloadUrl;
