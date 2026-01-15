@@ -86,68 +86,66 @@ export function findProcessByName(name: string, processes: Process[]): Process |
 function parseExcelDate(value: any): string {
   if (!value) return '';
   
-  const currentYear = new Date().getFullYear(); // 2025
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  let dateStr = '';
+  const currentYear = new Date().getFullYear();
   
   // If it's a number (Excel serial date)
   if (typeof value === 'number') {
-    const date = XLSX.SSF.parse_date_code(value);
-    if (date) {
-      const year = date.y;
-      const month = String(date.m).padStart(2, '0');
-      const day = String(date.d).padStart(2, '0');
-      dateStr = `${year}-${month}-${day}`;
+    // Use XLSX to convert Excel serial to JS Date properly
+    const jsDate = XLSX.SSF.parse_date_code(value);
+    if (jsDate) {
+      const year = jsDate.y;
+      const month = String(jsDate.m).padStart(2, '0');
+      const day = String(jsDate.d).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
+  }
+  
+  // If it's a Date object
+  if (value instanceof Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
   
   // If it's a string
   if (typeof value === 'string') {
-    const parts = value.split('/');
-    
-    // Format "17/12" (without year) - assume current year
-    if (parts.length === 2) {
-      const day = parts[0].padStart(2, '0');
-      const month = parts[1].padStart(2, '0');
-      dateStr = `${currentYear}-${month}-${day}`;
+    // Already in ISO format YYYY-MM-DD
+    if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return value;
     }
     
-    // Format "17/12/2024" or "17/12/24"
+    // Brazilian format DD/MM/YYYY or DD/MM/YY or DD/MM
+    const parts = value.split('/');
+    
+    if (parts.length === 2) {
+      // Format "17/12" (without year) - assume current year
+      const day = parts[0].padStart(2, '0');
+      const month = parts[1].padStart(2, '0');
+      return `${currentYear}-${month}-${day}`;
+    }
+    
     if (parts.length === 3) {
+      // Format "17/12/2024" or "17/12/24" (DD/MM/YYYY)
       const day = parts[0].padStart(2, '0');
       const month = parts[1].padStart(2, '0');
       let year = parts[2];
-      // Handle 2-digit year (24 -> 2024)
       if (year.length === 2) {
         year = `20${year}`;
       }
-      dateStr = `${year}-${month}-${day}`;
+      return `${year}-${month}-${day}`;
     }
     
-    // Already in ISO format
-    if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      dateStr = value;
+    // Try to parse ISO datetime format
+    if (value.includes('T')) {
+      const datePart = value.split('T')[0];
+      if (datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return datePart;
+      }
     }
   }
   
-  // If date is more than 30 days in the past, correct to current year
-  if (dateStr) {
-    const parsedDate = new Date(dateStr + 'T00:00:00');
-    const daysDiff = (today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24);
-    
-    if (daysDiff > 30) {
-      // Extract month and day, apply current year
-      const [, month, day] = dateStr.split('-');
-      const correctedDate = new Date(currentYear, parseInt(month) - 1, parseInt(day));
-      
-      // If corrected date is still in the past, it's okay for sprint planning
-      return `${currentYear}-${month}-${day}`;
-    }
-  }
-  
-  return dateStr;
+  return '';
 }
 
 // Find profile by first name (fuzzy match)
