@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet, FolderOpen, Settings } from "lucide-react";
 import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
@@ -2150,6 +2150,22 @@ export default function EquipeSprintDetalhes() {
                         <div className="text-xs text-gray-500 mt-1">
                           {group.responsible || 'Sem responsável'} • {group.minDate} - {group.maxDate}
                         </div>
+                        {(group.projectName || group.processName) && (
+                          <div className="text-xs text-gray-400 mt-0.5 flex gap-3">
+                            {group.projectName && (
+                              <span className="flex items-center gap-1">
+                                <FolderOpen className="h-3 w-3" />
+                                {group.projectName}
+                              </span>
+                            )}
+                            {group.processName && (
+                              <span className="flex items-center gap-1">
+                                <Settings className="h-3 w-3" />
+                                {group.processName}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
