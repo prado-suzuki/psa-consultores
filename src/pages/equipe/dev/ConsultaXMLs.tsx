@@ -249,6 +249,7 @@ const ConsultaXMLs = () => {
   const [destinatario, setDestinatario] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isDownloadingXml, setIsDownloadingXml] = useState(false);
+  const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
@@ -552,6 +553,63 @@ const ConsultaXMLs = () => {
     }
   };
 
+  // Função temporária para download de CSV
+  const handleDownloadCsv = async () => {
+    if (!selectedContribuinte) {
+      toast({
+        title: "Contribuinte não selecionado",
+        description: "Selecione um contribuinte para baixar o CSV",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDownloadingCsv(true);
+    try {
+      const params = new URLSearchParams({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+      });
+      if (tipoMov) params.append("tipo_mov", tipoMov);
+      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
+      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+
+      const url = `${API_BASE_URL}/api/v1/query/download/contribuintes/${selectedContribuinte}/${tipoDocumento}/csv?${params.toString()}`;
+
+      const response = await fetchWithAuth(url, { method: "GET" });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+
+      // Baixar o arquivo CSV
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `${tipoDocumento}_${dataInicio}_${dataFim}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast({
+        title: "Download iniciado",
+        description: "O arquivo CSV está sendo baixado",
+      });
+    } catch (error) {
+      console.error("Erro ao baixar CSV:", error);
+      toast({
+        title: "Erro no download",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingCsv(false);
+    }
+  };
+
   return (
     <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais">
       <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
@@ -830,6 +888,20 @@ const ConsultaXMLs = () => {
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                 )}
                 Baixar XMLs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadCsv}
+                disabled={isLoading || isDownloadingCsv || !selectedContribuinte}
+                className="border-dashed border-amber-500 text-amber-600 hover:bg-amber-50"
+              >
+                {isDownloadingCsv ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                CSV (temp)
               </Button>
               <ExportDialog
                 data={tipoDocumento === "nfe" ? nfeRecords : []}
