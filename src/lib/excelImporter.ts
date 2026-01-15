@@ -44,6 +44,8 @@ export interface TaskGroup {
   totalHours: number;
   minDate: string;
   maxDate: string;
+  projectName: string;
+  processName: string;
 }
 
 export interface ImportPreview {
@@ -239,7 +241,9 @@ export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects
         subtasks: [],
         totalHours: 0,
         minDate: parsedTask.dueDate,
-        maxDate: parsedTask.dueDate
+        maxDate: parsedTask.dueDate,
+        projectName: parsedTask.projectName,
+        processName: parsedTask.processName
       });
     }
     
