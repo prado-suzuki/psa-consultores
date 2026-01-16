@@ -28,8 +28,7 @@ import {
   FileSpreadsheet,
   X,
   FolderOpen,
-  Zap,
-  Sparkles
+  Zap
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -480,69 +479,59 @@ const EquipeDaily = () => {
                 </Select>
               </div>
 
-              {/* Card de Novos Campos - Projeto e Processo */}
-              <div className="p-4 rounded-lg border-2 border-dashed border-green-300 bg-green-50/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">NOVOS CAMPOS</span>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700 flex items-center gap-2">
-                      <FolderOpen className="h-4 w-4 text-amber-500" />
-                      Projeto <span className="text-gray-400 text-xs">(opcional)</span>
-                    </Label>
-                    <Select 
-                      value={form.project_id} 
-                      onValueChange={(value) => setForm({ 
-                        ...form, 
-                        project_id: value === '__none__' ? '' : value,
-                        process_id: '' // Reset process when project changes
-                      })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Selecione um projeto" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        <SelectItem value="__none__">Nenhum</SelectItem>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700 flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-gray-500" />
+                  Projeto <span className="text-gray-400 text-xs">(opcional)</span>
+                </Label>
+                <Select 
+                  value={form.project_id} 
+                  onValueChange={(value) => setForm({ 
+                    ...form, 
+                    project_id: value === '__none__' ? '' : value,
+                    process_id: ''
+                  })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione um projeto" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-gray-700 flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-purple-500" />
-                      Processo <span className="text-gray-400 text-xs">(opcional)</span>
-                    </Label>
-                    <Select 
-                      value={form.process_id} 
-                      onValueChange={(value) => setForm({ ...form, process_id: value === '__none__' ? '' : value })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Selecione um processo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        <SelectItem value="__none__">Nenhum</SelectItem>
-                        {filteredProcesses.map((process) => (
-                          <SelectItem key={process.id} value={process.id}>
-                            {process.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {form.project_id && (
-                      <p className="text-xs text-green-600 flex items-center gap-1">
-                        <span>↳</span> Mostra apenas processos do projeto selecionado
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-gray-500" />
+                  Processo <span className="text-gray-400 text-xs">(opcional)</span>
+                </Label>
+                <Select 
+                  value={form.process_id} 
+                  onValueChange={(value) => setForm({ ...form, process_id: value === '__none__' ? '' : value })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione um processo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {filteredProcesses.map((process) => (
+                      <SelectItem key={process.id} value={process.id}>
+                        {process.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.project_id && (
+                  <p className="text-xs text-gray-500">
+                    Mostrando processos do projeto selecionado
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
