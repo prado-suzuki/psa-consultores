@@ -631,8 +631,8 @@ export function ExportDialog({
 
             {/* Aba Colunas */}
             <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4">
-              {/* Toolbar de Perfis */}
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
+              {/* Toolbar de Gestão de Perfis */}
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Select value={selectedProfileId || "__none__"} onValueChange={(val) => loadProfile(val === "__none__" ? "" : val)}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Carregar Preset"} />
@@ -640,24 +640,22 @@ export function ExportDialog({
                   <SelectContent>
                     <SelectItem value="__none__">Nenhum</SelectItem>
                     {profiles.map(profile => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        <span className="flex items-center justify-between w-full gap-2">
-                          <span className="flex items-center gap-2">
-                            {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                            {profile.name}
-                          </span>
-                          <button
-                            type="button"
-                            className="p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              setDeleteConfirmId(profile.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </button>
+                      <SelectItem key={profile.id} value={profile.id} className="pr-10 group relative">
+                        <span className="flex items-center gap-2">
+                          {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                          {profile.name}
                         </span>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setDeleteConfirmId(profile.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </button>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -683,27 +681,31 @@ export function ExportDialog({
                     <span className="text-[10px] leading-tight">Favoritar</span>
                   </Button>
                 )}
+              </div>
 
-                <div className="h-6 w-px bg-border mx-1" />
-
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
-                  onClick={selectAll}
-                >
-                  <CheckSquare className="h-4 w-4" />
-                  <span className="text-[10px] leading-tight">Marcar todos</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
-                  onClick={clearSelection}
-                >
-                  <Square className="h-4 w-4" />
-                  <span className="text-[10px] leading-tight">Desmarcar todos</span>
-                </Button>
-
-                <Badge variant="secondary" className="ml-auto">
+              {/* Barra de Seleção de Colunas */}
+              <div className="flex items-center justify-between gap-2 mb-4 py-2 px-3 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={selectAll}
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    <span className="text-xs">Marcar todos</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={clearSelection}
+                  >
+                    <Square className="h-4 w-4" />
+                    <span className="text-xs">Desmarcar todos</span>
+                  </Button>
+                </div>
+                <Badge variant="secondary">
                   {selectedColumns.length} de {availableColumns.length} selecionadas
                 </Badge>
               </div>
