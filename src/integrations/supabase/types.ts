@@ -283,6 +283,8 @@ export type Database = {
           date: string
           did_yesterday: string | null
           id: string
+          process_id: string | null
+          project_id: string | null
           sprint_id: string | null
           user_id: string
           will_do_today: string | null
@@ -293,6 +295,8 @@ export type Database = {
           date?: string
           did_yesterday?: string | null
           id?: string
+          process_id?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           user_id: string
           will_do_today?: string | null
@@ -303,11 +307,27 @@ export type Database = {
           date?: string
           did_yesterday?: string | null
           id?: string
+          process_id?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           user_id?: string
           will_do_today?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_standups_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_standups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_standups_sprint_id_fkey"
             columns: ["sprint_id"]
