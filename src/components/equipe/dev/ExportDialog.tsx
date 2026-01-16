@@ -641,9 +641,22 @@ export function ExportDialog({
                     <SelectItem value="__none__">Nenhum</SelectItem>
                     {profiles.map(profile => (
                       <SelectItem key={profile.id} value={profile.id}>
-                        <span className="flex items-center gap-2">
-                          {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                          {profile.name}
+                        <span className="flex items-center justify-between w-full gap-2">
+                          <span className="flex items-center gap-2">
+                            {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                            {profile.name}
+                          </span>
+                          <button
+                            type="button"
+                            className="p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setDeleteConfirmId(profile.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </button>
                         </span>
                       </SelectItem>
                     ))}
@@ -652,42 +665,42 @@ export function ExportDialog({
 
                 <Button
                   variant="outline"
-                  size="icon"
+                  className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
                   onClick={openSaveDialog}
-                  title="Salvar como novo perfil"
                 >
                   <Save className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">Salvar</span>
                 </Button>
 
                 {selectedProfileId && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleToggleDefault}
-                      disabled={setDefaultProfile.isPending}
-                      title={isSelectedProfileDefault ? "Perfil padrão" : "Definir como padrão"}
-                    >
-                      <Star className={`h-4 w-4 ${isSelectedProfileDefault ? 'text-yellow-500 fill-yellow-500' : ''}`} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setDeleteConfirmId(selectedProfileId)}
-                      title="Excluir perfil"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
+                    onClick={handleToggleDefault}
+                    disabled={setDefaultProfile.isPending}
+                  >
+                    <Star className={`h-4 w-4 ${isSelectedProfileDefault ? 'text-yellow-500 fill-yellow-500' : ''}`} />
+                    <span className="text-[10px] leading-tight">Favoritar</span>
+                  </Button>
                 )}
 
                 <div className="h-6 w-px bg-border mx-1" />
 
-                <Button variant="outline" size="icon" onClick={selectAll} title="Selecionar todas">
+                <Button
+                  variant="outline"
+                  className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
+                  onClick={selectAll}
+                >
                   <CheckSquare className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">Marcar todos</span>
                 </Button>
-                <Button variant="outline" size="icon" onClick={clearSelection} title="Limpar seleção">
+                <Button
+                  variant="outline"
+                  className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
+                  onClick={clearSelection}
+                >
                   <Square className="h-4 w-4" />
+                  <span className="text-[10px] leading-tight">Desmarcar todos</span>
                 </Button>
 
                 <Badge variant="secondary" className="ml-auto">

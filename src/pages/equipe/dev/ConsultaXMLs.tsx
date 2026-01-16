@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Search,
   FileText,
@@ -914,9 +915,8 @@ const ConsultaXMLs = () => {
                         <TableRow>
                           <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                           <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">IE</TableHead>
+                          <TableHead className="whitespace-nowrap">Chave de Acesso</TableHead>
                           <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Nat. Operação</TableHead>
                           <TableHead className="whitespace-nowrap">Número</TableHead>
                           <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
@@ -933,14 +933,11 @@ const ConsultaXMLs = () => {
                               <TableCell>
                                 <Skeleton className="h-5 w-full" />
                               </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <Skeleton className="h-5 w-20" />
+                              <TableCell>
+                                <Skeleton className="h-5 w-36" />
                               </TableCell>
                               <TableCell className="hidden lg:table-cell">
                                 <Skeleton className="h-5 w-10" />
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <Skeleton className="h-5 w-24" />
                               </TableCell>
                               <TableCell>
                                 <Skeleton className="h-5 w-16" />
@@ -981,13 +978,21 @@ const ConsultaXMLs = () => {
                                   {record.emit.xNome}
                                 </span>
                               </TableCell>
-                              <TableCell className="font-mono text-sm hidden xl:table-cell">{record.emit.IE}</TableCell>
-                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
-                              <TableCell className="max-w-[120px] hidden xl:table-cell">
-                                <span className="truncate block" title={record.natOp}>
-                                  {record.natOp}
-                                </span>
+                              <TableCell className="max-w-[180px]">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="truncate block font-mono text-xs cursor-help">
+                                        {record.chave_nfe}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[450px]">
+                                      <p className="font-mono text-xs break-all">{record.chave_nfe}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </TableCell>
+                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
                               <TableCell className="font-mono">{record.nNF}</TableCell>
                               <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
                               <TableCell className="text-right font-medium whitespace-nowrap">
