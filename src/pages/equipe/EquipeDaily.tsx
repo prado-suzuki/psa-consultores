@@ -26,7 +26,10 @@ import {
   Calendar,
   Target,
   FileSpreadsheet,
-  X
+  X,
+  FolderOpen,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -52,12 +55,25 @@ interface Sprint {
   name: string;
 }
 
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  project_id: string | null;
+}
+
 const EquipeDaily = () => {
   const { user } = useAuth();
   const [standups, setStandups] = useState<DailyStandup[]>([]);
   const [myStandup, setMyStandup] = useState<DailyStandup | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +81,9 @@ const EquipeDaily = () => {
     did_yesterday: '',
     will_do_today: '',
     blockers: '',
-    sprint_id: ''
+    sprint_id: '',
+    project_id: '',
+    process_id: ''
   });
 
   // Estado para edição
@@ -90,6 +108,8 @@ const EquipeDaily = () => {
       setSelectedUserId(user.id);
       fetchTeamMembers();
       fetchSprints();
+      fetchProjects();
+      fetchProcesses();
     }
   }, [user]);
 
@@ -135,6 +155,35 @@ const EquipeDaily = () => {
     }
   };
 
+  const fetchProjects = async () => {
+    try {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, name')
+        .order('name', { ascending: true });
+      setProjects(data || []);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  const fetchProcesses = async () => {
+    try {
+      const { data } = await supabase
+        .from('processes')
+        .select('id, name, project_id')
+        .order('name', { ascending: true });
+      setProcesses(data || []);
+    } catch (error) {
+      console.error('Error fetching processes:', error);
+    }
+  };
+
+  // Filtrar processos pelo projeto selecionado
+  const filteredProcesses = form.project_id
+    ? processes.filter(p => p.project_id === form.project_id)
+    : processes;
+
   const fetchStandups = async () => {
     if (!user) return;
     
@@ -153,7 +202,9 @@ const EquipeDaily = () => {
           did_yesterday: myData.did_yesterday || '',
           will_do_today: myData.will_do_today || '',
           blockers: myData.blockers || '',
-          sprint_id: myData.sprint_id || ''
+          sprint_id: myData.sprint_id || '',
+          project_id: myData.project_id || '',
+          process_id: myData.process_id || ''
         });
       }
 
@@ -205,7 +256,9 @@ const EquipeDaily = () => {
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
             blockers: form.blockers || null,
-            sprint_id: form.sprint_id || null
+            sprint_id: form.sprint_id || null,
+            project_id: form.project_id || null,
+            process_id: form.process_id || null
           })
           .eq('id', myStandup.id);
 
@@ -220,7 +273,9 @@ const EquipeDaily = () => {
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
             blockers: form.blockers || null,
-            sprint_id: form.sprint_id || null
+            sprint_id: form.sprint_id || null,
+            project_id: form.project_id || null,
+            process_id: form.process_id || null
           });
 
         if (error) throw error;
@@ -423,6 +478,71 @@ const EquipeDaily = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Card de Novos Campos - Projeto e Processo */}
+              <div className="p-4 rounded-lg border-2 border-dashed border-green-300 bg-green-50/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">NOVOS CAMPOS</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-amber-500" />
+                      Projeto <span className="text-gray-400 text-xs">(opcional)</span>
+                    </Label>
+                    <Select 
+                      value={form.project_id} 
+                      onValueChange={(value) => setForm({ 
+                        ...form, 
+                        project_id: value === '__none__' ? '' : value,
+                        process_id: '' // Reset process when project changes
+                      })}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione um projeto" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="__none__">Nenhum</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-purple-500" />
+                      Processo <span className="text-gray-400 text-xs">(opcional)</span>
+                    </Label>
+                    <Select 
+                      value={form.process_id} 
+                      onValueChange={(value) => setForm({ ...form, process_id: value === '__none__' ? '' : value })}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione um processo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="__none__">Nenhum</SelectItem>
+                        {filteredProcesses.map((process) => (
+                          <SelectItem key={process.id} value={process.id}>
+                            {process.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.project_id && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <span>↳</span> Mostra apenas processos do projeto selecionado
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
