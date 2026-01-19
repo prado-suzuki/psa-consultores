@@ -41,6 +41,8 @@ interface DailyStandup {
   blockers: string | null;
   created_at: string;
   sprint_id: string | null;
+  project_id: string | null;
+  process_id: string | null;
 }
 
 interface TeamMember {
@@ -370,6 +372,18 @@ const EquipeDaily = () => {
     return sprint?.name || 'Sprint não encontrada';
   };
 
+  const getProjectName = (projectId: string | null): string => {
+    if (!projectId) return '';
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || '';
+  };
+
+  const getProcessName = (processId: string | null): string => {
+    if (!processId) return '';
+    const process = processes.find(p => p.id === processId);
+    return process?.name || '';
+  };
+
   const handleExportExcel = () => {
     if (standups.length === 0) {
       toast({ 
@@ -384,6 +398,8 @@ const EquipeDaily = () => {
       'Data': new Date(standup.date).toLocaleDateString('pt-BR'),
       'Membro': getMemberName(standup.user_id),
       'Sprint': getSprintName(standup.sprint_id),
+      'Projeto': getProjectName(standup.project_id) || '-',
+      'Processo': getProcessName(standup.process_id) || '-',
       'Horário': new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       'Ontem': standup.did_yesterday || '-',
       'Hoje': standup.will_do_today || '-',
@@ -754,8 +770,8 @@ const EquipeDaily = () => {
                           )}
                         </div>
                         
-                        {/* Data e Sprint */}
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        {/* Data, Sprint, Projeto e Processo */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {new Date(standup.date + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -765,6 +781,24 @@ const EquipeDaily = () => {
                             <Target className="h-3 w-3" />
                             {getSprintName(standup.sprint_id)}
                           </span>
+                          {standup.project_id && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <FolderOpen className="h-3 w-3" />
+                                {getProjectName(standup.project_id)}
+                              </span>
+                            </>
+                          )}
+                          {standup.process_id && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Zap className="h-3 w-3" />
+                                {getProcessName(standup.process_id)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
