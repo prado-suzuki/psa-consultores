@@ -356,7 +356,7 @@ export const ContactSection = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-psa-green hover:bg-psa-green-dark text-white font-semibold py-3 group"
+                className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-3 group"
               >
                 {isSubmitting ? (
                   "Enviando..."
