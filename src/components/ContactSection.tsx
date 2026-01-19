@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search, MapPin } from "lucide-react";
-import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
+import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,95 +171,22 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contato" className="relative py-20 md:py-28 bg-gray-50 overflow-hidden">
-      {/* Ilustração decorativa de fundo */}
-      <div className="absolute bottom-0 left-0 pointer-events-none z-0">
-        <img 
-          src={farmersIllustration} 
-          alt="" 
-          className="w-[600px] lg:w-[800px] opacity-15 object-contain"
-        />
-      </div>
-
-      <div className="container relative z-10 mx-auto px-4 md:px-6">
-        {/* Section Header - Full Width */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="lg:col-span-2 mb-4"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Vamos Conversar
-          </h2>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          {/* Left Column - Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-left flex flex-col justify-start"
-          >
-            <p className="text-muted-foreground text-lg max-w-md mb-12 mt-8">
-              Fale com nossa equipe e descubra como podemos ajudar sua empresa a crescer com segurança tributária.
-            </p>
-
-            {/* Benefícios simples */}
-            <div className="space-y-4 mb-16">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-muted-foreground">Análise personalizada do seu cenário</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-muted-foreground">Identificação de oportunidades fiscais</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-muted-foreground">Soluções sob medida para seu negócio</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-muted-foreground">Atendimento ágil e consultivo</span>
-              </div>
-            </div>
-
-            {/* Contato compacto */}
-            <div className="space-y-5">
-              <a 
-                href="mailto:contato@psaconsultores.com.br" 
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Mail className="h-5 w-5 text-primary flex-shrink-0" />
-                <span>contato@psaconsultores.com.br</span>
-              </a>
-              <a 
-                href="tel:+556239222295" 
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                <span>(62) 3922-2295</span>
-              </a>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
-                <span>Goiânia • São Paulo • Ribeirão Preto</span>
-              </div>
-            </div>
-
-          </motion.div>
-
-          {/* Right Column - Form */}
+    <section id="contato" className="py-20 md:py-28 bg-gray-50 overflow-hidden">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex justify-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6 }}
+            className="w-full max-w-xl"
           >
             <form onSubmit={handleSubmit} className="bg-muted/30 rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
+              
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-6">
+                Vamos Conversar
+              </h2>
+
               {/* Nome */}
               <div className="space-y-2">
                 <Label htmlFor="nome_completo" className="text-foreground font-medium">
@@ -446,8 +372,7 @@ export const ContactSection = () => {
                     placeholder="Alguma informação adicional?"
                     value={formData.mensagem}
                     onChange={handleChange}
-                    rows={2}
-                    className={`pl-10 resize-none bg-background ${errors.mensagem ? 'border-destructive' : ''}`}
+                    className={`pl-10 min-h-[100px] bg-background resize-none ${errors.mensagem ? 'border-destructive' : ''}`}
                   />
                 </div>
                 {errors.mensagem && (
@@ -459,21 +384,17 @@ export const ContactSection = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 group"
+                className="w-full bg-psa-green hover:bg-psa-green-dark text-white font-semibold py-3 group"
               >
                 {isSubmitting ? (
                   "Enviando..."
                 ) : (
                   <>
                     Enviar Mensagem
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </Button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Ao enviar, você concorda com nossa política de privacidade.
-              </p>
             </form>
           </motion.div>
         </div>
