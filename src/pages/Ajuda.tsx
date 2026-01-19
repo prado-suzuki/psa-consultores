@@ -7,9 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lock, Mail, User, ChevronDown } from "lucide-react";
-import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
-import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
 import {
   Accordion,
   AccordionContent,
@@ -110,14 +108,6 @@ const Ajuda = () => {
               Sua plataforma exclusiva de suporte e acompanhamento de projetos
             </p>
             
-            <div className="max-w-2xl mx-auto">
-              <WelcomeVideoCard
-                videoThumbnail={farmersIllustration}
-                videoTitle="Bem-vindo à Plataforma PSA"
-                videoDescription="Conheça todos os recursos disponíveis para você"
-                videoUrl="#"
-              />
-            </div>
           </div>
 
           {/* Bottom Section - Two Columns */}
