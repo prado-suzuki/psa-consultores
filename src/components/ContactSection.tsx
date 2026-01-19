@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, ArrowRight, Building2, Briefcase, BarChart3, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import logoPsa from "@/assets/logo-psa.png";
 
 const servicoOptions = [
   { value: "consultoria_tributaria", label: "Consultoria Tributária" },
@@ -164,39 +164,69 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 bg-gray-50 overflow-hidden">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex justify-center">
+    <section id="contato" className="py-20 md:py-28 bg-gray-50 overflow-hidden relative">
+      {/* Background Logo */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <img 
+          src={logoPsa} 
+          alt="" 
+          className="w-[600px] md:w-[800px] opacity-5"
+        />
+      </div>
+
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          {/* Coluna Esquerda - Texto Explicativo */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="lg:sticky lg:top-24"
+          >
+            <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-6">
+              Fale com nossa equipe
+            </h3>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              Preencha o formulário ao lado e nossa equipe de especialistas 
+              entrará em contato para entender suas necessidades e apresentar 
+              as melhores soluções para o seu negócio.
+            </p>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Atendemos empresas de todos os portes, com foco especial no 
+              agronegócio e empresas familiares.
+            </p>
+            <p className="text-sm text-lime-600 font-medium">
+              Retorno em até 24 horas.
+            </p>
+          </motion.div>
+
+          {/* Coluna Direita - Formulário */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="w-full max-w-xl"
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <form onSubmit={handleSubmit} className="bg-muted/30 rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
-              
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-6">
-                Envie sua necessidade
-              </h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
+              Envie sua necessidade
+            </h2>
 
+            <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
               {/* Nome */}
               <div className="space-y-2">
                 <Label htmlFor="nome_completo" className="text-foreground font-medium">
                   Nome Completo *
                 </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="nome_completo"
-                    name="nome_completo"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={formData.nome_completo}
-                    onChange={handleChange}
-                    className={`pl-10 bg-background ${errors.nome_completo ? 'border-destructive' : ''}`}
-                  />
-                </div>
+                <Input
+                  id="nome_completo"
+                  name="nome_completo"
+                  type="text"
+                  placeholder="Seu nome"
+                  value={formData.nome_completo}
+                  onChange={handleChange}
+                  className={`bg-background ${errors.nome_completo ? 'border-destructive' : ''}`}
+                />
                 {errors.nome_completo && (
                   <p className="text-sm text-destructive">{errors.nome_completo}</p>
                 )}
@@ -207,18 +237,15 @@ export const ContactSection = () => {
                 <Label htmlFor="email" className="text-foreground font-medium">
                   Email *
                 </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`pl-10 bg-background ${errors.email ? 'border-destructive' : ''}`}
-                  />
-                </div>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`bg-background ${errors.email ? 'border-destructive' : ''}`}
+                />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
                 )}
@@ -231,18 +258,15 @@ export const ContactSection = () => {
                   <Label htmlFor="telefone" className="text-foreground font-medium">
                     Telefone
                   </Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="telefone"
-                      name="telefone"
-                      type="tel"
-                      placeholder="(00) 00000-0000"
-                      value={formData.telefone}
-                      onChange={handleChange}
-                      className={`pl-10 bg-background ${errors.telefone ? 'border-destructive' : ''}`}
-                    />
-                  </div>
+                  <Input
+                    id="telefone"
+                    name="telefone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={formData.telefone}
+                    onChange={handleChange}
+                    className={`bg-background ${errors.telefone ? 'border-destructive' : ''}`}
+                  />
                   {errors.telefone && (
                     <p className="text-sm text-destructive">{errors.telefone}</p>
                   )}
@@ -253,18 +277,15 @@ export const ContactSection = () => {
                   <Label htmlFor="empresa" className="text-foreground font-medium">
                     Empresa
                   </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="empresa"
-                      name="empresa"
-                      type="text"
-                      placeholder="Nome da empresa"
-                      value={formData.empresa}
-                      onChange={handleChange}
-                      className={`pl-10 bg-background ${errors.empresa ? 'border-destructive' : ''}`}
-                    />
-                  </div>
+                  <Input
+                    id="empresa"
+                    name="empresa"
+                    type="text"
+                    placeholder="Nome da empresa"
+                    value={formData.empresa}
+                    onChange={handleChange}
+                    className={`bg-background ${errors.empresa ? 'border-destructive' : ''}`}
+                  />
                   {errors.empresa && (
                     <p className="text-sm text-destructive">{errors.empresa}</p>
                   )}
@@ -281,10 +302,7 @@ export const ContactSection = () => {
                   onValueChange={(value) => handleSelectChange("servico_interesse", value)}
                 >
                   <SelectTrigger className={`w-full bg-background ${errors.servico_interesse ? 'border-destructive' : ''}`}>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </div>
+                    <SelectValue placeholder="Selecione o serviço" />
                   </SelectTrigger>
                   <SelectContent>
                     {servicoOptions.map((option) => (
@@ -311,10 +329,7 @@ export const ContactSection = () => {
                     onValueChange={(value) => handleSelectChange("porte_empresa", value)}
                   >
                     <SelectTrigger className="w-full bg-background">
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder="Selecione" />
-                      </div>
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {porteOptions.map((option) => (
@@ -336,10 +351,7 @@ export const ContactSection = () => {
                     onValueChange={(value) => handleSelectChange("como_conheceu", value)}
                   >
                     <SelectTrigger className="w-full bg-background">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder="Selecione" />
-                      </div>
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {comoConheceuOptions.map((option) => (
@@ -356,16 +368,9 @@ export const ContactSection = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-3 group"
+                className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-3"
               >
-                {isSubmitting ? (
-                  "Enviando..."
-                ) : (
-                  <>
-                    Enviar Mensagem
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
+                {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
               </Button>
 
               {/* Mensagem de retorno */}
