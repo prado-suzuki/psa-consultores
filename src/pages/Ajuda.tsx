@@ -192,18 +192,6 @@ const Ajuda = () => {
                   diretamente com nossa equipe especializada.
                 </p>
                 
-                {/* Feature Tags */}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <span className="px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium">
-                    Suporte Dedicado
-                  </span>
-                  <span className="px-4 py-2 rounded-full border border-border text-foreground text-sm font-medium">
-                    Documentos Online
-                  </span>
-                  <span className="px-4 py-2 rounded-full border border-border text-foreground text-sm font-medium">
-                    Atendimento Ágil
-                  </span>
-                </div>
               </div>
             </div>
           </div>
