@@ -48,17 +48,13 @@ export const TestimonialsSection = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="flex flex-col justify-center"
           >
-            <blockquote className="text-xl md:text-2xl lg:text-3xl text-gray-700 leading-relaxed font-light italic">
+            <p className="text-gray-600 leading-relaxed italic border-l-4 border-emerald-600 pl-4">
               "Nossa abordagem integra conhecimento interdisciplinar nas áreas{" "}
-              <span className="text-lime-600 font-medium">fiscal</span>,{" "}
-              <span className="text-lime-600 font-medium">contábil</span>,{" "}
-              <span className="text-lime-600 font-medium">tributária</span>,{" "}
-              <span className="text-lime-600 font-medium">societária</span>,{" "}
-              <span className="text-lime-600 font-medium">gestão</span> e{" "}
-              <span className="text-lime-600 font-medium">governança</span>, para{" "}
-              <span className="text-lime-600 font-medium">gerar valor</span> no presente e{" "}
-              <span className="text-lime-600 font-medium">potencializar o futuro</span> dos nossos clientes"
-            </blockquote>
+              <span className="text-emerald-600 font-medium">
+                fiscal, contábil, tributária, societária, gestão e governança
+              </span>
+              , para gerar valor no presente e potencializar o futuro dos nossos clientes."
+            </p>
           </motion.div>
           
         </div>
