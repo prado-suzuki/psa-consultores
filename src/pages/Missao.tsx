@@ -80,6 +80,29 @@ const Missao = () => {
         </div>
       </section>
 
+      {/* Vídeo Institucional */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="aspect-video rounded-xl overflow-hidden shadow-xl border border-gray-200">
+              <iframe
+                src="https://www.youtube.com/embed/9E-EcRz-Gig"
+                title="PSA Consultores"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Visão Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
