@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lock, Mail, User, ChevronDown } from "lucide-react";
+import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
+import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
 import {
   Accordion,
   AccordionContent,
@@ -108,6 +110,14 @@ const Ajuda = () => {
               Sua plataforma exclusiva de suporte e acompanhamento de projetos
             </p>
             
+            <div className="max-w-2xl mx-auto">
+              <WelcomeVideoCard
+                videoThumbnail={farmersIllustration}
+                videoTitle="Bem-vindo à Plataforma PSA"
+                videoDescription="Conheça todos os recursos disponíveis para você"
+                videoUrl="#"
+              />
+            </div>
           </div>
 
           {/* Bottom Section - Two Columns */}
@@ -196,6 +206,16 @@ const Ajuda = () => {
             {/* Right Column - FAQ Section */}
             <div className="w-full lg:w-1/2">
               <div className="space-y-6">
+                {/* Header */}
+                <div className="space-y-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                    Dúvidas Frequentes
+                  </span>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                    Perguntas Frequentes
+                  </h2>
+                </div>
+                
                 {/* FAQ Accordion */}
                 <Accordion type="single" collapsible className="w-full">
                   {faqItems.slice(0, showAllFaqs ? faqItems.length : 3).map((item, index) => (
