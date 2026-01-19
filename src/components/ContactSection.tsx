@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, ArrowRight, Building2, MessageSquare, Briefcase, BarChart3, Search } from "lucide-react";
+import { User, Mail, Phone, ArrowRight, Building2, Briefcase, BarChart3, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,11 +73,6 @@ const contactSchema = z.object({
   como_conheceu: z.string()
     .optional()
     .or(z.literal('')),
-  mensagem: z.string()
-    .trim()
-    .max(500, "Mensagem muito longa")
-    .optional()
-    .or(z.literal('')),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
@@ -93,7 +88,6 @@ export const ContactSection = () => {
     servico_interesse: "",
     porte_empresa: "",
     como_conheceu: "",
-    mensagem: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
 
@@ -138,7 +132,7 @@ export const ContactSection = () => {
         servico_interesse: result.data.servico_interesse,
         porte_empresa: result.data.porte_empresa || null,
         como_conheceu: result.data.como_conheceu || null,
-        mensagem: result.data.mensagem || null,
+        mensagem: null,
       });
 
       if (error) throw error;
@@ -156,7 +150,6 @@ export const ContactSection = () => {
         servico_interesse: "",
         porte_empresa: "",
         como_conheceu: "",
-        mensagem: "",
       });
     } catch (error) {
       console.error("Error submitting contact form:", error);
@@ -184,7 +177,7 @@ export const ContactSection = () => {
             <form onSubmit={handleSubmit} className="bg-muted/30 rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
               
               <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-6">
-                Vamos Conversar
+                Envie sua necessidade
               </h2>
 
               {/* Nome */}
@@ -357,27 +350,6 @@ export const ContactSection = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Mensagem */}
-              <div className="space-y-2">
-                <Label htmlFor="mensagem" className="text-foreground font-medium">
-                  Observações <span className="text-muted-foreground font-normal">(opcional)</span>
-                </Label>
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Textarea
-                    id="mensagem"
-                    name="mensagem"
-                    placeholder="Alguma informação adicional?"
-                    value={formData.mensagem}
-                    onChange={handleChange}
-                    className={`pl-10 min-h-[100px] bg-background resize-none ${errors.mensagem ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.mensagem && (
-                  <p className="text-sm text-destructive">{errors.mensagem}</p>
-                )}
               </div>
 
               {/* Submit Button */}
