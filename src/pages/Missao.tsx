@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import psaChevron from "@/assets/icons/psa-chevron.png";
 
 const valores = [
   {
@@ -67,7 +68,10 @@ const Missao = () => {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Missão</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <img src={psaChevron} alt="" className="h-8 w-8 object-contain" />
+              <h2 className="text-3xl font-bold text-gray-900">Missão</h2>
+            </div>
             <p className="text-xl text-gray-600 leading-relaxed">
               Transformar a complexidade tributária em vantagem competitiva para empresas familiares 
               do agronegócio, oferecendo soluções personalizadas que protegem patrimônios e perpetuam legados.
@@ -86,7 +90,10 @@ const Missao = () => {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Visão</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <img src={psaChevron} alt="" className="h-8 w-8 object-contain" />
+              <h2 className="text-3xl font-bold text-gray-900">Visão</h2>
+            </div>
             <p className="text-xl text-gray-600 leading-relaxed">
               Ser a consultoria tributária mais confiável e inovadora para o agronegócio brasileiro, 
               reconhecida pela excelência técnica e pelo compromisso genuíno com o sucesso de nossos clientes.
@@ -105,7 +112,10 @@ const Missao = () => {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">Valores</h2>
+            <div className="flex items-center gap-3 mb-8">
+              <img src={psaChevron} alt="" className="h-8 w-8 object-contain" />
+              <h2 className="text-3xl font-bold text-gray-900">Valores</h2>
+            </div>
             
             <Table>
               <TableHeader>
