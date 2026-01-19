@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Menu, X, Users, User } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo-psa.png";
 import {
   Tooltip,
@@ -20,6 +20,24 @@ const navItems = [
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const scrollToSection = (sectionId: string) => {
+    const scroll = () => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    if (location.pathname === "/") {
+      scroll();
+    } else {
+      navigate("/");
+      setTimeout(scroll, 100);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-gray-900/80 backdrop-blur-sm">
@@ -46,15 +64,16 @@ export const Header = () => {
                   {item.label}
                 </Link>
               ) : (
-                <a
+                <button
                   key={item.id}
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
+                  onClick={() => {
+                    const sectionId = item.href.replace("/#", "");
+                    scrollToSection(sectionId);
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-50/80 transition-colors duration-200 hover:text-gray-50"
                 >
                   {item.label}
-                </a>
+                </button>
               )
             )}
           </nav>
@@ -122,16 +141,17 @@ export const Header = () => {
                   {item.label}
                 </Link>
               ) : (
-                <a
+                <button
                   key={item.id}
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
-                  className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => {
+                    const sectionId = item.href.replace("/#", "");
+                    scrollToSection(sectionId);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
                 >
                   {item.label}
-                </a>
+                </button>
               )
             )}
             <div className="h-px bg-gray-50/10 my-3" />
