@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import farmerIllustration from "@/assets/about/farmer-illustration.jpg";
+import psaLogo from "@/assets/about/psa-logo-quem-somos.png";
 
 export const AboutSection = () => {
   return (
@@ -36,9 +36,9 @@ export const AboutSection = () => {
             className="flex items-center justify-start md:-ml-16"
           >
             <img 
-              src={farmerIllustration} 
-              alt="Ilustração de agricultor trabalhando no campo"
-              className="w-full max-w-xl h-auto opacity-40 mix-blend-multiply"
+              src={psaLogo} 
+              alt="Logo PSA Consultores"
+              className="w-full max-w-md h-auto opacity-20"
             />
           </motion.div>
         </div>
