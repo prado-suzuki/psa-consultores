@@ -213,7 +213,7 @@ const Ajuda = () => {
                 
                 {/* FAQ Accordion */}
                 <Accordion type="single" collapsible className="w-full">
-                  {faqItems.slice(0, showAllFaqs ? faqItems.length : 3).map((item, index) => (
+                  {faqItems.slice(0, showAllFaqs ? faqItems.length : 5).map((item, index) => (
                     <AccordionItem 
                       key={index} 
                       value={`item-${index}`}
@@ -230,12 +230,12 @@ const Ajuda = () => {
                 </Accordion>
                 
                 {/* Ver mais / Ver menos button */}
-                {faqItems.length > 3 && (
+                {faqItems.length > 5 && (
                   <button
                     onClick={() => setShowAllFaqs(!showAllFaqs)}
                     className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm transition-colors"
                   >
-                    {showAllFaqs ? "Ver menos perguntas" : `Ver mais ${faqItems.length - 3} perguntas`}
+                    {showAllFaqs ? "Ver menos perguntas" : `Ver mais ${faqItems.length - 5} pergunta`}
                     <ChevronDown className={`w-4 h-4 transition-transform ${showAllFaqs ? "rotate-180" : ""}`} />
                   </button>
                 )}
