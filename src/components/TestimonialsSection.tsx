@@ -2,8 +2,21 @@ import { motion } from "framer-motion";
 
 export const TestimonialsSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-white overflow-hidden">
+    <section className="py-20 md:py-28 bg-gray-50 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Nossa Filosofia
+          </h2>
+        </motion.div>
+
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           
           {/* Coluna Esquerda: Vídeo */}
