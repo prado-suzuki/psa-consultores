@@ -370,10 +370,6 @@ export const ContactSection = () => {
                 {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
               </Button>
 
-              {/* Mensagem de retorno */}
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                Em até 24 horas, nossa equipe entrará em contato para começarmos nosso trabalho juntos.
-              </p>
             </form>
           </motion.div>
         </div>
