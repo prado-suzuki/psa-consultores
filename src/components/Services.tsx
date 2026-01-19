@@ -129,9 +129,9 @@ export const Services = () => {
             Nossos Serviços
           </h2>
           <p className="text-gray-600 text-lg">
-            Estratégias especializadas em tributação, governança e gestão
-            patrimonial para empresas do agronegócio, organizadas por pilares de
-            atuação.
+            Abordagem integra conhecimento interdisciplinar nas áreas fiscal, contábil, 
+            tributária, societária, gestão e governança, para gerar valor no presente 
+            e potencializar o futuro dos nossos clientes.
           </p>
         </motion.div>
 
