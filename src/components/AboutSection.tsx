@@ -33,7 +33,7 @@ export const AboutSection = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex items-center justify-center md:justify-end"
+            className="flex items-center justify-center"
           >
             <img 
               src={psaLogo} 
