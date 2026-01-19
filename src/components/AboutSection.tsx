@@ -25,6 +25,14 @@ export const AboutSection = () => {
             <p className="text-gray-600 leading-relaxed">
               Nossa atuação é pautada em cinco pilares fundamentais: Gestão, Tecnologia, Compliance, Foco no Cliente e Qualidade. Combinamos expertise técnica com profundo conhecimento do setor para entregar soluções que realmente transformam a realidade fiscal das empresas.
             </p>
+
+            <p className="text-gray-600 leading-relaxed italic border-l-4 border-emerald-600 pl-4 mt-2">
+              "Nossa abordagem integra conhecimento interdisciplinar nas áreas{" "}
+              <span className="text-emerald-600 font-medium">
+                fiscal, contábil, tributária, societária, gestão e governança
+              </span>
+              , para gerar valor no presente e potencializar o futuro dos nossos clientes."
+            </p>
           </motion.div>
 
           {/* Ilustração Integrada */}
