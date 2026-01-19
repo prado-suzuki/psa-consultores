@@ -47,14 +47,14 @@ export const TestimonialsSection = () => {
           >
             <blockquote className="text-xl md:text-2xl lg:text-3xl text-gray-700 leading-relaxed font-light italic">
               "Nossa abordagem integra conhecimento interdisciplinar nas áreas{" "}
-              <span className="text-lime-600 not-italic font-medium">fiscal</span>,{" "}
-              <span className="text-lime-600 not-italic font-medium">contábil</span>,{" "}
-              <span className="text-lime-600 not-italic font-medium">tributária</span>,{" "}
-              <span className="text-lime-600 not-italic font-medium">societária</span>,{" "}
-              <span className="text-lime-600 not-italic font-medium">gestão</span> e{" "}
-              <span className="text-lime-600 not-italic font-medium">governança</span>, para{" "}
-              <span className="text-lime-600 not-italic font-medium">gerar valor</span> no presente e{" "}
-              <span className="text-lime-600 not-italic font-medium">potencializar o futuro</span> dos nossos clientes"
+              <span className="text-lime-600 font-medium">fiscal</span>,{" "}
+              <span className="text-lime-600 font-medium">contábil</span>,{" "}
+              <span className="text-lime-600 font-medium">tributária</span>,{" "}
+              <span className="text-lime-600 font-medium">societária</span>,{" "}
+              <span className="text-lime-600 font-medium">gestão</span> e{" "}
+              <span className="text-lime-600 font-medium">governança</span>, para{" "}
+              <span className="text-lime-600 font-medium">gerar valor</span> no presente e{" "}
+              <span className="text-lime-600 font-medium">potencializar o futuro</span> dos nossos clientes"
             </blockquote>
           </motion.div>
           
