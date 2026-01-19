@@ -25,7 +25,7 @@ export const Footer = () => {
 
           {/* Copyright */}
           <p className="text-sm text-gray-400">
-            © 2024 PSA Consultores. Todos os direitos reservados.
+            © 2026 PSA Consultores. Todos os direitos reservados.
           </p>
 
           {/* Social Links */}
