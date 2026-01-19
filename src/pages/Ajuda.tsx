@@ -181,7 +181,7 @@ const Ajuda = () => {
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
                   Acompanhe seus projetos{" "}
                   <span className="text-primary">de forma simples e transparente</span>{" "}
-                  — do início ao resultado final.
+                  , do início ao resultado final.
                 </h2>
                 
                 {/* Description */}
