@@ -10,11 +10,14 @@ export const TestimonialsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12"
+          className="mb-12 space-y-4"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Nossa Filosofia
           </h2>
+          <p className="text-gray-600 leading-relaxed">
+            Transformamos complexidade burocrática em vantagem competitiva
+          </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
