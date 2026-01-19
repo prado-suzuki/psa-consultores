@@ -100,7 +100,7 @@ const pilares = [
   },
   {
     id: "juridico",
-    titulo: "Jurídico Preventivo",
+    titulo: "Antecipação de Provas",
     descricao: "Estratégias preventivas para redução de riscos processuais",
     imagem: consultoriaContabil,
     icone: Gavel,
