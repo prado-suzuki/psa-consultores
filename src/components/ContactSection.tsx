@@ -175,14 +175,14 @@ export const ContactSection = () => {
       </div>
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Coluna Esquerda - Texto Explicativo */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="lg:sticky lg:top-24"
+            className="flex flex-col justify-center"
           >
             <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-6">
               Fale com nossa equipe
@@ -208,9 +208,6 @@ export const ContactSection = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-              Envie sua necessidade
-            </h2>
 
             <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 md:p-8 space-y-5 border border-border/50">
               {/* Nome */}
