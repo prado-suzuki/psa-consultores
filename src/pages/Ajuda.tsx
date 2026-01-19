@@ -6,10 +6,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lock, Mail, User } from "lucide-react";
+import { Lock, Mail, User, ChevronDown } from "lucide-react";
 import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
 import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const faqItems = [
+  {
+    question: "Como acompanho o status do meu projeto?",
+    answer: "Após fazer login, você terá acesso ao dashboard com todos os seus projetos. Lá você pode visualizar prazos, etapas concluídas e próximos passos de cada projeto."
+  },
+  {
+    question: "Como posso entrar em contato com meu consultor?",
+    answer: "Através da plataforma, você pode abrir chamados diretamente para nossa equipe. Basta acessar a seção 'Chamados' e descrever sua dúvida ou solicitação."
+  },
+  {
+    question: "Onde encontro os documentos do meu projeto?",
+    answer: "Todos os documentos importantes ficam disponíveis na área do cliente, organizados por projeto. Você pode visualizar e fazer download a qualquer momento."
+  },
+  {
+    question: "Qual o prazo de resposta para chamados?",
+    answer: "Nossa equipe responde em até 24 horas úteis. Chamados urgentes são priorizados automaticamente pelo sistema."
+  },
+  {
+    question: "Como altero minha senha de acesso?",
+    answer: "Você pode solicitar a alteração de senha através do link 'Esqueci minha senha' na tela de login, ou diretamente nas configurações da sua conta após logado."
+  },
+  {
+    question: "Posso acessar a plataforma pelo celular?",
+    answer: "Sim! Nossa plataforma é totalmente responsiva e funciona perfeitamente em dispositivos móveis, tablets e desktops."
+  }
+];
 
 const Ajuda = () => {
   const navigate = useNavigate();
@@ -18,6 +51,7 @@ const Ajuda = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAllFaqs, setShowAllFaqs] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -169,29 +203,47 @@ const Ajuda = () => {
 
             </div>
 
-            {/* Right Column - Feature Text Section */}
+            {/* Right Column - FAQ Section */}
             <div className="w-full lg:w-1/2">
               <div className="space-y-6">
-                {/* Badge */}
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
-                  Plataforma Exclusiva
-                </span>
+                {/* Header */}
+                <div className="space-y-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                    Dúvidas Frequentes
+                  </span>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                    Perguntas Frequentes
+                  </h2>
+                </div>
                 
-                {/* Title with highlight */}
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-                  Acompanhe seus projetos{" "}
-                  <span className="text-primary">de forma simples e transparente</span>{" "}
-                  , do início ao resultado final.
-                </h2>
+                {/* FAQ Accordion */}
+                <Accordion type="single" collapsible className="w-full">
+                  {faqItems.slice(0, showAllFaqs ? faqItems.length : 3).map((item, index) => (
+                    <AccordionItem 
+                      key={index} 
+                      value={`item-${index}`}
+                      className="border-b border-border"
+                    >
+                      <AccordionTrigger className="text-left text-foreground hover:text-primary hover:no-underline py-4">
+                        {item.question}
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground pb-4">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
                 
-                {/* Description */}
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  Nossa plataforma foi desenvolvida para que você tenha visibilidade 
-                  completa sobre o andamento dos seus projetos. Acompanhe prazos, 
-                  acesse documentos importantes, abra chamados e comunique-se 
-                  diretamente com nossa equipe especializada.
-                </p>
-                
+                {/* Ver mais / Ver menos button */}
+                {faqItems.length > 3 && (
+                  <button
+                    onClick={() => setShowAllFaqs(!showAllFaqs)}
+                    className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm transition-colors"
+                  >
+                    {showAllFaqs ? "Ver menos perguntas" : `Ver mais ${faqItems.length - 3} perguntas`}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showAllFaqs ? "rotate-180" : ""}`} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
