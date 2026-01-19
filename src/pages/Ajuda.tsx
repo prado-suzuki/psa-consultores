@@ -196,16 +196,6 @@ const Ajuda = () => {
             {/* Right Column - FAQ Section */}
             <div className="w-full lg:w-1/2">
               <div className="space-y-6">
-                {/* Header */}
-                <div className="space-y-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
-                    Dúvidas Frequentes
-                  </span>
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                    Perguntas Frequentes
-                  </h2>
-                </div>
-                
                 {/* FAQ Accordion */}
                 <Accordion type="single" collapsible className="w-full">
                   {faqItems.slice(0, showAllFaqs ? faqItems.length : 3).map((item, index) => (
