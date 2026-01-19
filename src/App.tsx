@@ -44,6 +44,7 @@ import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoContatos from "./pages/gestao/GestaoContatos";
 import Novidades from "./pages/Novidades";
 import Ajuda from "./pages/Ajuda";
+import Missao from "./pages/Missao";
 import NotFound from "./pages/NotFound";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
@@ -59,6 +60,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/missao" element={<Missao />} />
             <Route path="/novidades" element={<Novidades />} />
             <Route path="/ajuda" element={<Ajuda />} />
             <Route path="/auth" element={<Auth />} />
