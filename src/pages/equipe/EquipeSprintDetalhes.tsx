@@ -43,6 +43,8 @@ interface Deliverable {
   estimated_hours: number | null;
   parent_id: string | null;
   task_code: string | null;
+  project_id: string | null;
+  process_id: string | null;
   profile?: { first_name: string; last_name: string };
 }
 
@@ -72,6 +74,17 @@ interface Profile {
   last_name: string;
 }
 
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  project_id: string | null;
+}
+
 
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
@@ -83,6 +96,8 @@ export default function EquipeSprintDetalhes() {
   const [events, setEvents] = useState<SprintEvent[]>([]);
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -100,7 +115,9 @@ export default function EquipeSprintDetalhes() {
     start_date: '',
     due_date: '',
     estimated_hours: '',
-    status: 'pending'
+    status: 'pending',
+    project_id: '',
+    process_id: ''
   });
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -115,7 +132,9 @@ export default function EquipeSprintDetalhes() {
     start_date: '',
     due_date: '',
     estimated_hours: '',
-    parent_id: ''
+    parent_id: '',
+    project_id: '',
+    process_id: ''
   });
   const [creating, setCreating] = useState(false);
 
@@ -184,6 +203,19 @@ export default function EquipeSprintDetalhes() {
         .eq("sprint_id", id);
       setMetrics(metricsData || []);
 
+      // Carregar projetos e processos
+      const { data: projectsData } = await supabase
+        .from("projects")
+        .select("id, name")
+        .order("name");
+      setProjects(projectsData || []);
+
+      const { data: processesData } = await supabase
+        .from("processes")
+        .select("id, name, project_id")
+        .order("name");
+      setProcesses(processesData || []);
+
       
     } catch (error: any) {
       console.error("Error fetching sprint data:", error);
@@ -228,7 +260,9 @@ export default function EquipeSprintDetalhes() {
       start_date: deliverable.start_date || sprint?.start_date || '',
       due_date: deliverable.due_date,
       estimated_hours: deliverable.estimated_hours?.toString() || '',
-      status: deliverable.status || 'pending'
+      status: deliverable.status || 'pending',
+      project_id: deliverable.project_id || '',
+      process_id: deliverable.process_id || ''
     });
     setEditModalOpen(true);
   };
@@ -247,7 +281,9 @@ export default function EquipeSprintDetalhes() {
         due_date: editForm.due_date,
         estimated_hours: editForm.estimated_hours ? parseFloat(editForm.estimated_hours) : null,
         status: editForm.status,
-        completed_at: editForm.status === 'completed' ? new Date().toISOString() : null
+        completed_at: editForm.status === 'completed' ? new Date().toISOString() : null,
+        project_id: editForm.project_id || null,
+        process_id: editForm.process_id || null
       };
 
       const { error } = await supabase
@@ -348,7 +384,9 @@ export default function EquipeSprintDetalhes() {
         due_date: createForm.due_date || sprint.end_date,
         estimated_hours: createForm.estimated_hours ? parseFloat(createForm.estimated_hours) : null,
         status: 'pending',
-        parent_id: createForm.parent_id || null
+        parent_id: createForm.parent_id || null,
+        project_id: createForm.project_id || null,
+        process_id: createForm.process_id || null
       };
 
       const { data, error } = await supabase
@@ -368,7 +406,9 @@ export default function EquipeSprintDetalhes() {
         start_date: '',
         due_date: '',
         estimated_hours: '',
-        parent_id: ''
+        parent_id: '',
+        project_id: '',
+        process_id: ''
       });
       toast({ title: "Tarefa criada com sucesso" });
     } catch (error: any) {
@@ -1032,7 +1072,9 @@ export default function EquipeSprintDetalhes() {
                     start_date: sprint?.start_date || '',
                     due_date: sprint?.end_date || '',
                     estimated_hours: '',
-                    parent_id: ''
+                    parent_id: '',
+                    project_id: '',
+                    process_id: ''
                   });
                   setCreateModalOpen(true);
                 }}
@@ -1881,6 +1923,54 @@ export default function EquipeSprintDetalhes() {
                 placeholder="Ex: 4"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-project">Projeto</Label>
+                <Select 
+                  value={editForm.project_id || "none"} 
+                  onValueChange={(value) => setEditForm(prev => ({ 
+                    ...prev, 
+                    project_id: value === "none" ? "" : value,
+                    process_id: value === "none" ? prev.process_id : "" // Reset process when project changes
+                  }))}
+                >
+                  <SelectTrigger id="edit-project">
+                    <SelectValue placeholder="Selecionar projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {projects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-process">Processo</Label>
+                <Select 
+                  value={editForm.process_id || "none"} 
+                  onValueChange={(value) => setEditForm(prev => ({ ...prev, process_id: value === "none" ? "" : value }))}
+                >
+                  <SelectTrigger id="edit-process">
+                    <SelectValue placeholder="Selecionar processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {processes
+                      .filter(proc => !editForm.project_id || proc.project_id === editForm.project_id)
+                      .map(proc => (
+                        <SelectItem key={proc.id} value={proc.id}>
+                          {proc.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="flex justify-between sm:justify-between">
@@ -2027,6 +2117,54 @@ export default function EquipeSprintDetalhes() {
                   value={createForm.due_date}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-project">Projeto</Label>
+                <Select 
+                  value={createForm.project_id || "none"} 
+                  onValueChange={(value) => setCreateForm(prev => ({ 
+                    ...prev, 
+                    project_id: value === "none" ? "" : value,
+                    process_id: value === "none" ? prev.process_id : "" // Reset process when project changes
+                  }))}
+                >
+                  <SelectTrigger id="create-project">
+                    <SelectValue placeholder="Selecionar projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {projects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-process">Processo</Label>
+                <Select 
+                  value={createForm.process_id || "none"} 
+                  onValueChange={(value) => setCreateForm(prev => ({ ...prev, process_id: value === "none" ? "" : value }))}
+                >
+                  <SelectTrigger id="create-process">
+                    <SelectValue placeholder="Selecionar processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {processes
+                      .filter(proc => !createForm.project_id || proc.project_id === createForm.project_id)
+                      .map(proc => (
+                        <SelectItem key={proc.id} value={proc.id}>
+                          {proc.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
