@@ -254,6 +254,7 @@ const ConsultaXMLs = () => {
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isDownloadingXml, setIsDownloadingXml] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [shouldAutoSelect, setShouldAutoSelect] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
@@ -459,14 +460,18 @@ const ConsultaXMLs = () => {
     }
   }, [error]);
 
-  // Auto-selecionar todos quando os dados carregam
+  // Auto-selecionar todos quando os dados carregam (apenas na primeira busca)
   useEffect(() => {
+    if (!shouldAutoSelect) return;
+    
     if (tipoDocumento === "nfe" && nfeRecords.length > 0) {
       setSelectedKeys(new Set(nfeRecords.map(r => r.chave_nfe)));
     } else if (tipoDocumento === "cte" && cteRecords.length > 0) {
       setSelectedKeys(new Set(cteRecords.map(r => r.chave_cte)));
     }
-  }, [nfeRecords, cteRecords, tipoDocumento]);
+    
+    setShouldAutoSelect(false);
+  }, [nfeRecords, cteRecords, tipoDocumento, shouldAutoSelect]);
 
   // Funções auxiliares de seleção
   const getAllCurrentKeys = (): string[] => {
@@ -547,6 +552,7 @@ const ConsultaXMLs = () => {
   const handleSearch = () => {
     setCurrentPage(1);
     setSearchTriggered(true);
+    setShouldAutoSelect(true);
     // Se já foi triggered antes, forçar refetch
     if (searchTriggered) {
       refetch();
@@ -574,7 +580,7 @@ const ConsultaXMLs = () => {
     try {
       for (const chave of keysArray) {
         try {
-          const url = `${API_BASE_URL}/api/v1/query/download/${docType}/xml/${chave}`;
+          const url = `${API_BASE_URL}/api/v1/query/download/${docType}/xml/${encodeURIComponent(chave)}`;
           
           const response = await fetchWithAuth(url, {
             method: "GET",
