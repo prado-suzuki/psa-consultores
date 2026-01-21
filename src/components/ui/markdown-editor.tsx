@@ -3,15 +3,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export interface MarkdownEditorProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
+export interface MarkdownEditorProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
   value: string;
   onChange: (value: string) => void;
 }
@@ -30,23 +24,20 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = value.substring(start, end);
-      
-      const newText = 
-        value.substring(0, start) + 
-        prefix + selectedText + suffix + 
-        value.substring(end);
-      
+
+      const newText = value.substring(0, start) + prefix + selectedText + suffix + value.substring(end);
+
       onChange(newText);
 
       // Restore cursor position after formatting
       setTimeout(() => {
         textarea.focus();
-        const newCursorPos = selectedText 
+        const newCursorPos = selectedText
           ? start + prefix.length + selectedText.length + suffix.length
           : start + prefix.length;
         textarea.setSelectionRange(
           selectedText ? start + prefix.length : newCursorPos,
-          selectedText ? start + prefix.length + selectedText.length : newCursorPos
+          selectedText ? start + prefix.length + selectedText.length : newCursorPos,
         );
       }, 0);
     };
@@ -58,44 +49,38 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = value.substring(start, end);
-      
+
       // Split selected text into lines and add list markers
-      const lines = selectedText.split('\n');
+      const lines = selectedText.split("\n");
       const formattedLines = lines.map((line, index) => {
-        if (line.trim() === '') return line;
-        const marker = ordered ? `${index + 1}. ` : '- ';
+        if (line.trim() === "") return line;
+        const marker = ordered ? `${index + 1}. ` : "- ";
         return marker + line;
       });
-      
-      const newText = formattedLines.join('\n');
-      
+
+      const newText = formattedLines.join("\n");
+
       // If no selection, just insert a list marker at the start of current line
       if (start === end) {
         // Find the start of current line
         const beforeCursor = value.substring(0, start);
-        const lineStart = beforeCursor.lastIndexOf('\n') + 1;
-        const marker = ordered ? '1. ' : '- ';
-        
-        const updatedValue = 
-          value.substring(0, lineStart) + 
-          marker + 
-          value.substring(lineStart);
-        
+        const lineStart = beforeCursor.lastIndexOf("\n") + 1;
+        const marker = ordered ? "1. " : "- ";
+
+        const updatedValue = value.substring(0, lineStart) + marker + value.substring(lineStart);
+
         onChange(updatedValue);
-        
+
         setTimeout(() => {
           textarea.focus();
           const newPos = start + marker.length;
           textarea.setSelectionRange(newPos, newPos);
         }, 0);
       } else {
-        const updatedValue = 
-          value.substring(0, start) + 
-          newText + 
-          value.substring(end);
-        
+        const updatedValue = value.substring(0, start) + newText + value.substring(end);
+
         onChange(updatedValue);
-        
+
         setTimeout(() => {
           textarea.focus();
           textarea.setSelectionRange(start, start + newText.length);
@@ -105,14 +90,14 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       // Ctrl/Cmd + B for bold
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
         e.preventDefault();
-        insertFormatting('**');
+        insertFormatting("**");
       }
       // Ctrl/Cmd + I for italic
-      if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "i") {
         e.preventDefault();
-        insertFormatting('*');
+        insertFormatting("*");
       }
     };
 
@@ -128,7 +113,7 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => insertFormatting('**')}
+                  onClick={() => insertFormatting("**")}
                 >
                   <Bold className="h-4 w-4" />
                 </Button>
@@ -145,7 +130,7 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => insertFormatting('*')}
+                  onClick={() => insertFormatting("*")}
                 >
                   <Italic className="h-4 w-4" />
                 </Button>
@@ -202,14 +187,9 @@ const MarkdownEditor = React.forwardRef<HTMLTextAreaElement, MarkdownEditorProps
           className="font-mono text-sm"
           {...props}
         />
-
-        {/* Help text */}
-        <p className="text-xs text-muted-foreground">
-          Suporta Markdown: **negrito**, *itálico*, - listas, 1. numeradas
-        </p>
       </div>
     );
-  }
+  },
 );
 
 MarkdownEditor.displayName = "MarkdownEditor";
