@@ -362,10 +362,14 @@ const EquipeDaily = () => {
   };
 
   const getMemberName = (userId: string) => {
+    console.log('getMemberName called for userId:', userId, 'teamMembers count:', teamMembers.length);
     const member = teamMembers.find(m => m.id === userId);
     if (member) {
-      return `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Sem nome';
+      const name = `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Sem nome';
+      console.log('Found member:', name);
+      return name;
     }
+    console.log('Member NOT found in teamMembers array. IDs available:', teamMembers.map(m => m.id));
     return userId === user?.id ? 'Você' : 'Membro da equipe';
   };
 
