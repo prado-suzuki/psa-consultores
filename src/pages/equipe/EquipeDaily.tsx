@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { renderMarkdown } from '@/lib/markdownRenderer';
 import { 
   Send,
   Clock,
@@ -581,10 +583,10 @@ const EquipeDaily = () => {
                   <CheckCircle className="h-4 w-4 text-gray-500" />
                   O que fiz ontem?
                 </Label>
-                <Textarea
+                <MarkdownEditor
                   value={form.did_yesterday}
-                  onChange={(e) => setForm({ ...form, did_yesterday: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900 min-h-[80px]"
+                  onChange={(value) => setForm({ ...form, did_yesterday: value })}
+                  className="bg-white"
                   placeholder="Descreva suas entregas de ontem..."
                   required
                 />
@@ -595,10 +597,10 @@ const EquipeDaily = () => {
                   <Clock className="h-4 w-4 text-gray-500" />
                   O que vou fazer hoje?
                 </Label>
-                <Textarea
+                <MarkdownEditor
                   value={form.will_do_today}
-                  onChange={(e) => setForm({ ...form, will_do_today: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900 min-h-[80px]"
+                  onChange={(value) => setForm({ ...form, will_do_today: value })}
+                  className="bg-white"
                   placeholder="Suas tarefas para hoje..."
                   required
                 />
@@ -831,21 +833,21 @@ const EquipeDaily = () => {
                     {standup.did_yesterday && (
                       <div className="mb-2">
                         <p className="text-xs text-gray-500 mb-1">Ontem:</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{standup.did_yesterday}</p>
+                        <div className="text-sm text-gray-700">{renderMarkdown(standup.did_yesterday)}</div>
                       </div>
                     )}
 
                     {standup.will_do_today && (
                       <div className="mb-2">
                         <p className="text-xs text-gray-500 mb-1">Hoje:</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{standup.will_do_today}</p>
+                        <div className="text-sm text-gray-700">{renderMarkdown(standup.will_do_today)}</div>
                       </div>
                     )}
 
                     {standup.blockers && (
                       <div className="p-2 bg-yellow-50 rounded border border-yellow-200">
                         <p className="text-xs text-yellow-700 mb-1">Bloqueio:</p>
-                        <p className="text-sm text-yellow-800 whitespace-pre-wrap">{standup.blockers}</p>
+                        <div className="text-sm text-yellow-800">{renderMarkdown(standup.blockers)}</div>
                       </div>
                     )}
                   </div>
@@ -871,20 +873,18 @@ const EquipeDaily = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label className="text-gray-700">O que fiz ontem?</Label>
-              <Textarea
+              <MarkdownEditor
                 value={editForm.did_yesterday}
-                onChange={(e) => setEditForm({ ...editForm, did_yesterday: e.target.value })}
-                className="min-h-[80px]"
+                onChange={(value) => setEditForm({ ...editForm, did_yesterday: value })}
                 placeholder="Descreva suas entregas de ontem..."
               />
             </div>
 
             <div className="space-y-2">
               <Label className="text-gray-700">O que vou fazer hoje?</Label>
-              <Textarea
+              <MarkdownEditor
                 value={editForm.will_do_today}
-                onChange={(e) => setEditForm({ ...editForm, will_do_today: e.target.value })}
-                className="min-h-[80px]"
+                onChange={(value) => setEditForm({ ...editForm, will_do_today: value })}
                 placeholder="Suas tarefas para hoje..."
               />
             </div>
