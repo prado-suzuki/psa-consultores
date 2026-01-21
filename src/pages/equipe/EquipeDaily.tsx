@@ -77,6 +77,7 @@ const EquipeDaily = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     did_yesterday: '',
@@ -115,10 +116,10 @@ const EquipeDaily = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (user && membersLoaded) {
       fetchStandups();
     }
-  }, [user]);
+  }, [user, membersLoaded, filterStartDate, filterEndDate, filterPerson, filterSprint]);
 
   const fetchTeamMembers = async () => {
     try {
@@ -141,6 +142,8 @@ const EquipeDaily = () => {
       }
     } catch (error) {
       console.error('Error fetching team members:', error);
+    } finally {
+      setMembersLoaded(true);
     }
   };
 
