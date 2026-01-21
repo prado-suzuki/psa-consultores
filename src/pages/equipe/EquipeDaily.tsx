@@ -123,6 +123,7 @@ const EquipeDaily = () => {
 
   const fetchTeamMembers = async () => {
     try {
+      // Buscar membros da equipe via user_roles
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -138,6 +139,28 @@ const EquipeDaily = () => {
 
         if (profilesData) {
           setTeamMembers(profilesData);
+        }
+      }
+
+      // Também buscar todos os perfis de quem tem daily (para garantir que apareçam os nomes)
+      const { data: standupUsers } = await supabase
+        .from('daily_standups')
+        .select('user_id');
+      
+      if (standupUsers && standupUsers.length > 0) {
+        const uniqueUserIds = [...new Set(standupUsers.map(s => s.user_id))];
+        
+        const { data: additionalProfiles } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', uniqueUserIds);
+
+        if (additionalProfiles) {
+          setTeamMembers(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const newMembers = additionalProfiles.filter(p => !existingIds.has(p.id));
+            return [...prev, ...newMembers];
+          });
         }
       }
     } catch (error) {
@@ -362,14 +385,10 @@ const EquipeDaily = () => {
   };
 
   const getMemberName = (userId: string) => {
-    console.log('getMemberName called for userId:', userId, 'teamMembers count:', teamMembers.length);
     const member = teamMembers.find(m => m.id === userId);
     if (member) {
-      const name = `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Sem nome';
-      console.log('Found member:', name);
-      return name;
+      return `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Sem nome';
     }
-    console.log('Member NOT found in teamMembers array. IDs available:', teamMembers.map(m => m.id));
     return userId === user?.id ? 'Você' : 'Membro da equipe';
   };
 
