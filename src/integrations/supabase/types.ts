@@ -425,6 +425,80 @@ export type Database = {
           },
         ]
       }
+      difal_decisao: {
+        Row: {
+          cod_ncm: string
+          decidido_em: string | null
+          decisao: string
+          id: string
+          id_icms_st_bq: string | null
+          sessao_id: string
+        }
+        Insert: {
+          cod_ncm: string
+          decidido_em?: string | null
+          decisao: string
+          id?: string
+          id_icms_st_bq?: string | null
+          sessao_id: string
+        }
+        Update: {
+          cod_ncm?: string
+          decidido_em?: string | null
+          decisao?: string
+          id?: string
+          id_icms_st_bq?: string | null
+          sessao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "difal_decisao_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "difal_sessao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      difal_sessao: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string | null
+          criado_em: string | null
+          id: string
+          periodo: string
+          request_original: Json
+          sincronizado_em: string | null
+          status: string
+          uf: string
+          usuario_id: string
+        }
+        Insert: {
+          cliente_id: string
+          cliente_nome?: string | null
+          criado_em?: string | null
+          id?: string
+          periodo: string
+          request_original: Json
+          sincronizado_em?: string | null
+          status?: string
+          uf: string
+          usuario_id: string
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string | null
+          criado_em?: string | null
+          id?: string
+          periodo?: string
+          request_original?: Json
+          sincronizado_em?: string | null
+          status?: string
+          uf?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string | null
