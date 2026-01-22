@@ -1,5 +1,15 @@
 import type { EFDColumnConfig } from '@/types/efd';
 
+// Colunas que devem ser ocultadas da análise (internas/técnicas)
+export const EFD_HIDDEN_COLUMNS = [
+  'uuid',
+  'id_arquivo', 
+  'id_pai',
+  'ID_ARQUIVO',
+  'ID_PAI',
+  'UUID',
+];
+
 // Colunas base para registros comuns (serão expandidas dinamicamente)
 export const EFD_BASE_COLUMNS: EFDColumnConfig[] = [
   // Bloco 0 - Abertura
@@ -38,16 +48,26 @@ export const EFD_COLUMN_GROUPS = [
 
 // Função para gerar colunas dinamicamente a partir dos dados JSON
 export function generateColumnsFromData(
-  dados: Record<string, any>[]
+  dados: Record<string, any>[],
+  hiddenColumns: string[] = EFD_HIDDEN_COLUMNS
 ): EFDColumnConfig[] {
   if (dados.length === 0) return [];
   
   const sample = dados[0];
-  return Object.keys(sample).map(key => ({
-    id: key,
-    label: formatColumnLabel(key),
-    group: inferGroupFromKey(key),
-  }));
+  const columns = Object.keys(sample)
+    .filter(key => !hiddenColumns.includes(key)) // Filtrar colunas ocultas
+    .map(key => ({
+      id: key,
+      label: formatColumnLabel(key),
+      group: inferGroupFromKey(key),
+    }));
+  
+  // Ordenar por grupo para melhor visualização
+  return columns.sort((a, b) => {
+    const indexA = EFD_COLUMN_GROUPS.indexOf(a.group);
+    const indexB = EFD_COLUMN_GROUPS.indexOf(b.group);
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+  });
 }
 
 function formatColumnLabel(key: string): string {
