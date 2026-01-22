@@ -27,6 +27,8 @@ import {
   Loader2,
   Filter,
   CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +46,7 @@ const ConsultaEFD = () => {
   const [selectedRegistro, setSelectedRegistro] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
@@ -82,6 +85,12 @@ const ConsultaEFD = () => {
     },
   });
 
+  // Obter CNPJ do contribuinte selecionado (apenas números)
+  const cnpjContribuinte = useMemo(() => {
+    const contrib = contribuintes?.find(c => c.id === selectedContribuinte);
+    return contrib?.cpf_cnpj?.replace(/\D/g, '') || '';
+  }, [contribuintes, selectedContribuinte]);
+
   // Hooks de dados - só busca após usuário acionar busca
   const { 
     data: overview, 
@@ -89,20 +98,31 @@ const ConsultaEFD = () => {
     error: errorOverview,
     refetch: refetchOverview 
   } = useEFDOverview({
-    enabled: searchTriggered && !!selectedContribuinte,
-    contribuinteId: selectedContribuinte,
+    enabled: searchTriggered && !!cnpjContribuinte,
+    cnpj: cnpjContribuinte,
     dataInicio: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : undefined,
     dataFim: dataFim ? format(dataFim, 'yyyy-MM-dd') : undefined,
   });
 
+  // Hook de detalhes com paginação
   const { 
     data: detail, 
     isLoading: loadingDetail, 
     error: errorDetail 
   } = useEFDDetail(
-    selectedArquivo?.id_arquivo,
-    selectedRegistro
+    selectedArquivo && selectedRegistro ? {
+      cnpj: overview?.cnpj || selectedArquivo.CNPJ,
+      idArquivo: selectedArquivo.ID_ARQUIVO,
+      registro: selectedRegistro,
+      page: currentPage,
+      limit: 100,
+    } : undefined
   );
+
+  // Resetar página quando mudar registro
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedRegistro]);
 
   // Quando overview carregar, selecionar primeiro bloco
   useEffect(() => {
@@ -148,6 +168,7 @@ const ConsultaEFD = () => {
   const handleAnalisar = (arquivo: EFDArquivo) => {
     setSelectedArquivo(arquivo);
     setViewMode('analise');
+    setCurrentPage(1);
   };
 
   // Handler para voltar à lista
@@ -155,6 +176,7 @@ const ConsultaEFD = () => {
     setViewMode('lista');
     setSelectedArquivo(null);
     setSearchTerm('');
+    setCurrentPage(1);
   };
 
   // Handler para buscar arquivos
@@ -163,6 +185,14 @@ const ConsultaEFD = () => {
       toast({
         title: "Selecione um contribuinte",
         description: "É necessário selecionar um contribuinte para buscar os arquivos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!cnpjContribuinte) {
+      toast({
+        title: "CNPJ não encontrado",
+        description: "O contribuinte selecionado não possui CNPJ cadastrado.",
         variant: "destructive",
       });
       return;
@@ -189,19 +219,21 @@ const ConsultaEFD = () => {
   };
 
   // Formatar moeda
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: string | number) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(numValue || 0);
   };
 
   // Exibir erro se houver
   useEffect(() => {
     if (errorOverview) {
+      const errorMessage = errorOverview instanceof Error ? errorOverview.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao carregar dados',
-        description: 'Não foi possível carregar os arquivos EFD. Verifique se o arquivo JSON está no bucket.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -216,6 +248,11 @@ const ConsultaEFD = () => {
   const registrosBloco = selectedBloco && overview?.blocos_disponiveis[selectedBloco]
     ? overview.blocos_disponiveis[selectedBloco]
     : [];
+
+  // Paginação
+  const totalPaginas = detail?.paginacao?.total_paginas || 1;
+  const podeIrAnterior = currentPage > 1;
+  const podeIrProxima = currentPage < totalPaginas;
 
   return (
     <DevLayout 
@@ -415,6 +452,7 @@ const ConsultaEFD = () => {
                         <TableHead className="font-semibold">Arquivo</TableHead>
                         <TableHead className="font-semibold">Período</TableHead>
                         <TableHead className="font-semibold">Tipo</TableHead>
+                        <TableHead className="font-semibold">UF</TableHead>
                         <TableHead className="font-semibold text-right">PIS Devido</TableHead>
                         <TableHead className="font-semibold text-right">COFINS Devido</TableHead>
                         <TableHead className="font-semibold text-center">Ações</TableHead>
@@ -422,32 +460,35 @@ const ConsultaEFD = () => {
                     </TableHeader>
                     <TableBody>
                       {overview.arquivos.map((arquivo) => (
-                        <TableRow key={arquivo.id_arquivo} className="hover:bg-muted/30">
+                        <TableRow key={arquivo.ID_ARQUIVO} className="hover:bg-muted/30">
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <p className="font-medium text-sm">{arquivo.identificacao.NOME}</p>
-                                <p className="text-xs text-muted-foreground">{arquivo.id_arquivo}</p>
+                                <p className="font-medium text-sm">{arquivo.NOME}</p>
+                                <p className="text-xs text-muted-foreground">{arquivo.ID_ARQUIVO}</p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1.5 text-sm">
                               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                              {arquivo.identificacao.DT_INI} a {arquivo.identificacao.DT_FIN}
+                              {arquivo.DT_INI} a {arquivo.DT_FIN}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={arquivo.identificacao.TIPO_ESCRIT === '0' ? 'default' : 'secondary'}>
-                              {arquivo.identificacao.TIPO_ESCRIT === '0' ? 'Original' : 'Retificadora'}
+                            <Badge variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'}>
+                              {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(arquivo.totais.pis_devido)}
+                          <TableCell>
+                            <span className="text-sm">{arquivo.UF}</span>
                           </TableCell>
                           <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(arquivo.totais.cofins_devido)}
+                            {formatCurrency(arquivo.pis_devido)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {formatCurrency(arquivo.cofins_devido)}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button 
@@ -467,7 +508,7 @@ const ConsultaEFD = () => {
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">Nenhum arquivo encontrado</p>
-                  <p className="text-sm mt-1">Verifique se o arquivo EFD_CONTRIBUICOES_N1.json está no bucket.</p>
+                  <p className="text-sm mt-1">Verifique os filtros e tente novamente.</p>
                 </div>
               )}
             </CardContent>
@@ -493,13 +534,18 @@ const ConsultaEFD = () => {
                 <div>
                   <h2 className="text-lg font-semibold flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    {selectedArquivo?.identificacao.NOME}
+                    {selectedArquivo?.NOME}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Período: {selectedArquivo?.identificacao.DT_INI} a {selectedArquivo?.identificacao.DT_FIN}
+                    Período: {selectedArquivo?.DT_INI} a {selectedArquivo?.DT_FIN}
                     <Badge variant="outline" className="ml-2">
-                      {selectedArquivo?.identificacao.TIPO_ESCRIT === '0' ? 'Original' : 'Retificadora'}
+                      {selectedArquivo?.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                     </Badge>
+                    {selectedArquivo?.UF && (
+                      <Badge variant="outline" className="ml-2">
+                        {selectedArquivo.UF}
+                      </Badge>
+                    )}
                   </p>
                 </div>
 
@@ -517,7 +563,7 @@ const ConsultaEFD = () => {
                   <EFDExportDialog
                     data={filteredData}
                     registro={selectedRegistro}
-                    idArquivo={selectedArquivo?.id_arquivo || ''}
+                    idArquivo={selectedArquivo?.ID_ARQUIVO || ''}
                     disabled={loadingDetail || filteredData.length === 0}
                   />
                 </div>
@@ -567,7 +613,9 @@ const ConsultaEFD = () => {
                     <div className="p-12 text-center text-muted-foreground">
                       <Info className="h-10 w-10 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">Erro ao carregar detalhes</p>
-                      <p className="text-sm mt-1">Verifique se o arquivo EFD_CONTRIBUICOES_N2.json está no bucket.</p>
+                      <p className="text-sm mt-1">
+                        {errorDetail instanceof Error ? errorDetail.message : 'Erro desconhecido'}
+                      </p>
                     </div>
                   ) : filteredData.length === 0 ? (
                     <div className="p-12 text-center text-muted-foreground">
@@ -613,15 +661,38 @@ const ConsultaEFD = () => {
                     </ScrollArea>
                   )}
 
-                  {/* Footer com info de paginação */}
+                  {/* Footer com info de paginação e controles */}
                   {detail?.paginacao && (
-                    <div className="px-4 py-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
-                      <span>
+                    <div className="px-4 py-3 border-t bg-muted/30 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
                         Exibindo {filteredData.length} de {detail.paginacao.total_registros} registros
                       </span>
-                      <span>
-                        Página {detail.paginacao.page}
-                      </span>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          Página {detail.paginacao.page} de {detail.paginacao.total_paginas}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={!podeIrAnterior || loadingDetail}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={!podeIrProxima || loadingDetail}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
