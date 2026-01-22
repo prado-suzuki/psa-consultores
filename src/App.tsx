@@ -38,6 +38,7 @@ import DevDashboard from "./pages/equipe/dev/DevDashboard";
 import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
 import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
 import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
+import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/equipe/dev/nova-ferramenta" element={<TeamRoute><NovaFerramenta /></TeamRoute>} />
             <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><DetalheFerramenta /></TeamRoute>} />
             <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><ConsultaXMLs /></TeamRoute>} />
+            <Route path="/equipe/dev/consulta-efd" element={<TeamRoute><ConsultaEFD /></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><GerenciarDados /></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             
