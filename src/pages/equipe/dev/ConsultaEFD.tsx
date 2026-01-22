@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview, useEFDDetail } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
-import { generateColumnsFromData, formatEFDValue } from '@/constants/efdConfig';
+import { generateColumnsFromData, formatEFDValue, EFD_COLUMN_GROUPS } from '@/constants/efdConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -145,11 +145,30 @@ const ConsultaEFD = () => {
     }
   }, [selectedBloco, overview]);
 
-  // Gerar colunas dinâmicas a partir dos dados
+  // Gerar colunas dinâmicas a partir dos dados (já ordenadas por grupo)
   const dynamicColumns = useMemo(() => {
     if (!detail?.dados || detail.dados.length === 0) return [];
     return generateColumnsFromData(detail.dados);
   }, [detail]);
+
+  // Agrupar colunas por categoria para renderizar separação visual
+  const columnGroups = useMemo(() => {
+    if (dynamicColumns.length === 0) return [];
+    
+    const groups: { name: string; columns: typeof dynamicColumns }[] = [];
+    let currentGroup = '';
+    
+    dynamicColumns.forEach(col => {
+      if (col.group !== currentGroup) {
+        currentGroup = col.group;
+        groups.push({ name: col.group, columns: [col] });
+      } else {
+        groups[groups.length - 1].columns.push(col);
+      }
+    });
+    
+    return groups;
+  }, [dynamicColumns]);
 
   // Filtrar dados com busca
   const filteredData = useMemo(() => {
@@ -571,28 +590,54 @@ const ConsultaEFD = () => {
             </CardContent>
           </Card>
 
-          {/* Tabs de Registros e Grid */}
+          {/* Navegação em Dois Níveis: Blocos + Registros */}
           <Card className="overflow-hidden">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {/* Footer Tabs (abas de registros) */}
-              <div className="border-b bg-muted/30">
+            {/* NÍVEL 1: Tabs de Blocos */}
+            <div className="border-b bg-muted/50">
+              <ScrollArea className="w-full">
+                <div className="flex items-center px-2">
+                  {blocosDisponiveis.map(bloco => (
+                    <button
+                      key={bloco}
+                      onClick={() => setSelectedBloco(bloco)}
+                      className={cn(
+                        "px-4 py-2.5 text-sm font-medium transition-colors border-b-2",
+                        selectedBloco === bloco
+                          ? "border-primary text-primary bg-background"
+                          : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      Bloco {bloco}
+                    </button>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+
+            {/* NÍVEL 2: Tabs de Registros do Bloco */}
+            <Tabs value={activeTab} onValueChange={(value) => {
+              setActiveTab(value);
+              setSelectedRegistro(value);
+              setCurrentPage(1);
+            }}>
+              <div className="border-b bg-background">
                 <ScrollArea className="w-full">
-                  <TabsList className="h-10 bg-transparent p-0 justify-start">
+                  <TabsList className="h-9 bg-transparent p-0 justify-start gap-0">
                     {registrosBloco.map(reg => (
                       <TabsTrigger
                         key={reg.codigo}
                         value={reg.codigo}
-                        className="data-[state=active]:bg-background rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4"
-                        onClick={() => setSelectedRegistro(reg.codigo)}
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/30 px-3 py-1.5 text-xs"
                       >
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span>{reg.codigo}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{reg.descricao}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                        <div className="flex flex-col items-start">
+                          <span className="font-mono font-medium">{reg.codigo.replace('REG_', '')}</span>
+                          {reg.descricao && (
+                            <span className="text-[10px] text-muted-foreground max-w-[100px] truncate">
+                              {reg.descricao}
+                            </span>
+                          )}
+                        </div>
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -630,28 +675,62 @@ const ConsultaEFD = () => {
                       <div className="min-w-max">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-muted/50">
-                              {dynamicColumns.map(col => (
-                                <TableHead 
-                                  key={col.id} 
-                                  className="whitespace-nowrap text-xs font-semibold"
+                            {/* Header de Grupos (primeira linha) */}
+                            <TableRow className="bg-muted/70 border-b-2 border-muted">
+                              {columnGroups.map((group, groupIdx) => (
+                                <TableHead
+                                  key={group.name}
+                                  colSpan={group.columns.length}
+                                  className={cn(
+                                    "text-center font-semibold text-xs py-1.5 bg-muted/50",
+                                    groupIdx > 0 && "border-l-2 border-muted-foreground/20"
+                                  )}
                                 >
-                                  {col.label}
+                                  {group.name}
                                 </TableHead>
                               ))}
+                            </TableRow>
+                            
+                            {/* Header de Colunas (segunda linha) */}
+                            <TableRow className="bg-muted/30">
+                              {dynamicColumns.map((col, idx) => {
+                                // Verificar se é primeira coluna do grupo
+                                const isFirstOfGroup = idx === 0 || 
+                                  dynamicColumns[idx - 1].group !== col.group;
+                                
+                                return (
+                                  <TableHead
+                                    key={col.id}
+                                    className={cn(
+                                      "whitespace-nowrap text-xs font-medium py-2",
+                                      isFirstOfGroup && idx > 0 && "border-l-2 border-muted-foreground/20"
+                                    )}
+                                  >
+                                    {col.label}
+                                  </TableHead>
+                                );
+                              })}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filteredData.map((row, idx) => (
                               <TableRow key={idx} className="hover:bg-muted/30">
-                                {dynamicColumns.map(col => (
-                                  <TableCell 
-                                    key={col.id} 
-                                    className="whitespace-nowrap text-xs py-2"
-                                  >
-                                    {formatEFDValue(row[col.id], col.id)}
-                                  </TableCell>
-                                ))}
+                                {dynamicColumns.map((col, colIdx) => {
+                                  const isFirstOfGroup = colIdx === 0 || 
+                                    dynamicColumns[colIdx - 1].group !== col.group;
+                                  
+                                  return (
+                                    <TableCell
+                                      key={col.id}
+                                      className={cn(
+                                        "whitespace-nowrap text-xs py-2",
+                                        isFirstOfGroup && colIdx > 0 && "border-l border-muted-foreground/10"
+                                      )}
+                                    >
+                                      {formatEFDValue(row[col.id], col.id)}
+                                    </TableCell>
+                                  );
+                                })}
                               </TableRow>
                             ))}
                           </TableBody>
