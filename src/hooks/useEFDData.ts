@@ -16,11 +16,19 @@ async function fetchStorageJson<T>(fileName: string): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-export function useEFDOverview() {
+interface UseEFDOverviewParams {
+  enabled?: boolean;
+  contribuinteId?: string;
+  dataInicio?: string;
+  dataFim?: string;
+}
+
+export function useEFDOverview(params?: UseEFDOverviewParams) {
   return useQuery({
-    queryKey: ['efd-overview'],
+    queryKey: ['efd-overview', params?.contribuinteId, params?.dataInicio, params?.dataFim],
     queryFn: () => fetchStorageJson<EFDOverview>('EFD_CONTRIBUICOES_N1.json'),
-    staleTime: 5 * 60 * 1000, // Cache 5 minutos
+    enabled: params?.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 }
