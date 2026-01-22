@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   FileText,
   ArrowLeft,
@@ -23,8 +25,15 @@ import {
   Building2,
   RefreshCw,
   Loader2,
+  Filter,
+  CalendarIcon,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { EFDViewMode, EFDArquivo, BlocoRegistro } from '@/types/efd';
 
 const ConsultaEFD = () => {
@@ -36,13 +45,55 @@ const ConsultaEFD = () => {
   const [activeTab, setActiveTab] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Hooks de dados
+  // Estados de filtros de busca
+  const [selectedCliente, setSelectedCliente] = useState<string>("");
+  const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
+  const [searchTriggered, setSearchTriggered] = useState(false);
+
+  // Query de clientes
+  const { data: clientes, isLoading: loadingClientes } = useQuery({
+    queryKey: ["clientes-efd"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cliente")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return data || [];
+    },
+  });
+
+  // Query de contribuintes (filtrado por cliente selecionado)
+  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
+    queryKey: ["contribuintes-efd", selectedCliente],
+    queryFn: async () => {
+      let query = supabase
+        .from("contribuinte")
+        .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .order("nome_razao_social");
+      
+      if (selectedCliente) {
+        query = query.eq("cliente_id", selectedCliente);
+      }
+      const { data } = await query;
+      return data || [];
+    },
+  });
+
+  // Hooks de dados - só busca após usuário acionar busca
   const { 
     data: overview, 
     isLoading: loadingOverview, 
     error: errorOverview,
     refetch: refetchOverview 
-  } = useEFDOverview();
+  } = useEFDOverview({
+    enabled: searchTriggered && !!selectedContribuinte,
+    contribuinteId: selectedContribuinte,
+    dataInicio: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : undefined,
+    dataFim: dataFim ? format(dataFim, 'yyyy-MM-dd') : undefined,
+  });
 
   const { 
     data: detail, 
@@ -106,6 +157,28 @@ const ConsultaEFD = () => {
     setSearchTerm('');
   };
 
+  // Handler para buscar arquivos
+  const handleSearch = () => {
+    if (!selectedContribuinte) {
+      toast({
+        title: "Selecione um contribuinte",
+        description: "É necessário selecionar um contribuinte para buscar os arquivos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSearchTriggered(true);
+  };
+
+  // Handler para limpar filtros
+  const handleClearFilters = () => {
+    setSelectedCliente("");
+    setSelectedContribuinte("");
+    setDataInicio(undefined);
+    setDataFim(undefined);
+    setSearchTriggered(false);
+  };
+
   // Formatar CNPJ
   const formatCNPJ = (cnpj: string) => {
     const cleaned = cnpj.replace(/\D/g, '');
@@ -157,9 +230,147 @@ const ConsultaEFD = () => {
         )
       }
     >
+      {/* Card de Filtros de Busca - sempre visível */}
+      <Card className="mb-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filtros de Busca
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* Cliente */}
+            <div className="flex-1 min-w-[180px]">
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                Cliente
+              </label>
+              <Select value={selectedCliente} onValueChange={(value) => {
+                setSelectedCliente(value);
+                setSelectedContribuinte("");
+                setSearchTriggered(false);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  {clientes?.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Contribuinte */}
+            <div className="flex-1 min-w-[220px]">
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                Contribuinte
+              </label>
+              <Select value={selectedContribuinte} onValueChange={(value) => {
+                setSelectedContribuinte(value);
+                setSearchTriggered(false);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  {contribuintes?.map((contrib) => (
+                    <SelectItem key={contrib.id} value={contrib.id}>
+                      {contrib.nome_razao_social} {contrib.cpf_cnpj ? `(${formatCNPJ(contrib.cpf_cnpj)})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Data Início */}
+            <div className="w-[160px]">
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                Data Início
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dataInicio && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-background border z-50" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dataInicio}
+                    onSelect={setDataInicio}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Data Fim */}
+            <div className="w-[160px]">
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                Data Fim
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dataFim && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-background border z-50" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dataFim}
+                    onSelect={setDataFim}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Barra de Ações */}
+          <div className="flex justify-end gap-3 pt-3 border-t">
+            <Button variant="ghost" onClick={handleClearFilters}>
+              Limpar Filtros
+            </Button>
+            <Button 
+              onClick={handleSearch} 
+              disabled={!selectedContribuinte}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {loadingOverview && searchTriggered ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4 mr-2" />
+              )}
+              Buscar Arquivos
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {viewMode === 'lista' ? (
+        searchTriggered ? (
         <div className="space-y-6">
-          {/* Card de Filtros */}
+          {/* Card de Resultados */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -168,67 +379,24 @@ const ConsultaEFD = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Filtro de Blocos */}
-              <div className="flex flex-wrap gap-4 items-end mb-4">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                    Bloco
-                  </label>
-                  <Select value={selectedBloco} onValueChange={setSelectedBloco}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um bloco" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {blocosDisponiveis.map(bloco => (
-                        <SelectItem key={bloco} value={bloco}>
-                          Bloco {bloco}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex-1 min-w-[200px]">
-                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                    Registro
-                  </label>
-                  <Select 
-                    value={selectedRegistro} 
-                    onValueChange={setSelectedRegistro}
-                    disabled={registrosBloco.length === 0}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um registro" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {registrosBloco.map(reg => (
-                        <SelectItem key={reg.codigo} value={reg.codigo}>
-                          {reg.codigo} - {reg.descricao}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => refetchOverview()}
-                  disabled={loadingOverview}
-                >
-                  {loadingOverview ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
               {/* CNPJ Info */}
               {overview?.cnpj && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                   <Building2 className="h-4 w-4" />
                   <span>CNPJ: {formatCNPJ(overview.cnpj)}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-6 w-6 ml-2"
+                    onClick={() => refetchOverview()}
+                    disabled={loadingOverview}
+                  >
+                    {loadingOverview ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                  </Button>
                 </div>
               )}
 
@@ -305,6 +473,17 @@ const ConsultaEFD = () => {
             </CardContent>
           </Card>
         </div>
+        ) : (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Selecione os filtros e clique em "Buscar Arquivos"</p>
+                <p className="text-sm mt-1">Escolha pelo menos um contribuinte para iniciar a busca.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )
       ) : (
         <div className="space-y-4">
           {/* Header da Análise */}
