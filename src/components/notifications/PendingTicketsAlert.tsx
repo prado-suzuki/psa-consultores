@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, MessageSquare, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTicketNotifications } from '@/hooks/useTicketNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface PendingTicketsAlertProps {
@@ -11,17 +12,45 @@ interface PendingTicketsAlertProps {
 
 export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { notifications, unreadCount, urgentCount, isLoading } = useTicketNotifications();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   
-  // Check sessionStorage on mount
+  // Get current notification IDs for comparison
+  const currentNotificationIds = useMemo(() => 
+    notifications.map(n => n.id).sort().join(','),
+    [notifications]
+  );
+  
+  // Check sessionStorage and detect new tickets
   useEffect(() => {
-    const dismissed = sessionStorage.getItem('pending-tickets-alert-dismissed');
-    if (dismissed === 'true') {
-      setIsDismissed(true);
+    if (!user?.id) return;
+    
+    const dismissKey = `pending-tickets-dismissed-${user.id}`;
+    const dismissedData = sessionStorage.getItem(dismissKey);
+    
+    if (!dismissedData) {
+      setIsDismissed(false);
+      return;
     }
-  }, []);
+    
+    try {
+      const { ids: dismissedIds } = JSON.parse(dismissedData);
+      const currentIds = notifications.map(n => n.id);
+      
+      // Check if there are new tickets that weren't in the dismissed list
+      const hasNewTickets = currentIds.some(id => !dismissedIds.includes(id));
+      
+      if (hasNewTickets && currentIds.length > 0) {
+        setIsDismissed(false);
+      } else {
+        setIsDismissed(true);
+      }
+    } catch {
+      setIsDismissed(false);
+    }
+  }, [user?.id, currentNotificationIds, notifications]);
   
   // Show alert after a short delay if there are notifications
   useEffect(() => {
@@ -49,9 +78,16 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
   }, [isVisible]);
   
   const handleDismiss = () => {
+    if (!user?.id) return;
+    
     setIsVisible(false);
     setIsDismissed(true);
-    sessionStorage.setItem('pending-tickets-alert-dismissed', 'true');
+    
+    const dismissKey = `pending-tickets-dismissed-${user.id}`;
+    sessionStorage.setItem(dismissKey, JSON.stringify({
+      ids: notifications.map(n => n.id),
+      timestamp: Date.now()
+    }));
   };
   
   const handleViewTickets = () => {

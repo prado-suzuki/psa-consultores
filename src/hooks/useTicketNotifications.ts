@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -53,6 +54,7 @@ function calcularPrazoNotification(updatedAt: string, activityStatus: string): T
 
 export function useTicketNotifications() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ['ticket-notifications', user?.id],
@@ -125,9 +127,35 @@ export function useTicketNotifications() {
       });
     },
     enabled: !!user?.id,
-    staleTime: 60000, // 1 minute
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000, // 30 seconds - reduced for faster updates
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
+  
+  // Realtime subscription for instant updates
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const channel = supabase
+      .channel(`ticket-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tickets',
+          filter: `assigned_to=eq.${user.id}`
+        },
+        () => {
+          // Refetch when any ticket assigned to user changes
+          queryClient.invalidateQueries({ queryKey: ['ticket-notifications', user.id] });
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
   
   const urgentCount = notifications.filter(n => n.prazoInfo.status === 'atrasado' || n.prazoInfo.status === 'urgente').length;
   

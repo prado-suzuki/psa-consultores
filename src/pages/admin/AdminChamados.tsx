@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -136,6 +137,7 @@ const departmentLabels: Record<string, string> = {
 
 export default function AdminChamados() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [agents, setAgents] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -419,6 +421,9 @@ export default function AdminChamados() {
           : 'Atribuição removida',
       });
 
+      // Invalidate notification cache for all users
+      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
+      
       fetchTickets();
     } catch (error) {
       toast({
