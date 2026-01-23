@@ -186,156 +186,9 @@ const EquipeDashboard = () => {
         </span>
       }
     >
-      {/* Active Sprint Card - Simplified */}
-      {activeSprint ? (
-        <Card className="bg-white border-gray-200 mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-gray-900">{activeSprint.name}</h2>
-                <Badge className="bg-primary/10 text-primary border-0">Ativa</Badge>
-              </div>
-              <span className="text-sm text-gray-500">
-                {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-            {activeSprint.goal && (
-              <p className="text-gray-600 mb-4 text-sm">{activeSprint.goal}</p>
-            )}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 bg-gray-100 rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <span className="text-gray-900 font-semibold">{progressPercent}%</span>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-white border-gray-200 mb-6">
-          <CardContent className="py-8 text-center">
-            <p className="text-gray-500 mb-4">Nenhuma sprint ativa</p>
-            <Button 
-              variant="outline" 
-              className="border-gray-300 text-gray-600"
-              onClick={() => navigate('/equipe/sprints')}
-            >
-              Criar Sprint
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats Grid - Clean, no icons */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-gray-500 mb-1">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-gray-500 mb-1">A Fazer</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-gray-500 mb-1">Em Progresso</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border-gray-200">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-gray-500 mb-1">Concluídas</p>
-            <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row - Clean titles */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card className="bg-white border-gray-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-base font-medium">
-              Volume de Entregas por Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={volumeData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#6B7280', fontSize: 12 }} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
-                    formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
-                  />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {volumeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border-gray-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-gray-900 text-base font-medium">
-              Processos por Área
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={areaData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                    dataKey="count"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    labelLine={false}
-                  >
-                    {areaData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
-                    formatter={(value: number) => [`${value} processos`, 'Quantidade']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Hours Panel */}
-      <div className="mb-8">
-        <HorasAcumuladas 
-          sprintId={activeSprint?.id}
-          showRoutines={true}
-          title="Horas Alocadas por Pessoa"
-          maxHoursPerWeek={40}
-        />
-      </div>
-
-      {/* Tabs for Sprint/Rotina Filter */}
+      {/* Tabs no topo */}
       <Tabs defaultValue="sprint" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-6">
           <TabsTrigger value="sprint">Sprint</TabsTrigger>
           <TabsTrigger value="rotina">Rotina</TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
@@ -343,6 +196,154 @@ const EquipeDashboard = () => {
         </TabsList>
 
         <TabsContent value="sprint">
+          {/* Active Sprint Card */}
+          {activeSprint ? (
+            <Card className="bg-white border-gray-200 mb-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900">{activeSprint.name}</h2>
+                    <Badge className="bg-primary/10 text-primary border-0">Ativa</Badge>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+                {activeSprint.goal && (
+                  <p className="text-gray-600 mb-4 text-sm">{activeSprint.goal}</p>
+                )}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                    <div 
+                      className="bg-primary h-2.5 rounded-full transition-all"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <span className="text-gray-900 font-semibold">{progressPercent}%</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-white border-gray-200 mb-6">
+              <CardContent className="py-8 text-center">
+                <p className="text-gray-500 mb-4">Nenhuma sprint ativa</p>
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 text-gray-600"
+                  onClick={() => navigate('/equipe/sprints')}
+                >
+                  Criar Sprint
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-white border-gray-200">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-gray-500 mb-1">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-gray-500 mb-1">A Fazer</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-gray-500 mb-1">Em Progresso</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-gray-500 mb-1">Concluídas</p>
+                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <Card className="bg-white border-gray-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-gray-900 text-base font-medium">
+                  Volume de Entregas por Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={volumeData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
+                        formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
+                      />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                        {volumeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-gray-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-gray-900 text-base font-medium">
+                  Processos por Área
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={areaData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        dataKey="count"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        labelLine={false}
+                      >
+                        {areaData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
+                        formatter={(value: number) => [`${value} processos`, 'Quantidade']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Hours Panel */}
+          <div className="mb-8">
+            <HorasAcumuladas 
+              sprintId={activeSprint?.id}
+              showRoutines={true}
+              title="Horas Alocadas por Pessoa"
+              maxHoursPerWeek={40}
+            />
+          </div>
+
+          {/* My Deliverables List */}
           <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="text-gray-900 text-base font-medium">
