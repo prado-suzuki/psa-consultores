@@ -3,6 +3,7 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview, useEFDDetail } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { generateColumnsFromData, formatEFDValue, EFD_COLUMN_GROUPS } from '@/constants/efdConfig';
+import { getTableName } from '@/config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,25 +56,28 @@ const ConsultaEFD = () => {
   const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  // Query de clientes
+  // Query de clientes - usa tabela correta conforme ambiente
+  const clienteTable = getTableName('cliente');
+  const contribuinteTable = getTableName('contribuinte');
+  
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd"],
+    queryKey: ["clientes-efd", clienteTable],
     queryFn: async () => {
       const { data } = await supabase
-        .from("cliente")
+        .from(clienteTable as any)
         .select("id, nome")
         .eq("ativo", true)
         .order("nome");
-      return data || [];
+      return (data || []) as unknown as { id: string; nome: string }[];
     },
   });
 
   // Query de contribuintes (filtrado por cliente selecionado)
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd", selectedCliente],
+    queryKey: ["contribuintes-efd", contribuinteTable, selectedCliente],
     queryFn: async () => {
       let query = supabase
-        .from("contribuinte")
+        .from(contribuinteTable as any)
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
         .order("nome_razao_social");
       
@@ -81,7 +85,7 @@ const ConsultaEFD = () => {
         query = query.eq("cliente_id", selectedCliente);
       }
       const { data } = await query;
-      return data || [];
+      return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null; cliente_id: string }[];
     },
   });
 
