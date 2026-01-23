@@ -43,7 +43,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
-  { icon: ClipboardList, label: 'Demandas', path: '/equipe/demandas' },
+  // { icon: ClipboardList, label: 'Demandas', path: '/equipe/demandas' }, // OCULTO - dados em Projetos
   { 
     icon: FolderKanban, 
     label: 'Projetos', 
@@ -96,7 +96,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             <div className="flex flex-col items-center text-center">
               <img src={logoDark} alt="PSA" className="h-8 mb-1" />
               <h1 className="text-gray-900 font-semibold text-sm">Digital Rotina</h1>
-              <p className="text-xs text-gray-500">Gestão de Demandas</p>
+              <p className="text-xs text-gray-500">Gestão de Projetos</p>
             </div>
           )}
         </div>
