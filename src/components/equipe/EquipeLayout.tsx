@@ -21,7 +21,8 @@ import {
   Workflow,
   Library,
   ArrowLeft,
-  Layers
+  Layers,
+  Settings
 } from 'lucide-react';
 import logoDark from '@/assets/logo-psa-dark.png';
 
@@ -183,6 +184,23 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
             )
           ))}
+          
+          {/* Admin-only: Cadastros */}
+          {isAdmin && (
+            <Button
+              variant={isActive('/equipe/cadastros') ? "secondary" : "ghost"}
+              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
+                isActive('/equipe/cadastros')
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+              onClick={() => navigate('/equipe/cadastros')}
+              title={collapsed ? 'Cadastros' : undefined}
+            >
+              <Settings className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+              {!collapsed && 'Cadastros'}
+            </Button>
+          )}
         </nav>
 
         {/* Footer Actions */}

@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_clients: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          responsible: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          responsible?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          responsible?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cliente: {
         Row: {
           ativo: boolean | null
@@ -761,6 +794,7 @@ export type Database = {
       processes: {
         Row: {
           area: string | null
+          client_id: string | null
           code: string | null
           created_at: string
           created_by: string | null
@@ -777,6 +811,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          client_id?: string | null
           code?: string | null
           created_at?: string
           created_by?: string | null
@@ -793,6 +828,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          client_id?: string | null
           code?: string | null
           created_at?: string
           created_by?: string | null
@@ -808,6 +844,13 @@ export type Database = {
           volume_month?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processes_project_id_fkey"
             columns: ["project_id"]
@@ -954,6 +997,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          client_id: string | null
           client_name: string | null
           created_at: string | null
           created_by: string | null
@@ -966,6 +1010,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          client_id?: string | null
           client_name?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -978,6 +1023,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          client_id?: string | null
           client_name?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -989,7 +1035,15 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       routines: {
         Row: {
