@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FolderKanban, Workflow, CheckCircle2, Clock } from "lucide-react";
 
 interface Task {
   id: string;
@@ -32,16 +33,21 @@ export function GroupedTasks({ tasks }: { tasks: Task[] }) {
         <Card key={i}>
           <CardHeader className="py-3">
             <CardTitle className="flex items-center gap-2 text-sm">
-              <span>📁 {group.projectName}</span>
-              <span>-</span>
-              <span>⚙️ {group.processName}</span>
+              <FolderKanban className="h-4 w-4 text-muted-foreground" />
+              <span>{group.projectName}</span>
+              <span className="text-muted-foreground">-</span>
+              <Workflow className="h-4 w-4 text-muted-foreground" />
+              <span>{group.processName}</span>
               <Badge variant="secondary" className="ml-auto">{group.tasks.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {group.tasks.map(task => (
               <div key={task.id} className="flex items-center gap-2 py-1 text-sm">
-                <span>{task.status === 'concluido' ? '✅' : '⏳'}</span>
+                {task.status === 'concluido' 
+                  ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  : <Clock className="h-4 w-4 text-yellow-600" />
+                }
                 <span className="flex-1">{task.title}: {task.description}</span>
                 <span className="text-muted-foreground">{task.estimated_hours}h</span>
               </div>

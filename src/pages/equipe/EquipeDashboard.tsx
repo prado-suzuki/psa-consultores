@@ -192,7 +192,7 @@ const EquipeDashboard = () => {
           <TabsTrigger value="sprint">Sprint</TabsTrigger>
           <TabsTrigger value="rotina">Rotina</TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
-          <TabsTrigger value="impacto">🚀 Impacto Digital</TabsTrigger>
+          <TabsTrigger value="impacto">Impacto Digital</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sprint">

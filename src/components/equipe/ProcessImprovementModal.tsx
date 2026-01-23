@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, TrendingUp, Clock, DollarSign, Users } from 'lucide-react';
+import { Loader2, Plus, Trash2, TrendingUp, Clock, DollarSign, Users, CheckCircle2 } from 'lucide-react';
 
 interface JobRole {
   id: string;
@@ -469,7 +469,10 @@ export function ProcessImprovementModal({
           {results && (
             <Card className="bg-green-50 border-green-200">
               <CardContent className="pt-4">
-                <h4 className="font-semibold text-green-700 mb-3">✅ ROI Calculado</h4>
+                <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  ROI Calculado
+                </h4>
                 <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold">{results.time_saved_hours?.toFixed(1)}h</p>
