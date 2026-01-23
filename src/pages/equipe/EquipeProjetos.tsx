@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import * as XLSX from 'xlsx';
 import { 
   Plus,
   FolderKanban,
@@ -33,7 +34,9 @@ import {
   ListTodo,
   User,
   Workflow,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface Project {
@@ -111,6 +114,7 @@ const extractPhase = (description: string | null): string => {
 const EquipeProjetos = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -127,6 +131,12 @@ const EquipeProjetos = () => {
   const [loadingProcesses, setLoadingProcesses] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  
+  // Import state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+  
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -162,6 +172,110 @@ const EquipeProjetos = () => {
     volume_month: '',
     financial_impact: ''
   });
+
+  // Helper function to normalize column names
+  const normalizeColumnName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[_\s]+/g, " ")
+      .trim();
+  };
+
+  // Find column index by possible names
+  const findColumnIndex = (headers: string[], possibleNames: string[]): number => {
+    const normalizedHeaders = headers.map(h => h ? normalizeColumnName(String(h)) : "");
+    const normalizedNames = possibleNames.map(normalizeColumnName);
+    for (const name of normalizedNames) {
+      const idx = normalizedHeaders.indexOf(name);
+      if (idx !== -1) return idx;
+    }
+    for (const name of normalizedNames) {
+      const idx = normalizedHeaders.findIndex((h) => h.startsWith(name));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  // Handle file select for import
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const workbook = XLSX.read(evt.target?.result, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet);
+        setImportData(data);
+        setIsImportDialogOpen(true);
+      };
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ler o arquivo.",
+        variant: "destructive"
+      });
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle import projects
+  const handleImportProjects = async () => {
+    if (importData.length === 0) return;
+    
+    setImporting(true);
+    try {
+      const projectsToInsert = importData.map(row => ({
+        name: row.name || row.Nome || row.nome || '',
+        description: row.description || row.Descricao || row.descricao || row.Descrição || null,
+        status: row.status || row.Status || 'active',
+        client_name: row.client_name || row.Cliente || row.cliente || null,
+        start_date: row.start_date || row.Data_Inicio || row.data_inicio || null,
+        end_date: row.end_date || row.Data_Fim || row.data_fim || null,
+        created_by: user?.id
+      })).filter(p => p.name);
+
+      if (projectsToInsert.length === 0) {
+        toast({
+          title: "Erro",
+          description: "Nenhum projeto válido encontrado no arquivo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase.from('projects').insert(projectsToInsert);
+      
+      if (error) throw error;
+
+      toast({
+        title: "Projetos importados!",
+        description: `${projectsToInsert.length} projetos criados com sucesso.`,
+      });
+
+      setIsImportDialogOpen(false);
+      setImportData([]);
+      fetchProjects();
+    } catch (error) {
+      console.error('Error importing projects:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível importar os projetos.",
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -593,8 +707,26 @@ const EquipeProjetos = () => {
       subtitle={`${filteredProjects.length} projetos encontrados`}
       headerActions={
         <div className="flex items-center gap-2">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          
+          {/* Import Button */}
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Importar CSV
+          </Button>
+
           {/* View Toggle */}
-          <div className="flex items-center border border-gray-200 rounded-md">
+          <div className="flex items-center border border-border rounded-md">
             <Button
               variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
               size="sm"
@@ -620,65 +752,60 @@ const EquipeProjetos = () => {
                 Novo Projeto
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-white border-gray-200">
+            <DialogContent className="bg-background border-border">
               <DialogHeader>
-                <DialogTitle className="text-gray-900">Criar Novo Projeto</DialogTitle>
+                <DialogTitle>Criar Novo Projeto</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateProject} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-gray-700">Nome do Projeto *</Label>
+                  <Label htmlFor="name">Nome do Projeto *</Label>
                   <Input
                     id="name"
                     value={newProject.name}
                     onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
                     placeholder="Ex: Sistema de Gestão"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-gray-700">Descrição</Label>
+                  <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
                     value={newProject.description}
                     onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
                     placeholder="Descreva o projeto..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="client_name" className="text-gray-700">Cliente</Label>
+                  <Label htmlFor="client_name">Cliente</Label>
                   <Input
                     id="client_name"
                     value={newProject.client_name}
                     onChange={(e) => setNewProject({ ...newProject, client_name: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
                     placeholder="Nome do cliente"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="start_date" className="text-gray-700">Data Início</Label>
+                    <Label htmlFor="start_date">Data Início</Label>
                     <Input
                       id="start_date"
                       type="date"
                       value={newProject.start_date}
                       onChange={(e) => setNewProject({ ...newProject, start_date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="end_date" className="text-gray-700">Data Fim</Label>
+                    <Label htmlFor="end_date">Data Fim</Label>
                     <Input
                       id="end_date"
                       type="date"
                       value={newProject.end_date}
                       onChange={(e) => setNewProject({ ...newProject, end_date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                <Button type="submit" className="w-full">
                   Criar Projeto
                 </Button>
               </form>
@@ -687,6 +814,82 @@ const EquipeProjetos = () => {
         </div>
       }
     >
+      {/* Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Importar Projetos
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>{importData.length}</strong> projetos encontrados no arquivo.
+                Verifique os dados abaixo antes de confirmar a importação.
+              </p>
+            </div>
+            
+            {importData.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importData.slice(0, 10).map((row, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          {row.name || row.Nome || row.nome || '-'}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {row.description || row.Descricao || row.Descrição || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {row.client_name || row.Cliente || row.cliente || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {row.status || row.Status || 'active'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {importData.length > 10 && (
+                  <div className="p-2 text-center text-sm text-muted-foreground border-t">
+                    ... e mais {importData.length - 10} projetos
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsImportDialogOpen(false);
+                  setImportData([]);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleImportProjects}
+                disabled={importing || importData.length === 0}
+              >
+                {importing ? 'Importando...' : `Importar ${importData.length} Projetos`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
