@@ -36,7 +36,6 @@ import {
   Upload,
   FileSpreadsheet,
   FileText,
-  Sparkles,
   Loader2,
   Plus,
   TrendingUp,
@@ -46,8 +45,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MarkdownEditor } from '@/components/ui/markdown-editor';
-import { renderMarkdown } from '@/lib/markdownRenderer';
 import { Json } from '@/integrations/supabase/types';
 
 interface Process {
@@ -168,21 +165,20 @@ const EquipeProcessos = () => {
     priority: '',
     frequency: '',
     volume_month: '',
-    financial_impact: ''
+    financial_impact: '',
+    // Performance baseline fields
+    time_spent_hours: '',
+    time_spent_frequency: '',
+    cost_monthly: '',
+    volume_executions: '',
+    people_involved: '',
+    complexity_level: ''
   });
 
   // Import state
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
-
-  // Documentation state
-  const docFileInputRef = useRef<HTMLInputElement>(null);
-  const [documentationContent, setDocumentationContent] = useState('');
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [savingDocumentation, setSavingDocumentation] = useState(false);
-  const [processDocuments, setProcessDocuments] = useState<ProcessDocument[]>([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Handle file select for import
@@ -408,190 +404,9 @@ const EquipeProcessos = () => {
   const handleViewProcess = (process: Process) => {
     setSelectedProcess(process);
     setIsEditing(false);
-    setDocumentationContent(process.formatted_content || '');
     fetchProcessDetails(process.id);
-    fetchProcessDocuments(process.id);
   };
 
-  const fetchProcessDocuments = async (processId: string) => {
-    setLoadingDocuments(true);
-    try {
-      const { data, error } = await supabase
-        .from('project_documents')
-        .select('id, title, file_name, file_path, file_type, file_size, created_at')
-        .eq('process_id', processId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setProcessDocuments(data || []);
-    } catch (error) {
-      console.error('Error fetching process documents:', error);
-    } finally {
-      setLoadingDocuments(false);
-    }
-  };
-
-  const handleDocFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      // Read file content for text files
-      if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
-        const text = await file.text();
-        setDocumentationContent(text);
-        toast({
-          title: "Arquivo carregado",
-          description: "Conteúdo do arquivo foi importado. Use 'Reorganizar com IA' para formatar."
-        });
-      } else {
-        // For non-text files, upload directly
-        await uploadDocumentFile(file);
-      }
-    } catch (error) {
-      console.error('Error reading file:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível ler o arquivo.",
-        variant: "destructive"
-      });
-    }
-    
-    if (docFileInputRef.current) {
-      docFileInputRef.current.value = '';
-    }
-  };
-
-  const uploadDocumentFile = async (file: File) => {
-    if (!selectedProcess || !user) return;
-    
-    try {
-      const filePath = `processos/${selectedProcess.id}/${Date.now()}-${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('project-documents')
-        .upload(filePath, file);
-      
-      if (uploadError) throw uploadError;
-      
-      const { error: insertError } = await supabase
-        .from('project_documents')
-        .insert({
-          title: `Documentação - ${selectedProcess.name}`,
-          description: `Documento do processo ${selectedProcess.code || selectedProcess.name}`,
-          file_name: file.name,
-          file_path: filePath,
-          file_type: file.type,
-          file_size: file.size,
-          category: 'documentacao',
-          process_id: selectedProcess.id,
-          uploaded_by: user.id
-        });
-      
-      if (insertError) throw insertError;
-      
-      toast({
-        title: "Documento salvo",
-        description: "Arquivo foi salvo na biblioteca e vinculado ao processo."
-      });
-      
-      fetchProcessDocuments(selectedProcess.id);
-    } catch (error: any) {
-      console.error('Error uploading document:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const reorganizeWithAI = async () => {
-    if (!selectedProcess || !documentationContent.trim()) {
-      toast({
-        title: "Conteúdo vazio",
-        description: "Adicione o conteúdo do detalhamento antes de reorganizar.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsProcessingAI(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('restructure-process', {
-        body: {
-          conteudo: documentationContent,
-          processName: selectedProcess.name,
-          processCode: selectedProcess.code
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.conteudo_formatado) {
-        setDocumentationContent(data.conteudo_formatado);
-        toast({
-          title: "Conteúdo reorganizado!",
-          description: "O detalhamento foi formatado pela IA. Revise e salve."
-        });
-      } else if (data?.error) {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      console.error('Error processing with AI:', error);
-      toast({
-        title: "Erro ao processar",
-        description: error.message || "Não foi possível reorganizar com IA.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingAI(false);
-    }
-  };
-
-  const saveDocumentation = async () => {
-    if (!selectedProcess) return;
-    
-    setSavingDocumentation(true);
-    try {
-      const { error } = await supabase
-        .from('processes')
-        .update({
-          formatted_content: documentationContent,
-          last_ai_sync: new Date().toISOString()
-        })
-        .eq('id', selectedProcess.id);
-      
-      if (error) throw error;
-      
-      // Update local state
-      setProcesses(prev => 
-        prev.map(p => p.id === selectedProcess.id 
-          ? { ...p, formatted_content: documentationContent, last_ai_sync: new Date().toISOString() } 
-          : p
-        )
-      );
-      setSelectedProcess(prev => prev ? { 
-        ...prev, 
-        formatted_content: documentationContent, 
-        last_ai_sync: new Date().toISOString() 
-      } : null);
-      
-      toast({
-        title: "Documentação salva",
-        description: "O detalhamento do processo foi atualizado."
-      });
-    } catch (error: any) {
-      console.error('Error saving documentation:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setSavingDocumentation(false);
-    }
-  };
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return '-';
@@ -610,7 +425,14 @@ const EquipeProcessos = () => {
       priority: selectedProcess.priority || '',
       frequency: selectedProcess.frequency || '',
       volume_month: selectedProcess.volume_month?.toString() || '',
-      financial_impact: selectedProcess.financial_impact || ''
+      financial_impact: selectedProcess.financial_impact || '',
+      // Performance baseline fields
+      time_spent_hours: (selectedProcess as any).time_spent_hours?.toString() || '',
+      time_spent_frequency: (selectedProcess as any).time_spent_frequency || '',
+      cost_monthly: (selectedProcess as any).cost_monthly?.toString() || '',
+      volume_executions: (selectedProcess as any).volume_executions?.toString() || '',
+      people_involved: (selectedProcess as any).people_involved?.toString() || '',
+      complexity_level: (selectedProcess as any).complexity_level || ''
     });
     setIsEditing(true);
   };
@@ -633,7 +455,14 @@ const EquipeProcessos = () => {
         priority: editForm.priority || null,
         frequency: editForm.frequency.trim() || null,
         volume_month: editForm.volume_month ? parseInt(editForm.volume_month) : null,
-        financial_impact: editForm.financial_impact.trim() || null
+        financial_impact: editForm.financial_impact.trim() || null,
+        // Performance baseline fields
+        time_spent_hours: editForm.time_spent_hours ? parseFloat(editForm.time_spent_hours) : null,
+        time_spent_frequency: editForm.time_spent_frequency || null,
+        cost_monthly: editForm.cost_monthly ? parseFloat(editForm.cost_monthly) : null,
+        volume_executions: editForm.volume_executions ? parseInt(editForm.volume_executions) : null,
+        people_involved: editForm.people_involved ? parseInt(editForm.people_involved) : null,
+        complexity_level: editForm.complexity_level || null
       };
 
       const { error } = await supabase
@@ -1088,9 +917,8 @@ const EquipeProcessos = () => {
           </DialogHeader>
 
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="info">Informações</TabsTrigger>
-              <TabsTrigger value="docs" disabled={isEditing}>Documentação</TabsTrigger>
               <TabsTrigger value="stages" disabled={isEditing}>Etapas ({processStages.length})</TabsTrigger>
               <TabsTrigger value="projects" disabled={isEditing}>Projetos ({projectProcesses.length})</TabsTrigger>
             </TabsList>
@@ -1241,6 +1069,110 @@ const EquipeProcessos = () => {
                       </div>
                     </div>
                     
+                    {/* Performance Baseline Card */}
+                    <Card className="border-amber-200 bg-amber-50/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-amber-600" />
+                          Performance Baseline (Antes da Melhoria)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="edit-time-spent">Tempo Gasto (horas)</Label>
+                            <Input
+                              id="edit-time-spent"
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={editForm.time_spent_hours}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, time_spent_hours: e.target.value }))}
+                              placeholder="Ex: 4"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="edit-time-frequency">Frequência do Tempo</Label>
+                            <Select 
+                              value={editForm.time_spent_frequency || "none"} 
+                              onValueChange={(value) => setEditForm(prev => ({ ...prev, time_spent_frequency: value === "none" ? "" : value }))}
+                            >
+                              <SelectTrigger id="edit-time-frequency">
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Não definida</SelectItem>
+                                <SelectItem value="diária">Diária</SelectItem>
+                                <SelectItem value="semanal">Semanal</SelectItem>
+                                <SelectItem value="mensal">Mensal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="edit-cost-monthly">Custo Mensal (R$)</Label>
+                            <Input
+                              id="edit-cost-monthly"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editForm.cost_monthly}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, cost_monthly: e.target.value }))}
+                              placeholder="Ex: 5000"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="edit-volume-executions">Volume de Execuções</Label>
+                            <Input
+                              id="edit-volume-executions"
+                              type="number"
+                              min="0"
+                              value={editForm.volume_executions}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, volume_executions: e.target.value }))}
+                              placeholder="Ex: 100"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="edit-people-involved">Pessoas Envolvidas</Label>
+                            <Input
+                              id="edit-people-involved"
+                              type="number"
+                              min="0"
+                              value={editForm.people_involved}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, people_involved: e.target.value }))}
+                              placeholder="Ex: 3"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="edit-complexity">Complexidade</Label>
+                            <Select 
+                              value={editForm.complexity_level || "none"} 
+                              onValueChange={(value) => setEditForm(prev => ({ ...prev, complexity_level: value === "none" ? "" : value }))}
+                            >
+                              <SelectTrigger id="edit-complexity">
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Não definida</SelectItem>
+                                <SelectItem value="baixa">Baixa</SelectItem>
+                                <SelectItem value="média">Média</SelectItem>
+                                <SelectItem value="alta">Alta</SelectItem>
+                                <SelectItem value="crítica">Crítica</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-amber-700">
+                          💡 Preencha estes campos para permitir o cálculo automático de ROI quando melhorias forem implementadas.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={cancelEditing} disabled={saving}>
                         <X className="h-4 w-4 mr-1" />
@@ -1251,116 +1183,6 @@ const EquipeProcessos = () => {
                         {saving ? 'Salvando...' : 'Salvar Alterações'}
                       </Button>
                     </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Documentation Tab */}
-              <TabsContent value="docs" className="mt-0 space-y-4">
-                {/* Hidden file input for documentation */}
-                <input
-                  ref={docFileInputRef}
-                  type="file"
-                  accept=".md,.txt,.doc,.docx,.pdf"
-                  className="hidden"
-                  onChange={handleDocFileSelect}
-                />
-                
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => docFileInputRef.current?.click()}
-                  >
-                    <Upload className="h-4 w-4 mr-1" />
-                    Upload Arquivo
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={reorganizeWithAI}
-                    disabled={isProcessingAI || !documentationContent.trim()}
-                  >
-                    {isProcessingAI ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-1" />
-                    )}
-                    {isProcessingAI ? 'Processando...' : 'Reorganizar com IA'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={saveDocumentation}
-                    disabled={savingDocumentation}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    {savingDocumentation ? 'Salvando...' : 'Salvar Documentação'}
-                  </Button>
-                </div>
-                
-                {selectedProcess?.last_ai_sync && (
-                  <p className="text-xs text-muted-foreground">
-                    Última atualização: {new Date(selectedProcess.last_ai_sync).toLocaleString('pt-BR')}
-                  </p>
-                )}
-                
-                {/* Editor/Preview Tabs */}
-                <Tabs defaultValue="edit" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="edit">Editar</TabsTrigger>
-                    <TabsTrigger value="preview">Visualizar</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="edit" className="mt-2">
-                    <MarkdownEditor
-                      value={documentationContent}
-                      onChange={setDocumentationContent}
-                      placeholder="Cole ou digite o detalhamento do processo aqui...&#10;&#10;Dica: Use 'Reorganizar com IA' para formatar automaticamente."
-                      rows={15}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="preview" className="mt-2">
-                    <div className="border rounded-lg p-4 min-h-[300px] bg-muted/30 prose prose-sm max-w-none">
-                      {documentationContent ? (
-                        renderMarkdown(documentationContent)
-                      ) : (
-                        <p className="text-muted-foreground italic">Nenhum conteúdo para visualizar.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                
-                {/* Linked Documents */}
-                {processDocuments.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Documentos Vinculados ({processDocuments.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {processDocuments.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between bg-muted/50 p-2 rounded text-sm">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span>{doc.file_name}</span>
-                            <span className="text-muted-foreground text-xs">
-                              ({formatFileSize(doc.file_size)})
-                            </span>
-                          </div>
-                          <span className="text-muted-foreground text-xs">
-                            {new Date(doc.created_at).toLocaleDateString('pt-BR')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {loadingDocuments && (
-                  <div className="text-center text-muted-foreground py-4">
-                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                    Carregando documentos...
                   </div>
                 )}
               </TabsContent>
