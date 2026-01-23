@@ -15,7 +15,8 @@ import {
   Newspaper,
   MessageSquare,
   Users,
-  User
+  User,
+  MessageCircle
 } from 'lucide-react';
 
 interface GestaoLayoutProps {
@@ -167,6 +168,15 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              onClick={() => navigate('/gestao/chamados')}
+              title="Ver Chamados"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
             <NotificationPopover navigateTo="/gestao/chamados" />
             {headerActions}
           </div>

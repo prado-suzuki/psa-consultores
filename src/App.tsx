@@ -43,6 +43,7 @@ import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
+import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
 import GestaoContatos from "./pages/gestao/GestaoContatos";
 import Novidades from "./pages/Novidades";
 import Ajuda from "./pages/Ajuda";
@@ -109,6 +110,7 @@ const App = () => (
             {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
             <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
             <Route path="/gestao/chamados" element={<GestaoAccessGate><GestaoChamados /></GestaoAccessGate>} />
+            <Route path="/gestao/chamados/:id" element={<GestaoAccessGate><GestaoDetalhesChamado /></GestaoAccessGate>} />
             <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

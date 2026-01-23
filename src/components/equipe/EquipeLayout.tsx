@@ -274,6 +274,15 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              onClick={() => navigate('/equipe/chamados')}
+              title="Ver Chamados"
+            >
+              <MessageSquare className="h-5 w-5" />
+            </Button>
             <NotificationPopover navigateTo="/equipe/chamados" />
             {headerActions}
           </div>
