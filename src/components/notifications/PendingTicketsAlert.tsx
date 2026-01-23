@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, MessageSquare, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,29 +17,9 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   
-  // Get current notification IDs for comparison
-  const currentNotificationIds = useMemo(() => 
-    notifications.map(n => n.id).sort().join(','),
-    [notifications]
-  );
-  
-  // Memoize handleDismiss to use in useEffect
-  const handleDismiss = useCallback(() => {
-    if (!user?.id) return;
-    
-    setIsVisible(false);
-    setIsDismissed(true);
-    
-    const dismissKey = `pending-tickets-dismissed-${user.id}`;
-    sessionStorage.setItem(dismissKey, JSON.stringify({
-      ids: notifications.map(n => n.id),
-      timestamp: Date.now()
-    }));
-  }, [user?.id, notifications]);
-  
   // Check sessionStorage and detect new tickets
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isLoading) return;
     
     const dismissKey = `pending-tickets-dismissed-${user.id}`;
     const dismissedData = sessionStorage.getItem(dismissKey);
@@ -64,7 +44,7 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
     } catch {
       setIsDismissed(false);
     }
-  }, [user?.id, currentNotificationIds, notifications]);
+  }, [user?.id, notifications, isLoading]);
   
   // Show alert after a short delay if there are notifications
   useEffect(() => {
@@ -75,7 +55,7 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
     
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 1000); // 1 second delay for smooth entrance
+    }, 1000);
     
     return () => clearTimeout(timer);
   }, [isLoading, isDismissed, unreadCount]);
@@ -85,11 +65,31 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
     if (!isVisible) return;
     
     const timer = setTimeout(() => {
-      handleDismiss();
+      setIsVisible(false);
+      setIsDismissed(true);
+      if (user?.id) {
+        const dismissKey = `pending-tickets-dismissed-${user.id}`;
+        sessionStorage.setItem(dismissKey, JSON.stringify({
+          ids: notifications.map(n => n.id),
+          timestamp: Date.now()
+        }));
+      }
     }, 30000);
     
     return () => clearTimeout(timer);
-  }, [isVisible, handleDismiss]);
+  }, [isVisible, user?.id, notifications]);
+  
+  const handleDismiss = useCallback(() => {
+    setIsVisible(false);
+    setIsDismissed(true);
+    if (user?.id) {
+      const dismissKey = `pending-tickets-dismissed-${user.id}`;
+      sessionStorage.setItem(dismissKey, JSON.stringify({
+        ids: notifications.map(n => n.id),
+        timestamp: Date.now()
+      }));
+    }
+  }, [user?.id, notifications]);
   
   const handleViewTickets = useCallback(() => {
     handleDismiss();
@@ -106,14 +106,12 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
       )}
     >
       <div className="bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-        {/* Colored top bar based on urgency */}
         <div className={cn(
           "h-1",
           urgentCount > 0 ? "bg-destructive" : "bg-primary"
         )} />
         
         <div className="p-5">
-          {/* Header with close button */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className={cn(
@@ -149,7 +147,6 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
             </Button>
           </div>
           
-          {/* Description */}
           <p className="text-sm text-muted-foreground mb-4">
             {urgentCount > 0 
               ? 'Alguns chamados estão próximos do prazo ou atrasados. Acesse a área de chamados para responder.'
@@ -157,7 +154,6 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
             }
           </p>
           
-          {/* Actions */}
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
