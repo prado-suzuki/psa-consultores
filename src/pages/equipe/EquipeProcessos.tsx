@@ -165,6 +165,16 @@ const EquipeProcessos = () => {
     }
   };
 
+  // Extract area from Cliente column
+  const extractAreaFromCliente = (cliente: string | undefined): string => {
+    if (!cliente) return 'Geral';
+    const c = String(cliente).toLowerCase();
+    if (c.includes('fiscal') || c.includes('ricardo')) return 'Fiscal';
+    if (c.includes('consultoria') || c.includes('felipe')) return 'Consultoria';
+    if (c.includes('fixos') || c.includes('washington')) return 'Fixos';
+    return 'Transversal';
+  };
+
   // Handle import processes
   const handleImportProcesses = async () => {
     if (importData.length === 0) return;
@@ -174,24 +184,52 @@ const EquipeProcessos = () => {
     setImporting(true);
     try {
       const processesToInsert = importData.map(row => {
-        const stage = row.stage || row.Stage || row.fase || row.Fase || 'discovery';
+        // Map stage from Portuguese to English
+        let stage = row.stage || row.Stage || row.fase || row.Fase || 'discovery';
+        stage = String(stage).toLowerCase().trim();
+        
+        // Portuguese to English stage mapping
+        const stageMap: Record<string, string> = {
+          'descoberta': 'discovery',
+          'mapeamento': 'mapping',
+          'análise': 'analysis',
+          'analise': 'analysis',
+          'melhoria': 'improvement',
+          'automação': 'automation',
+          'automacao': 'automation',
+          'concluído': 'completed',
+          'concluido': 'completed'
+        };
+        const mappedStage = stageMap[stage] || stage;
+        
+        // Extract process name from multiple possible columns
+        const processName = row.Processo || row.processo || row.Process || row.name || row.Nome || row.nome || '';
+        
+        // Extract code
+        const code = row.Código || row.codigo || row.Code || row.code || null;
+        
+        // Extract area from Cliente or Area column
+        const areaFromCliente = extractAreaFromCliente(row.Cliente || row.cliente);
+        const area = row.area || row.Area || row.área || row.Área || areaFromCliente;
+        
         return {
-          name: row.name || row.Nome || row.nome || '',
-          description: row.description || row.Descricao || row.descricao || row.Descrição || null,
-          area: row.area || row.Area || row.área || null,
-          stage: validStages.includes(stage.toLowerCase()) ? stage.toLowerCase() : 'discovery',
-          priority: row.priority || row.Prioridade || row.prioridade || null,
+          name: String(processName).trim(),
+          code: code ? String(code).trim() : null,
+          description: row.description || row.Descricao || row.descricao || row.Descrição || row.Descriçao || null,
+          area: area,
+          stage: validStages.includes(mappedStage) ? mappedStage : 'discovery',
+          priority: row.priority || row.Prioridade || row.prioridade || 'medium',
           frequency: row.frequency || row.Frequencia || row.frequencia || row.Frequência || null,
           volume_month: row.volume_month ? parseInt(row.volume_month) : (row.Volume ? parseInt(row.Volume) : null),
           financial_impact: row.financial_impact || row.Impacto || row.impacto || null,
           created_by: user?.id
         };
-      }).filter(p => p.name);
+      }).filter(p => p.name && p.name.length > 0);
 
       if (processesToInsert.length === 0) {
         toast({
           title: "Erro",
-          description: "Nenhum processo válido encontrado no arquivo.",
+          description: "Nenhum processo válido encontrado. Verifique se a planilha tem uma coluna 'Processo' ou 'Nome'.",
           variant: "destructive"
         });
         return;

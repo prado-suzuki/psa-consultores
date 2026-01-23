@@ -761,6 +761,7 @@ export type Database = {
       processes: {
         Row: {
           area: string | null
+          code: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -776,6 +777,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -791,6 +793,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
