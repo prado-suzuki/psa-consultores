@@ -146,9 +146,9 @@ const EquipeDashboard = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-700';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-blue-100 text-blue-700';
+      case 'completed': return 'bg-emerald-100 text-emerald-700 border-0';
+      case 'in_progress': return 'bg-amber-100 text-amber-700 border-0';
+      default: return 'bg-blue-100 text-blue-700 border-0';
     }
   };
 
@@ -191,7 +191,6 @@ const EquipeDashboard = () => {
         <TabsList className="mb-6">
           <TabsTrigger value="sprint">Sprint</TabsTrigger>
           <TabsTrigger value="rotina">Rotina</TabsTrigger>
-          <TabsTrigger value="todos">Todos</TabsTrigger>
           <TabsTrigger value="impacto">Impacto Digital</TabsTrigger>
         </TabsList>
 
@@ -395,6 +394,11 @@ const EquipeDashboard = () => {
         </TabsContent>
 
         <TabsContent value="rotina">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => navigate('/equipe/rotina?criar=true')}>
+              + Incluir Rotina
+            </Button>
+          </div>
           <Card className="border-border shadow-sm">
             <CardHeader>
               <CardTitle className="text-foreground text-base font-semibold">
@@ -411,20 +415,20 @@ const EquipeDashboard = () => {
                   {myRoutines.map((routine) => (
                     <div 
                       key={routine.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/rotina')}
                     >
                       <div className="flex items-center gap-3">
-                        <Badge className="bg-secondary/20 text-secondary">
+                        <Badge className="bg-teal-100 text-teal-700 border-0">
                           {getFrequencyLabel(routine.frequency)}
                         </Badge>
-                        <span className="text-foreground">{routine.title}</span>
+                        <span className="text-slate-700">{routine.title}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {routine.estimated_hours && (
-                          <span className="text-xs text-muted-foreground">{routine.estimated_hours}h</span>
+                          <span className="text-xs text-slate-500">{routine.estimated_hours}h</span>
                         )}
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="border-slate-200 text-slate-600">
                           {getStatusLabel(routine.status)}
                         </Badge>
                       </div>
@@ -432,7 +436,7 @@ const EquipeDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">Nenhuma rotina atribuída a você</p>
+                <p className="text-slate-500 text-center py-8">Nenhuma rotina atribuída a você</p>
               )}
               
               <Button 
@@ -446,69 +450,6 @@ const EquipeDashboard = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="todos">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-foreground text-base font-semibold">
-                  Entregáveis da Sprint
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {myDeliverables.length > 0 ? (
-                  <div className="space-y-2">
-                    {myDeliverables.map((deliverable) => (
-                      <div 
-                        key={deliverable.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                        onClick={() => navigate('/equipe/sprints')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge className={getStatusColor(deliverable.status)}>
-                            {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          </Badge>
-                          <span className="text-foreground text-sm">{deliverable.title}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4 text-sm">Nenhum entregável</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-foreground text-base font-semibold">
-                  Tarefas de Rotina
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {myRoutines.length > 0 ? (
-                  <div className="space-y-2">
-                    {myRoutines.map((routine) => (
-                      <div 
-                        key={routine.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                        onClick={() => navigate('/equipe/rotina')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-secondary/20 text-secondary">
-                            {getFrequencyLabel(routine.frequency)}
-                          </Badge>
-                          <span className="text-foreground text-sm">{routine.title}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4 text-sm">Nenhuma rotina</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="impacto">
           <ImpactDashboard />
