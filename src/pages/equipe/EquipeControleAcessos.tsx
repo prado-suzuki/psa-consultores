@@ -41,7 +41,7 @@ import {
   CheckCircle2,
   Copy
 } from 'lucide-react';
-import logoPsa from '@/assets/logo-psa.png';
+
 
 interface PagePermission {
   id: string;
@@ -317,7 +317,9 @@ const EquipeControleAcessos = () => {
         <div className="container mx-auto px-4 h-full">
           <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-4">
-              <img src={logoPsa} alt="PSA" className="h-8" />
+              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="h-5 w-5 text-teal-600" />
+              </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-semibold text-slate-900">Controle de Acessos</h1>
                 <p className="text-xs text-slate-500">Gestão de usuários e liberação de acessos</p>
