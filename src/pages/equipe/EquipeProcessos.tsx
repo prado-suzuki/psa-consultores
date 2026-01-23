@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import * as XLSX from 'xlsx';
 import { 
   Workflow,
   Search,
@@ -28,7 +31,9 @@ import {
   Edit2,
   Trash2,
   Save,
-  X
+  X,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -99,6 +104,8 @@ const AUTOMATION_LEVELS = [
 ];
 
 const EquipeProcessos = () => {
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,6 +129,97 @@ const EquipeProcessos = () => {
     volume_month: '',
     financial_impact: ''
   });
+
+  // Import state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+
+  // Handle file select for import
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const workbook = XLSX.read(evt.target?.result, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet);
+        setImportData(data);
+        setIsImportDialogOpen(true);
+      };
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ler o arquivo.",
+        variant: "destructive"
+      });
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle import processes
+  const handleImportProcesses = async () => {
+    if (importData.length === 0) return;
+    
+    const validStages = ['discovery', 'mapping', 'analysis', 'improvement', 'automation', 'completed'];
+    
+    setImporting(true);
+    try {
+      const processesToInsert = importData.map(row => {
+        const stage = row.stage || row.Stage || row.fase || row.Fase || 'discovery';
+        return {
+          name: row.name || row.Nome || row.nome || '',
+          description: row.description || row.Descricao || row.descricao || row.Descrição || null,
+          area: row.area || row.Area || row.área || null,
+          stage: validStages.includes(stage.toLowerCase()) ? stage.toLowerCase() : 'discovery',
+          priority: row.priority || row.Prioridade || row.prioridade || null,
+          frequency: row.frequency || row.Frequencia || row.frequencia || row.Frequência || null,
+          volume_month: row.volume_month ? parseInt(row.volume_month) : (row.Volume ? parseInt(row.Volume) : null),
+          financial_impact: row.financial_impact || row.Impacto || row.impacto || null,
+          created_by: user?.id
+        };
+      }).filter(p => p.name);
+
+      if (processesToInsert.length === 0) {
+        toast({
+          title: "Erro",
+          description: "Nenhum processo válido encontrado no arquivo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase.from('processes').insert(processesToInsert);
+      
+      if (error) throw error;
+
+      toast({
+        title: "Processos importados!",
+        description: `${processesToInsert.length} processos criados com sucesso.`,
+      });
+
+      setIsImportDialogOpen(false);
+      setImportData([]);
+      fetchProcesses();
+    } catch (error) {
+      console.error('Error importing processes:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível importar os processos.",
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   useEffect(() => {
     fetchProcesses();
@@ -362,11 +460,109 @@ const EquipeProcessos = () => {
     <EquipeLayout 
       title="Processos" 
       subtitle="Visualize e gerencie os processos mapeados"
+      headerActions={
+        <>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          
+          {/* Import Button */}
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Importar CSV
+          </Button>
+        </>
+      }
     >
+      {/* Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Importar Processos
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>{importData.length}</strong> processos encontrados no arquivo.
+                Verifique os dados abaixo antes de confirmar a importação.
+              </p>
+            </div>
+            
+            {importData.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Área</TableHead>
+                      <TableHead>Fase</TableHead>
+                      <TableHead>Prioridade</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importData.slice(0, 10).map((row, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          {row.name || row.Nome || row.nome || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {row.area || row.Area || row.área || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {row.stage || row.Stage || row.fase || row.Fase || 'discovery'}
+                        </TableCell>
+                        <TableCell>
+                          {row.priority || row.Prioridade || row.prioridade || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {importData.length > 10 && (
+                  <div className="p-2 text-center text-sm text-muted-foreground border-t">
+                    ... e mais {importData.length - 10} processos
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsImportDialogOpen(false);
+                  setImportData([]);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleImportProcesses}
+                disabled={importing || importData.length === 0}
+              >
+                {importing ? 'Importando...' : `Importar ${importData.length} Processos`}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar processos..."
             value={searchTerm}
