@@ -799,9 +799,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          document_path: string | null
           financial_impact: string | null
+          formatted_content: string | null
           frequency: string | null
           id: string
+          last_ai_sync: string | null
           name: string
           priority: string | null
           project_id: string | null
@@ -816,9 +819,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          document_path?: string | null
           financial_impact?: string | null
+          formatted_content?: string | null
           frequency?: string | null
           id?: string
+          last_ai_sync?: string | null
           name: string
           priority?: string | null
           project_id?: string | null
@@ -833,9 +839,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          document_path?: string | null
           financial_impact?: string | null
+          formatted_content?: string | null
           frequency?: string | null
           id?: string
+          last_ai_sync?: string | null
           name?: string
           priority?: string | null
           project_id?: string | null
@@ -903,6 +912,7 @@ export type Database = {
           file_size: number | null
           file_type: string | null
           id: string
+          process_id: string | null
           sprint_id: string | null
           title: string
           updated_at: string | null
@@ -917,6 +927,7 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          process_id?: string | null
           sprint_id?: string | null
           title: string
           updated_at?: string | null
@@ -931,12 +942,20 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          process_id?: string | null
           sprint_id?: string | null
           title?: string
           updated_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_documents_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_documents_sprint_id_fkey"
             columns: ["sprint_id"]
