@@ -2,6 +2,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -126,7 +129,12 @@ const departmentLabels: Record<string, string> = {
 export default function EquipeChamados() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const canAssignTickets = useCanAssignTickets();
+  
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [agents, setAgents] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -143,18 +151,50 @@ export default function EquipeChamados() {
     if (user) {
       fetchTickets();
     }
-  }, [user]);
+  }, [user, canAssignTickets]);
+
+  useEffect(() => {
+    if (canAssignTickets) {
+      fetchAgents();
+    }
+  }, [canAssignTickets]);
+
+  const fetchAgents = async () => {
+    try {
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('role', ['team_member', 'admin']);
+
+      if (rolesData) {
+        const userIds = rolesData.map(r => r.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        
+        setAgents(profilesData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
 
   const fetchTickets = async () => {
     if (!user) return;
     
     try {
-      // Fetch only tickets assigned to current user
-      const { data: ticketsData, error: ticketsError } = await supabase
+      let query = supabase
         .from('tickets')
         .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status')
-        .eq('assigned_to', user.id)
         .order('created_at', { ascending: false });
+      
+      // If user can assign (leader), show all tickets. Otherwise, show only assigned tickets.
+      if (!canAssignTickets) {
+        query = query.eq('assigned_to', user.id);
+      }
+
+      const { data: ticketsData, error: ticketsError } = await query;
 
       if (ticketsError) throw ticketsError;
 
@@ -203,6 +243,37 @@ export default function EquipeChamados() {
       setLoading(false);
     }
   };
+
+  const assignAgent = async (ticketId: string, agentId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({ assigned_to: agentId })
+        .eq('id', ticketId);
+
+      if (error) throw error;
+
+      const agent = agents.find(a => a.id === agentId);
+      toast({
+        title: 'Agente atribuído',
+        description: agentId 
+          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
+          : 'Atribuição removida',
+      });
+
+      // Invalidate notification cache
+      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
+      
+      fetchTickets();
+    } catch (error) {
+      toast({
+        title: 'Erro ao atribuir agente',
+        description: 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -372,9 +443,13 @@ export default function EquipeChamados() {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-[1400px] mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Meus Chamados Atribuídos</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {canAssignTickets ? 'Gestão de Chamados' : 'Meus Chamados Atribuídos'}
+            </h1>
             <p className="text-muted-foreground mt-2">
-              Visualize e responda os chamados atribuídos a você
+              {canAssignTickets 
+                ? 'Visualize todos os chamados e atribua responsáveis'
+                : 'Visualize e responda os chamados atribuídos a você'}
             </p>
           </div>
 
@@ -495,7 +570,7 @@ export default function EquipeChamados() {
             <Card className="p-12 text-center">
               <p className="text-muted-foreground">
                 {tickets.length === 0 
-                  ? 'Você não possui chamados atribuídos no momento.'
+                  ? (canAssignTickets ? 'Nenhum chamado encontrado.' : 'Você não possui chamados atribuídos no momento.')
                   : 'Nenhum chamado encontrado com os filtros selecionados.'}
               </p>
             </Card>
@@ -568,6 +643,9 @@ export default function EquipeChamados() {
                           {getSortIcon('prazo')}
                         </div>
                       </TableHead>
+                      {canAssignTickets && (
+                        <TableHead>Responsável</TableHead>
+                      )}
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('activity_status')}
@@ -693,6 +771,26 @@ export default function EquipeChamados() {
                             );
                           })()}
                         </TableCell>
+                        {canAssignTickets && (
+                          <TableCell>
+                            <Select
+                              value={ticket.assigned_to || 'none'}
+                              onValueChange={(v) => assignAgent(ticket.id, v === 'none' ? null : v)}
+                            >
+                              <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Atribuir" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Não atribuído</SelectItem>
+                                {agents.map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    {agent.first_name} {agent.last_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        )}
                         <TableCell>
                           {ticket.activity_status && (
                             <Badge 
