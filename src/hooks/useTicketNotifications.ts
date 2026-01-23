@@ -1,5 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -54,14 +53,11 @@ function calcularPrazoNotification(updatedAt: string, activityStatus: string): T
 
 export function useTicketNotifications() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  
-  // Memoize user id to prevent unnecessary re-renders
   const userId = user?.id;
   
   const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ['ticket-notifications', userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<TicketNotification[]> => {
       if (!userId) return [];
       
       // Fetch tickets assigned to user that are awaiting response
@@ -130,41 +126,14 @@ export function useTicketNotifications() {
       });
     },
     enabled: !!userId,
-    staleTime: 30000, // 30 seconds - reduced for faster updates
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 30000,
+    refetchInterval: 30000,
   });
   
-  // Realtime subscription for instant updates
-  useEffect(() => {
-    if (!userId) return;
-    
-    const channel = supabase
-      .channel(`ticket-notifications-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tickets',
-          filter: `assigned_to=eq.${userId}`
-        },
-        () => {
-          // Refetch when any ticket assigned to user changes
-          queryClient.invalidateQueries({ queryKey: ['ticket-notifications', userId] });
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
-  
-  // Memoize the urgent count calculation
-  const urgentCount = useMemo(() => 
-    notifications.filter(n => n.prazoInfo.status === 'atrasado' || n.prazoInfo.status === 'urgente').length,
-    [notifications]
-  );
+  // Calculate urgent count
+  const urgentCount = notifications.filter(
+    n => n.prazoInfo.status === 'atrasado' || n.prazoInfo.status === 'urgente'
+  ).length;
   
   return {
     notifications,
