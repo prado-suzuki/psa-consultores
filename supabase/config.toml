@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.restructure-novidade]
 verify_jwt = false
+
+[functions.restructure-process]
+verify_jwt = false

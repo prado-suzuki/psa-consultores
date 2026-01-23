@@ -28,10 +28,12 @@ interface ProjectDocument {
   file_size: number | null;
   category: string | null;
   sprint_id: string | null;
+  process_id: string | null;
   uploaded_by: string | null;
   created_at: string;
   sprints?: { name: string } | null;
   profiles?: { first_name: string; last_name: string } | null;
+  processes?: { name: string; code: string | null } | null;
 }
 
 const CATEGORIES = [
@@ -71,6 +73,7 @@ export default function EquipeBiblioteca() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSprint, setFilterSprint] = useState<string>('all');
+  const [filterProcess, setFilterProcess] = useState<string>('all');
   
   // Form state
   const [title, setTitle] = useState('');
@@ -89,12 +92,27 @@ export default function EquipeBiblioteca() {
         .select(`
           *,
           sprints:sprint_id(name),
-          profiles:uploaded_by(first_name, last_name)
+          profiles:uploaded_by(first_name, last_name),
+          processes:process_id(name, code)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as ProjectDocument[];
+    },
+  });
+
+  // Fetch processes for dropdown
+  const { data: processesList = [] } = useQuery({
+    queryKey: ['processes-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('processes')
+        .select('id, name, code')
+        .order('name');
+      
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -250,7 +268,8 @@ export default function EquipeBiblioteca() {
                          doc.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || doc.category === filterCategory;
     const matchesSprint = filterSprint === 'all' || doc.sprint_id === filterSprint;
-    return matchesSearch && matchesCategory && matchesSprint;
+    const matchesProcess = filterProcess === 'all' || doc.process_id === filterProcess;
+    return matchesSearch && matchesCategory && matchesSprint && matchesProcess;
   });
 
   return (
@@ -287,6 +306,20 @@ export default function EquipeBiblioteca() {
             <SelectItem value="all">Todas sprints</SelectItem>
             {sprints.map(sprint => (
               <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={filterProcess} onValueChange={setFilterProcess}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Processo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos processos</SelectItem>
+            {processesList.map(proc => (
+              <SelectItem key={proc.id} value={proc.id}>
+                {proc.code ? `${proc.code} - ` : ''}{proc.name.length > 25 ? proc.name.slice(0, 25) + '...' : proc.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -403,6 +436,7 @@ export default function EquipeBiblioteca() {
                   <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Processo</TableHead>
                   <TableHead>Sprint</TableHead>
                   <TableHead>Enviado por</TableHead>
                   <TableHead>Data</TableHead>
@@ -424,6 +458,15 @@ export default function EquipeBiblioteca() {
                       <Badge variant="outline">
                         {CATEGORIES.find(c => c.value === doc.category)?.label || doc.category}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {doc.processes ? (
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          {doc.processes.code || doc.processes.name.slice(0, 15)}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {doc.sprints?.name ? (
