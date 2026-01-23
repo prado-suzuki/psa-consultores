@@ -43,6 +43,7 @@ import { Json } from '@/integrations/supabase/types';
 interface Process {
   id: string;
   name: string;
+  code?: string | null;
   description: string | null;
   area: string | null;
   stage: string;
@@ -50,8 +51,24 @@ interface Process {
   frequency: string | null;
   volume_month: number | null;
   financial_impact: string | null;
-  project_id: string | null;
+  client_id: string | null;
   created_at: string;
+  catalog_client?: CatalogClient | null;
+  linked_projects?: LinkedProject[];
+}
+
+interface CatalogClient {
+  id: string;
+  name: string;
+  responsible: string | null;
+  color: string;
+  is_active: boolean;
+}
+
+interface LinkedProject {
+  id: string;
+  name: string;
+  impact_type: string | null;
 }
 
 interface ProcessStage {
@@ -107,6 +124,7 @@ const EquipeProcessos = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [areaFilter, setAreaFilter] = useState<string>('all');
@@ -261,17 +279,53 @@ const EquipeProcessos = () => {
 
   useEffect(() => {
     fetchProcesses();
+    fetchCatalogClients();
   }, []);
 
-  const fetchProcesses = async () => {
+  const fetchCatalogClients = async () => {
     try {
       const { data, error } = await supabase
-        .from('processes')
-        .select('*')
+        .from('catalog_clients')
+        .select('id, name, responsible, color, is_active')
+        .eq('is_active', true)
         .order('name');
       
       if (error) throw error;
-      setProcesses(data || []);
+      setCatalogClients(data || []);
+    } catch (error) {
+      console.error('Error fetching catalog clients:', error);
+    }
+  };
+
+  const fetchProcesses = async () => {
+    try {
+      // Buscar processos com catalog_clients e projetos vinculados
+      const { data, error } = await supabase
+        .from('processes')
+        .select(`
+          *,
+          catalog_client:catalog_clients!client_id(id, name, responsible, color, is_active),
+          project_processes(
+            id,
+            impact_type,
+            project:projects(id, name)
+          )
+        `)
+        .order('name');
+      
+      if (error) throw error;
+      
+      // Mapear os dados para incluir projetos vinculados
+      const processesWithProjects = (data || []).map(p => ({
+        ...p,
+        linked_projects: p.project_processes?.map((pp: any) => ({
+          id: pp.project?.id,
+          name: pp.project?.name,
+          impact_type: pp.impact_type
+        })).filter((lp: any) => lp.id) || []
+      }));
+      
+      setProcesses(processesWithProjects);
     } catch (error) {
       console.error('Error fetching processes:', error);
       toast({
@@ -437,14 +491,34 @@ const EquipeProcessos = () => {
     }
   };
 
-  // Get unique areas
-  const areas = [...new Set(processes.map(p => p.area).filter(Boolean))].sort();
+  // Get unique areas from catalog_clients
+  const areas = catalogClients.map(c => c.name).sort();
+
+  // Helper to get client badge
+  const getClientBadge = (process: Process) => {
+    const client = process.catalog_client || catalogClients.find(c => c.id === process.client_id);
+    if (client) {
+      return (
+        <Badge 
+          style={{ backgroundColor: `${client.color}20`, color: client.color, borderColor: client.color }}
+          className="border text-xs"
+        >
+          {client.name}
+        </Badge>
+      );
+    }
+    if (process.area) {
+      return <Badge variant="outline" className="text-xs">{process.area}</Badge>;
+    }
+    return null;
+  };
 
   // Filter processes
   const filteredProcesses = processes.filter(process => {
     const matchesSearch = process.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (process.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    const matchesArea = areaFilter === 'all' || process.area === areaFilter;
+    const clientName = process.catalog_client?.name || process.area;
+    const matchesArea = areaFilter === 'all' || clientName === areaFilter;
     const matchesStage = stageFilter === 'all' || process.stage === stageFilter;
     return matchesSearch && matchesArea && matchesStage;
   });
@@ -658,11 +732,7 @@ const EquipeProcessos = () => {
                         <p className="text-sm text-gray-600 line-clamp-2 mb-3">{process.description}</p>
                       )}
                       <div className="flex flex-wrap gap-2">
-                        {process.area && (
-                          <Badge variant="outline" className="text-xs">
-                            {process.area}
-                          </Badge>
-                        )}
+                        {getClientBadge(process)}
                         <Badge className={`text-xs ${stageInfo.color}`}>
                           {stageInfo.label}
                         </Badge>
@@ -675,6 +745,12 @@ const EquipeProcessos = () => {
                           <Badge variant="outline" className="text-xs">
                             <Clock className="h-3 w-3 mr-1" />
                             {process.frequency}
+                          </Badge>
+                        )}
+                        {process.linked_projects && process.linked_projects.length > 0 && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <FolderKanban className="h-3 w-3 mr-1" />
+                            {process.linked_projects.length} projeto{process.linked_projects.length > 1 ? 's' : ''}
                           </Badge>
                         )}
                       </div>
