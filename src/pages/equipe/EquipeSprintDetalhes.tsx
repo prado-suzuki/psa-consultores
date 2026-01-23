@@ -85,6 +85,11 @@ interface Process {
   project_id: string | null;
 }
 
+interface ProjectProcess {
+  process_id: string;
+  project_id: string;
+}
+
 
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
@@ -98,6 +103,7 @@ export default function EquipeSprintDetalhes() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -215,6 +221,12 @@ export default function EquipeSprintDetalhes() {
         .select("id, name, project_id")
         .order("name");
       setProcesses(processesData || []);
+
+      // Carregar associações projeto-processo
+      const { data: ppData } = await supabase
+        .from("project_processes")
+        .select("process_id, project_id");
+      setProjectProcesses(ppData || []);
 
       
     } catch (error: any) {
@@ -1961,7 +1973,13 @@ export default function EquipeSprintDetalhes() {
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
                     {processes
-                      .filter(proc => !editForm.project_id || proc.project_id === editForm.project_id)
+                      .filter(proc => {
+                        if (!editForm.project_id) return true;
+                        // Usar a tabela project_processes para verificar associação
+                        return projectProcesses.some(
+                          pp => pp.process_id === proc.id && pp.project_id === editForm.project_id
+                        );
+                      })
                       .map(proc => (
                         <SelectItem key={proc.id} value={proc.id}>
                           {proc.name}
@@ -2157,7 +2175,13 @@ export default function EquipeSprintDetalhes() {
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
                     {processes
-                      .filter(proc => !createForm.project_id || proc.project_id === createForm.project_id)
+                      .filter(proc => {
+                        if (!createForm.project_id) return true;
+                        // Usar a tabela project_processes para verificar associação
+                        return projectProcesses.some(
+                          pp => pp.process_id === proc.id && pp.project_id === createForm.project_id
+                        );
+                      })
                       .map(proc => (
                         <SelectItem key={proc.id} value={proc.id}>
                           {proc.name}
