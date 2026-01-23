@@ -17,6 +17,7 @@ import {
   Cell,
 } from 'recharts';
 import { TrendingUp, Clock, DollarSign, Users, Target, Zap } from 'lucide-react';
+import { CHART_COLORS, LINE_CHART_COLORS } from '@/constants/brandColors';
 
 interface ImpactMetrics {
   totalProcesses: number;
@@ -42,7 +43,7 @@ interface ProjectImpact {
   avg_roi: number;
 }
 
-const COLORS = ['#65A30D', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+// Using centralized CHART_COLORS from brandColors
 
 export function ImpactDashboard() {
   const [metrics, setMetrics] = useState<ImpactMetrics>({
@@ -266,9 +267,9 @@ export function ImpactDashboard() {
                   <Line 
                     type="monotone" 
                     dataKey="acumulado" 
-                    stroke="#65A30D" 
+                    stroke={LINE_CHART_COLORS.primary}
                     strokeWidth={3}
-                    dot={{ fill: '#65A30D', strokeWidth: 2 }}
+                    dot={{ fill: LINE_CHART_COLORS.primary, strokeWidth: 2 }}
                     name="Economia Acumulada"
                   />
                 </LineChart>
@@ -301,7 +302,7 @@ export function ImpactDashboard() {
                     labelLine={false}
                   >
                     {areaData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip 
@@ -336,7 +337,7 @@ export function ImpactDashboard() {
                     name === 'avg_roi' ? 'ROI' : 'Economia'
                   ]}
                 />
-                <Bar dataKey="avg_roi" fill="#65A30D" radius={[0, 4, 4, 0]} name="ROI %" />
+                <Bar dataKey="avg_roi" fill={LINE_CHART_COLORS.primary} radius={[0, 4, 4, 0]} name="ROI %" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -359,7 +360,7 @@ export function ImpactDashboard() {
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-primary/10 text-primary border-0 w-6 h-6 flex items-center justify-center">
+                    <Badge className="bg-teal-100 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
                       {index + 1}
                     </Badge>
                     <span className="text-gray-900 font-medium">{improvement.process_name}</span>
@@ -371,7 +372,7 @@ export function ImpactDashboard() {
                     <span className="text-green-600 font-semibold">
                       R$ {improvement.cost_saved_monthly.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}/mês
                     </span>
-                    <Badge className="bg-primary/10 text-primary border-0">
+                    <Badge className="bg-teal-100 text-teal-700 border-0">
                       ROI {improvement.roi_percentage.toFixed(0)}%
                     </Badge>
                   </div>

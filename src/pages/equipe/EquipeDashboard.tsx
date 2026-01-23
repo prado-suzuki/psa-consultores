@@ -44,8 +44,7 @@ interface AreaData {
 }
 
 import { parseDate } from '@/lib/dateUtils';
-
-const COLORS = ['#65A30D', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
@@ -166,9 +165,9 @@ const EquipeDashboard = () => {
     : 0;
 
   const volumeData = [
-    { name: 'A Fazer', value: stats.pending, fill: '#3B82F6' },
-    { name: 'Em Progresso', value: stats.in_progress, fill: '#F59E0B' },
-    { name: 'Concluídas', value: stats.completed, fill: '#65A30D' },
+    { name: 'A Fazer', value: stats.pending, fill: STATUS_CHART_COLORS.pending },
+    { name: 'Em Progresso', value: stats.in_progress, fill: STATUS_CHART_COLORS.in_progress },
+    { name: 'Concluídas', value: stats.completed, fill: STATUS_CHART_COLORS.completed },
   ];
 
   return (
@@ -202,7 +201,7 @@ const EquipeDashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold text-foreground">{activeSprint.name}</h2>
-                    <Badge className="bg-primary/10 text-primary border-0">Ativa</Badge>
+                    <Badge className="bg-teal-100 text-teal-700 border-0">Ativa</Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">
                     {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}
@@ -316,8 +315,8 @@ const EquipeDashboard = () => {
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                         labelLine={false}
                       >
-                        {areaData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {areaData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip 
