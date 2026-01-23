@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -56,10 +56,13 @@ export function useTicketNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  // Memoize user id to prevent unnecessary re-renders
+  const userId = user?.id;
+  
   const { data: notifications = [], isLoading, refetch } = useQuery({
-    queryKey: ['ticket-notifications', user?.id],
+    queryKey: ['ticket-notifications', userId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!userId) return [];
       
       // Fetch tickets assigned to user that are awaiting response
       const { data: tickets, error } = await supabase
@@ -74,7 +77,7 @@ export function useTicketNotifications() {
           status,
           user_id
         `)
-        .eq('assigned_to', user.id)
+        .eq('assigned_to', userId)
         .eq('activity_status', 'aguardando_resposta')
         .not('status', 'in', '("resolvido","fechado")')
         .order('updated_at', { ascending: true })
@@ -126,28 +129,28 @@ export function useTicketNotifications() {
         return a.prazoInfo.daysRemaining - b.prazoInfo.daysRemaining;
       });
     },
-    enabled: !!user?.id,
+    enabled: !!userId,
     staleTime: 30000, // 30 seconds - reduced for faster updates
     refetchInterval: 30000, // Refetch every 30 seconds
   });
   
   // Realtime subscription for instant updates
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     
     const channel = supabase
-      .channel(`ticket-notifications-${user.id}`)
+      .channel(`ticket-notifications-${userId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'tickets',
-          filter: `assigned_to=eq.${user.id}`
+          filter: `assigned_to=eq.${userId}`
         },
         () => {
           // Refetch when any ticket assigned to user changes
-          queryClient.invalidateQueries({ queryKey: ['ticket-notifications', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['ticket-notifications', userId] });
         }
       )
       .subscribe();
@@ -155,9 +158,13 @@ export function useTicketNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, queryClient]);
+  }, [userId, queryClient]);
   
-  const urgentCount = notifications.filter(n => n.prazoInfo.status === 'atrasado' || n.prazoInfo.status === 'urgente').length;
+  // Memoize the urgent count calculation
+  const urgentCount = useMemo(() => 
+    notifications.filter(n => n.prazoInfo.status === 'atrasado' || n.prazoInfo.status === 'urgente').length,
+    [notifications]
+  );
   
   return {
     notifications,

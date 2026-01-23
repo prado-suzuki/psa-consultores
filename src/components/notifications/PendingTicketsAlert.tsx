@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, MessageSquare, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,20 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
     notifications.map(n => n.id).sort().join(','),
     [notifications]
   );
+  
+  // Memoize handleDismiss to use in useEffect
+  const handleDismiss = useCallback(() => {
+    if (!user?.id) return;
+    
+    setIsVisible(false);
+    setIsDismissed(true);
+    
+    const dismissKey = `pending-tickets-dismissed-${user.id}`;
+    sessionStorage.setItem(dismissKey, JSON.stringify({
+      ids: notifications.map(n => n.id),
+      timestamp: Date.now()
+    }));
+  }, [user?.id, notifications]);
   
   // Check sessionStorage and detect new tickets
   useEffect(() => {
@@ -75,25 +89,12 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
     }, 30000);
     
     return () => clearTimeout(timer);
-  }, [isVisible]);
+  }, [isVisible, handleDismiss]);
   
-  const handleDismiss = () => {
-    if (!user?.id) return;
-    
-    setIsVisible(false);
-    setIsDismissed(true);
-    
-    const dismissKey = `pending-tickets-dismissed-${user.id}`;
-    sessionStorage.setItem(dismissKey, JSON.stringify({
-      ids: notifications.map(n => n.id),
-      timestamp: Date.now()
-    }));
-  };
-  
-  const handleViewTickets = () => {
+  const handleViewTickets = useCallback(() => {
     handleDismiss();
     navigate(navigateTo);
-  };
+  }, [handleDismiss, navigate, navigateTo]);
   
   if (!isVisible) return null;
   
