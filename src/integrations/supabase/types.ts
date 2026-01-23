@@ -624,6 +624,91 @@ export type Database = {
         }
         Relationships: []
       }
+      improvement_team_members: {
+        Row: {
+          created_at: string | null
+          hours_allocated: number | null
+          id: string
+          improvement_id: string
+          is_baseline: boolean | null
+          job_role_id: string | null
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hours_allocated?: number | null
+          id?: string
+          improvement_id: string
+          is_baseline?: boolean | null
+          job_role_id?: string | null
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hours_allocated?: number | null
+          id?: string
+          improvement_id?: string
+          is_baseline?: boolean | null
+          job_role_id?: string | null
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "improvement_team_members_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_team_members_job_role_id_fkey"
+            columns: ["job_role_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvement_team_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_roles: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          hourly_rate: number
+          id: string
+          is_active: boolean | null
+          level: string
+          monthly_salary_ref: number | null
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          hourly_rate: number
+          id?: string
+          is_active?: boolean | null
+          level: string
+          monthly_salary_ref?: number | null
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean | null
+          level?: string
+          monthly_salary_ref?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
       novidades: {
         Row: {
           ativo: boolean | null
@@ -723,6 +808,131 @@ export type Database = {
         }
         Relationships: []
       }
+      process_improvements: {
+        Row: {
+          baseline_cost_monthly: number | null
+          baseline_people_involved: number | null
+          baseline_time_hours: number | null
+          baseline_volume: number | null
+          cost_saved_monthly: number | null
+          cost_saved_percent: number | null
+          created_at: string | null
+          evaluated_by: string | null
+          evaluation_end_date: string | null
+          evaluation_period_days: number | null
+          evaluation_start_date: string | null
+          evaluation_status: string | null
+          id: string
+          implementation_cost: number | null
+          implementation_hours: number | null
+          improved_cost_monthly: number | null
+          improved_people_involved: number | null
+          improved_time_hours: number | null
+          improved_volume: number | null
+          improvement_description: string | null
+          process_id: string
+          project_id: string | null
+          roi_fte_annual: number | null
+          roi_percentage: number | null
+          roi_time_months: number | null
+          sprint_deliverable_id: string | null
+          time_saved_hours: number | null
+          time_saved_percent: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          baseline_cost_monthly?: number | null
+          baseline_people_involved?: number | null
+          baseline_time_hours?: number | null
+          baseline_volume?: number | null
+          cost_saved_monthly?: number | null
+          cost_saved_percent?: number | null
+          created_at?: string | null
+          evaluated_by?: string | null
+          evaluation_end_date?: string | null
+          evaluation_period_days?: number | null
+          evaluation_start_date?: string | null
+          evaluation_status?: string | null
+          id?: string
+          implementation_cost?: number | null
+          implementation_hours?: number | null
+          improved_cost_monthly?: number | null
+          improved_people_involved?: number | null
+          improved_time_hours?: number | null
+          improved_volume?: number | null
+          improvement_description?: string | null
+          process_id: string
+          project_id?: string | null
+          roi_fte_annual?: number | null
+          roi_percentage?: number | null
+          roi_time_months?: number | null
+          sprint_deliverable_id?: string | null
+          time_saved_hours?: number | null
+          time_saved_percent?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          baseline_cost_monthly?: number | null
+          baseline_people_involved?: number | null
+          baseline_time_hours?: number | null
+          baseline_volume?: number | null
+          cost_saved_monthly?: number | null
+          cost_saved_percent?: number | null
+          created_at?: string | null
+          evaluated_by?: string | null
+          evaluation_end_date?: string | null
+          evaluation_period_days?: number | null
+          evaluation_start_date?: string | null
+          evaluation_status?: string | null
+          id?: string
+          implementation_cost?: number | null
+          implementation_hours?: number | null
+          improved_cost_monthly?: number | null
+          improved_people_involved?: number | null
+          improved_time_hours?: number | null
+          improved_volume?: number | null
+          improvement_description?: string | null
+          process_id?: string
+          project_id?: string | null
+          roi_fte_annual?: number | null
+          roi_percentage?: number | null
+          roi_time_months?: number | null
+          sprint_deliverable_id?: string | null
+          time_saved_hours?: number | null
+          time_saved_percent?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_improvements_evaluated_by_fkey"
+            columns: ["evaluated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_improvements_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_improvements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_improvements_sprint_deliverable_id_fkey"
+            columns: ["sprint_deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_stages: {
         Row: {
           automation_level: string | null
@@ -794,62 +1004,86 @@ export type Database = {
       processes: {
         Row: {
           area: string | null
+          automation_potential: number | null
           client_id: string | null
           code: string | null
+          complexity_level: string | null
+          cost_monthly: number | null
           created_at: string
           created_by: string | null
           description: string | null
           document_path: string | null
+          evaluation_period_days: number | null
           financial_impact: string | null
           formatted_content: string | null
           frequency: string | null
           id: string
           last_ai_sync: string | null
           name: string
+          people_involved: number | null
           priority: string | null
           project_id: string | null
           stage: string
+          time_spent_frequency: string | null
+          time_spent_hours: number | null
           updated_at: string
+          volume_executions: number | null
           volume_month: number | null
         }
         Insert: {
           area?: string | null
+          automation_potential?: number | null
           client_id?: string | null
           code?: string | null
+          complexity_level?: string | null
+          cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
           id?: string
           last_ai_sync?: string | null
           name: string
+          people_involved?: number | null
           priority?: string | null
           project_id?: string | null
           stage?: string
+          time_spent_frequency?: string | null
+          time_spent_hours?: number | null
           updated_at?: string
+          volume_executions?: number | null
           volume_month?: number | null
         }
         Update: {
           area?: string | null
+          automation_potential?: number | null
           client_id?: string | null
           code?: string | null
+          complexity_level?: string | null
+          cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
           id?: string
           last_ai_sync?: string | null
           name?: string
+          people_involved?: number | null
           priority?: string | null
           project_id?: string | null
           stage?: string
+          time_spent_frequency?: string | null
+          time_spent_hours?: number | null
           updated_at?: string
+          volume_executions?: number | null
           volume_month?: number | null
         }
         Relationships: [

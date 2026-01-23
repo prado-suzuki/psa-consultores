@@ -13,6 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { CreateProcessModal } from '@/components/equipe/CreateProcessModal';
 import * as XLSX from 'xlsx';
 import { 
   Workflow,
@@ -36,7 +37,10 @@ import {
   FileSpreadsheet,
   FileText,
   Sparkles,
-  Loader2
+  Loader2,
+  Plus,
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -178,6 +182,7 @@ const EquipeProcessos = () => {
   const [savingDocumentation, setSavingDocumentation] = useState(false);
   const [processDocuments, setProcessDocuments] = useState<ProcessDocument[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -805,6 +810,12 @@ const EquipeProcessos = () => {
           >
             <Upload className="h-4 w-4 mr-2" />
             Importar CSV
+          </Button>
+          
+          {/* Create Process Button */}
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Processo
           </Button>
         </>
       }
@@ -1537,6 +1548,13 @@ const EquipeProcessos = () => {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Create Process Modal */}
+      <CreateProcessModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={fetchProcesses}
+      />
     </EquipeLayout>
   );
 };

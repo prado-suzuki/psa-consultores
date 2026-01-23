@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
+import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
 import {
   BarChart,
   Bar,
@@ -338,6 +339,7 @@ const EquipeDashboard = () => {
           <TabsTrigger value="sprint">Sprint</TabsTrigger>
           <TabsTrigger value="rotina">Rotina</TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
+          <TabsTrigger value="impacto">🚀 Impacto Digital</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sprint">
@@ -506,6 +508,10 @@ const EquipeDashboard = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="impacto">
+          <ImpactDashboard />
         </TabsContent>
       </Tabs>
     </EquipeLayout>
