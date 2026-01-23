@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import { 
   LayoutDashboard, 
   LogOut,
@@ -144,12 +146,14 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
               {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
             </div>
           </div>
-          {headerActions && (
-            <div className="flex items-center gap-3">
-              {headerActions}
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <NotificationPopover navigateTo="/admin/chamados" />
+            {headerActions}
+          </div>
         </header>
+
+        {/* Pending Tickets Alert */}
+        <PendingTicketsAlert navigateTo="/admin/chamados" />
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">

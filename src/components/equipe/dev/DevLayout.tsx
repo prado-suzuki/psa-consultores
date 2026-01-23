@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import { 
   LayoutDashboard, 
   LogOut,
@@ -147,12 +149,14 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
               {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
             </div>
           </div>
-          {headerActions && (
-            <div className="flex items-center gap-3">
-              {headerActions}
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <NotificationPopover navigateTo="/equipe/chamados" />
+            {headerActions}
+          </div>
         </header>
+
+        {/* Pending Tickets Alert */}
+        <PendingTicketsAlert navigateTo="/equipe/chamados" />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
