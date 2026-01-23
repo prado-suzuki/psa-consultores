@@ -276,12 +276,12 @@ const EquipeControleAcessos = () => {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      rotina: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      dev: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      gestao: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      geral: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      rotina: 'bg-teal-100 text-teal-700 border-teal-200',
+      dev: 'bg-slate-100 text-slate-700 border-slate-200',
+      gestao: 'bg-teal-50 text-teal-600 border-teal-100',
+      geral: 'bg-slate-50 text-slate-600 border-slate-100',
     };
-    return colors[category] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    return colors[category] || 'bg-slate-100 text-slate-600 border-slate-200';
   };
 
   const groupedPages = pages?.reduce((acc, page) => {
@@ -311,16 +311,16 @@ const EquipeControleAcessos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/80 backdrop-blur-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-50 h-16 border-b border-slate-200/60 bg-white">
+        <div className="container mx-auto px-4 h-full">
+          <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-4">
               <img src={logoPsa} alt="PSA" className="h-8" />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-white">Controle de Acessos</h1>
-                <p className="text-xs text-gray-400">Gestão de usuários e liberação de acessos</p>
+                <h1 className="text-lg font-semibold text-slate-900">Controle de Acessos</h1>
+                <p className="text-xs text-slate-500">Gestão de usuários e liberação de acessos</p>
               </div>
             </div>
             
@@ -329,7 +329,7 @@ const EquipeControleAcessos = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/equipe/digital')}
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
               >
                 <Repeat className="h-4 w-4 mr-2" />
                 Trocar área
@@ -338,7 +338,7 @@ const EquipeControleAcessos = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -349,60 +349,66 @@ const EquipeControleAcessos = () => {
       </header>
 
       {/* Main Content */}
-      <ScrollArea className="h-[calc(100vh-73px)]">
+      <ScrollArea className="h-[calc(100vh-64px)]">
         <main className="container mx-auto px-4 py-6">
           <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+              <Card className="bg-white border-slate-200/60 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-200">Páginas Ativas</CardTitle>
-                  <FileText className="h-4 w-4 text-blue-400" />
+                  <CardTitle className="text-sm font-medium text-slate-600">Páginas Ativas</CardTitle>
+                  <div className="p-2 rounded-full bg-teal-100">
+                    <FileText className="h-4 w-4 text-teal-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">
+                  <div className="text-3xl font-bold text-slate-900">
                     {pages?.filter(p => p.is_active).length || 0}
                   </div>
-                  <p className="text-sm text-gray-400">de {pages?.length || 0} páginas</p>
+                  <p className="text-sm text-slate-500">de {pages?.length || 0} páginas</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+              <Card className="bg-white border-slate-200/60 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-200">Usuários</CardTitle>
-                  <Users className="h-4 w-4 text-emerald-400" />
+                  <CardTitle className="text-sm font-medium text-slate-600">Usuários</CardTitle>
+                  <div className="p-2 rounded-full bg-teal-100">
+                    <Users className="h-4 w-4 text-teal-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{users?.length || 0}</div>
-                  <p className="text-sm text-gray-400">cadastrados no sistema</p>
+                  <div className="text-3xl font-bold text-slate-900">{users?.length || 0}</div>
+                  <p className="text-sm text-slate-500">cadastrados no sistema</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800/80 border-gray-700 backdrop-blur-sm">
+              <Card className="bg-white border-slate-200/60 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-200">Permissões Customizadas</CardTitle>
-                  <ShieldCheck className="h-4 w-4 text-amber-400" />
+                  <CardTitle className="text-sm font-medium text-slate-600">Permissões Customizadas</CardTitle>
+                  <div className="p-2 rounded-full bg-teal-100">
+                    <ShieldCheck className="h-4 w-4 text-teal-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{userAccess?.length || 0}</div>
-                  <p className="text-sm text-gray-400">acessos individuais</p>
+                  <div className="text-3xl font-bold text-slate-900">{userAccess?.length || 0}</div>
+                  <p className="text-sm text-slate-500">acessos individuais</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Tabs */}
             <Tabs defaultValue="pages" className="space-y-4">
-              <TabsList className="bg-gray-800/50 border border-gray-700">
+              <TabsList className="bg-slate-100 border border-slate-200">
                 <TabsTrigger 
                   value="pages" 
-                  className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Páginas
                 </TabsTrigger>
                 <TabsTrigger 
                   value="users" 
-                  className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Usuários
@@ -412,17 +418,17 @@ const EquipeControleAcessos = () => {
               {/* Pages Tab */}
               <TabsContent value="pages" className="space-y-4">
                 {/* Header com botão de atualizar */}
-                <div className="flex items-center justify-between bg-gray-800/40 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center justify-between bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
                   <div>
-                    <h3 className="text-base font-medium text-white">Páginas Cadastradas</h3>
-                    <p className="text-sm text-gray-400">Atualize para ver novas páginas implementadas</p>
+                    <h3 className="text-base font-medium text-slate-900">Páginas Cadastradas</h3>
+                    <p className="text-sm text-slate-500">Atualize para ver novas páginas implementadas</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRefreshPages}
                     disabled={loadingPages}
-                    className="bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${loadingPages ? 'animate-spin' : ''}`} />
                     Atualizar lista
@@ -431,7 +437,7 @@ const EquipeControleAcessos = () => {
 
                 {loadingPages ? (
                   <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin text-amber-400" />
+                    <RefreshCw className="h-6 w-6 animate-spin text-teal-600" />
                   </div>
                 ) : (
                   Object.entries(groupedPages).map(([category, categoryPages]) => {
@@ -443,13 +449,13 @@ const EquipeControleAcessos = () => {
                     const remainingCount = categoryPages.length - INITIAL_VISIBLE_PAGES;
 
                     return (
-                      <Card key={category} className="bg-gray-800/60 border-gray-700">
+                      <Card key={category} className="bg-white border-slate-200/60 shadow-sm">
                         <CardHeader className="pb-3">
                           <div className="flex items-center gap-2">
                             <Badge className={getCategoryColor(category)}>
                               {getCategoryLabel(category)}
                             </Badge>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-slate-500">
                               {categoryPages.length} páginas
                             </span>
                           </div>
@@ -457,36 +463,36 @@ const EquipeControleAcessos = () => {
                         <CardContent>
                           <Table>
                             <TableHeader>
-                              <TableRow className="border-gray-700 hover:bg-transparent">
-                                <TableHead className="text-gray-400">Página</TableHead>
-                                <TableHead className="text-gray-400">Caminho</TableHead>
-                                <TableHead className="text-gray-400">Requisitos</TableHead>
-                                <TableHead className="text-gray-400 text-right">Ativo</TableHead>
+                              <TableRow className="border-slate-200 hover:bg-transparent">
+                                <TableHead className="text-slate-600 bg-slate-50">Página</TableHead>
+                                <TableHead className="text-slate-600 bg-slate-50">Caminho</TableHead>
+                                <TableHead className="text-slate-600 bg-slate-50">Requisitos</TableHead>
+                                <TableHead className="text-slate-600 bg-slate-50 text-right">Ativo</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {visiblePages.map((page) => (
-                                <TableRow key={page.id} className="border-gray-700 hover:bg-gray-700/30">
+                                <TableRow key={page.id} className="border-slate-200 hover:bg-slate-50">
                                   <TableCell>
                                     <div>
-                                      <p className="font-medium text-white">{page.page_name}</p>
+                                      <p className="font-medium text-slate-900">{page.page_name}</p>
                                       {page.page_description && (
-                                        <p className="text-xs text-gray-500">{page.page_description}</p>
+                                        <p className="text-xs text-slate-500">{page.page_description}</p>
                                       )}
                                     </div>
                                   </TableCell>
-                                  <TableCell className="text-gray-400 font-mono text-xs">
+                                  <TableCell className="text-slate-600 font-mono text-xs">
                                     {page.page_path}
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex gap-1">
                                       {page.requires_admin && (
-                                        <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
+                                        <Badge variant="outline" className="text-xs border-red-200 text-red-600 bg-red-50">
                                           Admin
                                         </Badge>
                                       )}
                                       {page.requires_team_member && (
-                                        <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400">
+                                        <Badge variant="outline" className="text-xs border-teal-200 text-teal-600 bg-teal-50">
                                           Team
                                         </Badge>
                                       )}
@@ -506,11 +512,11 @@ const EquipeControleAcessos = () => {
                           </Table>
 
                           {hasMore && (
-                            <div className="pt-3 border-t border-gray-700 mt-3">
+                            <div className="pt-3 border-t border-slate-200 mt-3">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="w-full text-gray-400 hover:text-white hover:bg-gray-700/50"
+                                className="w-full text-slate-600 hover:text-teal-600 hover:bg-slate-50"
                                 onClick={() => toggleCategoryExpansion(category)}
                               >
                                 {isExpanded ? (
@@ -537,44 +543,44 @@ const EquipeControleAcessos = () => {
               {/* Users Tab */}
               <TabsContent value="users" className="space-y-4">
                 {/* Header com botão de criar usuário */}
-                <div className="flex items-center justify-between bg-gray-800/40 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center justify-between bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
                   <div>
-                    <h3 className="text-base font-medium text-white">Usuários do Sistema</h3>
-                    <p className="text-sm text-gray-400">Gerencie usuários e suas permissões de acesso</p>
+                    <h3 className="text-base font-medium text-slate-900">Usuários do Sistema</h3>
+                    <p className="text-sm text-slate-500">Gerencie usuários e suas permissões de acesso</p>
                   </div>
                   <Dialog open={isCreateOpen} onOpenChange={(open) => {
                     if (!open) handleCloseCreateDialog();
                     else setIsCreateOpen(true);
                   }}>
                     <DialogTrigger asChild>
-                      <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black">
+                      <Button className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                         <UserPlus className="h-4 w-4" />
                         Criar Novo Usuário
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+                    <DialogContent className="sm:max-w-md bg-white border-slate-200">
                       {createdCredentials ? (
                         <>
                           <DialogHeader>
-                            <DialogTitle className="text-white flex items-center gap-2">
-                              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                            <DialogTitle className="text-slate-900 flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 text-teal-600" />
                               Usuário Criado!
                             </DialogTitle>
-                            <DialogDescription className="text-gray-400">
+                            <DialogDescription className="text-slate-500">
                               Compartilhe as credenciais abaixo com o novo usuário
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4 py-4">
-                            <div className="bg-gray-900 rounded-lg p-4 space-y-3 border border-gray-700">
+                            <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <Label className="text-gray-400 text-xs">Email</Label>
-                                  <p className="text-white font-mono text-sm">{createdCredentials.email}</p>
+                                  <Label className="text-slate-500 text-xs">Email</Label>
+                                  <p className="text-slate-900 font-mono text-sm">{createdCredentials.email}</p>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-gray-400 hover:text-white"
+                                  className="text-slate-600 hover:text-teal-600"
                                   onClick={() => copyToClipboard(createdCredentials.email)}
                                 >
                                   <Copy className="h-4 w-4" />
@@ -582,27 +588,27 @@ const EquipeControleAcessos = () => {
                               </div>
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <Label className="text-gray-400 text-xs">Senha temporária</Label>
-                                  <p className="text-white font-mono text-sm">{createdCredentials.password}</p>
+                                  <Label className="text-slate-500 text-xs">Senha temporária</Label>
+                                  <p className="text-slate-900 font-mono text-sm">{createdCredentials.password}</p>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-gray-400 hover:text-white"
+                                  className="text-slate-600 hover:text-teal-600"
                                   onClick={() => copyToClipboard(createdCredentials.password)}
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
-                            <p className="text-xs text-gray-500 text-center">
+                            <p className="text-xs text-slate-500 text-center">
                               O usuário deve trocar a senha no primeiro acesso
                             </p>
                           </div>
                           <DialogFooter>
                             <Button 
                               onClick={handleCloseCreateDialog}
-                              className="w-full bg-amber-500 hover:bg-amber-600 text-black"
+                              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
                             >
                               Fechar
                             </Button>
@@ -611,60 +617,60 @@ const EquipeControleAcessos = () => {
                       ) : (
                         <form onSubmit={handleCreateUser}>
                           <DialogHeader>
-                            <DialogTitle className="text-white">Criar Novo Usuário</DialogTitle>
-                            <DialogDescription className="text-gray-400">
+                            <DialogTitle className="text-slate-900">Criar Novo Usuário</DialogTitle>
+                            <DialogDescription className="text-slate-500">
                               Preencha os dados para criar um novo membro da equipe
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label htmlFor="first_name" className="text-gray-300">Nome *</Label>
+                                <Label htmlFor="first_name" className="text-slate-700">Nome *</Label>
                                 <Input
                                   id="first_name"
                                   value={newUser.first_name}
                                   onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
-                                  className="bg-gray-900 border-gray-600 text-white"
+                                  className="bg-white border-slate-200 text-slate-900"
                                   placeholder="Nome"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label htmlFor="last_name" className="text-gray-300">Sobrenome *</Label>
+                                <Label htmlFor="last_name" className="text-slate-700">Sobrenome *</Label>
                                 <Input
                                   id="last_name"
                                   value={newUser.last_name}
                                   onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
-                                  className="bg-gray-900 border-gray-600 text-white"
+                                  className="bg-white border-slate-200 text-slate-900"
                                   placeholder="Sobrenome"
                                 />
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="email" className="text-gray-300">Email *</Label>
+                              <Label htmlFor="email" className="text-slate-700">Email *</Label>
                               <Input
                                 id="email"
                                 type="email"
                                 value={newUser.email}
                                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                className="bg-gray-900 border-gray-600 text-white"
+                                className="bg-white border-slate-200 text-slate-900"
                                 placeholder="email@exemplo.com"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="password" className="text-gray-300">Senha *</Label>
+                              <Label htmlFor="password" className="text-slate-700">Senha *</Label>
                               <div className="relative">
                                 <Input
                                   id="password"
                                   type={showPassword ? 'text' : 'password'}
                                   value={newUser.password}
                                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                  className="bg-gray-900 border-gray-600 text-white pr-10"
+                                  className="bg-white border-slate-200 text-slate-900 pr-10"
                                   placeholder="Mínimo 6 caracteres"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-teal-600"
                                 >
                                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
@@ -677,9 +683,9 @@ const EquipeControleAcessos = () => {
                                 onCheckedChange={(checked) => 
                                   setNewUser({ ...newUser, is_admin: checked === true })
                                 }
-                                className="border-gray-600 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
                               />
-                              <Label htmlFor="is_admin" className="text-gray-300 text-sm">
+                              <Label htmlFor="is_admin" className="text-slate-700 text-sm">
                                 Conceder acesso de administrador
                               </Label>
                             </div>
@@ -689,14 +695,14 @@ const EquipeControleAcessos = () => {
                               type="button"
                               variant="outline"
                               onClick={handleCloseCreateDialog}
-                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                              className="border-slate-200 text-slate-600 hover:bg-slate-50"
                             >
                               Cancelar
                             </Button>
                             <Button 
                               type="submit"
                               disabled={createUserMutation.isPending}
-                              className="bg-amber-500 hover:bg-amber-600 text-black"
+                              className="bg-teal-600 hover:bg-teal-700 text-white"
                             >
                               {createUserMutation.isPending ? (
                                 <>
@@ -716,17 +722,17 @@ const EquipeControleAcessos = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Users List */}
-                  <Card className="bg-gray-800/60 border-gray-700">
+                  <Card className="bg-white border-slate-200/60 shadow-sm">
                     <CardHeader>
-                      <CardTitle className="text-white text-sm">Usuários</CardTitle>
-                      <CardDescription className="text-gray-400">
+                      <CardTitle className="text-slate-900 text-sm">Usuários</CardTitle>
+                      <CardDescription className="text-slate-500">
                         Selecione um usuário para gerenciar acessos
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                       {loadingUsers ? (
                         <div className="flex items-center justify-center py-4">
-                          <RefreshCw className="h-5 w-5 animate-spin text-amber-400" />
+                          <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
                         </div>
                       ) : (
                         users?.map((u) => (
@@ -734,15 +740,15 @@ const EquipeControleAcessos = () => {
                             key={u.id}
                             className={`w-full p-3 rounded-lg text-left transition-colors ${
                               selectedUserId === u.id
-                                ? 'bg-amber-500/20 border border-amber-500/50'
-                                : 'bg-gray-700/50 hover:bg-gray-700 border border-transparent'
+                                ? 'bg-teal-500/10 border border-teal-200'
+                                : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
                             }`}
                             onClick={() => setSelectedUserId(u.id)}
                           >
-                            <p className="font-medium text-white text-sm">
+                            <p className="font-medium text-slate-900 text-sm">
                               {u.first_name} {u.last_name}
                             </p>
-                            <p className="text-xs text-gray-400">{u.email}</p>
+                            <p className="text-xs text-slate-500">{u.email}</p>
                             <div className="flex gap-1 mt-1">
                               {u.roles.map((role) => (
                                 <Badge
@@ -750,10 +756,10 @@ const EquipeControleAcessos = () => {
                                   variant="outline"
                                   className={`text-xs ${
                                     role === 'admin'
-                                      ? 'border-red-500/50 text-red-400'
+                                      ? 'border-red-200 text-red-600 bg-red-50'
                                       : role === 'team_member'
-                                      ? 'border-blue-500/50 text-blue-400'
-                                      : 'border-gray-500/50 text-gray-400'
+                                      ? 'border-teal-200 text-teal-600 bg-teal-50'
+                                      : 'border-slate-200 text-slate-600 bg-slate-50'
                                   }`}
                                 >
                                   {role}
@@ -767,14 +773,14 @@ const EquipeControleAcessos = () => {
                   </Card>
 
                   {/* User Permissions */}
-                  <Card className="lg:col-span-2 bg-gray-800/60 border-gray-700">
+                  <Card className="lg:col-span-2 bg-white border-slate-200/60 shadow-sm">
                     <CardHeader>
-                      <CardTitle className="text-white text-sm">
+                      <CardTitle className="text-slate-900 text-sm">
                         {selectedUser
                           ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
                           : 'Selecione um usuário'}
                       </CardTitle>
-                      <CardDescription className="text-gray-400">
+                      <CardDescription className="text-slate-500">
                         Gerencie as permissões individuais de acesso às páginas
                       </CardDescription>
                     </CardHeader>
@@ -792,18 +798,18 @@ const EquipeControleAcessos = () => {
                                   return (
                                     <div
                                       key={page.id}
-                                      className="flex items-center justify-between p-2 rounded-lg bg-gray-700/30"
+                                      className="flex items-center justify-between p-2 rounded-lg bg-slate-50"
                                     >
                                       <div>
-                                        <p className="text-sm text-white">{page.page_name}</p>
-                                        <p className="text-xs text-gray-500">{page.page_path}</p>
+                                        <p className="text-sm text-slate-900">{page.page_name}</p>
+                                        <p className="text-xs text-slate-500">{page.page_path}</p>
                                       </div>
                                       <div className="flex items-center gap-2">
                                         {userHasAccess ? (
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             onClick={() =>
                                               revokeAccessMutation.mutate({
                                                 userId: selectedUserId,
@@ -818,7 +824,7 @@ const EquipeControleAcessos = () => {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
                                             onClick={() =>
                                               grantAccessMutation.mutate({
                                                 userId: selectedUserId,
@@ -839,7 +845,7 @@ const EquipeControleAcessos = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-slate-500">
                           <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                           <p>Selecione um usuário na lista ao lado</p>
                         </div>
