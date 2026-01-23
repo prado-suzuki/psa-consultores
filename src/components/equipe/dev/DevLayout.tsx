@@ -57,7 +57,7 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
   };
 
   return (
-    <div className="min-h-screen bg-white flex w-full">
+    <div className="min-h-screen bg-muted/30 flex w-full">
       {/* Sidebar */}
       <aside 
         className={`${collapsed ? 'w-16' : 'w-60'} bg-gray-900 flex flex-col transition-all duration-300 flex-shrink-0`}
@@ -65,11 +65,11 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
         {/* Header */}
         <div className={`p-3 border-b border-gray-800 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
           {collapsed ? (
-            <Code2 className="h-8 w-8 text-purple-400" />
+            <Code2 className="h-8 w-8 text-primary" />
           ) : (
             <div className="flex flex-col items-center text-center">
               <div className="flex items-center gap-2 mb-1">
-                <Code2 className="h-6 w-6 text-purple-400" />
+                <Code2 className="h-6 w-6 text-primary" />
                 <h1 className="text-white font-semibold text-sm">Digital Dev</h1>
               </div>
               <p className="text-xs text-gray-500">Ambiente de Desenvolvimento</p>
@@ -96,7 +96,7 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
               variant={isActive(item.path) ? "secondary" : "ghost"}
               className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
                 isActive(item.path) 
-                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' 
+                  ? 'bg-primary/20 text-primary hover:bg-primary/30' 
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
               onClick={() => navigate(item.path)}
@@ -134,19 +134,19 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-gray-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
