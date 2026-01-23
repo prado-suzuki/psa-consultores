@@ -45,6 +45,7 @@ interface Project {
   description: string | null;
   status: string;
   client_name: string | null;
+  client_id: string | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -64,6 +65,7 @@ interface BacklogTask {
 interface Process {
   id: string;
   name: string;
+  code?: string | null;
   description: string | null;
   area: string | null;
   stage: string;
@@ -71,7 +73,16 @@ interface Process {
   frequency: string | null;
   volume_month: number | null;
   financial_impact: string | null;
-  project_id: string | null;
+  client_id: string | null;
+  impact_type?: string | null;
+}
+
+interface CatalogClient {
+  id: string;
+  name: string;
+  responsible: string | null;
+  color: string;
+  is_active: boolean;
 }
 
 interface TeamMember {
@@ -116,6 +127,7 @@ const EquipeProjetos = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -301,7 +313,23 @@ const EquipeProjetos = () => {
   useEffect(() => {
     fetchProjects();
     fetchTeamMembers();
+    fetchCatalogClients();
   }, []);
+  
+  const fetchCatalogClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('catalog_clients')
+        .select('id, name, responsible, color, is_active')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      setCatalogClients(data || []);
+    } catch (error) {
+      console.error('Error fetching catalog clients:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedProject && isEditMode) {
@@ -391,14 +419,37 @@ const EquipeProjetos = () => {
     if (!selectedProject) return;
     setLoadingProcesses(true);
     try {
+      // Buscar via project_processes (tabela de relacionamento N:N)
       const { data, error } = await supabase
-        .from('processes')
-        .select('*')
-        .eq('project_id', selectedProject.id)
-        .order('created_at', { ascending: false });
+        .from('project_processes')
+        .select(`
+          id,
+          impact_type,
+          process:processes(
+            id,
+            name,
+            code,
+            description,
+            area,
+            stage,
+            priority,
+            frequency,
+            volume_month,
+            financial_impact,
+            client_id
+          )
+        `)
+        .eq('project_id', selectedProject.id);
       
       if (error) throw error;
-      setProcesses(data || []);
+      
+      // Extrair processos do resultado e adicionar impact_type
+      const processesData = data?.map(pp => ({
+        ...pp.process,
+        impact_type: pp.impact_type
+      })).filter(Boolean) as Process[] || [];
+      
+      setProcesses(processesData);
     } catch (error) {
       console.error('Error fetching processes:', error);
     } finally {
@@ -412,12 +463,20 @@ const EquipeProjetos = () => {
     return member ? `${member.first_name} ${member.last_name}`.trim() : null;
   };
 
-  // Get unique areas from projects
-  const areas = [...new Set(projects.map(p => extractArea(p.description)))].sort();
+  // Get unique areas from catalog_clients
+  const areas = catalogClients.map(c => c.name).sort();
 
-  // Filter projects
+  // Helper to get client info by ID
+  const getClientInfo = (clientId: string | null) => {
+    if (!clientId) return null;
+    return catalogClients.find(c => c.id === clientId);
+  };
+
+  // Filter projects by client_id or fallback to description extraction
   const filteredProjects = projects.filter(project => {
-    const matchesArea = areaFilter === 'all' || extractArea(project.description) === areaFilter;
+    const clientInfo = getClientInfo(project.client_id);
+    const projectArea = clientInfo?.name || extractArea(project.description);
+    const matchesArea = areaFilter === 'all' || projectArea === areaFilter;
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesArea && matchesStatus;
   });
@@ -693,6 +752,25 @@ const EquipeProjetos = () => {
       default:
         return <Badge variant="outline">{priority}</Badge>;
     }
+  };
+
+  // Get area badge from client_id or fallback to area string
+  const getAreaBadgeFromClient = (clientId: string | null, fallbackArea?: string) => {
+    const client = getClientInfo(clientId);
+    if (client) {
+      return (
+        <Badge 
+          style={{ backgroundColor: `${client.color}20`, color: client.color, borderColor: client.color }}
+          className="border"
+        >
+          {client.name}
+        </Badge>
+      );
+    }
+    if (fallbackArea) {
+      return getAreaBadge(fallbackArea);
+    }
+    return null;
   };
 
   const getAreaBadge = (area: string) => {
