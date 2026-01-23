@@ -6,9 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
+import { useToast } from '@/hooks/use-toast';
+import { Plus } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -43,12 +50,19 @@ interface AreaData {
   count: number;
 }
 
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 import { parseDate } from '@/lib/dateUtils';
 import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
   const [stats, setStats] = useState<DeliverableStats>({ total: 0, pending: 0, in_progress: 0, completed: 0 });
   const [myDeliverables, setMyDeliverables] = useState<any[]>([]);
@@ -57,6 +71,18 @@ const EquipeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<string>('sprint');
+  
+  // Estados do modal de rotinas
+  const [isRoutineDialogOpen, setIsRoutineDialogOpen] = useState(false);
+  const [submittingRoutine, setSubmittingRoutine] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [newRoutine, setNewRoutine] = useState({
+    title: '',
+    description: '',
+    frequency: 'daily',
+    assigned_to: '',
+    estimated_hours: ''
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -104,6 +130,13 @@ const EquipeDashboard = () => {
         setAreaData(Object.entries(areaCounts).map(([name, count]) => ({ name, count })));
       }
 
+      // Buscar membros da equipe para o select
+      const { data: members } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .order('first_name');
+      setTeamMembers(members || []);
+
       if (user) {
         const { data: myDeliverablesData } = await supabase
           .from('sprint_deliverables')
@@ -131,6 +164,40 @@ const EquipeDashboard = () => {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateRoutine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingRoutine || !newRoutine.title.trim()) {
+      toast({ title: "Erro", description: "Preencha o título da rotina.", variant: "destructive" });
+      return;
+    }
+
+    setSubmittingRoutine(true);
+    try {
+      const { error } = await supabase.from('routines').insert({
+        title: newRoutine.title.trim(),
+        description: newRoutine.description.trim() || null,
+        is_recurring: true,
+        frequency: newRoutine.frequency,
+        assigned_to: newRoutine.assigned_to || user?.id || null,
+        estimated_hours: newRoutine.estimated_hours ? Number(newRoutine.estimated_hours) : null,
+        status: 'pending',
+        created_by: user?.id
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Rotina criada!", description: "A nova rotina foi adicionada com sucesso." });
+      setIsRoutineDialogOpen(false);
+      setNewRoutine({ title: '', description: '', frequency: 'daily', assigned_to: '', estimated_hours: '' });
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error creating routine:', error);
+      toast({ title: "Erro", description: "Não foi possível criar a rotina.", variant: "destructive" });
+    } finally {
+      setSubmittingRoutine(false);
     }
   };
 
@@ -384,9 +451,106 @@ const EquipeDashboard = () => {
 
         <TabsContent value="rotina">
           <div className="flex justify-end mb-4">
-            <Button onClick={() => navigate('/equipe/rotina?criar=true')}>
-              + Incluir Rotina
-            </Button>
+            <Dialog open={isRoutineDialogOpen} onOpenChange={setIsRoutineDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Incluir Rotina
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-background max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nova Rotina</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateRoutine} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="routine-title">Título *</Label>
+                    <Input
+                      id="routine-title"
+                      placeholder="Nome da rotina"
+                      value={newRoutine.title}
+                      onChange={(e) => setNewRoutine({ ...newRoutine, title: e.target.value })}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="routine-description">Descrição</Label>
+                    <Textarea
+                      id="routine-description"
+                      placeholder="Detalhes da rotina"
+                      value={newRoutine.description}
+                      onChange={(e) => setNewRoutine({ ...newRoutine, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Frequência</Label>
+                      <Select
+                        value={newRoutine.frequency}
+                        onValueChange={(value) => setNewRoutine({ ...newRoutine, frequency: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Diária</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="routine-hours">Horas Estimadas</Label>
+                      <Input
+                        id="routine-hours"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="Ex: 2"
+                        value={newRoutine.estimated_hours}
+                        onChange={(e) => setNewRoutine({ ...newRoutine, estimated_hours: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Responsável</Label>
+                    <Select
+                      value={newRoutine.assigned_to}
+                      onValueChange={(value) => setNewRoutine({ ...newRoutine, assigned_to: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um membro" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.first_name} {member.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsRoutineDialogOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={submittingRoutine}>
+                      {submittingRoutine ? 'Criando...' : 'Criar Rotina'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
           <Card className="border-border shadow-sm">
             <CardHeader>
@@ -404,20 +568,19 @@ const EquipeDashboard = () => {
                   {myRoutines.map((routine) => (
                     <div 
                       key={routine.id}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                      onClick={() => navigate('/equipe/rotina')}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <Badge className="bg-teal-100 text-teal-700 border-0">
                           {getFrequencyLabel(routine.frequency)}
                         </Badge>
-                        <span className="text-slate-700">{routine.title}</span>
+                        <span className="text-foreground">{routine.title}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {routine.estimated_hours && (
-                          <span className="text-xs text-slate-500">{routine.estimated_hours}h</span>
+                          <span className="text-xs text-muted-foreground">{routine.estimated_hours}h</span>
                         )}
-                        <Badge variant="outline" className="border-slate-200 text-slate-600">
+                        <Badge variant="outline">
                           {getStatusLabel(routine.status)}
                         </Badge>
                       </div>
@@ -425,16 +588,8 @@ const EquipeDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-500 text-center py-8">Nenhuma rotina atribuída a você</p>
+                <p className="text-muted-foreground text-center py-8">Nenhuma rotina atribuída a você</p>
               )}
-              
-              <Button 
-                variant="ghost" 
-                className="w-full mt-4 text-primary hover:text-primary/80"
-                onClick={() => navigate('/equipe/rotina')}
-              >
-                Ver rotinas
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
