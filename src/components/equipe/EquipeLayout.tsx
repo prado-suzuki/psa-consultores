@@ -55,7 +55,7 @@ const navItems: NavItem[] = [
       { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
     ]
   },
-  { icon: Library, label: 'Biblioteca', path: '/equipe/biblioteca' },
+  // { icon: Library, label: 'Biblioteca', path: '/equipe/biblioteca' }, // Temporariamente oculto
 ];
 
 export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWidth = false }: EquipeLayoutProps) => {
