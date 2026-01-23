@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
+import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,11 +19,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react';
 import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil } from '@/lib/dateUtils';
+import * as XLSX from 'xlsx';
 
 interface Profile {
   id: string;
@@ -93,6 +105,10 @@ export default function GestaoChamados() {
   const [loading, setLoading] = useState(true);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
@@ -322,6 +338,107 @@ export default function GestaoChamados() {
     }
   };
 
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedTickets.length === filteredAndSortedTickets.length) {
+      setSelectedTickets([]);
+    } else {
+      setSelectedTickets(filteredAndSortedTickets.map(t => t.id));
+    }
+  };
+
+  const toggleSelectTicket = (ticketId: string) => {
+    setSelectedTickets(prev => 
+      prev.includes(ticketId) 
+        ? prev.filter(id => id !== ticketId)
+        : [...prev, ticketId]
+    );
+  };
+
+  // Export to Excel
+  const handleExport = () => {
+    const exportData = filteredAndSortedTickets.map(ticket => ({
+      'ID': ticket.id.slice(0, 8),
+      'Título': ticket.title,
+      'Status': statusLabels[ticket.status] || ticket.status,
+      'Departamento': departmentLabels[ticket.department] || ticket.department,
+      'Cliente': `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.trim(),
+      'Responsável': ticket.agent ? `${ticket.agent.first_name} ${ticket.agent.last_name}` : 'Não atribuído',
+      'Criado em': format(new Date(ticket.created_at), 'dd/MM/yyyy HH:mm'),
+      'Atualizado em': format(new Date(ticket.updated_at), 'dd/MM/yyyy HH:mm'),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Chamados');
+    XLSX.writeFile(workbook, `chamados_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast({
+      title: 'Exportação concluída',
+      description: `${exportData.length} chamado(s) exportado(s).`,
+    });
+  };
+
+  // Delete selected tickets
+  const handleDeleteTickets = async () => {
+    if (selectedTickets.length === 0) return;
+    
+    setDeleting(true);
+    try {
+      // Delete attachments from storage first
+      for (const ticketId of selectedTickets) {
+        const { data: attachments } = await supabase
+          .from('ticket_attachments')
+          .select('file_path')
+          .eq('ticket_id', ticketId);
+
+        if (attachments && attachments.length > 0) {
+          const filePaths = attachments.map(a => a.file_path);
+          await supabase.storage.from('ticket-attachments').remove(filePaths);
+        }
+      }
+
+      // Delete attachment records
+      await supabase
+        .from('ticket_attachments')
+        .delete()
+        .in('ticket_id', selectedTickets);
+
+      // Delete messages
+      await supabase
+        .from('ticket_messages')
+        .delete()
+        .in('ticket_id', selectedTickets);
+
+      // Delete tickets
+      const { error } = await supabase
+        .from('tickets')
+        .delete()
+        .in('id', selectedTickets);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Chamados excluídos',
+        description: `${selectedTickets.length} chamado(s) excluído(s) com sucesso.`,
+      });
+
+      setSelectedTickets([]);
+      setDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
+      fetchTickets();
+    } catch (error) {
+      console.error('Error deleting tickets:', error);
+      toast({
+        title: 'Erro ao excluir chamados',
+        description: 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const stats = {
     total: tickets.length,
     abertos: tickets.filter(t => t.status === 'aberto').length,
@@ -442,6 +559,35 @@ export default function GestaoChamados() {
         </CardContent>
       </Card>
 
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3 mb-6">
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="bg-teal-600 hover:bg-teal-700 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Chamado
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Exportar
+        </Button>
+        {selectedTickets.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={() => setDeleteDialogOpen(true)}
+            className="border-red-200 text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Excluir ({selectedTickets.length})
+          </Button>
+        )}
+      </div>
+
       {/* Tickets Table */}
       <Card>
         <CardHeader>
@@ -459,6 +605,12 @@ export default function GestaoChamados() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedTickets.length === filteredAndSortedTickets.length && filteredAndSortedTickets.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
                     <div className="flex items-center">
                       Status {getSortIcon('status')}
@@ -492,6 +644,12 @@ export default function GestaoChamados() {
                 {filteredAndSortedTickets.map((ticket) => (
                   <TableRow key={ticket.id}>
                     <TableCell>
+                      <Checkbox
+                        checked={selectedTickets.includes(ticket.id)}
+                        onCheckedChange={() => toggleSelectTicket(ticket.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
                       <Badge className={statusColors[ticket.status]}>
                         {statusLabels[ticket.status]}
                       </Badge>
@@ -500,11 +658,11 @@ export default function GestaoChamados() {
                       <div className="flex items-center gap-2">
                         {ticket.title}
                         {ticket.attachment_count && ticket.attachment_count > 0 && (
-                          <Paperclip className="h-4 w-4 text-gray-400" />
+                          <Paperclip className="h-4 w-4 text-slate-400" />
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="text-slate-500">
                       {departmentLabels[ticket.department] || ticket.department}
                     </TableCell>
                     <TableCell>
@@ -528,14 +686,15 @@ export default function GestaoChamados() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-gray-500 text-sm">
+                    <TableCell className="text-slate-500 text-sm">
                       {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}
                     </TableCell>
                     <TableCell>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/admin/chamados/${ticket.id}`)}
+                        onClick={() => navigate(`/gestao/chamados/${ticket.id}`)}
+                        className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
                       >
                         Ver
                       </Button>
@@ -547,6 +706,46 @@ export default function GestaoChamados() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Ticket Dialog */}
+      <CreateTicketDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchTickets}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900">Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              Você está prestes a excluir {selectedTickets.length} chamado(s). Esta ação não pode ser desfeita.
+              Todas as mensagens e anexos associados também serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-200 text-slate-600">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTickets}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? (
+                <span className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Excluindo...
+                </span>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </GestaoLayout>
   );
 }
