@@ -83,20 +83,20 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   };
 
   return (
-    <div className="min-h-screen bg-white flex w-full">
+    <div className="min-h-screen bg-muted/30 flex w-full">
       {/* Sidebar */}
       <aside 
-        className={`${collapsed ? 'w-16' : 'w-60'} bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 flex-shrink-0`}
+        className={`${collapsed ? 'w-16' : 'w-60'} bg-background border-r border-border flex flex-col transition-all duration-300 flex-shrink-0`}
       >
         {/* Header */}
-        <div className={`p-3 border-b border-gray-200 flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
+        <div className={`p-3 border-b border-border flex items-center ${collapsed ? 'justify-center' : 'justify-center'}`}>
           {collapsed ? (
             <img src={logoDark} alt="PSA" className="h-8" />
           ) : (
             <div className="flex flex-col items-center text-center">
               <img src={logoDark} alt="PSA" className="h-8 mb-1" />
-              <h1 className="text-gray-900 font-semibold text-sm">Digital Rotina</h1>
-              <p className="text-xs text-gray-500">Gestão de Projetos</p>
+              <h1 className="text-foreground font-semibold text-sm">Digital Rotina</h1>
+              <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
             </div>
           )}
         </div>
@@ -105,7 +105,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-3 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-gray-200 bg-white hover:bg-gray-100 shadow-sm"
+          className="absolute top-3 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-background hover:bg-muted shadow-sm"
           style={{ '--sidebar-width': collapsed ? '64px' : '240px' } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -127,7 +127,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     className={`flex-1 ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
                       isActive(item.path) || isChildActive(item.children)
                         ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                     onClick={() => navigate(item.path)}
                     title={collapsed ? item.label : undefined}
@@ -140,7 +140,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       >
                         <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
                       </Button>
@@ -156,7 +156,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         className={`w-full justify-start ${
                           isActive(child.path) 
                             ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }`}
                         onClick={() => navigate(child.path)}
                       >
@@ -174,7 +174,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                 className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
                   isActive(item.path) 
                     ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
                 onClick={() => navigate(item.path)}
                 title={collapsed ? item.label : undefined}
@@ -192,7 +192,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} ${
                 isActive('/equipe/cadastros')
                   ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
               onClick={() => navigate('/equipe/cadastros')}
               title={collapsed ? 'Cadastros' : undefined}
@@ -204,10 +204,10 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
         </nav>
 
         {/* Footer Actions */}
-        <div className="p-2 border-t border-gray-200 space-y-1">
+        <div className="p-2 border-t border-border space-y-1">
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-gray-700 hover:bg-gray-100`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-muted-foreground hover:text-foreground hover:bg-muted`}
             onClick={() => navigate('/equipe/digital')}
             title={collapsed ? 'Trocar área' : undefined}
           >
@@ -216,7 +216,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-gray-700 hover:bg-gray-100`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-muted-foreground hover:text-foreground hover:bg-muted`}
             onClick={() => navigate('/')}
             title={collapsed ? 'Voltar ao site' : undefined}
           >
@@ -225,7 +225,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-gray-500 hover:text-red-600 hover:bg-red-50`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start'} text-muted-foreground hover:text-destructive hover:bg-destructive/10`}
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
@@ -238,19 +238,19 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-gray-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">

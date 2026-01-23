@@ -176,7 +176,7 @@ const EquipeDashboard = () => {
       title="Dashboard" 
       subtitle="Visão geral do seu trabalho"
       headerActions={
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-muted-foreground">
           Atualizado: {lastUpdate?.toLocaleString('pt-BR', { 
             hour: '2-digit', 
             minute: '2-digit',
@@ -198,38 +198,37 @@ const EquipeDashboard = () => {
         <TabsContent value="sprint">
           {/* Active Sprint Card */}
           {activeSprint ? (
-            <Card className="bg-white border-gray-200 mb-6">
+            <Card className="border-border shadow-sm mb-6">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold text-gray-900">{activeSprint.name}</h2>
+                    <h2 className="text-lg font-semibold text-foreground">{activeSprint.name}</h2>
                     <Badge className="bg-primary/10 text-primary border-0">Ativa</Badge>
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
                 {activeSprint.goal && (
-                  <p className="text-gray-600 mb-4 text-sm">{activeSprint.goal}</p>
+                  <p className="text-muted-foreground mb-4 text-sm">{activeSprint.goal}</p>
                 )}
                 <div className="flex items-center gap-4">
-                  <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                  <div className="flex-1 bg-muted rounded-full h-2.5">
                     <div 
                       className="bg-primary h-2.5 rounded-full transition-all"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
-                  <span className="text-gray-900 font-semibold">{progressPercent}%</span>
+                  <span className="text-foreground font-semibold">{progressPercent}%</span>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-white border-gray-200 mb-6">
+            <Card className="border-border shadow-sm mb-6">
               <CardContent className="py-8 text-center">
-                <p className="text-gray-500 mb-4">Nenhuma sprint ativa</p>
+                <p className="text-muted-foreground mb-4">Nenhuma sprint ativa</p>
                 <Button 
                   variant="outline" 
-                  className="border-gray-300 text-gray-600"
                   onClick={() => navigate('/equipe/sprints')}
                 >
                   Criar Sprint
@@ -240,37 +239,37 @@ const EquipeDashboard = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-gray-500 mb-1">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm text-muted-foreground mb-1">Total</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-gray-500 mb-1">A Fazer</p>
+                <p className="text-sm text-muted-foreground mb-1">A Fazer</p>
                 <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-gray-500 mb-1">Em Progresso</p>
+                <p className="text-sm text-muted-foreground mb-1">Em Progresso</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardContent className="pt-4 pb-4">
-                <p className="text-sm text-gray-500 mb-1">Concluídas</p>
-                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                <p className="text-sm text-muted-foreground mb-1">Concluídas</p>
+                <p className="text-2xl font-bold text-primary">{stats.completed}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-gray-900 text-base font-medium">
+                <CardTitle className="text-foreground text-base font-semibold">
                   Volume de Entregas por Status
                 </CardTitle>
               </CardHeader>
@@ -278,11 +277,11 @@ const EquipeDashboard = () => {
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={volumeData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                      <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                      <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
                       <Tooltip 
-                        contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
                       />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -296,9 +295,9 @@ const EquipeDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-gray-900 text-base font-medium">
+                <CardTitle className="text-foreground text-base font-semibold">
                   Processos por Área
                 </CardTitle>
               </CardHeader>
@@ -323,7 +322,7 @@ const EquipeDashboard = () => {
                         ))}
                       </Pie>
                       <Tooltip 
-                        contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB' }}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} processos`, 'Quantidade']}
                       />
                     </PieChart>
@@ -344,9 +343,9 @@ const EquipeDashboard = () => {
           </div>
 
           {/* My Deliverables List */}
-          <Card className="bg-white border-gray-200">
+          <Card className="border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-gray-900 text-base font-medium">
+              <CardTitle className="text-foreground text-base font-semibold">
                 Meus Entregáveis da Sprint
               </CardTitle>
             </CardHeader>
@@ -360,20 +359,20 @@ const EquipeDashboard = () => {
                   {myDeliverables.map((deliverable) => (
                     <div 
                       key={deliverable.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/sprints')}
                     >
                       <div className="flex items-center gap-3">
                         <Badge className={getStatusColor(deliverable.status)}>
                           {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </Badge>
-                        <span className="text-gray-900">{deliverable.title}</span>
+                        <span className="text-foreground">{deliverable.title}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {deliverable.estimated_hours && (
-                          <span className="text-xs text-gray-500">{deliverable.estimated_hours}h</span>
+                          <span className="text-xs text-muted-foreground">{deliverable.estimated_hours}h</span>
                         )}
-                        <Badge variant="outline" className="border-gray-300 text-gray-600">
+                        <Badge variant="outline">
                           {getStatusLabel(deliverable.status)}
                         </Badge>
                       </div>
@@ -381,7 +380,7 @@ const EquipeDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">Nenhum entregável atribuído a você</p>
+                <p className="text-muted-foreground text-center py-8">Nenhum entregável atribuído a você</p>
               )}
               
               <Button 
@@ -396,9 +395,9 @@ const EquipeDashboard = () => {
         </TabsContent>
 
         <TabsContent value="rotina">
-          <Card className="bg-white border-gray-200">
+          <Card className="border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-gray-900 text-base font-medium">
+              <CardTitle className="text-foreground text-base font-semibold">
                 Minhas Tarefas de Rotina
               </CardTitle>
             </CardHeader>
@@ -412,20 +411,20 @@ const EquipeDashboard = () => {
                   {myRoutines.map((routine) => (
                     <div 
                       key={routine.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/rotina')}
                     >
                       <div className="flex items-center gap-3">
-                        <Badge className="bg-purple-100 text-purple-700">
+                        <Badge className="bg-secondary/20 text-secondary">
                           {getFrequencyLabel(routine.frequency)}
                         </Badge>
-                        <span className="text-gray-900">{routine.title}</span>
+                        <span className="text-foreground">{routine.title}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {routine.estimated_hours && (
-                          <span className="text-xs text-gray-500">{routine.estimated_hours}h</span>
+                          <span className="text-xs text-muted-foreground">{routine.estimated_hours}h</span>
                         )}
-                        <Badge variant="outline" className="border-gray-300 text-gray-600">
+                        <Badge variant="outline">
                           {getStatusLabel(routine.status)}
                         </Badge>
                       </div>
@@ -433,7 +432,7 @@ const EquipeDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">Nenhuma rotina atribuída a você</p>
+                <p className="text-muted-foreground text-center py-8">Nenhuma rotina atribuída a você</p>
               )}
               
               <Button 
@@ -449,9 +448,9 @@ const EquipeDashboard = () => {
 
         <TabsContent value="todos">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-900 text-base font-medium">
+                <CardTitle className="text-foreground text-base font-semibold">
                   Entregáveis da Sprint
                 </CardTitle>
               </CardHeader>
@@ -461,27 +460,27 @@ const EquipeDashboard = () => {
                     {myDeliverables.map((deliverable) => (
                       <div 
                         key={deliverable.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                         onClick={() => navigate('/equipe/sprints')}
                       >
                         <div className="flex items-center gap-3">
                           <Badge className={getStatusColor(deliverable.status)}>
                             {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                           </Badge>
-                          <span className="text-gray-900 text-sm">{deliverable.title}</span>
+                          <span className="text-foreground text-sm">{deliverable.title}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4 text-sm">Nenhum entregável</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">Nenhum entregável</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-gray-200">
+            <Card className="border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-900 text-base font-medium">
+                <CardTitle className="text-foreground text-base font-semibold">
                   Tarefas de Rotina
                 </CardTitle>
               </CardHeader>
@@ -491,20 +490,20 @@ const EquipeDashboard = () => {
                     {myRoutines.map((routine) => (
                       <div 
                         key={routine.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                         onClick={() => navigate('/equipe/rotina')}
                       >
                         <div className="flex items-center gap-3">
-                          <Badge className="bg-purple-100 text-purple-700">
+                          <Badge className="bg-secondary/20 text-secondary">
                             {getFrequencyLabel(routine.frequency)}
                           </Badge>
-                          <span className="text-gray-900 text-sm">{routine.title}</span>
+                          <span className="text-foreground text-sm">{routine.title}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4 text-sm">Nenhuma rotina</p>
+                  <p className="text-muted-foreground text-center py-4 text-sm">Nenhuma rotina</p>
                 )}
               </CardContent>
             </Card>

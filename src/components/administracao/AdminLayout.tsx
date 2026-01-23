@@ -54,7 +54,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
   };
 
   return (
-    <div className="min-h-screen bg-white flex w-full">
+    <div className="min-h-screen bg-muted/30 flex w-full">
       {/* Sidebar */}
       <aside 
         className={`${collapsed ? 'w-16' : 'w-60'} bg-slate-900 flex flex-col transition-all duration-300 flex-shrink-0`}
@@ -131,19 +131,19 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-gray-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
