@@ -228,38 +228,59 @@ const EquipeProjetos = () => {
     }
   };
 
-  // Handle import projects
+  // Extract area from Cliente column
+  const extractAreaFromCliente = (cliente: string | undefined): string => {
+    if (!cliente) return 'Geral';
+    const c = String(cliente).toLowerCase();
+    if (c.includes('fiscal') || c.includes('ricardo')) return 'Fiscal';
+    if (c.includes('consultoria') || c.includes('felipe')) return 'Consultoria';
+    if (c.includes('fixos') || c.includes('washington')) return 'Fixos';
+    return 'Transversal';
+  };
+
+  // Handle import projects - extracts unique projects from spreadsheet
   const handleImportProjects = async () => {
     if (importData.length === 0) return;
     
     setImporting(true);
     try {
-      const projectsToInsert = importData.map(row => ({
-        name: row.name || row.Nome || row.nome || '',
-        description: row.description || row.Descricao || row.descricao || row.Descrição || null,
-        status: row.status || row.Status || 'active',
-        client_name: row.client_name || row.Cliente || row.cliente || null,
-        start_date: row.start_date || row.Data_Inicio || row.data_inicio || null,
-        end_date: row.end_date || row.Data_Fim || row.data_fim || null,
-        created_by: user?.id
-      })).filter(p => p.name);
+      // Map all possible column names to extract project name
+      const allProjects = importData.map(row => {
+        // Try multiple column names for project
+        const projectName = row.Projeto || row.projeto || row.Project || row.name || row.Nome || row.nome || '';
+        const cliente = row.Cliente || row.cliente || row.Client || row.Empresa || row.empresa || '';
+        const area = extractAreaFromCliente(cliente);
+        
+        return {
+          name: String(projectName).trim(),
+          description: `Área: ${area} | Prioridade: Média`,
+          status: 'active',
+          client_name: row.Empresa || row.empresa || 'PSA CONSULTORES',
+          created_by: user?.id
+        };
+      }).filter(p => p.name && p.name.length > 0);
 
-      if (projectsToInsert.length === 0) {
+      // Remove duplicates by project name (case-insensitive)
+      const uniqueProjects = [...new Map(
+        allProjects.map(p => [p.name.toLowerCase(), p])
+      ).values()];
+
+      if (uniqueProjects.length === 0) {
         toast({
           title: "Erro",
-          description: "Nenhum projeto válido encontrado no arquivo.",
+          description: "Nenhum projeto válido encontrado. Verifique se a planilha tem uma coluna 'Projeto' ou 'Nome'.",
           variant: "destructive"
         });
         return;
       }
 
-      const { error } = await supabase.from('projects').insert(projectsToInsert);
+      const { error } = await supabase.from('projects').insert(uniqueProjects);
       
       if (error) throw error;
 
       toast({
         title: "Projetos importados!",
-        description: `${projectsToInsert.length} projetos criados com sucesso.`,
+        description: `${uniqueProjects.length} projetos únicos criados com sucesso.`,
       });
 
       setIsImportDialogOpen(false);
