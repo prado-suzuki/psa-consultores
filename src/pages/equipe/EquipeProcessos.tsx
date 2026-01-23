@@ -40,7 +40,8 @@ import {
   Loader2,
   Plus,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -752,25 +753,37 @@ const EquipeProcessos = () => {
   };
 
   interface InputItem {
-    nome: string;
+    nome?: string;
+    name?: string;
     origem?: string;
+    source?: string;
     formato?: string;
+    format?: string;
     quantidade?: string;
     criticidade?: string;
+    criticality?: string;
   }
 
   interface OutputItem {
-    nome: string;
+    nome?: string;
+    name?: string;
     destino?: string;
+    destination?: string;
     formato?: string;
+    format?: string;
     proposito?: string;
+    purpose?: string;
   }
 
   interface SystemItem {
-    nome: string;
+    nome?: string;
+    name?: string;
     uso?: string;
+    function?: string;
     frequencia?: string;
+    frequency?: string;
     gargalo?: string;
+    bottleneck?: string;
   }
 
   const parseInputs = (json: Json): InputItem[] => {
@@ -787,6 +800,22 @@ const EquipeProcessos = () => {
     if (Array.isArray(json)) return json as unknown as SystemItem[];
     return [];
   };
+
+  // Helpers to get values from bilingual fields
+  const getInputName = (input: InputItem) => input.nome || input.name || '';
+  const getInputSource = (input: InputItem) => input.origem || input.source || '';
+  const getInputFormat = (input: InputItem) => input.formato || input.format || '';
+  const getInputCriticality = (input: InputItem) => input.criticidade || input.criticality || '';
+
+  const getOutputName = (output: OutputItem) => output.nome || output.name || '';
+  const getOutputDestination = (output: OutputItem) => output.destino || output.destination || '';
+  const getOutputFormat = (output: OutputItem) => output.formato || output.format || '';
+  const getOutputPurpose = (output: OutputItem) => output.proposito || output.purpose || '';
+
+  const getSystemName = (system: SystemItem) => system.nome || system.name || '';
+  const getSystemFunction = (system: SystemItem) => system.uso || system.function || '';
+  const getSystemFrequency = (system: SystemItem) => system.frequencia || system.frequency || '';
+  const getSystemBottleneck = (system: SystemItem) => system.gargalo || system.bottleneck || '';
 
   return (
     <EquipeLayout 
@@ -936,9 +965,9 @@ const EquipeProcessos = () => {
 
       {/* Process List */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Carregando processos...</div>
+        <div className="text-center py-12 text-muted-foreground">Carregando processos...</div>
       ) : filteredProcesses.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-muted-foreground">
           Nenhum processo encontrado.
         </div>
       ) : (
@@ -946,16 +975,25 @@ const EquipeProcessos = () => {
           {filteredProcesses.map((process) => {
             const stageInfo = getStageInfo(process.stage);
             return (
-              <Card key={process.id} className="hover:shadow-md transition-shadow">
+              <Card key={process.id} className="bg-background border-border shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <Workflow className="h-5 w-5 text-primary flex-shrink-0" />
-                        <h3 className="font-semibold text-gray-900 truncate">{process.name}</h3>
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Workflow className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            {process.code && (
+                              <span className="text-xs font-mono text-muted-foreground">{process.code}</span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-foreground truncate">{process.name}</h3>
+                        </div>
                       </div>
                       {process.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">{process.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{process.description}</p>
                       )}
                       <div className="flex flex-wrap gap-2">
                         {getClientBadge(process)}
@@ -964,13 +1002,18 @@ const EquipeProcessos = () => {
                         </Badge>
                         {process.priority && (
                           <Badge variant="secondary" className="text-xs">
-                            {process.priority}
+                            {process.priority === 'high' ? 'Alta' : process.priority === 'medium' ? 'Média' : process.priority === 'low' ? 'Baixa' : process.priority}
                           </Badge>
                         )}
                         {process.frequency && (
                           <Badge variant="outline" className="text-xs">
                             <Clock className="h-3 w-3 mr-1" />
                             {process.frequency}
+                          </Badge>
+                        )}
+                        {process.volume_month && (
+                          <Badge variant="outline" className="text-xs">
+                            {process.volume_month}/mês
                           </Badge>
                         )}
                         {process.linked_projects && process.linked_projects.length > 0 && (
@@ -1401,17 +1444,24 @@ const EquipeProcessos = () => {
                                   <AccordionTrigger className="text-sm py-2">
                                     <span className="flex items-center gap-2">
                                       <FileInput className="h-4 w-4 text-blue-500" />
-                                      Inputs ({parseInputs(stage.inputs).length})
+                                      Entradas ({parseInputs(stage.inputs).length})
                                     </span>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ul className="space-y-2">
                                       {parseInputs(stage.inputs).map((input, i) => (
-                                        <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{input.nome}</span>
-                                          {input.origem && <span className="text-gray-500"> - {input.origem}</span>}
-                                          {input.formato && <Badge variant="outline" className="ml-2 text-xs">{input.formato}</Badge>}
-                                          {input.quantidade && <span className="text-gray-400 text-xs ml-2">({input.quantidade})</span>}
+                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
+                                          <span className="font-medium">{getInputName(input)}</span>
+                                          {getInputSource(input) && <span className="text-muted-foreground"> - {getInputSource(input)}</span>}
+                                          {getInputFormat(input) && <Badge variant="outline" className="ml-2 text-xs">{getInputFormat(input)}</Badge>}
+                                          {getInputCriticality(input) && (
+                                            <Badge 
+                                              variant="outline" 
+                                              className={`ml-2 text-xs ${getInputCriticality(input) === 'high' ? 'border-red-300 text-red-600' : ''}`}
+                                            >
+                                              {getInputCriticality(input) === 'high' ? 'Alta' : getInputCriticality(input) === 'medium' ? 'Média' : getInputCriticality(input)}
+                                            </Badge>
+                                          )}
                                         </li>
                                       ))}
                                     </ul>
@@ -1425,17 +1475,17 @@ const EquipeProcessos = () => {
                                   <AccordionTrigger className="text-sm py-2">
                                     <span className="flex items-center gap-2">
                                       <FileOutput className="h-4 w-4 text-green-500" />
-                                      Outputs ({parseOutputs(stage.outputs).length})
+                                      Saídas ({parseOutputs(stage.outputs).length})
                                     </span>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ul className="space-y-2">
                                       {parseOutputs(stage.outputs).map((output, i) => (
-                                        <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{output.nome}</span>
-                                          {output.destino && <span className="text-gray-500"> → {output.destino}</span>}
-                                          {output.formato && <Badge variant="outline" className="ml-2 text-xs">{output.formato}</Badge>}
-                                          {output.proposito && <p className="text-gray-500 text-xs mt-1">{output.proposito}</p>}
+                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
+                                          <span className="font-medium">{getOutputName(output)}</span>
+                                          {getOutputDestination(output) && <span className="text-muted-foreground"> → {getOutputDestination(output)}</span>}
+                                          {getOutputFormat(output) && <Badge variant="outline" className="ml-2 text-xs">{getOutputFormat(output)}</Badge>}
+                                          {getOutputPurpose(output) && <p className="text-muted-foreground text-xs mt-1">{getOutputPurpose(output)}</p>}
                                         </li>
                                       ))}
                                     </ul>
@@ -1455,12 +1505,15 @@ const EquipeProcessos = () => {
                                   <AccordionContent>
                                     <ul className="space-y-2">
                                       {parseSystems(stage.systems).map((system, i) => (
-                                        <li key={i} className="text-sm bg-gray-50 p-2 rounded">
-                                          <span className="font-medium">{system.nome}</span>
-                                          {system.uso && <span className="text-gray-500"> ({system.uso})</span>}
-                                          {system.frequencia && <Badge variant="outline" className="ml-2 text-xs">{system.frequencia}</Badge>}
-                                          {system.gargalo && (
-                                            <p className="text-orange-600 text-xs mt-1">⚠️ Gargalo: {system.gargalo}</p>
+                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
+                                          <span className="font-medium">{getSystemName(system)}</span>
+                                          {getSystemFunction(system) && <span className="text-muted-foreground"> ({getSystemFunction(system)})</span>}
+                                          {getSystemFrequency(system) && <Badge variant="outline" className="ml-2 text-xs">{getSystemFrequency(system)}</Badge>}
+                                          {getSystemBottleneck(system) && (
+                                            <p className="text-orange-600 text-xs mt-1 flex items-center gap-1">
+                                              <AlertTriangle className="h-3 w-3" />
+                                              Gargalo: {getSystemBottleneck(system)}
+                                            </p>
                                           )}
                                         </li>
                                       ))}
