@@ -105,7 +105,8 @@ export function EFDAnalysisModal({
       <DialogContent 
         className={cn(
           "max-w-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0",
-          "flex flex-col overflow-hidden"
+          "flex flex-col overflow-hidden",
+          "[&>button]:hidden"
         )}
       >
         {/* Header */}
@@ -178,10 +179,10 @@ export function EFDAnalysisModal({
             {/* Header do Registro */}
             <div className="h-14 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 bg-white dark:bg-slate-900 flex-shrink-0">
               <div className="flex items-center gap-4">
-                <span className="bg-primary/10 text-primary text-xs font-mono font-bold px-3 py-1.5 rounded-md border border-primary/20">
+                <Badge className="bg-primary text-primary-foreground text-sm font-mono font-bold px-4 py-1.5 shadow-sm">
                   REG {regCode}
-                </span>
-                <h4 className="text-base font-bold text-slate-800 dark:text-white">
+                </Badge>
+                <h4 className="text-lg font-bold text-slate-800 dark:text-white">
                   {regDescription}
                 </h4>
               </div>

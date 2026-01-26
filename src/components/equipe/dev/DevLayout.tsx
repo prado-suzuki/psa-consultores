@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dev' },
   { icon: Plus, label: 'Nova Ferramenta', path: '/equipe/dev/nova-ferramenta' },
   { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
-  { icon: FileText, label: 'Consulta EFD', path: '/equipe/dev/consulta-efd' },
+  { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
   { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
