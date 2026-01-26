@@ -209,31 +209,43 @@ const ConsultaEFD = () => {
       if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
       if (dataFim) url.searchParams.set('data_fim', dataFim);
       
-      const response = await fetchWithAuth(url.toString());
+      // Usar timeout maior para downloads grandes (60s)
+      const response = await fetchWithAuth(url.toString(), {}, 60000);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error_message || 'Erro ao baixar arquivos');
+        const contentType = response.headers.get('Content-Type');
+        // Se o erro for JSON, ler a mensagem
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error_message || `Erro ${response.status}`);
+        }
+        throw new Error(`Erro ${response.status} ao baixar arquivos`);
       }
       
-      // Verificar tipo de resposta (ZIP ou TXT único)
-      const contentType = response.headers.get('Content-Type');
-      const isZip = contentType?.includes('application/zip');
+      // Verificar headers informativos
+      const filesFound = response.headers.get('X-Files-Found');
+      const filesMissing = response.headers.get('X-Files-Missing');
       
       // Obter nome do arquivo
       const contentDisposition = response.headers.get('Content-Disposition');
+      const contentType = response.headers.get('Content-Type');
+      const isZip = contentType?.includes('application/zip');
+      
       let filename = isZip ? `EFD_${cnpjContribuinte}.zip` : `EFD_${cnpjContribuinte}.txt`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         if (match?.[1]) filename = match[1].replace(/['"]/g, '');
       }
       
-      // Verificar headers de contagem (para ZIPs)
-      const filesFound = response.headers.get('X-Files-Found');
-      const filesMissing = response.headers.get('X-Files-Missing');
-      
-      // Download
+      // Download do blob
       const blob = await response.blob();
+      
+      // Verificar se o blob tem conteúdo
+      if (blob.size === 0) {
+        throw new Error('Arquivo vazio recebido do servidor');
+      }
+      
+      // Criar link e download
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -243,10 +255,12 @@ const ConsultaEFD = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
       
-      // Mensagem de sucesso
-      let description = `Arquivo ${filename} baixado com sucesso.`;
-      if (filesFound) {
-        description = `${filesFound} arquivo(s) baixado(s)${filesMissing ? `, ${filesMissing} não encontrado(s)` : ''}.`;
+      // Mensagem de sucesso com detalhes
+      let description = `Arquivo ${filename} (${(blob.size / 1024).toFixed(1)} KB) baixado.`;
+      if (filesFound && filesMissing && parseInt(filesMissing) > 0) {
+        description = `${filesFound} arquivo(s) baixado(s), ${filesMissing} não encontrado(s) no storage.`;
+      } else if (filesFound) {
+        description = `${filesFound} arquivo(s) baixado(s) com sucesso.`;
       }
       
       toast({ title: 'Download concluído', description });
@@ -271,13 +285,19 @@ const ConsultaEFD = () => {
     return cnpj;
   };
 
-  // Formatar moeda
-  const formatCurrency = (value: string | number) => {
+  // Formatar moeda - trata null/undefined como traço
+  const formatCurrency = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined || value === '') {
+      return '—'; // Retorna traço para valores nulos/vazios
+    }
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) {
+      return '—';
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(numValue || 0);
+    }).format(numValue);
   };
 
   // Formatar período

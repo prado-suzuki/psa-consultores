@@ -16,10 +16,10 @@ export interface EFDArquivo {
   SUFRAMA: string | null;
   IND_NAT_PJ: string;
   IND_ATIV: number;
-  pis_devido: string;         // API retorna string
-  cofins_devido: string;
-  credito_pis: string;
-  credito_cofins: string;
+  pis_devido: string | null;         // API pode retornar null
+  cofins_devido: string | null;
+  credito_pis: string | null;
+  credito_cofins: string | null;
 }
 
 export interface BlocoRegistro {
