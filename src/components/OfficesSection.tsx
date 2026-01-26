@@ -28,9 +28,9 @@ const offices = [
     city: "Barreiras",
     state: "BA",
     type: "Filial",
-    email: "barreiras@psaconsultores.com.br",
-    phone: "(77) 3614-0000",
-    address: "Rua Exemplo, 123 - Centro, Barreiras - BA, 47800-000",
+    email: "contato@pradosuzuki.com",
+    phone: "+55 (77) 3611-0217",
+    address: "Rua 12 de Outubro, 520, Renato Gonçalves – Barreiras/BA, CEP 47806-072",
   },
   {
     id: "curitiba",
