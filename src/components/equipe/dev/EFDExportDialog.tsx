@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import * as XLSX from 'xlsx';
 import {
   Dialog,
   DialogContent,
@@ -15,25 +14,31 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Loader2, FileDown, ChevronDown, Save } from 'lucide-react';
+import { Download, Loader2, FileDown, ChevronDown, Save, Server, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { 
   BLOCK_DESCRIPTIONS, 
   REG_DESCRIPTIONS, 
   EXPORT_PRESET_PROFILES,
-  formatEFDValue,
-  generateColumnsFromData 
 } from '@/constants/efdConfig';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import type { EFDArquivo, BlocoRegistro } from '@/types/efd';
-import { format } from 'date-fns';
 
 interface EFDExportDialogProps {
   arquivo: EFDArquivo;
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
   disabled?: boolean;
+}
+
+type ExportStatus = 'idle' | 'starting' | 'processing' | 'completed' | 'error';
+
+interface JobStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  download_url?: string;
+  error?: string;
+  progress?: number;
 }
 
 export function EFDExportDialog({ 
@@ -45,17 +50,31 @@ export function EFDExportDialog({
   const [open, setOpen] = useState(false);
   const [selectedRegistros, setSelectedRegistros] = useState<Set<string>>(new Set());
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [selectedProfile, setSelectedProfile] = useState<string>('none');
-  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [jobId, setJobId] = useState<string | null>(null);
   
   // AbortController para cancelar exportação
   const abortControllerRef = useRef<AbortController | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Listar todos os registros disponíveis
   const allRegistros = useMemo(() => {
     return Object.values(blocosDisponiveis).flat().map(r => r.codigo);
   }, [blocosDisponiveis]);
+
+  // Limpar polling ao desmontar
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Reset ao abrir e cancelar ao fechar
   useEffect(() => {
@@ -63,9 +82,15 @@ export function EFDExportDialog({
       setSelectedRegistros(new Set());
       setExpandedBlocks(new Set());
       setSelectedProfile('none');
-      setExportProgress({ current: 0, total: 0 });
+      setExportStatus('idle');
+      setStatusMessage('');
+      setJobId(null);
     } else {
       // Cancelar exportação em andamento ao fechar o modal
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -166,16 +191,42 @@ export function EFDExportDialog({
 
   // Cancelar exportação
   const handleCancel = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setIsExporting(false);
-    setExportProgress({ current: 0, total: 0 });
+    setExportStatus('idle');
+    setStatusMessage('');
+    setJobId(null);
     setOpen(false);
   };
 
-  // Exportar Excel
+  // Verificar status do job
+  const checkJobStatus = async (id: string, signal: AbortSignal): Promise<JobStatus | null> => {
+    try {
+      const url = getApiUrl(`/api/v1/efd/exportar/status/${id}`);
+      const response = await fetchWithAuth(url, { signal });
+      
+      if (signal.aborted) return null;
+      
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return null;
+      }
+      console.error('Erro ao verificar status:', err);
+      return null;
+    }
+  };
+
+  // Exportar Excel via API dedicada
   const handleExport = async () => {
     if (selectedRegistros.size === 0) {
       toast({
@@ -190,109 +241,133 @@ export function EFDExportDialog({
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    setIsExporting(true);
-    setExportProgress({ current: 0, total: selectedRegistros.size });
+    setExportStatus('starting');
+    setStatusMessage('Iniciando geração do relatório...');
 
     try {
-      const wb = XLSX.utils.book_new();
-      let processedCount = 0;
+      // 1. Iniciar job de exportação
+      const registrosCodigos = Array.from(selectedRegistros).map(r => r.replace('REG_', ''));
+      
+      const exportUrl = getApiUrl(
+        `/api/v1/efd/contribuicoes/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/exportar`
+      );
+      
+      const startResponse = await fetchWithAuth(exportUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registros: registrosCodigos }),
+        signal,
+      });
 
-      // Para cada registro selecionado, buscar dados e criar aba
-      for (const registro of Array.from(selectedRegistros)) {
-        // Verificar se foi cancelado
+      if (signal.aborted) return;
+
+      if (!startResponse.ok) {
+        throw new Error('Falha ao iniciar exportação');
+      }
+
+      const startData = await startResponse.json();
+      const newJobId = startData.job_id || startData.id;
+      
+      if (!newJobId) {
+        throw new Error('ID do job não retornado');
+      }
+
+      setJobId(newJobId);
+      setExportStatus('processing');
+      setStatusMessage('Gerando arquivo no servidor...');
+
+      // 2. Polling para verificar status
+      const pollStatus = async () => {
         if (signal.aborted) {
-          toast({
-            title: 'Exportação cancelada',
-            description: `Processo interrompido pelo usuário.`,
-          });
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
           return;
         }
 
-        try {
-          const url = getApiUrl(
-            `/api/v1/efd/contribuicoes/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/registro/${registro}`
-          );
-          const response = await fetchWithAuth(url, { signal });
-          
-          // Verificar novamente após o fetch
-          if (signal.aborted) {
-            return;
+        const status = await checkJobStatus(newJobId, signal);
+        
+        if (!status || signal.aborted) return;
+
+        if (status.status === 'completed' && status.download_url) {
+          // Job concluído - fazer download
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
           }
-          
-          if (response.ok) {
-            const data = await response.json();
+
+          setExportStatus('completed');
+          setStatusMessage('Download pronto!');
+
+          // Fazer download do arquivo
+          try {
+            const downloadResponse = await fetchWithAuth(status.download_url, { signal });
             
-            if (data.dados && data.dados.length > 0) {
-              // Gerar colunas e formatar dados
-              const columns = generateColumnsFromData(data.dados);
-              const formattedData = data.dados.map((row: Record<string, unknown>) => {
-                const newRow: Record<string, string> = {};
-                columns.forEach(col => {
-                  newRow[col.label] = formatEFDValue(row[col.id], col.id);
-                });
-                return newRow;
+            if (downloadResponse.ok) {
+              const blob = await downloadResponse.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+
+              toast({
+                title: 'Exportação concluída',
+                description: 'Arquivo Excel baixado com sucesso!',
               });
 
-              const ws = XLSX.utils.json_to_sheet(formattedData);
-              
-              // Ajustar largura das colunas
-              ws['!cols'] = columns.map(col => ({ wch: Math.max(col.label.length + 2, 12) }));
-              
-              // Nome da aba (max 31 caracteres)
-              const sheetName = registro.replace('REG_', '').substring(0, 31);
-              XLSX.utils.book_append_sheet(wb, ws, sheetName);
+              setTimeout(() => setOpen(false), 1000);
+            }
+          } catch (downloadErr) {
+            if (!(downloadErr instanceof Error && downloadErr.name === 'AbortError')) {
+              console.error('Erro no download:', downloadErr);
+              toast({
+                title: 'Erro no download',
+                description: 'Não foi possível baixar o arquivo.',
+                variant: 'destructive',
+              });
             }
           }
-        } catch (err) {
-          // Ignorar erros de abort
-          if (err instanceof Error && err.name === 'AbortError') {
-            return;
+        } else if (status.status === 'failed') {
+          // Job falhou
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
           }
-          console.warn(`Erro ao buscar registro ${registro}:`, err);
+
+          setExportStatus('error');
+          setStatusMessage(status.error || 'Erro na geração do arquivo');
+          
+          toast({
+            title: 'Erro na exportação',
+            description: status.error || 'Falha ao gerar arquivo no servidor.',
+            variant: 'destructive',
+          });
+        } else if (status.progress !== undefined) {
+          setStatusMessage(`Processando... ${Math.round(status.progress * 100)}%`);
         }
+      };
 
-        processedCount++;
-        setExportProgress({ current: processedCount, total: selectedRegistros.size });
-      }
+      // Iniciar polling (a cada 2 segundos)
+      pollingIntervalRef.current = setInterval(pollStatus, 2000);
+      // Primeira verificação imediata
+      pollStatus();
 
-      // Verificar se foi cancelado antes de fazer download
-      if (signal.aborted) {
-        return;
-      }
-
-      // Download do arquivo
-      if (wb.SheetNames.length > 0) {
-        const fileName = `EFD_${arquivo.NOME}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-
-        toast({
-          title: 'Exportação concluída',
-          description: `${wb.SheetNames.length} abas exportadas para ${fileName}`,
-        });
-
-        setOpen(false);
-      } else {
-        toast({
-          title: 'Nenhum dado encontrado',
-          description: 'Os registros selecionados não possuem dados para exportar.',
-          variant: 'destructive',
-        });
-      }
     } catch (error) {
-      // Ignorar erros de abort
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
       console.error('Erro ao exportar:', error);
+      setExportStatus('error');
+      setStatusMessage('Erro ao iniciar exportação');
       toast({
         title: 'Erro na exportação',
-        description: 'Não foi possível gerar o arquivo Excel.',
+        description: 'Não foi possível iniciar a geração do arquivo.',
         variant: 'destructive',
       });
-    } finally {
-      setIsExporting(false);
-      setExportProgress({ current: 0, total: 0 });
-      abortControllerRef.current = null;
     }
   };
 
@@ -489,18 +564,25 @@ export function EFDExportDialog({
         {/* Footer */}
         <DialogFooter className="p-5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-900 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-bold shadow-sm">
-              {selectedRegistros.size}
-            </div>
+            {exportStatus === 'processing' || exportStatus === 'starting' ? (
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shadow-sm">
+                <Server className="h-5 w-5 text-amber-600 animate-pulse" />
+              </div>
+            ) : exportStatus === 'completed' ? (
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shadow-sm">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-bold shadow-sm">
+                {selectedRegistros.size}
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="text-sm font-bold text-slate-900 dark:text-white">
-                Registros Selecionados
+                {exportStatus === 'idle' ? 'Registros Selecionados' : 'Exportação em Andamento'}
               </span>
               <span className="text-xs text-slate-500">
-                {isExporting 
-                  ? `Exportando ${exportProgress.current}/${exportProgress.total}...` 
-                  : 'Pronto para exportar'
-                }
+                {statusMessage || 'Pronto para exportar'}
               </span>
             </div>
           </div>
@@ -510,18 +592,18 @@ export function EFDExportDialog({
             </Button>
             <Button 
               onClick={handleExport} 
-              disabled={isExporting || selectedRegistros.size === 0}
+              disabled={exportStatus !== 'idle' || selectedRegistros.size === 0}
               className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {isExporting ? (
+              {exportStatus === 'starting' || exportStatus === 'processing' ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Exportando...
+                  Processando...
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Baixar Relatório ({selectedRegistros.size})
+                  Gerar Relatório ({selectedRegistros.size})
                 </>
               )}
             </Button>
