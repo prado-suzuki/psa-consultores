@@ -10,6 +10,72 @@ export const EFD_HIDDEN_COLUMNS = [
   'UUID',
 ];
 
+// Descrições dos blocos SPED
+export const BLOCK_DESCRIPTIONS: Record<string, string> = {
+  '0': 'Bloco 0 - Abertura e Identificação',
+  'A': 'Bloco A - Serviços (ISS)',
+  'C': 'Bloco C - Documentos Fiscais (ICMS/IPI)',
+  'D': 'Bloco D - Documentos Fiscais (Serviços)',
+  'F': 'Bloco F - Demais Documentos',
+  'M': 'Bloco M - Apuração e Créditos',
+  '1': 'Bloco 1 - Complementos',
+  '9': 'Bloco 9 - Controle e Encerramento',
+};
+
+// Descrições dos registros comuns
+export const REG_DESCRIPTIONS: Record<string, string> = {
+  '0000': 'Abertura do Arquivo Digital',
+  '0100': 'Dados do Contabilista',
+  '0110': 'Regimes de Apuração',
+  '0140': 'Cadastro de Estabelecimento',
+  '0150': 'Cadastro de Participantes',
+  '0200': 'Cadastro de Itens',
+  '0450': 'Informações Complementares',
+  'A010': 'Identificação do Estabelecimento',
+  'A100': 'Documento - Nota Fiscal de Serviço',
+  'A170': 'Itens do Documento',
+  'C010': 'Identificação do Estabelecimento',
+  'C100': 'Nota Fiscal (NF-e, NFC-e)',
+  'C170': 'Itens do Documento',
+  'C175': 'Operações com Veículos Novos',
+  'C180': 'Consolidação de NFe',
+  'C190': 'Consolidação por CST',
+  'C380': 'Nota Fiscal de Venda Consumidor',
+  'C400': 'Equipamento ECF',
+  'C500': 'Nota Fiscal/Conta de Energia',
+  'D010': 'Identificação do Estabelecimento',
+  'D100': 'Aquisição de Serviços de Transporte',
+  'D200': 'Resumo de Transporte',
+  'D500': 'Nota Fiscal de Serviço de Comunicação',
+  'F010': 'Identificação do Estabelecimento',
+  'F100': 'Demais Documentos e Operações',
+  'F200': 'Operações Imobiliárias',
+  'F500': 'Deduções Diversas',
+  'F600': 'Contribuição Retida na Fonte',
+  'M001': 'Abertura do Bloco M',
+  'M100': 'Crédito de PIS/Pasep',
+  'M105': 'Detalhamento Base de Cálculo',
+  'M200': 'Consolidação PIS/Pasep do Período',
+  'M210': 'Detalhamento Contribuição PIS',
+  'M400': 'CST sem Direito a Crédito',
+  'M500': 'Crédito de COFINS',
+  'M505': 'Detalhamento Base COFINS',
+  'M600': 'Consolidação COFINS do Período',
+  'M610': 'Detalhamento Contribuição COFINS',
+  'M800': 'CST sem Direito a Crédito COFINS',
+  '1100': 'Controle de Créditos Fiscais PIS',
+  '1500': 'Controle de Créditos Fiscais COFINS',
+};
+
+// Perfis pré-definidos de exportação
+export const EXPORT_PRESET_PROFILES: Record<string, { name: string; registros: string[] | 'ALL' }> = {
+  none: { name: 'Selecione um perfil...', registros: [] },
+  all: { name: 'Todos os Registros', registros: 'ALL' },
+  fiscal: { name: 'Auditoria Fiscal', registros: ['0000', '0140', 'C100', 'C170', 'C190'] },
+  apuracao: { name: 'Apuração', registros: ['0000', 'M200', 'M600'] },
+  creditos: { name: 'Créditos', registros: ['M100', 'M105', 'M500', 'M505', '1100', '1500'] },
+};
+
 // Colunas base para registros comuns (serão expandidas dinamicamente)
 export const EFD_BASE_COLUMNS: EFDColumnConfig[] = [
   // Bloco 0 - Abertura
@@ -48,7 +114,7 @@ export const EFD_COLUMN_GROUPS = [
 
 // Função para gerar colunas dinamicamente a partir dos dados JSON
 export function generateColumnsFromData(
-  dados: Record<string, any>[],
+  dados: Record<string, unknown>[],
   hiddenColumns: string[] = EFD_HIDDEN_COLUMNS
 ): EFDColumnConfig[] {
   if (dados.length === 0) return [];
