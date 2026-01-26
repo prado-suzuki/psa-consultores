@@ -15,6 +15,15 @@ const offices = [
     address: "Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias – Cuiabá/MT, CEP 78043-292",
   },
   {
+    id: "sinop",
+    city: "Sinop",
+    state: "MT",
+    type: "Filial",
+    email: "contato@pradosuzuki.com",
+    phone: "(65) 3622-2426",
+    address: "Av. das Itaúbas 3020, Sinop, MT, 78550-086",
+  },
+  {
     id: "barreiras",
     city: "Barreiras",
     state: "BA",
