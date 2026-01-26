@@ -16,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet, FolderOpen, Settings } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet, FolderOpen, Settings, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
@@ -556,6 +557,66 @@ export default function EquipeSprintDetalhes() {
     return profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Desconhecido";
   };
 
+  // Exportar sprint para Excel
+  const handleExportExcel = () => {
+    if (!sprint || deliverables.length === 0) {
+      toast({ title: "Nenhum entregável para exportar", variant: "destructive" });
+      return;
+    }
+
+    const translateStatus = (status: string) => {
+      const map: Record<string, string> = {
+        pending: 'Pendente',
+        in_progress: 'Em Progresso',
+        completed: 'Concluído'
+      };
+      return map[status] || status;
+    };
+
+    const getProjectName = (projectId: string | null) => {
+      if (!projectId) return '-';
+      const project = projects.find(p => p.id === projectId);
+      return project?.name || '-';
+    };
+
+    const getProcessName = (processId: string | null) => {
+      if (!processId) return '-';
+      const process = processes.find(p => p.id === processId);
+      return process?.name || '-';
+    };
+
+    const getParentTitle = (parentId: string | null) => {
+      if (!parentId) return '-';
+      const parent = deliverables.find(d => d.id === parentId);
+      return parent?.title || '-';
+    };
+
+    const data = deliverables.map(d => ({
+      'Código': d.task_code || '-',
+      'Título': d.title,
+      'Descrição': d.description || '-',
+      'Responsável': getProfileName(d.assigned_to),
+      'Projeto': getProjectName(d.project_id),
+      'Processo': getProcessName(d.process_id),
+      'Data Início': d.start_date ? format(parseDate(d.start_date), 'dd/MM/yyyy') : '-',
+      'Data Entrega': format(parseDate(d.due_date), 'dd/MM/yyyy'),
+      'Horas Estimadas': d.estimated_hours || '-',
+      'Status': translateStatus(d.status),
+      'Tipo': d.parent_id ? 'Subtarefa' : 'Tarefa',
+      'Tarefa Pai': getParentTitle(d.parent_id)
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Entregáveis');
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const fileName = `${sprint.name.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    toast({ title: "Exportação concluída", description: `Arquivo ${fileName} gerado` });
+  };
+
   const getParticipantNames = (participantIds: string[]) => {
     if (!participantIds || participantIds.length === 0) return "Todos";
     return participantIds.map(id => getProfileName(id)).join(", ");
@@ -1073,6 +1134,14 @@ export default function EquipeSprintDetalhes() {
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Importar Excel
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleExportExcel}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
               </Button>
               <Button 
                 size="sm"
