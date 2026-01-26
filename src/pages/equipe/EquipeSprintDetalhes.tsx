@@ -557,54 +557,49 @@ export default function EquipeSprintDetalhes() {
     return profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Desconhecido";
   };
 
-  // Exportar sprint para Excel
+  // Exportar sprint para Excel (formato compatível com importação)
   const handleExportExcel = () => {
     if (!sprint || deliverables.length === 0) {
       toast({ title: "Nenhum entregável para exportar", variant: "destructive" });
       return;
     }
 
-    const translateStatus = (status: string) => {
-      const map: Record<string, string> = {
-        pending: 'Pendente',
-        in_progress: 'Em Progresso',
-        completed: 'Concluído'
-      };
-      return map[status] || status;
+    const getFirstName = (userId: string | null) => {
+      if (!userId) return '';
+      const profile = profiles.find(p => p.id === userId);
+      return profile?.first_name || '';
     };
 
     const getProjectName = (projectId: string | null) => {
-      if (!projectId) return '-';
+      if (!projectId) return '';
       const project = projects.find(p => p.id === projectId);
-      return project?.name || '-';
+      return project?.name || '';
     };
 
     const getProcessName = (processId: string | null) => {
-      if (!processId) return '-';
+      if (!processId) return '';
       const process = processes.find(p => p.id === processId);
-      return process?.name || '-';
+      return process?.name || '';
     };
 
-    const getParentTitle = (parentId: string | null) => {
-      if (!parentId) return '-';
-      const parent = deliverables.find(d => d.id === parentId);
-      return parent?.title || '-';
-    };
+    // Formato compatível com a importação
+    const data = deliverables.map(d => {
+      const isSubtask = !!d.parent_id;
+      const parentTask = isSubtask ? deliverables.find(p => p.id === d.parent_id) : null;
 
-    const data = deliverables.map(d => ({
-      'Código': d.task_code || '-',
-      'Título': d.title,
-      'Descrição': d.description || '-',
-      'Responsável': getProfileName(d.assigned_to),
-      'Projeto': getProjectName(d.project_id),
-      'Processo': getProcessName(d.process_id),
-      'Data Início': d.start_date ? format(parseDate(d.start_date), 'dd/MM/yyyy') : '-',
-      'Data Entrega': format(parseDate(d.due_date), 'dd/MM/yyyy'),
-      'Horas Estimadas': d.estimated_hours || '-',
-      'Status': translateStatus(d.status),
-      'Tipo': d.parent_id ? 'Subtarefa' : 'Tarefa',
-      'Tarefa Pai': getParentTitle(d.parent_id)
-    }));
+      return {
+        'Sprint': sprint.name,
+        'ID': d.task_code || '',
+        'Título': isSubtask ? (parentTask?.title || '') : d.title,
+        'Subtarefa': isSubtask ? d.title : '',
+        'Responsável': getFirstName(d.assigned_to),
+        'Descrição': d.description || '',
+        'Estimativa (h)': d.estimated_hours || '',
+        'Data de Entrega': format(parseDate(d.due_date), 'dd/MM/yyyy'),
+        'Projeto': getProjectName(d.project_id),
+        'Processo': getProcessName(d.process_id)
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
