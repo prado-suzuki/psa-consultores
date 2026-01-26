@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
 import {
   FileText,
   Search,
   FileSpreadsheet,
-  Calendar,
   Building2,
   RefreshCw,
   Loader2,
@@ -43,8 +43,8 @@ const ConsultaEFD = () => {
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
+  const [mesInicio, setMesInicio] = useState<{ month: number; year: number } | null>(null);
+  const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Query de clientes - usa tabela correta conforme ambiente
@@ -85,6 +85,10 @@ const ConsultaEFD = () => {
     const contrib = contribuintes?.find(c => c.id === selectedContribuinte);
     return contrib?.cpf_cnpj?.replace(/\D/g, '') || '';
   }, [contribuintes, selectedContribuinte]);
+
+  // Converter mês/ano para string de data para a API
+  const dataInicio = monthYearToDateString(mesInicio, 'start');
+  const dataFim = monthYearToDateString(mesFim, 'end');
 
   // Hooks de dados - só busca após usuário acionar busca
   const { 
@@ -192,8 +196,8 @@ const ConsultaEFD = () => {
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
-    setDataInicio("");
-    setDataFim("");
+    setMesInicio(null);
+    setMesFim(null);
     setSearchTriggered(false);
   };
 
@@ -387,19 +391,14 @@ const ConsultaEFD = () => {
             {/* Data Início */}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Início
+                Data de Início
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400 pointer-events-none" />
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className={cn(
-                    "w-full h-11 pl-10 pr-3 rounded-lg border border-slate-300 dark:border-slate-600",
-                    "bg-white dark:bg-slate-800 text-sm",
-                    "focus:ring-2 focus:ring-primary focus:border-primary transition-shadow"
-                  )}
+                <MonthYearPicker
+                  value={mesInicio}
+                  onChange={setMesInicio}
+                  placeholder="Selecione"
+                  className="bg-white dark:bg-slate-800"
                 />
               </div>
             </div>
@@ -407,19 +406,14 @@ const ConsultaEFD = () => {
             {/* Data Fim */}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Fim
+                Data Fim
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400 pointer-events-none" />
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className={cn(
-                    "w-full h-11 pl-10 pr-3 rounded-lg border border-slate-300 dark:border-slate-600",
-                    "bg-white dark:bg-slate-800 text-sm",
-                    "focus:ring-2 focus:ring-primary focus:border-primary transition-shadow"
-                  )}
+                <MonthYearPicker
+                  value={mesFim}
+                  onChange={setMesFim}
+                  placeholder="Selecione"
+                  className="bg-white dark:bg-slate-800"
                 />
               </div>
             </div>
