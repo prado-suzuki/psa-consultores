@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Download, Loader2, FileDown, ChevronDown, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -248,15 +249,21 @@ export function EFDExportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          disabled={disabled || blocos.length === 0}
-          className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <FileDown className="h-4 w-4 mr-2" />
-          Exportar Excel
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon"
+              disabled={disabled || blocos.length === 0}
+              className="h-9 w-9 text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Exportar Excel</p>
+          </TooltipContent>
+        </Tooltip>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
