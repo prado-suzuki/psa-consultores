@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Dialog,
@@ -48,19 +48,28 @@ export function EFDExportDialog({
   const [isExporting, setIsExporting] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<string>('none');
   const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
+  
+  // AbortController para cancelar exportação
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Listar todos os registros disponíveis
   const allRegistros = useMemo(() => {
     return Object.values(blocosDisponiveis).flat().map(r => r.codigo);
   }, [blocosDisponiveis]);
 
-  // Reset ao abrir
+  // Reset ao abrir e cancelar ao fechar
   useEffect(() => {
     if (open) {
       setSelectedRegistros(new Set());
       setExpandedBlocks(new Set());
       setSelectedProfile('none');
       setExportProgress({ current: 0, total: 0 });
+    } else {
+      // Cancelar exportação em andamento ao fechar o modal
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     }
   }, [open]);
 
@@ -155,6 +164,17 @@ export function EFDExportDialog({
     return { selected, total: registros.length };
   };
 
+  // Cancelar exportação
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsExporting(false);
+    setExportProgress({ current: 0, total: 0 });
+    setOpen(false);
+  };
+
   // Exportar Excel
   const handleExport = async () => {
     if (selectedRegistros.size === 0) {
@@ -166,6 +186,10 @@ export function EFDExportDialog({
       return;
     }
 
+    // Criar novo AbortController para esta exportação
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsExporting(true);
     setExportProgress({ current: 0, total: selectedRegistros.size });
 
@@ -175,11 +199,25 @@ export function EFDExportDialog({
 
       // Para cada registro selecionado, buscar dados e criar aba
       for (const registro of Array.from(selectedRegistros)) {
+        // Verificar se foi cancelado
+        if (signal.aborted) {
+          toast({
+            title: 'Exportação cancelada',
+            description: `Processo interrompido pelo usuário.`,
+          });
+          return;
+        }
+
         try {
           const url = getApiUrl(
             `/api/v1/efd/contribuicoes/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/registro/${registro}`
           );
-          const response = await fetchWithAuth(url);
+          const response = await fetchWithAuth(url, { signal });
+          
+          // Verificar novamente após o fetch
+          if (signal.aborted) {
+            return;
+          }
           
           if (response.ok) {
             const data = await response.json();
@@ -206,11 +244,20 @@ export function EFDExportDialog({
             }
           }
         } catch (err) {
+          // Ignorar erros de abort
+          if (err instanceof Error && err.name === 'AbortError') {
+            return;
+          }
           console.warn(`Erro ao buscar registro ${registro}:`, err);
         }
 
         processedCount++;
         setExportProgress({ current: processedCount, total: selectedRegistros.size });
+      }
+
+      // Verificar se foi cancelado antes de fazer download
+      if (signal.aborted) {
+        return;
       }
 
       // Download do arquivo
@@ -232,6 +279,10 @@ export function EFDExportDialog({
         });
       }
     } catch (error) {
+      // Ignorar erros de abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Erro ao exportar:', error);
       toast({
         title: 'Erro na exportação',
@@ -241,6 +292,7 @@ export function EFDExportDialog({
     } finally {
       setIsExporting(false);
       setExportProgress({ current: 0, total: 0 });
+      abortControllerRef.current = null;
     }
   };
 
@@ -453,7 +505,7 @@ export function EFDExportDialog({
             </div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={handleCancel}>
               Cancelar
             </Button>
             <Button 
