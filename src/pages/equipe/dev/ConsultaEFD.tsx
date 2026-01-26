@@ -91,6 +91,8 @@ const ConsultaEFD = () => {
   const dataFim = monthYearToDateString(mesFim, 'end');
 
   // Hooks de dados - só busca após usuário acionar busca
+  // NOTA: Busca todos os arquivos do contribuinte (sem filtro de data na API)
+  // A filtragem por período é feita localmente no frontend
   const { 
     data: overview, 
     isLoading: loadingOverview, 
@@ -99,9 +101,32 @@ const ConsultaEFD = () => {
   } = useEFDOverview({
     enabled: searchTriggered && !!cnpjContribuinte,
     cnpj: cnpjContribuinte,
-    dataInicio: dataInicio || undefined,
-    dataFim: dataFim || undefined,
+    // Não passa dataInicio/dataFim pois a API faz filtro de igualdade exata
   });
+
+  // Filtrar arquivos localmente por período (intersecção)
+  // Um arquivo é exibido se seu período INTERSECCIONA com o filtro selecionado
+  const arquivosFiltrados = useMemo(() => {
+    if (!overview?.arquivos) return [];
+    
+    // Se não há filtro de data, retorna todos
+    if (!dataInicio && !dataFim) return overview.arquivos;
+    
+    return overview.arquivos.filter(arquivo => {
+      const arquivoInicio = new Date(arquivo.DT_INI);
+      const arquivoFim = new Date(arquivo.DT_FIN);
+      const filtroInicio = dataInicio ? new Date(dataInicio) : null;
+      const filtroFim = dataFim ? new Date(dataFim) : null;
+      
+      // Verificar intersecção de períodos:
+      // - Seu período TERMINA após (ou no) início do filtro
+      // - Seu período INICIA antes (ou no) fim do filtro
+      const depoisDoInicio = !filtroInicio || arquivoFim >= filtroInicio;
+      const antesDoFim = !filtroFim || arquivoInicio <= filtroFim;
+      
+      return depoisDoInicio && antesDoFim;
+    });
+  }, [overview?.arquivos, dataInicio, dataFim]);
 
   // Exibir erro se houver
   useEffect(() => {
@@ -479,7 +504,7 @@ const ConsultaEFD = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadAll}
-                    disabled={downloadingAll || !overview?.arquivos?.length}
+                    disabled={downloadingAll || arquivosFiltrados.length === 0}
                     className="text-slate-600 hover:text-primary"
                   >
                     {downloadingAll ? (
@@ -519,7 +544,7 @@ const ConsultaEFD = () => {
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : overview?.arquivos && overview.arquivos.length > 0 ? (
+          ) : arquivosFiltrados.length > 0 ? (
             // Tabela com scroll
             <div 
               className={cn(
@@ -554,7 +579,7 @@ const ConsultaEFD = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {overview.arquivos.map((arquivo) => (
+                  {arquivosFiltrados.map((arquivo) => (
                     <tr 
                       key={arquivo.ID_ARQUIVO} 
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
