@@ -37,9 +37,9 @@ const offices = [
     city: "Curitiba",
     state: "PR",
     type: "Filial",
-    email: "curitiba@psaconsultores.com.br",
+    email: "contato@pradosuzuki.com",
     phone: "(41) 3333-0000",
-    address: "Rua Exemplo, 456 - Batel, Curitiba - PR, 80420-000",
+    address: "Rua Visconde de Nácar, 1440, Sala 1937, Edifício Século XXI, Centro – Curitiba/PR, CEP 80410-201",
   },
 ];
 
