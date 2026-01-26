@@ -12,149 +12,224 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Download, Loader2, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Loader2, FileDown, ChevronDown, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { generateColumnsFromData, formatEFDValue, EFD_COLUMN_GROUPS } from '@/constants/efdConfig';
-import type { EFDColumnConfig } from '@/types/efd';
+import { cn } from '@/lib/utils';
+import { 
+  BLOCK_DESCRIPTIONS, 
+  REG_DESCRIPTIONS, 
+  EXPORT_PRESET_PROFILES,
+  formatEFDValue,
+  generateColumnsFromData 
+} from '@/constants/efdConfig';
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { getApiUrl } from '@/config/api';
+import type { EFDArquivo, BlocoRegistro } from '@/types/efd';
+import { format } from 'date-fns';
 
 interface EFDExportDialogProps {
-  data: Record<string, any>[];
-  registro: string;
-  idArquivo: string;
+  arquivo: EFDArquivo;
+  blocosDisponiveis: Record<string, BlocoRegistro[]>;
   disabled?: boolean;
 }
 
 export function EFDExportDialog({ 
-  data, 
-  registro, 
-  idArquivo, 
+  arquivo, 
+  blocosDisponiveis,
   disabled 
 }: EFDExportDialogProps) {
+  const { fetchWithAuth } = useApiAuth();
   const [open, setOpen] = useState(false);
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState('colunas');
+  const [selectedRegistros, setSelectedRegistros] = useState<Set<string>>(new Set());
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<string>('none');
+  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
 
-  // Gerar colunas dinamicamente a partir dos dados
-  const availableColumns = useMemo(() => {
-    return generateColumnsFromData(data);
-  }, [data]);
+  // Listar todos os registros disponíveis
+  const allRegistros = useMemo(() => {
+    return Object.values(blocosDisponiveis).flat().map(r => r.codigo);
+  }, [blocosDisponiveis]);
 
-  // Agrupar colunas
-  const columnsByGroup = useMemo(() => {
-    const groups: Record<string, EFDColumnConfig[]> = {};
-    EFD_COLUMN_GROUPS.forEach(group => {
-      const cols = availableColumns.filter(c => c.group === group);
-      if (cols.length > 0) {
-        groups[group] = cols;
-      }
-    });
-    return groups;
-  }, [availableColumns]);
-
-  // Selecionar todas ao abrir
+  // Reset ao abrir
   useEffect(() => {
     if (open) {
-      setSelectedColumns(availableColumns.map(c => c.id));
+      setSelectedRegistros(new Set());
+      setExpandedBlocks(new Set());
+      setSelectedProfile('none');
+      setExportProgress({ current: 0, total: 0 });
     }
-  }, [open, availableColumns]);
+  }, [open]);
 
-  // Toggle coluna
-  const toggleColumn = (columnId: string) => {
-    setSelectedColumns(prev =>
-      prev.includes(columnId)
-        ? prev.filter(id => id !== columnId)
-        : [...prev, columnId]
-    );
+  // Toggle acordeão
+  const toggleBlock = (bloco: string) => {
+    setExpandedBlocks(prev => {
+      const next = new Set(prev);
+      if (next.has(bloco)) {
+        next.delete(bloco);
+      } else {
+        next.add(bloco);
+      }
+      return next;
+    });
   };
 
-  // Selecionar todas
+  // Toggle registro individual
+  const toggleRegistro = (codigo: string) => {
+    setSelectedRegistros(prev => {
+      const next = new Set(prev);
+      if (next.has(codigo)) {
+        next.delete(codigo);
+      } else {
+        next.add(codigo);
+      }
+      return next;
+    });
+    setSelectedProfile('none');
+  };
+
+  // Toggle bloco inteiro
+  const toggleBloco = (bloco: string) => {
+    const registros = blocosDisponiveis[bloco]?.map(r => r.codigo) || [];
+    const allSelected = registros.every(r => selectedRegistros.has(r));
+    
+    setSelectedRegistros(prev => {
+      const next = new Set(prev);
+      registros.forEach(r => {
+        if (allSelected) {
+          next.delete(r);
+        } else {
+          next.add(r);
+        }
+      });
+      return next;
+    });
+    setSelectedProfile('none');
+  };
+
+  // Selecionar todos
   const selectAll = () => {
-    setSelectedColumns(availableColumns.map(c => c.id));
+    setSelectedRegistros(new Set(allRegistros));
+    setSelectedProfile('all');
   };
 
   // Limpar seleção
   const clearSelection = () => {
-    setSelectedColumns([]);
+    setSelectedRegistros(new Set());
+    setSelectedProfile('none');
   };
 
-  // Toggle grupo
-  const toggleGroup = (group: string) => {
-    const groupColumns = columnsByGroup[group]?.map(c => c.id) || [];
-    const allSelected = groupColumns.every(id => selectedColumns.includes(id));
+  // Aplicar perfil
+  const applyProfile = (profileKey: string) => {
+    setSelectedProfile(profileKey);
     
-    if (allSelected) {
-      setSelectedColumns(prev => prev.filter(id => !groupColumns.includes(id)));
-    } else {
-      setSelectedColumns(prev => [...new Set([...prev, ...groupColumns])]);
+    if (profileKey === 'none') {
+      return;
     }
+    
+    const profile = EXPORT_PRESET_PROFILES[profileKey];
+    if (!profile) return;
+    
+    if (profile.registros === 'ALL') {
+      setSelectedRegistros(new Set(allRegistros));
+    } else {
+      // Filtrar apenas registros que existem nos blocos disponíveis
+      const availableCodes = allRegistros.map(r => r.replace('REG_', ''));
+      const validRegs = profile.registros.filter(r => availableCodes.includes(r));
+      setSelectedRegistros(new Set(validRegs.map(r => `REG_${r}`)));
+    }
+    
+    toast({
+      title: `Perfil "${profile.name}" aplicado`,
+      description: `${profile.registros === 'ALL' ? allRegistros.length : profile.registros.length} registros selecionados`,
+    });
   };
 
-  // Preview dos dados
-  const previewData = useMemo(() => data.slice(0, 10), [data]);
-
-  // Colunas selecionadas para preview
-  const selectedColumnConfigs = useMemo(() => {
-    return availableColumns.filter(c => selectedColumns.includes(c.id));
-  }, [availableColumns, selectedColumns]);
+  // Contadores por bloco
+  const getBlockCount = (bloco: string) => {
+    const registros = blocosDisponiveis[bloco] || [];
+    const selected = registros.filter(r => selectedRegistros.has(r.codigo)).length;
+    return { selected, total: registros.length };
+  };
 
   // Exportar Excel
   const handleExport = async () => {
-    if (selectedColumns.length === 0) {
+    if (selectedRegistros.size === 0) {
       toast({
-        title: 'Selecione colunas',
-        description: 'Selecione ao menos uma coluna para exportar.',
+        title: 'Selecione registros',
+        description: 'Selecione ao menos um registro para exportar.',
         variant: 'destructive',
       });
       return;
     }
 
     setIsExporting(true);
+    setExportProgress({ current: 0, total: selectedRegistros.size });
 
     try {
-      // Filtrar apenas colunas selecionadas
-      const filteredData = data.map(row => {
-        const newRow: Record<string, any> = {};
-        selectedColumns.forEach(colId => {
-          const column = availableColumns.find(c => c.id === colId);
-          const rawValue = row[colId];
-          newRow[column?.label || colId] = formatEFDValue(rawValue, colId);
-        });
-        return newRow;
-      });
-
-      // Criar Excel
-      const ws = XLSX.utils.json_to_sheet(filteredData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, registro.replace('REG_', ''));
+      let processedCount = 0;
 
-      // Ajustar largura das colunas
-      const colWidths = selectedColumns.map(colId => {
-        const column = availableColumns.find(c => c.id === colId);
-        return { wch: Math.max((column?.label || colId).length + 2, 12) };
-      });
-      ws['!cols'] = colWidths;
+      // Para cada registro selecionado, buscar dados e criar aba
+      for (const registro of Array.from(selectedRegistros)) {
+        try {
+          const url = getApiUrl(
+            `/api/v1/efd/contribuicoes/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/registro/${registro}`
+          );
+          const response = await fetchWithAuth(url);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.dados && data.dados.length > 0) {
+              // Gerar colunas e formatar dados
+              const columns = generateColumnsFromData(data.dados);
+              const formattedData = data.dados.map((row: Record<string, unknown>) => {
+                const newRow: Record<string, string> = {};
+                columns.forEach(col => {
+                  newRow[col.label] = formatEFDValue(row[col.id], col.id);
+                });
+                return newRow;
+              });
 
-      // Download
-      const fileName = `EFD_${registro}_${idArquivo}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+              const ws = XLSX.utils.json_to_sheet(formattedData);
+              
+              // Ajustar largura das colunas
+              ws['!cols'] = columns.map(col => ({ wch: Math.max(col.label.length + 2, 12) }));
+              
+              // Nome da aba (max 31 caracteres)
+              const sheetName = registro.replace('REG_', '').substring(0, 31);
+              XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+          }
+        } catch (err) {
+          console.warn(`Erro ao buscar registro ${registro}:`, err);
+        }
 
-      toast({
-        title: 'Exportação concluída',
-        description: `${data.length} registros exportados para ${fileName}`,
-      });
+        processedCount++;
+        setExportProgress({ current: processedCount, total: selectedRegistros.size });
+      }
 
-      setOpen(false);
+      // Download do arquivo
+      if (wb.SheetNames.length > 0) {
+        const fileName = `EFD_${arquivo.NOME}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        toast({
+          title: 'Exportação concluída',
+          description: `${wb.SheetNames.length} abas exportadas para ${fileName}`,
+        });
+
+        setOpen(false);
+      } else {
+        toast({
+          title: 'Nenhum dado encontrado',
+          description: 'Os registros selecionados não possuem dados para exportar.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       console.error('Erro ao exportar:', error);
       toast({
@@ -164,8 +239,11 @@ export function EFDExportDialog({
       });
     } finally {
       setIsExporting(false);
+      setExportProgress({ current: 0, total: 0 });
     }
   };
+
+  const blocos = Object.keys(blocosDisponiveis);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -173,170 +251,220 @@ export function EFDExportDialog({
         <Button 
           variant="outline" 
           size="sm" 
-          disabled={disabled || data.length === 0}
+          disabled={disabled || blocos.length === 0}
+          className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-transform hover:-translate-y-0.5 active:translate-y-0"
         >
-          <Download className="h-4 w-4 mr-2" />
+          <FileDown className="h-4 w-4 mr-2" />
           Exportar Excel
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            Exportar {registro}
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        {/* Header */}
+        <DialogHeader className="p-6 pb-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
+          <DialogTitle className="text-xl flex items-center gap-2">
+            <FileDown className="h-6 w-6 text-emerald-600" />
+            Exportar para Excel
           </DialogTitle>
           <DialogDescription>
-            Selecione as colunas a exportar. Total: {data.length} registros.
+            Selecione os registros para gerar o relatório personalizado.
           </DialogDescription>
+
+          {/* Barra de Perfis e Ações */}
+          <div className="flex flex-wrap gap-4 items-end justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mt-4">
+            <div className="flex-1 min-w-[250px]">
+              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">
+                Carregar Perfil
+              </Label>
+              <div className="flex gap-2">
+                <Select value={selectedProfile} onValueChange={applyProfile}>
+                  <SelectTrigger className="flex-1 h-11 bg-slate-50 dark:bg-slate-800">
+                    <SelectValue placeholder="Selecione um perfil..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(EXPORT_PRESET_PROFILES).map(([key, profile]) => (
+                      <SelectItem key={key} value={key}>
+                        {key === 'all' && '★ '}{profile.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-11 w-11"
+                  title="Salvar como Favorito"
+                  onClick={() => toast({ title: 'Funcionalidade em desenvolvimento' })}
+                >
+                  <Save className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4 h-10">
+              <button 
+                onClick={selectAll}
+                className="text-sm font-bold text-primary hover:underline"
+              >
+                Selecionar Todos
+              </button>
+              <button 
+                onClick={clearSelection}
+                className="text-sm font-bold text-slate-500 hover:text-red-500 hover:underline"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="colunas">
-              Colunas ({selectedColumns.length}/{availableColumns.length})
-            </TabsTrigger>
-            <TabsTrigger value="preview">
-              Preview
-            </TabsTrigger>
-          </TabsList>
+        {/* Acordeões de Blocos */}
+        <div 
+          className={cn(
+            "flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50",
+            "[&::-webkit-scrollbar]:w-3",
+            "[&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800",
+            "[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600",
+            "[&::-webkit-scrollbar-thumb]:rounded-full"
+          )}
+        >
+          <div className="space-y-3">
+            {blocos.map(bloco => {
+              const isExpanded = expandedBlocks.has(bloco);
+              const registros = blocosDisponiveis[bloco] || [];
+              const blockName = BLOCK_DESCRIPTIONS[bloco] || `Bloco ${bloco}`;
+              const { selected, total } = getBlockCount(bloco);
+              const allSelected = selected === total && total > 0;
+              const someSelected = selected > 0 && selected < total;
 
-          <TabsContent value="colunas" className="flex-1 overflow-hidden">
-            <div className="flex items-center gap-2 mb-3">
-              <Button variant="outline" size="sm" onClick={selectAll}>
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Selecionar Todas
-              </Button>
-              <Button variant="outline" size="sm" onClick={clearSelection}>
-                <Square className="h-4 w-4 mr-1" />
-                Limpar
-              </Button>
-              <Badge variant="secondary" className="ml-auto">
-                {selectedColumns.length} selecionadas
-              </Badge>
-            </div>
+              return (
+                <div 
+                  key={bloco}
+                  className={cn(
+                    "border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800 transition-all duration-300",
+                    isExpanded && "shadow-sm"
+                  )}
+                >
+                  {/* Header do Acordeão */}
+                  <div 
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                    onClick={() => toggleBlock(bloco)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBloco(bloco);
+                        }}
+                      >
+                        <Checkbox
+                          checked={allSelected}
+                          className={cn(someSelected && "opacity-50")}
+                        />
+                      </div>
+                      <span className="font-bold text-sm text-slate-800 dark:text-white">
+                        {blockName}
+                      </span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {selected}/{total}
+                      </Badge>
+                    </div>
+                    <ChevronDown 
+                      className={cn(
+                        "h-5 w-5 text-slate-400 transition-transform duration-300",
+                        isExpanded && "rotate-180"
+                      )} 
+                    />
+                  </div>
 
-            <ScrollArea className="h-[350px] border rounded-md">
-              <Accordion type="multiple" defaultValue={Object.keys(columnsByGroup)} className="p-2">
-                {Object.entries(columnsByGroup).map(([group, columns]) => {
-                  const allGroupSelected = columns.every(c => selectedColumns.includes(c.id));
-                  const someGroupSelected = columns.some(c => selectedColumns.includes(c.id));
-
-                  return (
-                    <AccordionItem key={group} value={group}>
-                      <AccordionTrigger className="py-2 hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            checked={allGroupSelected}
-                            className={someGroupSelected && !allGroupSelected ? 'opacity-50' : ''}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleGroup(group);
-                            }}
-                          />
-                          <span className="font-medium">{group}</span>
-                          <Badge variant="outline" className="ml-2">
-                            {columns.filter(c => selectedColumns.includes(c.id)).length}/{columns.length}
-                          </Badge>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
-                          {columns.map(column => (
-                            <div key={column.id} className="flex items-center gap-2">
-                              <Checkbox
-                                id={column.id}
-                                checked={selectedColumns.includes(column.id)}
-                                onCheckedChange={() => toggleColumn(column.id)}
-                              />
-                              <Label 
-                                htmlFor={column.id} 
-                                className="text-sm cursor-pointer truncate"
-                                title={column.label}
-                              >
-                                {column.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="preview" className="flex-1 overflow-hidden">
-            <ScrollArea className="h-[400px] border rounded-md">
-              <div className="min-w-max">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {selectedColumnConfigs.map(column => (
-                        <TableHead 
-                          key={column.id} 
-                          className="whitespace-nowrap text-xs font-medium"
-                        >
-                          {column.label}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewData.length === 0 ? (
-                      <TableRow>
-                        <TableCell 
-                          colSpan={selectedColumnConfigs.length || 1} 
-                          className="text-center text-muted-foreground"
-                        >
-                          Sem dados para exibir
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      previewData.map((row, idx) => (
-                        <TableRow key={idx}>
-                          {selectedColumnConfigs.map(column => (
-                            <TableCell 
-                              key={column.id} 
-                              className="whitespace-nowrap text-xs"
-                            >
-                              {formatEFDValue(row[column.id], column.id)}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
+                  {/* Conteúdo do Acordeão */}
+                  <div 
+                    className={cn(
+                      "overflow-hidden transition-all duration-300",
+                      isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
                     )}
-                  </TableBody>
-                </Table>
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            <p className="text-xs text-muted-foreground mt-2">
-              Exibindo {previewData.length} de {data.length} registros
-            </p>
-          </TabsContent>
-        </Tabs>
+                  >
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {registros.map(reg => {
+                          const regCode = reg.codigo.replace('REG_', '');
+                          const description = REG_DESCRIPTIONS[regCode] || reg.descricao || 'Registro SPED';
+                          const isSelected = selectedRegistros.has(reg.codigo);
 
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleExport} 
-            disabled={isExporting || selectedColumns.length === 0}
-          >
-            {isExporting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Exportando...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar ({data.length} registros)
-              </>
-            )}
-          </Button>
+                          return (
+                            <label 
+                              key={reg.codigo}
+                              className={cn(
+                                "flex items-start gap-2 cursor-pointer p-2 rounded-lg transition-colors border",
+                                isSelected 
+                                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                                  : "bg-white dark:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                              )}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleRegistro(reg.codigo)}
+                                className="mt-0.5"
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200">
+                                  {regCode}
+                                </span>
+                                <span className="text-[10px] text-slate-500 leading-tight truncate">
+                                  {description}
+                                </span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <DialogFooter className="p-5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-900 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-bold shadow-sm">
+              {selectedRegistros.size}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                Registros Selecionados
+              </span>
+              <span className="text-xs text-slate-500">
+                {isExporting 
+                  ? `Exportando ${exportProgress.current}/${exportProgress.total}...` 
+                  : 'Pronto para exportar'
+                }
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleExport} 
+              disabled={isExporting || selectedRegistros.size === 0}
+              className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar Relatório ({selectedRegistros.size})
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

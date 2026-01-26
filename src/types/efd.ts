@@ -59,3 +59,9 @@ export interface EFDColumnConfig {
   label: string;
   group: string;
 }
+
+// Tipo para estado de seleção de registros (exportação)
+export interface ExportSelection {
+  selectedRegistros: Set<string>;
+  blocosDisponiveis: Record<string, string[]>;
+}

@@ -1,59 +1,43 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { useEFDOverview, useEFDDetail } from '@/hooks/useEFDData';
+import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
-import { generateColumnsFromData, formatEFDValue, EFD_COLUMN_GROUPS } from '@/constants/efdConfig';
+import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
 import { getTableName } from '@/config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   FileText,
-  ArrowLeft,
   Search,
-  Info,
   FileSpreadsheet,
   Calendar,
   Building2,
   RefreshCw,
   Loader2,
   Filter,
-  CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
+  Eraser,
+  BarChart3,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { EFDViewMode, EFDArquivo, BlocoRegistro } from '@/types/efd';
+import type { EFDArquivo } from '@/types/efd';
 
 const ConsultaEFD = () => {
-  // Estados de visualização
-  const [viewMode, setViewMode] = useState<EFDViewMode>('lista');
+  // Estados de modal
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
-  const [selectedBloco, setSelectedBloco] = useState<string>('');
-  const [selectedRegistro, setSelectedRegistro] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
 
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
-  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
-  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Query de clientes - usa tabela correta conforme ambiente
@@ -64,7 +48,7 @@ const ConsultaEFD = () => {
     queryKey: ["clientes-efd", clienteTable],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable as any)
+        .from(clienteTable as 'cliente')
         .select("id, nome")
         .eq("ativo", true)
         .order("nome");
@@ -77,7 +61,7 @@ const ConsultaEFD = () => {
     queryKey: ["contribuintes-efd", contribuinteTable, selectedCliente],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable as any)
+        .from(contribuinteTable as 'contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
         .order("nome_razao_social");
       
@@ -104,102 +88,26 @@ const ConsultaEFD = () => {
   } = useEFDOverview({
     enabled: searchTriggered && !!cnpjContribuinte,
     cnpj: cnpjContribuinte,
-    dataInicio: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : undefined,
-    dataFim: dataFim ? format(dataFim, 'yyyy-MM-dd') : undefined,
+    dataInicio: dataInicio || undefined,
+    dataFim: dataFim || undefined,
   });
 
-  // Hook de detalhes com paginação
-  const { 
-    data: detail, 
-    isLoading: loadingDetail, 
-    error: errorDetail 
-  } = useEFDDetail(
-    selectedArquivo && selectedRegistro ? {
-      cnpj: overview?.cnpj || selectedArquivo.CNPJ,
-      idArquivo: selectedArquivo.ID_ARQUIVO,
-      registro: selectedRegistro,
-      page: currentPage,
-      limit: 100,
-    } : undefined
-  );
-
-  // Resetar página quando mudar registro
+  // Exibir erro se houver
   useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedRegistro]);
-
-  // Quando overview carregar, selecionar primeiro bloco
-  useEffect(() => {
-    if (overview?.blocos_disponiveis) {
-      const blocos = Object.keys(overview.blocos_disponiveis);
-      if (blocos.length > 0 && !selectedBloco) {
-        setSelectedBloco(blocos[0]);
-      }
+    if (errorOverview) {
+      const errorMessage = errorOverview instanceof Error ? errorOverview.message : 'Erro desconhecido';
+      toast({
+        title: 'Erro ao carregar dados',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
-  }, [overview, selectedBloco]);
-
-  // Quando bloco mudar, selecionar primeiro registro
-  useEffect(() => {
-    if (selectedBloco && overview?.blocos_disponiveis[selectedBloco]) {
-      const registros = overview.blocos_disponiveis[selectedBloco];
-      if (registros.length > 0) {
-        setSelectedRegistro(registros[0].codigo);
-        setActiveTab(registros[0].codigo);
-      }
-    }
-  }, [selectedBloco, overview]);
-
-  // Gerar colunas dinâmicas a partir dos dados (já ordenadas por grupo)
-  const dynamicColumns = useMemo(() => {
-    if (!detail?.dados || detail.dados.length === 0) return [];
-    return generateColumnsFromData(detail.dados);
-  }, [detail]);
-
-  // Agrupar colunas por categoria para renderizar separação visual
-  const columnGroups = useMemo(() => {
-    if (dynamicColumns.length === 0) return [];
-    
-    const groups: { name: string; columns: typeof dynamicColumns }[] = [];
-    let currentGroup = '';
-    
-    dynamicColumns.forEach(col => {
-      if (col.group !== currentGroup) {
-        currentGroup = col.group;
-        groups.push({ name: col.group, columns: [col] });
-      } else {
-        groups[groups.length - 1].columns.push(col);
-      }
-    });
-    
-    return groups;
-  }, [dynamicColumns]);
-
-  // Filtrar dados com busca
-  const filteredData = useMemo(() => {
-    if (!detail?.dados) return [];
-    if (!searchTerm) return detail.dados;
-    
-    const term = searchTerm.toLowerCase();
-    return detail.dados.filter(row => 
-      Object.values(row).some(val => 
-        String(val).toLowerCase().includes(term)
-      )
-    );
-  }, [detail, searchTerm]);
+  }, [errorOverview]);
 
   // Handler para analisar arquivo
   const handleAnalisar = (arquivo: EFDArquivo) => {
     setSelectedArquivo(arquivo);
-    setViewMode('analise');
-    setCurrentPage(1);
-  };
-
-  // Handler para voltar à lista
-  const handleVoltar = () => {
-    setViewMode('lista');
-    setSelectedArquivo(null);
-    setSearchTerm('');
-    setCurrentPage(1);
+    setAnalysisModalOpen(true);
   };
 
   // Handler para buscar arquivos
@@ -227,8 +135,8 @@ const ConsultaEFD = () => {
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
-    setDataInicio(undefined);
-    setDataFim(undefined);
+    setDataInicio("");
+    setDataFim("");
     setSearchTriggered(false);
   };
 
@@ -250,67 +158,53 @@ const ConsultaEFD = () => {
     }).format(numValue || 0);
   };
 
-  // Exibir erro se houver
-  useEffect(() => {
-    if (errorOverview) {
-      const errorMessage = errorOverview instanceof Error ? errorOverview.message : 'Erro desconhecido';
-      toast({
-        title: 'Erro ao carregar dados',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    }
-  }, [errorOverview]);
+  // Formatar período
+  const formatPeriodo = (dtIni: string, dtFin: string) => {
+    const formatDate = (date: string) => {
+      if (!date) return '';
+      if (date.includes('-')) {
+        const [y, m, d] = date.split('-');
+        return `${d}/${m}/${y}`;
+      }
+      return date;
+    };
+    return `${formatDate(dtIni)} a ${formatDate(dtFin)}`;
+  };
 
-  // Blocos disponíveis
-  const blocosDisponiveis = overview?.blocos_disponiveis 
-    ? Object.keys(overview.blocos_disponiveis) 
-    : [];
-
-  // Registros do bloco selecionado
-  const registrosBloco = selectedBloco && overview?.blocos_disponiveis[selectedBloco]
-    ? overview.blocos_disponiveis[selectedBloco]
-    : [];
-
-  // Paginação
-  const totalPaginas = detail?.paginacao?.total_paginas || 1;
-  const podeIrAnterior = currentPage > 1;
-  const podeIrProxima = currentPage < totalPaginas;
+  // Blocos disponíveis para o arquivo selecionado
+  const blocosDisponiveis = overview?.blocos_disponiveis || {};
 
   return (
     <DevLayout 
       title="Consulta EFD Contribuições" 
-      subtitle="Análise de arquivos SPED Contribuições"
-      headerActions={
-        viewMode === 'analise' && (
-          <Button variant="outline" size="sm" onClick={handleVoltar}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para Lista
-          </Button>
-        )
-      }
+      subtitle="Análise e auditoria de arquivos SPED"
     >
-      {/* Card de Filtros de Busca - sempre visível */}
-      <Card className="mb-6">
+      {/* Card de Filtros de Busca */}
+      <Card className="mb-6 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <Filter className="h-5 w-5" />
-            Filtros de Busca
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+              Filtros de Busca
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Cliente */}
-            <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Cliente
               </label>
-              <Select value={selectedCliente} onValueChange={(value) => {
-                setSelectedCliente(value);
-                setSelectedContribuinte("");
-                setSearchTriggered(false);
-              }}>
-                <SelectTrigger>
+              <Select 
+                value={selectedCliente} 
+                onValueChange={(value) => {
+                  setSelectedCliente(value);
+                  setSelectedContribuinte("");
+                  setSearchTriggered(false);
+                }}
+              >
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -324,15 +218,18 @@ const ConsultaEFD = () => {
             </div>
 
             {/* Contribuinte */}
-            <div className="flex-1 min-w-[220px]">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+            <div className="md:col-span-5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
-              <Select value={selectedContribuinte} onValueChange={(value) => {
-                setSelectedContribuinte(value);
-                setSearchTriggered(false);
-              }}>
-                <SelectTrigger>
+              <Select 
+                value={selectedContribuinte} 
+                onValueChange={(value) => {
+                  setSelectedContribuinte(value);
+                  setSearchTriggered(false);
+                }}
+              >
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -346,75 +243,60 @@ const ConsultaEFD = () => {
             </div>
 
             {/* Data Início */}
-            <div className="w-[160px]">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Data Início
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Início
               </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataInicio && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-background border z-50" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dataInicio}
-                    onSelect={setDataInicio}
-                    locale={ptBR}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className={cn(
+                    "w-full h-11 pl-10 pr-3 rounded-lg border border-slate-300 dark:border-slate-600",
+                    "bg-white dark:bg-slate-800 text-sm",
+                    "focus:ring-2 focus:ring-primary focus:border-primary transition-shadow"
+                  )}
+                />
+              </div>
             </div>
 
             {/* Data Fim */}
-            <div className="w-[160px]">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Data Fim
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Fim
               </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataFim && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-background border z-50" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dataFim}
-                    onSelect={setDataFim}
-                    locale={ptBR}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className={cn(
+                    "w-full h-11 pl-10 pr-3 rounded-lg border border-slate-300 dark:border-slate-600",
+                    "bg-white dark:bg-slate-800 text-sm",
+                    "focus:ring-2 focus:ring-primary focus:border-primary transition-shadow"
+                  )}
+                />
+              </div>
             </div>
           </div>
 
           {/* Barra de Ações */}
-          <div className="flex justify-end gap-3 pt-3 border-t">
-            <Button variant="ghost" onClick={handleClearFilters}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <Button 
+              variant="ghost" 
+              onClick={handleClearFilters}
+              className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              <Eraser className="h-4 w-4 mr-2" />
               Limpar Filtros
             </Button>
             <Button 
               onClick={handleSearch} 
               disabled={!selectedContribuinte}
-              className="bg-primary hover:bg-primary/90"
+              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
             >
               {loadingOverview && searchTriggered ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -427,363 +309,184 @@ const ConsultaEFD = () => {
         </CardContent>
       </Card>
 
-      {viewMode === 'lista' ? (
-        searchTriggered ? (
-        <div className="space-y-6">
-          {/* Card de Resultados */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                Arquivos EFD Contribuições
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* CNPJ Info */}
-              {overview?.cnpj && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                  <Building2 className="h-4 w-4" />
-                  <span>CNPJ: {formatCNPJ(overview.cnpj)}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-6 w-6 ml-2"
-                    onClick={() => refetchOverview()}
-                    disabled={loadingOverview}
-                  >
-                    {loadingOverview ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Tabela de Arquivos */}
-              {loadingOverview ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : overview?.arquivos && overview.arquivos.length > 0 ? (
-                <div className="border rounded-md overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold">Arquivo</TableHead>
-                        <TableHead className="font-semibold">Período</TableHead>
-                        <TableHead className="font-semibold">Tipo</TableHead>
-                        <TableHead className="font-semibold">UF</TableHead>
-                        <TableHead className="font-semibold text-right">PIS Devido</TableHead>
-                        <TableHead className="font-semibold text-right">COFINS Devido</TableHead>
-                        <TableHead className="font-semibold text-center">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {overview.arquivos.map((arquivo) => (
-                        <TableRow key={arquivo.ID_ARQUIVO} className="hover:bg-muted/30">
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium text-sm">{arquivo.NOME}</p>
-                                <p className="text-xs text-muted-foreground">{arquivo.ID_ARQUIVO}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5 text-sm">
-                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                              {arquivo.DT_INI} a {arquivo.DT_FIN}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'}>
-                              {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">{arquivo.UF}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(arquivo.pis_devido)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(arquivo.cofins_devido)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => handleAnalisar(arquivo)}
-                            >
-                              Analisar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">Nenhum arquivo encontrado</p>
-                  <p className="text-sm mt-1">Verifique os filtros e tente novamente.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        ) : (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center text-muted-foreground">
-                <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">Selecione os filtros e clique em "Buscar Arquivos"</p>
-                <p className="text-sm mt-1">Escolha pelo menos um contribuinte para iniciar a busca.</p>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      ) : (
-        <div className="space-y-4">
-          {/* Header da Análise */}
-          <Card>
-            <CardContent className="py-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    {selectedArquivo?.NOME}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Período: {selectedArquivo?.DT_INI} a {selectedArquivo?.DT_FIN}
-                    <Badge variant="outline" className="ml-2">
-                      {selectedArquivo?.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
-                    </Badge>
-                    {selectedArquivo?.UF && (
-                      <Badge variant="outline" className="ml-2">
-                        {selectedArquivo.UF}
-                      </Badge>
-                    )}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar nos dados..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 w-[220px]"
-                    />
-                  </div>
-                  
-                  <EFDExportDialog
-                    data={filteredData}
-                    registro={selectedRegistro}
-                    idArquivo={selectedArquivo?.ID_ARQUIVO || ''}
-                    disabled={loadingDetail || filteredData.length === 0}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Navegação em Dois Níveis: Blocos + Registros */}
-          <Card className="overflow-hidden">
-            {/* NÍVEL 1: Tabs de Blocos */}
-            <div className="border-b bg-muted/50">
-              <ScrollArea className="w-full">
-                <div className="flex items-center px-2">
-                  {blocosDisponiveis.map(bloco => (
-                    <button
-                      key={bloco}
-                      onClick={() => setSelectedBloco(bloco)}
-                      className={cn(
-                        "px-4 py-2.5 text-sm font-medium transition-colors border-b-2",
-                        selectedBloco === bloco
-                          ? "border-primary text-primary bg-background"
-                          : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      )}
-                    >
-                      Bloco {bloco}
-                    </button>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+      {/* Tabela de Resultados */}
+      <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
+        {/* Header com CNPJ */}
+        {overview?.cnpj && (
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 flex items-center gap-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+              <Building2 className="h-5 w-5 text-primary" />
+              CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(overview.cnpj)}</span>
             </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => refetchOverview()}
+              disabled={loadingOverview}
+            >
+              {loadingOverview ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        )}
 
-            {/* NÍVEL 2: Tabs de Registros do Bloco */}
-            <Tabs value={activeTab} onValueChange={(value) => {
-              setActiveTab(value);
-              setSelectedRegistro(value);
-              setCurrentPage(1);
-            }}>
-              <div className="border-b bg-background">
-                <ScrollArea className="w-full">
-                  <TabsList className="h-9 bg-transparent p-0 justify-start gap-0">
-                    {registrosBloco.map(reg => (
-                      <TabsTrigger
-                        key={reg.codigo}
-                        value={reg.codigo}
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-muted/30 px-3 py-1.5 text-xs"
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-mono font-medium">{reg.codigo.replace('REG_', '')}</span>
-                          {reg.descricao && (
-                            <span className="text-[10px] text-muted-foreground max-w-[100px] truncate">
-                              {reg.descricao}
-                            </span>
-                          )}
-                        </div>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+        <CardContent className="flex-1 p-0">
+          {!searchTriggered ? (
+            // Estado inicial
+            <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
+              <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <Search className="w-10 h-10 text-slate-400" />
               </div>
-
-              {/* Conteúdo da Tab */}
-              <TabsContent value={activeTab} className="m-0">
-                <CardContent className="p-0">
-                  {loadingDetail ? (
-                    <div className="p-6 space-y-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
-                    </div>
-                  ) : errorDetail ? (
-                    <div className="p-12 text-center text-muted-foreground">
-                      <Info className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                      <p className="font-medium">Erro ao carregar detalhes</p>
-                      <p className="text-sm mt-1">
-                        {errorDetail instanceof Error ? errorDetail.message : 'Erro desconhecido'}
-                      </p>
-                    </div>
-                  ) : filteredData.length === 0 ? (
-                    <div className="p-12 text-center text-muted-foreground">
-                      <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                      <p className="font-medium">Nenhum registro encontrado</p>
-                      {searchTerm && (
-                        <p className="text-sm mt-1">Tente ajustar o termo de busca.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <ScrollArea className="h-[500px]">
-                      <div className="min-w-max">
-                        <Table>
-                          <TableHeader>
-                            {/* Header de Grupos (primeira linha) */}
-                            <TableRow className="bg-muted/70 border-b-2 border-muted">
-                              {columnGroups.map((group, groupIdx) => (
-                                <TableHead
-                                  key={group.name}
-                                  colSpan={group.columns.length}
-                                  className={cn(
-                                    "text-center font-semibold text-xs py-1.5 bg-muted/50",
-                                    groupIdx > 0 && "border-l-2 border-muted-foreground/20"
-                                  )}
-                                >
-                                  {group.name}
-                                </TableHead>
-                              ))}
-                            </TableRow>
-                            
-                            {/* Header de Colunas (segunda linha) */}
-                            <TableRow className="bg-muted/30">
-                              {dynamicColumns.map((col, idx) => {
-                                // Verificar se é primeira coluna do grupo
-                                const isFirstOfGroup = idx === 0 || 
-                                  dynamicColumns[idx - 1].group !== col.group;
-                                
-                                return (
-                                  <TableHead
-                                    key={col.id}
-                                    className={cn(
-                                      "whitespace-nowrap text-xs font-medium py-2",
-                                      isFirstOfGroup && idx > 0 && "border-l-2 border-muted-foreground/20"
-                                    )}
-                                  >
-                                    {col.label}
-                                  </TableHead>
-                                );
-                              })}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredData.map((row, idx) => (
-                              <TableRow key={idx} className="hover:bg-muted/30">
-                                {dynamicColumns.map((col, colIdx) => {
-                                  const isFirstOfGroup = colIdx === 0 || 
-                                    dynamicColumns[colIdx - 1].group !== col.group;
-                                  
-                                  return (
-                                    <TableCell
-                                      key={col.id}
-                                      className={cn(
-                                        "whitespace-nowrap text-xs py-2",
-                                        isFirstOfGroup && colIdx > 0 && "border-l border-muted-foreground/10"
-                                      )}
-                                    >
-                                      {formatEFDValue(row[col.id], col.id)}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                  )}
-
-                  {/* Footer com info de paginação e controles */}
-                  {detail?.paginacao && (
-                    <div className="px-4 py-3 border-t bg-muted/30 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        Exibindo {filteredData.length} de {detail.paginacao.total_registros} registros
-                      </span>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          Página {detail.paginacao.page} de {detail.paginacao.total_paginas}
-                        </span>
-                        <div className="flex gap-1">
+              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">
+                Nenhum arquivo listado
+              </h3>
+              <p className="text-base text-slate-500 max-w-xs mt-2">
+                Utilize os filtros acima e clique em "Buscar" para carregar os arquivos EFD.
+              </p>
+            </div>
+          ) : loadingOverview ? (
+            // Loading
+            <div className="p-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : overview?.arquivos && overview.arquivos.length > 0 ? (
+            // Tabela com scroll
+            <div 
+              className={cn(
+                "overflow-x-auto",
+                "[&::-webkit-scrollbar]:h-3",
+                "[&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800",
+                "[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600",
+                "[&::-webkit-scrollbar-thumb]:rounded-full"
+              )}
+            >
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      Arquivo
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      Período
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
+                      PIS
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
+                      COFINS
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {overview.arquivos.map((arquivo) => (
+                    <tr 
+                      key={arquivo.ID_ARQUIVO} 
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <FileSpreadsheet className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-slate-800 dark:text-white">
+                              {arquivo.NOME}
+                            </p>
+                            <p className="text-[10px] text-slate-400 uppercase font-mono">
+                              ID: {arquivo.ID_ARQUIVO}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge 
+                          variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'}
+                          className={cn(
+                            "text-[10px] font-bold uppercase",
+                            arquivo.TIPO_ESCRIT === 0 
+                              ? "bg-blue-50 text-blue-700 border-blue-200" 
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          )}
+                        >
+                          {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
+                        {formatCurrency(arquivo.pis_devido)}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
+                        {formatCurrency(arquivo.cofins_devido)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
                             variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={!podeIrAnterior || loadingDetail}
-                            onClick={() => setCurrentPage(p => p - 1)}
+                            size="sm"
+                            className="text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                            title="Baixar Original (TXT)"
+                            onClick={() => toast({ title: 'Funcionalidade em desenvolvimento' })}
                           >
-                            <ChevronLeft className="h-4 w-4" />
+                            <FileText className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={!podeIrProxima || loadingDetail}
-                            onClick={() => setCurrentPage(p => p + 1)}
+                          
+                          <EFDExportDialog
+                            arquivo={arquivo}
+                            blocosDisponiveis={blocosDisponiveis}
+                          />
+                          
+                          <Button 
+                            size="sm"
+                            onClick={() => handleAnalisar(arquivo)}
+                            className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
                           >
-                            <ChevronRight className="h-4 w-4" />
+                            <BarChart3 className="h-4 w-4 mr-1" />
+                            Analisar
                           </Button>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </TabsContent>
-            </Tabs>
-          </Card>
-        </div>
-      )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            // Nenhum arquivo encontrado
+            <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
+              <FileText className="h-12 w-12 text-slate-400 mb-3" />
+              <p className="font-medium text-slate-700 dark:text-slate-300">
+                Nenhum arquivo encontrado
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Verifique os filtros e tente novamente.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal de Análise */}
+      <EFDAnalysisModal
+        open={analysisModalOpen}
+        onOpenChange={setAnalysisModalOpen}
+        arquivo={selectedArquivo}
+        blocosDisponiveis={blocosDisponiveis}
+        cnpj={overview?.cnpj || ''}
+      />
     </DevLayout>
   );
 };
