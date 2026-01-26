@@ -3,12 +3,13 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getTableName } from '@/config/api';
+import { getTableName, getApiUrl } from '@/config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   FileText,
   Search,
@@ -20,18 +21,23 @@ import {
   Filter,
   Eraser,
   BarChart3,
+  Download,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import type { EFDArquivo } from '@/types/efd';
 
 const ConsultaEFD = () => {
+  const { fetchWithAuth } = useApiAuth();
+  
   // Estados de modal
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
+  const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
 
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
@@ -108,6 +114,56 @@ const ConsultaEFD = () => {
   const handleAnalisar = (arquivo: EFDArquivo) => {
     setSelectedArquivo(arquivo);
     setAnalysisModalOpen(true);
+  };
+
+  // Handler para download do TXT original
+  const handleDownloadTxt = async (arquivo: EFDArquivo) => {
+    setDownloadingTxt(arquivo.ID_ARQUIVO);
+    
+    try {
+      const url = getApiUrl(`/api/v1/query/download/efd/contribuicoes/arquivo/${encodeURIComponent(arquivo.ID_ARQUIVO)}`);
+      const response = await fetchWithAuth(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Erro ao baixar arquivo');
+      }
+      
+      // Obter o nome do arquivo do header ou usar fallback
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `${arquivo.NOME}.txt`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) {
+          filename = match[1].replace(/['"]/g, '');
+        }
+      }
+      
+      // Criar blob e iniciar download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: 'Download concluído',
+        description: `Arquivo ${filename} baixado com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao baixar TXT:', error);
+      toast({
+        title: 'Erro no download',
+        description: error instanceof Error ? error.message : 'Não foi possível baixar o arquivo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingTxt(null);
+    }
   };
 
   // Handler para buscar arquivos
@@ -433,31 +489,44 @@ const ConsultaEFD = () => {
                         {formatCurrency(arquivo.cofins_devido)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-                            title="Baixar Original (TXT)"
-                            onClick={() => toast({ title: 'Funcionalidade em desenvolvimento' })}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          
-                          <EFDExportDialog
-                            arquivo={arquivo}
-                            blocosDisponiveis={blocosDisponiveis}
-                          />
-                          
-                          <Button 
-                            size="sm"
-                            onClick={() => handleAnalisar(arquivo)}
-                            className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-                          >
-                            <BarChart3 className="h-4 w-4 mr-1" />
-                            Analisar
-                          </Button>
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex items-center justify-center gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                                  onClick={() => handleDownloadTxt(arquivo)}
+                                  disabled={downloadingTxt === arquivo.ID_ARQUIVO}
+                                >
+                                  {downloadingTxt === arquivo.ID_ARQUIVO ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Download className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Baixar Original (TXT)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            <EFDExportDialog
+                              arquivo={arquivo}
+                              blocosDisponiveis={blocosDisponiveis}
+                            />
+                            
+                            <Button 
+                              size="sm"
+                              onClick={() => handleAnalisar(arquivo)}
+                              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                            >
+                              <BarChart3 className="h-4 w-4 mr-1" />
+                              Analisar
+                            </Button>
+                          </div>
+                        </TooltipProvider>
                       </td>
                     </tr>
                   ))}
