@@ -49,12 +49,9 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
       if (params.indAtiv !== undefined) {
         url.searchParams.set('IND_ATIV', String(params.indAtiv));
       }
-      if (params.dataInicio) {
-        url.searchParams.set('DT_INI', params.dataInicio);
-      }
-      if (params.dataFim) {
-        url.searchParams.set('DT_FIN', params.dataFim);
-      }
+      // NOTA: Os parâmetros DT_INI e DT_FIN da API são filtros de IGUALDADE EXATA,
+      // não de intervalo. Por isso, a filtragem por período é feita no frontend
+      // após receber todos os arquivos do contribuinte.
 
       const response = await fetchWithAuth(url.toString());
       
