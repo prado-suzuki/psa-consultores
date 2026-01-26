@@ -10,9 +10,9 @@ const offices = [
     city: "Cuiabá",
     state: "MT",
     type: "Matriz",
-    email: "cuiaba@psaconsultores.com.br",
-    phone: "(65) 3023-0000",
-    address: "Av. Historiador Rubens de Mendonça, 1731, Sala 301 - Bosque da Saúde, Cuiabá - MT, 78050-000",
+    email: "contato@pradosuzuki.com",
+    phone: "(65) 3622-2426",
+    address: "Rua Des. José Barros do Vale, 03 – Bairro Duque de Caxias – Cuiabá/MT, CEP 78043-292",
   },
   {
     id: "barreiras",
