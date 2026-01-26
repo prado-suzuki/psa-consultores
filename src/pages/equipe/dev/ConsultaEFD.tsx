@@ -38,6 +38,7 @@ const ConsultaEFD = () => {
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
   const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
@@ -126,7 +127,7 @@ const ConsultaEFD = () => {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Erro ao baixar arquivo');
+        throw new Error(errorData.error_message || errorData.detail || 'Erro ao baixar arquivo');
       }
       
       // Obter o nome do arquivo do header ou usar fallback
@@ -194,6 +195,71 @@ const ConsultaEFD = () => {
     setDataInicio("");
     setDataFim("");
     setSearchTriggered(false);
+  };
+
+  // Handler para baixar todos os arquivos (ZIP)
+  const handleDownloadAll = async () => {
+    if (!cnpjContribuinte) return;
+    
+    setDownloadingAll(true);
+    
+    try {
+      // Montar URL com query params opcionais
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/contribuicoes/${cnpjContribuinte}`));
+      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
+      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      
+      const response = await fetchWithAuth(url.toString());
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error_message || 'Erro ao baixar arquivos');
+      }
+      
+      // Verificar tipo de resposta (ZIP ou TXT único)
+      const contentType = response.headers.get('Content-Type');
+      const isZip = contentType?.includes('application/zip');
+      
+      // Obter nome do arquivo
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = isZip ? `EFD_${cnpjContribuinte}.zip` : `EFD_${cnpjContribuinte}.txt`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match?.[1]) filename = match[1].replace(/['"]/g, '');
+      }
+      
+      // Verificar headers de contagem (para ZIPs)
+      const filesFound = response.headers.get('X-Files-Found');
+      const filesMissing = response.headers.get('X-Files-Missing');
+      
+      // Download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      // Mensagem de sucesso
+      let description = `Arquivo ${filename} baixado com sucesso.`;
+      if (filesFound) {
+        description = `${filesFound} arquivo(s) baixado(s)${filesMissing ? `, ${filesMissing} não encontrado(s)` : ''}.`;
+      }
+      
+      toast({ title: 'Download concluído', description });
+    } catch (error) {
+      console.error('Erro ao baixar todos:', error);
+      toast({
+        title: 'Erro no download',
+        description: error instanceof Error ? error.message : 'Não foi possível baixar os arquivos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingAll(false);
+    }
   };
 
   // Formatar CNPJ
@@ -367,26 +433,54 @@ const ConsultaEFD = () => {
 
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
-        {/* Header com CNPJ */}
+        {/* Header com CNPJ e Botão Baixar Todos */}
         {overview?.cnpj && (
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 flex items-center gap-4 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
-              <Building2 className="h-5 w-5 text-primary" />
-              CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(overview.cnpj)}</span>
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
+            {/* Lado Esquerdo - CNPJ */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                <Building2 className="h-5 w-5 text-primary" />
+                CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(overview.cnpj)}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => refetchOverview()}
+                disabled={loadingOverview}
+              >
+                {loadingOverview ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => refetchOverview()}
-              disabled={loadingOverview}
-            >
-              {loadingOverview ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
+            
+            {/* Lado Direito - Baixar Todos */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadAll}
+                    disabled={downloadingAll || !overview?.arquivos?.length}
+                    className="text-slate-600 hover:text-primary"
+                  >
+                    {downloadingAll ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Baixar Todos
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download de todos os arquivos TXT (ZIP)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         )}
 
