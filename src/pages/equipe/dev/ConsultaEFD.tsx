@@ -40,11 +40,25 @@ const ConsultaEFD = () => {
   const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
 
+  // Calcular datas padrão: 5 anos atrás até mês atual
+  const getDefaultDates = () => {
+    const now = new Date();
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(now.getFullYear() - 5);
+    
+    return {
+      inicio: { month: fiveYearsAgo.getMonth(), year: fiveYearsAgo.getFullYear() },
+      fim: { month: now.getMonth(), year: now.getFullYear() },
+    };
+  };
+
+  const defaultDates = getDefaultDates();
+
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
-  const [mesInicio, setMesInicio] = useState<{ month: number; year: number } | null>(null);
-  const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(null);
+  const [mesInicio, setMesInicio] = useState<{ month: number; year: number } | null>(defaultDates.inicio);
+  const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Query de clientes - usa tabela correta conforme ambiente
@@ -79,6 +93,13 @@ const ConsultaEFD = () => {
       return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null; cliente_id: string }[];
     },
   });
+
+  // Auto-selecionar contribuinte quando cliente tem apenas um
+  useEffect(() => {
+    if (selectedCliente && contribuintes && contribuintes.length === 1 && !selectedContribuinte) {
+      setSelectedContribuinte(contribuintes[0].id);
+    }
+  }, [selectedCliente, contribuintes, selectedContribuinte]);
 
   // Obter CNPJ do contribuinte selecionado (apenas números)
   const cnpjContribuinte = useMemo(() => {
