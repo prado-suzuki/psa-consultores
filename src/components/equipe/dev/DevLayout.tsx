@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
   { icon: Plus, label: 'Nova Ferramenta', path: '/equipe/dev/nova-ferramenta' },
   { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
   { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
+  { icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' },
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
   { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
 ];

@@ -8,7 +8,7 @@ import { EFDBlockTree } from './EFDBlockTree';
 import { EFDFiscalTable } from './EFDFiscalTable';
 import { REG_DESCRIPTIONS } from '@/constants/efdConfig';
 import { useEFDDetail } from '@/hooks/useEFDData';
-import type { EFDArquivo, BlocoRegistro } from '@/types/efd';
+import type { EFDArquivo, BlocoRegistro, EFDTipo } from '@/types/efd';
 
 interface EFDAnalysisModalProps {
   open: boolean;
@@ -16,6 +16,7 @@ interface EFDAnalysisModalProps {
   arquivo: EFDArquivo | null;
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
   cnpj: string;
+  tipo?: EFDTipo;
 }
 
 export function EFDAnalysisModal({
@@ -24,6 +25,7 @@ export function EFDAnalysisModal({
   arquivo,
   blocosDisponiveis,
   cnpj,
+  tipo = 'contribuicoes',
 }: EFDAnalysisModalProps) {
   const [selectedRegistro, setSelectedRegistro] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,11 +61,15 @@ export function EFDAnalysisModal({
       registro: selectedRegistro,
       page: currentPage,
       limit: 100,
+      tipo,
     } : undefined
   );
 
   // Formatadores
-  const formatCurrency = (value: string | number) => {
+  const formatCurrency = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined || value === '') {
+      return 'R$ 0,00';
+    }
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -100,6 +106,17 @@ export function EFDAnalysisModal({
 
   if (!arquivo) return null;
 
+  // Configuração de totais baseado no tipo
+  const totaisConfig = tipo === 'icms' 
+    ? [
+        { label: 'Total ICMS', value: arquivo.icms_devido },
+        { label: 'Total ICMS ST', value: arquivo.icms_st_devido },
+      ]
+    : [
+        { label: 'Total PIS', value: arquivo.pis_devido },
+        { label: 'Total COFINS', value: arquivo.cofins_devido },
+      ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -134,20 +151,18 @@ export function EFDAnalysisModal({
           </div>
           
           <div className="flex items-center gap-6">
-            {/* Totais PIS/COFINS */}
+            {/* Totais dinâmicos (PIS/COFINS ou ICMS/ICMS-ST) */}
             <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 dark:border-slate-700 pr-6 h-12">
-              <div className="text-right">
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">Total PIS</p>
-                <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
-                  {formatCurrency(arquivo.pis_devido)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">Total COFINS</p>
-                <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
-                  {formatCurrency(arquivo.cofins_devido)}
-                </p>
-              </div>
+              {totaisConfig.map((total, index) => (
+                <div key={index} className="text-right">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                    {total.label}
+                  </p>
+                  <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
+                    {formatCurrency(total.value)}
+                  </p>
+                </div>
+              ))}
             </div>
             
             <Button

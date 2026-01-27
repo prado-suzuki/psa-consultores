@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import type { EFDOverview, EFDDetail } from '@/types/efd';
+import { supabase } from '@/integrations/supabase/client';
+import type { EFDOverview, EFDDetail, EFDTipo } from '@/types/efd';
 
 // Parâmetros para busca de overview (lista de arquivos)
 interface UseEFDOverviewParams {
@@ -11,6 +12,7 @@ interface UseEFDOverviewParams {
   indAtiv?: number;          // Filtro opcional
   dataInicio?: string;       // DT_INI (YYYY-MM-DD)
   dataFim?: string;          // DT_FIN (YYYY-MM-DD)
+  tipo?: EFDTipo;            // 'contribuicoes' (default) ou 'icms'
 }
 
 // Parâmetros para busca de detalhes (registros de um arquivo)
@@ -21,14 +23,31 @@ interface UseEFDDetailParams {
   page?: number;             // Página (default: 1)
   limit?: number;            // Limite por página (default: 100, max: 200)
   filters?: Record<string, string>; // Filtros dinâmicos (IND_OPER, COD_MOD, etc.)
+  tipo?: EFDTipo;            // 'contribuicoes' (default) ou 'icms'
+}
+
+// Função auxiliar para buscar JSON do Supabase Storage
+async function fetchMockFromStorage(fileName: string): Promise<any> {
+  const { data, error } = await supabase.storage
+    .from('project-documents')
+    .download(fileName);
+  
+  if (error) {
+    throw new Error(`Erro ao buscar mock ${fileName}: ${error.message}`);
+  }
+  
+  const text = await data.text();
+  return JSON.parse(text);
 }
 
 export function useEFDOverview(params?: UseEFDOverviewParams) {
   const { fetchWithAuth } = useApiAuth();
+  const tipo = params?.tipo || 'contribuicoes';
 
   return useQuery({
     queryKey: [
       'efd-overview',
+      tipo,
       params?.cnpj,
       params?.uf,
       params?.indAtiv,
@@ -40,7 +59,12 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
         throw new Error('CNPJ é obrigatório');
       }
 
-      // Montar URL com query params
+      // Para ICMS, buscar dados do mock no Storage
+      if (tipo === 'icms') {
+        return fetchMockFromStorage('M1_EFD_ICMS.json');
+      }
+
+      // Para Contribuições, usar a API real
       const url = new URL(getApiUrl(`/api/v1/efd/contribuicoes/${params.cnpj}`));
       
       if (params.uf) {
@@ -70,10 +94,12 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
 
 export function useEFDDetail(params?: UseEFDDetailParams) {
   const { fetchWithAuth } = useApiAuth();
+  const tipo = params?.tipo || 'contribuicoes';
 
   return useQuery({
     queryKey: [
       'efd-detail',
+      tipo,
       params?.cnpj,
       params?.idArquivo,
       params?.registro,
@@ -86,6 +112,14 @@ export function useEFDDetail(params?: UseEFDDetailParams) {
         throw new Error('CNPJ, ID do arquivo e registro são obrigatórios');
       }
 
+      // Para ICMS, buscar dados do mock no Storage (apenas para REG_C100 por enquanto)
+      if (tipo === 'icms') {
+        // O mock M2 contém dados do REG_C100
+        const mockData = await fetchMockFromStorage('M2_EFD_ICMS.json');
+        return mockData;
+      }
+
+      // Para Contribuições, usar a API real
       // URL: /api/v1/efd/contribuicoes/{cnpj}/{id_arquivo}/registro/{codigo_registro}
       const url = new URL(
         getApiUrl(

@@ -108,6 +108,8 @@ export const EFD_COLUMN_GROUPS = [
   'Valores',
   'PIS',
   'COFINS',
+  'ICMS',
+  'ICMS-ST',
   'Apuração',
   'Geral',
 ];
@@ -151,6 +153,9 @@ function formatColumnLabel(key: string): string {
 function inferGroupFromKey(key: string): string {
   if (key.includes('PIS')) return 'PIS';
   if (key.includes('COFINS')) return 'COFINS';
+  // ICMS-ST deve vir antes de ICMS para matching correto
+  if (key.includes('ICMS_ST') || key.includes('ICMS-ST')) return 'ICMS-ST';
+  if (key.includes('ICMS')) return 'ICMS';
   if (key.includes('VL_')) return 'Valores';
   if (key.includes('DT_')) return 'Período';
   if (key.includes('COD_') || key.includes('NUM_') || key.includes('CHV_')) return 'Documento';
