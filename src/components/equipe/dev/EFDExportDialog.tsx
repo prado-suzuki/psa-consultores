@@ -266,6 +266,52 @@ export function EFDExportDialog({
       }
 
       const startData = await startResponse.json();
+      
+      // Cenário 1: Cache hit - retorna URL imediatamente
+      if (startData.status === 'completed' && startData.url) {
+        setExportStatus('completed');
+        setStatusMessage('Download pronto!');
+
+        // Fazer download do arquivo diretamente
+        try {
+          const downloadResponse = await fetch(startData.url);
+          
+          if (downloadResponse.ok) {
+            const blob = await downloadResponse.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            toast({
+              title: 'Exportação concluída',
+              description: 'Arquivo Excel baixado com sucesso!',
+            });
+
+            setTimeout(() => setOpen(false), 1000);
+          } else {
+            throw new Error('Falha no download');
+          }
+        } catch (downloadErr) {
+          if (!(downloadErr instanceof Error && downloadErr.name === 'AbortError')) {
+            console.error('Erro no download:', downloadErr);
+            toast({
+              title: 'Erro no download',
+              description: 'Não foi possível baixar o arquivo.',
+              variant: 'destructive',
+            });
+            setExportStatus('error');
+            setStatusMessage('Erro ao baixar arquivo');
+          }
+        }
+        return;
+      }
+
+      // Cenário 2: Cache miss - precisa de polling
       const newJobId = startData.job_id || startData.id;
       
       if (!newJobId) {
@@ -276,7 +322,7 @@ export function EFDExportDialog({
       setExportStatus('processing');
       setStatusMessage('Gerando arquivo no servidor...');
 
-      // 2. Polling para verificar status
+      // Polling para verificar status
       const pollStatus = async () => {
         if (signal.aborted) {
           if (pollingIntervalRef.current) {
