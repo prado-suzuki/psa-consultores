@@ -1,308 +1,184 @@
 
+# Plano de Implementação: Consulta EFD ICMS
 
-# Plano: Remover Toggle PIS/COFINS + Sessão Permanente por Usuário
+## Resumo
 
-## Resumo das Alterações
-
-1. **Remover toggle ICMS-ST/PIS-COFINS** - A consulta sempre será ICMS-ST
-2. **Remover campos e lógica de PIS/COFINS** - Simplificar tipos e interface
-3. **Sessão permanente por usuário** - Ao entrar na ferramenta, carregar última sessão do usuário
-4. **Lógica de busca atualizada** - Reutilizar sessão existente ou criar nova apenas se necessário
+Criar uma nova ferramenta de desenvolvimento chamada **Consulta EFD ICMS** que será uma réplica da ferramenta existente de EFD Contribuições, mas adaptada para análise de arquivos EFD ICMS/IPI. Nesta versão inicial, os dados serão consumidos a partir de arquivos JSON mockados no storage.
 
 ---
 
-## Arquitetura do Novo Fluxo de Sessão
+## Arquivos a Criar
+
+### 1. Nova Página: `src/pages/equipe/dev/ConsultaEFDICMS.tsx`
+- Cópia baseada em `ConsultaEFD.tsx`
+- Textos alterados de "EFD Contribuições" para "EFD ICMS"
+- Passará `tipo="icms"` para os componentes filhos
+- Usará hooks adaptados para buscar dados mockados
+
+---
+
+## Arquivos a Modificar
+
+### 2. Tipagem: `src/types/efd.ts`
+Adicionar:
+- Tipo `EFDTipo = 'contribuicoes' | 'icms'`
+- Expandir `EFDArquivo` para incluir campos ICMS opcionais:
+```text
+icms_devido?: string | null
+icms_st_devido?: string | null
+```
+
+### 3. Hook de Dados: `src/hooks/useEFDData.ts`
+Adicionar parâmetro `tipo` aos hooks:
+- `useEFDOverview`: Quando `tipo === 'icms'`, buscar dados do bucket `project-documents/M1_EFD_ICMS.json` via Supabase Storage
+- `useEFDDetail`: Quando `tipo === 'icms'` e registro === `REG_C100`, buscar de `project-documents/M2_EFD_ICMS.json`
+- Manter comportamento atual (chamada à API) quando `tipo === 'contribuicoes'` ou não especificado
+
+### 4. Modal de Análise: `src/components/equipe/dev/EFDAnalysisModal.tsx`
+Adicionar prop `tipo: 'contribuicoes' | 'icms'`:
+- No header de totais:
+  - Se `tipo === 'icms'`: exibir "Total ICMS" e "Total ICMS ST" mapeados para `icms_devido` e `icms_st_devido`
+  - Se `tipo === 'contribuicoes'`: manter "Total PIS" e "Total COFINS" (comportamento atual)
+- Passar `tipo` para `useEFDDetail`
+
+### 5. Dialog de Exportação: `src/components/equipe/dev/EFDExportDialog.tsx`
+Adicionar prop `tipo: 'contribuicoes' | 'icms'`:
+- URL de exportação dinâmica:
+```text
+/api/v1/efd/${tipo}/${cnpj}/${id_arquivo}/exportar
+```
+- Usar tool_type adequado para perfis (opcional: `efd-icms` vs `efd`)
+
+### 6. Layout/Navegação: `src/components/equipe/dev/DevLayout.tsx`
+Adicionar novo item de menu:
+```text
+{ icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' }
+```
+
+### 7. Roteamento: `src/App.tsx`
+Adicionar:
+- Import do novo componente `ConsultaEFDICMS`
+- Rota: `/equipe/dev/consulta-efd-icms`
+
+### 8. Configurações: `src/constants/efdConfig.ts`
+Expandir as descrições de grupos para incluir ICMS:
+```text
+'ICMS',
+'ICMS-ST',
+```
+Atualizar `inferGroupFromKey` para detectar colunas ICMS:
+```text
+if (key.includes('ICMS_ST')) return 'ICMS-ST';
+if (key.includes('ICMS')) return 'ICMS';
+```
+
+---
+
+## Fluxo de Dados (Mock)
 
 ```text
-+-------------------+       +-------------------+       +-------------------+
-|  Usuário abre     |  -->  |  Busca última     |  -->  | Sessão encontrada?|
-|  a ferramenta     |       |  sessão do user   |       |                   |
-+-------------------+       +-------------------+       +-------------------+
-                                                                 |
-                            +------------------------------------+
-                            |                                    |
-                            v                                    v
-                   +------------------+               +------------------+
-                   |  SIM: Carregar   |               |  NÃO: Estado     |
-                   |  filtros e dados |               |  inicial limpo   |
-                   +------------------+               +------------------+
-                            |
-                            v
-              +---------------------------+
-              |  Exibir decisões          |
-              |  já salvas na sessão      |
-              +---------------------------+
+┌─────────────────────────────────────────────────────────────────┐
+│                    ConsultaEFDICMS.tsx                          │
+│                   (tipo = 'icms')                               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  useEFDOverview(tipo='icms')                    │
+│  → Supabase Storage: project-documents/M1_EFD_ICMS.json         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               EFDAnalysisModal (tipo='icms')                    │
+│  → Header: "Total ICMS" / "Total ICMS ST"                       │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│            useEFDDetail(tipo='icms', registro='REG_C100')       │
+│  → Supabase Storage: project-documents/M2_EFD_ICMS.json         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   EFDFiscalTable                                │
+│  → Colunas dinâmicas: VL_BC_ICMS, VL_ICMS, VL_BC_ICMS_ST, etc. │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Alterações no Banco de Dados
+## Detalhes Técnicos
 
-**Nenhuma alteração necessária** - A tabela `difal_sessao` já possui `usuario_id` como campo de texto que podemos usar para filtrar.
+### Leitura do Mock (Storage)
+```text
+const { data } = await supabase.storage
+  .from('project-documents')
+  .download('M1_EFD_ICMS.json');
 
----
+const json = JSON.parse(await data.text());
+```
 
-## Alterações Detalhadas
-
-### 1. Remover Tipo DifalModo e Campos PIS/COFINS
-
-**Arquivo:** `src/types/difal.ts`
-
-Remover:
-- `DifalModo` type
-- Campos `cst_pis` e `cst_cofins` do `DifalItem`
-- Campos `PIS` e `COFINS` do `NFeProduto`
-
-### 2. Remover Toggle e Lógica Relacionada
-
-**Arquivo:** `src/pages/equipe/dev/AuditoriaFiscal.tsx`
-
-**Remover:**
-- Import de `ToggleGroup` e `ToggleGroupItem`
-- Estado `modo`
-- Componente `ToggleGroup` do JSX (linhas 594-614)
-- Lógica condicional baseada em `modo` na tabela
-
-### 3. Carregar Última Sessão ao Iniciar
-
-Adicionar `useEffect` para carregar sessão anterior:
-
-```typescript
-// Carregar última sessão do usuário ao entrar
-useEffect(() => {
-  const loadLastSession = async () => {
-    if (!user?.id) return;
-
-    const { data: lastSession, error } = await supabase
-      .from('difal_sessao')
-      .select('*')
-      .eq('usuario_id', user.id)
-      .order('criado_em', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !lastSession) return;
-
-    // Restaurar estado da sessão
-    setActiveSessaoId(lastSession.id);
-    setSelectedCliente(lastSession.cliente_id);
-    
-    // Parse do request_original para restaurar filtros
-    const request = lastSession.request_original as {
-      contribuinte_id?: string;
-      data_inicio?: string;
-      data_fim?: string;
-    };
-    
-    if (request.contribuinte_id) {
-      setSelectedContribuinte(request.contribuinte_id);
+### Estrutura Esperada do Mock M1 (Overview)
+```text
+{
+  "cnpj": "12345678000190",
+  "blocos_disponiveis": {
+    "0": [{"codigo": "REG_0000", "descricao": "..."}],
+    "C": [{"codigo": "REG_C100", "descricao": "..."}],
+    ...
+  },
+  "arquivos": [
+    {
+      "ID_ARQUIVO": "...",
+      "CNPJ": "...",
+      "NOME": "...",
+      "DT_INI": "2024-01-01",
+      "DT_FIN": "2024-01-31",
+      "icms_devido": "15000.00",
+      "icms_st_devido": "3500.00",
+      ...
     }
-    if (request.data_inicio) {
-      setDataInicio(request.data_inicio);
+  ]
+}
+```
+
+### Estrutura Esperada do Mock M2 (Detail REG_C100)
+```text
+{
+  "registro": "REG_C100",
+  "descricao": "Nota Fiscal (ICMS/IPI)",
+  "paginacao": { "page": 1, "limit": 100, "total_registros": 50, "total_paginas": 1 },
+  "dados": [
+    {
+      "REG": "C100",
+      "NUM_DOC": "123456",
+      "VL_BC_ICMS": "1000.00",
+      "VL_ICMS": "180.00",
+      "VL_BC_ICMS_ST": "500.00",
+      "VL_ICMS_ST": "90.00",
+      ...
     }
-    if (request.data_fim) {
-      setDataFim(request.data_fim);
-    }
-
-    // Carregar contagem de decisões pendentes
-    const { count } = await supabase
-      .from('difal_decisao')
-      .select('*', { count: 'exact', head: true })
-      .eq('sessao_id', lastSession.id);
-
-    setPendingDecisionsCount(count || 0);
-    
-    // Se sessão ainda está em andamento, disparar busca
-    if (lastSession.status === 'EM_ANDAMENTO') {
-      setSearchTriggered(true);
-    }
-  };
-
-  loadLastSession();
-}, [user?.id]);
-```
-
-### 4. Atualizar handleSearch
-
-Modificar para atualizar sessão existente ou criar nova:
-
-```typescript
-const handleSearch = async () => {
-  if (!selectedContribuinte) {
-    toast({
-      title: 'Selecione um contribuinte',
-      description: 'É necessário selecionar um contribuinte para buscar.',
-      variant: 'destructive',
-    });
-    return;
-  }
-
-  try {
-    // Verificar se já existe uma sessão ativa para este usuário
-    const { data: existingSession } = await supabase
-      .from('difal_sessao')
-      .select('id')
-      .eq('usuario_id', user?.id || 'unknown')
-      .eq('status', 'EM_ANDAMENTO')
-      .maybeSingle();
-
-    let sessionId: string;
-
-    if (existingSession) {
-      // Atualizar sessão existente com novos parâmetros
-      const { error } = await supabase
-        .from('difal_sessao')
-        .update({
-          cliente_id: selectedCliente,
-          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
-          periodo: `${dataInicio} a ${dataFim}`,
-          uf: 'MT',
-          request_original: {
-            contribuinte_id: selectedContribuinte,
-            data_inicio: dataInicio,
-            data_fim: dataFim,
-          },
-        })
-        .eq('id', existingSession.id);
-
-      if (error) throw error;
-      sessionId = existingSession.id;
-    } else {
-      // Criar nova sessão
-      const { data: session, error } = await supabase
-        .from('difal_sessao')
-        .insert({
-          usuario_id: user?.id || 'unknown',
-          cliente_id: selectedCliente,
-          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
-          periodo: `${dataInicio} a ${dataFim}`,
-          uf: 'MT',
-          request_original: {
-            contribuinte_id: selectedContribuinte,
-            data_inicio: dataInicio,
-            data_fim: dataFim,
-          },
-          status: 'EM_ANDAMENTO',
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
-      sessionId = session.id;
-    }
-
-    setActiveSessaoId(sessionId);
-    
-    // Buscar contagem de decisões existentes
-    const { count } = await supabase
-      .from('difal_decisao')
-      .select('*', { count: 'exact', head: true })
-      .eq('sessao_id', sessionId);
-
-    setPendingDecisionsCount(count || 0);
-    setSearchTriggered(true);
-
-    toast({
-      title: existingSession ? 'Sessão atualizada' : 'Sessão iniciada',
-      description: 'As decisões serão salvas automaticamente.',
-    });
-  } catch (error) {
-    toast({
-      title: 'Erro ao gerenciar sessão',
-      description: error instanceof Error ? error.message : 'Erro desconhecido',
-      variant: 'destructive',
-    });
-  }
-};
-```
-
-### 5. Simplificar Coluna de Tabela (Remover Lógica PIS/COFINS)
-
-A última coluna da tabela atualmente mostra MVA/ST ou Natureza baseado no modo. Simplificar para sempre mostrar MVA/ST:
-
-**Antes (linha 754-834):**
-```typescript
-{modo === 'icms' ? (
-  <TableHead className="w-[120px]">MVA/ST</TableHead>
-) : (
-  <TableHead className="w-[120px]">Natureza</TableHead>
-)}
-```
-
-**Depois:**
-```typescript
-<TableHead className="w-[120px]">MVA/ST</TableHead>
-```
-
-E simplificar a célula da tabela para sempre mostrar dados ICMS-ST.
-
----
-
-## Resumo dos Arquivos a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `src/types/difal.ts` | Remover `DifalModo`, campos PIS/COFINS |
-| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Remover toggle, adicionar carregamento de sessão, simplificar tabela |
-
----
-
-## Seção Técnica
-
-### Imports a Remover (AuditoriaFiscal.tsx)
-
-```typescript
-// Remover estas linhas
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { DifalModo } from '@/types/difal';
-```
-
-### Estados a Remover
-
-```typescript
-// Remover
-const [modo, setModo] = useState<DifalModo>('icms');
-```
-
-### Lógica de Achatamento Simplificada
-
-Remover campos PIS/COFINS do `flattenNFeItems`:
-
-```typescript
-const flattenNFeItems = (
-  nfes: NFeRecord[],
-  cnpj: string
-): DifalItem[] => {
-  return nfes.flatMap((nfe) =>
-    (nfe.produtos || []).map((prod: NFeProduto) => ({
-      id_contribuinte: cnpj,
-      cod_produto: prod.cProd,
-      cod_ncm: prod.NCM,
-      xProd: prod.xProd,
-      vProd: prod.vProd,
-      cfop: prod.CFOP,
-      uf_emit: nfe.emit?.UF || '??',
-      uf_dest: nfe.dest?.UF || '??',
-      cst_icms: prod.ICMS?.CST || null,
-      aliq_icms: prod.ICMS?.pICMS || null,
-      chave_nfe: nfe.chave_nfe,
-      nItem: prod.nItem,
-    }))
-  );
-};
+  ]
+}
 ```
 
 ---
 
-## Comportamento Esperado Após a Correção
+## Componentes Reutilizados (Sem Alteração)
+- `EFDBlockTree.tsx` - Navegação lateral de blocos SPED
+- `EFDFiscalTable.tsx` - Tabela dinâmica (já suporta novos campos via `generateColumnsFromData`)
 
-1. Usuário abre `/equipe/dev/auditoria-fiscal`
-2. Sistema busca última sessão do usuário no banco
-3. Se existir sessão `EM_ANDAMENTO`:
-   - Restaura filtros (cliente, contribuinte, período)
-   - Carrega contagem de decisões pendentes
-   - Dispara busca automaticamente
-4. Usuário pode continuar classificando itens
-5. Decisões são salvas em `difal_decisao` a cada confirmação
-6. Ao clicar em "Salvar Alterações", sincroniza com banco principal
+---
 
+## Ordem de Implementação
+
+1. Atualizar tipagem em `src/types/efd.ts`
+2. Expandir `src/constants/efdConfig.ts` para grupos ICMS
+3. Modificar `src/hooks/useEFDData.ts` para suportar tipo e mock
+4. Atualizar `EFDAnalysisModal.tsx` com prop tipo
+5. Atualizar `EFDExportDialog.tsx` com URL dinâmica
+6. Criar `ConsultaEFDICMS.tsx`
+7. Adicionar rota em `App.tsx`
+8. Adicionar menu em `DevLayout.tsx`
