@@ -272,42 +272,22 @@ export function EFDExportDialog({
         setExportStatus('completed');
         setStatusMessage('Download pronto!');
 
-        // Fazer download do arquivo diretamente
-        try {
-          const downloadResponse = await fetch(startData.url);
-          
-          if (downloadResponse.ok) {
-            const blob = await downloadResponse.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+        // Fazer download via link direto (evita CORS do GCS)
+        const a = document.createElement('a');
+        a.href = startData.url;
+        a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-            toast({
-              title: 'Exportação concluída',
-              description: 'Arquivo Excel baixado com sucesso!',
-            });
+        toast({
+          title: 'Exportação concluída',
+          description: 'Arquivo Excel baixado com sucesso!',
+        });
 
-            setTimeout(() => setOpen(false), 1000);
-          } else {
-            throw new Error('Falha no download');
-          }
-        } catch (downloadErr) {
-          if (!(downloadErr instanceof Error && downloadErr.name === 'AbortError')) {
-            console.error('Erro no download:', downloadErr);
-            toast({
-              title: 'Erro no download',
-              description: 'Não foi possível baixar o arquivo.',
-              variant: 'destructive',
-            });
-            setExportStatus('error');
-            setStatusMessage('Erro ao baixar arquivo');
-          }
-        }
+        setTimeout(() => setOpen(false), 1000);
         return;
       }
 
@@ -345,38 +325,22 @@ export function EFDExportDialog({
           setExportStatus('completed');
           setStatusMessage('Download pronto!');
 
-          // Fazer download do arquivo
-          try {
-            const downloadResponse = await fetchWithAuth(status.download_url, { signal });
-            
-            if (downloadResponse.ok) {
-              const blob = await downloadResponse.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              window.URL.revokeObjectURL(url);
+          // Fazer download via link direto (evita CORS do GCS)
+          const a = document.createElement('a');
+          a.href = status.download_url;
+          a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
 
-              toast({
-                title: 'Exportação concluída',
-                description: 'Arquivo Excel baixado com sucesso!',
-              });
+          toast({
+            title: 'Exportação concluída',
+            description: 'Arquivo Excel baixado com sucesso!',
+          });
 
-              setTimeout(() => setOpen(false), 1000);
-            }
-          } catch (downloadErr) {
-            if (!(downloadErr instanceof Error && downloadErr.name === 'AbortError')) {
-              console.error('Erro no download:', downloadErr);
-              toast({
-                title: 'Erro no download',
-                description: 'Não foi possível baixar o arquivo.',
-                variant: 'destructive',
-              });
-            }
-          }
+          setTimeout(() => setOpen(false), 1000);
         } else if (status.status === 'failed') {
           // Job falhou
           if (pollingIntervalRef.current) {
