@@ -273,15 +273,8 @@ export function EFDExportDialog({
         setExportStatus('completed');
         setStatusMessage('Download pronto!');
 
-        // Fazer download via link direto (evita CORS do GCS)
-        const a = document.createElement('a');
-        a.href = startData.url;
-        a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // Download direto via location.href - funciona com URLs assinadas do GCS
+        window.location.href = startData.url;
 
         toast({
           title: 'Exportação concluída',
@@ -329,15 +322,8 @@ export function EFDExportDialog({
           setExportStatus('completed');
           setStatusMessage('Download pronto!');
 
-          // Fazer download via link direto (evita CORS do GCS)
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          // Download direto via location.href - funciona com URLs assinadas do GCS
+          window.location.href = downloadUrl;
 
           toast({
             title: 'Exportação concluída',
