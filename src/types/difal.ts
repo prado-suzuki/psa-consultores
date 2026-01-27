@@ -1,8 +1,5 @@
 // Tipos para a ferramenta DIFAL Inteligente
 
-// Modo de operação
-export type DifalModo = 'icms' | 'pis';
-
 // Tipos de decisão válidos
 export type TipoDecisao = 'REGRA_SELECIONADA' | 'SEM_ST' | 'ISENTO' | 'NAO_APLICAVEL';
 
@@ -23,10 +20,6 @@ export interface DifalItem {
   // Tributação entrada (ICMS)
   cst_icms: string | null;
   aliq_icms: number | null;
-  
-  // Tributação entrada (PIS/COFINS)
-  cst_pis: string | null;
-  cst_cofins: string | null;
   
   // Referência à nota
   chave_nfe: string;
@@ -121,12 +114,6 @@ export interface NFeProduto {
   ICMS?: {
     CST?: string;
     pICMS?: number;
-  };
-  PIS?: {
-    CST?: string;
-  };
-  COFINS?: {
-    CST?: string;
   };
 }
 

@@ -241,25 +241,6 @@ export const DifalAuditModal = ({
                       </div>
                     </div>
 
-                    {(item.cst_pis || item.cst_cofins) && (
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-xs text-slate-500 uppercase">PIS/COFINS</span>
-                        <div className="flex gap-4 mt-1">
-                          <div>
-                            <span className="text-xs text-slate-400">CST PIS:</span>
-                            <span className="ml-1 font-mono text-sm">
-                              {item.cst_pis || '—'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-slate-400">CST COFINS:</span>
-                            <span className="ml-1 font-mono text-sm">
-                              {item.cst_cofins || '—'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
