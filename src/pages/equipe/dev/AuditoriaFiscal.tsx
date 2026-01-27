@@ -22,7 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DifalAuditModal } from '@/components/equipe/dev/DifalAuditModal';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
@@ -34,7 +33,6 @@ import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   DifalItem,
-  DifalModo,
   ClassificacoesBuscarResponse,
   NFeRecord,
   NFeProduto,
@@ -107,8 +105,8 @@ const AuditoriaFiscal = () => {
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>('');
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
-  const [modo, setModo] = useState<DifalModo>('icms');
   const [searchTriggered, setSearchTriggered] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
 
   // Estado do modal
   const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
@@ -163,6 +161,83 @@ const AuditoriaFiscal = () => {
     }
   }, [contribuintes, selectedContribuinte]);
 
+  // Carregar última sessão do usuário ao entrar na ferramenta
+  useEffect(() => {
+    const loadLastSession = async () => {
+      if (!user?.id) {
+        setIsLoadingSession(false);
+        return;
+      }
+
+      try {
+        const { data: lastSession, error } = await supabase
+          .from('difal_sessao')
+          .select('*')
+          .eq('usuario_id', user.id)
+          .order('criado_em', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error || !lastSession) {
+          setIsLoadingSession(false);
+          return;
+        }
+
+        // Restaurar estado da sessão
+        setActiveSessaoId(lastSession.id);
+        setSelectedCliente(lastSession.cliente_id);
+
+        // Parse do request_original para restaurar filtros
+        const request = lastSession.request_original as {
+          contribuinte_id?: string;
+          data_inicio?: string;
+          data_fim?: string;
+        };
+
+        if (request.data_inicio) {
+          setDataInicio(request.data_inicio);
+        }
+        if (request.data_fim) {
+          setDataFim(request.data_fim);
+        }
+
+        // Guardar contribuinte para setar depois que a lista carregar
+        if (request.contribuinte_id) {
+          // Precisamos esperar os contribuintes carregarem
+          setTimeout(() => {
+            setSelectedContribuinte(request.contribuinte_id!);
+          }, 500);
+        }
+
+        // Carregar contagem de decisões pendentes
+        const { count } = await supabase
+          .from('difal_decisao')
+          .select('*', { count: 'exact', head: true })
+          .eq('sessao_id', lastSession.id);
+
+        setPendingDecisionsCount(count || 0);
+
+        // Se sessão ainda está em andamento, disparar busca
+        if (lastSession.status === 'EM_ANDAMENTO') {
+          setTimeout(() => {
+            setSearchTriggered(true);
+          }, 600);
+        }
+
+        toast({
+          title: 'Sessão restaurada',
+          description: 'Continuando de onde você parou.',
+        });
+      } catch (error) {
+        console.error('Erro ao carregar sessão:', error);
+      } finally {
+        setIsLoadingSession(false);
+      }
+    };
+
+    loadLastSession();
+  }, [user?.id]);
+
   // Query: Buscar NFes do período
   const {
     data: nfesData,
@@ -205,8 +280,6 @@ const AuditoriaFiscal = () => {
         uf_dest: nfe.dest?.UF || '??',
         cst_icms: prod.ICMS?.CST || null,
         aliq_icms: prod.ICMS?.pICMS || null,
-        cst_pis: prod.PIS?.CST || null,
-        cst_cofins: prod.COFINS?.CST || null,
         chave_nfe: nfe.chave_nfe,
         nItem: prod.nItem,
       }))
@@ -273,7 +346,7 @@ const AuditoriaFiscal = () => {
     });
   }, [flatItems, classificacoes]);
 
-  // Handler para criar sessão e disparar busca
+  // Handler para criar ou atualizar sessão e disparar busca
   const handleSearch = async () => {
     if (!selectedContribuinte) {
       toast({
@@ -285,38 +358,77 @@ const AuditoriaFiscal = () => {
     }
 
     try {
-      // Criar sessão em difal_sessao
-      const { data: session, error } = await supabase
+      // Verificar se já existe uma sessão ativa para este usuário
+      const { data: existingSession } = await supabase
         .from('difal_sessao')
-        .insert({
-          usuario_id: user?.id || 'unknown',
-          cliente_id: selectedCliente,
-          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
-          periodo: `${dataInicio} a ${dataFim}`,
-          uf: 'MT', // Default, será atualizado quando tiver dados
-          request_original: {
-            contribuinte_id: selectedContribuinte,
-            data_inicio: dataInicio,
-            data_fim: dataFim,
-          },
-          status: 'EM_ANDAMENTO',
-        })
         .select('id')
-        .single();
+        .eq('usuario_id', user?.id || 'unknown')
+        .eq('status', 'EM_ANDAMENTO')
+        .maybeSingle();
 
-      if (error) throw error;
+      let sessionId: string;
 
-      setActiveSessaoId(session.id);
-      setPendingDecisionsCount(0);
+      if (existingSession) {
+        // Atualizar sessão existente com novos parâmetros
+        const { error } = await supabase
+          .from('difal_sessao')
+          .update({
+            cliente_id: selectedCliente,
+            cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+            periodo: `${dataInicio} a ${dataFim}`,
+            uf: 'MT',
+            request_original: {
+              contribuinte_id: selectedContribuinte,
+              data_inicio: dataInicio,
+              data_fim: dataFim,
+            },
+          })
+          .eq('id', existingSession.id);
+
+        if (error) throw error;
+        sessionId = existingSession.id;
+      } else {
+        // Criar nova sessão
+        const { data: session, error } = await supabase
+          .from('difal_sessao')
+          .insert({
+            usuario_id: user?.id || 'unknown',
+            cliente_id: selectedCliente,
+            cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+            periodo: `${dataInicio} a ${dataFim}`,
+            uf: 'MT',
+            request_original: {
+              contribuinte_id: selectedContribuinte,
+              data_inicio: dataInicio,
+              data_fim: dataFim,
+            },
+            status: 'EM_ANDAMENTO',
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        sessionId = session.id;
+      }
+
+      setActiveSessaoId(sessionId);
+
+      // Buscar contagem de decisões existentes
+      const { count } = await supabase
+        .from('difal_decisao')
+        .select('*', { count: 'exact', head: true })
+        .eq('sessao_id', sessionId);
+
+      setPendingDecisionsCount(count || 0);
       setSearchTriggered(true);
 
       toast({
-        title: 'Sessão iniciada',
+        title: existingSession ? 'Sessão atualizada' : 'Sessão iniciada',
         description: 'As decisões serão salvas automaticamente.',
       });
     } catch (error) {
       toast({
-        title: 'Erro ao criar sessão',
+        title: 'Erro ao gerenciar sessão',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       });
@@ -589,30 +701,8 @@ const AuditoriaFiscal = () => {
             </div>
           </div>
 
-          {/* Toggle de Modo e Botões */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
-            <ToggleGroup
-              type="single"
-              value={modo}
-              onValueChange={(value) => value && setModo(value as DifalModo)}
-              className="bg-slate-100 p-1 rounded-lg"
-            >
-              <ToggleGroupItem
-                value="icms"
-                className="data-[state=on]:bg-white data-[state=on]:shadow-sm px-4"
-              >
-                <Calculator className="h-4 w-4 mr-2" />
-                ICMS-ST
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="pis"
-                className="data-[state=on]:bg-white data-[state=on]:shadow-sm px-4"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                PIS/COFINS
-              </ToggleGroupItem>
-            </ToggleGroup>
-
+          {/* Botões de Ação */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 pt-4 border-t border-slate-100">
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -751,11 +841,7 @@ const AuditoriaFiscal = () => {
                       <TableHead className="w-[80px]">Origem</TableHead>
                       <TableHead className="w-[120px] text-right">Valor</TableHead>
                       <TableHead className="w-[150px]">Tributação Entrada</TableHead>
-                      {modo === 'icms' ? (
-                        <TableHead className="w-[120px]">MVA/ST</TableHead>
-                      ) : (
-                        <TableHead className="w-[120px]">Natureza</TableHead>
-                      )}
+                      <TableHead className="w-[120px]">MVA/ST</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -812,25 +898,19 @@ const AuditoriaFiscal = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {modo === 'icms' ? (
-                            item.classificacao ? (
-                              <div className="text-sm">
-                                <span className="font-mono">
-                                  {item.classificacao.aliquota_st}%
+                          {item.classificacao ? (
+                            <div className="text-sm">
+                              <span className="font-mono">
+                                {item.classificacao.aliquota_st}%
+                              </span>
+                              {item.classificacao.percentual_reducao && (
+                                <span className="text-slate-500 text-xs ml-1">
+                                  (Red. {item.classificacao.percentual_reducao}%)
                                 </span>
-                                {item.classificacao.percentual_reducao && (
-                                  <span className="text-slate-500 text-xs ml-1">
-                                    (Red. {item.classificacao.percentual_reducao}%)
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">—</span>
-                            )
-                          ) : (
-                            <div className="text-sm font-mono">
-                              {item.cst_pis || '—'} / {item.cst_cofins || '—'}
+                              )}
                             </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
                           )}
                         </TableCell>
                       </TableRow>
