@@ -1,67 +1,89 @@
 
-# Correção: Polling de Exportação EFD
+# Correção: DIFAL Inteligente - Parâmetro Incorreto na API
 
 ## Problema Identificado
 
-O código de polling (linha 318) verifica `status.download_url`, mas a API retorna a URL no campo `url`:
+A ferramenta **DIFAL Inteligente** não carrega itens porque está passando o **CNPJ** na URL da API, enquanto a API espera o **ID do contribuinte** (UUID do Supabase).
 
-**Resposta da API (completed):**
-```json
-{
-  "job_id": "8957d529-91cd-4870-80be-dcd074c5fef5",
-  "status": "completed",
-  "url": "https://storage.googleapis.com/...",  // ← Campo correto
-  "url_expires_at": "2026-01-27T15:51:50.641214+00:00",
-  ...
-}
+### Comparação das Ferramentas
+
+| Ferramenta | URL Gerada | Funciona? |
+|------------|------------|-----------|
+| Consulta XMLs | `/contribuintes/{UUID}/nfes?...` | Sim |
+| DIFAL Inteligente | `/contribuintes/{CNPJ}/nfes?...` | Não |
+
+### Código Atual (DIFAL - linha 147-148)
+
+```typescript
+const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
+const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?...`;
 ```
 
-**Código atual (linha 318):**
+### Código Correto (Consulta XMLs - linha 385)
+
 ```typescript
-if (status.status === 'completed' && status.download_url) {  // ← Campo errado!
+const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
+// selectedContribuinte = UUID do contribuinte
 ```
 
 ---
 
-## Alterações Necessárias
+## Correção Necessária
 
-### Arquivo: `src/components/equipe/dev/EFDExportDialog.tsx`
+### Arquivo: `src/pages/equipe/dev/AuditoriaFiscal.tsx`
 
-#### 1. Atualizar Interface JobStatus (linha 37-42)
+#### 1. Simplificar a Query de NFes (linhas 132-158)
 
-Adicionar o campo `url` que a API realmente retorna:
+Usar diretamente o `selectedContribuinte` (ID/UUID) em vez de buscar o CNPJ:
 
+**Antes:**
 ```typescript
-interface JobStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  download_url?: string;
-  url?: string;          // ← Campo da API real
-  error?: string;
-  progress?: number;
+queryFn: async () => {
+  const contribuinteData = contribuintes?.find(
+    (c) => c.id === selectedContribuinte
+  );
+  if (!contribuinteData?.cpf_cnpj) {
+    throw new Error('CNPJ do contribuinte não encontrado');
+  }
+
+  const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
+  const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+  // ...
 }
 ```
 
-#### 2. Corrigir Verificação no Polling (linha 318)
-
-Usar o campo correto (`url`) com fallback para `download_url`:
-
+**Depois:**
 ```typescript
-// Antes
-if (status.status === 'completed' && status.download_url) {
+queryFn: async () => {
+  if (!selectedContribuinte) {
+    throw new Error('Contribuinte não selecionado');
+  }
 
-// Depois
-const downloadUrl = status.download_url || status.url;
-if (status.status === 'completed' && downloadUrl) {
+  const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+  // ...
+}
 ```
 
-#### 3. Atualizar Uso da URL no Download (linha 330)
+#### 2. Ajustar a Função `flattenNFeItems` (linhas 160-183)
 
+Passar o ID do contribuinte (ou buscar o CNPJ se realmente necessário para a classificação):
+
+**Opção A - Usar ID como identificador:**
 ```typescript
-// Antes
-a.href = status.download_url;
+return flattenNFeItems(nfesData.items, selectedContribuinte);
+```
 
-// Depois
-a.href = downloadUrl;
+**Opção B - Manter CNPJ para classificação (mais correto semanticamente):**
+```typescript
+const flatItems = useMemo(() => {
+  if (!nfesData?.items || !contribuintes) return [];
+  const contribuinteData = contribuintes.find(
+    (c) => c.id === selectedContribuinte
+  );
+  // Usar CNPJ apenas para o campo id_contribuinte nos itens
+  const cnpj = contribuinteData?.cpf_cnpj?.replace(/\D/g, '') || selectedContribuinte;
+  return flattenNFeItems(nfesData.items, cnpj);
+}, [nfesData, contribuintes, selectedContribuinte]);
 ```
 
 ---
@@ -70,55 +92,58 @@ a.href = downloadUrl;
 
 | Local | Antes | Depois |
 |-------|-------|--------|
-| Interface `JobStatus` | Apenas `download_url` | Adiciona `url` |
-| Verificação (linha 318) | `status.download_url` | `downloadUrl` (com fallback) |
-| Download (linha 330) | `status.download_url` | `downloadUrl` |
+| URL da API | `/${cnpj}/nfes?...` | `/${selectedContribuinte}/nfes?...` |
+| Validação | Verifica `cpf_cnpj` | Verifica `selectedContribuinte` |
+| `enabled` | Depende de `contribuintes` | Depende apenas de `selectedContribuinte` |
 
 ---
 
 ## Seção Técnica
 
-### Código Corrigido (linhas 37-42)
+### Código Corrigido (linhas 132-158)
 
 ```typescript
-interface JobStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  download_url?: string;
-  url?: string;
-  error?: string;
-  progress?: number;
-}
+// Query: Buscar NFes do período
+const {
+  data: nfesData,
+  isLoading: isLoadingNFes,
+  error: nfesError,
+} = useQuery({
+  queryKey: ['difal-nfes', selectedContribuinte, dataInicio, dataFim],
+  queryFn: async () => {
+    if (!selectedContribuinte) {
+      throw new Error('Contribuinte não selecionado');
+    }
+
+    // Usar ID do contribuinte (UUID) como na Consulta XMLs
+    const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+
+    const response = await fetchWithAuth(url);
+    if (!response.ok) {
+      throw new Error('Erro ao buscar notas fiscais');
+    }
+
+    return response.json() as Promise<NFeApiResponse>;
+  },
+  enabled: searchTriggered && !!selectedContribuinte,
+});
 ```
 
-### Código Corrigido (linhas 316-336)
+### Código Corrigido para flatItems (linhas 186-195)
 
 ```typescript
-if (!status || signal.aborted) return;
-
-// Aceitar tanto 'url' quanto 'download_url' da API
-const downloadUrl = status.download_url || status.url;
-
-if (status.status === 'completed' && downloadUrl) {
-  // Job concluído - fazer download
-  if (pollingIntervalRef.current) {
-    clearInterval(pollingIntervalRef.current);
-    pollingIntervalRef.current = null;
-  }
-
-  setExportStatus('completed');
-  setStatusMessage('Download pronto!');
-
-  // Fazer download via link direto (evita CORS do GCS)
-  const a = document.createElement('a');
-  a.href = downloadUrl;
-  a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // ...resto igual
-}
+// Itens achatados
+const flatItems = useMemo(() => {
+  if (!nfesData?.items) return [];
+  
+  // Buscar CNPJ para usar como id_contribuinte na classificação
+  const contribuinteData = contribuintes?.find(
+    (c) => c.id === selectedContribuinte
+  );
+  const cnpj = contribuinteData?.cpf_cnpj?.replace(/\D/g, '') || selectedContribuinte;
+  
+  return flattenNFeItems(nfesData.items, cnpj);
+}, [nfesData, contribuintes, selectedContribuinte]);
 ```
 
-Esta correção alinha o código com a resposta real da API, resolvendo o problema de polling infinito em exports novos (cache miss).
+Esta correção alinha o DIFAL Inteligente com o padrão da Consulta XMLs, usando o ID do contribuinte na URL da API, garantindo que os itens sejam carregados corretamente.
