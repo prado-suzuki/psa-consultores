@@ -50,8 +50,11 @@ import {
   Download,
 } from 'lucide-react';
 
-// Clientes permitidos para esta ferramenta
-const CLIENTES_PERMITIDOS = ['BARRACOL', 'CROPODIA'];
+// IDs dos clientes permitidos para esta ferramenta (Barracol e Cropodia)
+const CLIENTES_PERMITIDOS_IDS = [
+  '678b5a42-6e88-41ed-87f7-4d4e841b45ee',
+  'e1c0df8e-5206-45e1-af4b-de3e5aacc48c',
+];
 
 // Datas padrão: primeiro e último dia do mês atual
 const getDefaultDates = () => {
@@ -116,16 +119,11 @@ const AuditoriaFiscal = () => {
         .from(clienteTable)
         .select('id, nome')
         .eq('ativo', true)
+        .in('id', CLIENTES_PERMITIDOS_IDS)
         .order('nome');
 
       if (error) throw error;
-      // Filtrar apenas clientes permitidos
-      const filtered = (data || []).filter((c) =>
-        CLIENTES_PERMITIDOS.some(
-          (nome) => c.nome.toUpperCase().includes(nome)
-        )
-      );
-      return filtered as ClienteRecord[];
+      return (data || []) as ClienteRecord[];
     },
   });
 
