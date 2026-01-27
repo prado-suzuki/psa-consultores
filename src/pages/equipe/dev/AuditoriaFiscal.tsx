@@ -22,6 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { DifalAuditModal } from '@/components/equipe/dev/DifalAuditModal';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
@@ -58,6 +67,9 @@ const CLIENTES_PERMITIDOS_IDS = [
   '678b5a42-6e88-41ed-87f7-4d4e841b45ee',
   'e1c0df8e-5206-45e1-af4b-de3e5aacc48c',
 ];
+
+// Limite de itens por página
+const ITEMS_PER_PAGE = 40;
 
 // Datas padrão: primeiro e último dia do mês atual
 const getDefaultDates = () => {
@@ -107,6 +119,7 @@ const AuditoriaFiscal = () => {
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Estado do modal
   const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
@@ -548,6 +561,59 @@ const AuditoriaFiscal = () => {
     return { validados, pendentes, total };
   }, [itemsWithStatus]);
 
+  // Paginação
+  const totalPages = Math.ceil(itemsWithStatus.length / ITEMS_PER_PAGE);
+  
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return itemsWithStatus.slice(startIndex, endIndex);
+  }, [itemsWithStatus, currentPage]);
+
+  // Reset página ao mudar dados
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [flatItems]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Gerar array de páginas para exibição
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('ellipsis');
+      }
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('ellipsis');
+      }
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
   const isLoading = isLoadingNFes || isLoadingClassificacoes;
 
   // UF destino para o modal
@@ -845,7 +911,7 @@ const AuditoriaFiscal = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {itemsWithStatus.map((item, index) => (
+                    {paginatedItems.map((item, index) => (
                       <TableRow
                         key={`${item.chave_nfe}-${item.nItem}-${index}`}
                         className={`
@@ -917,6 +983,48 @@ const AuditoriaFiscal = () => {
                     ))}
                   </TableBody>
                 </Table>
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+                    <p className="text-sm text-slate-500">
+                      Exibindo {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, itemsWithStatus.length)} de {itemsWithStatus.length} itens
+                    </p>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        
+                        {getPageNumbers().map((page, idx) => (
+                          <PaginationItem key={idx}>
+                            {page === 'ellipsis' ? (
+                              <PaginationEllipsis />
+                            ) : (
+                              <PaginationLink
+                                onClick={() => handlePageChange(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
