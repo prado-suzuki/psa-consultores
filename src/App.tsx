@@ -40,6 +40,7 @@ import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
 import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
 import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
+import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import AuditoriaFiscal from "./pages/equipe/dev/AuditoriaFiscal";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><DetalheFerramenta /></TeamRoute>} />
             <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><ConsultaXMLs /></TeamRoute>} />
             <Route path="/equipe/dev/consulta-efd" element={<TeamRoute><ConsultaEFD /></TeamRoute>} />
+            <Route path="/equipe/dev/consulta-efd-icms" element={<TeamRoute><ConsultaEFDICMS /></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><GerenciarDados /></TeamRoute>} />
             <Route path="/equipe/dev/auditoria-fiscal" element={<TeamRoute><AuditoriaFiscal /></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />

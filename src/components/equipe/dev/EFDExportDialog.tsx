@@ -35,12 +35,13 @@ import {
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { useExportProfiles } from '@/hooks/useExportProfiles';
-import type { EFDArquivo, BlocoRegistro } from '@/types/efd';
+import type { EFDArquivo, BlocoRegistro, EFDTipo } from '@/types/efd';
 
 interface EFDExportDialogProps {
   arquivo: EFDArquivo;
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
   disabled?: boolean;
+  tipo?: EFDTipo;
 }
 
 type ExportStatus = 'idle' | 'starting' | 'processing' | 'completed' | 'error';
@@ -56,7 +57,8 @@ interface JobStatus {
 export function EFDExportDialog({ 
   arquivo, 
   blocosDisponiveis,
-  disabled 
+  disabled,
+  tipo = 'contribuicoes',
 }: EFDExportDialogProps) {
   const { fetchWithAuth } = useApiAuth();
   const [open, setOpen] = useState(false);
@@ -371,7 +373,7 @@ export function EFDExportDialog({
       const registrosCodigos = Array.from(selectedRegistros).map(r => r.replace('REG_', ''));
       
       const exportUrl = getApiUrl(
-        `/api/v1/efd/contribuicoes/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/exportar`
+        `/api/v1/efd/${tipo}/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/exportar`
       );
       
       const startResponse = await fetchWithAuth(exportUrl, {

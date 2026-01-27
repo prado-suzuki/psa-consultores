@@ -1,4 +1,7 @@
-// Tipos para EFD Contribuições - Baseado na API Real
+// Tipos para EFD (Contribuições e ICMS) - Baseado na API Real
+
+// Tipo discriminador para EFD
+export type EFDTipo = 'contribuicoes' | 'icms';
 
 // Estrutura do arquivo EFD retornado pela API (campos em CAIXA ALTA)
 export interface EFDArquivo {
@@ -16,10 +19,14 @@ export interface EFDArquivo {
   SUFRAMA: string | null;
   IND_NAT_PJ: string;
   IND_ATIV: number;
-  pis_devido: string | null;         // API pode retornar null
+  // Campos EFD Contribuições
+  pis_devido: string | null;
   cofins_devido: string | null;
   credito_pis: string | null;
   credito_cofins: string | null;
+  // Campos EFD ICMS (opcionais)
+  icms_devido?: string | null;
+  icms_st_devido?: string | null;
 }
 
 export interface BlocoRegistro {
