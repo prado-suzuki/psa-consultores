@@ -137,15 +137,12 @@ const AuditoriaFiscal = () => {
   } = useQuery({
     queryKey: ['difal-nfes', selectedContribuinte, dataInicio, dataFim],
     queryFn: async () => {
-      const contribuinteData = contribuintes?.find(
-        (c) => c.id === selectedContribuinte
-      );
-      if (!contribuinteData?.cpf_cnpj) {
-        throw new Error('CNPJ do contribuinte não encontrado');
+      if (!selectedContribuinte) {
+        throw new Error('Contribuinte não selecionado');
       }
 
-      const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+      // Usar ID do contribuinte (UUID) como na Consulta XMLs
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
@@ -154,7 +151,7 @@ const AuditoriaFiscal = () => {
 
       return response.json() as Promise<NFeApiResponse>;
     },
-    enabled: searchTriggered && !!selectedContribuinte && !!contribuintes,
+    enabled: searchTriggered && !!selectedContribuinte,
   });
 
   // Função para achatar NFes em itens
@@ -184,13 +181,14 @@ const AuditoriaFiscal = () => {
 
   // Itens achatados - corrigido para usar .items
   const flatItems = useMemo(() => {
-    if (!nfesData?.items || !contribuintes) return [];
-    const contribuinteData = contribuintes.find(
+    if (!nfesData?.items) return [];
+    
+    // Buscar CNPJ para usar como id_contribuinte na classificação
+    const contribuinteData = contribuintes?.find(
       (c) => c.id === selectedContribuinte
     );
-    if (!contribuinteData?.cpf_cnpj) return [];
-
-    const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
+    const cnpj = contribuinteData?.cpf_cnpj?.replace(/\D/g, '') || selectedContribuinte;
+    
     return flattenNFeItems(nfesData.items, cnpj);
   }, [nfesData, contribuintes, selectedContribuinte]);
 
