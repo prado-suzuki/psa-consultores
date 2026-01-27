@@ -1,187 +1,124 @@
 
-# Plano de Correção: DIFAL Inteligente
+# Correção: Polling de Exportação EFD
 
-## Resumo dos Problemas
+## Problema Identificado
 
-1. **Erro `nfes.flatMap is not a function`**: A API retorna um objeto paginado `{ items: [], total, page, page_size, has_more }`, mas o código espera um array direto.
+O código de polling (linha 318) verifica `status.download_url`, mas a API retorna a URL no campo `url`:
 
-2. **Filtros diferentes do ConsultaXMLs**: Os campos de data estão usando `MonthYearPicker` em vez de `Calendar + Popover` com data completa (dia/mês/ano), e o contribuinte mostra CNPJ em linha separada.
+**Resposta da API (completed):**
+```json
+{
+  "job_id": "8957d529-91cd-4870-80be-dcd074c5fef5",
+  "status": "completed",
+  "url": "https://storage.googleapis.com/...",  // ← Campo correto
+  "url_expires_at": "2026-01-27T15:51:50.641214+00:00",
+  ...
+}
+```
+
+**Código atual (linha 318):**
+```typescript
+if (status.status === 'completed' && status.download_url) {  // ← Campo errado!
+```
 
 ---
 
 ## Alterações Necessárias
 
-### Arquivo: `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+### Arquivo: `src/components/equipe/dev/EFDExportDialog.tsx`
 
-#### 1. Corrigir Tipo de Retorno da API
+#### 1. Atualizar Interface JobStatus (linha 37-42)
 
-Adicionar interface para resposta paginada:
+Adicionar o campo `url` que a API realmente retorna:
 
 ```typescript
-interface NFeApiResponse {
-  items: NFeRecord[];
-  total: number;
-  page: number;
-  page_size: number;
-  has_more: boolean;
+interface JobStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  download_url?: string;
+  url?: string;          // ← Campo da API real
+  error?: string;
+  progress?: number;
 }
 ```
 
-Alterar query de NFes para usar `.items`:
+#### 2. Corrigir Verificação no Polling (linha 318)
+
+Usar o campo correto (`url`) com fallback para `download_url`:
 
 ```typescript
-const { data: nfesData, ... } = useQuery({
-  // ...
-  queryFn: async () => {
-    // ...
-    return response.json() as Promise<NFeApiResponse>;
-  },
-});
+// Antes
+if (status.status === 'completed' && status.download_url) {
 
-// E no flatItems useMemo:
-const flatItems = useMemo(() => {
-  if (!nfesData?.items || !contribuintes) return [];
-  // ...
-  return flattenNFeItems(nfesData.items, cnpj);
-}, [nfesData, contribuintes, selectedContribuinte]);
+// Depois
+const downloadUrl = status.download_url || status.url;
+if (status.status === 'completed' && downloadUrl) {
 ```
 
-#### 2. Alterar Filtros de Data para Calendar + Popover
-
-Remover `MonthYearPicker` e usar o mesmo padrão do ConsultaXMLs:
-
-**Antes:**
-```typescript
-const [dataInicio, setDataInicio] = useState<{ month: number; year: number } | null>({ ... });
-```
-
-**Depois:**
-```typescript
-const [dataInicio, setDataInicio] = useState("2024-01-01");
-const [dataFim, setDataFim] = useState("2026-01-31");
-```
-
-Adicionar imports necessários:
-```typescript
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format, parse } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-```
-
-Substituir componente de data no JSX:
-```typescript
-<Popover>
-  <PopoverTrigger asChild>
-    <Button
-      variant="outline"
-      className={cn(
-        "w-full h-9 px-3 text-left font-normal justify-start",
-        !dataInicio && "text-muted-foreground"
-      )}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-      {dataInicio 
-        ? format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-        : "Selecione"}
-    </Button>
-  </PopoverTrigger>
-  <PopoverContent className="w-auto p-0" align="start">
-    <Calendar
-      mode="single"
-      selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
-      onSelect={(date) => {
-        setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
-        setSearchTriggered(false);
-      }}
-      initialFocus
-      locale={ptBR}
-    />
-  </PopoverContent>
-</Popover>
-```
-
-#### 3. Alterar Campo Contribuinte
-
-Remover a exibição do CNPJ em linha separada:
-
-**Antes:**
-```typescript
-<SelectItem key={contribuinte.id} value={contribuinte.id}>
-  <div className="flex flex-col">
-    <span>{contribuinte.nome_razao_social}</span>
-    <span className="text-xs text-slate-500">{contribuinte.cpf_cnpj}</span>
-  </div>
-</SelectItem>
-```
-
-**Depois:**
-```typescript
-<SelectItem key={contribuinte.id} value={contribuinte.id}>
-  {contribuinte.nome_razao_social}
-</SelectItem>
-```
-
-#### 4. Atualizar Query de NFes
-
-Alterar URL para usar datas no formato correto (já está `yyyy-MM-dd`):
+#### 3. Atualizar Uso da URL no Download (linha 330)
 
 ```typescript
-const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+// Antes
+a.href = status.download_url;
+
+// Depois
+a.href = downloadUrl;
 ```
 
 ---
 
 ## Resumo das Mudanças
 
-| Componente | Antes | Depois |
-|------------|-------|--------|
-| Tipo API NFes | `NFeRecord[]` | `NFeApiResponse` (com `.items`) |
-| Data Início | `MonthYearPicker` | `Calendar + Popover` (dd/MM/yyyy) |
-| Data Fim | `MonthYearPicker` | `Calendar + Popover` (dd/MM/yyyy) |
-| Contribuinte Select | Nome + CNPJ em 2 linhas | Apenas nome |
-| Estado dataInicio | `{ month, year }` | String `"yyyy-MM-dd"` |
+| Local | Antes | Depois |
+|-------|-------|--------|
+| Interface `JobStatus` | Apenas `download_url` | Adiciona `url` |
+| Verificação (linha 318) | `status.download_url` | `downloadUrl` (com fallback) |
+| Download (linha 330) | `status.download_url` | `downloadUrl` |
 
 ---
 
 ## Seção Técnica
 
-### Imports a Adicionar
+### Código Corrigido (linhas 37-42)
+
 ```typescript
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format, parse } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+interface JobStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  download_url?: string;
+  url?: string;
+  error?: string;
+  progress?: number;
+}
 ```
 
-### Imports a Remover
+### Código Corrigido (linhas 316-336)
+
 ```typescript
-import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
+if (!status || signal.aborted) return;
+
+// Aceitar tanto 'url' quanto 'download_url' da API
+const downloadUrl = status.download_url || status.url;
+
+if (status.status === 'completed' && downloadUrl) {
+  // Job concluído - fazer download
+  if (pollingIntervalRef.current) {
+    clearInterval(pollingIntervalRef.current);
+    pollingIntervalRef.current = null;
+  }
+
+  setExportStatus('completed');
+  setStatusMessage('Download pronto!');
+
+  // Fazer download via link direto (evita CORS do GCS)
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // ...resto igual
+}
 ```
 
-### Estados Alterados
-```typescript
-// Antes
-const [dataInicio, setDataInicio] = useState<{ month: number; year: number } | null>({ ... });
-const [dataFim, setDataFim] = useState<{ month: number; year: number } | null>({ ... });
-
-// Depois
-const [dataInicio, setDataInicio] = useState("2024-01-01");
-const [dataFim, setDataFim] = useState("2026-01-31");
-```
-
-### Lógica flatItems
-```typescript
-const flatItems = useMemo(() => {
-  if (!nfesData?.items || !contribuintes) return [];
-  const contribuinteData = contribuintes.find((c) => c.id === selectedContribuinte);
-  if (!contribuinteData?.cpf_cnpj) return [];
-
-  const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
-  return flattenNFeItems(nfesData.items, cnpj); // Usar .items
-}, [nfesData, contribuintes, selectedContribuinte]);
-```
+Esta correção alinha o código com a resposta real da API, resolvendo o problema de polling infinito em exports novos (cache miss).
