@@ -580,6 +580,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
+          tool_type: string
           updated_at: string | null
           user_id: string
         }
@@ -589,6 +590,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
+          tool_type?: string
           updated_at?: string | null
           user_id: string
         }
@@ -598,6 +600,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
+          tool_type?: string
           updated_at?: string | null
           user_id?: string
         }

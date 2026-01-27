@@ -73,7 +73,7 @@ export function EFDExportDialog({
   const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
-  // Hook de perfis do usuário
+  // Hook de perfis do usuário (filtrado por tipo 'efd')
   const {
     profiles,
     isLoading: loadingProfiles,
@@ -82,7 +82,7 @@ export function EFDExportDialog({
     updateProfile,
     deleteProfile,
     setDefaultProfile,
-  } = useExportProfiles();
+  } = useExportProfiles('efd');
   
   // AbortController para cancelar exportação
   const abortControllerRef = useRef<AbortController | null>(null);
