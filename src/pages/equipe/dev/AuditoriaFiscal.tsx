@@ -47,7 +47,17 @@ import {
   FileText,
   Package,
   CalendarIcon,
+  Download,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Tipos para as queries do Supabase
 interface ClienteRecord {
@@ -85,6 +95,7 @@ const AuditoriaFiscal = () => {
   // Estado do modal
   const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Determinar tabela baseado no ambiente
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
@@ -520,11 +531,22 @@ const AuditoriaFiscal = () => {
       {/* Grid de Itens */}
       {searchTriggered && (
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-slate-500" />
               Itens para Classificação
             </CardTitle>
+            {itemsWithStatus.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportDialogOpen(true)}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -667,6 +689,23 @@ const AuditoriaFiscal = () => {
         item={selectedItem}
         ufDestino={ufDestino}
       />
+
+      {/* Dialog de Exportação (Teste) */}
+      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exportação Concluída</AlertDialogTitle>
+            <AlertDialogDescription>
+              Exportação Teste Concluída
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setExportDialogOpen(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DevLayout>
   );
 };
