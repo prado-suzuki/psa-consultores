@@ -8,13 +8,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Loader2, FileDown, ChevronDown, Save, Server, CheckCircle2 } from 'lucide-react';
+import { Download, Loader2, FileDown, ChevronDown, Save, Server, CheckCircle2, Star, Trash2, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { 
@@ -24,6 +35,7 @@ import {
 } from '@/constants/efdConfig';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
+import { useExportProfiles } from '@/hooks/useExportProfiles';
 import type { EFDArquivo, BlocoRegistro } from '@/types/efd';
 
 interface EFDExportDialogProps {
@@ -56,6 +68,23 @@ export function EFDExportDialog({
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
   
+  // Estados para gerenciamento de perfis
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Hook de perfis do usuário
+  const {
+    profiles,
+    isLoading: loadingProfiles,
+    defaultProfile,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+    setDefaultProfile,
+  } = useExportProfiles();
+  
   // AbortController para cancelar exportação
   const abortControllerRef = useRef<AbortController | null>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,15 +106,37 @@ export function EFDExportDialog({
     };
   }, []);
 
-  // Reset ao abrir e cancelar ao fechar
+  // Reset ao abrir e cancelar ao fechar - carrega perfil padrão do usuário
   useEffect(() => {
     if (open) {
-      setSelectedRegistros(new Set());
       setExpandedBlocks(new Set());
-      setSelectedProfile('none');
       setExportStatus('idle');
       setStatusMessage('');
       setJobId(null);
+      
+      // Carregar perfil padrão do usuário se existir
+      if (defaultProfile && defaultProfile.columns.length > 0) {
+        // Mapear colunas do perfil (que são códigos como "C100") para formato do EFD (REG_C100)
+        const profileRegistros = defaultProfile.columns
+          .map(col => {
+            // Verificar se já está no formato REG_XXXX
+            if (col.startsWith('REG_')) return col;
+            // Senão, converter para REG_XXXX
+            return `REG_${col}`;
+          })
+          .filter(reg => allRegistros.includes(reg));
+        
+        if (profileRegistros.length > 0) {
+          setSelectedRegistros(new Set(profileRegistros));
+          setSelectedProfile(`user_${defaultProfile.id}`);
+        } else {
+          setSelectedRegistros(new Set());
+          setSelectedProfile('none');
+        }
+      } else {
+        setSelectedRegistros(new Set());
+        setSelectedProfile('none');
+      }
     } else {
       // Cancelar exportação em andamento ao fechar o modal
       if (pollingIntervalRef.current) {
@@ -97,7 +148,7 @@ export function EFDExportDialog({
         abortControllerRef.current = null;
       }
     }
-  }, [open]);
+  }, [open, defaultProfile, allRegistros]);
 
   // Toggle acordeão
   const toggleBlock = (bloco: string) => {
@@ -157,7 +208,7 @@ export function EFDExportDialog({
     setSelectedProfile('none');
   };
 
-  // Aplicar perfil
+  // Aplicar perfil (suporta pré-definidos e do usuário)
   const applyProfile = (profileKey: string) => {
     setSelectedProfile(profileKey);
     
@@ -165,13 +216,30 @@ export function EFDExportDialog({
       return;
     }
     
+    // Verificar se é um perfil do usuário (formato: user_uuid)
+    if (profileKey.startsWith('user_')) {
+      const profileId = profileKey.replace('user_', '');
+      const userProfile = profiles.find(p => p.id === profileId);
+      if (userProfile) {
+        const profileRegistros = userProfile.columns
+          .map(col => col.startsWith('REG_') ? col : `REG_${col}`)
+          .filter(reg => allRegistros.includes(reg));
+        setSelectedRegistros(new Set(profileRegistros));
+        toast({
+          title: `Perfil "${userProfile.name}" aplicado`,
+          description: `${profileRegistros.length} registros selecionados`,
+        });
+      }
+      return;
+    }
+    
+    // Perfil pré-definido
     const profile = EXPORT_PRESET_PROFILES[profileKey];
     if (!profile) return;
     
     if (profile.registros === 'ALL') {
       setSelectedRegistros(new Set(allRegistros));
     } else {
-      // Filtrar apenas registros que existem nos blocos disponíveis
       const availableCodes = allRegistros.map(r => r.replace('REG_', ''));
       const validRegs = profile.registros.filter(r => availableCodes.includes(r));
       setSelectedRegistros(new Set(validRegs.map(r => `REG_${r}`)));
@@ -182,6 +250,67 @@ export function EFDExportDialog({
       description: `${profile.registros === 'ALL' ? allRegistros.length : profile.registros.length} registros selecionados`,
     });
   };
+
+  // Abrir dialog para salvar perfil
+  const openSaveDialog = () => {
+    if (selectedRegistros.size === 0) {
+      toast({ title: 'Selecione registros', description: 'Selecione ao menos um registro.', variant: 'destructive' });
+      return;
+    }
+    setNewProfileName('');
+    setSaveAsDefault(false);
+    setSaveDialogOpen(true);
+  };
+
+  // Salvar novo perfil
+  const handleSaveProfile = async () => {
+    if (!newProfileName.trim()) {
+      toast({ title: 'Nome obrigatório', description: 'Informe um nome para o perfil.', variant: 'destructive' });
+      return;
+    }
+    // Converter REG_XXXX para XXXX para armazenar
+    const columns = Array.from(selectedRegistros).map(r => r.replace('REG_', ''));
+    const result = await createProfile.mutateAsync({ name: newProfileName.trim(), columns, isDefault: saveAsDefault });
+    setNewProfileName('');
+    setSaveDialogOpen(false);
+    if (result?.id) {
+      setSelectedProfile(`user_${result.id}`);
+    }
+  };
+
+  // Excluir perfil
+  const handleDeleteProfile = async () => {
+    if (!deleteConfirmId) return;
+    await deleteProfile.mutateAsync(deleteConfirmId);
+    if (selectedProfile === `user_${deleteConfirmId}`) {
+      setSelectedProfile('none');
+    }
+    setDeleteConfirmId(null);
+  };
+
+  // Toggle favorito/padrão
+  const handleToggleDefault = async (profileId: string) => {
+    const currentProfile = profiles.find(p => p.id === profileId);
+    if (currentProfile?.is_default) {
+      toast({ title: 'Perfil já é padrão', description: 'Este perfil já está definido como padrão.' });
+      return;
+    }
+    await setDefaultProfile.mutateAsync(profileId);
+  };
+
+  // Verificar se perfil selecionado é do usuário e se é padrão
+  const getSelectedUserProfileId = (): string | null => {
+    if (selectedProfile.startsWith('user_')) {
+      return selectedProfile.replace('user_', '');
+    }
+    return null;
+  };
+
+  const isSelectedProfileDefault = useMemo(() => {
+    const profileId = getSelectedUserProfileId();
+    if (!profileId) return false;
+    return profiles.find(p => p.id === profileId)?.is_default ?? false;
+  }, [profiles, selectedProfile]);
 
   // Contadores por bloco
   const getBlockCount = (bloco: string) => {
@@ -407,32 +536,85 @@ export function EFDExportDialog({
 
           {/* Barra de Perfis e Ações */}
           <div className="flex flex-wrap gap-4 items-end justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mt-4">
-            <div className="flex-1 min-w-[250px]">
+            <div className="flex-1 min-w-[280px]">
               <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">
                 Carregar Perfil
               </Label>
               <div className="flex gap-2">
                 <Select value={selectedProfile} onValueChange={applyProfile}>
                   <SelectTrigger className="flex-1 h-11 bg-slate-50 dark:bg-slate-800">
-                    <SelectValue placeholder="Selecione um perfil..." />
+                    <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Selecione um perfil..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(EXPORT_PRESET_PROFILES).map(([key, profile]) => (
-                      <SelectItem key={key} value={key}>
-                        {key === 'all' && '★ '}{profile.name}
+                    {/* Perfis pré-definidos */}
+                    <SelectItem value="none" className="text-slate-500">Nenhum</SelectItem>
+                    {Object.entries(EXPORT_PRESET_PROFILES)
+                      .filter(([key]) => key !== 'none')
+                      .map(([key, profile]) => (
+                        <SelectItem key={key} value={key}>
+                          {key === 'all' && '★ '}{profile.name}
+                        </SelectItem>
+                      ))}
+                    
+                    {/* Separador se houver perfis do usuário */}
+                    {profiles.length > 0 && (
+                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+                    )}
+                    
+                    {/* Perfis do usuário */}
+                    {profiles.map(profile => (
+                      <SelectItem 
+                        key={`user_${profile.id}`} 
+                        value={`user_${profile.id}`}
+                        className="pr-10 group relative"
+                      >
+                        <span className="flex items-center gap-2">
+                          {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                          {profile.name}
+                        </span>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setDeleteConfirmId(profile.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </button>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                
+                {/* Botão Salvar Perfil */}
                 <Button 
                   variant="outline" 
                   size="icon" 
                   className="h-11 w-11"
-                  title="Salvar como Favorito"
-                  onClick={() => toast({ title: 'Funcionalidade em desenvolvimento' })}
+                  title="Salvar seleção como perfil"
+                  onClick={openSaveDialog}
                 >
-                  <Save className="h-5 w-5" />
+                  <Plus className="h-5 w-5" />
                 </Button>
+                
+                {/* Botão Favoritar (apenas para perfis do usuário) */}
+                {getSelectedUserProfileId() && (
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-11 w-11"
+                    title={isSelectedProfileDefault ? "Perfil padrão" : "Definir como padrão"}
+                    onClick={() => {
+                      const profileId = getSelectedUserProfileId();
+                      if (profileId) handleToggleDefault(profileId);
+                    }}
+                    disabled={setDefaultProfile.isPending}
+                  >
+                    <Star className={cn("h-5 w-5", isSelectedProfileDefault && "text-yellow-500 fill-yellow-500")} />
+                  </Button>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4 h-10">
@@ -610,6 +792,79 @@ export function EFDExportDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Dialog para salvar novo perfil */}
+      <AlertDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar Perfil de Exportação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Salve a seleção atual como um novo perfil para uso futuro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Nome do Perfil</Label>
+              <Input
+                id="profile-name"
+                value={newProfileName}
+                onChange={(e) => setNewProfileName(e.target.value)}
+                placeholder="Ex: Auditoria Completa"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="save-default"
+                checked={saveAsDefault}
+                onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
+              />
+              <Label htmlFor="save-default" className="text-sm text-muted-foreground">
+                Definir como perfil padrão
+              </Label>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSaveProfile}
+              disabled={createProfile.isPending || !newProfileName.trim()}
+            >
+              {createProfile.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar Perfil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Perfil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este perfil? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteProfile}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProfile.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
