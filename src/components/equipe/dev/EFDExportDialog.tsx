@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils';
 import { 
   BLOCK_DESCRIPTIONS, 
   REG_DESCRIPTIONS, 
-  EXPORT_PRESET_PROFILES,
 } from '@/constants/efdConfig';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
@@ -208,11 +207,21 @@ export function EFDExportDialog({
     setSelectedProfile('none');
   };
 
-  // Aplicar perfil (suporta pré-definidos e do usuário)
+  // Aplicar perfil (suporta "all" e perfis do usuário)
   const applyProfile = (profileKey: string) => {
     setSelectedProfile(profileKey);
     
     if (profileKey === 'none') {
+      return;
+    }
+    
+    // Selecionar todos
+    if (profileKey === 'all') {
+      setSelectedRegistros(new Set(allRegistros));
+      toast({
+        title: 'Todos os registros selecionados',
+        description: `${allRegistros.length} registros selecionados`,
+      });
       return;
     }
     
@@ -232,23 +241,6 @@ export function EFDExportDialog({
       }
       return;
     }
-    
-    // Perfil pré-definido
-    const profile = EXPORT_PRESET_PROFILES[profileKey];
-    if (!profile) return;
-    
-    if (profile.registros === 'ALL') {
-      setSelectedRegistros(new Set(allRegistros));
-    } else {
-      const availableCodes = allRegistros.map(r => r.replace('REG_', ''));
-      const validRegs = profile.registros.filter(r => availableCodes.includes(r));
-      setSelectedRegistros(new Set(validRegs.map(r => `REG_${r}`)));
-    }
-    
-    toast({
-      title: `Perfil "${profile.name}" aplicado`,
-      description: `${profile.registros === 'ALL' ? allRegistros.length : profile.registros.length} registros selecionados`,
-    });
   };
 
   // Abrir dialog para salvar perfil
@@ -546,15 +538,9 @@ export function EFDExportDialog({
                     <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Selecione um perfil..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Perfis pré-definidos */}
+                    {/* Opções base */}
                     <SelectItem value="none" className="text-slate-500">Nenhum</SelectItem>
-                    {Object.entries(EXPORT_PRESET_PROFILES)
-                      .filter(([key]) => key !== 'none')
-                      .map(([key, profile]) => (
-                        <SelectItem key={key} value={key}>
-                          {key === 'all' && '★ '}{profile.name}
-                        </SelectItem>
-                      ))}
+                    <SelectItem value="all">Todos os Registros</SelectItem>
                     
                     {/* Separador se houver perfis do usuário */}
                     {profiles.length > 0 && (
