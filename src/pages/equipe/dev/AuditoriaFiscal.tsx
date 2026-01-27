@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -21,12 +23,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
 import { DifalAuditModal } from '@/components/equipe/dev/DifalAuditModal';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL, isProductionEnvironment } from '@/config/api';
+import { cn } from '@/lib/utils';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   DifalItem,
   DifalModo,
@@ -42,6 +46,7 @@ import {
   AlertCircle,
   FileText,
   Package,
+  CalendarIcon,
 } from 'lucide-react';
 
 // Tipos para as queries do Supabase
@@ -56,22 +61,24 @@ interface ContribuinteRecord {
   cpf_cnpj: string | null;
 }
 
+// Tipo de resposta paginada da API
+interface NFeApiResponse {
+  items: NFeRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+}
+
 const AuditoriaFiscal = () => {
   const { toast } = useToast();
   const { fetchWithAuth } = useApiAuth();
 
-  // Estados de filtros (usando formato do MonthYearPicker)
+  // Estados de filtros (formato yyyy-MM-dd)
   const [selectedCliente, setSelectedCliente] = useState<string>('');
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>('');
-  const now = new Date();
-  const [dataInicio, setDataInicio] = useState<{ month: number; year: number } | null>({
-    month: now.getMonth(),
-    year: now.getFullYear() - 1,
-  });
-  const [dataFim, setDataFim] = useState<{ month: number; year: number } | null>({
-    month: now.getMonth(),
-    year: now.getFullYear(),
-  });
+  const [dataInicio, setDataInicio] = useState('2024-01-01');
+  const [dataFim, setDataFim] = useState('2026-01-31');
   const [modo, setModo] = useState<DifalModo>('icms');
   const [searchTriggered, setSearchTriggered] = useState(false);
 
@@ -138,17 +145,14 @@ const AuditoriaFiscal = () => {
       }
 
       const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
-      const inicio = monthYearToDateString(dataInicio, 'start');
-      const fim = monthYearToDateString(dataFim, 'end');
-
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?data_inicio=${inicio}&data_fim=${fim}&tipo=entrada`;
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${cnpj}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
         throw new Error('Erro ao buscar notas fiscais');
       }
 
-      return response.json() as Promise<NFeRecord[]>;
+      return response.json() as Promise<NFeApiResponse>;
     },
     enabled: searchTriggered && !!selectedContribuinte && !!contribuintes,
   });
@@ -178,16 +182,16 @@ const AuditoriaFiscal = () => {
     );
   };
 
-  // Itens achatados
+  // Itens achatados - corrigido para usar .items
   const flatItems = useMemo(() => {
-    if (!nfesData || !contribuintes) return [];
+    if (!nfesData?.items || !contribuintes) return [];
     const contribuinteData = contribuintes.find(
       (c) => c.id === selectedContribuinte
     );
     if (!contribuinteData?.cpf_cnpj) return [];
 
     const cnpj = contribuinteData.cpf_cnpj.replace(/\D/g, '');
-    return flattenNFeItems(nfesData, cnpj);
+    return flattenNFeItems(nfesData.items, cnpj);
   }, [nfesData, contribuintes, selectedContribuinte]);
 
   // Query: Buscar classificações existentes
@@ -253,9 +257,8 @@ const AuditoriaFiscal = () => {
   const handleClearFilters = () => {
     setSelectedCliente('');
     setSelectedContribuinte('');
-    const now = new Date();
-    setDataInicio({ month: now.getMonth(), year: now.getFullYear() - 1 });
-    setDataFim({ month: now.getMonth(), year: now.getFullYear() });
+    setDataInicio('2024-01-01');
+    setDataFim('2026-01-31');
     setSearchTriggered(false);
   };
 
@@ -334,7 +337,7 @@ const AuditoriaFiscal = () => {
               </Select>
             </div>
 
-            {/* Contribuinte */}
+            {/* Contribuinte - apenas nome */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-600 uppercase">
                 Contribuinte
@@ -353,44 +356,81 @@ const AuditoriaFiscal = () => {
                 <SelectContent>
                   {contribuintes?.map((contribuinte) => (
                     <SelectItem key={contribuinte.id} value={contribuinte.id}>
-                      <div className="flex flex-col">
-                        <span>{contribuinte.nome_razao_social}</span>
-                        <span className="text-xs text-slate-500">
-                          {contribuinte.cpf_cnpj}
-                        </span>
-                      </div>
+                      {contribuinte.nome_razao_social}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Data Início */}
+            {/* Data Início - Calendar + Popover */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-600 uppercase">
                 Data Início
               </label>
-              <MonthYearPicker
-                value={dataInicio}
-                onChange={(date) => {
-                  setDataInicio(date);
-                  setSearchTriggered(false);
-                }}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-9 px-3 text-left font-normal justify-start",
+                      !dataInicio && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                    {dataInicio 
+                      ? format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                    onSelect={(date) => {
+                      setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
+                      setSearchTriggered(false);
+                    }}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
-            {/* Data Fim */}
+            {/* Data Fim - Calendar + Popover */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-600 uppercase">
                 Data Fim
               </label>
-              <MonthYearPicker
-                value={dataFim}
-                onChange={(date) => {
-                  setDataFim(date);
-                  setSearchTriggered(false);
-                }}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-9 px-3 text-left font-normal justify-start",
+                      !dataFim && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                    {dataFim 
+                      ? format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                    onSelect={(date) => {
+                      setDataFim(date ? format(date, "yyyy-MM-dd") : "");
+                      setSearchTriggered(false);
+                    }}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
