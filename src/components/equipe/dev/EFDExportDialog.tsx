@@ -37,6 +37,7 @@ type ExportStatus = 'idle' | 'starting' | 'processing' | 'completed' | 'error';
 interface JobStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   download_url?: string;
+  url?: string;
   error?: string;
   progress?: number;
 }
@@ -315,7 +316,10 @@ export function EFDExportDialog({
         
         if (!status || signal.aborted) return;
 
-        if (status.status === 'completed' && status.download_url) {
+        // Aceitar tanto 'url' quanto 'download_url' da API
+        const downloadUrl = status.download_url || status.url;
+
+        if (status.status === 'completed' && downloadUrl) {
           // Job concluído - fazer download
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -327,7 +331,7 @@ export function EFDExportDialog({
 
           // Fazer download via link direto (evita CORS do GCS)
           const a = document.createElement('a');
-          a.href = status.download_url;
+          a.href = downloadUrl;
           a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
