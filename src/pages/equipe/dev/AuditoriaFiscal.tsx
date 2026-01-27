@@ -29,7 +29,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL, isProductionEnvironment } from '@/config/api';
 import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns';
+import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   DifalItem,
@@ -49,15 +49,20 @@ import {
   CalendarIcon,
   Download,
 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+
+// Clientes permitidos para esta ferramenta
+const CLIENTES_PERMITIDOS = ['BARRACOL', 'CROPODIA'];
+
+// Datas padrão: primeiro e último dia do mês atual
+const getDefaultDates = () => {
+  const now = new Date();
+  const firstDay = startOfMonth(now);
+  const lastDay = endOfMonth(now);
+  return {
+    inicio: format(firstDay, 'yyyy-MM-dd'),
+    fim: format(lastDay, 'yyyy-MM-dd'),
+  };
+};
 
 // Tipos para as queries do Supabase
 interface ClienteRecord {
@@ -84,24 +89,26 @@ const AuditoriaFiscal = () => {
   const { toast } = useToast();
   const { fetchWithAuth } = useApiAuth();
 
+  // Datas padrão do mês atual
+  const defaultDates = getDefaultDates();
+
   // Estados de filtros (formato yyyy-MM-dd)
   const [selectedCliente, setSelectedCliente] = useState<string>('');
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>('');
-  const [dataInicio, setDataInicio] = useState('2024-01-01');
-  const [dataFim, setDataFim] = useState('2026-01-31');
+  const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
+  const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [modo, setModo] = useState<DifalModo>('icms');
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Estado do modal
   const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Determinar tabela baseado no ambiente
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
   const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 
-  // Query: Listar clientes
+  // Query: Listar clientes (filtrado para Barracol e Cropodia)
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
     queryKey: ['difal-clientes', clienteTable],
     queryFn: async () => {
@@ -112,7 +119,13 @@ const AuditoriaFiscal = () => {
         .order('nome');
 
       if (error) throw error;
-      return (data || []) as ClienteRecord[];
+      // Filtrar apenas clientes permitidos
+      const filtered = (data || []).filter((c) =>
+        CLIENTES_PERMITIDOS.some(
+          (nome) => c.nome.toUpperCase().includes(nome)
+        )
+      );
+      return filtered as ClienteRecord[];
     },
   });
 
@@ -266,9 +279,16 @@ const AuditoriaFiscal = () => {
   const handleClearFilters = () => {
     setSelectedCliente('');
     setSelectedContribuinte('');
-    setDataInicio('2024-01-01');
-    setDataFim('2026-01-31');
+    setDataInicio(defaultDates.inicio);
+    setDataFim(defaultDates.fim);
     setSearchTriggered(false);
+  };
+
+  const handleExportExcel = () => {
+    toast({
+      title: 'Exportação Teste Concluída',
+      description: 'O endpoint de exportação será implementado em breve.',
+    });
   };
 
   const handleItemClick = (item: DifalItem) => {
@@ -528,25 +548,29 @@ const AuditoriaFiscal = () => {
         </div>
       )}
 
+      {/* Botão de Exportação */}
+      {searchTriggered && itemsWithStatus.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </Button>
+        </div>
+      )}
+
       {/* Grid de Itens */}
       {searchTriggered && (
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-slate-500" />
               Itens para Classificação
             </CardTitle>
-            {itemsWithStatus.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setExportDialogOpen(true)}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Exportar Excel
-              </Button>
-            )}
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -690,22 +714,6 @@ const AuditoriaFiscal = () => {
         ufDestino={ufDestino}
       />
 
-      {/* Dialog de Exportação (Teste) */}
-      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exportação Concluída</AlertDialogTitle>
-            <AlertDialogDescription>
-              Exportação Teste Concluída
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setExportDialogOpen(false)}>
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DevLayout>
   );
 };
