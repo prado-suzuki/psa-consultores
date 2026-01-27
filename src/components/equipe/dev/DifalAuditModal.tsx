@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL } from '@/config/api';
 import {
   DifalItem,
   NCMRegrasResponse,
   RegraICMSST,
-  SyncPayload,
-  SyncResponse,
   TipoDecisao,
 } from '@/types/difal';
 import {
@@ -36,6 +35,8 @@ interface DifalAuditModalProps {
   onOpenChange: (open: boolean) => void;
   item: DifalItem | null;
   ufDestino: string;
+  sessaoId: string | null;
+  onDecisionSaved: () => void;
 }
 
 export const DifalAuditModal = ({
@@ -43,11 +44,14 @@ export const DifalAuditModal = ({
   onOpenChange,
   item,
   ufDestino,
+  sessaoId,
+  onDecisionSaved,
 }: DifalAuditModalProps) => {
   const { toast } = useToast();
   const { fetchWithAuth } = useApiAuth();
   const queryClient = useQueryClient();
   const [selectedRegraId, setSelectedRegraId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Query para buscar regras NCM
   const {
@@ -77,51 +81,16 @@ export const DifalAuditModal = ({
     enabled: open && !!item && !!ufDestino,
   });
 
-  // Mutation para sincronizar decisão
-  const syncMutation = useMutation({
-    mutationFn: async (payload: SyncPayload) => {
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/v1/classificacoes/sync`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Erro ao salvar classificação');
-      }
-
-      return response.json() as Promise<SyncResponse>;
-    },
-    onSuccess: (data) => {
-      if (data.sucesso) {
-        toast({
-          title: 'Classificação salva',
-          description: `${data.total_processado} item(s) processado(s) com sucesso.`,
-        });
-        queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
-        onOpenChange(false);
-      } else {
-        toast({
-          title: 'Erro na classificação',
-          description: data.erros.join(', '),
-          variant: 'destructive',
-        });
-      }
-    },
-    onError: (error) => {
+  // Salvar decisão em difal_decisao (Supabase) ao invés de enviar para API
+  const handleSaveDecision = async (decisao: TipoDecisao, regraId: string | null = null) => {
+    if (!item || !sessaoId) {
       toast({
-        title: 'Erro ao salvar',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        title: 'Sessão não iniciada',
+        description: 'É necessário iniciar uma busca antes de classificar.',
         variant: 'destructive',
       });
-    },
-  });
-
-  const handleSaveDecision = (decisao: TipoDecisao, regraId: string | null = null) => {
-    if (!item) return;
+      return;
+    }
 
     // Validação: REGRA_SELECIONADA requer id_icms_st
     if (decisao === 'REGRA_SELECIONADA' && !regraId) {
@@ -133,19 +102,41 @@ export const DifalAuditModal = ({
       return;
     }
 
-    const payload: SyncPayload = {
-      decisoes: [
-        {
-          id_contribuinte: item.id_contribuinte,
-          cod_produto: item.cod_produto,
-          cod_ncm: item.cod_ncm,
-          decisao,
-          id_icms_st: regraId,
-        },
-      ],
-    };
+    setIsSaving(true);
 
-    syncMutation.mutate(payload);
+    try {
+      // Salvar decisão em difal_decisao (Supabase)
+      const { error } = await supabase
+        .from('difal_decisao')
+        .upsert({
+          sessao_id: sessaoId,
+          cod_ncm: item.cod_ncm,
+          decisao: decisao,
+          id_icms_st_bq: regraId,
+          decidido_em: new Date().toISOString(),
+        }, {
+          onConflict: 'sessao_id,cod_ncm',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Decisão registrada',
+        description: 'Clique em "Salvar Alterações" para enviar ao banco principal.',
+      });
+
+      onDecisionSaved(); // Incrementar contador
+      queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar decisão',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const regrasNCM = regrasData?.[item?.cod_ncm || ''];
@@ -368,7 +359,7 @@ export const DifalAuditModal = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleSaveDecision('SEM_ST')}
-                      disabled={syncMutation.isPending}
+                      disabled={isSaving}
                       className="flex-1"
                     >
                       <XCircle className="h-4 w-4 mr-1" />
@@ -378,7 +369,7 @@ export const DifalAuditModal = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleSaveDecision('ISENTO')}
-                      disabled={syncMutation.isPending}
+                      disabled={isSaving}
                       className="flex-1"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-1" />
@@ -388,7 +379,7 @@ export const DifalAuditModal = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleSaveDecision('NAO_APLICAVEL')}
-                      disabled={syncMutation.isPending}
+                      disabled={isSaving}
                       className="flex-1"
                     >
                       <Ban className="h-4 w-4 mr-1" />
@@ -406,16 +397,16 @@ export const DifalAuditModal = ({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={syncMutation.isPending}
+            disabled={isSaving}
           >
             Cancelar
           </Button>
           <Button
             onClick={() => handleSaveDecision('REGRA_SELECIONADA', selectedRegraId)}
-            disabled={!selectedRegraId || syncMutation.isPending}
+            disabled={!selectedRegraId || isSaving}
             className="bg-teal-600 hover:bg-teal-700"
           >
-            {syncMutation.isPending ? (
+            {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Salvando...

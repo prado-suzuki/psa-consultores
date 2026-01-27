@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DifalAuditModal } from '@/components/equipe/dev/DifalAuditModal';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL, isProductionEnvironment } from '@/config/api';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,8 @@ import {
   ClassificacoesBuscarResponse,
   NFeRecord,
   NFeProduto,
+  SyncPayload,
+  TipoDecisao,
 } from '@/types/difal';
 import {
   Search,
@@ -48,6 +51,8 @@ import {
   Package,
   CalendarIcon,
   Download,
+  Save,
+  Loader2,
 } from 'lucide-react';
 
 // IDs dos clientes permitidos para esta ferramenta (Barracol e Cropodia)
@@ -91,6 +96,8 @@ interface NFeApiResponse {
 const AuditoriaFiscal = () => {
   const { toast } = useToast();
   const { fetchWithAuth } = useApiAuth();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Datas padrão do mês atual
   const defaultDates = getDefaultDates();
@@ -106,6 +113,11 @@ const AuditoriaFiscal = () => {
   // Estado do modal
   const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Estados para sessão e decisões pendentes
+  const [activeSessaoId, setActiveSessaoId] = useState<string | null>(null);
+  const [pendingDecisionsCount, setPendingDecisionsCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Determinar tabela baseado no ambiente
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
@@ -261,8 +273,8 @@ const AuditoriaFiscal = () => {
     });
   }, [flatItems, classificacoes]);
 
-  // Handlers
-  const handleSearch = () => {
+  // Handler para criar sessão e disparar busca
+  const handleSearch = async () => {
     if (!selectedContribuinte) {
       toast({
         title: 'Selecione um contribuinte',
@@ -271,7 +283,44 @@ const AuditoriaFiscal = () => {
       });
       return;
     }
-    setSearchTriggered(true);
+
+    try {
+      // Criar sessão em difal_sessao
+      const { data: session, error } = await supabase
+        .from('difal_sessao')
+        .insert({
+          usuario_id: user?.id || 'unknown',
+          cliente_id: selectedCliente,
+          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+          periodo: `${dataInicio} a ${dataFim}`,
+          uf: 'MT', // Default, será atualizado quando tiver dados
+          request_original: {
+            contribuinte_id: selectedContribuinte,
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+          },
+          status: 'EM_ANDAMENTO',
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      setActiveSessaoId(session.id);
+      setPendingDecisionsCount(0);
+      setSearchTriggered(true);
+
+      toast({
+        title: 'Sessão iniciada',
+        description: 'As decisões serão salvas automaticamente.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao criar sessão',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleClearFilters = () => {
@@ -280,6 +329,8 @@ const AuditoriaFiscal = () => {
     setDataInicio(defaultDates.inicio);
     setDataFim(defaultDates.fim);
     setSearchTriggered(false);
+    setActiveSessaoId(null);
+    setPendingDecisionsCount(0);
   };
 
   const handleExportExcel = () => {
@@ -289,11 +340,84 @@ const AuditoriaFiscal = () => {
     });
   };
 
+  // Handler para sincronizar decisões com o banco principal
+  const handleSaveChanges = async () => {
+    if (!activeSessaoId || pendingDecisionsCount === 0) return;
+
+    setIsSaving(true);
+
+    try {
+      // 1. Buscar decisões da sessão atual
+      const { data: decisoes, error: fetchError } = await supabase
+        .from('difal_decisao')
+        .select('*')
+        .eq('sessao_id', activeSessaoId);
+
+      if (fetchError) throw fetchError;
+
+      // 2. Montar payload para API de sync
+      const payload: SyncPayload = {
+        sessao_id: activeSessaoId,
+        decisoes: (decisoes || []).map(d => ({
+          id_contribuinte: flatItems[0]?.id_contribuinte || '',
+          cod_produto: '', // Será mapeado pela API baseado no NCM
+          cod_ncm: d.cod_ncm,
+          decisao: d.decisao as TipoDecisao,
+          id_icms_st: d.id_icms_st_bq,
+        })),
+      };
+
+      // 3. Enviar para endpoint de sync
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/classificacoes/sync`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao sincronizar classificações');
+      }
+
+      // 4. Atualizar status da sessão
+      await supabase
+        .from('difal_sessao')
+        .update({
+          status: 'SINCRONIZADO',
+          sincronizado_em: new Date().toISOString(),
+        })
+        .eq('id', activeSessaoId);
+
+      // 5. Limpar estado e invalidar cache
+      setPendingDecisionsCount(0);
+      queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
+
+      toast({
+        title: 'Alterações salvas',
+        description: `${decisoes?.length || 0} decisão(ões) sincronizada(s) com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao sincronizar',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleItemClick = (item: DifalItem) => {
     if (item.status === 'pendente') {
       setSelectedItem(item);
       setModalOpen(true);
     }
+  };
+
+  const handleDecisionSaved = () => {
+    setPendingDecisionsCount(prev => prev + 1);
   };
 
   const formatCurrency = (value: number | null) => {
@@ -348,6 +472,8 @@ const AuditoriaFiscal = () => {
                   setSelectedCliente(value);
                   setSelectedContribuinte('');
                   setSearchTriggered(false);
+                  setActiveSessaoId(null);
+                  setPendingDecisionsCount(0);
                 }}
                 disabled={isLoadingClientes}
               >
@@ -374,6 +500,8 @@ const AuditoriaFiscal = () => {
                 onValueChange={(value) => {
                   setSelectedContribuinte(value);
                   setSearchTriggered(false);
+                  setActiveSessaoId(null);
+                  setPendingDecisionsCount(0);
                 }}
                 disabled={!selectedCliente || isLoadingContribuintes}
               >
@@ -546,9 +674,34 @@ const AuditoriaFiscal = () => {
         </div>
       )}
 
-      {/* Botão de Exportação */}
+      {/* Botões de Ação: Salvar Alterações + Exportar */}
       {searchTriggered && itemsWithStatus.length > 0 && (
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
+          {/* Indicador de decisões pendentes */}
+          {pendingDecisionsCount > 0 && (
+            <Badge variant="destructive" className="flex items-center gap-1 h-9 px-3">
+              <AlertCircle className="h-4 w-4" />
+              {pendingDecisionsCount} decisão(ões) não sincronizada(s)
+            </Badge>
+          )}
+          
+          {/* Botão Salvar Alterações */}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleSaveChanges}
+            disabled={pendingDecisionsCount === 0 || isSaving}
+            className="gap-2 bg-teal-600 hover:bg-teal-700"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Salvar Alterações
+          </Button>
+          
+          {/* Botão Exportar Excel */}
           <Button
             variant="outline"
             size="sm"
@@ -594,6 +747,7 @@ const AuditoriaFiscal = () => {
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Item</TableHead>
+                      <TableHead className="w-[100px]">NCM</TableHead>
                       <TableHead className="w-[80px]">Origem</TableHead>
                       <TableHead className="w-[120px] text-right">Valor</TableHead>
                       <TableHead className="w-[150px]">Tributação Entrada</TableHead>
@@ -631,12 +785,13 @@ const AuditoriaFiscal = () => {
                             <p className="font-medium text-slate-900 line-clamp-1">
                               {item.xProd}
                             </p>
-                            <div className="flex gap-2 text-xs text-slate-500">
-                              <span>Cód: {item.cod_produto}</span>
-                              <span>•</span>
-                              <span className="font-mono">NCM: {item.cod_ncm}</span>
-                            </div>
+                            <p className="text-xs text-slate-500">
+                              Cód: {item.cod_produto}
+                            </p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{item.cod_ncm}</span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{item.uf_emit}</Badge>
@@ -710,6 +865,8 @@ const AuditoriaFiscal = () => {
         onOpenChange={setModalOpen}
         item={selectedItem}
         ufDestino={ufDestino}
+        sessaoId={activeSessaoId}
+        onDecisionSaved={handleDecisionSaved}
       />
 
     </DevLayout>
