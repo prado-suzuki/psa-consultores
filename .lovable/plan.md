@@ -1,109 +1,308 @@
 
 
-# Plano: Corrigir Download do Excel no EFD Contribuições
+# Plano: Remover Toggle PIS/COFINS + Sessão Permanente por Usuário
 
-## Diagnóstico do Problema
+## Resumo das Alterações
 
-O download não está funcionando porque:
-
-1. **Perda do "user gesture"**: O `a.click()` acontece dentro de um callback assíncrono do polling, fora da cadeia de eventos do clique original do usuário. Isso faz o navegador bloquear como popup.
-
-2. **Atributo `download` ignorado**: Para URLs cross-origin (Google Cloud Storage), o navegador ignora o atributo `download` e apenas navega para a URL.
-
-3. **`target="_blank"` problemático**: Combinado com os pontos acima, pode abrir uma aba que fecha rapidamente sem baixar o arquivo.
+1. **Remover toggle ICMS-ST/PIS-COFINS** - A consulta sempre será ICMS-ST
+2. **Remover campos e lógica de PIS/COFINS** - Simplificar tipos e interface
+3. **Sessão permanente por usuário** - Ao entrar na ferramenta, carregar última sessão do usuário
+4. **Lógica de busca atualizada** - Reutilizar sessão existente ou criar nova apenas se necessário
 
 ---
 
-## Solução Proposta
+## Arquitetura do Novo Fluxo de Sessão
 
-Modificar a abordagem de download para usar `window.location.href` para forçar o download, ou usar uma abordagem de "botão de download" após a conclusão.
-
-### Opção A: Download Direto via location.href (Recomendada)
-
-Quando o job completa, definir `window.location.href` diretamente para a URL assinada. O GCS vai retornar o arquivo com headers de download.
-
-```typescript
-// Substituir o bloco de download atual por:
-window.location.href = downloadUrl;
-```
-
-### Opção B: Abrir em Nova Aba (Alternativa)
-
-Usar `window.open()` que é mais confiável para abrir URLs externas:
-
-```typescript
-window.open(downloadUrl, '_blank');
+```text
++-------------------+       +-------------------+       +-------------------+
+|  Usuário abre     |  -->  |  Busca última     |  -->  | Sessão encontrada?|
+|  a ferramenta     |       |  sessão do user   |       |                   |
++-------------------+       +-------------------+       +-------------------+
+                                                                 |
+                            +------------------------------------+
+                            |                                    |
+                            v                                    v
+                   +------------------+               +------------------+
+                   |  SIM: Carregar   |               |  NÃO: Estado     |
+                   |  filtros e dados |               |  inicial limpo   |
+                   +------------------+               +------------------+
+                            |
+                            v
+              +---------------------------+
+              |  Exibir decisões          |
+              |  já salvas na sessão      |
+              +---------------------------+
 ```
 
 ---
 
-## Alterações no Código
+## Alterações no Banco de Dados
 
-**Arquivo:** `src/components/equipe/dev/EFDExportDialog.tsx`
+**Nenhuma alteração necessária** - A tabela `difal_sessao` já possui `usuario_id` como campo de texto que podemos usar para filtrar.
 
-### 1. Cache Hit (linhas 276-284)
+---
 
-**Antes:**
+## Alterações Detalhadas
+
+### 1. Remover Tipo DifalModo e Campos PIS/COFINS
+
+**Arquivo:** `src/types/difal.ts`
+
+Remover:
+- `DifalModo` type
+- Campos `cst_pis` e `cst_cofins` do `DifalItem`
+- Campos `PIS` e `COFINS` do `NFeProduto`
+
+### 2. Remover Toggle e Lógica Relacionada
+
+**Arquivo:** `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+
+**Remover:**
+- Import de `ToggleGroup` e `ToggleGroupItem`
+- Estado `modo`
+- Componente `ToggleGroup` do JSX (linhas 594-614)
+- Lógica condicional baseada em `modo` na tabela
+
+### 3. Carregar Última Sessão ao Iniciar
+
+Adicionar `useEffect` para carregar sessão anterior:
+
 ```typescript
-const a = document.createElement('a');
-a.href = startData.url;
-a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-a.target = '_blank';
-a.rel = 'noopener noreferrer';
-document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
+// Carregar última sessão do usuário ao entrar
+useEffect(() => {
+  const loadLastSession = async () => {
+    if (!user?.id) return;
+
+    const { data: lastSession, error } = await supabase
+      .from('difal_sessao')
+      .select('*')
+      .eq('usuario_id', user.id)
+      .order('criado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !lastSession) return;
+
+    // Restaurar estado da sessão
+    setActiveSessaoId(lastSession.id);
+    setSelectedCliente(lastSession.cliente_id);
+    
+    // Parse do request_original para restaurar filtros
+    const request = lastSession.request_original as {
+      contribuinte_id?: string;
+      data_inicio?: string;
+      data_fim?: string;
+    };
+    
+    if (request.contribuinte_id) {
+      setSelectedContribuinte(request.contribuinte_id);
+    }
+    if (request.data_inicio) {
+      setDataInicio(request.data_inicio);
+    }
+    if (request.data_fim) {
+      setDataFim(request.data_fim);
+    }
+
+    // Carregar contagem de decisões pendentes
+    const { count } = await supabase
+      .from('difal_decisao')
+      .select('*', { count: 'exact', head: true })
+      .eq('sessao_id', lastSession.id);
+
+    setPendingDecisionsCount(count || 0);
+    
+    // Se sessão ainda está em andamento, disparar busca
+    if (lastSession.status === 'EM_ANDAMENTO') {
+      setSearchTriggered(true);
+    }
+  };
+
+  loadLastSession();
+}, [user?.id]);
+```
+
+### 4. Atualizar handleSearch
+
+Modificar para atualizar sessão existente ou criar nova:
+
+```typescript
+const handleSearch = async () => {
+  if (!selectedContribuinte) {
+    toast({
+      title: 'Selecione um contribuinte',
+      description: 'É necessário selecionar um contribuinte para buscar.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  try {
+    // Verificar se já existe uma sessão ativa para este usuário
+    const { data: existingSession } = await supabase
+      .from('difal_sessao')
+      .select('id')
+      .eq('usuario_id', user?.id || 'unknown')
+      .eq('status', 'EM_ANDAMENTO')
+      .maybeSingle();
+
+    let sessionId: string;
+
+    if (existingSession) {
+      // Atualizar sessão existente com novos parâmetros
+      const { error } = await supabase
+        .from('difal_sessao')
+        .update({
+          cliente_id: selectedCliente,
+          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+          periodo: `${dataInicio} a ${dataFim}`,
+          uf: 'MT',
+          request_original: {
+            contribuinte_id: selectedContribuinte,
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+          },
+        })
+        .eq('id', existingSession.id);
+
+      if (error) throw error;
+      sessionId = existingSession.id;
+    } else {
+      // Criar nova sessão
+      const { data: session, error } = await supabase
+        .from('difal_sessao')
+        .insert({
+          usuario_id: user?.id || 'unknown',
+          cliente_id: selectedCliente,
+          cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+          periodo: `${dataInicio} a ${dataFim}`,
+          uf: 'MT',
+          request_original: {
+            contribuinte_id: selectedContribuinte,
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+          },
+          status: 'EM_ANDAMENTO',
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      sessionId = session.id;
+    }
+
+    setActiveSessaoId(sessionId);
+    
+    // Buscar contagem de decisões existentes
+    const { count } = await supabase
+      .from('difal_decisao')
+      .select('*', { count: 'exact', head: true })
+      .eq('sessao_id', sessionId);
+
+    setPendingDecisionsCount(count || 0);
+    setSearchTriggered(true);
+
+    toast({
+      title: existingSession ? 'Sessão atualizada' : 'Sessão iniciada',
+      description: 'As decisões serão salvas automaticamente.',
+    });
+  } catch (error) {
+    toast({
+      title: 'Erro ao gerenciar sessão',
+      description: error instanceof Error ? error.message : 'Erro desconhecido',
+      variant: 'destructive',
+    });
+  }
+};
+```
+
+### 5. Simplificar Coluna de Tabela (Remover Lógica PIS/COFINS)
+
+A última coluna da tabela atualmente mostra MVA/ST ou Natureza baseado no modo. Simplificar para sempre mostrar MVA/ST:
+
+**Antes (linha 754-834):**
+```typescript
+{modo === 'icms' ? (
+  <TableHead className="w-[120px]">MVA/ST</TableHead>
+) : (
+  <TableHead className="w-[120px]">Natureza</TableHead>
+)}
 ```
 
 **Depois:**
 ```typescript
-// Download direto via location.href - funciona com URLs assinadas do GCS
-window.location.href = startData.url;
+<TableHead className="w-[120px]">MVA/ST</TableHead>
 ```
 
-### 2. Polling Completion (linhas 332-340)
-
-**Antes:**
-```typescript
-const a = document.createElement('a');
-a.href = downloadUrl;
-a.download = `EFD_${arquivo.NOME}_${new Date().toISOString().split('T')[0]}.xlsx`;
-a.target = '_blank';
-a.rel = 'noopener noreferrer';
-document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-```
-
-**Depois:**
-```typescript
-// Download direto via location.href - funciona com URLs assinadas do GCS
-window.location.href = downloadUrl;
-```
+E simplificar a célula da tabela para sempre mostrar dados ICMS-ST.
 
 ---
 
-## Por Que Isso Funciona
+## Resumo dos Arquivos a Modificar
 
-1. **`window.location.href`** não é bloqueado como popup pois não abre nova aba
-2. A URL assinada do GCS já contém os headers necessários para download (`Content-Disposition: attachment`)
-3. A navegação para uma URL de arquivo binário (xlsx) automaticamente inicia o download sem sair da página atual
+| Arquivo | Alterações |
+|---------|------------|
+| `src/types/difal.ts` | Remover `DifalModo`, campos PIS/COFINS |
+| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Remover toggle, adicionar carregamento de sessão, simplificar tabela |
 
 ---
 
-## Arquivos a Modificar
+## Seção Técnica
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/equipe/dev/EFDExportDialog.tsx` | Substituir criação de tag `<a>` por `window.location.href` em dois locais |
+### Imports a Remover (AuditoriaFiscal.tsx)
+
+```typescript
+// Remover estas linhas
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DifalModo } from '@/types/difal';
+```
+
+### Estados a Remover
+
+```typescript
+// Remover
+const [modo, setModo] = useState<DifalModo>('icms');
+```
+
+### Lógica de Achatamento Simplificada
+
+Remover campos PIS/COFINS do `flattenNFeItems`:
+
+```typescript
+const flattenNFeItems = (
+  nfes: NFeRecord[],
+  cnpj: string
+): DifalItem[] => {
+  return nfes.flatMap((nfe) =>
+    (nfe.produtos || []).map((prod: NFeProduto) => ({
+      id_contribuinte: cnpj,
+      cod_produto: prod.cProd,
+      cod_ncm: prod.NCM,
+      xProd: prod.xProd,
+      vProd: prod.vProd,
+      cfop: prod.CFOP,
+      uf_emit: nfe.emit?.UF || '??',
+      uf_dest: nfe.dest?.UF || '??',
+      cst_icms: prod.ICMS?.CST || null,
+      aliq_icms: prod.ICMS?.pICMS || null,
+      chave_nfe: nfe.chave_nfe,
+      nItem: prod.nItem,
+    }))
+  );
+};
+```
 
 ---
 
 ## Comportamento Esperado Após a Correção
 
-1. Usuário seleciona registros e clica em "Exportar"
-2. Sistema mostra "Gerando arquivo..."
-3. Quando o job completa, o arquivo começa a baixar automaticamente
-4. Modal fecha após 1 segundo
-5. Toast de sucesso é exibido
+1. Usuário abre `/equipe/dev/auditoria-fiscal`
+2. Sistema busca última sessão do usuário no banco
+3. Se existir sessão `EM_ANDAMENTO`:
+   - Restaura filtros (cliente, contribuinte, período)
+   - Carrega contagem de decisões pendentes
+   - Dispara busca automaticamente
+4. Usuário pode continuar classificando itens
+5. Decisões são salvas em `difal_decisao` a cada confirmação
+6. Ao clicar em "Salvar Alterações", sincroniza com banco principal
 
