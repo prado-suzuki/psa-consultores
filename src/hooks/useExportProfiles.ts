@@ -2,21 +2,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+export type ExportToolType = 'xml' | 'efd';
+
 export interface ExportProfile {
   id: string;
   user_id: string;
   name: string;
   columns: string[];
   is_default: boolean;
+  tool_type: ExportToolType;
   created_at: string;
   updated_at: string;
 }
 
-export function useExportProfiles() {
+export function useExportProfiles(toolType: ExportToolType = 'xml') {
   const queryClient = useQueryClient();
 
   const { data: profiles, isLoading } = useQuery({
-    queryKey: ['export-profiles'],
+    queryKey: ['export-profiles', toolType],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
@@ -25,6 +28,7 @@ export function useExportProfiles() {
         .from('export_profiles')
         .select('*')
         .eq('user_id', user.id)
+        .eq('tool_type', toolType)
         .order('name');
 
       if (error) throw error;
@@ -37,12 +41,13 @@ export function useExportProfiles() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Se for padrão, remover padrão dos outros
+      // Se for padrão, remover padrão dos outros do mesmo tipo
       if (isDefault) {
         await supabase
           .from('export_profiles')
           .update({ is_default: false })
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('tool_type', toolType);
       }
 
       const { data, error } = await supabase
@@ -51,6 +56,7 @@ export function useExportProfiles() {
           user_id: user.id,
           name,
           columns,
+          tool_type: toolType,
           is_default: isDefault || false,
         })
         .select()
@@ -60,7 +66,7 @@ export function useExportProfiles() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['export-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['export-profiles', toolType] });
       toast({ title: 'Perfil criado', description: 'O perfil de exportação foi salvo com sucesso.' });
     },
     onError: (error) => {
@@ -73,12 +79,13 @@ export function useExportProfiles() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Se for padrão, remover padrão dos outros
+      // Se for padrão, remover padrão dos outros do mesmo tipo
       if (isDefault) {
         await supabase
           .from('export_profiles')
           .update({ is_default: false })
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('tool_type', toolType);
       }
 
       const updateData: Partial<ExportProfile> = {};
@@ -98,7 +105,7 @@ export function useExportProfiles() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['export-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['export-profiles', toolType] });
       toast({ title: 'Perfil atualizado', description: 'O perfil foi atualizado com sucesso.' });
     },
     onError: (error) => {
@@ -120,7 +127,7 @@ export function useExportProfiles() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['export-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['export-profiles', toolType] });
       toast({ title: 'Perfil excluído', description: 'O perfil foi excluído com sucesso.' });
     },
     onError: (error) => {
@@ -133,11 +140,12 @@ export function useExportProfiles() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Remover padrão de todos
+      // Remover padrão de todos do mesmo tipo
       await supabase
         .from('export_profiles')
         .update({ is_default: false })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('tool_type', toolType);
 
       // Definir novo padrão
       const { error } = await supabase
@@ -149,7 +157,7 @@ export function useExportProfiles() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['export-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['export-profiles', toolType] });
       toast({ title: 'Perfil padrão definido', description: 'Este perfil será carregado automaticamente.' });
     },
     onError: (error) => {
