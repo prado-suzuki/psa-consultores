@@ -69,7 +69,7 @@ const CLIENTES_PERMITIDOS_IDS = [
 ];
 
 // Limite de itens por página
-const ITEMS_PER_PAGE = 40;
+const ITEMS_PER_PAGE = 25;
 
 // Datas padrão: primeiro e último dia do mês atual
 const getDefaultDates = () => {
