@@ -42,6 +42,7 @@ import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   DifalItem,
+  DifalGroupedItem,
   ClassificacoesBuscarResponse,
   NFeRecord,
   NFeProduto,
@@ -122,7 +123,7 @@ const AuditoriaFiscal = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Estado do modal
-  const [selectedItem, setSelectedItem] = useState<DifalItem | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Estados para sessão e decisões pendentes
@@ -315,6 +316,40 @@ const AuditoriaFiscal = () => {
     return flattenNFeItems(nfesData.items, cnpj);
   }, [nfesData, contribuintes, selectedContribuinte]);
 
+  // Função para agrupar itens por nome + codigo + NCM
+  const groupItems = (items: DifalItem[]): DifalGroupedItem[] => {
+    const groups = new Map<string, DifalItem[]>();
+    
+    items.forEach(item => {
+      const key = `${item.xProd}|${item.cod_produto}|${item.cod_ncm}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    });
+    
+    return Array.from(groups.entries()).map(([key, groupItems]) => {
+      const first = groupItems[0];
+      const uniqueNFes = new Set(groupItems.map(i => i.chave_nfe));
+      
+      return {
+        groupKey: key,
+        xProd: first.xProd,
+        cod_produto: first.cod_produto,
+        cod_ncm: first.cod_ncm,
+        id_contribuinte: first.id_contribuinte,
+        uf_emit: first.uf_emit,
+        uf_dest: first.uf_dest,
+        cst_icms: first.cst_icms,
+        aliq_icms: first.aliq_icms,
+        count: groupItems.length,
+        totalValue: groupItems.reduce((sum, i) => sum + i.vProd, 0),
+        nfesCount: uniqueNFes.size,
+        items: groupItems,
+        status: 'pendente' as const,
+        classificacao: null,
+      };
+    });
+  };
+
   // Query: Buscar classificações existentes
   const { data: classificacoes, isLoading: isLoadingClassificacoes } = useQuery({
     queryKey: ['difal-classificacoes', flatItems.map((i) => `${i.cod_produto}|${i.cod_ncm}`)],
@@ -347,29 +382,23 @@ const AuditoriaFiscal = () => {
     enabled: flatItems.length > 0,
   });
 
-  // Merge itens com classificações (prioriza decisões locais para status imediato)
-  const itemsWithStatus: DifalItem[] = useMemo(() => {
-    if (!classificacoes) {
-      return flatItems.map(item => {
+  // Itens agrupados com status (prioriza decisões locais)
+  const groupedItems = useMemo(() => {
+    const grouped = groupItems(flatItems);
+    
+    return grouped.map((group) => {
+      const classifChave = `${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`;
+      const classificacao = classificacoes?.[classifChave];
+      
+      // Verificar decisões locais em qualquer item do grupo
+      const isLocallyDecided = group.items.some(item => {
         const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
-        // Se está nas decisões locais, marcar como validado
-        if (localDecisions.has(chave)) {
-          return { ...item, status: 'validado' as const };
-        }
-        return { ...item, status: 'pendente' as const };
+        return localDecisions.has(chave);
       });
-    }
-
-    return flatItems.map((item) => {
-      const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
-      const classificacao = classificacoes[chave];
-      // Priorizar decisões locais para atualização imediata
-      if (localDecisions.has(chave)) {
-        return { ...item, status: 'validado' as const, classificacao };
-      }
+      
       return {
-        ...item,
-        status: classificacao ? 'validado' as const : 'pendente' as const,
+        ...group,
+        status: (isLocallyDecided || classificacao) ? 'validado' as const : 'pendente' as const,
         classificacao,
       };
     });
@@ -551,17 +580,23 @@ const AuditoriaFiscal = () => {
     }
   };
 
-  const handleItemClick = (item: DifalItem) => {
-    if (item.status === 'pendente') {
-      setSelectedItem(item);
+  const handleGroupClick = (group: DifalGroupedItem) => {
+    if (group.status === 'pendente') {
+      setSelectedGroup(group);
       setModalOpen(true);
     }
   };
 
-  const handleDecisionSaved = (item: DifalItem) => {
+  const handleDecisionSaved = (group: DifalGroupedItem) => {
     setPendingDecisionsCount(prev => prev + 1);
-    // Adicionar ao set de decisões locais para atualização imediata do status
-    setLocalDecisions(prev => new Set(prev).add(`${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`));
+    // Adicionar todos os itens do grupo ao set de decisões locais
+    setLocalDecisions(prev => {
+      const newSet = new Set(prev);
+      group.items.forEach(item => {
+        newSet.add(`${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`);
+      });
+      return newSet;
+    });
   };
 
   const formatCurrency = (value: number | null) => {
@@ -574,20 +609,20 @@ const AuditoriaFiscal = () => {
 
   // Estatísticas
   const stats = useMemo(() => {
-    const validados = itemsWithStatus.filter((i) => i.status === 'validado').length;
-    const pendentes = itemsWithStatus.filter((i) => i.status === 'pendente').length;
-    const total = itemsWithStatus.length;
+    const validados = groupedItems.filter((g) => g.status === 'validado').length;
+    const pendentes = groupedItems.filter((g) => g.status === 'pendente').length;
+    const total = groupedItems.length;
     return { validados, pendentes, total };
-  }, [itemsWithStatus]);
+  }, [groupedItems]);
 
   // Paginação
-  const totalPages = Math.ceil(itemsWithStatus.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(groupedItems.length / ITEMS_PER_PAGE);
   
   const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return itemsWithStatus.slice(startIndex, endIndex);
-  }, [itemsWithStatus, currentPage]);
+    return groupedItems.slice(startIndex, endIndex);
+  }, [groupedItems, currentPage]);
 
   // Reset página ao mudar dados
   useEffect(() => {
@@ -637,11 +672,11 @@ const AuditoriaFiscal = () => {
 
   // UF destino para o modal
   const ufDestino = useMemo(() => {
-    if (itemsWithStatus.length > 0) {
-      return itemsWithStatus[0].uf_dest;
+    if (groupedItems.length > 0) {
+      return groupedItems[0].uf_dest;
     }
     return 'MT'; // Default
-  }, [itemsWithStatus]);
+  }, [groupedItems]);
 
   return (
     <DevLayout
@@ -811,7 +846,7 @@ const AuditoriaFiscal = () => {
       </Card>
 
       {/* Estatísticas */}
-      {searchTriggered && itemsWithStatus.length > 0 && (
+      {searchTriggered && groupedItems.length > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card className="border-slate-200">
             <CardContent className="p-4 flex items-center gap-3">
@@ -850,7 +885,7 @@ const AuditoriaFiscal = () => {
       )}
 
       {/* Botões de Ação: Salvar Alterações + Exportar */}
-      {searchTriggered && itemsWithStatus.length > 0 && (
+      {searchTriggered && groupedItems.length > 0 && (
         <div className="flex justify-end gap-2 mb-4">
           {/* Indicador de decisões pendentes */}
           {pendingDecisionsCount > 0 && (
@@ -910,7 +945,7 @@ const AuditoriaFiscal = () => {
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                 <p>Erro ao carregar itens</p>
               </div>
-            ) : itemsWithStatus.length === 0 ? (
+            ) : groupedItems.length === 0 ? (
               <div className="p-6 text-center text-slate-500">
                 <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhum item encontrado para o período selecionado</p>
@@ -924,22 +959,21 @@ const AuditoriaFiscal = () => {
                       <TableHead>Item</TableHead>
                       <TableHead className="w-[100px]">NCM</TableHead>
                       <TableHead className="w-[80px]">Origem</TableHead>
-                      <TableHead className="w-[120px] text-right">Valor</TableHead>
-                      <TableHead className="w-[150px]">Tributação Entrada</TableHead>
+                      <TableHead className="w-[150px]">Tributação</TableHead>
                       <TableHead className="w-[120px]">MVA/ST</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedItems.map((item, index) => (
+                    {paginatedItems.map((group) => (
                       <TableRow
-                        key={`${item.chave_nfe}-${item.nItem}-${index}`}
+                        key={group.groupKey}
                         className={`
-                          ${item.status === 'pendente' ? 'cursor-pointer hover:bg-amber-50' : 'hover:bg-slate-50'}
+                          ${group.status === 'pendente' ? 'cursor-pointer hover:bg-amber-50' : 'hover:bg-slate-50'}
                         `}
-                        onClick={() => handleItemClick(item)}
+                        onClick={() => handleGroupClick(group)}
                       >
                         <TableCell>
-                          {item.status === 'validado' ? (
+                          {group.status === 'validado' ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Validado
@@ -954,43 +988,40 @@ const AuditoriaFiscal = () => {
                         <TableCell>
                           <div className="space-y-0.5">
                             <p className="font-medium text-slate-900 line-clamp-1">
-                              {item.xProd}
+                              {group.xProd}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Cód: {item.cod_produto}
+                              Cód: {group.cod_produto}
                             </p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-sm">{item.cod_ncm}</span>
+                          <span className="font-mono text-sm">{group.cod_ncm}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{item.uf_emit}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(item.vProd)}
+                          <Badge variant="outline">{group.uf_emit}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
                             <span className="text-slate-600">CST:</span>{' '}
-                            <span className="font-mono">{item.cst_icms || '—'}</span>
-                            {item.aliq_icms && (
+                            <span className="font-mono">{group.cst_icms || '—'}</span>
+                            {group.aliq_icms && (
                               <>
                                 <span className="text-slate-400 mx-1">|</span>
-                                <span className="font-mono">{item.aliq_icms}%</span>
+                                <span className="font-mono">{group.aliq_icms}%</span>
                               </>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          {item.classificacao ? (
+                          {group.classificacao ? (
                             <div className="text-sm">
                               <span className="font-mono">
-                                {item.classificacao.aliquota_st}%
+                                {group.classificacao.aliquota_st}%
                               </span>
-                              {item.classificacao.percentual_reducao && (
+                              {group.classificacao.percentual_reducao && (
                                 <span className="text-slate-500 text-xs ml-1">
-                                  (Red. {item.classificacao.percentual_reducao}%)
+                                  (Red. {group.classificacao.percentual_reducao}%)
                                 </span>
                               )}
                             </div>
@@ -1007,7 +1038,7 @@ const AuditoriaFiscal = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
                     <p className="text-sm text-slate-500">
-                      Exibindo {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, itemsWithStatus.length)} de {itemsWithStatus.length} itens
+                      Exibindo {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, groupedItems.length)} de {groupedItems.length} itens
                     </p>
                     <Pagination>
                       <PaginationContent>
@@ -1070,7 +1101,7 @@ const AuditoriaFiscal = () => {
       <DifalAuditModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        item={selectedItem}
+        group={selectedGroup}
         ufDestino={ufDestino}
         sessaoId={activeSessaoId}
         onDecisionSaved={handleDecisionSaved}

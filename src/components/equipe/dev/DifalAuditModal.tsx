@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL } from '@/config/api';
 import { cn } from '@/lib/utils';
 import {
-  DifalItem,
+  DifalGroupedItem,
   NCMRegrasResponse,
   RegraICMSST,
   TipoDecisao,
@@ -28,16 +28,16 @@ import {
 interface DifalAuditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: DifalItem | null;
+  group: DifalGroupedItem | null;
   ufDestino: string;
   sessaoId: string | null;
-  onDecisionSaved: (item: DifalItem) => void;
+  onDecisionSaved: (group: DifalGroupedItem) => void;
 }
 
 export const DifalAuditModal = ({
   open,
   onOpenChange,
-  item,
+  group,
   ufDestino,
   sessaoId,
   onDecisionSaved,
@@ -54,15 +54,15 @@ export const DifalAuditModal = ({
     isLoading: isLoadingRegras,
     error: regrasError,
   } = useQuery({
-    queryKey: ['ncm-regras', item?.cod_ncm, ufDestino],
+    queryKey: ['ncm-regras', group?.cod_ncm, ufDestino],
     queryFn: async () => {
-      if (!item) return null;
+      if (!group) return null;
 
       const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ncm/regras`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ncms: [item.cod_ncm],
+          ncms: [group.cod_ncm],
           uf: ufDestino,
         }),
       });
@@ -73,12 +73,12 @@ export const DifalAuditModal = ({
 
       return response.json() as Promise<NCMRegrasResponse>;
     },
-    enabled: open && !!item && !!ufDestino,
+    enabled: open && !!group && !!ufDestino,
   });
 
   // Salvar decisão em difal_decisao (Supabase) ao invés de enviar para API
   const handleSaveDecision = async (decisao: TipoDecisao, regraId: string | null = null) => {
-    if (!item || !sessaoId) {
+    if (!group || !sessaoId) {
       toast({
         title: 'Sessão não iniciada',
         description: 'É necessário iniciar uma busca antes de classificar.',
@@ -105,7 +105,7 @@ export const DifalAuditModal = ({
         .from('difal_decisao')
         .upsert({
           sessao_id: sessaoId,
-          cod_ncm: item.cod_ncm,
+          cod_ncm: group.cod_ncm,
           decisao: decisao,
           id_icms_st_bq: regraId,
           decidido_em: new Date().toISOString(),
@@ -120,7 +120,7 @@ export const DifalAuditModal = ({
         description: 'Clique em "Salvar Alterações" para enviar ao banco principal.',
       });
 
-      onDecisionSaved(item); // Passa o item decidido
+      onDecisionSaved(group); // Passa o grupo decidido
       queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
       onOpenChange(false);
     } catch (error) {
@@ -134,7 +134,7 @@ export const DifalAuditModal = ({
     }
   };
 
-  const regrasNCM = regrasData?.[item?.cod_ncm || ''];
+  const regrasNCM = regrasData?.[group?.cod_ncm || ''];
 
   const formatCurrency = (value: number | null) => {
     if (value === null || value === undefined) return '—';
@@ -164,7 +164,7 @@ export const DifalAuditModal = ({
                 Classificar Item
               </h3>
               <p className="text-sm text-slate-500 mt-0.5">
-                NCM: <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{item?.cod_ncm}</span>
+                NCM: <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{group?.cod_ncm}</span>
               </p>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const DifalAuditModal = ({
         </div>
 
         {/* Body: Two Columns */}
-        {item && (
+        {group && (
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column: Product Data */}
             <div className="w-[30%] border-r border-slate-200 dark:border-slate-700 p-6 overflow-y-auto bg-slate-50/30 dark:bg-slate-800/20">
@@ -193,41 +193,28 @@ export const DifalAuditModal = ({
                 <CardContent className="p-5 space-y-4">
                   <div>
                     <span className="text-xs text-slate-500 uppercase font-medium">Produto</span>
-                    <p className="font-medium text-slate-900 dark:text-white text-lg mt-1">{item.xProd}</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-lg mt-1">{group.xProd}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">Código</span>
-                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{item.cod_produto}</p>
+                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{group.cod_produto}</p>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">NCM</span>
-                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{item.cod_ncm}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">CFOP</span>
-                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{item.cfop}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">Valor</span>
-                      <p className="font-semibold text-slate-900 dark:text-white text-lg mt-1">
-                        {formatCurrency(item.vProd)}
-                      </p>
+                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{group.cod_ncm}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">UF Origem</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{item.uf_emit}</p>
+                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.uf_emit}</p>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{item.uf_dest}</p>
+                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.uf_dest}</p>
                     </div>
                   </div>
 
@@ -239,25 +226,37 @@ export const DifalAuditModal = ({
                       <div>
                         <span className="text-xs text-slate-400">CST ICMS:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
-                          {item.cst_icms || '—'}
+                          {group.cst_icms || '—'}
                         </span>
                       </div>
                       <div>
                         <span className="text-xs text-slate-400">Alíquota:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
-                          {item.aliq_icms !== null ? `${item.aliq_icms}%` : '—'}
+                          {group.aliq_icms !== null ? `${group.aliq_icms}%` : '—'}
                         </span>
                       </div>
                     </div>
                   </div>
 
+                  {/* Resumo do Grupo */}
                   <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                     <span className="text-xs text-slate-500 uppercase font-medium">
-                      Chave NFe
+                      Resumo do Grupo
                     </span>
-                    <p className="font-mono text-xs text-slate-600 dark:text-slate-400 mt-1 break-all">
-                      {item.chave_nfe}
-                    </p>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.count}</p>
+                        <p className="text-xs text-slate-500">Itens</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.nfesCount}</p>
+                        <p className="text-xs text-slate-500">NFes</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(group.totalValue)}</p>
+                        <p className="text-xs text-slate-500">Valor Total</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
