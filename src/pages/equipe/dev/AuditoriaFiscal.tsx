@@ -303,13 +303,17 @@ const AuditoriaFiscal = () => {
     );
   };
 
-  // Itens achatados - corrigido para usar .items
+  // Itens achatados - usando UUID do contribuinte
   const flatItems = useMemo(() => {
-    if (!nfesData?.items) return [];
+    if (!nfesData?.items || !selectedContribuinte) return [];
     
-    // Usar UUID do contribuinte como id_contribuinte (não o CNPJ)
+    // Usar UUID do contribuinte como id_contribuinte
     return flattenNFeItems(nfesData.items, selectedContribuinte);
   }, [nfesData, selectedContribuinte]);
+
+  // Função para agrupar itens por nome + código + NCM
+  const groupItems = (items: DifalItem[]): DifalGroupedItem[] => {
+    const groups = new Map<string, DifalItem[]>();
     
     items.forEach(item => {
       const key = `${item.xProd}|${item.cod_produto}|${item.cod_ncm}`;
