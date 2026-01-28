@@ -7,7 +7,7 @@ export type EFDTipo = 'contribuicoes' | 'icms';
 export interface EFDArquivo {
   CNPJ: string;
   ID_ARQUIVO: string;
-  COD_VER: string;
+  COD_VER: string | number;
   TIPO_ESCRIT: number;        // 0 = Original, 1+ = Retificadora
   IND_SIT_ESP: string | null;
   NUM_REC_ANTERIOR: string | null;
@@ -24,9 +24,18 @@ export interface EFDArquivo {
   cofins_devido: string | null;
   credito_pis: string | null;
   credito_cofins: string | null;
-  // Campos EFD ICMS (opcionais)
-  icms_devido?: string | null;
-  icms_st_devido?: string | null;
+  // Campos EFD ICMS (API real)
+  icms_total_debitos?: string | null;
+  icms_total_creditos?: string | null;
+  icms_saldo_devedor?: string | null;
+  icms_a_recolher?: string | null;
+  icms_st_a_recolher?: string | null;
+  // Campos adicionais ICMS
+  num_matriz?: string;
+  num_filial?: string;
+  COD_FIN?: number;
+  IE?: string;
+  IND_PERFIL?: string;
 }
 
 export interface BlocoRegistro {
