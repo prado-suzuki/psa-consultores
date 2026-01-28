@@ -130,6 +130,9 @@ const AuditoriaFiscal = () => {
   const [pendingDecisionsCount, setPendingDecisionsCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Estado local para rastrear decisões feitas na sessão atual (atualização imediata do Status)
+  const [localDecisions, setLocalDecisions] = useState<Set<string>>(new Set());
+
   // Determinar tabela baseado no ambiente
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
   const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -344,20 +347,33 @@ const AuditoriaFiscal = () => {
     enabled: flatItems.length > 0,
   });
 
-  // Merge itens com classificações
+  // Merge itens com classificações (prioriza decisões locais para status imediato)
   const itemsWithStatus: DifalItem[] = useMemo(() => {
-    if (!classificacoes) return flatItems;
+    if (!classificacoes) {
+      return flatItems.map(item => {
+        const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
+        // Se está nas decisões locais, marcar como validado
+        if (localDecisions.has(chave)) {
+          return { ...item, status: 'validado' as const };
+        }
+        return { ...item, status: 'pendente' as const };
+      });
+    }
 
     return flatItems.map((item) => {
       const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
       const classificacao = classificacoes[chave];
+      // Priorizar decisões locais para atualização imediata
+      if (localDecisions.has(chave)) {
+        return { ...item, status: 'validado' as const, classificacao };
+      }
       return {
         ...item,
-        status: classificacao ? 'validado' : 'pendente',
+        status: classificacao ? 'validado' as const : 'pendente' as const,
         classificacao,
       };
     });
-  }, [flatItems, classificacoes]);
+  }, [flatItems, classificacoes, localDecisions]);
 
   // Handler para criar ou atualizar sessão e disparar busca
   const handleSearch = async () => {
@@ -517,6 +533,7 @@ const AuditoriaFiscal = () => {
 
       // 5. Limpar estado e invalidar cache
       setPendingDecisionsCount(0);
+      setLocalDecisions(new Set()); // Limpar decisões locais após sincronização
       queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
 
       toast({
@@ -541,8 +558,10 @@ const AuditoriaFiscal = () => {
     }
   };
 
-  const handleDecisionSaved = () => {
+  const handleDecisionSaved = (item: DifalItem) => {
     setPendingDecisionsCount(prev => prev + 1);
+    // Adicionar ao set de decisões locais para atualização imediata do status
+    setLocalDecisions(prev => new Set(prev).add(`${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`));
   };
 
   const formatCurrency = (value: number | null) => {
