@@ -25,8 +25,47 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Create user client to verify authentication
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Usuário não autenticado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Role check - only team members and admins can use this function
+    const { data: roles } = await supabaseUser
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    const isAuthorized = roles?.some(r => r.role === 'admin' || r.role === 'team_member');
+    if (!isAuthorized) {
+      return new Response(
+        JSON.stringify({ error: 'Permissão negada' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role for data operations after auth is confirmed
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { improvement_id } = await req.json();
