@@ -21,7 +21,8 @@ export const Hero = () => {
         className="relative z-10 flex flex-col items-start justify-center h-full container mx-auto px-4 md:px-6"
       >
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-50 max-w-4xl leading-tight drop-shadow-lg">
-          Experiência no Agronegócio. Precisão nos Números.
+          Experiência no Agronegócio.<br />
+          Precisão nos Números.
         </h1>
         
         <p className="mt-6 text-lg md:text-xl text-white/90 max-w-2xl">
