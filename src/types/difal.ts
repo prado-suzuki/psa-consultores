@@ -49,6 +49,31 @@ export interface NCMRegrasResponse {
   [ncm: string]: NCMRegraInfo;
 }
 
+// Item agrupado para a tabela (agregação por nome+codigo+ncm)
+export interface DifalGroupedItem {
+  groupKey: string;           // "nome|codigo|ncm"
+  xProd: string;
+  cod_produto: string;
+  cod_ncm: string;
+  id_contribuinte: string;
+  
+  // Dados do primeiro item (para exibição na tabela)
+  uf_emit: string;
+  uf_dest: string;
+  cst_icms: string | null;
+  aliq_icms: number | null;
+  
+  // Agregações (para o modal)
+  count: number;
+  totalValue: number;
+  nfesCount: number;
+  items: DifalItem[];
+  
+  // Status
+  status: 'validado' | 'pendente';
+  classificacao?: ClassificacaoExistente | null;
+}
+
 // Classificação existente
 export interface ClassificacaoExistente {
   decisao: TipoDecisao;
