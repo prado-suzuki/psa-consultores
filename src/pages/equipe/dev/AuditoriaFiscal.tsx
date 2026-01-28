@@ -581,10 +581,9 @@ const AuditoriaFiscal = () => {
   };
 
   const handleGroupClick = (group: DifalGroupedItem) => {
-    if (group.status === 'pendente') {
-      setSelectedGroup(group);
-      setModalOpen(true);
-    }
+    // Permitir abrir para correção mesmo em itens validados
+    setSelectedGroup(group);
+    setModalOpen(true);
   };
 
   const handleDecisionSaved = (group: DifalGroupedItem) => {
