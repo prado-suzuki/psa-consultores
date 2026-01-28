@@ -118,8 +118,7 @@ const Missao = () => {
               <h2 className="text-3xl font-bold text-gray-900">Visão</h2>
             </div>
             <p className="text-xl text-gray-600 leading-relaxed">
-              Ser a consultoria tributária mais confiável e inovadora para o agronegócio brasileiro, 
-              reconhecida pela excelência técnica e pelo compromisso genuíno com o sucesso de nossos clientes.
+              Ser reconhecida como uma empresa de referência na produção de conhecimento e na sua aplicação de forma inovadora no agronegócio brasileiro.
             </p>
           </motion.div>
         </div>
