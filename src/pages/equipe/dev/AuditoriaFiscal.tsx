@@ -307,9 +307,19 @@ const AuditoriaFiscal = () => {
   const flatItems = useMemo(() => {
     if (!nfesData?.items || !selectedContribuinte) return [];
     
-    // Usar UUID do contribuinte como id_contribuinte (não o CNPJ)
-    return flattenNFeItems(nfesData.items, selectedContribuinte);
-  }, [nfesData, selectedContribuinte]);
+    // Buscar CNPJ para usar como id_contribuinte na classificação (API espera CNPJ, não UUID)
+    const contribuinteData = contribuintes?.find(
+      (c) => c.id === selectedContribuinte
+    );
+    const cnpj = contribuinteData?.cpf_cnpj?.replace(/\D/g, '') || '';
+    
+    if (!cnpj) {
+      console.warn('[DIFAL] Contribuinte sem CNPJ cadastrado:', selectedContribuinte);
+      return [];
+    }
+    
+    return flattenNFeItems(nfesData.items, cnpj);
+  }, [nfesData, contribuintes, selectedContribuinte]);
 
   // Função para agrupar itens por nome + codigo + NCM
   const groupItems = (items: DifalItem[]): DifalGroupedItem[] => {
