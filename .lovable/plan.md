@@ -1,184 +1,246 @@
 
-# Plano de Implementação: Consulta EFD ICMS
+# Plano: Aprimoramento do Modal de Classificação DIFAL
 
 ## Resumo
 
-Criar uma nova ferramenta de desenvolvimento chamada **Consulta EFD ICMS** que será uma réplica da ferramenta existente de EFD Contribuições, mas adaptada para análise de arquivos EFD ICMS/IPI. Nesta versão inicial, os dados serão consumidos a partir de arquivos JSON mockados no storage.
-
----
-
-## Arquivos a Criar
-
-### 1. Nova Página: `src/pages/equipe/dev/ConsultaEFDICMS.tsx`
-- Cópia baseada em `ConsultaEFD.tsx`
-- Textos alterados de "EFD Contribuições" para "EFD ICMS"
-- Passará `tipo="icms"` para os componentes filhos
-- Usará hooks adaptados para buscar dados mockados
+Implementar duas melhorias na ferramenta DIFAL Inteligente:
+1. **Status imediato**: Alterar a coluna Status para "Validado" imediatamente após salvar uma decisão no modal (sem esperar sincronização com API)
+2. **Novo layout do modal**: Expandir para tela cheia (mesmo tamanho do EFDAnalysisModal) e remover os botões de exceção
 
 ---
 
 ## Arquivos a Modificar
 
-### 2. Tipagem: `src/types/efd.ts`
-Adicionar:
-- Tipo `EFDTipo = 'contribuicoes' | 'icms'`
-- Expandir `EFDArquivo` para incluir campos ICMS opcionais:
+### 1. `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+
+**Alteração**: Adicionar estado local para rastrear decisões feitas na sessão atual
+
 ```text
-icms_devido?: string | null
-icms_st_devido?: string | null
+// Novo estado para armazenar NCMs já decididos na sessão
+const [localDecisions, setLocalDecisions] = useState<Set<string>>(new Set());
 ```
 
-### 3. Hook de Dados: `src/hooks/useEFDData.ts`
-Adicionar parâmetro `tipo` aos hooks:
-- `useEFDOverview`: Quando `tipo === 'icms'`, buscar dados do bucket `project-documents/M1_EFD_ICMS.json` via Supabase Storage
-- `useEFDDetail`: Quando `tipo === 'icms'` e registro === `REG_C100`, buscar de `project-documents/M2_EFD_ICMS.json`
-- Manter comportamento atual (chamada à API) quando `tipo === 'contribuicoes'` ou não especificado
+**Alteração**: Modificar o callback `handleDecisionSaved` para receber o item decidido
 
-### 4. Modal de Análise: `src/components/equipe/dev/EFDAnalysisModal.tsx`
-Adicionar prop `tipo: 'contribuicoes' | 'icms'`:
-- No header de totais:
-  - Se `tipo === 'icms'`: exibir "Total ICMS" e "Total ICMS ST" mapeados para `icms_devido` e `icms_st_devido`
-  - Se `tipo === 'contribuicoes'`: manter "Total PIS" e "Total COFINS" (comportamento atual)
-- Passar `tipo` para `useEFDDetail`
-
-### 5. Dialog de Exportação: `src/components/equipe/dev/EFDExportDialog.tsx`
-Adicionar prop `tipo: 'contribuicoes' | 'icms'`:
-- URL de exportação dinâmica:
 ```text
-/api/v1/efd/${tipo}/${cnpj}/${id_arquivo}/exportar
-```
-- Usar tool_type adequado para perfis (opcional: `efd-icms` vs `efd`)
-
-### 6. Layout/Navegação: `src/components/equipe/dev/DevLayout.tsx`
-Adicionar novo item de menu:
-```text
-{ icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' }
+const handleDecisionSaved = (item: DifalItem) => {
+  setPendingDecisionsCount(prev => prev + 1);
+  // Adicionar ao set de decisões locais
+  setLocalDecisions(prev => new Set(prev).add(`${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`));
+};
 ```
 
-### 7. Roteamento: `src/App.tsx`
-Adicionar:
-- Import do novo componente `ConsultaEFDICMS`
-- Rota: `/equipe/dev/consulta-efd-icms`
+**Alteração**: Atualizar o merge `itemsWithStatus` para considerar decisões locais
 
-### 8. Configurações: `src/constants/efdConfig.ts`
-Expandir as descrições de grupos para incluir ICMS:
 ```text
-'ICMS',
-'ICMS-ST',
+const itemsWithStatus: DifalItem[] = useMemo(() => {
+  if (!classificacoes) return flatItems.map(item => {
+    const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
+    // Se está nas decisões locais, marcar como validado
+    if (localDecisions.has(chave)) {
+      return { ...item, status: 'validado' };
+    }
+    return { ...item, status: 'pendente' };
+  });
+
+  return flatItems.map((item) => {
+    const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
+    const classificacao = classificacoes[chave];
+    // Priorizar decisões locais
+    if (localDecisions.has(chave)) {
+      return { ...item, status: 'validado', classificacao };
+    }
+    return {
+      ...item,
+      status: classificacao ? 'validado' : 'pendente',
+      classificacao,
+    };
+  });
+}, [flatItems, classificacoes, localDecisions]);
 ```
-Atualizar `inferGroupFromKey` para detectar colunas ICMS:
+
+**Alteração**: Atualizar a chamada do modal para passar callback correto
+
 ```text
-if (key.includes('ICMS_ST')) return 'ICMS-ST';
-if (key.includes('ICMS')) return 'ICMS';
+<DifalAuditModal
+  ...
+  onDecisionSaved={handleDecisionSaved}
+/>
+```
+
+**Alteração**: Limpar decisões locais após sincronização bem-sucedida
+
+```text
+// Dentro de handleSaveChanges, após sucesso:
+setLocalDecisions(new Set());
 ```
 
 ---
 
-## Fluxo de Dados (Mock)
+### 2. `src/components/equipe/dev/DifalAuditModal.tsx`
+
+**Alteração principal**: Refatorar completamente o layout para tela cheia
+
+**Props**: Alterar assinatura do callback para receber o item
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    ConsultaEFDICMS.tsx                          │
-│                   (tipo = 'icms')                               │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  useEFDOverview(tipo='icms')                    │
-│  → Supabase Storage: project-documents/M1_EFD_ICMS.json         │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│               EFDAnalysisModal (tipo='icms')                    │
-│  → Header: "Total ICMS" / "Total ICMS ST"                       │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│            useEFDDetail(tipo='icms', registro='REG_C100')       │
-│  → Supabase Storage: project-documents/M2_EFD_ICMS.json         │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   EFDFiscalTable                                │
-│  → Colunas dinâmicas: VL_BC_ICMS, VL_ICMS, VL_BC_ICMS_ST, etc. │
-└─────────────────────────────────────────────────────────────────┘
+interface DifalAuditModalProps {
+  ...
+  onDecisionSaved: (item: DifalItem) => void; // Agora recebe o item
+}
+```
+
+**DialogContent**: Expandir para tela cheia igual EFDAnalysisModal
+
+```text
+<DialogContent 
+  className={cn(
+    "max-w-none w-[calc(100vw-3rem)] h-[calc(100vh-3rem)] p-0",
+    "flex flex-col overflow-hidden",
+    "[&>button]:hidden"
+  )}
+>
+```
+
+**Header**: Estilo similar ao EFDAnalysisModal
+
+```text
+<div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+  <div className="flex items-center gap-4">
+    <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-600 shadow-sm">
+      <Scale className="w-7 h-7" />
+    </div>
+    <div>
+      <h3 className="text-xl font-bold text-slate-900">Classificar Item</h3>
+      <p className="text-sm text-slate-500 mt-0.5">NCM: {item?.cod_ncm}</p>
+    </div>
+  </div>
+  <Button ... (fechar) />
+</div>
+```
+
+**Body**: Layout de duas colunas (50/50) com altura total
+
+```text
+<div className="flex-1 flex overflow-hidden">
+  {/* Coluna Esquerda: Dados do Produto */}
+  <div className="w-1/2 border-r border-slate-200 p-6 overflow-y-auto bg-slate-50/30">
+    <Card com dados do produto (expandido)>
+  </div>
+  
+  {/* Coluna Direita: Regras Disponíveis */}
+  <div className="w-1/2 p-6 overflow-y-auto flex flex-col">
+    <Regras (sem seção de exceções)>
+  </div>
+</div>
+```
+
+**Remoções**:
+- Remover todo o bloco `{/* Botões de exceção */}` (linhas 333-370)
+- Remover imports não utilizados: `XCircle`, `Ban` (usados apenas nos botões de exceção)
+
+**Footer**: Manter no mesmo estilo mas integrado ao layout
+
+```text
+<div className="h-16 px-6 border-t border-slate-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+  <Button variant="outline" onClick={() => onOpenChange(false)}>
+    Cancelar
+  </Button>
+  <Button 
+    onClick={() => handleSaveDecision('REGRA_SELECIONADA', selectedRegraId)}
+    disabled={!selectedRegraId || isSaving}
+    className="bg-teal-600 hover:bg-teal-700"
+  >
+    ...
+  </Button>
+</div>
+```
+
+**Callback**: Passar o item ao chamar `onDecisionSaved`
+
+```text
+// Dentro de handleSaveDecision, após sucesso:
+onDecisionSaved(item!); // Passa o item decidido
+```
+
+---
+
+## Fluxo Visual
+
+```text
+ANTES:
+┌─────────────────────────────────────┐
+│  Modal pequeno (max-w-4xl)          │
+│  ┌─────────────┬─────────────┐      │
+│  │ Dados XML   │ Regras      │      │
+│  │             │             │      │
+│  │             │ ─────────── │      │
+│  │             │ Exceções:   │      │
+│  │             │ [Sem ST]    │      │
+│  │             │ [Isento]    │      │
+│  │             │ [N/A]       │      │
+│  └─────────────┴─────────────┘      │
+│  [Cancelar]         [Salvar]        │
+└─────────────────────────────────────┘
+
+DEPOIS:
+┌──────────────────────────────────────────────────────────────────┐
+│ ┌────────────────────────────────────────────────────────────┐   │
+│ │ ⚖️ Classificar Item                               [X]      │   │
+│ │    NCM: 12345678                                           │   │
+│ └────────────────────────────────────────────────────────────┘   │
+│ ┌─────────────────────────┬──────────────────────────────────┐   │
+│ │                         │                                  │   │
+│ │   DADOS DO PRODUTO      │      REGRAS DISPONÍVEIS          │   │
+│ │                         │                                  │   │
+│ │   ┌─────────────────┐   │   ┌──────────────────────────┐   │   │
+│ │   │ Produto: ...    │   │   │ [Regra 1] 18% ✓         │   │   │
+│ │   │ Código: ...     │   │   └──────────────────────────┘   │   │
+│ │   │ NCM: ...        │   │   ┌──────────────────────────┐   │   │
+│ │   │ CFOP: ...       │   │   │ [Regra 2] 12%           │   │   │
+│ │   │ Valor: R$...    │   │   └──────────────────────────┘   │   │
+│ │   │ UF: SP → MT     │   │                                  │   │
+│ │   │ CST: ... | 18%  │   │                                  │   │
+│ │   └─────────────────┘   │                                  │   │
+│ │                         │                                  │   │
+│ └─────────────────────────┴──────────────────────────────────┘   │
+│ ┌────────────────────────────────────────────────────────────┐   │
+│ │                          [Cancelar]  [Salvar Decisão]      │   │
+│ └────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Detalhes Técnicos
 
-### Leitura do Mock (Storage)
-```text
-const { data } = await supabase.storage
-  .from('project-documents')
-  .download('M1_EFD_ICMS.json');
+### Tipo de Decisão
 
-const json = JSON.parse(await data.text());
-```
+Com a remoção dos botões de exceção, o modal agora só suporta `REGRA_SELECIONADA`. Se no futuro for necessário reativar exceções, basta restaurar o bloco removido.
 
-### Estrutura Esperada do Mock M1 (Overview)
-```text
-{
-  "cnpj": "12345678000190",
-  "blocos_disponiveis": {
-    "0": [{"codigo": "REG_0000", "descricao": "..."}],
-    "C": [{"codigo": "REG_C100", "descricao": "..."}],
-    ...
-  },
-  "arquivos": [
-    {
-      "ID_ARQUIVO": "...",
-      "CNPJ": "...",
-      "NOME": "...",
-      "DT_INI": "2024-01-01",
-      "DT_FIN": "2024-01-31",
-      "icms_devido": "15000.00",
-      "icms_st_devido": "3500.00",
-      ...
-    }
-  ]
-}
-```
+### Responsividade
 
-### Estrutura Esperada do Mock M2 (Detail REG_C100)
-```text
-{
-  "registro": "REG_C100",
-  "descricao": "Nota Fiscal (ICMS/IPI)",
-  "paginacao": { "page": 1, "limit": 100, "total_registros": 50, "total_paginas": 1 },
-  "dados": [
-    {
-      "REG": "C100",
-      "NUM_DOC": "123456",
-      "VL_BC_ICMS": "1000.00",
-      "VL_ICMS": "180.00",
-      "VL_BC_ICMS_ST": "500.00",
-      "VL_ICMS_ST": "90.00",
-      ...
-    }
-  ]
-}
-```
+O layout de duas colunas usa `w-1/2` para cada lado. Em telas menores, pode ser necessário ajustar, mas como é uma ferramenta interna desktop-first, o layout fixo é aceitável.
 
----
+### Consistência Visual
 
-## Componentes Reutilizados (Sem Alteração)
-- `EFDBlockTree.tsx` - Navegação lateral de blocos SPED
-- `EFDFiscalTable.tsx` - Tabela dinâmica (já suporta novos campos via `generateColumnsFromData`)
+O novo modal seguirá exatamente o padrão do `EFDAnalysisModal`:
+- Header com altura `h-20` e ícone em container arredondado
+- Divisória com `border-slate-200`
+- Botão de fechar com hover vermelho
+- Footer com altura `h-16`
 
 ---
 
 ## Ordem de Implementação
 
-1. Atualizar tipagem em `src/types/efd.ts`
-2. Expandir `src/constants/efdConfig.ts` para grupos ICMS
-3. Modificar `src/hooks/useEFDData.ts` para suportar tipo e mock
-4. Atualizar `EFDAnalysisModal.tsx` com prop tipo
-5. Atualizar `EFDExportDialog.tsx` com URL dinâmica
-6. Criar `ConsultaEFDICMS.tsx`
-7. Adicionar rota em `App.tsx`
-8. Adicionar menu em `DevLayout.tsx`
+1. Modificar `DifalAuditModal.tsx`:
+   - Alterar layout para tela cheia
+   - Remover seção de exceções
+   - Atualizar assinatura do callback
+
+2. Modificar `AuditoriaFiscal.tsx`:
+   - Adicionar estado `localDecisions`
+   - Atualizar `handleDecisionSaved`
+   - Modificar useMemo de `itemsWithStatus`
+   - Limpar decisões locais após sync
