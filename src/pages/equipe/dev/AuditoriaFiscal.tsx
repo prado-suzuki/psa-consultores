@@ -525,19 +525,53 @@ const AuditoriaFiscal = () => {
 
       if (fetchError) throw fetchError;
 
-      // 2. Montar payload para API de sync
-      const payload: SyncPayload = {
-        sessao_id: activeSessaoId,
-        decisoes: (decisoes || []).map(d => ({
-          id_contribuinte: flatItems[0]?.id_contribuinte || '',
-          cod_produto: '', // Será mapeado pela API baseado no NCM
-          cod_ncm: d.cod_ncm,
+      // 2. Criar mapa de NCM -> decisão para lookup rápido
+      const ncmDecisaoMap = new Map<string, { decisao: TipoDecisao; id_icms_st: string | null }>();
+      (decisoes || []).forEach(d => {
+        ncmDecisaoMap.set(d.cod_ncm, {
           decisao: d.decisao as TipoDecisao,
           id_icms_st: d.id_icms_st_bq,
-        })),
+        });
+      });
+
+      // 3. Montar payload expandido: uma entrada por combinação única de produto+NCM
+      // Usar Set para evitar duplicatas
+      const decisoesExpandidas: SyncPayload['decisoes'] = [];
+      const processedKeys = new Set<string>();
+
+      flatItems.forEach(item => {
+        const decisaoData = ncmDecisaoMap.get(item.cod_ncm);
+        if (!decisaoData) return; // NCM não tem decisão registrada
+
+        const key = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
+        if (processedKeys.has(key)) return; // Já processado
+        processedKeys.add(key);
+
+        decisoesExpandidas.push({
+          id_contribuinte: item.id_contribuinte,
+          cod_produto: item.cod_produto,
+          cod_ncm: item.cod_ncm,
+          decisao: decisaoData.decisao,
+          id_icms_st: decisaoData.id_icms_st,
+        });
+      });
+
+      if (decisoesExpandidas.length === 0) {
+        toast({
+          title: 'Nenhuma decisão para sincronizar',
+          description: 'Classifique itens antes de salvar.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const payload: SyncPayload = {
+        sessao_id: activeSessaoId,
+        decisoes: decisoesExpandidas,
       };
 
-      // 3. Enviar para endpoint de sync
+      // 4. Enviar para endpoint de sync
       const response = await fetchWithAuth(
         `${API_BASE_URL}/api/v1/classificacoes/sync`,
         {
@@ -551,7 +585,7 @@ const AuditoriaFiscal = () => {
         throw new Error('Erro ao sincronizar classificações');
       }
 
-      // 4. Atualizar status da sessão
+      // 5. Atualizar status da sessão
       await supabase
         .from('difal_sessao')
         .update({
@@ -560,14 +594,14 @@ const AuditoriaFiscal = () => {
         })
         .eq('id', activeSessaoId);
 
-      // 5. Limpar estado e invalidar cache
+      // 6. Limpar estado e invalidar cache
       setPendingDecisionsCount(0);
       setLocalDecisions(new Set()); // Limpar decisões locais após sincronização
       queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
 
       toast({
         title: 'Alterações salvas',
-        description: `${decisoes?.length || 0} decisão(ões) sincronizada(s) com sucesso.`,
+        description: `${decisoesExpandidas.length} classificação(ões) sincronizada(s) com sucesso.`,
       });
     } catch (error) {
       toast({
