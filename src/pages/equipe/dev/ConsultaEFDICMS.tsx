@@ -21,6 +21,7 @@ import {
   Filter,
   Eraser,
   BarChart3,
+  Download,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +33,7 @@ const ConsultaEFDICMS = () => {
   // Estados de modal
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Calcular datas padrão: 5 anos atrás até mês atual
   const getDefaultDates = () => {
@@ -151,6 +153,21 @@ const ConsultaEFDICMS = () => {
   const handleAnalisar = (arquivo: EFDArquivo) => {
     setSelectedArquivo(arquivo);
     setAnalysisModalOpen(true);
+  };
+
+  // Handler para baixar todos os arquivos (teste - sem endpoint real)
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    
+    // Simula delay de 1.5s para teste visual
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    toast({
+      title: 'Teste: Download Simulado',
+      description: `${arquivosFiltrados.length} arquivo(s) seriam baixados. Endpoint não implementado.`,
+    });
+    
+    setDownloadingAll(false);
   };
 
   // Handler para buscar arquivos
@@ -373,6 +390,31 @@ const ConsultaEFDICMS = () => {
                 )}
               </Button>
             </div>
+
+            {/* Lado Direito - Baixar Todos */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadAll}
+                    disabled={downloadingAll || arquivosFiltrados.length === 0}
+                    className="gap-2"
+                  >
+                    {downloadingAll ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    Baixar Todos
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Baixar todos os {arquivosFiltrados.length} arquivo(s) em ZIP</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         )}
 
