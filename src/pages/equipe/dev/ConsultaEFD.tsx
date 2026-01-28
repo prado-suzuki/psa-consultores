@@ -589,10 +589,10 @@ const ConsultaEFD = () => {
                       Tipo
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      PIS
+                      Crédito PIS
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      COFINS
+                      Crédito COFINS
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">
                       Ações
@@ -637,10 +637,10 @@ const ConsultaEFD = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
-                        {formatCurrency(arquivo.pis_devido)}
+                        {formatCurrency(arquivo.credito_pis)}
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
-                        {formatCurrency(arquivo.cofins_devido)}
+                        {formatCurrency(arquivo.credito_cofins)}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <TooltipProvider>
