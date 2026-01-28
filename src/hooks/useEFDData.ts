@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import { supabase } from '@/integrations/supabase/client';
 import type { EFDOverview, EFDDetail, EFDTipo } from '@/types/efd';
 
 // Parâmetros para busca de overview (lista de arquivos)
@@ -26,20 +25,6 @@ interface UseEFDDetailParams {
   tipo?: EFDTipo;            // 'contribuicoes' (default) ou 'icms'
 }
 
-// Função auxiliar para buscar JSON do Supabase Storage
-async function fetchMockFromStorage(fileName: string): Promise<any> {
-  const { data, error } = await supabase.storage
-    .from('project-documents')
-    .download(fileName);
-  
-  if (error) {
-    throw new Error(`Erro ao buscar mock ${fileName}: ${error.message}`);
-  }
-  
-  const text = await data.text();
-  return JSON.parse(text);
-}
-
 export function useEFDOverview(params?: UseEFDOverviewParams) {
   const { fetchWithAuth } = useApiAuth();
   const tipo = params?.tipo || 'contribuicoes';
@@ -59,13 +44,8 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
         throw new Error('CNPJ é obrigatório');
       }
 
-      // Para ICMS, buscar dados do mock no Storage
-      if (tipo === 'icms') {
-        return fetchMockFromStorage('M1_EFD_ICMS.json');
-      }
-
-      // Para Contribuições, usar a API real
-      const url = new URL(getApiUrl(`/api/v1/efd/contribuicoes/${params.cnpj}`));
+      // Rota dinâmica: /api/v1/efd/{tipo}/{cnpj}
+      const url = new URL(getApiUrl(`/api/v1/efd/${tipo}/${params.cnpj}`));
       
       if (params.uf) {
         url.searchParams.set('UF', params.uf);
@@ -112,18 +92,10 @@ export function useEFDDetail(params?: UseEFDDetailParams) {
         throw new Error('CNPJ, ID do arquivo e registro são obrigatórios');
       }
 
-      // Para ICMS, buscar dados do mock no Storage (apenas para REG_C100 por enquanto)
-      if (tipo === 'icms') {
-        // O mock M2 contém dados do REG_C100
-        const mockData = await fetchMockFromStorage('M2_EFD_ICMS.json');
-        return mockData;
-      }
-
-      // Para Contribuições, usar a API real
-      // URL: /api/v1/efd/contribuicoes/{cnpj}/{id_arquivo}/registro/{codigo_registro}
+      // Rota dinâmica: /api/v1/efd/{tipo}/{cnpj}/{id_arquivo}/registro/{codigo}
       const url = new URL(
         getApiUrl(
-          `/api/v1/efd/contribuicoes/${params.cnpj}/${params.idArquivo}/registro/${params.registro}`
+          `/api/v1/efd/${tipo}/${params.cnpj}/${params.idArquivo}/registro/${params.registro}`
         )
       );
 

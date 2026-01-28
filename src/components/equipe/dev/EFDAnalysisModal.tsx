@@ -109,8 +109,8 @@ export function EFDAnalysisModal({
   // Configuração de totais baseado no tipo
   const totaisConfig = tipo === 'icms' 
     ? [
-        { label: 'Total ICMS', value: arquivo.icms_devido },
-        { label: 'Total ICMS ST', value: arquivo.icms_st_devido },
+        { label: 'Total ICMS', value: arquivo.icms_a_recolher },
+        { label: 'Total ICMS ST', value: arquivo.icms_st_a_recolher },
       ]
     : [
         { label: 'Total PIS', value: arquivo.pis_devido },

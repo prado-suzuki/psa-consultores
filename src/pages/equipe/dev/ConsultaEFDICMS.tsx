@@ -3,7 +3,8 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getTableName } from '@/config/api';
+import { getTableName, getApiUrl } from '@/config/api';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,13 +28,18 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import type { EFDArquivo } from '@/types/efd';
 
 const ConsultaEFDICMS = () => {
+  // Hooks
+  const { fetchWithAuth } = useApiAuth();
+
   // Estados de modal
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
 
   // Calcular datas padrão: 5 anos atrás até mês atual
   const getDefaultDates = () => {
@@ -155,19 +161,114 @@ const ConsultaEFDICMS = () => {
     setAnalysisModalOpen(true);
   };
 
-  // Handler para baixar todos os arquivos (teste - sem endpoint real)
+  // Handler para download individual de TXT
+  const handleDownloadTxt = async (arquivo: EFDArquivo) => {
+    setDownloadingTxt(arquivo.ID_ARQUIVO);
+    try {
+      const url = getApiUrl(`/api/v1/query/download/efd/icms/arquivo/${encodeURIComponent(arquivo.ID_ARQUIVO)}`);
+      const response = await fetchWithAuth(url, {}, 60000);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: Falha ao baixar arquivo`);
+      }
+      
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('Arquivo vazio retornado pelo servidor');
+      }
+      
+      // Gera nome do arquivo
+      const dtIni = arquivo.DT_INI.replace(/-/g, '');
+      const fileName = `EFD_ICMS_${arquivo.CNPJ}_${dtIni}.txt`;
+      
+      // Cria link e dispara download
+      const urlBlob = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = urlBlob;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(urlBlob);
+      
+      toast({
+        title: 'Download concluído',
+        description: `Arquivo ${fileName} baixado com sucesso.`,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast({
+        title: 'Erro no download',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingTxt(null);
+    }
+  };
+
+  // Handler para baixar todos os arquivos em ZIP
   const handleDownloadAll = async () => {
+    if (!cnpjContribuinte) return;
     setDownloadingAll(true);
     
-    // Simula delay de 1.5s para teste visual
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({
-      title: 'Teste: Download Simulado',
-      description: `${arquivosFiltrados.length} arquivo(s) seriam baixados. Endpoint não implementado.`,
-    });
-    
-    setDownloadingAll(false);
+    try {
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
+      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
+      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      
+      const response = await fetchWithAuth(url.toString(), {}, 60000);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: Falha ao baixar arquivos`);
+      }
+      
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('Arquivo ZIP vazio retornado pelo servidor');
+      }
+      
+      // Pegar informações dos headers
+      const filesFound = response.headers.get('X-Files-Found') || '0';
+      const filesMissing = response.headers.get('X-Files-Missing') || '0';
+      
+      // Gera nome do arquivo
+      const dataAtual = format(new Date(), 'yyyyMMdd');
+      const fileName = `EFD_ICMS_${cnpjContribuinte}_${dataAtual}.zip`;
+      
+      // Cria link e dispara download
+      const urlBlob = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = urlBlob;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(urlBlob);
+      
+      const missingNum = parseInt(filesMissing);
+      if (missingNum > 0) {
+        toast({
+          title: 'Download parcial',
+          description: `${filesFound} arquivo(s) baixados. ${missingNum} não encontrado(s).`,
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Download concluído',
+          description: `${filesFound} arquivo(s) baixados com sucesso.`,
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast({
+        title: 'Erro no download',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingAll(false);
+    }
   };
 
   // Handler para buscar arquivos
@@ -511,14 +612,36 @@ const ConsultaEFDICMS = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
-                        {formatCurrency(arquivo.icms_devido)}
+                        {formatCurrency(arquivo.icms_a_recolher)}
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 text-right font-mono">
-                        {formatCurrency(arquivo.icms_st_devido)}
+                        {formatCurrency(arquivo.icms_st_a_recolher)}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <TooltipProvider>
                           <div className="flex items-center justify-center gap-2">
+                            {/* Download TXT */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDownloadTxt(arquivo)}
+                                  disabled={downloadingTxt === arquivo.ID_ARQUIVO}
+                                >
+                                  {downloadingTxt === arquivo.ID_ARQUIVO ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <FileText className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Baixar arquivo TXT original</p>
+                              </TooltipContent>
+                            </Tooltip>
+
                             <EFDExportDialog
                               arquivo={arquivo}
                               blocosDisponiveis={blocosDisponiveis}
