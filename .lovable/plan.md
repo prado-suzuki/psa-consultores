@@ -1,19 +1,51 @@
 
-
-## Alteração do Texto de Visão
+## Adicionar Botão "Baixar Todos" no EFD ICMS
 
 ### Objetivo
-Atualizar o texto da seção "Visão" na página Missão (`/missao`).
+Adicionar o botão "Baixar Todos" na página de Consulta EFD ICMS, seguindo o mesmo padrão visual do EFD Contribuições. Como não há endpoint real, a funcionalidade será apenas para teste (exibindo toast de simulação).
 
-### Mudança
+### Arquivos a Editar
+- `src/pages/equipe/dev/ConsultaEFDICMS.tsx`
 
-| Campo | Texto Atual | Novo Texto |
-|-------|-------------|------------|
-| Visão | "Ser a consultoria tributária mais confiável e inovadora para o agronegócio brasileiro, reconhecida pela excelência técnica e pelo compromisso genuíno com o sucesso de nossos clientes." | "Ser reconhecida como uma empresa de referência na produção de conhecimento e na sua aplicação de forma inovadora no agronegócio brasileiro" |
+### Mudanças
 
-### Arquivo a ser editado
-- `src/pages/Missao.tsx` - linha ~101
+| Local | Alteração |
+|-------|-----------|
+| Imports | Adicionar ícone `Download` do lucide-react |
+| Estados | Adicionar `downloadingAll` (useState) |
+| Handlers | Criar `handleDownloadAll` com lógica de teste (toast) |
+| Header tabela | Adicionar botão "Baixar Todos" ao lado direito |
 
 ### Detalhes Técnicos
-Substituição simples de texto dentro do elemento `<p>` na seção de Visão, mantendo todas as classes de estilo existentes (`text-xl text-gray-600 leading-relaxed`).
 
+**1. Import adicional:**
+```tsx
+import { ..., Download } from 'lucide-react';
+```
+
+**2. Novo estado:**
+```tsx
+const [downloadingAll, setDownloadingAll] = useState(false);
+```
+
+**3. Handler de teste (sem endpoint real):**
+```tsx
+const handleDownloadAll = async () => {
+  setDownloadingAll(true);
+  
+  // Simula delay de 1.5s para teste visual
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  toast({
+    title: 'Teste: Download Simulado',
+    description: `${arquivosFiltrados.length} arquivo(s) seriam baixados. Endpoint não implementado.`,
+  });
+  
+  setDownloadingAll(false);
+};
+```
+
+**4. Botão no header da tabela (lado direito):**
+- Posicionamento: ao lado do CNPJ e botão de refresh
+- Visual: outline, tamanho sm, com tooltip
+- Desabilitado quando: `downloadingAll` ou `arquivosFiltrados.length === 0`
