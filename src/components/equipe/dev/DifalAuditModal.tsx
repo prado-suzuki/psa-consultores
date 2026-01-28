@@ -183,7 +183,7 @@ export const DifalAuditModal = ({
         {item && (
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column: Product Data */}
-            <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 p-6 overflow-y-auto bg-slate-50/30 dark:bg-slate-800/20">
+            <div className="w-[30%] border-r border-slate-200 dark:border-slate-700 p-6 overflow-y-auto bg-slate-50/30 dark:bg-slate-800/20">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="h-5 w-5 text-slate-500" />
                 <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Dados do Produto</h3>
@@ -233,7 +233,7 @@ export const DifalAuditModal = ({
 
                   <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                     <span className="text-xs text-slate-500 uppercase font-medium">
-                      Tributação de Entrada
+                      Tributação
                     </span>
                     <div className="flex gap-6 mt-2">
                       <div>
@@ -264,7 +264,7 @@ export const DifalAuditModal = ({
             </div>
             
             {/* Right Column: Available Rules */}
-            <div className="w-1/2 p-6 overflow-y-auto flex flex-col bg-white dark:bg-slate-900">
+            <div className="w-[70%] p-6 overflow-y-auto flex flex-col bg-white dark:bg-slate-900">
               <div className="flex items-center gap-2 mb-4">
                 <Scale className="h-5 w-5 text-slate-500" />
                 <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Regras Disponíveis</h3>
