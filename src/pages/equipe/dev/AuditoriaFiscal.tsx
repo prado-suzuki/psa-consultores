@@ -47,6 +47,7 @@ import {
   NFeRecord,
   NFeProduto,
   SyncPayload,
+  SyncDecisao,
   TipoDecisao,
 } from '@/types/difal';
 import {
@@ -521,15 +522,35 @@ const AuditoriaFiscal = () => {
       if (fetchError) throw fetchError;
 
       // 2. Montar payload para API de sync
+      // Para cada decisão de NCM, encontrar todos os produtos com esse NCM
+      // e criar uma entrada para cada combinação única de contribuinte + produto + ncm
+      const decisoesPayload: SyncDecisao[] = [];
+      
+      (decisoes || []).forEach(d => {
+        // Encontrar todos os itens que correspondem a este NCM
+        const matchingItems = flatItems.filter(item => item.cod_ncm === d.cod_ncm);
+        
+        // Criar set de chaves únicas para evitar duplicatas
+        const processedKeys = new Set<string>();
+        
+        matchingItems.forEach(item => {
+          const key = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
+          if (!processedKeys.has(key)) {
+            processedKeys.add(key);
+            decisoesPayload.push({
+              id_contribuinte: item.id_contribuinte,
+              cod_produto: item.cod_produto,
+              cod_ncm: d.cod_ncm,
+              decisao: d.decisao as TipoDecisao,
+              id_icms_st: d.id_icms_st_bq,
+            });
+          }
+        });
+      });
+
       const payload: SyncPayload = {
         sessao_id: activeSessaoId,
-        decisoes: (decisoes || []).map(d => ({
-          id_contribuinte: flatItems[0]?.id_contribuinte || '',
-          cod_produto: '', // Será mapeado pela API baseado no NCM
-          cod_ncm: d.cod_ncm,
-          decisao: d.decisao as TipoDecisao,
-          id_icms_st: d.id_icms_st_bq,
-        })),
+        decisoes: decisoesPayload,
       };
 
       // 3. Enviar para endpoint de sync
