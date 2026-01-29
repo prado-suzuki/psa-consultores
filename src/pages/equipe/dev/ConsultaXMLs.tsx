@@ -28,6 +28,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Download,
+  Filter,
+  Eraser,
 } from "lucide-react";
 import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
 import { NFE_COLUMNS, CTE_COLUMNS } from "@/constants/exportConfig";
@@ -653,16 +655,16 @@ const ConsultaXMLs = () => {
         {/* Filtros */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Filtros
+            <CardTitle className="text-lg flex items-center gap-2 text-primary">
+              <Filter className="h-5 w-5" />
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Grid de Inputs */}
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[180px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Cliente</label>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente</label>
                 <Select
                   value={selectedCliente}
                   onValueChange={(value) => {
@@ -671,7 +673,7 @@ const ConsultaXMLs = () => {
                     setSearchTriggered(false);
                   }}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue
                       placeholder={
                         loadingClientes ? (
@@ -695,8 +697,8 @@ const ConsultaXMLs = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1 min-w-[220px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Contribuinte</label>
+              <div className="md:col-span-4">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte</label>
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
                     {(errorContribuintes as Error).message}
@@ -716,7 +718,7 @@ const ConsultaXMLs = () => {
                       setSearchTriggered(false);
                     }}
                   >
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                       <SelectValue
                         placeholder={
                           loadingContribuintes ? (
@@ -740,8 +742,8 @@ const ConsultaXMLs = () => {
                   </Select>
                 )}
               </div>
-              <div className="w-[110px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Doc.</label>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Tipo Doc.</label>
                 <Select
                   value={tipoDocumento}
                   onValueChange={(value: "nfe" | "cte" | "todos") => {
@@ -750,7 +752,7 @@ const ConsultaXMLs = () => {
                     setCurrentPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -759,8 +761,8 @@ const ConsultaXMLs = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[130px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tipo Mov.</label>
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Tipo Mov.</label>
                 <Select
                   value={tipoMov}
                   onValueChange={(value: "Entrada" | "Saida" | "todos") => {
@@ -768,7 +770,7 @@ const ConsultaXMLs = () => {
                     setSearchTriggered(false);
                   }}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -790,82 +792,80 @@ const ConsultaXMLs = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-3">
-                <div className="w-[140px]">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Início</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-9 px-3 text-left font-normal justify-start",
-                          !dataInicio && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataInicio ? (
-                          format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                        ) : (
-                          <span>Selecione</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
-                        onSelect={(date) => {
-                          setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
-                          setSearchTriggered(false);
-                        }}
-                        initialFocus
-                        locale={ptBR}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="w-[140px]">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Data Fim</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-9 px-3 text-left font-normal justify-start",
-                          !dataFim && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataFim ? (
-                          format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                        ) : (
-                          <span>Selecione</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
-                        onSelect={(date) => {
-                          setDataFim(date ? format(date, "yyyy-MM-dd") : "");
-                          setSearchTriggered(false);
-                        }}
-                        initialFocus
-                        locale={ptBR}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
             </div>
 
-            {/* Filtros de Emitente e Destinatário */}
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">CPF/CNPJ Emitente</label>
+            {/* Datas e Filtros Adicionais */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Início</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                        !dataInicio && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataInicio ? (
+                        format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      ) : (
+                        <span>Selecione</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
+                        setSearchTriggered(false);
+                      }}
+                      initialFocus
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                        !dataFim && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataFim ? (
+                        format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      ) : (
+                        <span>Selecione</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataFim(date ? format(date, "yyyy-MM-dd") : "");
+                        setSearchTriggered(false);
+                      }}
+                      initialFocus
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Emitente</label>
                 <Input
                   placeholder="Digite o CPF ou CNPJ"
                   value={emitente}
@@ -873,11 +873,11 @@ const ConsultaXMLs = () => {
                     setEmitente(e.target.value);
                     setSearchTriggered(false);
                   }}
-                  className="h-9"
+                  className="h-11"
                 />
               </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">CPF/CNPJ Destinatário</label>
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Destinatário</label>
                 <Input
                   placeholder="Digite o CPF ou CNPJ"
                   value={destinatario}
@@ -885,34 +885,33 @@ const ConsultaXMLs = () => {
                     setDestinatario(e.target.value);
                     setSearchTriggered(false);
                   }}
-                  className="h-9"
+                  className="h-11"
                 />
               </div>
             </div>
 
             {/* Barra de Ações */}
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-border">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   onClick={handleClearFilters}
                   disabled={isLoading}
-                  className="text-muted-foreground hover:text-destructive"
+                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
+                  <Eraser className="h-4 w-4 mr-2" />
                   Limpar Filtros
                 </Button>
               )}
               <Button
                 variant="outline"
-                size="sm"
                 onClick={handleDownloadXml}
                 disabled={isLoading || isDownloadingXml || selectedKeys.size === 0}
               >
                 {isDownloadingXml ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  <Download className="h-4 w-4 mr-2" />
                 )}
                 Baixar XMLs {selectedKeys.size > 0 && `(${selectedKeys.size})`}
               </Button>
@@ -933,11 +932,15 @@ const ConsultaXMLs = () => {
                   (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
                 }
               />
-              <Button onClick={handleSearch} disabled={!selectedContribuinte || isLoading} size="sm">
+              <Button 
+                onClick={handleSearch} 
+                disabled={!selectedContribuinte || isLoading}
+                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+              >
                 {isLoading ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Search className="h-3.5 w-3.5 mr-1.5" />
+                  <Search className="h-4 w-4 mr-2" />
                 )}
                 Buscar
               </Button>
