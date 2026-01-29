@@ -52,7 +52,6 @@ import {
 } from '@/types/difal';
 import {
   Search,
-  X,
   Calculator,
   CheckCircle2,
   AlertCircle,
@@ -62,6 +61,8 @@ import {
   Download,
   Save,
   Loader2,
+  Filter,
+  Eraser,
 } from 'lucide-react';
 
 // IDs dos clientes permitidos para esta ferramenta (Barracol e Cropodia)
@@ -701,16 +702,16 @@ const AuditoriaFiscal = () => {
       {/* Filtros */}
       <Card className="mb-6 border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Search className="h-4 w-4 text-slate-500" />
-            Filtros de Busca
+          <CardTitle className="text-lg flex items-center gap-2 text-primary">
+            <Filter className="h-5 w-5" />
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
             {/* Cliente */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600 uppercase">
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Cliente
               </label>
               <Select
@@ -724,7 +725,7 @@ const AuditoriaFiscal = () => {
                 }}
                 disabled={isLoadingClientes}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -738,8 +739,8 @@ const AuditoriaFiscal = () => {
             </div>
 
             {/* Contribuinte - apenas nome */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600 uppercase">
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
               <Select
@@ -752,7 +753,7 @@ const AuditoriaFiscal = () => {
                 }}
                 disabled={!selectedCliente || isLoadingContribuintes}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>
@@ -766,8 +767,8 @@ const AuditoriaFiscal = () => {
             </div>
 
             {/* Data Início - Calendar + Popover */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600 uppercase">
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Data Início
               </label>
               <Popover>
@@ -775,7 +776,7 @@ const AuditoriaFiscal = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-9 px-3 text-left font-normal justify-start",
+                      "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
                       !dataInicio && "text-muted-foreground"
                     )}
                   >
@@ -795,14 +796,15 @@ const AuditoriaFiscal = () => {
                     }}
                     initialFocus
                     locale={ptBR}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
             {/* Data Fim - Calendar + Popover */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600 uppercase">
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Data Fim
               </label>
               <Popover>
@@ -810,7 +812,7 @@ const AuditoriaFiscal = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-9 px-3 text-left font-normal justify-start",
+                      "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
                       !dataFim && "text-muted-foreground"
                     )}
                   >
@@ -830,6 +832,7 @@ const AuditoriaFiscal = () => {
                     }}
                     initialFocus
                     locale={ptBR}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -837,25 +840,23 @@ const AuditoriaFiscal = () => {
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 pt-4 border-t border-slate-100">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleClearFilters}
-                className="gap-2"
-              >
-                <X className="h-4 w-4" />
-                Limpar
-              </Button>
-              <Button
-                onClick={handleSearch}
-                disabled={!selectedContribuinte || isLoading}
-                className="bg-teal-600 hover:bg-teal-700 gap-2"
-              >
-                <Search className="h-4 w-4" />
-                Buscar Itens
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <Button
+              variant="ghost"
+              onClick={handleClearFilters}
+              className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              <Eraser className="h-4 w-4 mr-2" />
+              Limpar Filtros
+            </Button>
+            <Button
+              onClick={handleSearch}
+              disabled={!selectedContribuinte || isLoading}
+              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Buscar Itens
+            </Button>
           </div>
         </CardContent>
       </Card>
