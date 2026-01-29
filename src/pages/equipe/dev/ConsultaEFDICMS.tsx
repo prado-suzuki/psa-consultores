@@ -39,7 +39,7 @@ const ConsultaEFDICMS = () => {
   // Estados de modal
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
-  const [downloadingAll, setDownloadingAll] = useState(false);
+  
   const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
   
   // Estados de seleção múltipla para exportação
@@ -264,67 +264,32 @@ const ConsultaEFDICMS = () => {
     }
   };
 
-  // Handler para baixar todos os arquivos em ZIP
-  const handleDownloadAll = async () => {
-    if (!cnpjContribuinte) return;
-    setDownloadingAll(true);
-    
-    try {
-      const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
-      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
-      if (dataFim) url.searchParams.set('data_fim', dataFim);
-      
-      const response = await fetchWithAuth(url.toString(), {}, 60000);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: Falha ao baixar arquivos`);
-      }
-      
-      const blob = await response.blob();
-      if (blob.size === 0) {
-        throw new Error('Arquivo ZIP vazio retornado pelo servidor');
-      }
-      
-      // Pegar informações dos headers
-      const filesFound = response.headers.get('X-Files-Found') || '0';
-      const filesMissing = response.headers.get('X-Files-Missing') || '0';
-      
-      // Gera nome do arquivo
-      const dataAtual = format(new Date(), 'yyyyMMdd');
-      const fileName = `EFD_ICMS_${cnpjContribuinte}_${dataAtual}.zip`;
-      
-      // Cria link e dispara download
-      const urlBlob = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = urlBlob;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(urlBlob);
-      
-      const missingNum = parseInt(filesMissing);
-      if (missingNum > 0) {
-        toast({
-          title: 'Download parcial',
-          description: `${filesFound} arquivo(s) baixados. ${missingNum} não encontrado(s).`,
-          variant: 'default',
-        });
-      } else {
-        toast({
-          title: 'Download concluído',
-          description: `${filesFound} arquivo(s) baixados com sucesso.`,
-        });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+  // Handler para baixar arquivos selecionados
+  const handleDownloadSelecionados = async () => {
+    // Validação: precisa ter arquivos selecionados
+    if (selectedArquivos.size === 0) {
       toast({
-        title: 'Erro no download',
-        description: errorMessage,
-        variant: 'destructive',
+        title: "Nenhum arquivo selecionado",
+        description: "Selecione ao menos um arquivo para baixar.",
+        variant: "destructive",
       });
-    } finally {
-      setDownloadingAll(false);
+      return;
+    }
+    
+    // Múltiplos arquivos - mostrar toast informativo (funcionalidade em desenvolvimento)
+    if (selectedArquivos.size > 1) {
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: `O download em lote de ${selectedArquivos.size} arquivos ainda está sendo implementado. Por enquanto, baixe cada arquivo individualmente.`,
+        duration: 5000,
+      });
+      return;
+    }
+    
+    // Se apenas 1 arquivo selecionado, baixar individualmente
+    const arquivoSelecionado = arquivosFiltrados.find(a => selectedArquivos.has(a.ID_ARQUIVO));
+    if (arquivoSelecionado) {
+      await handleDownloadTxt(arquivoSelecionado);
     }
   };
 
@@ -687,12 +652,7 @@ const ConsultaEFDICMS = () => {
                         className="gap-2"
                       >
                         <FileSpreadsheet className="h-4 w-4" />
-                        Exportar Excel
-                        {selectedArquivos.size > 0 && (
-                          <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                            {selectedArquivos.size}
-                          </Badge>
-                        )}
+                        Exportar excel
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -706,27 +666,32 @@ const ConsultaEFDICMS = () => {
                   </Tooltip>
                 </TooltipProvider>
 
-                {/* Baixar Todos */}
+                {/* Baixar txt */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleDownloadAll}
-                        disabled={downloadingAll || arquivosFiltrados.length === 0}
+                        onClick={handleDownloadSelecionados}
+                        disabled={downloadingTxt !== null || selectedArquivos.size === 0}
                         className="gap-2"
                       >
-                        {downloadingAll ? (
+                        {downloadingTxt !== null && selectedArquivos.size === 1 && selectedArquivos.has(downloadingTxt) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Download className="h-4 w-4" />
                         )}
-                        Baixar Todos
+                        Baixar txt
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Baixar {arquivosFiltrados.length} arquivo(s) em ZIP</p>
+                      <p>
+                        {selectedArquivos.size === 0 
+                          ? "Selecione arquivos para baixar" 
+                          : `Baixar ${selectedArquivos.size} arquivo(s) TXT`
+                        }
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
