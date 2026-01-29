@@ -572,27 +572,31 @@ export function EFDExportDialog({
                     
                     {/* Perfis do usuário */}
                     {profiles.map(profile => (
-                      <SelectItem 
+                      <div 
                         key={`user_${profile.id}`} 
-                        value={`user_${profile.id}`}
-                        className="pr-10 group relative"
+                        className="relative flex items-center pr-10 group"
                       >
-                        <span className="flex items-center gap-2">
-                          {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                          {profile.name}
-                        </span>
+                        <SelectItem 
+                          value={`user_${profile.id}`}
+                          className="flex-1"
+                        >
+                          <span className="flex items-center gap-2">
+                            {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                            {profile.name}
+                          </span>
+                        </SelectItem>
                         <button
                           type="button"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onMouseDown={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             setDeleteConfirmId(profile.id);
                           }}
                         >
-                          <Trash2 className="h-3 w-3 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </button>
-                      </SelectItem>
+                      </div>
                     ))}
                   </SelectContent>
                 </Select>
@@ -608,18 +612,24 @@ export function EFDExportDialog({
                   <Plus className="h-5 w-5" />
                 </Button>
                 
-                {/* Botão Favoritar (apenas para perfis do usuário) */}
-                {getSelectedUserProfileId() && (
+                {/* Botão Favoritar - sempre visível se há perfis */}
+                {profiles.length > 0 && (
                   <Button 
                     variant="outline" 
                     size="icon" 
                     className="h-11 w-11"
-                    title={isSelectedProfileDefault ? "Perfil padrão" : "Definir como padrão"}
+                    title={
+                      !getSelectedUserProfileId() 
+                        ? "Selecione um perfil para favoritar" 
+                        : isSelectedProfileDefault 
+                          ? "Perfil padrão" 
+                          : "Definir como padrão"
+                    }
                     onClick={() => {
                       const profileId = getSelectedUserProfileId();
                       if (profileId) handleToggleDefault(profileId);
                     }}
-                    disabled={setDefaultProfile.isPending}
+                    disabled={setDefaultProfile.isPending || !getSelectedUserProfileId()}
                   >
                     <Star className={cn("h-5 w-5", isSelectedProfileDefault && "text-yellow-500 fill-yellow-500")} />
                   </Button>
