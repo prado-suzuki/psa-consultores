@@ -739,7 +739,7 @@ const AuditoriaFiscal = () => {
             </div>
 
             {/* Contribuinte - apenas nome */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-5">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
@@ -767,7 +767,7 @@ const AuditoriaFiscal = () => {
             </div>
 
             {/* Data Início - Calendar + Popover */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Data Início
               </label>
@@ -803,7 +803,7 @@ const AuditoriaFiscal = () => {
             </div>
 
             {/* Data Fim - Calendar + Popover */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Data Fim
               </label>
