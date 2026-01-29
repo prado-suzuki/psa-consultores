@@ -522,16 +522,11 @@ const ConsultaEFD = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
-                    variant="outline"
+                    variant={downloadingAll ? "default" : "outline"}
                     size="sm"
                     onClick={handleDownloadAll}
                     disabled={downloadingAll || arquivosFiltrados.length === 0}
-                    className={cn(
-                      "hover:text-primary",
-                      downloadingAll 
-                        ? "bg-primary text-white border-primary" 
-                        : "text-slate-600"
-                    )}
+                    className={!downloadingAll ? "text-slate-600 hover:text-primary" : ""}
                   >
                     {downloadingAll ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
