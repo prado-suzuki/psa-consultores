@@ -1,271 +1,190 @@
 
+## Plano: Padronização de Design das Ferramentas Dev
 
-## Plano: Seleção Múltipla para Exportação Excel - EFD ICMS
+### Contexto do Problema
 
-### Objetivo
-Adicionar checkboxes para seleção múltipla de arquivos na tabela de EFD ICMS. Nenhum arquivo será selecionado inicialmente. Um botão "Exportar Excel" no topo se atualizará conforme a quantidade selecionada:
-- **1 arquivo selecionado**: Abre o modal normal de exportação (`EFDExportDialog`)
-- **Múltiplos arquivos**: Exibe toast informando que a funcionalidade está em desenvolvimento
+Após análise detalhada das quatro ferramentas da área de Dev, foram identificadas diversas inconsistências de design que afetam a coerência visual do sistema:
 
----
-
-### Alterações Técnicas
-
-#### Arquivo: `src/pages/equipe/dev/ConsultaEFDICMS.tsx`
-
-| Seção | Alteração |
-|-------|-----------|
-| Imports | Adicionar `Checkbox` de `@/components/ui/checkbox` |
-| Estados | Adicionar `selectedArquivos: Set<string>` |
-| Estado | Adicionar `exportDialogOpen: boolean` para controlar modal externamente |
-| Funções | Criar `handleToggleArquivo`, `handleToggleAll` |
-| Memo | Criar `allSelected`, `arquivoParaExportar` |
-| UI Header | Adicionar botão "Exportar Excel" + Badge de selecionados |
-| UI Tabela | Adicionar coluna de checkbox (header + linhas) |
-| Handler | Criar `handleExportSelecionados` com lógica condicional |
-| Clear | Resetar `selectedArquivos` ao limpar filtros |
+| Arquivo | Ferramenta |
+|---------|------------|
+| `ConsultaEFD.tsx` | Consulta EFD Contribuições (REFERÊNCIA) |
+| `ConsultaEFDICMS.tsx` | Consulta EFD ICMS |
+| `ConsultaXMLs.tsx` | Consulta de XMLs |
+| `AuditoriaFiscal.tsx` | DIFAL Inteligente |
 
 ---
 
-### Detalhes de Implementação
+### Análise de Inconsistências Encontradas
 
-#### 1. Import Adicional
+#### 1. Título do Card de Filtros
 
-```typescript
-import { Checkbox } from '@/components/ui/checkbox';
-```
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `<CardTitle className="text-lg flex items-center gap-2 text-primary">` + `<span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>` |
+| ConsultaEFDICMS | Igual à referência ✓ |
+| ConsultaXMLs | `<CardTitle className="text-lg flex items-center gap-2">` + texto simples "Filtros" (sem uppercase, sem tracking) |
+| AuditoriaFiscal | `<CardTitle className="text-base flex items-center gap-2">` + texto simples "Filtros de Busca" (font menor, sem estilização) |
 
-#### 2. Novos Estados (sem auto-seleção)
+#### 2. Labels dos Campos de Filtro
 
-```typescript
-const [selectedArquivos, setSelectedArquivos] = useState<Set<string>>(new Set());
-const [exportDialogOpen, setExportDialogOpen] = useState(false);
-```
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider` |
+| ConsultaEFDICMS | Igual à referência ✓ |
+| ConsultaXMLs | `text-sm font-medium text-muted-foreground mb-2 block` (maior, sem uppercase, sem tracking, peso diferente) |
+| AuditoriaFiscal | `text-xs font-medium text-slate-600 uppercase` (peso diferente: medium vs bold, espaçamento mb diferente) |
 
-#### 3. Funções de Seleção
+#### 3. Altura dos Select/Input
 
-```typescript
-// Obter IDs de todos os arquivos filtrados
-const getAllArquivoIds = (): string[] => {
-  return arquivosFiltrados.map(arq => arq.ID_ARQUIVO);
-};
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `h-11 bg-white dark:bg-slate-800` |
+| ConsultaEFDICMS | Igual à referência ✓ |
+| ConsultaXMLs | `h-9` (menor) |
+| AuditoriaFiscal | Sem altura definida (padrão) |
 
-// Verificar se todos estão selecionados
-const allSelected = useMemo(() => {
-  const ids = getAllArquivoIds();
-  return ids.length > 0 && ids.every(id => selectedArquivos.has(id));
-}, [selectedArquivos, arquivosFiltrados]);
+#### 4. Ícone do Título do Card
 
-// Obter arquivo para exportar (quando apenas 1 selecionado)
-const arquivoParaExportar = useMemo(() => {
-  if (selectedArquivos.size !== 1) return null;
-  const [id] = Array.from(selectedArquivos);
-  return arquivosFiltrados.find(a => a.ID_ARQUIVO === id) || null;
-}, [selectedArquivos, arquivosFiltrados]);
+| Ferramenta | Ícone | Cor |
+|------------|-------|-----|
+| **ConsultaEFD** (ref) | `Filter` | `text-primary` (via CardTitle) |
+| ConsultaEFDICMS | `Filter` ✓ | `text-primary` ✓ |
+| ConsultaXMLs | `Search` | Sem cor definida |
+| AuditoriaFiscal | `Search` | `text-slate-500` |
 
-// Toggle individual
-const handleToggleArquivo = (id: string) => {
-  setSelectedArquivos(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return next;
-  });
-};
+#### 5. Botão "Buscar" / Botão Principal
 
-// Toggle todos
-const handleToggleAll = () => {
-  const ids = getAllArquivoIds();
-  if (allSelected) {
-    // Desmarcar todos
-    setSelectedArquivos(new Set());
-  } else {
-    // Marcar todos
-    setSelectedArquivos(new Set(ids));
-  }
-};
-```
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"` |
+| ConsultaEFDICMS | Igual à referência ✓ |
+| ConsultaXMLs | `size="sm"` (menor, sem sombra, sem animação) |
+| AuditoriaFiscal | `className="bg-teal-600 hover:bg-teal-700 gap-2"` (cor hardcoded, sem sombra, sem animação) |
 
-#### 4. Handler para Exportação
+#### 6. Botão "Limpar Filtros"
 
-```typescript
-const handleExportSelecionados = () => {
-  if (selectedArquivos.size === 0) {
-    toast({
-      title: "Nenhum arquivo selecionado",
-      description: "Selecione ao menos um arquivo para exportar.",
-      variant: "destructive",
-    });
-    return;
-  }
-  
-  if (selectedArquivos.size === 1) {
-    // Se apenas 1 selecionado, abrir modal de exportação
-    setExportDialogOpen(true);
-    return;
-  }
-  
-  // Múltiplos arquivos - mostrar toast informativo
-  toast({
-    title: "Funcionalidade em desenvolvimento",
-    description: `A exportação em lote de ${selectedArquivos.size} arquivos ainda está sendo implementada. Por enquanto, exporte cada arquivo individualmente.`,
-    duration: 5000,
-  });
-};
-```
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `variant="ghost"` + `className="text-slate-500 hover:text-red-600 hover:bg-red-50"` + Ícone `Eraser` |
+| ConsultaEFDICMS | Igual à referência ✓ |
+| ConsultaXMLs | `variant="ghost" size="sm"` + `className="text-muted-foreground hover:text-destructive"` (sem ícone) |
+| AuditoriaFiscal | `variant="outline"` + Ícone `X` diferente |
 
-#### 5. Limpar seleção ao mudar filtros/busca
+#### 7. Header da Tabela de Resultados
 
-```typescript
-const handleClearFilters = () => {
-  setSelectedCliente("");
-  setSelectedContribuinte("");
-  setSelectedFilial("todas");
-  setMesInicio(null);
-  setMesFim(null);
-  setSearchTriggered(false);
-  setSelectedArquivos(new Set());  // Limpar seleção
-};
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `<th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">` |
+| ConsultaEFDICMS | Similar mas com diferenças pontuais |
+| ConsultaXMLs | Usa componente `TableHead` do shadcn (estilo diferente) |
+| AuditoriaFiscal | Usa componente `TableHead` + `TableRow className="bg-slate-50"` |
 
-// Também limpar ao trocar de contribuinte
-onValueChange={(value) => {
-  setSelectedContribuinte(value);
-  setSelectedFilial("todas");
-  setSearchTriggered(false);
-  setSelectedArquivos(new Set());  // Limpar seleção
-}}
-```
+#### 8. Espaçamento do Grid de Filtros
 
-#### 6. UI - Botão "Exportar Excel" no Header (linha ~592-615)
-
-Adicionar antes do botão "Baixar Todos":
-
-```tsx
-{/* Lado Direito - Ações */}
-<div className="flex items-center gap-2">
-  {/* Contador de selecionados */}
-  {selectedArquivos.size > 0 && (
-    <Badge variant="secondary" className="text-xs">
-      {selectedArquivos.size} selecionado(s)
-    </Badge>
-  )}
-  
-  {/* Exportar Excel */}
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportSelecionados}
-          disabled={selectedArquivos.size === 0}
-          className="gap-2"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          Exportar Excel
-          {selectedArquivos.size > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-              {selectedArquivos.size}
-            </Badge>
-          )}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>
-          {selectedArquivos.size === 0 
-            ? "Selecione arquivos para exportar" 
-            : `Exportar ${selectedArquivos.size} arquivo(s) para Excel`
-          }
-        </p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-
-  {/* Baixar Todos (existente) */}
-  <TooltipProvider>
-    ...
-  </TooltipProvider>
-</div>
-```
-
-#### 7. UI - Coluna de Checkbox na Tabela
-
-**Header (linha ~654):**
-```tsx
-<th className="px-4 py-4 w-12">
-  <Checkbox
-    checked={allSelected}
-    onCheckedChange={handleToggleAll}
-    aria-label="Selecionar todos"
-  />
-</th>
-```
-
-**Linha da tabela (linha ~681):**
-```tsx
-<td className="px-4 py-4">
-  <Checkbox
-    checked={selectedArquivos.has(arquivo.ID_ARQUIVO)}
-    onCheckedChange={() => handleToggleArquivo(arquivo.ID_ARQUIVO)}
-    aria-label={`Selecionar ${arquivo.NOME}`}
-  />
-</td>
-```
-
-#### 8. EFDExportDialog Controlado Externamente
-
-Adicionar um `EFDExportDialog` separado (fora da tabela) que abre via estado:
-
-```tsx
-{/* Modal de Exportação para arquivo selecionado */}
-{arquivoParaExportar && (
-  <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      {/* Reutilizar o conteúdo interno do EFDExportDialog */}
-      {/* Ou criar uma variante que aceita open/onOpenChange */}
-    </DialogContent>
-  </Dialog>
-)}
-```
-
-**Alternativa mais simples:** Modificar `EFDExportDialog` para aceitar props `open` e `onOpenChange` opcionais, permitindo controle externo. Se não fornecidas, usa o comportamento atual com `DialogTrigger`.
+| Ferramenta | Estilo Atual |
+|------------|--------------|
+| **ConsultaEFD** (ref) | `grid grid-cols-1 md:grid-cols-12 gap-6` |
+| ConsultaEFDICMS | Igual ✓ |
+| ConsultaXMLs | `flex flex-wrap gap-4 items-end` (layout diferente) |
+| AuditoriaFiscal | `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4` (breakpoints diferentes, gap menor) |
 
 ---
 
-### Comportamento Esperado
-
-1. Usuario busca arquivos - nenhum arquivo vem selecionado
-2. Checkboxes aparecem na primeira coluna da tabela
-3. Checkbox mestre no header permite selecionar/desmarcar todos
-4. Badge e botão mostram quantidade selecionada
-5. Botão "Exportar Excel" fica desabilitado sem seleção
-6. **1 arquivo selecionado**: Clique abre o modal de exportação normal
-7. **2+ arquivos**: Clique exibe toast "Funcionalidade em desenvolvimento"
-8. "Limpar Filtros" reseta a seleção
-
----
-
-### Toast Informativo (Múltiplos Arquivos)
+### Padrão a Ser Adotado (baseado em ConsultaEFD.tsx)
 
 ```text
-┌────────────────────────────────────────────────┐
-│  ⚠️ Funcionalidade em desenvolvimento          │
-│                                                │
-│  A exportação em lote de X arquivos ainda      │
-│  está sendo implementada. Por enquanto,        │
-│  exporte cada arquivo individualmente.         │
-└────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Card de Filtros                                                │
+├─────────────────────────────────────────────────────────────────┤
+│  CardHeader: pb-4                                               │
+│  CardTitle: text-lg flex items-center gap-2 text-primary        │
+│    └─ Ícone: Filter (h-5 w-5)                                   │
+│    └─ Span: uppercase text-sm tracking-wider font-bold          │
+│            text-slate-800 dark:text-slate-200                   │
+│                                                                 │
+│  CardContent: space-y-4                                         │
+│  Grid: grid-cols-1 md:grid-cols-12 gap-6                        │
+│                                                                 │
+│  Labels:                                                        │
+│    block text-xs font-bold text-slate-700 dark:text-slate-300   │
+│    mb-2 uppercase tracking-wider                                │
+│                                                                 │
+│  SelectTrigger:                                                 │
+│    h-11 bg-white dark:bg-slate-800                              │
+│                                                                 │
+│  Barra de Ações:                                                │
+│    flex justify-end gap-3 pt-4 border-t border-slate-200        │
+│    dark:border-slate-700                                        │
+│                                                                 │
+│  Botão Limpar:                                                  │
+│    variant="ghost"                                              │
+│    className="text-slate-500 hover:text-red-600                 │
+│              hover:bg-red-50 dark:hover:bg-red-900/20"          │
+│    Ícone: Eraser (h-4 w-4 mr-2)                                 │
+│                                                                 │
+│  Botão Buscar:                                                  │
+│    className="bg-primary hover:bg-primary/90 shadow-lg          │
+│              shadow-primary/20 transition-transform             │
+│              hover:-translate-y-0.5 active:translate-y-0"       │
+│    Ícone: Search (h-4 w-4 mr-2)                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ### Arquivos a Modificar
 
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/equipe/dev/ConsultaEFDICMS.tsx` | Estados, funções, checkboxes, botão exportar |
-| `src/components/equipe/dev/EFDExportDialog.tsx` | Adicionar props `open`/`onOpenChange` para controle externo (opcional) |
+#### 1. `src/pages/equipe/dev/ConsultaXMLs.tsx`
 
+| Seção | Alteração |
+|-------|-----------|
+| CardHeader (linha ~655) | Adicionar `pb-4` |
+| CardTitle (linha ~656-659) | Mudar para `text-lg flex items-center gap-2 text-primary` |
+| Ícone do título | Manter `Search` mas adicionar cor via CardTitle ou trocar por `Filter` |
+| Span do título | Adicionar `<span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>` |
+| Labels (múltiplas) | Mudar de `text-sm font-medium text-muted-foreground mb-2 block` para `block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider` |
+| SelectTrigger (múltiplos) | Mudar de `h-9` para `h-11 bg-white dark:bg-slate-800` |
+| Input (múltiplos) | Mudar de `h-9` para `h-11` |
+| Botão Limpar (~899-904) | Adicionar ícone `Eraser` e classe `text-slate-500 hover:text-red-600 hover:bg-red-50` |
+| Botão Buscar (~936-943) | Adicionar classes de sombra e animação da referência |
+| Grid layout (~663) | Considerar migrar para grid de 12 colunas (opcional - pode manter flex se funciona bem) |
+
+#### 2. `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+
+| Seção | Alteração |
+|-------|-----------|
+| Card de filtros (linha ~702) | Manter `mb-6 border-slate-200 shadow-sm` |
+| CardHeader (linha ~703) | Adicionar `pb-4` |
+| CardTitle (linha ~704-707) | Mudar de `text-base` para `text-lg` + adicionar `text-primary` + wrapper span estilizado |
+| Ícone do título | Trocar `Search` por `Filter` + remover `text-slate-500` |
+| Labels (múltiplas ~713, 742, 770, 805) | Mudar de `text-xs font-medium text-slate-600 uppercase` para `block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider` |
+| SelectTrigger (múltiplos) | Adicionar `h-11 bg-white dark:bg-slate-800` |
+| Grid layout (~710) | Mudar de `grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4` para estrutura de 12 colunas ou manter com `gap-6` |
+| Barra de ações (~840) | Adicionar `border-t border-slate-200 dark:border-slate-700` |
+| Botão Limpar (~842-849) | Mudar `variant="outline"` para `variant="ghost"` + trocar `X` por `Eraser` + classes de hover |
+| Botão Buscar (~850-857) | Mudar de `bg-teal-600 hover:bg-teal-700` para `bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0` |
+
+---
+
+### Resumo das Mudanças por Propriedade
+
+| Propriedade | Valor Padronizado |
+|-------------|-------------------|
+| **CardTitle** | `text-lg flex items-center gap-2 text-primary` |
+| **Título Texto** | `uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200` |
+| **Ícone Título** | `Filter` (h-5 w-5) |
+| **Label** | `block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider` |
+| **SelectTrigger** | `h-11 bg-white dark:bg-slate-800` |
+| **Input** | `h-11` |
+| **Grid Gap** | `gap-6` |
+| **Botão Ghost (Limpar)** | `variant="ghost"` + `text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20` + ícone `Eraser` |
+| **Botão Primary (Buscar)** | `bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0` |
+
+---
+
+### Observações Técnicas
+
+- **ConsultaEFDICMS.tsx** já está alinhado com a referência e não precisa de alterações significativas
+- As mudanças são puramente visuais/CSS e não afetam a lógica de negócio
+- O uso de variáveis CSS (`bg-primary`) garante consistência com o tema
+- Imports adicionais necessários: `Filter`, `Eraser` do lucide-react (onde não existirem)
