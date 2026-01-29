@@ -526,7 +526,12 @@ const ConsultaEFD = () => {
                     size="sm"
                     onClick={handleDownloadAll}
                     disabled={downloadingAll || arquivosFiltrados.length === 0}
-                    className="text-slate-600 hover:text-primary"
+                    className={cn(
+                      "hover:text-primary",
+                      downloadingAll 
+                        ? "bg-primary text-white border-primary" 
+                        : "text-slate-600"
+                    )}
                   >
                     {downloadingAll ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
