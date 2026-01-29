@@ -189,10 +189,12 @@ const AuditoriaFiscal = () => {
       }
 
       try {
+        // Buscar apenas sessões EM_ANDAMENTO (ignorar FINALIZADO e SINCRONIZADO)
         const { data: lastSession, error } = await supabase
           .from('difal_sessao')
           .select('*')
           .eq('usuario_id', user.id)
+          .eq('status', 'EM_ANDAMENTO')
           .order('criado_em', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -568,23 +570,33 @@ const AuditoriaFiscal = () => {
         throw new Error('Erro ao sincronizar classificações');
       }
 
-      // 4. Atualizar status da sessão
+      // 4. Finalizar sessão (marcar como FINALIZADO, não apenas SINCRONIZADO)
       await supabase
         .from('difal_sessao')
         .update({
-          status: 'SINCRONIZADO',
+          status: 'FINALIZADO',
           sincronizado_em: new Date().toISOString(),
         })
         .eq('id', activeSessaoId);
 
-      // 5. Limpar estado e invalidar cache
+      // 5. Deletar decisões locais da sessão finalizada
+      await supabase
+        .from('difal_decisao')
+        .delete()
+        .eq('sessao_id', activeSessaoId);
+
+      // 6. Limpar estado de sessão (mas MANTER filtros)
+      setActiveSessaoId(null);
       setPendingDecisionsCount(0);
-      setLocalDecisions(new Set()); // Limpar decisões locais após sincronização
+      setLocalDecisions(new Set());
+
+      // 7. Re-buscar dados com classificações atualizadas
       queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['difal-nfes'] });
 
       toast({
         title: 'Alterações salvas',
-        description: `${decisoes?.length || 0} decisão(ões) sincronizada(s) com sucesso.`,
+        description: `${decisoes?.length || 0} decisão(ões) sincronizada(s). Os dados foram recarregados.`,
       });
     } catch (error) {
       toast({
