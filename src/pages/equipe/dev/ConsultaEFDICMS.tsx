@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   FileText,
   Search,
@@ -40,6 +41,10 @@ const ConsultaEFDICMS = () => {
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
+  
+  // Estados de seleção múltipla para exportação
+  const [selectedArquivos, setSelectedArquivos] = useState<Set<string>>(new Set());
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Calcular datas padrão: 5 anos atrás até mês atual
   const getDefaultDates = () => {
@@ -352,6 +357,77 @@ const ConsultaEFDICMS = () => {
     setMesInicio(null);
     setMesFim(null);
     setSearchTriggered(false);
+    setSelectedArquivos(new Set()); // Limpar seleção
+  };
+
+  // ==================== Funções de Seleção Múltipla ====================
+  
+  // Obter IDs de todos os arquivos filtrados
+  const getAllArquivoIds = (): string[] => {
+    return arquivosFiltrados.map(arq => arq.ID_ARQUIVO);
+  };
+
+  // Verificar se todos estão selecionados
+  const allSelected = useMemo(() => {
+    const ids = getAllArquivoIds();
+    return ids.length > 0 && ids.every(id => selectedArquivos.has(id));
+  }, [selectedArquivos, arquivosFiltrados]);
+
+  // Obter arquivo para exportar (quando apenas 1 selecionado)
+  const arquivoParaExportar = useMemo(() => {
+    if (selectedArquivos.size !== 1) return null;
+    const [id] = Array.from(selectedArquivos);
+    return arquivosFiltrados.find(a => a.ID_ARQUIVO === id) || null;
+  }, [selectedArquivos, arquivosFiltrados]);
+
+  // Toggle individual
+  const handleToggleArquivo = (id: string) => {
+    setSelectedArquivos(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Toggle todos
+  const handleToggleAll = () => {
+    const ids = getAllArquivoIds();
+    if (allSelected) {
+      // Desmarcar todos
+      setSelectedArquivos(new Set());
+    } else {
+      // Marcar todos
+      setSelectedArquivos(new Set(ids));
+    }
+  };
+
+  // Handler para exportar arquivos selecionados
+  const handleExportSelecionados = () => {
+    if (selectedArquivos.size === 0) {
+      toast({
+        title: "Nenhum arquivo selecionado",
+        description: "Selecione ao menos um arquivo para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (selectedArquivos.size === 1) {
+      // Se apenas 1 selecionado, abrir modal de exportação
+      setExportDialogOpen(true);
+      return;
+    }
+    
+    // Múltiplos arquivos - mostrar toast informativo
+    toast({
+      title: "Funcionalidade em desenvolvimento",
+      description: `A exportação em lote de ${selectedArquivos.size} arquivos ainda está sendo implementada. Por enquanto, exporte cada arquivo individualmente.`,
+      duration: 5000,
+    });
   };
 
   // Formatar CNPJ
@@ -448,6 +524,7 @@ const ConsultaEFDICMS = () => {
                   setSelectedContribuinte(value);
                   setSelectedFilial("todas");
                   setSearchTriggered(false);
+                  setSelectedArquivos(new Set()); // Limpar seleção
                 }}
               >
                 <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
@@ -589,30 +666,71 @@ const ConsultaEFDICMS = () => {
                 </Button>
               </div>
 
-              {/* Lado Direito - Baixar Todos */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownloadAll}
-                      disabled={downloadingAll || arquivosFiltrados.length === 0}
-                      className="gap-2"
-                    >
-                      {downloadingAll ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      Baixar Todos
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Baixar {arquivosFiltrados.length} arquivo(s) em ZIP</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Lado Direito - Ações */}
+              <div className="flex items-center gap-2">
+                {/* Contador de selecionados */}
+                {selectedArquivos.size > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {selectedArquivos.size} selecionado(s)
+                  </Badge>
+                )}
+                
+                {/* Exportar Excel */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportSelecionados}
+                        disabled={selectedArquivos.size === 0}
+                        className="gap-2"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" />
+                        Exportar Excel
+                        {selectedArquivos.size > 0 && (
+                          <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                            {selectedArquivos.size}
+                          </Badge>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {selectedArquivos.size === 0 
+                          ? "Selecione arquivos para exportar" 
+                          : `Exportar ${selectedArquivos.size} arquivo(s) para Excel`
+                        }
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {/* Baixar Todos */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadAll}
+                        disabled={downloadingAll || arquivosFiltrados.length === 0}
+                        className="gap-2"
+                      >
+                        {downloadingAll ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        Baixar Todos
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Baixar {arquivosFiltrados.length} arquivo(s) em ZIP</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
         )}
@@ -652,6 +770,13 @@ const ConsultaEFDICMS = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                    <th className="px-4 py-4 w-12">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleToggleAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                       Arquivo
                     </th>
@@ -678,6 +803,13 @@ const ConsultaEFDICMS = () => {
                       key={arquivo.ID_ARQUIVO} 
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
+                      <td className="px-4 py-4">
+                        <Checkbox
+                          checked={selectedArquivos.has(arquivo.ID_ARQUIVO)}
+                          onCheckedChange={() => handleToggleArquivo(arquivo.ID_ARQUIVO)}
+                          aria-label={`Selecionar ${arquivo.NOME}`}
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -786,6 +918,18 @@ const ConsultaEFDICMS = () => {
         cnpj={overview?.cnpj || ''}
         tipo="icms"
       />
+
+      {/* Modal de Exportação Excel - Controlado externamente (para arquivo selecionado) */}
+      {arquivoParaExportar && (
+        <EFDExportDialog
+          arquivo={arquivoParaExportar}
+          blocosDisponiveis={blocosDisponiveis}
+          tipo="icms"
+          externalOpen={exportDialogOpen}
+          onExternalOpenChange={setExportDialogOpen}
+          hideTrigger
+        />
+      )}
     </DevLayout>
   );
 };

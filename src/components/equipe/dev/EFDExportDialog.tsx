@@ -42,6 +42,12 @@ interface EFDExportDialogProps {
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
   disabled?: boolean;
   tipo?: EFDTipo;
+  /** Controle externo: se fornecido, o dialog usa esse estado ao invés de interno */
+  externalOpen?: boolean;
+  /** Callback para controle externo */
+  onExternalOpenChange?: (open: boolean) => void;
+  /** Se true, não renderiza o trigger (botão que abre o dialog) */
+  hideTrigger?: boolean;
 }
 
 type ExportStatus = 'idle' | 'starting' | 'processing' | 'completed' | 'error';
@@ -59,9 +65,22 @@ export function EFDExportDialog({
   blocosDisponiveis,
   disabled,
   tipo = 'contribuicoes',
+  externalOpen,
+  onExternalOpenChange,
+  hideTrigger = false,
 }: EFDExportDialogProps) {
   const { fetchWithAuth } = useApiAuth();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Se controle externo é fornecido, usa ele; senão usa estado interno
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = isControlled 
+    ? (value: boolean | ((prev: boolean) => boolean)) => {
+        const newValue = typeof value === 'function' ? value(open) : value;
+        onExternalOpenChange?.(newValue);
+      }
+    : setInternalOpen;
   const [selectedRegistros, setSelectedRegistros] = useState<Set<string>>(new Set());
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
@@ -498,25 +517,27 @@ export function EFDExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon"
-                disabled={disabled || blocos.length === 0}
-                className="h-9 w-9 text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <FileDown className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Exportar Excel</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      {!hideTrigger && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  disabled={disabled || blocos.length === 0}
+                  className="h-9 w-9 text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <FileDown className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Exportar Excel</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-6 pb-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
