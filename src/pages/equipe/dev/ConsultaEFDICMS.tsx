@@ -483,7 +483,7 @@ const ConsultaEFDICMS = () => {
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
-            <Select 
+              <Select 
                 value={selectedContribuinte} 
                 onValueChange={(value) => {
                   setSelectedContribuinte(value);
