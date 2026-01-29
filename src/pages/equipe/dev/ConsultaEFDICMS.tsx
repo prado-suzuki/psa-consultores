@@ -58,6 +58,7 @@ const ConsultaEFDICMS = () => {
   // Estados de filtros de busca
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
+  const [selectedFilial, setSelectedFilial] = useState<string>("todas");
   const [mesInicio, setMesInicio] = useState<{ month: number; year: number } | null>(defaultDates.inicio);
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
@@ -124,24 +125,75 @@ const ConsultaEFDICMS = () => {
     tipo: 'icms', // Usar dados mockados do Storage
   });
 
-  // Filtrar arquivos localmente por período (intersecção)
+  // Interface para opções de filial
+  interface FilialOption {
+    codigo: string;
+    nome: string;
+    ie: string;
+    cnpjCompleto: string;
+  }
+
+  // Extrair filiais únicas dos arquivos
+  const filiaisDisponiveis = useMemo((): FilialOption[] => {
+    if (!overview?.arquivos) return [];
+    
+    const filiaisMap = new Map<string, FilialOption>();
+    
+    overview.arquivos.forEach(arq => {
+      const codigo = arq.num_filial || '0000';
+      
+      if (!filiaisMap.has(codigo)) {
+        filiaisMap.set(codigo, {
+          codigo,
+          nome: arq.NOME || (codigo === '0000' ? 'Matriz' : `Filial ${codigo}`),
+          ie: arq.IE || '',
+          cnpjCompleto: arq.CNPJ,
+        });
+      }
+    });
+    
+    return Array.from(filiaisMap.values())
+      .sort((a, b) => a.codigo.localeCompare(b.codigo));
+  }, [overview?.arquivos]);
+
+  // Obter dados da filial selecionada para exibição
+  const filialSelecionada = useMemo(() => {
+    if (selectedFilial === 'todas' || filiaisDisponiveis.length === 0) {
+      return null;
+    }
+    return filiaisDisponiveis.find(f => f.codigo === selectedFilial) || null;
+  }, [selectedFilial, filiaisDisponiveis]);
+
+  // Filtrar arquivos localmente por filial e período (intersecção)
   const arquivosFiltrados = useMemo(() => {
     if (!overview?.arquivos) return [];
     
-    if (!dataInicio && !dataFim) return overview.arquivos;
+    let filtrados = overview.arquivos;
     
-    return overview.arquivos.filter(arquivo => {
-      const arquivoInicio = new Date(arquivo.DT_INI);
-      const arquivoFim = new Date(arquivo.DT_FIN);
-      const filtroInicio = dataInicio ? new Date(dataInicio) : null;
-      const filtroFim = dataFim ? new Date(dataFim) : null;
-      
-      const depoisDoInicio = !filtroInicio || arquivoFim >= filtroInicio;
-      const antesDoFim = !filtroFim || arquivoInicio <= filtroFim;
-      
-      return depoisDoInicio && antesDoFim;
-    });
-  }, [overview?.arquivos, dataInicio, dataFim]);
+    // Filtro por filial
+    if (selectedFilial && selectedFilial !== 'todas') {
+      filtrados = filtrados.filter(arq => 
+        (arq.num_filial || '0000') === selectedFilial
+      );
+    }
+    
+    // Filtro por período
+    if (dataInicio || dataFim) {
+      filtrados = filtrados.filter(arquivo => {
+        const arquivoInicio = new Date(arquivo.DT_INI);
+        const arquivoFim = new Date(arquivo.DT_FIN);
+        const filtroInicio = dataInicio ? new Date(dataInicio) : null;
+        const filtroFim = dataFim ? new Date(dataFim) : null;
+        
+        const depoisDoInicio = !filtroInicio || arquivoFim >= filtroInicio;
+        const antesDoFim = !filtroFim || arquivoInicio <= filtroFim;
+        
+        return depoisDoInicio && antesDoFim;
+      });
+    }
+    
+    return filtrados;
+  }, [overview?.arquivos, selectedFilial, dataInicio, dataFim]);
 
   // Exibir erro se houver
   useEffect(() => {
@@ -296,6 +348,7 @@ const ConsultaEFDICMS = () => {
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
+    setSelectedFilial("todas");
     setMesInicio(null);
     setMesFim(null);
     setSearchTriggered(false);
@@ -389,10 +442,11 @@ const ConsultaEFDICMS = () => {
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
-              <Select 
+            <Select 
                 value={selectedContribuinte} 
                 onValueChange={(value) => {
                   setSelectedContribuinte(value);
+                  setSelectedFilial("todas");
                   setSearchTriggered(false);
                 }}
               >
@@ -468,54 +522,98 @@ const ConsultaEFDICMS = () => {
 
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
-        {/* Header com CNPJ */}
+        {/* Header com Dropdown de Filial + CNPJ */}
         {overview?.cnpj && (
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
-            {/* Lado Esquerdo - CNPJ */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              {/* Lado Esquerdo - Dropdown de Filial + CNPJ */}
+              <div className="flex items-center gap-4">
                 <Building2 className="h-5 w-5 text-primary" />
-                CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(overview.cnpj)}</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => refetchOverview()}
-                disabled={loadingOverview}
-              >
-                {loadingOverview ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            {/* Lado Direito - Baixar Todos */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadAll}
-                    disabled={downloadingAll || arquivosFiltrados.length === 0}
-                    className="gap-2"
+                
+                <div className="flex flex-col">
+                  {/* Dropdown de Filial */}
+                  <Select 
+                    value={selectedFilial} 
+                    onValueChange={setSelectedFilial}
                   >
-                    {downloadingAll ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
+                    <SelectTrigger className="h-auto w-auto min-w-[200px] border-0 bg-transparent p-0 shadow-none gap-1.5 text-sm font-bold text-slate-800 dark:text-white focus:ring-0 [&>svg]:h-4 [&>svg]:w-4">
+                      <SelectValue>
+                        {selectedFilial === 'todas' 
+                          ? 'Todas as filiais' 
+                          : filialSelecionada?.nome || 'Matriz'
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border z-50 min-w-[300px]">
+                      <SelectItem value="todas">
+                        <span className="font-medium">Todas as filiais</span>
+                      </SelectItem>
+                      {filiaisDisponiveis.map(filial => (
+                        <SelectItem key={filial.codigo} value={filial.codigo}>
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span className="font-medium truncate max-w-[200px]">
+                              {filial.nome}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              ({filial.codigo})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* CNPJ em tamanho menor */}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    CNPJ: {formatCNPJ(
+                      selectedFilial !== 'todas' && filialSelecionada 
+                        ? filialSelecionada.cnpjCompleto 
+                        : overview.cnpj
                     )}
-                    Baixar Todos
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Baixar todos os {arquivosFiltrados.length} arquivo(s) em ZIP</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  </span>
+                </div>
+                
+                {/* Botão Refresh */}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => refetchOverview()}
+                  disabled={loadingOverview}
+                >
+                  {loadingOverview ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Lado Direito - Baixar Todos */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadAll}
+                      disabled={downloadingAll || arquivosFiltrados.length === 0}
+                      className="gap-2"
+                    >
+                      {downloadingAll ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      Baixar Todos
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Baixar {arquivosFiltrados.length} arquivo(s) em ZIP</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         )}
 
