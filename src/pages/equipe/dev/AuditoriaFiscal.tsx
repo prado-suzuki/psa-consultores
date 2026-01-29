@@ -502,11 +502,81 @@ const AuditoriaFiscal = () => {
     setPendingDecisionsCount(0);
   };
 
-  const handleExportExcel = () => {
-    toast({
-      title: 'Exportação Teste Concluída',
-      description: 'O endpoint de exportação será implementado em breve.',
-    });
+  // Estado para exportação Excel
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (!selectedContribuinte || !dataInicio || !dataFim) {
+      toast({
+        title: 'Filtros incompletos',
+        description: 'Selecione contribuinte e período para exportar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Verificar se há decisões não salvas
+    if (pendingDecisionsCount > 0) {
+      toast({
+        title: 'Decisões não salvas',
+        description: 'Salve as alterações antes de exportar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/${selectedContribuinte}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Erro ao gerar exportação');
+      }
+
+      // Obter o arquivo como blob
+      const blob = await response.blob();
+      
+      // Criar URL e fazer download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Gerar nome do arquivo
+      const contribuinteNome = contribuintes?.find(c => c.id === selectedContribuinte)?.nome_razao_social || 'contribuinte';
+      const dataInicioFormatted = format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'ddMMyyyy');
+      const dataFimFormatted = format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'ddMMyyyy');
+      a.download = `DIFAL_${contribuinteNome.replace(/\s+/g, '_')}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Exportação concluída',
+        description: 'O arquivo Excel foi baixado com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro na exportação',
+        description: error instanceof Error ? error.message : 'Erro ao exportar dados',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Handler para sincronizar decisões com o banco principal
@@ -944,10 +1014,16 @@ const AuditoriaFiscal = () => {
             variant="outline"
             size="sm"
             onClick={handleExportExcel}
+            disabled={isExporting || pendingDecisionsCount > 0}
             className="gap-2"
+            title={pendingDecisionsCount > 0 ? 'Salve as alterações antes de exportar' : 'Exportar classificações para Excel'}
           >
-            <Download className="h-4 w-4" />
-            Exportar Excel
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
           </Button>
         </div>
       )}
