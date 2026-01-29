@@ -525,15 +525,15 @@ const ConsultaEFD = () => {
                     variant={downloadingAll ? "default" : "outline"}
                     size="sm"
                     onClick={handleDownloadAll}
-                    disabled={downloadingAll || arquivosFiltrados.length === 0}
-                    className={!downloadingAll ? "text-slate-600 hover:text-primary" : ""}
+                    disabled={arquivosFiltrados.length === 0}
+                    className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
                   >
                     {downloadingAll ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
                     ) : (
                       <Download className="h-4 w-4 mr-2" />
                     )}
-                    Baixar Todos
+                    <span className={downloadingAll ? "text-white" : ""}>Baixar Todos</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
