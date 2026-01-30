@@ -209,12 +209,12 @@ export const DifalAuditModal = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">UF Origem</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.uf_emit}</p>
+                      <span className="text-xs text-slate-500 uppercase font-medium">CFOP</span>
+                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.cfop}</p>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.uf_dest}</p>
+                      <p className="text-slate-700 dark:text-slate-300 mt-1">{ufDestino}</p>
                     </div>
                   </div>
 

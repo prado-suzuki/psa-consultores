@@ -3,30 +3,48 @@
 // Tipos de decisão válidos
 export type TipoDecisao = 'REGRA_SELECIONADA' | 'SEM_ST' | 'ISENTO' | 'NAO_APLICAVEL';
 
-// Item achatado da NFe
-export interface DifalItem {
-  // Identificadores únicos
-  id_contribuinte: string;
+// Item da resposta da API agrupada (novo endpoint)
+export interface DifalApiGroupedItem {
+  cProd: string;
+  xProd: string;
+  NCM: string;
+  CFOP: string;
+  CST: string | null;
+  tot_itens: number;
+  tot_nfes: number;
+  vlr_total: number;
+  aliq_prod: number | null;
+}
+
+// Resposta paginada da API agrupada
+export interface DifalApiGroupedResponse {
+  items: DifalApiGroupedItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+}
+
+// Item agrupado para a tabela (formato usado na UI)
+export interface DifalGroupedItem {
+  groupKey: string;           // "nome|codigo|ncm"
+  xProd: string;
   cod_produto: string;
   cod_ncm: string;
+  id_contribuinte: string;
   
-  // Dados do XML
-  xProd: string;
-  vProd: number;
+  // Dados do item
   cfop: string;
-  uf_emit: string;
-  uf_dest: string;
-  
-  // Tributação entrada (ICMS)
   cst_icms: string | null;
   aliq_icms: number | null;
   
-  // Referência à nota
-  chave_nfe: string;
-  nItem: number;
+  // Agregações
+  count: number;
+  totalValue: number;
+  nfesCount: number;
   
-  // Status de classificação (preenchido após merge)
-  status?: 'validado' | 'pendente';
+  // Status
+  status: 'validado' | 'pendente';
   classificacao?: ClassificacaoExistente | null;
 }
 
@@ -47,31 +65,6 @@ export interface NCMRegraInfo {
 
 export interface NCMRegrasResponse {
   [ncm: string]: NCMRegraInfo;
-}
-
-// Item agrupado para a tabela (agregação por nome+codigo+ncm)
-export interface DifalGroupedItem {
-  groupKey: string;           // "nome|codigo|ncm"
-  xProd: string;
-  cod_produto: string;
-  cod_ncm: string;
-  id_contribuinte: string;
-  
-  // Dados do primeiro item (para exibição na tabela)
-  uf_emit: string;
-  uf_dest: string;
-  cst_icms: string | null;
-  aliq_icms: number | null;
-  
-  // Agregações (para o modal)
-  count: number;
-  totalValue: number;
-  nfesCount: number;
-  items: DifalItem[];
-  
-  // Status
-  status: 'validado' | 'pendente';
-  classificacao?: ClassificacaoExistente | null;
 }
 
 // Classificação existente
@@ -126,32 +119,4 @@ export interface SyncResponse {
 export interface NCMRegrasPayload {
   ncms: string[];
   uf: string;
-}
-
-// Estrutura de produto dentro da NFe (simplificada)
-export interface NFeProduto {
-  nItem: number;
-  cProd: string;
-  xProd: string;
-  NCM: string;
-  CFOP: string;
-  vProd: number;
-  ICMS?: {
-    CST?: string;
-    pICMS?: number;
-  };
-}
-
-// Estrutura simplificada da NFe
-export interface NFeRecord {
-  chave_nfe: string;
-  emit: {
-    UF: string;
-    CNPJ?: string;
-  };
-  dest: {
-    UF: string;
-    CNPJ?: string;
-  };
-  produtos: NFeProduto[];
 }
