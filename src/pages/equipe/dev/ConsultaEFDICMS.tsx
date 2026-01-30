@@ -890,6 +890,7 @@ const ConsultaEFDICMS = () => {
           arquivo={arquivoParaExportar}
           blocosDisponiveis={blocosDisponiveis}
           tipo="icms"
+          profileType="efd_icms"
           externalOpen={exportDialogOpen}
           onExternalOpenChange={setExportDialogOpen}
           hideTrigger

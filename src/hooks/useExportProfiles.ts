@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export type ExportToolType = 'xml' | 'efd';
+export type ExportToolType = 'xml' | 'efd' | 'efd_icms';
 
 export interface ExportProfile {
   id: string;
