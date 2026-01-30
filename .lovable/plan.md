@@ -1,148 +1,99 @@
 
+# Plano: Atualização do Dashboard do Cliente
 
-## Plano: Comportamento de Sessão Após Sincronização
+## Visão Geral
 
-### Comportamento Atual vs Desejado
+Adicionar uma nova seção abaixo dos cards de "Abrir Chamado" e "Meus Chamados" no Dashboard do Cliente (/cliente) com:
+1. Uma sub-aba navegável entre "Projetos em Andamento" e "Dashboards/Documentos"
+2. Visão de cards para projetos ativos do cliente
+3. Tabela para listar dashboards e documentos disponíveis
 
-| Aspecto | Comportamento Atual | Comportamento Desejado |
-|---------|---------------------|------------------------|
-| Sessão | Permanece ativa com status `SINCRONIZADO` | É finalizada/arquivada |
-| Filtros | Permanecem preenchidos | **Mantidos** (cliente, contribuinte, período) |
-| Dados da grid | Permanecem estáticos | **Recarregados** com classificações atualizadas |
-| Decisões locais | Limpas | Limpas |
-| Próxima alteração | Continua na mesma sessão | **Nova sessão** criada automaticamente |
+## Análise Técnica
 
----
+### Estado Atual
+- O `ClienteDashboard.tsx` é simples, com dois cards de ação
+- Não existe uma tabela de vinculação entre usuários autenticados e projetos/documentos do cliente
+- As tabelas `project_documents` e `projects` existem, mas são voltadas para a equipe interna
 
-### Lógica de Negócio
+### Estrutura de Dados
+Para esta funcionalidade, será necessário criar novas tabelas no banco de dados:
+- `client_projects` - vincular user_id a projetos do cliente
+- `client_documents` - vincular user_id a documentos disponíveis para download
+
+Por enquanto, usaremos dados de exemplo (mock) para demonstrar a interface, permitindo validação visual antes de implementar o backend.
+
+## Mudanças Propostas
+
+### 1. Atualização do ClienteDashboard.tsx
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Fluxo de Sincronização                                         │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Usuário clica "Salvar Alterações"                           │
-│     ↓                                                           │
-│  2. Envia decisões para API /classificacoes/sync                │
-│     ↓                                                           │
-│  3. Atualiza sessão → status: 'FINALIZADO'                      │
-│     ↓                                                           │
-│  4. Limpa activeSessaoId e localDecisions                       │
-│     ↓                                                           │
-│  5. MANTÉM filtros (cliente, contribuinte, datas)               │
-│     ↓                                                           │
-│  6. Re-dispara busca → Recarrega dados com classificações       │
-│     ↓                                                           │
-│  7. Próxima classificação → Cria NOVA sessão automaticamente    │
-└─────────────────────────────────────────────────────────────────┘
+Estrutura final:
+┌─────────────────────────────────────────────────────┐
+│  Header (existente)                                 │
+├─────────────────────────────────────────────────────┤
+│  Título de Boas-vindas (existente)                  │
+├─────────────────────────────────────────────────────┤
+│  ┌────────────────┐  ┌────────────────┐             │
+│  │  Abrir Chamado │  │ Meus Chamados  │             │
+│  └────────────────┘  └────────────────┘             │
+├─────────────────────────────────────────────────────┤
+│  [Nova Seção]                                       │
+│  ┌─────────────────────────────────────────────────┐│
+│  │ Tabs: [Projetos] [Dashboards e Documentos]      ││
+│  ├─────────────────────────────────────────────────┤│
+│  │ Conteúdo da Tab Selecionada                     ││
+│  │ - Projetos: Cards com status e progresso       ││
+│  │ - Documentos: Tabela com tipo, nome, ações     ││
+│  └─────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────┘
 ```
 
----
+### 2. Componentes a Adicionar
 
-### Alterações Necessárias
+**Tab "Projetos em Andamento":**
+- Cards estilizados com cores da marca (Teal)
+- Informações: nome do projeto, descrição, status, progresso
+- Badge de status com cores semânticas
 
-#### Arquivo: `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+**Tab "Dashboards e Documentos":**
+- Tabela responsiva usando componentes Table do projeto
+- Colunas: Tipo (ícone), Nome, Descrição, Ação (botão abrir/download)
+- Ícones diferenciados para Dashboard vs Documento
 
-##### 1. Modificar `handleSaveChanges` (linhas 510-598)
+### 3. Dados de Exemplo (Mock)
 
-Após sincronização bem-sucedida:
+Projetos de exemplo:
+- "Diagnóstico Fiscal 2024" - Em andamento (75%)
+- "Reestruturação Societária" - Em análise (30%)
 
-```tsx
-// Comportamento atual (linhas 571-583)
-await supabase
-  .from('difal_sessao')
-  .update({
-    status: 'SINCRONIZADO',
-    sincronizado_em: new Date().toISOString(),
-  })
-  .eq('id', activeSessaoId);
+Documentos de exemplo:
+- Dashboard de Acompanhamento Fiscal (link externo)
+- Relatório Trimestral Q4/2024 (PDF)
+- Manual de Procedimentos (PDF)
 
-setPendingDecisionsCount(0);
-setLocalDecisions(new Set());
-queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
+### 4. Alinhamento de Marca
 
-// Comportamento NOVO
-await supabase
-  .from('difal_sessao')
-  .update({
-    status: 'FINALIZADO',  // Marcar como finalizado
-    sincronizado_em: new Date().toISOString(),
-  })
-  .eq('id', activeSessaoId);
+Seguindo o design system existente:
+- Background: `bg-[hsl(210_20%_98%)]` (slate-50)
+- Cards: `bg-background` com `shadow-sm`
+- Cor primária: Teal (#0d9488) para ações e destaques
+- Tipografia: Work Sans (configurada globalmente)
+- Badges: Cores semânticas para status (verde/amarelo/azul)
 
-// Deletar decisões locais da sessão finalizada
-await supabase
-  .from('difal_decisao')
-  .delete()
-  .eq('sessao_id', activeSessaoId);
+## Etapas de Implementação
 
-// Limpar estado de sessão (mas MANTER filtros)
-setActiveSessaoId(null);
-setPendingDecisionsCount(0);
-setLocalDecisions(new Set());
+1. Importar componentes necessários (Tabs, Table, Badge, ícones)
+2. Criar interfaces TypeScript para projetos e documentos do cliente
+3. Adicionar dados mock para demonstração
+4. Implementar seção de Tabs abaixo dos cards existentes
+5. Criar visualização de cards para projetos
+6. Criar tabela para dashboards/documentos
+7. Estilizar conforme padrões da marca
 
-// Re-buscar dados com classificações atualizadas
-queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
-queryClient.invalidateQueries({ queryKey: ['difal-nfes'] });
-```
+## Considerações Futuras
 
-##### 2. Modificar `handleSearch` (linhas 405-491)
-
-Ajustar para não buscar sessões com status `FINALIZADO`:
-
-```tsx
-// Linha 421 - Adicionar filtro de status
-const { data: existingSession } = await supabase
-  .from('difal_sessao')
-  .select('id')
-  .eq('usuario_id', user?.id || 'unknown')
-  .eq('status', 'EM_ANDAMENTO')  // Já está assim ✓
-  .maybeSingle();
-```
-
-##### 3. Modificar `loadLastSession` (linhas 184-258)
-
-Ignorar sessões finalizadas ao restaurar:
-
-```tsx
-// Linha 192-198 - Adicionar filtro para não restaurar sessões finalizadas
-const { data: lastSession, error } = await supabase
-  .from('difal_sessao')
-  .select('*')
-  .eq('usuario_id', user.id)
-  .in('status', ['EM_ANDAMENTO', 'SINCRONIZADO'])  // Excluir FINALIZADO
-  .order('criado_em', { ascending: false })
-  .limit(1)
-  .maybeSingle();
-```
-
-Ou alternativamente, apenas buscar sessões `EM_ANDAMENTO`:
-
-```tsx
-.eq('status', 'EM_ANDAMENTO')
-```
-
----
-
-### Fluxo Completo Após Implementação
-
-1. **Usuário faz classificações** → Decisões salvas em `difal_decisao` com `sessao_id`
-2. **Usuário clica "Salvar Alterações"**:
-   - Decisões enviadas para API
-   - Sessão marcada como `FINALIZADO`
-   - Decisões locais deletadas do Supabase
-   - `activeSessaoId` limpo
-   - Filtros mantidos
-   - Dados recarregados
-3. **Grid atualizada** → Itens agora mostram status `validado` (vindos da API)
-4. **Usuário faz nova classificação** → Nova sessão criada automaticamente pelo `handleSearch`
-
----
-
-### Consideração: Restauração de Sessão
-
-Com a mudança, quando o usuário entra na ferramenta:
-- Se existir sessão `EM_ANDAMENTO` → Restaura e continua
-- Se existir apenas sessões `FINALIZADO` → Não restaura (começa limpo)
-
-Isso evita confusão onde o usuário voltava para uma sessão já sincronizada.
-
+Após validação da interface:
+- Criar tabelas `client_projects` e `client_documents` no banco
+- Implementar RLS para que cada cliente veja apenas seus dados
+- Conectar a interface com dados reais via Supabase
+- Adicionar funcionalidade de upload/download real
