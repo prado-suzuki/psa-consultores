@@ -41,6 +41,7 @@ const ConsultaEFDICMS = () => {
   const [selectedArquivo, setSelectedArquivo] = useState<EFDArquivo | null>(null);
   
   const [downloadingTxt, setDownloadingTxt] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   
   // Estados de seleção múltipla para exportação
   const [selectedArquivos, setSelectedArquivos] = useState<Set<string>>(new Set());
@@ -264,6 +265,83 @@ const ConsultaEFDICMS = () => {
     }
   };
 
+  // Handler para baixar todos os arquivos (ZIP)
+  const handleDownloadAll = async () => {
+    if (!cnpjContribuinte) return;
+    
+    setDownloadingAll(true);
+    
+    try {
+      // Montar URL com query params opcionais
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
+      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
+      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      
+      // Usar timeout maior para downloads grandes (60s)
+      const response = await fetchWithAuth(url.toString(), {}, 60000);
+      
+      if (!response.ok) {
+        const contentType = response.headers.get('Content-Type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error_message || `Erro ${response.status}`);
+        }
+        throw new Error(`Erro ${response.status} ao baixar arquivos`);
+      }
+      
+      // Verificar headers informativos
+      const filesFound = response.headers.get('X-Files-Found');
+      const filesMissing = response.headers.get('X-Files-Missing');
+      
+      // Obter nome do arquivo
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const contentType = response.headers.get('Content-Type');
+      const isZip = contentType?.includes('application/zip');
+      
+      let filename = isZip ? `EFD_ICMS_${cnpjContribuinte}.zip` : `EFD_ICMS_${cnpjContribuinte}.txt`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match?.[1]) filename = match[1].replace(/['"]/g, '');
+      }
+      
+      // Download do blob
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Arquivo vazio recebido do servidor');
+      }
+      
+      // Criar link e download
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      // Mensagem de sucesso com detalhes
+      let description = `Arquivo ${filename} (${(blob.size / 1024).toFixed(1)} KB) baixado.`;
+      if (filesFound && filesMissing && parseInt(filesMissing) > 0) {
+        description = `${filesFound} arquivo(s) baixado(s), ${filesMissing} não encontrado(s) no storage.`;
+      } else if (filesFound) {
+        description = `${filesFound} arquivo(s) baixado(s) com sucesso.`;
+      }
+      
+      toast({ title: 'Download concluído', description });
+    } catch (error) {
+      console.error('Erro ao baixar todos:', error);
+      toast({
+        title: 'Erro no download',
+        description: error instanceof Error ? error.message : 'Não foi possível baixar os arquivos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
   // Handler para baixar arquivos selecionados
   const handleDownloadSelecionados = async () => {
     // Validação: precisa ter arquivos selecionados
@@ -276,13 +354,9 @@ const ConsultaEFDICMS = () => {
       return;
     }
     
-    // Múltiplos arquivos - mostrar toast informativo (funcionalidade em desenvolvimento)
+    // Múltiplos arquivos - usar download em lote (ZIP)
     if (selectedArquivos.size > 1) {
-      toast({
-        title: "Funcionalidade em desenvolvimento",
-        description: `O download em lote de ${selectedArquivos.size} arquivos ainda está sendo implementado. Por enquanto, baixe cada arquivo individualmente.`,
-        duration: 5000,
-      });
+      await handleDownloadAll();
       return;
     }
     
@@ -674,10 +748,10 @@ const ConsultaEFDICMS = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleDownloadSelecionados}
-                        disabled={downloadingTxt !== null || selectedArquivos.size === 0}
+                        disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
                         className="gap-2"
                       >
-                        {downloadingTxt !== null && selectedArquivos.size === 1 && selectedArquivos.has(downloadingTxt) ? (
+                        {(downloadingTxt !== null || downloadingAll) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Download className="h-4 w-4" />
