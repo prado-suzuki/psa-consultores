@@ -130,6 +130,13 @@ const AuditoriaFiscal = () => {
   // Estado local para rastrear decisões feitas na sessão atual (atualização imediata do Status)
   const [localDecisions, setLocalDecisions] = useState<Set<string>>(new Set());
 
+  // Estatísticas globais (não mudam com filtro de status)
+  const [globalStats, setGlobalStats] = useState<{
+    total: number;
+    validados: number;
+    pendentes: number;
+  } | null>(null);
+
   // Determinar tabela baseado no ambiente
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
   const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -292,6 +299,17 @@ const AuditoriaFiscal = () => {
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
+
+  // Atualizar estatísticas globais quando busca sem filtro
+  useEffect(() => {
+    if (statusFilter === 'all' && apiGroupedData && searchTriggered) {
+      setGlobalStats({
+        total: apiGroupedData.total,
+        validados: apiGroupedData.qtdValidados,
+        pendentes: apiGroupedData.qtdPendentes,
+      });
+    }
+  }, [statusFilter, apiGroupedData, searchTriggered]);
 
   // Converter itens da API para formato da UI
   const groupedItemsFromApi = useMemo(() => {
@@ -461,6 +479,7 @@ const AuditoriaFiscal = () => {
     setActiveSessaoId(null);
     setPendingDecisionsCount(0);
     setStatusFilter('all');
+    setGlobalStats(null);
   };
 
   // Handler para mudança de filtro de status
@@ -670,15 +689,12 @@ const AuditoriaFiscal = () => {
     }).format(value);
   };
 
-  // Estatísticas
-  // Total de itens retornado pela API
-  const totalItems = apiGroupedData?.total ?? 0;
+  // Usar estatísticas globais para os cards (não mudam com filtro)
+  const totalItems = globalStats?.total ?? 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const hasMore = apiGroupedData?.hasMore ?? false;
-
-  // Estatísticas da API
-  const qtdValidados = apiGroupedData?.qtdValidados ?? 0;
-  const qtdPendentes = apiGroupedData?.qtdPendentes ?? 0;
+  const qtdValidados = globalStats?.validados ?? 0;
+  const qtdPendentes = globalStats?.pendentes ?? 0;
 
   const handlePageChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev' && currentPage > 1) {
