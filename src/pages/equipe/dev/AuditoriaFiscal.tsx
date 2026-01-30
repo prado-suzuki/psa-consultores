@@ -262,7 +262,7 @@ const AuditoriaFiscal = () => {
       }
 
       // Usar novo endpoint que já retorna dados agrupados
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=1&page_size=1000`;
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=1&page_size=100`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
