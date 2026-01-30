@@ -255,34 +255,23 @@ const AuditoriaFiscal = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim],
+    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, Math.ceil(currentPage / 4)],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error('Contribuinte não selecionado');
       }
 
-      // Buscar todas as páginas do endpoint
-      let allItems: DifalApiGroupedItem[] = [];
-      let currentPage = 1;
-      let hasMore = true;
-      let totalItems = 0;
+      // Buscar apenas a página atual da API (100 itens por página da API)
+      const apiPage = Math.ceil(currentPage / 4); // 4 páginas de UI (25 itens) = 1 página de API (100 itens)
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${apiPage}&page_size=100`;
 
-      while (hasMore) {
-        const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=100`;
-
-        const response = await fetchWithAuth(url);
-        if (!response.ok) {
-          throw new Error('Erro ao buscar itens agrupados');
-        }
-
-        const data: DifalApiGroupedResponse = await response.json();
-        allItems = [...allItems, ...data.items];
-        hasMore = data.has_more;
-        totalItems = data.total;
-        currentPage++;
+      const response = await fetchWithAuth(url);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar itens agrupados');
       }
 
-      return { items: allItems, total: totalItems };
+      const data: DifalApiGroupedResponse = await response.json();
+      return { items: data.items, total: data.total, hasMore: data.has_more, apiPage };
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
