@@ -252,8 +252,10 @@ export const DifalAuditModal = ({
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.nfesCount}</p>
                         <p className="text-xs text-slate-500">NFes</p>
                       </div>
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-                        <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(group.totalValue)}</p>
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center overflow-hidden">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={formatCurrency(group.totalValue)}>
+                          {formatCurrency(group.totalValue)}
+                        </p>
                         <p className="text-xs text-slate-500">Valor Total</p>
                       </div>
                     </div>
