@@ -114,6 +114,10 @@ const AuditoriaFiscal = () => {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Filtro de status (Total, Validados, Pendentes)
+  type StatusFilter = 'all' | 'validated' | 'pending';
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
   // Estado do modal
   const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -255,14 +259,22 @@ const AuditoriaFiscal = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, currentPage],
+    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error('Contribuinte não selecionado');
       }
 
-      // Buscar página atual com 25 itens por página
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      // Construir URL base
+      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+
+      // Adicionar filtro de validação se necessário
+      if (statusFilter === 'validated') {
+        url += '&valid=true';
+      } else if (statusFilter === 'pending') {
+        url += '&valid=false';
+      }
+      // statusFilter === 'all' não adiciona parâmetro (retorna todos)
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
@@ -448,6 +460,13 @@ const AuditoriaFiscal = () => {
     setSearchTriggered(false);
     setActiveSessaoId(null);
     setPendingDecisionsCount(0);
+    setStatusFilter('all');
+  };
+
+  // Handler para mudança de filtro de status
+  const handleStatusFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    setCurrentPage(1); // Resetar para primeira página ao mudar filtro
   };
 
   // Estado para exportação Excel
@@ -838,10 +857,16 @@ const AuditoriaFiscal = () => {
         </CardContent>
       </Card>
 
-      {/* Estatísticas */}
-      {searchTriggered && groupedItems.length > 0 && (
+      {/* Estatísticas - Cards clicáveis para filtrar */}
+      {searchTriggered && (totalItems > 0 || qtdValidados > 0 || qtdPendentes > 0) && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="border-slate-200">
+          <Card 
+            className={cn(
+              "border-slate-200 cursor-pointer transition-all hover:shadow-md",
+              statusFilter === 'all' && "ring-2 ring-primary ring-offset-2"
+            )}
+            onClick={() => handleStatusFilterChange('all')}
+          >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
                 <Package className="h-5 w-5 text-slate-600" />
@@ -852,7 +877,13 @@ const AuditoriaFiscal = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-green-200 bg-green-50/50">
+          <Card 
+            className={cn(
+              "border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md",
+              statusFilter === 'validated' && "ring-2 ring-green-500 ring-offset-2"
+            )}
+            onClick={() => handleStatusFilterChange('validated')}
+          >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -863,7 +894,13 @@ const AuditoriaFiscal = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-amber-200 bg-amber-50/50">
+          <Card 
+            className={cn(
+              "border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md",
+              statusFilter === 'pending' && "ring-2 ring-amber-500 ring-offset-2"
+            )}
+            onClick={() => handleStatusFilterChange('pending')}
+          >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
                 <AlertCircle className="h-5 w-5 text-amber-600" />
