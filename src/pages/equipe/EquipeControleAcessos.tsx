@@ -299,8 +299,11 @@ const EquipeControleAcessos = () => {
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
   const handleRefreshPages = () => {
+    // Invalidate all permission-related caches
     queryClient.invalidateQueries({ queryKey: ['page-permissions'] });
-    toast.success('Lista de páginas atualizada');
+    queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+    queryClient.invalidateQueries({ queryKey: ['page-access'] });
+    toast.success('Lista de páginas e permissões atualizada');
   };
 
   const toggleCategoryExpansion = (category: string) => {
