@@ -261,15 +261,28 @@ const AuditoriaFiscal = () => {
         throw new Error('Contribuinte não selecionado');
       }
 
-      // Usar novo endpoint que já retorna dados agrupados
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=1&page_size=100`;
+      // Buscar todas as páginas do endpoint
+      let allItems: DifalApiGroupedItem[] = [];
+      let currentPage = 1;
+      let hasMore = true;
+      let totalItems = 0;
 
-      const response = await fetchWithAuth(url);
-      if (!response.ok) {
-        throw new Error('Erro ao buscar itens agrupados');
+      while (hasMore) {
+        const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=100`;
+
+        const response = await fetchWithAuth(url);
+        if (!response.ok) {
+          throw new Error('Erro ao buscar itens agrupados');
+        }
+
+        const data: DifalApiGroupedResponse = await response.json();
+        allItems = [...allItems, ...data.items];
+        hasMore = data.has_more;
+        totalItems = data.total;
+        currentPage++;
       }
 
-      return response.json() as Promise<DifalApiGroupedResponse>;
+      return { items: allItems, total: totalItems };
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
