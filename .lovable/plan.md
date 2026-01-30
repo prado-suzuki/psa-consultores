@@ -1,161 +1,191 @@
 
-# Plano: Filtro por Status na Ferramenta DIFAL Inteligente
+# Plano: Correção dos Números nos Cards e Overflow no Modal
 
-## Objetivo
+## Problemas Identificados
 
-Adicionar interatividade aos cards de estatísticas (Total, Validados, Pendentes) para que funcionem como filtros. Ao clicar em um card, a tabela deve recarregar usando o parâmetro `valid` da API.
+### 1. Números nos Cards Não Batem
 
-## Comportamento Esperado
+**Análise dos dados da API:**
 
-| Card Clicado | Parâmetro API | Resultado |
-|--------------|---------------|-----------|
-| **Total** | sem `valid` | Todos os itens (comportamento atual) |
-| **Validados** | `valid=true` | Apenas itens já classificados |
-| **Pendentes** | `valid=false` | Apenas itens pendentes de classificação |
+| Requisição | `total` | `qtd_validados` | `qtd_pendentes` |
+|------------|---------|-----------------|-----------------|
+| Sem filtro (all) | 2620 | 708 | 1811 |
+| `valid=true` | 726 | 708 | 1811 |
+| `valid=false` | 1894 | 708 | 1811 |
 
-## Mudanças Técnicas
+A API retorna corretamente os valores **globais** para `qtd_validados` e `qtd_pendentes` independente do filtro. Porém, o campo `total` muda conforme o filtro aplicado.
 
-### 1. Novo Estado para Filtro de Status
+**O problema:** O card "Total de Itens" está exibindo o `total` da resposta atual (que muda com o filtro), enquanto "Validados" e "Pendentes" mostram valores globais. Isso cria inconsistência visual onde 708 + 1811 ≠ 1894.
 
-Adicionar estado para controlar qual filtro está ativo:
+**Comportamento esperado:**
+- Os cards devem sempre mostrar os valores **globais** (do filtro "all")
+- A tabela deve mostrar os dados filtrados
+- Os cards servem como **indicadores** e **botões de filtro**, não como contagem da tabela atual
 
-```typescript
-// Tipos de filtro de status
-type StatusFilter = 'all' | 'validated' | 'pending';
+### 2. Overflow do Valor no Modal
 
-// Estado do filtro
-const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-```
+No modal "Classificar Item" (`DifalAuditModal.tsx`), o valor monetário "R$ 1.750.000,00" está ultrapassando os limites do card "Resumo do Grupo" porque:
+1. O grid tem `grid-cols-3` com espaço limitado
+2. Valores grandes não têm tratamento de overflow
+3. O texto não quebra nem trunca
 
-### 2. Atualizar Query da API
+## Solução Proposta
 
-Modificar a URL da query para incluir o parâmetro `valid` quando necessário:
+### Correção 1: Estatísticas Globais Separadas
 
-```typescript
-// Linha ~258-280
-const {
-  data: apiGroupedData,
-  isLoading: isLoadingItems,
-} = useQuery({
-  queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
-  queryFn: async () => {
-    // Construir URL base
-    let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
-    
-    // Adicionar filtro de validação se necessário
-    if (statusFilter === 'validated') {
-      url += '&valid=true';
-    } else if (statusFilter === 'pending') {
-      url += '&valid=false';
-    }
-    // statusFilter === 'all' não adiciona parâmetro (retorna todos)
-    
-    const response = await fetchWithAuth(url);
-    // ...
-  },
-  enabled: searchTriggered && !!selectedContribuinte,
-});
-```
-
-### 3. Cards de Estatísticas Clicáveis
-
-Transformar os cards em elementos interativos com visual feedback:
+Armazenar as estatísticas globais quando a busca inicial é feita (sem filtro) e usá-las nos cards independente do filtro ativo.
 
 ```typescript
-// Card Total (linhas ~843-854)
-<Card 
-  className={cn(
-    "border-slate-200 cursor-pointer transition-all hover:shadow-md",
-    statusFilter === 'all' && "ring-2 ring-primary ring-offset-2"
-  )}
-  onClick={() => handleStatusFilterChange('all')}
->
-  ...
-</Card>
+// Novo estado para armazenar estatísticas globais
+const [globalStats, setGlobalStats] = useState<{
+  total: number;
+  validados: number;
+  pendentes: number;
+} | null>(null);
 
-// Card Validados (linhas ~855-865)
-<Card 
-  className={cn(
-    "border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md",
-    statusFilter === 'validated' && "ring-2 ring-green-500 ring-offset-2"
-  )}
-  onClick={() => handleStatusFilterChange('validated')}
->
-  ...
-</Card>
+// Na query, salvar stats globais apenas quando statusFilter === 'all'
+useEffect(() => {
+  if (statusFilter === 'all' && apiGroupedData) {
+    setGlobalStats({
+      total: apiGroupedData.total,
+      validados: apiGroupedData.qtdValidados,
+      pendentes: apiGroupedData.qtdPendentes,
+    });
+  }
+}, [statusFilter, apiGroupedData]);
 
-// Card Pendentes (linhas ~866-876)
-<Card 
-  className={cn(
-    "border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md",
-    statusFilter === 'pending' && "ring-2 ring-amber-500 ring-offset-2"
-  )}
-  onClick={() => handleStatusFilterChange('pending')}
->
-  ...
-</Card>
+// Nos cards, usar globalStats ao invés de valores diretos
+<p className="text-2xl font-bold">{globalStats?.total ?? 0}</p>
+<p className="text-2xl font-bold">{globalStats?.validados ?? 0}</p>
+<p className="text-2xl font-bold">{globalStats?.pendentes ?? 0}</p>
 ```
 
-### 4. Handler para Mudança de Filtro
+### Correção 2: Overflow no Modal
 
-Criar função para tratar clique nos cards:
+Atualizar o CSS do card de "Valor Total" no modal para lidar com valores grandes.
 
-```typescript
-const handleStatusFilterChange = (filter: StatusFilter) => {
-  setStatusFilter(filter);
-  setCurrentPage(1); // Resetar para primeira página ao mudar filtro
-};
+**Arquivo:** `src/components/equipe/dev/DifalAuditModal.tsx` (linhas 255-258)
+
+```tsx
+// Antes:
+<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+  <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(group.totalValue)}</p>
+  <p className="text-xs text-slate-500">Valor Total</p>
+</div>
+
+// Depois:
+<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center overflow-hidden">
+  <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={formatCurrency(group.totalValue)}>
+    {formatCurrency(group.totalValue)}
+  </p>
+  <p className="text-xs text-slate-500">Valor Total</p>
+</div>
 ```
 
-### 5. Resetar Filtro ao Limpar ou Nova Busca
+Alterações:
+- Adicionar `overflow-hidden` no container
+- Reduzir tamanho da fonte de `text-lg` para `text-sm` para melhor encaixe
+- Adicionar `truncate` para truncar com reticências se necessário
+- Adicionar `title` para tooltip com valor completo
 
-Garantir que o filtro seja resetado em ações relevantes:
-
-```typescript
-// Em handleClearFilters (~443-451)
-const handleClearFilters = () => {
-  // ... código existente ...
-  setStatusFilter('all'); // Adicionar
-};
-
-// Em handleSearch - ao mudar contribuinte/período
-// O filtro pode manter-se ou resetar conforme preferência
-```
-
-## Estrutura Visual
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  FILTROS DE BUSCA                                                   │
-│  [Cliente] [Contribuinte] [Data Início] [Data Fim]  [Buscar]       │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│ ○ Total          │  │   Validados      │  │   Pendentes      │
-│ 150 itens        │  │   87 itens       │  │   63 itens       │
-│ [SELECIONADO]    │  │                  │  │                  │
-└──────────────────┘  └──────────────────┘  └──────────────────┘
-        ↑                     ↑                     ↑
-   Clique filtra         Clique filtra        Clique filtra
-   por TODOS            por valid=true       por valid=false
-
-┌─────────────────────────────────────────────────────────────────────┐
-│ TABELA DE ITENS (filtrada conforme seleção)                        │
-│ Status | Item | NCM | CFOP | Tributação | MVA/ST                   │
-│ ...                                                                │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-## Arquivo a Modificar
+## Arquivos a Modificar
 
 | Arquivo | Alterações |
 |---------|------------|
-| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Adicionar estado `statusFilter`, modificar query para incluir `valid`, tornar cards clicáveis |
+| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Adicionar estado `globalStats` e lógica para armazená-lo na busca inicial |
+| `src/components/equipe/dev/DifalAuditModal.tsx` | Ajustar CSS do card "Valor Total" para evitar overflow |
 
-## Considerações de UX
+## Mudanças Detalhadas
 
-1. **Feedback Visual**: Card selecionado terá borda destacada (ring)
-2. **Hover Effect**: Cards terão efeito de sombra ao passar o mouse
-3. **Cursor Pointer**: Indicar que são clicáveis
-4. **Reset de Página**: Ao trocar filtro, volta para página 1
-5. **Carregamento por Padrão**: Ao buscar, carrega "Total" (todos os itens)
+### AuditoriaFiscal.tsx
+
+**1. Adicionar estado para estatísticas globais (após linha ~127):**
+```typescript
+// Estados para sessão e decisões pendentes
+const [activeSessaoId, setActiveSessaoId] = useState<string | null>(null);
+const [pendingDecisionsCount, setPendingDecisionsCount] = useState(0);
+const [isSaving, setIsSaving] = useState(false);
+
+// NOVO: Estatísticas globais (não mudam com filtro)
+const [globalStats, setGlobalStats] = useState<{
+  total: number;
+  validados: number;
+  pendentes: number;
+} | null>(null);
+```
+
+**2. Atualizar estatísticas globais quando busca inicial (após linha ~293):**
+```typescript
+// Atualizar estatísticas globais quando busca sem filtro
+useEffect(() => {
+  if (statusFilter === 'all' && apiGroupedData && searchTriggered) {
+    setGlobalStats({
+      total: apiGroupedData.total,
+      validados: apiGroupedData.qtdValidados,
+      pendentes: apiGroupedData.qtdPendentes,
+    });
+  }
+}, [statusFilter, apiGroupedData, searchTriggered]);
+```
+
+**3. Limpar estatísticas ao limpar filtros (handleClearFilters):**
+```typescript
+const handleClearFilters = () => {
+  // ... código existente ...
+  setGlobalStats(null); // Adicionar
+};
+```
+
+**4. Atualizar cards para usar globalStats (linhas ~875, 892, 909):**
+```tsx
+// Card Total
+<p className="text-2xl font-bold text-slate-900">{globalStats?.total ?? 0}</p>
+
+// Card Validados
+<p className="text-2xl font-bold text-green-700">{globalStats?.validados ?? 0}</p>
+
+// Card Pendentes
+<p className="text-2xl font-bold text-amber-700">{globalStats?.pendentes ?? 0}</p>
+```
+
+### DifalAuditModal.tsx
+
+**Atualizar card de Valor Total (linhas 255-258):**
+```tsx
+<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center overflow-hidden">
+  <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={formatCurrency(group.totalValue)}>
+    {formatCurrency(group.totalValue)}
+  </p>
+  <p className="text-xs text-slate-500">Valor Total</p>
+</div>
+```
+
+## Comportamento Esperado Após Implementação
+
+1. **Cards sempre mostram valores globais:**
+   - Total: 2620 (soma real)
+   - Validados: 708
+   - Pendentes: 1811
+
+2. **Ao clicar em um card:**
+   - A tabela filtra pelos itens correspondentes
+   - O card clicado recebe destaque visual (ring)
+   - Os números nos cards **não mudam**
+   - A paginação mostra quantidade correta ("Página 1 de X (Y itens)")
+
+3. **Modal de classificação:**
+   - Valor monetário grande é exibido corretamente sem ultrapassar bordas
+   - Tooltip mostra valor completo ao passar o mouse
+
+## Validação da Matemática
+
+Com os dados da API:
+- Total global: 2620
+- Validados: 708 + Pendentes: 1811 = 2519
+
+A diferença de 101 itens (2620 - 2519) pode ser explicada por:
+- Itens em status intermediário
+- Itens sem classificação definida
+- Edge cases no agrupamento
+
+Isso é um comportamento aceitável da API e não precisa de correção no frontend.
