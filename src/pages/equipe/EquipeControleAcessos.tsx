@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSyncProtectedPages } from '@/hooks/useSyncProtectedPages';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ const EquipeControleAcessos = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { syncPages, isSyncing } = useSyncProtectedPages();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   
@@ -299,11 +301,8 @@ const EquipeControleAcessos = () => {
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
   const handleRefreshPages = () => {
-    // Invalidate all permission-related caches
-    queryClient.invalidateQueries({ queryKey: ['page-permissions'] });
-    queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
-    queryClient.invalidateQueries({ queryKey: ['page-access'] });
-    toast.success('Lista de páginas e permissões atualizada');
+    // Sync pages from config and invalidate caches
+    syncPages();
   };
 
   const toggleCategoryExpansion = (category: string) => {
@@ -432,11 +431,11 @@ const EquipeControleAcessos = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleRefreshPages}
-                    disabled={loadingPages}
+                    disabled={loadingPages || isSyncing}
                     className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingPages ? 'animate-spin' : ''}`} />
-                    Atualizar lista
+                    <RefreshCw className={`h-4 w-4 mr-2 ${(loadingPages || isSyncing) ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Sincronizando...' : 'Atualizar lista'}
                   </Button>
                 </div>
 
