@@ -1,190 +1,170 @@
 
-# Plano: Projetos em Andamento Vinculados ao Cliente
+# Plano: Correção do Sistema de Controle de Acessos
 
-## Visão Geral
+## Problemas Identificados
 
-Criar a estrutura de banco de dados e lógica de frontend para que cada cliente autenticado veja apenas os projetos e documentos que foram atribuídos especificamente a ele pela equipe interna.
+### 1. Verificação de Acesso Inexistente
+O componente `TeamRoute` verifica apenas se o usuário é `team_member` ou `admin`, mas **não verifica se o usuário tem permissão específica para a página**. Isso significa que qualquer membro da equipe pode acessar qualquer página, tornando o sistema de permissões inútil.
 
-## Análise da Estrutura Atual
+**Situação do Bernardo:**
+- Ele tem role `team_member` ✓
+- Ele tem acesso a páginas dev (4 páginas) ✓
+- Ele **NÃO tem** acesso à página `/equipe/dev/consulta-efd` ✗
+- Mas ele consegue acessar porque `TeamRoute` não verifica isso
 
-### Situação Encontrada
-- A tabela `projects` existe mas é usada internamente, vinculada a `catalog_clients` (cadastro interno de clientes)
-- A tabela `tickets` vincula ao `user_id` do usuário autenticado
-- **Não existe** vinculação entre usuários autenticados (clientes do portal) e projetos/documentos visíveis para eles
+### 2. Botão "Atualizar Lista" Não Funciona
+O botão apenas recarrega a lista de páginas do banco, mas não atualiza o cache de permissões do usuário nem força uma nova verificação de acesso.
 
-### Solução Proposta
-Criar duas novas tabelas de junção que permitem à equipe interna atribuir projetos e documentos a clientes específicos do portal.
+### 3. Permissões Não São Verificadas nas Rotas
+Quando um usuário tenta acessar uma página, o sistema não verifica se ele tem a permissão específica na tabela `user_page_access`.
 
-## Mudanças no Banco de Dados
+## Solução Proposta
 
-### 1. Tabela `client_visible_projects`
-Vincula projetos que devem ser visíveis para clientes específicos no portal.
+### Abordagem: Access Gate por Página
 
-```sql
-CREATE TABLE public.client_visible_projects (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  visible_since timestamptz DEFAULT now(),
-  notes text,
-  created_at timestamptz DEFAULT now(),
-  created_by uuid REFERENCES auth.users(id),
-  UNIQUE(user_id, project_id)
-);
-
-ALTER TABLE public.client_visible_projects ENABLE ROW LEVEL SECURITY;
-
--- Cliente vê apenas projetos atribuídos a ele
-CREATE POLICY "Clientes veem seus projetos"
-  ON public.client_visible_projects FOR SELECT
-  TO authenticated
-  USING (auth.uid() = user_id);
-
--- Equipe pode gerenciar atribuições
-CREATE POLICY "Equipe gerencia atribuições"
-  ON public.client_visible_projects FOR ALL
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'team_member') OR public.has_role(auth.uid(), 'admin'));
-```
-
-### 2. Tabela `client_documents`
-Documentos e dashboards disponíveis para cada cliente.
-
-```sql
-CREATE TABLE public.client_documents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  document_type text NOT NULL CHECK (document_type IN ('dashboard', 'documento')),
-  name text NOT NULL,
-  description text,
-  url text, -- Para dashboards (links externos)
-  file_path text, -- Para documentos no storage
-  file_name text,
-  file_size bigint,
-  created_at timestamptz DEFAULT now(),
-  created_by uuid REFERENCES auth.users(id),
-  updated_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.client_documents ENABLE ROW LEVEL SECURITY;
-
--- Cliente vê apenas seus documentos
-CREATE POLICY "Clientes veem seus documentos"
-  ON public.client_documents FOR SELECT
-  TO authenticated
-  USING (auth.uid() = user_id);
-
--- Equipe pode gerenciar documentos
-CREATE POLICY "Equipe gerencia documentos"
-  ON public.client_documents FOR ALL
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'team_member') OR public.has_role(auth.uid(), 'admin'));
-```
-
-## Mudanças no Frontend
-
-### Arquivo: `src/pages/cliente/ClienteDashboard.tsx`
-
-1. **Remover dados mock** e substituir por queries ao Supabase
-2. **Buscar projetos visíveis** via `client_visible_projects` com join em `projects`
-3. **Buscar documentos** via `client_documents`
-4. **Adicionar estados de loading** para cada tab
-5. **Manter mensagem de "nenhum item"** quando não houver dados atribuídos
-
-### Estrutura de Dados Real
+Criar um componente `DevPageAccessGate` que verifica permissões individuais para cada página da área Dev (e similar para Rotina).
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  projects (tabela interna existente)                            │
-│  ├─ id, name, description, status, client_id, etc.             │
-└─────────────────────────────────────────────────────────────────┘
-                           ▲
-                           │ project_id
-┌─────────────────────────────────────────────────────────────────┐
-│  client_visible_projects (NOVA)                                 │
-│  ├─ user_id → auth.users (cliente do portal)                   │
-│  ├─ project_id → projects (projeto interno)                    │
-│  └─ visible_since, notes, created_by                           │
-└─────────────────────────────────────────────────────────────────┘
+Fluxo Atual (INCORRETO):
+┌──────────────┐     ┌────────────────┐     ┌──────────────┐
+│    Usuário   │────▶│   TeamRoute    │────▶│    Página    │
+│              │     │ (só verifica   │     │              │
+│              │     │  team_member)  │     │              │
+└──────────────┘     └────────────────┘     └──────────────┘
 
-┌─────────────────────────────────────────────────────────────────┐
-│  client_documents (NOVA)                                        │
-│  ├─ user_id → auth.users (cliente do portal)                   │
-│  ├─ document_type ('dashboard' | 'documento')                  │
-│  ├─ name, description                                          │
-│  ├─ url (para dashboards externos)                             │
-│  └─ file_path, file_name (para documentos no storage)          │
-└─────────────────────────────────────────────────────────────────┘
+Fluxo Proposto (CORRETO):
+┌──────────────┐     ┌────────────────┐     ┌──────────────────┐     ┌──────────────┐
+│    Usuário   │────▶│   TeamRoute    │────▶│ DevPageAccessGate│────▶│    Página    │
+│              │     │ (team_member)  │     │ (verifica acesso │     │              │
+│              │     │                │     │  específico)      │     │              │
+└──────────────┘     └────────────────┘     └──────────────────┘     └──────────────┘
 ```
 
-### Lógica de Query no Dashboard
+## Mudanças Necessárias
+
+### 1. Criar Hook `usePageAccess`
+
+Novo arquivo: `src/hooks/usePageAccess.ts`
 
 ```typescript
-// Buscar projetos visíveis para o cliente
-const { data: visibleProjects } = useQuery({
-  queryKey: ['client-projects', user?.id],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('client_visible_projects')
-      .select(`
-        id,
-        visible_since,
-        notes,
-        projects (
-          id,
-          name,
-          description,
-          status,
-          start_date,
-          end_date
-        )
-      `)
-      .eq('user_id', user.id);
-    return data;
-  }
-});
+// Hook para verificar se o usuário tem acesso a uma página específica
+export function usePageAccess(pagePath: string) {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  
+  const { data: hasAccess, isLoading } = useQuery({
+    queryKey: ['page-access', user?.id, pagePath],
+    queryFn: async () => {
+      if (!user) return false;
+      if (isAdmin) return true; // Admins sempre têm acesso
+      
+      // Verificar se a página existe
+      const { data: page } = await supabase
+        .from('page_permissions')
+        .select('id')
+        .eq('page_path', pagePath)
+        .single();
+      
+      if (!page) return true; // Página não cadastrada = acesso livre
+      
+      // Verificar se usuário tem acesso
+      const { data: access } = await supabase
+        .from('user_page_access')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('page_permission_id', page.id)
+        .maybeSingle();
+      
+      return !!access;
+    },
+    enabled: !!user && !authLoading,
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+  });
 
-// Buscar documentos do cliente
-const { data: clientDocuments } = useQuery({
-  queryKey: ['client-documents', user?.id],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('client_documents')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    return data;
-  }
-});
+  return { hasAccess, isLoading: authLoading || isLoading };
+}
 ```
 
-## Considerações de Segurança
+### 2. Criar Componente `PageAccessGate`
 
-1. **RLS ativado** em ambas as tabelas novas
-2. **Clientes só veem seus dados** via `auth.uid() = user_id`
-3. **Equipe pode gerenciar** via função `has_role()` existente
-4. **Cascade delete** configurado para limpeza automática
+Novo arquivo: `src/components/auth/PageAccessGate.tsx`
 
-## Fluxo de Uso
+```typescript
+// Componente que verifica acesso à página e mostra tela de acesso negado se necessário
+export const PageAccessGate = ({ 
+  pagePath, 
+  children 
+}: { pagePath: string; children: React.ReactNode }) => {
+  const { hasAccess, isLoading } = usePageAccess(pagePath);
+  const navigate = useNavigate();
 
-1. Equipe interna cria/gerencia projetos na área `/equipe`
-2. Equipe atribui projeto a um cliente via `client_visible_projects`
-3. Equipe cadastra documentos/dashboards para o cliente via `client_documents`
-4. Cliente acessa `/cliente` e vê apenas o que foi atribuído a ele
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
-## Etapas de Implementação
+  if (!hasAccess) {
+    return <AccessDeniedScreen onBack={() => navigate('/equipe/digital')} />;
+  }
 
-1. Criar migration com as duas novas tabelas e RLS policies
-2. Atualizar `ClienteDashboard.tsx`:
-   - Remover interfaces e dados mock
-   - Adicionar queries com `@tanstack/react-query`
-   - Implementar loading states
-   - Mapear dados reais para os componentes
-3. Manter estrutura visual existente (tabs, cards, tabela)
-4. Tratar casos de lista vazia com mensagens informativas
+  return <>{children}</>;
+};
+```
 
-## Próximos Passos (Fora deste Escopo)
+### 3. Atualizar Rotas no App.tsx
 
-- Interface para a equipe atribuir projetos a clientes
-- Upload de documentos via Supabase Storage
-- Cálculo de progresso automático baseado em tarefas do projeto
+Envolver as páginas da área Dev com verificação de acesso:
+
+```tsx
+// Antes:
+<Route path="/equipe/dev/consulta-efd" element={<TeamRoute><ConsultaEFD /></TeamRoute>} />
+
+// Depois:
+<Route path="/equipe/dev/consulta-efd" element={
+  <TeamRoute>
+    <PageAccessGate pagePath="/equipe/dev/consulta-efd">
+      <ConsultaEFD />
+    </PageAccessGate>
+  </TeamRoute>
+} />
+```
+
+### 4. Melhorar o Botão "Atualizar Lista"
+
+Modificar a função `handleRefreshPages` para também invalidar o cache de acessos:
+
+```typescript
+const handleRefreshPages = () => {
+  // Invalida cache de páginas
+  queryClient.invalidateQueries({ queryKey: ['page-permissions'] });
+  // Invalida cache de acessos de usuários
+  queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+  // Invalida cache de verificação de acesso por página
+  queryClient.invalidateQueries({ queryKey: ['page-access'] });
+  toast.success('Lista de páginas e permissões atualizada');
+};
+```
+
+### 5. Conceder Acesso ao Bernardo
+
+Após as correções, será necessário conceder manualmente o acesso à página EFD Contribuições para o Bernardo através da interface de Controle de Acessos.
+
+## Arquivos a Criar/Modificar
+
+| Arquivo | Ação |
+|---------|------|
+| `src/hooks/usePageAccess.ts` | Criar (novo hook) |
+| `src/components/auth/PageAccessGate.tsx` | Criar (novo componente) |
+| `src/App.tsx` | Modificar (adicionar PageAccessGate nas rotas dev) |
+| `src/pages/equipe/EquipeControleAcessos.tsx` | Modificar (melhorar invalidação de cache) |
+
+## Comportamento Esperado Após Implementação
+
+1. **Bernardo sem acesso**: Ao tentar acessar `/equipe/dev/consulta-efd`, verá tela de "Acesso Negado"
+2. **Admin concede acesso**: Na tela de Controle de Acessos, clica em "Conceder" para EFD Contribuições
+3. **Bernardo com acesso**: Consegue acessar a página normalmente
+4. **Botão atualizar funciona**: Ao clicar, o cache é limpo e as novas permissões são refletidas
+
+## Considerações de UX
+
+- Tela de "Acesso Negado" deve ser informativa e ter botão para voltar
+- Loading deve ser exibido durante verificação de permissões
+- Toast de feedback ao conceder/revogar acesso deve ser claro
