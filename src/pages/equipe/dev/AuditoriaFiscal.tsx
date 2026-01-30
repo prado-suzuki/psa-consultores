@@ -41,11 +41,10 @@ import { cn } from '@/lib/utils';
 import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  DifalItem,
   DifalGroupedItem,
+  DifalApiGroupedResponse,
+  DifalApiGroupedItem,
   ClassificacoesBuscarResponse,
-  NFeRecord,
-  NFeProduto,
   SyncPayload,
   SyncDecisao,
   TipoDecisao,
@@ -95,15 +94,6 @@ interface ContribuinteRecord {
   id: string;
   nome_razao_social: string;
   cpf_cnpj: string | null;
-}
-
-// Tipo de resposta paginada da API
-interface NFeApiResponse {
-  items: NFeRecord[];
-  total: number;
-  page: number;
-  page_size: number;
-  has_more: boolean;
 }
 
 const AuditoriaFiscal = () => {
@@ -259,104 +249,60 @@ const AuditoriaFiscal = () => {
     loadLastSession();
   }, [user?.id]);
 
-  // Query: Buscar NFes do período
+  // Query: Buscar itens agrupados do período (novo endpoint)
   const {
-    data: nfesData,
-    isLoading: isLoadingNFes,
-    error: nfesError,
+    data: apiGroupedData,
+    isLoading: isLoadingItems,
+    error: itemsError,
   } = useQuery({
-    queryKey: ['difal-nfes', selectedContribuinte, dataInicio, dataFim],
+    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error('Contribuinte não selecionado');
       }
 
-      // Usar ID do contribuinte (UUID) como na Consulta XMLs
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo=entrada`;
+      // Usar novo endpoint que já retorna dados agrupados
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=1&page_size=1000`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
-        throw new Error('Erro ao buscar notas fiscais');
+        throw new Error('Erro ao buscar itens agrupados');
       }
 
-      return response.json() as Promise<NFeApiResponse>;
+      return response.json() as Promise<DifalApiGroupedResponse>;
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
 
-  // Função para achatar NFes em itens
-  const flattenNFeItems = (
-    nfes: NFeRecord[],
-    cnpj: string
-  ): DifalItem[] => {
-    return nfes.flatMap((nfe) =>
-      (nfe.produtos || []).map((prod: NFeProduto) => ({
-        id_contribuinte: cnpj,
-        cod_produto: prod.cProd,
-        cod_ncm: prod.NCM,
-        xProd: prod.xProd,
-        vProd: prod.vProd,
-        cfop: prod.CFOP,
-        uf_emit: nfe.emit?.UF || '??',
-        uf_dest: nfe.dest?.UF || '??',
-        cst_icms: prod.ICMS?.CST || null,
-        aliq_icms: prod.ICMS?.pICMS || null,
-        chave_nfe: nfe.chave_nfe,
-        nItem: prod.nItem,
-      }))
-    );
-  };
+  // Converter itens da API para formato da UI
+  const groupedItemsFromApi = useMemo(() => {
+    if (!apiGroupedData?.items || !selectedContribuinte) return [];
 
-  // Itens achatados - usando UUID do contribuinte
-  const flatItems = useMemo(() => {
-    if (!nfesData?.items || !selectedContribuinte) return [];
-    
-    // Usar UUID do contribuinte como id_contribuinte
-    return flattenNFeItems(nfesData.items, selectedContribuinte);
-  }, [nfesData, selectedContribuinte]);
-
-  // Função para agrupar itens por nome + código + NCM
-  const groupItems = (items: DifalItem[]): DifalGroupedItem[] => {
-    const groups = new Map<string, DifalItem[]>();
-    
-    items.forEach(item => {
-      const key = `${item.xProd}|${item.cod_produto}|${item.cod_ncm}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(item);
-    });
-    
-    return Array.from(groups.entries()).map(([key, groupItems]) => {
-      const first = groupItems[0];
-      const uniqueNFes = new Set(groupItems.map(i => i.chave_nfe));
-      
-      return {
-        groupKey: key,
-        xProd: first.xProd,
-        cod_produto: first.cod_produto,
-        cod_ncm: first.cod_ncm,
-        id_contribuinte: first.id_contribuinte,
-        uf_emit: first.uf_emit,
-        uf_dest: first.uf_dest,
-        cst_icms: first.cst_icms,
-        aliq_icms: first.aliq_icms,
-        count: groupItems.length,
-        totalValue: groupItems.reduce((sum, i) => sum + i.vProd, 0),
-        nfesCount: uniqueNFes.size,
-        items: groupItems,
-        status: 'pendente' as const,
-        classificacao: null,
-      };
-    });
-  };
+    return apiGroupedData.items.map((item: DifalApiGroupedItem): DifalGroupedItem => ({
+      groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
+      xProd: item.xProd,
+      cod_produto: item.cProd,
+      cod_ncm: item.NCM,
+      id_contribuinte: selectedContribuinte,
+      cfop: item.CFOP,
+      cst_icms: item.CST,
+      aliq_icms: item.aliq_prod,
+      count: item.tot_itens,
+      totalValue: item.vlr_total,
+      nfesCount: item.tot_nfes,
+      status: 'pendente',
+      classificacao: null,
+    }));
+  }, [apiGroupedData, selectedContribuinte]);
 
   // Query: Buscar classificações existentes
   const { data: classificacoes, isLoading: isLoadingClassificacoes } = useQuery({
-    queryKey: ['difal-classificacoes', flatItems.map((i) => `${i.cod_produto}|${i.cod_ncm}`)],
+    queryKey: ['difal-classificacoes', groupedItemsFromApi.map((i) => `${i.cod_produto}|${i.cod_ncm}`)],
     queryFn: async () => {
-      if (flatItems.length === 0) return {};
+      if (groupedItemsFromApi.length === 0) return {};
 
       const payload = {
-        itens: flatItems.map((item) => ({
+        itens: groupedItemsFromApi.map((item) => ({
           id_contribuinte: item.id_contribuinte,
           cod_produto: item.cod_produto,
           cod_ncm: item.cod_ncm,
@@ -378,22 +324,17 @@ const AuditoriaFiscal = () => {
 
       return response.json() as Promise<ClassificacoesBuscarResponse>;
     },
-    enabled: flatItems.length > 0,
+    enabled: groupedItemsFromApi.length > 0,
   });
 
   // Itens agrupados com status (prioriza decisões locais)
   const groupedItems = useMemo(() => {
-    const grouped = groupItems(flatItems);
-    
-    return grouped.map((group) => {
+    return groupedItemsFromApi.map((group) => {
       const classifChave = `${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`;
       const classificacao = classificacoes?.[classifChave];
       
-      // Verificar decisões locais em qualquer item do grupo
-      const isLocallyDecided = group.items.some(item => {
-        const chave = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
-        return localDecisions.has(chave);
-      });
+      // Verificar decisões locais
+      const isLocallyDecided = localDecisions.has(classifChave);
       
       return {
         ...group,
@@ -401,7 +342,7 @@ const AuditoriaFiscal = () => {
         classificacao,
       };
     });
-  }, [flatItems, classificacoes, localDecisions]);
+  }, [groupedItemsFromApi, classificacoes, localDecisions]);
 
   // Handler para criar ou atualizar sessão e disparar busca
   const handleSearch = async () => {
@@ -601,7 +542,7 @@ const AuditoriaFiscal = () => {
       
       (decisoes || []).forEach(d => {
         // Encontrar todos os itens que correspondem a este NCM
-        const matchingItems = flatItems.filter(item => item.cod_ncm === d.cod_ncm);
+        const matchingItems = groupedItems.filter(item => item.cod_ncm === d.cod_ncm);
         
         // Criar set de chaves únicas para evitar duplicatas
         const processedKeys = new Set<string>();
@@ -662,7 +603,7 @@ const AuditoriaFiscal = () => {
 
       // 7. Re-buscar dados com classificações atualizadas
       queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
-      queryClient.invalidateQueries({ queryKey: ['difal-nfes'] });
+      queryClient.invalidateQueries({ queryKey: ['difal-grouped-items'] });
 
       toast({
         title: 'Alterações salvas',
@@ -687,12 +628,10 @@ const AuditoriaFiscal = () => {
 
   const handleDecisionSaved = (group: DifalGroupedItem) => {
     setPendingDecisionsCount(prev => prev + 1);
-    // Adicionar todos os itens do grupo ao set de decisões locais
+    // Adicionar o grupo ao set de decisões locais
     setLocalDecisions(prev => {
       const newSet = new Set(prev);
-      group.items.forEach(item => {
-        newSet.add(`${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`);
-      });
+      newSet.add(`${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`);
       return newSet;
     });
   };
@@ -725,7 +664,7 @@ const AuditoriaFiscal = () => {
   // Reset página ao mudar dados
   useEffect(() => {
     setCurrentPage(1);
-  }, [flatItems]);
+  }, [groupedItemsFromApi]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -766,15 +705,7 @@ const AuditoriaFiscal = () => {
     return pages;
   };
 
-  const isLoading = isLoadingNFes || isLoadingClassificacoes;
-
-  // UF destino para o modal
-  const ufDestino = useMemo(() => {
-    if (groupedItems.length > 0) {
-      return groupedItems[0].uf_dest;
-    }
-    return 'MT'; // Default
-  }, [groupedItems]);
+  const isLoading = isLoadingItems || isLoadingClassificacoes;
 
   return (
     <DevLayout
@@ -1044,7 +975,7 @@ const AuditoriaFiscal = () => {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : nfesError ? (
+            ) : itemsError ? (
               <div className="p-6 text-center text-red-600">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                 <p>Erro ao carregar itens</p>
@@ -1062,7 +993,7 @@ const AuditoriaFiscal = () => {
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Item</TableHead>
                       <TableHead className="w-[100px]">NCM</TableHead>
-                      <TableHead className="w-[80px]">Origem</TableHead>
+                      <TableHead className="w-[80px]">CFOP</TableHead>
                       <TableHead className="w-[150px]">Tributação</TableHead>
                       <TableHead className="w-[120px]">MVA/ST</TableHead>
                     </TableRow>
@@ -1103,7 +1034,7 @@ const AuditoriaFiscal = () => {
                           <span className="font-mono text-sm">{group.cod_ncm}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{group.uf_emit}</Badge>
+                          <Badge variant="outline">{group.cfop}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
@@ -1206,7 +1137,7 @@ const AuditoriaFiscal = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         group={selectedGroup}
-        ufDestino={ufDestino}
+        ufDestino="MT"
         sessaoId={activeSessaoId}
         onDecisionSaved={handleDecisionSaved}
       />
