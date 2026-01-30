@@ -1,99 +1,190 @@
 
-# Plano: Atualização do Dashboard do Cliente
+# Plano: Projetos em Andamento Vinculados ao Cliente
 
 ## Visão Geral
 
-Adicionar uma nova seção abaixo dos cards de "Abrir Chamado" e "Meus Chamados" no Dashboard do Cliente (/cliente) com:
-1. Uma sub-aba navegável entre "Projetos em Andamento" e "Dashboards/Documentos"
-2. Visão de cards para projetos ativos do cliente
-3. Tabela para listar dashboards e documentos disponíveis
+Criar a estrutura de banco de dados e lógica de frontend para que cada cliente autenticado veja apenas os projetos e documentos que foram atribuídos especificamente a ele pela equipe interna.
 
-## Análise Técnica
+## Análise da Estrutura Atual
 
-### Estado Atual
-- O `ClienteDashboard.tsx` é simples, com dois cards de ação
-- Não existe uma tabela de vinculação entre usuários autenticados e projetos/documentos do cliente
-- As tabelas `project_documents` e `projects` existem, mas são voltadas para a equipe interna
+### Situação Encontrada
+- A tabela `projects` existe mas é usada internamente, vinculada a `catalog_clients` (cadastro interno de clientes)
+- A tabela `tickets` vincula ao `user_id` do usuário autenticado
+- **Não existe** vinculação entre usuários autenticados (clientes do portal) e projetos/documentos visíveis para eles
 
-### Estrutura de Dados
-Para esta funcionalidade, será necessário criar novas tabelas no banco de dados:
-- `client_projects` - vincular user_id a projetos do cliente
-- `client_documents` - vincular user_id a documentos disponíveis para download
+### Solução Proposta
+Criar duas novas tabelas de junção que permitem à equipe interna atribuir projetos e documentos a clientes específicos do portal.
 
-Por enquanto, usaremos dados de exemplo (mock) para demonstrar a interface, permitindo validação visual antes de implementar o backend.
+## Mudanças no Banco de Dados
 
-## Mudanças Propostas
+### 1. Tabela `client_visible_projects`
+Vincula projetos que devem ser visíveis para clientes específicos no portal.
 
-### 1. Atualização do ClienteDashboard.tsx
+```sql
+CREATE TABLE public.client_visible_projects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  visible_since timestamptz DEFAULT now(),
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  UNIQUE(user_id, project_id)
+);
 
-```text
-Estrutura final:
-┌─────────────────────────────────────────────────────┐
-│  Header (existente)                                 │
-├─────────────────────────────────────────────────────┤
-│  Título de Boas-vindas (existente)                  │
-├─────────────────────────────────────────────────────┤
-│  ┌────────────────┐  ┌────────────────┐             │
-│  │  Abrir Chamado │  │ Meus Chamados  │             │
-│  └────────────────┘  └────────────────┘             │
-├─────────────────────────────────────────────────────┤
-│  [Nova Seção]                                       │
-│  ┌─────────────────────────────────────────────────┐│
-│  │ Tabs: [Projetos] [Dashboards e Documentos]      ││
-│  ├─────────────────────────────────────────────────┤│
-│  │ Conteúdo da Tab Selecionada                     ││
-│  │ - Projetos: Cards com status e progresso       ││
-│  │ - Documentos: Tabela com tipo, nome, ações     ││
-│  └─────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────┘
+ALTER TABLE public.client_visible_projects ENABLE ROW LEVEL SECURITY;
+
+-- Cliente vê apenas projetos atribuídos a ele
+CREATE POLICY "Clientes veem seus projetos"
+  ON public.client_visible_projects FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Equipe pode gerenciar atribuições
+CREATE POLICY "Equipe gerencia atribuições"
+  ON public.client_visible_projects FOR ALL
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'team_member') OR public.has_role(auth.uid(), 'admin'));
 ```
 
-### 2. Componentes a Adicionar
+### 2. Tabela `client_documents`
+Documentos e dashboards disponíveis para cada cliente.
 
-**Tab "Projetos em Andamento":**
-- Cards estilizados com cores da marca (Teal)
-- Informações: nome do projeto, descrição, status, progresso
-- Badge de status com cores semânticas
+```sql
+CREATE TABLE public.client_documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  document_type text NOT NULL CHECK (document_type IN ('dashboard', 'documento')),
+  name text NOT NULL,
+  description text,
+  url text, -- Para dashboards (links externos)
+  file_path text, -- Para documentos no storage
+  file_name text,
+  file_size bigint,
+  created_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_at timestamptz DEFAULT now()
+);
 
-**Tab "Dashboards e Documentos":**
-- Tabela responsiva usando componentes Table do projeto
-- Colunas: Tipo (ícone), Nome, Descrição, Ação (botão abrir/download)
-- Ícones diferenciados para Dashboard vs Documento
+ALTER TABLE public.client_documents ENABLE ROW LEVEL SECURITY;
 
-### 3. Dados de Exemplo (Mock)
+-- Cliente vê apenas seus documentos
+CREATE POLICY "Clientes veem seus documentos"
+  ON public.client_documents FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
 
-Projetos de exemplo:
-- "Diagnóstico Fiscal 2024" - Em andamento (75%)
-- "Reestruturação Societária" - Em análise (30%)
+-- Equipe pode gerenciar documentos
+CREATE POLICY "Equipe gerencia documentos"
+  ON public.client_documents FOR ALL
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'team_member') OR public.has_role(auth.uid(), 'admin'));
+```
 
-Documentos de exemplo:
-- Dashboard de Acompanhamento Fiscal (link externo)
-- Relatório Trimestral Q4/2024 (PDF)
-- Manual de Procedimentos (PDF)
+## Mudanças no Frontend
 
-### 4. Alinhamento de Marca
+### Arquivo: `src/pages/cliente/ClienteDashboard.tsx`
 
-Seguindo o design system existente:
-- Background: `bg-[hsl(210_20%_98%)]` (slate-50)
-- Cards: `bg-background` com `shadow-sm`
-- Cor primária: Teal (#0d9488) para ações e destaques
-- Tipografia: Work Sans (configurada globalmente)
-- Badges: Cores semânticas para status (verde/amarelo/azul)
+1. **Remover dados mock** e substituir por queries ao Supabase
+2. **Buscar projetos visíveis** via `client_visible_projects` com join em `projects`
+3. **Buscar documentos** via `client_documents`
+4. **Adicionar estados de loading** para cada tab
+5. **Manter mensagem de "nenhum item"** quando não houver dados atribuídos
+
+### Estrutura de Dados Real
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  projects (tabela interna existente)                            │
+│  ├─ id, name, description, status, client_id, etc.             │
+└─────────────────────────────────────────────────────────────────┘
+                           ▲
+                           │ project_id
+┌─────────────────────────────────────────────────────────────────┐
+│  client_visible_projects (NOVA)                                 │
+│  ├─ user_id → auth.users (cliente do portal)                   │
+│  ├─ project_id → projects (projeto interno)                    │
+│  └─ visible_since, notes, created_by                           │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  client_documents (NOVA)                                        │
+│  ├─ user_id → auth.users (cliente do portal)                   │
+│  ├─ document_type ('dashboard' | 'documento')                  │
+│  ├─ name, description                                          │
+│  ├─ url (para dashboards externos)                             │
+│  └─ file_path, file_name (para documentos no storage)          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Lógica de Query no Dashboard
+
+```typescript
+// Buscar projetos visíveis para o cliente
+const { data: visibleProjects } = useQuery({
+  queryKey: ['client-projects', user?.id],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('client_visible_projects')
+      .select(`
+        id,
+        visible_since,
+        notes,
+        projects (
+          id,
+          name,
+          description,
+          status,
+          start_date,
+          end_date
+        )
+      `)
+      .eq('user_id', user.id);
+    return data;
+  }
+});
+
+// Buscar documentos do cliente
+const { data: clientDocuments } = useQuery({
+  queryKey: ['client-documents', user?.id],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('client_documents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    return data;
+  }
+});
+```
+
+## Considerações de Segurança
+
+1. **RLS ativado** em ambas as tabelas novas
+2. **Clientes só veem seus dados** via `auth.uid() = user_id`
+3. **Equipe pode gerenciar** via função `has_role()` existente
+4. **Cascade delete** configurado para limpeza automática
+
+## Fluxo de Uso
+
+1. Equipe interna cria/gerencia projetos na área `/equipe`
+2. Equipe atribui projeto a um cliente via `client_visible_projects`
+3. Equipe cadastra documentos/dashboards para o cliente via `client_documents`
+4. Cliente acessa `/cliente` e vê apenas o que foi atribuído a ele
 
 ## Etapas de Implementação
 
-1. Importar componentes necessários (Tabs, Table, Badge, ícones)
-2. Criar interfaces TypeScript para projetos e documentos do cliente
-3. Adicionar dados mock para demonstração
-4. Implementar seção de Tabs abaixo dos cards existentes
-5. Criar visualização de cards para projetos
-6. Criar tabela para dashboards/documentos
-7. Estilizar conforme padrões da marca
+1. Criar migration com as duas novas tabelas e RLS policies
+2. Atualizar `ClienteDashboard.tsx`:
+   - Remover interfaces e dados mock
+   - Adicionar queries com `@tanstack/react-query`
+   - Implementar loading states
+   - Mapear dados reais para os componentes
+3. Manter estrutura visual existente (tabs, cards, tabela)
+4. Tratar casos de lista vazia com mensagens informativas
 
-## Considerações Futuras
+## Próximos Passos (Fora deste Escopo)
 
-Após validação da interface:
-- Criar tabelas `client_projects` e `client_documents` no banco
-- Implementar RLS para que cada cliente veja apenas seus dados
-- Conectar a interface com dados reais via Supabase
-- Adicionar funcionalidade de upload/download real
+- Interface para a equipe atribuir projetos a clientes
+- Upload de documentos via Supabase Storage
+- Cálculo de progresso automático baseado em tarefas do projeto
