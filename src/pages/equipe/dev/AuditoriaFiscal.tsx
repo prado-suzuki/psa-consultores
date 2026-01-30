@@ -270,7 +270,13 @@ const AuditoriaFiscal = () => {
       }
 
       const data: DifalApiGroupedResponse = await response.json();
-      return { items: data.items, total: data.total, hasMore: data.has_more };
+      return { 
+        items: data.items, 
+        total: data.total, 
+        hasMore: data.has_more,
+        qtdValidados: data.qtd_validados,
+        qtdPendentes: data.qtd_pendentes,
+      };
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
@@ -651,11 +657,9 @@ const AuditoriaFiscal = () => {
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const hasMore = apiGroupedData?.hasMore ?? false;
 
-  const stats = useMemo(() => {
-    const validados = groupedItems.filter((g) => g.status === 'validado').length;
-    const pendentes = groupedItems.filter((g) => g.status === 'pendente').length;
-    return { validados, pendentes, total: totalItems };
-  }, [groupedItems, totalItems]);
+  // Estatísticas da API
+  const qtdValidados = apiGroupedData?.qtdValidados ?? 0;
+  const qtdPendentes = apiGroupedData?.qtdPendentes ?? 0;
 
   const handlePageChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev' && currentPage > 1) {
@@ -843,7 +847,7 @@ const AuditoriaFiscal = () => {
                 <Package className="h-5 w-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                <p className="text-2xl font-bold text-slate-900">{totalItems}</p>
                 <p className="text-xs text-slate-500">Total de Itens</p>
               </div>
             </CardContent>
@@ -854,7 +858,7 @@ const AuditoriaFiscal = () => {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-700">{stats.validados}</p>
+                <p className="text-2xl font-bold text-green-700">{qtdValidados}</p>
                 <p className="text-xs text-green-600">Validados</p>
               </div>
             </CardContent>
@@ -865,7 +869,7 @@ const AuditoriaFiscal = () => {
                 <AlertCircle className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-amber-700">{stats.pendentes}</p>
+                <p className="text-2xl font-bold text-amber-700">{qtdPendentes}</p>
                 <p className="text-xs text-amber-600">Pendentes</p>
               </div>
             </CardContent>
