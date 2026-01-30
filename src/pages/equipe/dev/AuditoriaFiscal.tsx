@@ -255,15 +255,14 @@ const AuditoriaFiscal = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, Math.ceil(currentPage / 4)],
+    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, currentPage],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error('Contribuinte não selecionado');
       }
 
-      // Buscar apenas a página atual da API (100 itens por página da API)
-      const apiPage = Math.ceil(currentPage / 4); // 4 páginas de UI (25 itens) = 1 página de API (100 itens)
-      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${apiPage}&page_size=100`;
+      // Buscar página atual com 25 itens por página
+      const url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
@@ -271,7 +270,7 @@ const AuditoriaFiscal = () => {
       }
 
       const data: DifalApiGroupedResponse = await response.json();
-      return { items: data.items, total: data.total, hasMore: data.has_more, apiPage };
+      return { items: data.items, total: data.total, hasMore: data.has_more };
     },
     enabled: searchTriggered && !!selectedContribuinte,
   });
@@ -647,64 +646,23 @@ const AuditoriaFiscal = () => {
   };
 
   // Estatísticas
+  // Total de itens retornado pela API
+  const totalItems = apiGroupedData?.total ?? 0;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const hasMore = apiGroupedData?.hasMore ?? false;
+
   const stats = useMemo(() => {
     const validados = groupedItems.filter((g) => g.status === 'validado').length;
     const pendentes = groupedItems.filter((g) => g.status === 'pendente').length;
-    const total = groupedItems.length;
-    return { validados, pendentes, total };
-  }, [groupedItems]);
+    return { validados, pendentes, total: totalItems };
+  }, [groupedItems, totalItems]);
 
-  // Paginação
-  const totalPages = Math.ceil(groupedItems.length / ITEMS_PER_PAGE);
-  
-  const paginatedItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return groupedItems.slice(startIndex, endIndex);
-  }, [groupedItems, currentPage]);
-
-  // Reset página ao mudar dados
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [groupedItemsFromApi]);
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+  const handlePageChange = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    } else if (direction === 'next' && hasMore) {
+      setCurrentPage(currentPage + 1);
     }
-  };
-
-  // Gerar array de páginas para exibição
-  const getPageNumbers = () => {
-    const pages: (number | 'ellipsis')[] = [];
-    const maxVisible = 5;
-    
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      
-      if (currentPage > 3) {
-        pages.push('ellipsis');
-      }
-      
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      
-      if (currentPage < totalPages - 2) {
-        pages.push('ellipsis');
-      }
-      
-      pages.push(totalPages);
-    }
-    
-    return pages;
   };
 
   const isLoading = isLoadingItems || isLoadingClassificacoes;
@@ -1001,7 +959,7 @@ const AuditoriaFiscal = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedItems.map((group) => (
+                    {groupedItems.map((group) => (
                       <TableRow
                         key={group.groupKey}
                         className={`
@@ -1072,44 +1030,29 @@ const AuditoriaFiscal = () => {
                 </Table>
 
                 {/* Paginação */}
-                {totalPages > 1 && (
+                {totalItems > ITEMS_PER_PAGE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
                     <p className="text-sm text-slate-500">
-                      Exibindo {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, groupedItems.length)} de {groupedItems.length} itens
+                      Página {currentPage} de {totalPages} ({totalItems} itens)
                     </p>
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                        
-                        {getPageNumbers().map((page, idx) => (
-                          <PaginationItem key={idx}>
-                            {page === 'ellipsis' ? (
-                              <PaginationEllipsis />
-                            ) : (
-                              <PaginationLink
-                                onClick={() => handlePageChange(page)}
-                                isActive={currentPage === page}
-                                className="cursor-pointer"
-                              >
-                                {page}
-                              </PaginationLink>
-                            )}
-                          </PaginationItem>
-                        ))}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange('prev')}
+                        disabled={currentPage === 1}
+                      >
+                        ← Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange('next')}
+                        disabled={!hasMore}
+                      >
+                        Próxima →
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
