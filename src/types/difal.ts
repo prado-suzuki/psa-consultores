@@ -23,6 +23,8 @@ export interface DifalApiGroupedResponse {
   page: number;
   page_size: number;
   has_more: boolean;
+  qtd_validados: number;
+  qtd_pendentes: number;
 }
 
 // Item agrupado para a tabela (formato usado na UI)
