@@ -34,7 +34,7 @@ import {
 } from '@/constants/efdConfig';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import { useExportProfiles } from '@/hooks/useExportProfiles';
+import { useExportProfiles, type ExportToolType } from '@/hooks/useExportProfiles';
 import type { EFDArquivo, BlocoRegistro, EFDTipo } from '@/types/efd';
 
 interface EFDExportDialogProps {
@@ -42,6 +42,8 @@ interface EFDExportDialogProps {
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
   disabled?: boolean;
   tipo?: EFDTipo;
+  /** Tipo de perfil de exportação (separação por ferramenta) */
+  profileType?: ExportToolType;
   /** Controle externo: se fornecido, o dialog usa esse estado ao invés de interno */
   externalOpen?: boolean;
   /** Callback para controle externo */
@@ -65,6 +67,7 @@ export function EFDExportDialog({
   blocosDisponiveis,
   disabled,
   tipo = 'contribuicoes',
+  profileType = 'efd',
   externalOpen,
   onExternalOpenChange,
   hideTrigger = false,
@@ -94,7 +97,7 @@ export function EFDExportDialog({
   const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
-  // Hook de perfis do usuário (filtrado por tipo 'efd')
+  // Hook de perfis do usuário (filtrado pelo tipo da ferramenta)
   const {
     profiles,
     isLoading: loadingProfiles,
@@ -103,7 +106,7 @@ export function EFDExportDialog({
     updateProfile,
     deleteProfile,
     setDefaultProfile,
-  } = useExportProfiles('efd');
+  } = useExportProfiles(profileType);
   
   // AbortController para cancelar exportação
   const abortControllerRef = useRef<AbortController | null>(null);
