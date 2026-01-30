@@ -80,6 +80,89 @@ export type Database = {
         }
         Relationships: []
       }
+      client_documents: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_type: string
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          name: string
+          updated_at: string | null
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type: string
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_visible_projects: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          user_id: string
+          visible_since: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          user_id: string
+          visible_since?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          user_id?: string
+          visible_since?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_visible_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente: {
         Row: {
           ativo: boolean | null

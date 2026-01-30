@@ -1,83 +1,86 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink } from 'lucide-react';
 
-// Interfaces para dados do cliente
-interface ClientProject {
-  id: string;
-  name: string;
-  description: string;
-  status: 'em_andamento' | 'analise' | 'concluido';
-  progress: number;
-}
-
-interface ClientDocument {
-  id: string;
-  type: 'dashboard' | 'documento';
-  name: string;
-  description: string;
-  url?: string;
-}
-
-// Dados mock para demonstração
-const mockProjects: ClientProject[] = [
-  {
-    id: '1',
-    name: 'Diagnóstico Fiscal 2024',
-    description: 'Análise completa da estrutura fiscal e identificação de oportunidades de otimização tributária.',
-    status: 'em_andamento',
-    progress: 75,
-  },
-  {
-    id: '2',
-    name: 'Reestruturação Societária',
-    description: 'Revisão e reorganização da estrutura societária para maior eficiência operacional.',
-    status: 'analise',
-    progress: 30,
-  },
-];
-
-const mockDocuments: ClientDocument[] = [
-  {
-    id: '1',
-    type: 'dashboard',
-    name: 'Dashboard de Acompanhamento Fiscal',
-    description: 'Painel interativo com indicadores fiscais em tempo real',
-    url: 'https://exemplo.com/dashboard',
-  },
-  {
-    id: '2',
-    type: 'documento',
-    name: 'Relatório Trimestral Q4/2024',
-    description: 'Análise detalhada do período outubro-dezembro 2024',
-  },
-  {
-    id: '3',
-    type: 'documento',
-    name: 'Manual de Procedimentos Fiscais',
-    description: 'Guia completo de procedimentos e boas práticas',
-  },
-];
-
 const statusConfig = {
-  em_andamento: { label: 'Em Andamento', className: 'bg-teal-100 text-teal-700 hover:bg-teal-100' },
-  analise: { label: 'Em Análise', className: 'bg-amber-100 text-amber-700 hover:bg-amber-100' },
-  concluido: { label: 'Concluído', className: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' },
-};
+  planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
+  active: { label: 'Em Andamento', className: 'bg-teal-100 text-teal-700 hover:bg-teal-100' },
+  on_hold: { label: 'Em Pausa', className: 'bg-amber-100 text-amber-700 hover:bg-amber-100' },
+  completed: { label: 'Concluído', className: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' },
+} as const;
 
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
+  // Fetch visible projects for this client
+  const { data: visibleProjects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['client-visible-projects', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('client_visible_projects')
+        .select(`
+          id,
+          visible_since,
+          notes,
+          projects (
+            id,
+            name,
+            description,
+            status,
+            start_date,
+            end_date
+          )
+        `)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch documents for this client
+  const { data: clientDocuments, isLoading: isLoadingDocuments } = useQuery({
+    queryKey: ['client-documents', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('client_documents')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  // Calculate progress based on project status
+  const getProjectProgress = (status: string | null) => {
+    switch (status) {
+      case 'planning': return 10;
+      case 'active': return 50;
+      case 'on_hold': return 30;
+      case 'completed': return 100;
+      default: return 0;
+    }
   };
 
   return (
@@ -159,43 +162,77 @@ export default function ClienteDashboard() {
 
               {/* Projects Tab */}
               <TabsContent value="projects" className="mt-6">
-                {mockProjects.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="text-muted-foreground">Nenhum projeto em andamento no momento.</p>
-                  </Card>
-                ) : (
+                {isLoadingProjects ? (
                   <div className="grid md:grid-cols-2 gap-6">
-                    {mockProjects.map((project) => (
-                      <Card key={project.id} className="overflow-hidden">
+                    {[1, 2].map((i) => (
+                      <Card key={i} className="overflow-hidden">
                         <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <CardTitle className="text-lg">{project.name}</CardTitle>
-                            <Badge className={statusConfig[project.status].className}>
-                              {statusConfig[project.status].label}
-                            </Badge>
-                          </div>
-                          <CardDescription className="mt-2">
-                            {project.description}
-                          </CardDescription>
+                          <Skeleton className="h-6 w-3/4" />
+                          <Skeleton className="h-4 w-full mt-2" />
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Progresso</span>
-                              <span className="font-medium text-teal-700">{project.progress}%</span>
-                            </div>
-                            <Progress value={project.progress} className="h-2 [&>div]:bg-teal-600" />
-                          </div>
+                          <Skeleton className="h-2 w-full" />
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                ) : !visibleProjects || visibleProjects.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <p className="text-muted-foreground">Nenhum projeto atribuído no momento.</p>
+                  </Card>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {visibleProjects.map((item) => {
+                      const project = item.projects;
+                      if (!project) return null;
+                      
+                      const status = (project.status as keyof typeof statusConfig) || 'planning';
+                      const progress = getProjectProgress(project.status);
+                      
+                      return (
+                        <Card key={item.id} className="overflow-hidden">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <CardTitle className="text-lg">{project.name}</CardTitle>
+                              <Badge className={statusConfig[status]?.className || statusConfig.planning.className}>
+                                {statusConfig[status]?.label || 'Em Planejamento'}
+                              </Badge>
+                            </div>
+                            <CardDescription className="mt-2">
+                              {project.description || 'Sem descrição disponível'}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Progresso</span>
+                                <span className="font-medium text-teal-700">{progress}%</span>
+                              </div>
+                              <Progress value={progress} className="h-2 [&>div]:bg-teal-600" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </TabsContent>
 
               {/* Documents Tab */}
               <TabsContent value="documents" className="mt-6">
-                {mockDocuments.length === 0 ? (
+                {isLoadingDocuments ? (
+                  <Card>
+                    <div className="p-4 space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-4">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <Skeleton className="h-4 flex-1" />
+                          <Skeleton className="h-8 w-20" />
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ) : !clientDocuments || clientDocuments.length === 0 ? (
                   <Card className="p-8 text-center">
                     <p className="text-muted-foreground">Nenhum documento disponível no momento.</p>
                   </Card>
@@ -211,11 +248,11 @@ export default function ClienteDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mockDocuments.map((doc) => (
+                        {clientDocuments.map((doc) => (
                           <TableRow key={doc.id}>
                             <TableCell>
                               <div className="flex items-center">
-                                {doc.type === 'dashboard' ? (
+                                {doc.document_type === 'dashboard' ? (
                                   <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
                                     <BarChart3 className="h-4 w-4 text-teal-600" />
                                   </div>
@@ -228,15 +265,16 @@ export default function ClienteDashboard() {
                             </TableCell>
                             <TableCell className="font-medium">{doc.name}</TableCell>
                             <TableCell className="hidden md:table-cell text-muted-foreground">
-                              {doc.description}
+                              {doc.description || '-'}
                             </TableCell>
                             <TableCell className="text-right">
-                              {doc.type === 'dashboard' ? (
+                              {doc.document_type === 'dashboard' ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="border-teal-600 text-teal-600 hover:bg-teal-50"
                                   onClick={() => doc.url && window.open(doc.url, '_blank')}
+                                  disabled={!doc.url}
                                 >
                                   <ExternalLink className="mr-1 h-3 w-3" />
                                   Abrir
@@ -246,6 +284,7 @@ export default function ClienteDashboard() {
                                   size="sm"
                                   variant="outline"
                                   className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                                  disabled={!doc.file_path}
                                 >
                                   <Download className="mr-1 h-3 w-3" />
                                   Baixar
