@@ -1,191 +1,220 @@
 
-# Plano: Correção dos Números nos Cards e Overflow no Modal
 
-## Problemas Identificados
+# Plano: Implementar Download em Lote de TXT na Ferramenta EFD ICMS
 
-### 1. Números nos Cards Não Batem
+## Problema Identificado
 
-**Análise dos dados da API:**
+Na ferramenta **EFD ICMS** (`ConsultaEFDICMS.tsx`), o botão "Baixar txt" para múltiplos arquivos está mostrando uma mensagem de "Funcionalidade em desenvolvimento" ao invés de realizar o download em lote.
 
-| Requisição | `total` | `qtd_validados` | `qtd_pendentes` |
-|------------|---------|-----------------|-----------------|
-| Sem filtro (all) | 2620 | 708 | 1811 |
-| `valid=true` | 726 | 708 | 1811 |
-| `valid=false` | 1894 | 708 | 1811 |
+O código atual (linhas 279-287):
+```typescript
+// Múltiplos arquivos - mostrar toast informativo (funcionalidade em desenvolvimento)
+if (selectedArquivos.size > 1) {
+  toast({
+    title: "Funcionalidade em desenvolvimento",
+    description: `O download em lote de ${selectedArquivos.size} arquivos ainda está sendo implementado...`,
+    duration: 5000,
+  });
+  return;
+}
+```
 
-A API retorna corretamente os valores **globais** para `qtd_validados` e `qtd_pendentes` independente do filtro. Porém, o campo `total` muda conforme o filtro aplicado.
+## Endpoint Confirmado
 
-**O problema:** O card "Total de Itens" está exibindo o `total` da resposta atual (que muda com o filtro), enquanto "Validados" e "Pendentes" mostram valores globais. Isso cria inconsistência visual onde 708 + 1811 ≠ 1894.
+```
+GET /api/v1/query/download/efd/{tipo}/{cnpj}
+```
 
-**Comportamento esperado:**
-- Os cards devem sempre mostrar os valores **globais** (do filtro "all")
-- A tabela deve mostrar os dados filtrados
-- Os cards servem como **indicadores** e **botões de filtro**, não como contagem da tabela atual
+**Parâmetros:**
+- Path: `tipo` (contribuicoes|icms), `cnpj` (apenas dígitos)
+- Query: `data_inicio` (opcional), `data_fim` (opcional)
 
-### 2. Overflow do Valor no Modal
+**Respostas:**
+- `text/plain` + Content-Disposition (1 arquivo)
+- `application/zip` + Content-Disposition, X-Files-Found, X-Files-Missing (múltiplos)
 
-No modal "Classificar Item" (`DifalAuditModal.tsx`), o valor monetário "R$ 1.750.000,00" está ultrapassando os limites do card "Resumo do Grupo" porque:
-1. O grid tem `grid-cols-3` com espaço limitado
-2. Valores grandes não têm tratamento de overflow
-3. O texto não quebra nem trunca
+## Solução
 
-## Solução Proposta
+Implementar a função `handleDownloadAll` na ferramenta EFD ICMS, seguindo o mesmo padrão já existente na ferramenta EFD Contribuições (`ConsultaEFD.tsx`).
 
-### Correção 1: Estatísticas Globais Separadas
+## Mudanças Técnicas
 
-Armazenar as estatísticas globais quando a busca inicial é feita (sem filtro) e usá-las nos cards independente do filtro ativo.
+### 1. Adicionar Estado para Download em Lote
 
 ```typescript
-// Novo estado para armazenar estatísticas globais
-const [globalStats, setGlobalStats] = useState<{
-  total: number;
-  validados: number;
-  pendentes: number;
-} | null>(null);
+// Após linha 43
+const [downloadingAll, setDownloadingAll] = useState(false);
+```
 
-// Na query, salvar stats globais apenas quando statusFilter === 'all'
-useEffect(() => {
-  if (statusFilter === 'all' && apiGroupedData) {
-    setGlobalStats({
-      total: apiGroupedData.total,
-      validados: apiGroupedData.qtdValidados,
-      pendentes: apiGroupedData.qtdPendentes,
+### 2. Implementar Função de Download em Lote
+
+Adicionar a função `handleDownloadAll` (baseada na ConsultaEFD.tsx):
+
+```typescript
+// Handler para baixar todos os arquivos (ZIP)
+const handleDownloadAll = async () => {
+  if (!cnpjContribuinte) return;
+  
+  setDownloadingAll(true);
+  
+  try {
+    // Montar URL com query params opcionais
+    const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
+    if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
+    if (dataFim) url.searchParams.set('data_fim', dataFim);
+    
+    // Usar timeout maior para downloads grandes (60s)
+    const response = await fetchWithAuth(url.toString(), {}, 60000);
+    
+    if (!response.ok) {
+      const contentType = response.headers.get('Content-Type');
+      if (contentType?.includes('application/json')) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error_message || `Erro ${response.status}`);
+      }
+      throw new Error(`Erro ${response.status} ao baixar arquivos`);
+    }
+    
+    // Verificar headers informativos
+    const filesFound = response.headers.get('X-Files-Found');
+    const filesMissing = response.headers.get('X-Files-Missing');
+    
+    // Obter nome do arquivo
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const contentType = response.headers.get('Content-Type');
+    const isZip = contentType?.includes('application/zip');
+    
+    let filename = isZip ? `EFD_ICMS_${cnpjContribuinte}.zip` : `EFD_ICMS_${cnpjContribuinte}.txt`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (match?.[1]) filename = match[1].replace(/['"]/g, '');
+    }
+    
+    // Download do blob
+    const blob = await response.blob();
+    
+    if (blob.size === 0) {
+      throw new Error('Arquivo vazio recebido do servidor');
+    }
+    
+    // Criar link e download
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+    
+    // Mensagem de sucesso com detalhes
+    let description = `Arquivo ${filename} (${(blob.size / 1024).toFixed(1)} KB) baixado.`;
+    if (filesFound && filesMissing && parseInt(filesMissing) > 0) {
+      description = `${filesFound} arquivo(s) baixado(s), ${filesMissing} não encontrado(s) no storage.`;
+    } else if (filesFound) {
+      description = `${filesFound} arquivo(s) baixado(s) com sucesso.`;
+    }
+    
+    toast({ title: 'Download concluído', description });
+  } catch (error) {
+    console.error('Erro ao baixar todos:', error);
+    toast({
+      title: 'Erro no download',
+      description: error instanceof Error ? error.message : 'Não foi possível baixar os arquivos.',
+      variant: 'destructive',
     });
+  } finally {
+    setDownloadingAll(false);
   }
-}, [statusFilter, apiGroupedData]);
-
-// Nos cards, usar globalStats ao invés de valores diretos
-<p className="text-2xl font-bold">{globalStats?.total ?? 0}</p>
-<p className="text-2xl font-bold">{globalStats?.validados ?? 0}</p>
-<p className="text-2xl font-bold">{globalStats?.pendentes ?? 0}</p>
-```
-
-### Correção 2: Overflow no Modal
-
-Atualizar o CSS do card de "Valor Total" no modal para lidar com valores grandes.
-
-**Arquivo:** `src/components/equipe/dev/DifalAuditModal.tsx` (linhas 255-258)
-
-```tsx
-// Antes:
-<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-  <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(group.totalValue)}</p>
-  <p className="text-xs text-slate-500">Valor Total</p>
-</div>
-
-// Depois:
-<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center overflow-hidden">
-  <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={formatCurrency(group.totalValue)}>
-    {formatCurrency(group.totalValue)}
-  </p>
-  <p className="text-xs text-slate-500">Valor Total</p>
-</div>
-```
-
-Alterações:
-- Adicionar `overflow-hidden` no container
-- Reduzir tamanho da fonte de `text-lg` para `text-sm` para melhor encaixe
-- Adicionar `truncate` para truncar com reticências se necessário
-- Adicionar `title` para tooltip com valor completo
-
-## Arquivos a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Adicionar estado `globalStats` e lógica para armazená-lo na busca inicial |
-| `src/components/equipe/dev/DifalAuditModal.tsx` | Ajustar CSS do card "Valor Total" para evitar overflow |
-
-## Mudanças Detalhadas
-
-### AuditoriaFiscal.tsx
-
-**1. Adicionar estado para estatísticas globais (após linha ~127):**
-```typescript
-// Estados para sessão e decisões pendentes
-const [activeSessaoId, setActiveSessaoId] = useState<string | null>(null);
-const [pendingDecisionsCount, setPendingDecisionsCount] = useState(0);
-const [isSaving, setIsSaving] = useState(false);
-
-// NOVO: Estatísticas globais (não mudam com filtro)
-const [globalStats, setGlobalStats] = useState<{
-  total: number;
-  validados: number;
-  pendentes: number;
-} | null>(null);
-```
-
-**2. Atualizar estatísticas globais quando busca inicial (após linha ~293):**
-```typescript
-// Atualizar estatísticas globais quando busca sem filtro
-useEffect(() => {
-  if (statusFilter === 'all' && apiGroupedData && searchTriggered) {
-    setGlobalStats({
-      total: apiGroupedData.total,
-      validados: apiGroupedData.qtdValidados,
-      pendentes: apiGroupedData.qtdPendentes,
-    });
-  }
-}, [statusFilter, apiGroupedData, searchTriggered]);
-```
-
-**3. Limpar estatísticas ao limpar filtros (handleClearFilters):**
-```typescript
-const handleClearFilters = () => {
-  // ... código existente ...
-  setGlobalStats(null); // Adicionar
 };
 ```
 
-**4. Atualizar cards para usar globalStats (linhas ~875, 892, 909):**
-```tsx
-// Card Total
-<p className="text-2xl font-bold text-slate-900">{globalStats?.total ?? 0}</p>
+### 3. Atualizar `handleDownloadSelecionados`
 
-// Card Validados
-<p className="text-2xl font-bold text-green-700">{globalStats?.validados ?? 0}</p>
+Modificar a função para chamar o download em lote quando houver múltiplos arquivos:
 
-// Card Pendentes
-<p className="text-2xl font-bold text-amber-700">{globalStats?.pendentes ?? 0}</p>
+```typescript
+const handleDownloadSelecionados = async () => {
+  if (selectedArquivos.size === 0) {
+    toast({
+      title: "Nenhum arquivo selecionado",
+      description: "Selecione ao menos um arquivo para baixar.",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  // Múltiplos arquivos - usar download em lote
+  if (selectedArquivos.size > 1) {
+    await handleDownloadAll();
+    return;
+  }
+  
+  // Se apenas 1 arquivo selecionado, baixar individualmente
+  const arquivoSelecionado = arquivosFiltrados.find(a => selectedArquivos.has(a.ID_ARQUIVO));
+  if (arquivoSelecionado) {
+    await handleDownloadTxt(arquivoSelecionado);
+  }
+};
 ```
 
-### DifalAuditModal.tsx
+### 4. Atualizar Estado do Botão "Baixar txt"
 
-**Atualizar card de Valor Total (linhas 255-258):**
-```tsx
-<div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center overflow-hidden">
-  <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={formatCurrency(group.totalValue)}>
-    {formatCurrency(group.totalValue)}
-  </p>
-  <p className="text-xs text-slate-500">Valor Total</p>
-</div>
+Modificar o botão para mostrar loading durante o download em lote:
+
+```typescript
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleDownloadSelecionados}
+  disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
+  className="gap-2"
+>
+  {(downloadingTxt !== null || downloadingAll) ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    <Download className="h-4 w-4" />
+  )}
+  Baixar txt
+</Button>
 ```
 
-## Comportamento Esperado Após Implementação
+## Arquivo a Modificar
 
-1. **Cards sempre mostram valores globais:**
-   - Total: 2620 (soma real)
-   - Validados: 708
-   - Pendentes: 1811
+| Arquivo | Alterações |
+|---------|------------|
+| `src/pages/equipe/dev/ConsultaEFDICMS.tsx` | Adicionar estado `downloadingAll`, implementar `handleDownloadAll`, atualizar `handleDownloadSelecionados` e estado do botão |
 
-2. **Ao clicar em um card:**
-   - A tabela filtra pelos itens correspondentes
-   - O card clicado recebe destaque visual (ring)
-   - Os números nos cards **não mudam**
-   - A paginação mostra quantidade correta ("Página 1 de X (Y itens)")
+## Fluxo de Funcionamento
 
-3. **Modal de classificação:**
-   - Valor monetário grande é exibido corretamente sem ultrapassar bordas
-   - Tooltip mostra valor completo ao passar o mouse
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Usuário seleciona arquivos na tabela (checkboxes)          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Clica no botão "Baixar txt"                                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+    ┌─────────────────┐             ┌─────────────────┐
+    │ 1 arquivo       │             │ 2+ arquivos     │
+    │ selecionado     │             │ selecionados    │
+    └────────┬────────┘             └────────┬────────┘
+             │                               │
+             ▼                               ▼
+    ┌─────────────────┐             ┌─────────────────┐
+    │handleDownloadTxt│             │handleDownloadAll│
+    │(individual .txt)│             │(ZIP via API)    │
+    └─────────────────┘             └─────────────────┘
+```
 
-## Validação da Matemática
+## Considerações
 
-Com os dados da API:
-- Total global: 2620
-- Validados: 708 + Pendentes: 1811 = 2519
+1. **Filtro por período**: O download em lote usa os filtros de data do formulário, não os arquivos selecionados individualmente
+2. **Filtro por filial**: O endpoint atual não suporta filtro por filial; baixará todos os arquivos do CNPJ no período
+3. **Feedback visual**: O botão mostrará spinner durante o download
+4. **Tratamento de erros**: Mensagens claras para o usuário em caso de falha
 
-A diferença de 101 itens (2620 - 2519) pode ser explicada por:
-- Itens em status intermediário
-- Itens sem classificação definida
-- Edge cases no agrupamento
-
-Isso é um comportamento aceitável da API e não precisa de correção no frontend.
