@@ -1,220 +1,135 @@
 
 
-# Plano: Implementar Download em Lote de TXT na Ferramenta EFD ICMS
+# Plano: Ajustes na Ferramenta DIFAL Inteligente
 
-## Problema Identificado
+## Alterações Solicitadas
 
-Na ferramenta **EFD ICMS** (`ConsultaEFDICMS.tsx`), o botão "Baixar txt" para múltiplos arquivos está mostrando uma mensagem de "Funcionalidade em desenvolvimento" ao invés de realizar o download em lote.
+1. **Trocar a ordem dos cards**: "Pendentes" primeiro, depois "Total de Itens", depois "Validados"
+2. **Corrigir capitalização**: "Total de itens" → "Total de Itens" (já está correto no código, mas confirmaremos)
+3. **Pré-selecionar "Pendentes"**: Ao clicar em "Buscar Itens", o filtro deve iniciar com status `pending`
+4. **Modal - Layout do Resumo do Grupo**: Mover "Valor Total" para baixo de "Itens" e "NFes"
 
-O código atual (linhas 279-287):
+## Análise do Código Atual
+
+### Cards de Estatísticas (linhas 876-930)
+A ordem atual é: Total de Itens → Validados → Pendentes
+
+O código está correto com "Total de Itens" (capitalização correta).
+
+### Filtro de Status (linha 119)
 ```typescript
-// Múltiplos arquivos - mostrar toast informativo (funcionalidade em desenvolvimento)
-if (selectedArquivos.size > 1) {
-  toast({
-    title: "Funcionalidade em desenvolvimento",
-    description: `O download em lote de ${selectedArquivos.size} arquivos ainda está sendo implementado...`,
-    duration: 5000,
-  });
-  return;
-}
+const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 ```
 
-## Endpoint Confirmado
-
+### Modal - Resumo do Grupo (linhas 246-261)
+Layout atual em `grid-cols-3`:
 ```
-GET /api/v1/query/download/efd/{tipo}/{cnpj}
+| Itens | NFes | Valor Total |
 ```
 
-**Parâmetros:**
-- Path: `tipo` (contribuicoes|icms), `cnpj` (apenas dígitos)
-- Query: `data_inicio` (opcional), `data_fim` (opcional)
-
-**Respostas:**
-- `text/plain` + Content-Disposition (1 arquivo)
-- `application/zip` + Content-Disposition, X-Files-Found, X-Files-Missing (múltiplos)
-
-## Solução
-
-Implementar a função `handleDownloadAll` na ferramenta EFD ICMS, seguindo o mesmo padrão já existente na ferramenta EFD Contribuições (`ConsultaEFD.tsx`).
+O valor fica cortado devido ao espaço limitado.
 
 ## Mudanças Técnicas
 
-### 1. Adicionar Estado para Download em Lote
+### 1. AuditoriaFiscal.tsx - Reordenar Cards
 
+**Antes (linhas 878-930):**
+```
+Card 1: Total de Itens (all)
+Card 2: Validados (validated)
+Card 3: Pendentes (pending)
+```
+
+**Depois:**
+```
+Card 1: Pendentes (pending) - primeiro pois é o mais importante
+Card 2: Total de Itens (all) - mantém capitalização correta
+Card 3: Validados (validated)
+```
+
+### 2. AuditoriaFiscal.tsx - Pré-selecionar Pendentes ao Buscar
+
+Na função `handleSearch` (linha 458), após `setSearchTriggered(true)`, adicionar:
 ```typescript
-// Após linha 43
-const [downloadingAll, setDownloadingAll] = useState(false);
+setSearchTriggered(true);
+setStatusFilter('pending'); // Pré-selecionar Pendentes
 ```
 
-### 2. Implementar Função de Download em Lote
+### 3. DifalAuditModal.tsx - Layout do Resumo do Grupo
 
-Adicionar a função `handleDownloadAll` (baseada na ConsultaEFD.tsx):
+Mudar de `grid-cols-3` para layout vertical empilhado:
 
+**Antes (linhas 246-261):**
+```tsx
+<div className="grid grid-cols-3 gap-3 mt-3">
+  <div>Itens</div>
+  <div>NFes</div>
+  <div>Valor Total (truncado)</div>
+</div>
+```
+
+**Depois:**
+```tsx
+<div className="grid grid-cols-2 gap-3 mt-3">
+  <div>Itens</div>
+  <div>NFes</div>
+</div>
+<div className="mt-3">
+  <div>Valor Total (largura total)</div>
+</div>
+```
+
+Isso dá espaço completo para o valor monetário sem truncar.
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Reordenar cards (Pendentes, Total, Validados) + Pré-selecionar 'pending' no handleSearch |
+| `src/components/equipe/dev/DifalAuditModal.tsx` | Mudar grid de 3 colunas para 2 colunas + linha separada para Valor Total |
+
+## Detalhes das Mudanças
+
+### AuditoriaFiscal.tsx
+
+**Linha 458** - Adicionar após `setSearchTriggered(true)`:
 ```typescript
-// Handler para baixar todos os arquivos (ZIP)
-const handleDownloadAll = async () => {
-  if (!cnpjContribuinte) return;
-  
-  setDownloadingAll(true);
-  
-  try {
-    // Montar URL com query params opcionais
-    const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
-    if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
-    if (dataFim) url.searchParams.set('data_fim', dataFim);
-    
-    // Usar timeout maior para downloads grandes (60s)
-    const response = await fetchWithAuth(url.toString(), {}, 60000);
-    
-    if (!response.ok) {
-      const contentType = response.headers.get('Content-Type');
-      if (contentType?.includes('application/json')) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error_message || `Erro ${response.status}`);
-      }
-      throw new Error(`Erro ${response.status} ao baixar arquivos`);
-    }
-    
-    // Verificar headers informativos
-    const filesFound = response.headers.get('X-Files-Found');
-    const filesMissing = response.headers.get('X-Files-Missing');
-    
-    // Obter nome do arquivo
-    const contentDisposition = response.headers.get('Content-Disposition');
-    const contentType = response.headers.get('Content-Type');
-    const isZip = contentType?.includes('application/zip');
-    
-    let filename = isZip ? `EFD_ICMS_${cnpjContribuinte}.zip` : `EFD_ICMS_${cnpjContribuinte}.txt`;
-    if (contentDisposition) {
-      const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-      if (match?.[1]) filename = match[1].replace(/['"]/g, '');
-    }
-    
-    // Download do blob
-    const blob = await response.blob();
-    
-    if (blob.size === 0) {
-      throw new Error('Arquivo vazio recebido do servidor');
-    }
-    
-    // Criar link e download
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
-    
-    // Mensagem de sucesso com detalhes
-    let description = `Arquivo ${filename} (${(blob.size / 1024).toFixed(1)} KB) baixado.`;
-    if (filesFound && filesMissing && parseInt(filesMissing) > 0) {
-      description = `${filesFound} arquivo(s) baixado(s), ${filesMissing} não encontrado(s) no storage.`;
-    } else if (filesFound) {
-      description = `${filesFound} arquivo(s) baixado(s) com sucesso.`;
-    }
-    
-    toast({ title: 'Download concluído', description });
-  } catch (error) {
-    console.error('Erro ao baixar todos:', error);
-    toast({
-      title: 'Erro no download',
-      description: error instanceof Error ? error.message : 'Não foi possível baixar os arquivos.',
-      variant: 'destructive',
-    });
-  } finally {
-    setDownloadingAll(false);
-  }
-};
+setStatusFilter('pending'); // Pré-selecionar Pendentes ao buscar
 ```
 
-### 3. Atualizar `handleDownloadSelecionados`
+**Linhas 876-930** - Nova ordem dos cards:
+1. Card Pendentes (amber) com `onClick={() => handleStatusFilterChange('pending')}`
+2. Card Total de Itens (slate) com `onClick={() => handleStatusFilterChange('all')}`
+3. Card Validados (green) com `onClick={() => handleStatusFilterChange('validated')}`
 
-Modificar a função para chamar o download em lote quando houver múltiplos arquivos:
+### DifalAuditModal.tsx
 
-```typescript
-const handleDownloadSelecionados = async () => {
-  if (selectedArquivos.size === 0) {
-    toast({
-      title: "Nenhum arquivo selecionado",
-      description: "Selecione ao menos um arquivo para baixar.",
-      variant: "destructive",
-    });
-    return;
-  }
-  
-  // Múltiplos arquivos - usar download em lote
-  if (selectedArquivos.size > 1) {
-    await handleDownloadAll();
-    return;
-  }
-  
-  // Se apenas 1 arquivo selecionado, baixar individualmente
-  const arquivoSelecionado = arquivosFiltrados.find(a => selectedArquivos.has(a.ID_ARQUIVO));
-  if (arquivoSelecionado) {
-    await handleDownloadTxt(arquivoSelecionado);
-  }
-};
+**Linhas 246-261** - Novo layout:
+```tsx
+<div className="grid grid-cols-2 gap-3 mt-3">
+  <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+    <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.count}</p>
+    <p className="text-xs text-slate-500">Itens</p>
+  </div>
+  <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+    <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.nfesCount}</p>
+    <p className="text-xs text-slate-500">NFes</p>
+  </div>
+</div>
+<div className="mt-3">
+  <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
+    <p className="text-lg font-bold text-slate-900 dark:text-white">
+      {formatCurrency(group.totalValue)}
+    </p>
+    <p className="text-xs text-slate-500">Valor Total</p>
+  </div>
+</div>
 ```
 
-### 4. Atualizar Estado do Botão "Baixar txt"
+## Fluxo Esperado Após Implementação
 
-Modificar o botão para mostrar loading durante o download em lote:
-
-```typescript
-<Button
-  variant="outline"
-  size="sm"
-  onClick={handleDownloadSelecionados}
-  disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
-  className="gap-2"
->
-  {(downloadingTxt !== null || downloadingAll) ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : (
-    <Download className="h-4 w-4" />
-  )}
-  Baixar txt
-</Button>
-```
-
-## Arquivo a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `src/pages/equipe/dev/ConsultaEFDICMS.tsx` | Adicionar estado `downloadingAll`, implementar `handleDownloadAll`, atualizar `handleDownloadSelecionados` e estado do botão |
-
-## Fluxo de Funcionamento
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Usuário seleciona arquivos na tabela (checkboxes)          │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Clica no botão "Baixar txt"                                 │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-    ┌─────────────────┐             ┌─────────────────┐
-    │ 1 arquivo       │             │ 2+ arquivos     │
-    │ selecionado     │             │ selecionados    │
-    └────────┬────────┘             └────────┬────────┘
-             │                               │
-             ▼                               ▼
-    ┌─────────────────┐             ┌─────────────────┐
-    │handleDownloadTxt│             │handleDownloadAll│
-    │(individual .txt)│             │(ZIP via API)    │
-    └─────────────────┘             └─────────────────┘
-```
-
-## Considerações
-
-1. **Filtro por período**: O download em lote usa os filtros de data do formulário, não os arquivos selecionados individualmente
-2. **Filtro por filial**: O endpoint atual não suporta filtro por filial; baixará todos os arquivos do CNPJ no período
-3. **Feedback visual**: O botão mostrará spinner durante o download
-4. **Tratamento de erros**: Mensagens claras para o usuário em caso de falha
+1. Usuário seleciona contribuinte e clica "Buscar Itens"
+2. Sistema automaticamente seleciona filtro "Pendentes"
+3. Cards aparecem na ordem: **Pendentes** (destacado) | Total de Itens | Validados
+4. Ao abrir modal de classificação, o "Valor Total" aparece em linha separada com espaço completo
 
