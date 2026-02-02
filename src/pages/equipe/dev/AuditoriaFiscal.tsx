@@ -1,27 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DevLayout } from "@/components/equipe/dev/DevLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
@@ -30,16 +17,16 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis,
-} from '@/components/ui/pagination';
-import { DifalAuditModal } from '@/components/equipe/dev/DifalAuditModal';
-import { useToast } from '@/hooks/use-toast';
-import { useApiAuth } from '@/hooks/useApiAuth';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { API_BASE_URL, isProductionEnvironment } from '@/config/api';
-import { cn } from '@/lib/utils';
-import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "@/components/ui/pagination";
+import { DifalAuditModal } from "@/components/equipe/dev/DifalAuditModal";
+import { useToast } from "@/hooks/use-toast";
+import { useApiAuth } from "@/hooks/useApiAuth";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { API_BASE_URL, isProductionEnvironment } from "@/config/api";
+import { cn } from "@/lib/utils";
+import { format, parse, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   DifalGroupedItem,
   DifalApiGroupedResponse,
@@ -48,7 +35,7 @@ import {
   SyncPayload,
   SyncDecisao,
   TipoDecisao,
-} from '@/types/difal';
+} from "@/types/difal";
 import {
   Search,
   Calculator,
@@ -62,10 +49,10 @@ import {
   Loader2,
   Filter,
   Eraser,
-} from 'lucide-react';
+} from "lucide-react";
 
 // Nomes dos clientes permitidos para esta ferramenta (Barralcool e Coprodia)
-const CLIENTES_PERMITIDOS_NOMES = ['BARRALCOOL', 'COPRODIA'];
+const CLIENTES_PERMITIDOS_NOMES = ["Barralcool", "COPRODIA"];
 
 // Limite de itens por página
 const ITEMS_PER_PAGE = 25;
@@ -76,8 +63,8 @@ const getDefaultDates = () => {
   const firstDay = startOfMonth(now);
   const lastDay = endOfMonth(now);
   return {
-    inicio: format(firstDay, 'yyyy-MM-dd'),
-    fim: format(lastDay, 'yyyy-MM-dd'),
+    inicio: format(firstDay, "yyyy-MM-dd"),
+    fim: format(lastDay, "yyyy-MM-dd"),
   };
 };
 
@@ -103,8 +90,8 @@ const AuditoriaFiscal = () => {
   const defaultDates = getDefaultDates();
 
   // Estados de filtros (formato yyyy-MM-dd)
-  const [selectedCliente, setSelectedCliente] = useState<string>('');
-  const [selectedContribuinte, setSelectedContribuinte] = useState<string>('');
+  const [selectedCliente, setSelectedCliente] = useState<string>("");
+  const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
@@ -112,8 +99,8 @@ const AuditoriaFiscal = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filtro de status (Total, Validados, Pendentes)
-  type StatusFilter = 'all' | 'validated' | 'pending';
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  type StatusFilter = "all" | "validated" | "pending";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // Estado do modal
   const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
@@ -135,19 +122,19 @@ const AuditoriaFiscal = () => {
   } | null>(null);
 
   // Determinar tabela baseado no ambiente
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
+  const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
+  const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 
   // Query: Listar clientes (filtrado para Barralcool e Coprodia por nome)
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
-    queryKey: ['difal-clientes', clienteTable],
+    queryKey: ["difal-clientes", clienteTable],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(clienteTable)
-        .select('id, nome')
-        .eq('ativo', true)
-        .filter('nome', 'in', `(${CLIENTES_PERMITIDOS_NOMES.join(',')})`)
-        .order('nome');
+        .select("id, nome")
+        .eq("ativo", true)
+        .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
+        .order("nome");
 
       if (error) throw error;
       return (data || []) as ClienteRecord[];
@@ -156,14 +143,14 @@ const AuditoriaFiscal = () => {
 
   // Query: Listar contribuintes do cliente
   const { data: contribuintes, isLoading: isLoadingContribuintes } = useQuery({
-    queryKey: ['difal-contribuintes', selectedCliente, contribuinteTable],
+    queryKey: ["difal-contribuintes", selectedCliente, contribuinteTable],
     queryFn: async () => {
       if (!selectedCliente) return [];
       const { data, error } = await supabase
         .from(contribuinteTable)
-        .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', selectedCliente)
-        .order('nome_razao_social');
+        .select("id, nome_razao_social, cpf_cnpj")
+        .eq("cliente_id", selectedCliente)
+        .order("nome_razao_social");
 
       if (error) throw error;
       return (data || []) as ContribuinteRecord[];
@@ -189,11 +176,11 @@ const AuditoriaFiscal = () => {
       try {
         // Buscar apenas sessões EM_ANDAMENTO (ignorar FINALIZADO e SINCRONIZADO)
         const { data: lastSession, error } = await supabase
-          .from('difal_sessao')
-          .select('*')
-          .eq('usuario_id', user.id)
-          .eq('status', 'EM_ANDAMENTO')
-          .order('criado_em', { ascending: false })
+          .from("difal_sessao")
+          .select("*")
+          .eq("usuario_id", user.id)
+          .eq("status", "EM_ANDAMENTO")
+          .order("criado_em", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -230,25 +217,25 @@ const AuditoriaFiscal = () => {
 
         // Carregar contagem de decisões pendentes
         const { count } = await supabase
-          .from('difal_decisao')
-          .select('*', { count: 'exact', head: true })
-          .eq('sessao_id', lastSession.id);
+          .from("difal_decisao")
+          .select("*", { count: "exact", head: true })
+          .eq("sessao_id", lastSession.id);
 
         setPendingDecisionsCount(count || 0);
 
         // Se sessão ainda está em andamento, disparar busca
-        if (lastSession.status === 'EM_ANDAMENTO') {
+        if (lastSession.status === "EM_ANDAMENTO") {
           setTimeout(() => {
             setSearchTriggered(true);
           }, 600);
         }
 
         toast({
-          title: 'Sessão restaurada',
-          description: 'Continuando de onde você parou.',
+          title: "Sessão restaurada",
+          description: "Continuando de onde você parou.",
         });
       } catch (error) {
-        console.error('Erro ao carregar sessão:', error);
+        console.error("Erro ao carregar sessão:", error);
       } finally {
         setIsLoadingSession(false);
       }
@@ -263,32 +250,32 @@ const AuditoriaFiscal = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ['difal-grouped-items', selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
+    queryKey: ["difal-grouped-items", selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
     queryFn: async () => {
       if (!selectedContribuinte) {
-        throw new Error('Contribuinte não selecionado');
+        throw new Error("Contribuinte não selecionado");
       }
 
       // Construir URL base
       let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 
       // Adicionar filtro de validação se necessário
-      if (statusFilter === 'validated') {
-        url += '&valid=true';
-      } else if (statusFilter === 'pending') {
-        url += '&valid=false';
+      if (statusFilter === "validated") {
+        url += "&valid=true";
+      } else if (statusFilter === "pending") {
+        url += "&valid=false";
       }
       // statusFilter === 'all' não adiciona parâmetro (retorna todos)
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
-        throw new Error('Erro ao buscar itens agrupados');
+        throw new Error("Erro ao buscar itens agrupados");
       }
 
       const data: DifalApiGroupedResponse = await response.json();
-      return { 
-        items: data.items, 
-        total: data.total, 
+      return {
+        items: data.items,
+        total: data.total,
         hasMore: data.has_more,
         qtdValidados: data.qtd_validados,
         qtdPendentes: data.qtd_pendentes,
@@ -299,7 +286,7 @@ const AuditoriaFiscal = () => {
 
   // Atualizar estatísticas globais quando busca sem filtro
   useEffect(() => {
-    if (statusFilter === 'all' && apiGroupedData && searchTriggered) {
+    if (statusFilter === "all" && apiGroupedData && searchTriggered) {
       setGlobalStats({
         total: apiGroupedData.total,
         validados: apiGroupedData.qtdValidados,
@@ -312,26 +299,28 @@ const AuditoriaFiscal = () => {
   const groupedItemsFromApi = useMemo(() => {
     if (!apiGroupedData?.items || !selectedContribuinte) return [];
 
-    return apiGroupedData.items.map((item: DifalApiGroupedItem): DifalGroupedItem => ({
-      groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
-      xProd: item.xProd,
-      cod_produto: item.cProd,
-      cod_ncm: item.NCM,
-      id_contribuinte: selectedContribuinte,
-      cfop: item.CFOP,
-      cst_icms: item.CST,
-      aliq_icms: item.aliq_prod,
-      count: item.tot_itens,
-      totalValue: item.vlr_total,
-      nfesCount: item.tot_nfes,
-      status: 'pendente',
-      classificacao: null,
-    }));
+    return apiGroupedData.items.map(
+      (item: DifalApiGroupedItem): DifalGroupedItem => ({
+        groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
+        xProd: item.xProd,
+        cod_produto: item.cProd,
+        cod_ncm: item.NCM,
+        id_contribuinte: selectedContribuinte,
+        cfop: item.CFOP,
+        cst_icms: item.CST,
+        aliq_icms: item.aliq_prod,
+        count: item.tot_itens,
+        totalValue: item.vlr_total,
+        nfesCount: item.tot_nfes,
+        status: "pendente",
+        classificacao: null,
+      }),
+    );
   }, [apiGroupedData, selectedContribuinte]);
 
   // Query: Buscar classificações existentes
   const { data: classificacoes, isLoading: isLoadingClassificacoes } = useQuery({
-    queryKey: ['difal-classificacoes', groupedItemsFromApi.map((i) => `${i.cod_produto}|${i.cod_ncm}`)],
+    queryKey: ["difal-classificacoes", groupedItemsFromApi.map((i) => `${i.cod_produto}|${i.cod_ncm}`)],
     queryFn: async () => {
       if (groupedItemsFromApi.length === 0) return {};
 
@@ -343,17 +332,14 @@ const AuditoriaFiscal = () => {
         })),
       };
 
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/v1/classificacoes/buscar`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/classificacoes/buscar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
-        throw new Error('Erro ao buscar classificações');
+        throw new Error("Erro ao buscar classificações");
       }
 
       return response.json() as Promise<ClassificacoesBuscarResponse>;
@@ -366,13 +352,13 @@ const AuditoriaFiscal = () => {
     return groupedItemsFromApi.map((group) => {
       const classifChave = `${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`;
       const classificacao = classificacoes?.[classifChave];
-      
+
       // Verificar decisões locais
       const isLocallyDecided = localDecisions.has(classifChave);
-      
+
       return {
         ...group,
-        status: (isLocallyDecided || classificacao) ? 'validado' as const : 'pendente' as const,
+        status: isLocallyDecided || classificacao ? ("validado" as const) : ("pendente" as const),
         classificacao,
       };
     });
@@ -382,9 +368,9 @@ const AuditoriaFiscal = () => {
   const handleSearch = async () => {
     if (!selectedContribuinte) {
       toast({
-        title: 'Selecione um contribuinte',
-        description: 'É necessário selecionar um contribuinte para buscar.',
-        variant: 'destructive',
+        title: "Selecione um contribuinte",
+        description: "É necessário selecionar um contribuinte para buscar.",
+        variant: "destructive",
       });
       return;
     }
@@ -392,10 +378,10 @@ const AuditoriaFiscal = () => {
     try {
       // Verificar se já existe uma sessão ativa para este usuário
       const { data: existingSession } = await supabase
-        .from('difal_sessao')
-        .select('id')
-        .eq('usuario_id', user?.id || 'unknown')
-        .eq('status', 'EM_ANDAMENTO')
+        .from("difal_sessao")
+        .select("id")
+        .eq("usuario_id", user?.id || "unknown")
+        .eq("status", "EM_ANDAMENTO")
         .maybeSingle();
 
       let sessionId: string;
@@ -403,40 +389,40 @@ const AuditoriaFiscal = () => {
       if (existingSession) {
         // Atualizar sessão existente com novos parâmetros
         const { error } = await supabase
-          .from('difal_sessao')
+          .from("difal_sessao")
           .update({
             cliente_id: selectedCliente,
-            cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+            cliente_nome: clientes?.find((c) => c.id === selectedCliente)?.nome || "",
             periodo: `${dataInicio} a ${dataFim}`,
-            uf: 'MT',
+            uf: "MT",
             request_original: {
               contribuinte_id: selectedContribuinte,
               data_inicio: dataInicio,
               data_fim: dataFim,
             },
           })
-          .eq('id', existingSession.id);
+          .eq("id", existingSession.id);
 
         if (error) throw error;
         sessionId = existingSession.id;
       } else {
         // Criar nova sessão
         const { data: session, error } = await supabase
-          .from('difal_sessao')
+          .from("difal_sessao")
           .insert({
-            usuario_id: user?.id || 'unknown',
+            usuario_id: user?.id || "unknown",
             cliente_id: selectedCliente,
-            cliente_nome: clientes?.find(c => c.id === selectedCliente)?.nome || '',
+            cliente_nome: clientes?.find((c) => c.id === selectedCliente)?.nome || "",
             periodo: `${dataInicio} a ${dataFim}`,
-            uf: 'MT',
+            uf: "MT",
             request_original: {
               contribuinte_id: selectedContribuinte,
               data_inicio: dataInicio,
               data_fim: dataFim,
             },
-            status: 'EM_ANDAMENTO',
+            status: "EM_ANDAMENTO",
           })
-          .select('id')
+          .select("id")
           .single();
 
         if (error) throw error;
@@ -447,36 +433,36 @@ const AuditoriaFiscal = () => {
 
       // Buscar contagem de decisões existentes
       const { count } = await supabase
-        .from('difal_decisao')
-        .select('*', { count: 'exact', head: true })
-        .eq('sessao_id', sessionId);
+        .from("difal_decisao")
+        .select("*", { count: "exact", head: true })
+        .eq("sessao_id", sessionId);
 
       setPendingDecisionsCount(count || 0);
       setSearchTriggered(true);
-      setStatusFilter('pending'); // Pré-selecionar Pendentes ao buscar
+      setStatusFilter("pending"); // Pré-selecionar Pendentes ao buscar
 
       toast({
-        title: existingSession ? 'Sessão atualizada' : 'Sessão iniciada',
-        description: 'As decisões serão salvas automaticamente.',
+        title: existingSession ? "Sessão atualizada" : "Sessão iniciada",
+        description: "As decisões serão salvas automaticamente.",
       });
     } catch (error) {
       toast({
-        title: 'Erro ao gerenciar sessão',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: 'destructive',
+        title: "Erro ao gerenciar sessão",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
       });
     }
   };
 
   const handleClearFilters = () => {
-    setSelectedCliente('');
-    setSelectedContribuinte('');
+    setSelectedCliente("");
+    setSelectedContribuinte("");
     setDataInicio(defaultDates.inicio);
     setDataFim(defaultDates.fim);
     setSearchTriggered(false);
     setActiveSessaoId(null);
     setPendingDecisionsCount(0);
-    setStatusFilter('all');
+    setStatusFilter("all");
     setGlobalStats(null);
   };
 
@@ -492,9 +478,9 @@ const AuditoriaFiscal = () => {
   const handleExportExcel = async () => {
     if (!selectedContribuinte || !dataInicio || !dataFim) {
       toast({
-        title: 'Filtros incompletos',
-        description: 'Selecione contribuinte e período para exportar.',
-        variant: 'destructive',
+        title: "Filtros incompletos",
+        description: "Selecione contribuinte e período para exportar.",
+        variant: "destructive",
       });
       return;
     }
@@ -502,9 +488,9 @@ const AuditoriaFiscal = () => {
     // Verificar se há decisões não salvas
     if (pendingDecisionsCount > 0) {
       toast({
-        title: 'Decisões não salvas',
-        description: 'Salve as alterações antes de exportar.',
-        variant: 'destructive',
+        title: "Decisões não salvas",
+        description: "Salve as alterações antes de exportar.",
+        variant: "destructive",
       });
       return;
     }
@@ -515,48 +501,49 @@ const AuditoriaFiscal = () => {
       const response = await fetchWithAuth(
         `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/${selectedContribuinte}`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             data_inicio: dataInicio,
             data_fim: dataFim,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Erro ao gerar exportação');
+        throw new Error(errorData.detail || "Erro ao gerar exportação");
       }
 
       // Obter o arquivo como blob
       const blob = await response.blob();
-      
+
       // Criar URL e fazer download
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      
+
       // Gerar nome do arquivo
-      const contribuinteNome = contribuintes?.find(c => c.id === selectedContribuinte)?.nome_razao_social || 'contribuinte';
-      const dataInicioFormatted = format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'ddMMyyyy');
-      const dataFimFormatted = format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'ddMMyyyy');
-      a.download = `DIFAL_${contribuinteNome.replace(/\s+/g, '_')}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
-      
+      const contribuinteNome =
+        contribuintes?.find((c) => c.id === selectedContribuinte)?.nome_razao_social || "contribuinte";
+      const dataInicioFormatted = format(parse(dataInicio, "yyyy-MM-dd", new Date()), "ddMMyyyy");
+      const dataFimFormatted = format(parse(dataFim, "yyyy-MM-dd", new Date()), "ddMMyyyy");
+      a.download = `DIFAL_${contribuinteNome.replace(/\s+/g, "_")}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: 'Exportação concluída',
-        description: 'O arquivo Excel foi baixado com sucesso.',
+        title: "Exportação concluída",
+        description: "O arquivo Excel foi baixado com sucesso.",
       });
     } catch (error) {
       toast({
-        title: 'Erro na exportação',
-        description: error instanceof Error ? error.message : 'Erro ao exportar dados',
-        variant: 'destructive',
+        title: "Erro na exportação",
+        description: error instanceof Error ? error.message : "Erro ao exportar dados",
+        variant: "destructive",
       });
     } finally {
       setIsExporting(false);
@@ -572,9 +559,9 @@ const AuditoriaFiscal = () => {
     try {
       // 1. Buscar decisões da sessão atual
       const { data: decisoes, error: fetchError } = await supabase
-        .from('difal_decisao')
-        .select('*')
-        .eq('sessao_id', activeSessaoId);
+        .from("difal_decisao")
+        .select("*")
+        .eq("sessao_id", activeSessaoId);
 
       if (fetchError) throw fetchError;
 
@@ -582,15 +569,15 @@ const AuditoriaFiscal = () => {
       // Para cada decisão de NCM, encontrar todos os produtos com esse NCM
       // e criar uma entrada para cada combinação única de contribuinte + produto + ncm
       const decisoesPayload: SyncDecisao[] = [];
-      
-      (decisoes || []).forEach(d => {
+
+      (decisoes || []).forEach((d) => {
         // Encontrar todos os itens que correspondem a este NCM
-        const matchingItems = groupedItems.filter(item => item.cod_ncm === d.cod_ncm);
-        
+        const matchingItems = groupedItems.filter((item) => item.cod_ncm === d.cod_ncm);
+
         // Criar set de chaves únicas para evitar duplicatas
         const processedKeys = new Set<string>();
-        
-        matchingItems.forEach(item => {
+
+        matchingItems.forEach((item) => {
           const key = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
           if (!processedKeys.has(key)) {
             processedKeys.add(key);
@@ -611,33 +598,27 @@ const AuditoriaFiscal = () => {
       };
 
       // 3. Enviar para endpoint de sync
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/v1/classificacoes/sync`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/classificacoes/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
-        throw new Error('Erro ao sincronizar classificações');
+        throw new Error("Erro ao sincronizar classificações");
       }
 
       // 4. Finalizar sessão (marcar como FINALIZADO, não apenas SINCRONIZADO)
       await supabase
-        .from('difal_sessao')
+        .from("difal_sessao")
         .update({
-          status: 'FINALIZADO',
+          status: "FINALIZADO",
           sincronizado_em: new Date().toISOString(),
         })
-        .eq('id', activeSessaoId);
+        .eq("id", activeSessaoId);
 
       // 5. Deletar decisões locais da sessão finalizada
-      await supabase
-        .from('difal_decisao')
-        .delete()
-        .eq('sessao_id', activeSessaoId);
+      await supabase.from("difal_decisao").delete().eq("sessao_id", activeSessaoId);
 
       // 6. Limpar estado de sessão (mas MANTER filtros)
       setActiveSessaoId(null);
@@ -645,18 +626,18 @@ const AuditoriaFiscal = () => {
       setLocalDecisions(new Set());
 
       // 7. Re-buscar dados com classificações atualizadas
-      queryClient.invalidateQueries({ queryKey: ['difal-classificacoes'] });
-      queryClient.invalidateQueries({ queryKey: ['difal-grouped-items'] });
+      queryClient.invalidateQueries({ queryKey: ["difal-classificacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["difal-grouped-items"] });
 
       toast({
-        title: 'Alterações salvas',
+        title: "Alterações salvas",
         description: `${decisoes?.length || 0} decisão(ões) sincronizada(s). Os dados foram recarregados.`,
       });
     } catch (error) {
       toast({
-        title: 'Erro ao sincronizar',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: 'destructive',
+        title: "Erro ao sincronizar",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
@@ -670,9 +651,9 @@ const AuditoriaFiscal = () => {
   };
 
   const handleDecisionSaved = (group: DifalGroupedItem) => {
-    setPendingDecisionsCount(prev => prev + 1);
+    setPendingDecisionsCount((prev) => prev + 1);
     // Adicionar o grupo ao set de decisões locais
-    setLocalDecisions(prev => {
+    setLocalDecisions((prev) => {
       const newSet = new Set(prev);
       newSet.add(`${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`);
       return newSet;
@@ -680,10 +661,10 @@ const AuditoriaFiscal = () => {
   };
 
   const formatCurrency = (value: number | null) => {
-    if (value === null || value === undefined) return '—';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    if (value === null || value === undefined) return "—";
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
@@ -694,10 +675,10 @@ const AuditoriaFiscal = () => {
   const qtdValidados = globalStats?.validados ?? 0;
   const qtdPendentes = globalStats?.pendentes ?? 0;
 
-  const handlePageChange = (direction: 'prev' | 'next') => {
-    if (direction === 'prev' && currentPage > 1) {
+  const handlePageChange = (direction: "prev" | "next") => {
+    if (direction === "prev" && currentPage > 1) {
       setCurrentPage(currentPage - 1);
-    } else if (direction === 'next' && hasMore) {
+    } else if (direction === "next" && hasMore) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -705,16 +686,15 @@ const AuditoriaFiscal = () => {
   const isLoading = isLoadingItems || isLoadingClassificacoes;
 
   return (
-    <DevLayout
-      title="DIFAL Inteligente"
-      subtitle="Auditoria e classificação fiscal de itens"
-    >
+    <DevLayout title="DIFAL Inteligente" subtitle="Auditoria e classificação fiscal de itens">
       {/* Filtros */}
       <Card className="mb-6 border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <Filter className="h-5 w-5" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+              Filtros de Busca
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -728,7 +708,7 @@ const AuditoriaFiscal = () => {
                 value={selectedCliente}
                 onValueChange={(value) => {
                   setSelectedCliente(value);
-                  setSelectedContribuinte('');
+                  setSelectedContribuinte("");
                   setSearchTriggered(false);
                   setActiveSessaoId(null);
                   setPendingDecisionsCount(0);
@@ -787,13 +767,11 @@ const AuditoriaFiscal = () => {
                     variant="outline"
                     className={cn(
                       "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                      !dataInicio && "text-muted-foreground"
+                      !dataInicio && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataInicio 
-                      ? format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                      : "Selecione"}
+                    {dataInicio ? format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -823,13 +801,11 @@ const AuditoriaFiscal = () => {
                     variant="outline"
                     className={cn(
                       "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                      !dataFim && "text-muted-foreground"
+                      !dataFim && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataFim 
-                      ? format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                      : "Selecione"}
+                    {dataFim ? format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -875,12 +851,12 @@ const AuditoriaFiscal = () => {
       {searchTriggered && (totalItems > 0 || qtdValidados > 0 || qtdPendentes > 0) && (
         <div className="grid grid-cols-3 gap-4 mb-6">
           {/* Card Pendentes - Primeiro (mais importante) */}
-          <Card 
+          <Card
             className={cn(
               "border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md",
-              statusFilter === 'pending' && "ring-2 ring-amber-500 ring-offset-2"
+              statusFilter === "pending" && "ring-2 ring-amber-500 ring-offset-2",
             )}
-            onClick={() => handleStatusFilterChange('pending')}
+            onClick={() => handleStatusFilterChange("pending")}
           >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
@@ -893,12 +869,12 @@ const AuditoriaFiscal = () => {
             </CardContent>
           </Card>
           {/* Card Validados - Segundo */}
-          <Card 
+          <Card
             className={cn(
               "border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md",
-              statusFilter === 'validated' && "ring-2 ring-green-500 ring-offset-2"
+              statusFilter === "validated" && "ring-2 ring-green-500 ring-offset-2",
             )}
-            onClick={() => handleStatusFilterChange('validated')}
+            onClick={() => handleStatusFilterChange("validated")}
           >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -911,12 +887,12 @@ const AuditoriaFiscal = () => {
             </CardContent>
           </Card>
           {/* Card Total de Itens - Terceiro */}
-          <Card 
+          <Card
             className={cn(
               "border-slate-200 cursor-pointer transition-all hover:shadow-md",
-              statusFilter === 'all' && "ring-2 ring-primary ring-offset-2"
+              statusFilter === "all" && "ring-2 ring-primary ring-offset-2",
             )}
-            onClick={() => handleStatusFilterChange('all')}
+            onClick={() => handleStatusFilterChange("all")}
           >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -941,7 +917,7 @@ const AuditoriaFiscal = () => {
               {pendingDecisionsCount} decisão(ões) não sincronizada(s)
             </Badge>
           )}
-          
+
           {/* Botão Salvar Alterações */}
           <Button
             variant="default"
@@ -950,14 +926,10 @@ const AuditoriaFiscal = () => {
             disabled={pendingDecisionsCount === 0 || isSaving}
             className="gap-2 bg-teal-600 hover:bg-teal-700"
           >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar Alterações
           </Button>
-          
+
           {/* Botão Exportar Excel */}
           <Button
             variant="outline"
@@ -965,14 +937,12 @@ const AuditoriaFiscal = () => {
             onClick={handleExportExcel}
             disabled={isExporting || pendingDecisionsCount > 0}
             className="gap-2"
-            title={pendingDecisionsCount > 0 ? 'Salve as alterações antes de exportar' : 'Exportar classificações para Excel'}
+            title={
+              pendingDecisionsCount > 0 ? "Salve as alterações antes de exportar" : "Exportar classificações para Excel"
+            }
           >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {isExporting ? "Exportando..." : "Exportar Excel"}
           </Button>
         </div>
       )}
@@ -1021,12 +991,12 @@ const AuditoriaFiscal = () => {
                       <TableRow
                         key={group.groupKey}
                         className={`
-                          ${group.status === 'pendente' ? 'cursor-pointer hover:bg-amber-50' : 'hover:bg-slate-50'}
+                          ${group.status === "pendente" ? "cursor-pointer hover:bg-amber-50" : "hover:bg-slate-50"}
                         `}
                         onClick={() => handleGroupClick(group)}
                       >
                         <TableCell>
-                          {group.status === 'validado' ? (
+                          {group.status === "validado" ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Validado
@@ -1040,12 +1010,8 @@ const AuditoriaFiscal = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-0.5">
-                            <p className="font-medium text-slate-900 line-clamp-1">
-                              {group.xProd}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Cód: {group.cod_produto}
-                            </p>
+                            <p className="font-medium text-slate-900 line-clamp-1">{group.xProd}</p>
+                            <p className="text-xs text-slate-500">Cód: {group.cod_produto}</p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1056,8 +1022,8 @@ const AuditoriaFiscal = () => {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <span className="text-slate-600">CST:</span>{' '}
-                            <span className="font-mono">{group.cst_icms || '—'}</span>
+                            <span className="text-slate-600">CST:</span>{" "}
+                            <span className="font-mono">{group.cst_icms || "—"}</span>
                             {group.aliq_icms && (
                               <>
                                 <span className="text-slate-400 mx-1">|</span>
@@ -1069,9 +1035,7 @@ const AuditoriaFiscal = () => {
                         <TableCell>
                           {group.classificacao ? (
                             <div className="text-sm">
-                              <span className="font-mono">
-                                {group.classificacao.aliquota_st}%
-                              </span>
+                              <span className="font-mono">{group.classificacao.aliquota_st}%</span>
                               {group.classificacao.percentual_reducao && (
                                 <span className="text-slate-500 text-xs ml-1">
                                   (Red. {group.classificacao.percentual_reducao}%)
@@ -1097,17 +1061,12 @@ const AuditoriaFiscal = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handlePageChange('prev')}
+                        onClick={() => handlePageChange("prev")}
                         disabled={currentPage === 1}
                       >
                         ← Anterior
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange('next')}
-                        disabled={!hasMore}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handlePageChange("next")} disabled={!hasMore}>
                         Próxima →
                       </Button>
                     </div>
@@ -1124,12 +1083,10 @@ const AuditoriaFiscal = () => {
         <Card className="border-slate-200 border-dashed">
           <CardContent className="p-12 text-center">
             <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-medium text-slate-700 mb-2">
-              DIFAL Inteligente
-            </h3>
+            <h3 className="text-lg font-medium text-slate-700 mb-2">DIFAL Inteligente</h3>
             <p className="text-slate-500 max-w-md mx-auto">
-              Selecione um contribuinte e período para carregar os itens de notas
-              fiscais e iniciar a auditoria de classificação fiscal.
+              Selecione um contribuinte e período para carregar os itens de notas fiscais e iniciar a auditoria de
+              classificação fiscal.
             </p>
           </CardContent>
         </Card>
@@ -1144,7 +1101,6 @@ const AuditoriaFiscal = () => {
         sessaoId={activeSessaoId}
         onDecisionSaved={handleDecisionSaved}
       />
-
     </DevLayout>
   );
 };
