@@ -1,159 +1,183 @@
 
 
-# Plano: Ferramenta Controle PERDCOMP (Filtro Dinamico)
+# Plano: Sistema de Análise de Situação PER
 
 ## Objetivo
 
-Criar uma unica pagina "Controle PERDCOMP" com um filtro de **Tipo de Registro** (similar ao filtro de Tipo de Documento na Consulta de XMLs) que alterna dinamicamente entre as tabelas PER, DCOMP e Situacoes.
+Implementar sistema de análise e marcação de situação diretamente na tabela de PERs, removendo "Situação" como opção de filtro separada e integrando-a como colunas dinâmicas na visualização de PER.
 
-## Conceito
+## Resumo das Alterações
 
-Assim como na Consulta de XMLs existe o filtro "Tipo de Documento" que alterna entre NFe e CTe (mudando colunas e dados), aqui teremos um filtro "Tipo de Registro" que alterna entre:
-- **PER** - Pedidos de Restituicao
-- **DCOMP** - Declaracoes de Compensacao
-- **Situacoes** - Historico de Situacoes
-
-## Arquivos a Criar
-
-### 1. Pagina Principal
-**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-Estrutura de filtros (seguindo padrao ConsultaXMLs):
-| Filtro | Tipo | Descricao |
-|--------|------|-----------|
-| Cliente | Select | Lista de clientes ativos |
-| Contribuinte | Select | Filtrado pelo cliente selecionado |
-| Tipo de Registro | Select | PER / DCOMP / Situacoes |
-| Botao Buscar | Button | Dispara a busca |
-| Botao Limpar | Button | Reseta filtros |
-
-### 2. Modais de Formulario
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Criar/Editar PER |
-| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Criar/Editar DCOMP |
-| `src/components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | Criar/Editar Situacao |
+| Tipo | Descrição |
+|------|-----------|
+| Remover | Opção "Situações" do filtro de Tipo de Registro |
+| Adicionar | 3 novas colunas na tabela PER: Analisar, Situação, Data Atualização |
+| Criar | Modal de análise simplificado (AnalisarPerModal) |
+| Modificar | Query de PER para incluir última situação via join |
 
 ## Arquivos a Modificar
 
-### 1. DevLayout.tsx
-Adicionar item no menu:
-```
-{ icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' }
-```
+### 1. ControlePerdcomp.tsx (página principal)
 
-### 2. App.tsx
-Adicionar rota:
-```
-/equipe/dev/controle-perdcomp
-```
+**Alterações:**
 
-### 3. protectedPages.ts
-Registrar pagina protegida
+1. **Tipo de Registro**: Remover opção `situacao` do tipo e do Select
+   - Antes: `'per' | 'dcomp' | 'situacao'`
+   - Depois: `'per' | 'dcomp'`
 
-## Colunas Dinamicas por Tipo
+2. **Query de PER**: Modificar para buscar a situação mais recente
+   ```text
+   Para cada PER, buscar da tabela per_situacao:
+   - situacao (string) - valor mais recente
+   - criado_em (timestamp) - data mais recente
+   WHERE nr_proc_per = numero_processo_per
+   ORDER BY criado_em DESC LIMIT 1
+   ```
 
-### Tipo: PER
-| Coluna | Campo |
-|--------|-------|
-| Numero Processo | numero_processo_per |
-| Contribuinte | id_contribuinte (join) |
-| Exercicio | exercicio |
-| Trimestre | tri_exercicio |
-| Data Solicitada | dt_solicitada |
-| Tipo Credito | tp_credito |
-| Valor Credito | vlr_credito (R$) |
-| Acoes | Editar / Excluir |
+3. **Novas colunas na tabela PER**:
+   | Posição | Coluna | Descrição |
+   |---------|--------|-----------|
+   | 1ª | Analisar | Botão amarelo "Analisar" |
+   | 2ª | Situação | Texto da situação atual |
+   | 3ª | Atualização | Data `criado_em` mais recente |
+   | 4ª+ | Colunas existentes | Nº Processo, Contribuinte, etc. |
 
-### Tipo: DCOMP
-| Coluna | Campo |
-|--------|-------|
-| Nr Documento | nr_documento |
-| PER Origem | nr_per_orig |
-| Mes/Ano | mes_ano_exercicio |
-| Data Envio | dt_envio |
-| Imposto | imposto |
-| Tipo Credito | tp_credito |
-| Valor Compensado | vlr_compensado (R$) |
-| Acoes | Editar / Excluir |
+4. **Estado para controlar botão "Verificado!"**:
+   - Manter um Map/Set de PERs recém-verificados na sessão
+   - Ao marcar, o botão muda de "Analisar" para "Verificado!"
 
-### Tipo: Situacoes
-| Coluna | Campo |
-|--------|-------|
-| PER | nr_proc_per |
-| Situacao | situacao |
-| Data Pagamento | dt_pagamento |
-| Data Registro | criado_em |
-| Acoes | Editar / Excluir |
+5. **Remover código relacionado a Situação**:
+   - Query `situacaoData`
+   - Mutation `deleteSituacaoMutation`
+   - Renderização da tabela de situações
+   - Import do `SituacaoFormModal`
 
-## Interface Visual
+### 2. Criar AnalisarPerModal.tsx (novo componente)
+
+**Arquivo:** `src/components/equipe/dev/perdcomp/AnalisarPerModal.tsx`
+
+**Funcionalidade:**
+- Modal simples com dropdown de situação
+- Pré-carrega situação existente do PER (se houver)
+- Ao confirmar, insere novo registro em `per_situacao`
+
+**Interface:**
 
 ```text
-+------------------------------------------+
-| DevLayout                                |
-| +--------------------------------------+ |
-| | Card: Filtros                        | |
-| | [Cliente v] [Contribuinte v]         | |
-| | [Tipo Registro v]                    | |
-| |  PER / DCOMP / Situacoes             | |
-| | [Limpar Filtros] [Buscar]            | |
-| +--------------------------------------+ |
-|                                          |
-| +--------------------------------------+ |
-| | Header: Resultados          [+ Novo] | |
-| +--------------------------------------+ |
-| | Tabela com colunas dinamicas         | |
-| | (muda conforme Tipo de Registro)     | |
-| | ...                                  | |
-| | [Paginacao]                          | |
-| +--------------------------------------+ |
-+------------------------------------------+
++--------------------------------+
+|  Analisar PER                  |
+|  [X]                           |
++--------------------------------+
+|                                |
+|  Situação:                     |
+|  [Dropdown com opções     ▼]   |
+|   - PER Deferido               |
+|   - Em análise                 |
+|   - Analisado                  |
+|                                |
+|  [Marcar como verificado]      |
+|                                |
++--------------------------------+
 ```
 
-## Logica de Alternancia
+**Props:**
 
-O componente tera um state `tipoRegistro` que controla:
-1. Qual query do React Query e executada (per, dcomp ou per_situacao)
-2. Quais colunas sao renderizadas na tabela
-3. Qual modal de formulario e aberto ao clicar em "Novo" ou "Editar"
+| Prop | Tipo | Descrição |
+|------|------|-----------|
+| open | boolean | Controla visibilidade |
+| onOpenChange | function | Callback de fechamento |
+| perNumero | string | Número do PER sendo analisado |
+| situacaoAtual | string ou null | Situação atual para pré-selecionar |
+| onSuccess | function | Callback após inserção bem-sucedida |
+
+**Comportamento:**
+1. Ao abrir, pré-seleciona situação atual no dropdown (se existir)
+2. Ao clicar "Marcar como verificado":
+   - Insere novo registro em `per_situacao`
+   - Chama `onSuccess()` para atualizar estado pai
+   - Fecha modal
+
+## Fluxo de Dados
 
 ```text
-tipoRegistro: "per" | "dcomp" | "situacao"
-
-switch (tipoRegistro) {
-  case "per":
-    - Query: supabase.from("per")
-    - Colunas: PerColumns
-    - Modal: PerFormModal
-  case "dcomp":
-    - Query: supabase.from("dcomp")
-    - Colunas: DcompColumns
-    - Modal: DcompFormModal
-  case "situacao":
-    - Query: supabase.from("per_situacao")
-    - Colunas: SituacaoColumns
-    - Modal: SituacaoFormModal
-}
+[Usuário aplica filtro Cliente + Contribuinte]
+                    ↓
+[Query busca PERs + última situação de cada um]
+                    ↓
+[Tabela renderiza com colunas: Analisar | Situação | Data | ... ]
+                    ↓
+[Usuário clica "Analisar" em uma linha]
+                    ↓
+[AnalisarPerModal abre com situação pré-selecionada]
+                    ↓
+[Usuário seleciona situação e clica "Marcar como verificado"]
+                    ↓
+[INSERT em per_situacao + invalidate queries]
+                    ↓
+[Tabela atualiza + botão muda para "Verificado!"]
 ```
 
-## Detalhes Tecnicos
+## Detalhes Técnicos
 
-| Item | Tecnologia |
-|------|------------|
-| Framework | React + TypeScript |
-| Estilizacao | Tailwind CSS + shadcn/ui |
-| Estado | React Query (TanStack Query) |
-| Formularios | React Hook Form + Zod |
-| Banco de Dados | Supabase |
+### Query Modificada de PER
 
-## Ordem de Implementacao
+A query precisa fazer um subquery ou join para trazer a situação mais recente:
 
-1. Atualizar `DevLayout.tsx` - adicionar item no menu
-2. Atualizar `protectedPages.ts` - registrar pagina
-3. Criar pasta `src/components/equipe/dev/perdcomp/`
-4. Criar `PerFormModal.tsx`
-5. Criar `DcompFormModal.tsx`
-6. Criar `SituacaoFormModal.tsx`
-7. Criar `ControlePerdcomp.tsx` - pagina principal com filtro dinamico
-8. Atualizar `App.tsx` - adicionar rota
+```text
+Estratégia: Duas queries
+1. Query principal: busca PERs do contribuinte
+2. Query secundária: busca situações mais recentes para os PERs encontrados
+3. Combina os dados no frontend via map/reduce
+```
+
+Esta abordagem é mais simples que tentar fazer um join complexo no Supabase e permite melhor tratamento de PERs sem situação.
+
+### Estado de "Verificado!"
+
+```text
+Estado local: Set<string> de numero_processo_per recém-verificados
+
+Quando usuário marca como verificado:
+1. Adiciona PER ao Set
+2. Botão exibe "Verificado!" em vez de "Analisar"
+3. Ao refetch dos dados, situação aparece na coluna
+
+O estado "Verificado!" é visual/sessão para feedback imediato
+```
+
+### Opções do Dropdown
+
+| Valor | Label |
+|-------|-------|
+| PER Deferido | PER Deferido |
+| Em análise | Em análise |
+| Analisado | Analisado |
+
+## Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/equipe/dev/perdcomp/AnalisarPerModal.tsx` | Modal simplificado de análise |
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Remover Situação do filtro, adicionar colunas, integrar modal |
+
+## Arquivos a Remover/Descontinuar
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | Pode ser mantido mas não será mais usado nesta página |
+
+## Ordem de Implementação
+
+1. Criar `AnalisarPerModal.tsx` com dropdown e lógica de inserção
+2. Modificar `ControlePerdcomp.tsx`:
+   - Remover tipo `situacao` e código relacionado
+   - Alterar query de PER para buscar situações
+   - Adicionar novas colunas na tabela
+   - Integrar `AnalisarPerModal`
+   - Adicionar estado para "Verificado!"
 
