@@ -1,70 +1,44 @@
 
-# Plano: Corrigir Cards de Estatísticas que Não Aparecem
 
-## Diagnóstico do Problema
+# Plano: Adicionar Coluna `id_contribuinte` NOT NULL na Tabela `per`
 
-O problema ocorre porque:
+## Objetivo
 
-1. Quando `handleSearch` é executado, ele define `statusFilter = "pending"` imediatamente
-2. A query de busca de itens dispara com o parâmetro `&valid=false` (filtrando só pendentes)
-3. O `useEffect` que popula `globalStats` só executa quando `statusFilter === "all"`
-4. Como o filtro já está em "pending", `globalStats` permanece `null`
-5. Os cards dependem de `globalStats` para exibir os valores, então ficam com `0`
-6. A condição `(totalItems > 0 || qtdValidados > 0 || qtdPendentes > 0)` retorna `false`
-7. Os cards não são renderizados
+Adicionar uma nova coluna `id_contribuinte` na tabela `per` como chave estrangeira (FK) referenciando `contribuinte(id)`, com constraint NOT NULL.
 
-## Solução
+## Consideração Importante
 
-Modificar a lógica para que as estatísticas globais sejam sempre atualizadas, independente do filtro de status atual. A API já retorna `qtd_validados` e `qtd_pendentes` em cada resposta, então podemos usar esses valores para atualizar as estatísticas globais.
+Como a coluna será NOT NULL, precisamos considerar se existem dados na tabela `per`:
+- Se houver registros existentes, a migração falhará sem um valor padrão
+- A solução é primeiro limpar os dados existentes (se houver) ou adicionar em etapas
 
-### Alteração no useEffect (linhas 287-296)
+## Migração SQL
 
-**Antes:**
-```typescript
-useEffect(() => {
-  if (statusFilter === "all" && apiGroupedData && searchTriggered) {
-    setGlobalStats({
-      total: apiGroupedData.total,
-      validados: apiGroupedData.qtdValidados,
-      pendentes: apiGroupedData.qtdPendentes,
-    });
-  }
-}, [statusFilter, apiGroupedData, searchTriggered]);
+```sql
+-- Primeiro, deletar registros existentes na tabela per (se houver)
+-- pois não podemos adicionar NOT NULL sem valor padrão
+DELETE FROM public.per;
+
+-- Adicionar coluna id_contribuinte como NOT NULL
+ALTER TABLE public.per
+ADD COLUMN id_contribuinte UUID NOT NULL REFERENCES public.contribuinte(id);
+
+-- Criar índice para performance em consultas
+CREATE INDEX idx_per_id_contribuinte ON public.per(id_contribuinte);
 ```
 
-**Depois:**
-```typescript
-useEffect(() => {
-  if (apiGroupedData && searchTriggered) {
-    // Calcular total a partir de validados + pendentes 
-    // (a API retorna os valores absolutos mesmo com filtro)
-    const totalCalculado = (apiGroupedData.qtdValidados || 0) + (apiGroupedData.qtdPendentes || 0);
-    
-    // Atualizar estatísticas globais - a API retorna os valores absolutos
-    // independente do filtro aplicado (qtd_validados e qtd_pendentes são globais)
-    setGlobalStats({
-      total: totalCalculado,
-      validados: apiGroupedData.qtdValidados,
-      pendentes: apiGroupedData.qtdPendentes,
-    });
-  }
-}, [apiGroupedData, searchTriggered]);
-```
+## Detalhes Técnicos
 
-A API retorna os valores globais de `qtd_validados` e `qtd_pendentes` em todas as chamadas, não apenas quando o filtro é "all". Portanto, podemos usar esses valores sempre que a query retornar dados.
-
-## Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/equipe/dev/AuditoriaFiscal.tsx` | Remover condição `statusFilter === "all"` do useEffect que atualiza `globalStats` |
+| Item | Valor |
+|------|-------|
+| Tipo da coluna | UUID |
+| Nullable | NÃO (NOT NULL) |
+| Referência | `contribuinte(id)` |
+| Índice | `idx_per_id_contribuinte` |
 
 ## Resultado Esperado
 
-Após a alteração:
-1. Usuário clica em "Buscar Itens"
-2. Sistema define `statusFilter = "pending"` e dispara a busca
-3. API retorna itens filtrados + estatísticas globais (`qtd_validados`, `qtd_pendentes`)
-4. `useEffect` atualiza `globalStats` com as estatísticas da resposta
-5. Cards aparecem com os valores corretos: Pendentes | Validados | Total de Itens
-6. Card "Pendentes" fica pré-selecionado (destacado)
+1. A tabela `per` terá a nova coluna `id_contribuinte` obrigatória
+2. Todos os novos registros de PER deverão ter um contribuinte associado
+3. O relacionamento será refletido automaticamente no arquivo `types.ts`
+
