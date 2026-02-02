@@ -944,6 +944,7 @@ export type Database = {
           criado_por: string | null
           dt_solicitada: string
           exercicio: number
+          id_contribuinte: string
           nr_proc_ret: string | null
           numero_processo_per: string
           tp_credito: string
@@ -955,6 +956,7 @@ export type Database = {
           criado_por?: string | null
           dt_solicitada: string
           exercicio: number
+          id_contribuinte: string
           nr_proc_ret?: string | null
           numero_processo_per: string
           tp_credito: string
@@ -966,6 +968,7 @@ export type Database = {
           criado_por?: string | null
           dt_solicitada?: string
           exercicio?: number
+          id_contribuinte?: string
           nr_proc_ret?: string | null
           numero_processo_per?: string
           tp_credito?: string
@@ -973,6 +976,13 @@ export type Database = {
           vlr_credito?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "per_id_contribuinte_fkey"
+            columns: ["id_contribuinte"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
