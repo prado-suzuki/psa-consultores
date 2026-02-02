@@ -895,25 +895,7 @@ const AuditoriaFiscal = () => {
               </div>
             </CardContent>
           </Card>
-          {/* Card Total de Itens - Segundo */}
-          <Card 
-            className={cn(
-              "border-slate-200 cursor-pointer transition-all hover:shadow-md",
-              statusFilter === 'all' && "ring-2 ring-primary ring-offset-2"
-            )}
-            onClick={() => handleStatusFilterChange('all')}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Package className="h-5 w-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{totalItems}</p>
-                <p className="text-xs text-slate-500">Total de Itens</p>
-              </div>
-            </CardContent>
-          </Card>
-          {/* Card Validados - Terceiro */}
+          {/* Card Validados - Segundo */}
           <Card 
             className={cn(
               "border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md",
@@ -928,6 +910,24 @@ const AuditoriaFiscal = () => {
               <div>
                 <p className="text-2xl font-bold text-green-700">{qtdValidados}</p>
                 <p className="text-xs text-green-600">Validados</p>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Card Total de Itens - Terceiro */}
+          <Card 
+            className={cn(
+              "border-slate-200 cursor-pointer transition-all hover:shadow-md",
+              statusFilter === 'all' && "ring-2 ring-primary ring-offset-2"
+            )}
+            onClick={() => handleStatusFilterChange('all')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Package className="h-5 w-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{totalItems}</p>
+                <p className="text-xs text-slate-500">Total de Itens</p>
               </div>
             </CardContent>
           </Card>
