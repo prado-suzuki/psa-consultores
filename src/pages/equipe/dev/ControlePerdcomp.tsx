@@ -295,13 +295,13 @@ export default function ControlePerdcomp() {
       );
     }
 
-    if (data.length === 0) {
-      return (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhum registro encontrado</p>
-        </div>
-      );
-    }
+    const emptyRow = (colSpan: number) => (
+      <TableRow>
+        <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">
+          Nenhum registro encontrado
+        </TableCell>
+      </TableRow>
+    );
 
     switch (tipoRegistro) {
       case 'per':
@@ -320,7 +320,7 @@ export default function ControlePerdcomp() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data as any[]).map((item) => (
+              {(data as any[]).length === 0 ? emptyRow(8) : (data as any[]).map((item) => (
                 <TableRow key={item.numero_processo_per}>
                   <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                   <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
@@ -361,7 +361,7 @@ export default function ControlePerdcomp() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data as any[]).map((item) => (
+              {(data as any[]).length === 0 ? emptyRow(8) : (data as any[]).map((item) => (
                 <TableRow key={item.nr_documento}>
                   <TableCell className="font-medium">{item.nr_documento}</TableCell>
                   <TableCell>{item.nr_per_orig}</TableCell>
@@ -399,7 +399,7 @@ export default function ControlePerdcomp() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data as any[]).map((item) => (
+              {(data as any[]).length === 0 ? emptyRow(5) : (data as any[]).map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.nr_proc_per}</TableCell>
                   <TableCell>{item.situacao}</TableCell>
