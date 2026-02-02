@@ -455,6 +455,8 @@ export type Database = {
       }
       dcomp: {
         Row: {
+          atualizado_em: string | null
+          atualizado_por: string | null
           criado_em: string | null
           criado_por: string | null
           dt_envio: string
@@ -466,6 +468,8 @@ export type Database = {
           vlr_compensado: number
         }
         Insert: {
+          atualizado_em?: string | null
+          atualizado_por?: string | null
           criado_em?: string | null
           criado_por?: string | null
           dt_envio: string
@@ -477,6 +481,8 @@ export type Database = {
           vlr_compensado: number
         }
         Update: {
+          atualizado_em?: string | null
+          atualizado_por?: string | null
           criado_em?: string | null
           criado_por?: string | null
           dt_envio?: string
@@ -940,6 +946,8 @@ export type Database = {
       }
       per: {
         Row: {
+          atualizado_em: string | null
+          atualizado_por: string | null
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string
@@ -952,6 +960,8 @@ export type Database = {
           vlr_credito: number
         }
         Insert: {
+          atualizado_em?: string | null
+          atualizado_por?: string | null
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada: string
@@ -964,6 +974,8 @@ export type Database = {
           vlr_credito: number
         }
         Update: {
+          atualizado_em?: string | null
+          atualizado_por?: string | null
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada?: string
