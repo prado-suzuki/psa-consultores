@@ -453,6 +453,50 @@ export type Database = {
           },
         ]
       }
+      dcomp: {
+        Row: {
+          criado_em: string | null
+          criado_por: string | null
+          dt_envio: string
+          imposto: string
+          mes_ano_exercicio: string
+          nr_documento: string
+          nr_per_orig: string
+          tp_credito: string
+          vlr_compensado: number
+        }
+        Insert: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_envio: string
+          imposto: string
+          mes_ano_exercicio: string
+          nr_documento: string
+          nr_per_orig: string
+          tp_credito: string
+          vlr_compensado: number
+        }
+        Update: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_envio?: string
+          imposto?: string
+          mes_ano_exercicio?: string
+          nr_documento?: string
+          nr_per_orig?: string
+          tp_credito?: string
+          vlr_compensado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcomp_nr_per_orig_fkey"
+            columns: ["nr_per_orig"]
+            isOneToOne: false
+            referencedRelation: "per"
+            referencedColumns: ["numero_processo_per"]
+          },
+        ]
+      }
       deliverable_attachments: {
         Row: {
           deliverable_id: string
@@ -893,6 +937,85 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      per: {
+        Row: {
+          criado_em: string | null
+          criado_por: string | null
+          dt_solicitada: string
+          exercicio: number
+          nr_proc_ret: string | null
+          numero_processo_per: string
+          tp_credito: string
+          tri_exercicio: number
+          vlr_credito: number
+        }
+        Insert: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_solicitada: string
+          exercicio: number
+          nr_proc_ret?: string | null
+          numero_processo_per: string
+          tp_credito: string
+          tri_exercicio: number
+          vlr_credito: number
+        }
+        Update: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_solicitada?: string
+          exercicio?: number
+          nr_proc_ret?: string | null
+          numero_processo_per?: string
+          tp_credito?: string
+          tri_exercicio?: number
+          vlr_credito?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "per_nr_proc_ret_fkey"
+            columns: ["nr_proc_ret"]
+            isOneToOne: false
+            referencedRelation: "per"
+            referencedColumns: ["numero_processo_per"]
+          },
+        ]
+      }
+      per_situacao: {
+        Row: {
+          criado_em: string | null
+          criado_por: string | null
+          dt_pagamento: string | null
+          id: string
+          nr_proc_per: string
+          situacao: string
+        }
+        Insert: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_pagamento?: string | null
+          id?: string
+          nr_proc_per: string
+          situacao: string
+        }
+        Update: {
+          criado_em?: string | null
+          criado_por?: string | null
+          dt_pagamento?: string | null
+          id?: string
+          nr_proc_per?: string
+          situacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "per_situacao_nr_proc_per_fkey"
+            columns: ["nr_proc_per"]
+            isOneToOne: false
+            referencedRelation: "per"
+            referencedColumns: ["numero_processo_per"]
+          },
+        ]
       }
       process_improvements: {
         Row: {
