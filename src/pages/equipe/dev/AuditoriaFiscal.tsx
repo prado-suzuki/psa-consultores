@@ -64,11 +64,8 @@ import {
   Eraser,
 } from 'lucide-react';
 
-// IDs dos clientes permitidos para esta ferramenta (Barracol e Cropodia)
-const CLIENTES_PERMITIDOS_IDS = [
-  '678b5a42-6e88-41ed-87f7-4d4e841b45ee',
-  'e1c0df8e-5206-45e1-af4b-de3e5aacc48c',
-];
+// Nomes dos clientes permitidos para esta ferramenta (Barralcool e Coprodia)
+const CLIENTES_PERMITIDOS_NOMES = ['BARRALCOOL', 'COPRODIA'];
 
 // Limite de itens por página
 const ITEMS_PER_PAGE = 25;
@@ -141,7 +138,7 @@ const AuditoriaFiscal = () => {
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
   const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 
-  // Query: Listar clientes (filtrado para Barracol e Cropodia)
+  // Query: Listar clientes (filtrado para Barralcool e Coprodia por nome)
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
     queryKey: ['difal-clientes', clienteTable],
     queryFn: async () => {
@@ -149,7 +146,7 @@ const AuditoriaFiscal = () => {
         .from(clienteTable)
         .select('id, nome')
         .eq('ativo', true)
-        .in('id', CLIENTES_PERMITIDOS_IDS)
+        .filter('nome', 'in', `(${CLIENTES_PERMITIDOS_NOMES.join(',')})`)
         .order('nome');
 
       if (error) throw error;
