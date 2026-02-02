@@ -78,6 +78,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/controle-perdcomp',
+    page_name: 'Controle PERDCOMP',
+    page_description: 'Gerenciamento de PER, DCOMP e Situações',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // === GESTÃO PAGES ===
   {
