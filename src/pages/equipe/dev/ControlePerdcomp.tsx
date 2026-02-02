@@ -30,15 +30,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, Trash2, X, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, X, Loader2, FileSpreadsheet, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
-import { SituacaoFormModal } from '@/components/equipe/dev/perdcomp/SituacaoFormModal';
+import { AnalisarPerModal } from '@/components/equipe/dev/perdcomp/AnalisarPerModal';
 
-type TipoRegistro = 'per' | 'dcomp' | 'situacao';
+type TipoRegistro = 'per' | 'dcomp';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -56,6 +56,13 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+interface PerSituacaoMap {
+  [key: string]: {
+    situacao: string;
+    criado_em: string;
+  };
+}
+
 export default function ControlePerdcomp() {
   const queryClient = useQueryClient();
   
@@ -70,6 +77,14 @@ export default function ControlePerdcomp() {
   const [editData, setEditData] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  
+  // Analisar PER modal state
+  const [analisarModalOpen, setAnalisarModalOpen] = useState(false);
+  const [selectedPerNumero, setSelectedPerNumero] = useState<string>('');
+  const [selectedPerSituacao, setSelectedPerSituacao] = useState<string | null>(null);
+  
+  // Track recently verified PERs for visual feedback
+  const [recentlyVerified, setRecentlyVerified] = useState<Set<string>>(new Set());
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -120,6 +135,45 @@ export default function ControlePerdcomp() {
     enabled: tipoRegistro === 'per' && searched && !!contribuinteId,
   });
 
+  // Query for situações (most recent for each PER)
+  const { data: perSituacoesMap = {} } = useQuery<PerSituacaoMap>({
+    queryKey: ['per-situacoes', contribuinteId, searched],
+    queryFn: async () => {
+      if (!contribuinteId || !searched) return {};
+      
+      // Get all PERs for this contribuinte
+      const { data: pers, error: perError } = await supabase
+        .from('per')
+        .select('numero_processo_per')
+        .eq('id_contribuinte', contribuinteId);
+      if (perError) throw perError;
+      
+      const perNumbers = pers?.map(p => p.numero_processo_per) || [];
+      if (perNumbers.length === 0) return {};
+      
+      // Get all situações for these PERs
+      const { data: situacoes, error } = await supabase
+        .from('per_situacao')
+        .select('nr_proc_per, situacao, criado_em')
+        .in('nr_proc_per', perNumbers)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      
+      // Build map with most recent situação for each PER
+      const map: PerSituacaoMap = {};
+      for (const sit of situacoes || []) {
+        if (!map[sit.nr_proc_per]) {
+          map[sit.nr_proc_per] = {
+            situacao: sit.situacao,
+            criado_em: sit.criado_em || '',
+          };
+        }
+      }
+      return map;
+    },
+    enabled: tipoRegistro === 'per' && searched && !!contribuinteId,
+  });
+
   // Query for DCOMP data
   const { data: dcompData = [], isLoading: dcompLoading } = useQuery({
     queryKey: ['perdcomp-dcomp', contribuinteId, searched],
@@ -144,32 +198,6 @@ export default function ControlePerdcomp() {
       return data || [];
     },
     enabled: tipoRegistro === 'dcomp' && searched && !!contribuinteId,
-  });
-
-  // Query for Situacao data
-  const { data: situacaoData = [], isLoading: situacaoLoading } = useQuery({
-    queryKey: ['perdcomp-situacao', contribuinteId, searched],
-    queryFn: async () => {
-      if (!contribuinteId || !searched) return [];
-      // First get PERs for this contribuinte
-      const { data: pers, error: perError } = await supabase
-        .from('per')
-        .select('numero_processo_per')
-        .eq('id_contribuinte', contribuinteId);
-      if (perError) throw perError;
-      
-      const perNumbers = pers?.map(p => p.numero_processo_per) || [];
-      if (perNumbers.length === 0) return [];
-      
-      const { data, error } = await supabase
-        .from('per_situacao')
-        .select('*')
-        .in('nr_proc_per', perNumbers)
-        .order('criado_em', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: tipoRegistro === 'situacao' && searched && !!contribuinteId,
   });
 
   // Delete mutations
@@ -203,33 +231,20 @@ export default function ControlePerdcomp() {
     },
   });
 
-  const deleteSituacaoMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('per_situacao').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
-      toast.success('Situação excluída com sucesso!');
-      setDeleteDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast.error(`Erro ao excluir: ${error.message}`);
-    },
-  });
-
   const handleSearch = () => {
     if (!clienteId || !contribuinteId) {
       toast.error('Selecione o cliente e contribuinte');
       return;
     }
     setSearched(true);
+    setRecentlyVerified(new Set()); // Clear recently verified on new search
   };
 
   const handleClear = () => {
     setClienteId('');
     setContribuinteId('');
     setSearched(false);
+    setRecentlyVerified(new Set());
   };
 
   const handleNew = () => {
@@ -247,6 +262,16 @@ export default function ControlePerdcomp() {
     setDeleteDialogOpen(true);
   };
 
+  const handleAnalisar = (perNumero: string, situacaoAtual: string | null) => {
+    setSelectedPerNumero(perNumero);
+    setSelectedPerSituacao(situacaoAtual);
+    setAnalisarModalOpen(true);
+  };
+
+  const handleAnalisarSuccess = () => {
+    setRecentlyVerified(prev => new Set([...prev, selectedPerNumero]));
+  };
+
   const confirmDelete = () => {
     if (!itemToDelete) return;
     
@@ -257,20 +282,16 @@ export default function ControlePerdcomp() {
       case 'dcomp':
         deleteDcompMutation.mutate(itemToDelete.nr_documento);
         break;
-      case 'situacao':
-        deleteSituacaoMutation.mutate(itemToDelete.id);
-        break;
     }
   };
 
-  const isLoading = perLoading || dcompLoading || situacaoLoading;
-  const isDeleting = deletePerMutation.isPending || deleteDcompMutation.isPending || deleteSituacaoMutation.isPending;
+  const isLoading = perLoading || dcompLoading;
+  const isDeleting = deletePerMutation.isPending || deleteDcompMutation.isPending;
 
   const getCurrentData = () => {
     switch (tipoRegistro) {
       case 'per': return perData;
       case 'dcomp': return dcompData;
-      case 'situacao': return situacaoData;
       default: return [];
     }
   };
@@ -309,6 +330,9 @@ export default function ControlePerdcomp() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[120px]">Analisar</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead>Atualização</TableHead>
                 <TableHead>Nº Processo</TableHead>
                 <TableHead>Contribuinte</TableHead>
                 <TableHead>Exercício</TableHead>
@@ -320,27 +344,56 @@ export default function ControlePerdcomp() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data as any[]).length === 0 ? emptyRow(8) : (data as any[]).map((item) => (
-                <TableRow key={item.numero_processo_per}>
-                  <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
-                  <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
-                  <TableCell>{item.exercicio}</TableCell>
-                  <TableCell>{item.tri_exercicio}º</TableCell>
-                  <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
-                  <TableCell>{item.tp_credito}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {(data as any[]).length === 0 ? emptyRow(11) : (data as any[]).map((item) => {
+                const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+                const isVerified = recentlyVerified.has(item.numero_processo_per);
+                
+                return (
+                  <TableRow key={item.numero_processo_per}>
+                    <TableCell>
+                      {isVerified ? (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                          disabled
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Verificado!
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          className="bg-amber-500 hover:bg-amber-600 text-white"
+                          onClick={() => handleAnalisar(item.numero_processo_per, situacaoInfo?.situacao || null)}
+                        >
+                          <ClipboardCheck className="h-4 w-4 mr-1" />
+                          Analisar
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                    <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+                    <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+                    <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
+                    <TableCell>{item.exercicio}</TableCell>
+                    <TableCell>{item.tri_exercicio}º</TableCell>
+                    <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
+                    <TableCell>{item.tp_credito}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         );
@@ -385,41 +438,6 @@ export default function ControlePerdcomp() {
             </TableBody>
           </Table>
         );
-
-      case 'situacao':
-        return (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>PER</TableHead>
-                <TableHead>Situação</TableHead>
-                <TableHead>Data Pagamento</TableHead>
-                <TableHead>Data Registro</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data as any[]).length === 0 ? emptyRow(5) : (data as any[]).map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.nr_proc_per}</TableCell>
-                  <TableCell>{item.situacao}</TableCell>
-                  <TableCell>{formatDate(item.dt_pagamento)}</TableCell>
-                  <TableCell>{formatDate(item.criado_em)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
     }
   };
 
@@ -444,15 +462,6 @@ export default function ControlePerdcomp() {
             contribuinteId={contribuinteId}
           />
         );
-      case 'situacao':
-        return (
-          <SituacaoFormModal
-            open={formModalOpen}
-            onOpenChange={setFormModalOpen}
-            editData={editData}
-            contribuinteId={contribuinteId}
-          />
-        );
     }
   };
 
@@ -462,13 +471,11 @@ export default function ControlePerdcomp() {
         return `o PER ${itemToDelete?.numero_processo_per}`;
       case 'dcomp':
         return `o DCOMP ${itemToDelete?.nr_documento}`;
-      case 'situacao':
-        return `esta situação`;
     }
   };
 
   return (
-    <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER, DCOMP e Situações">
+    <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP">
       {/* Filters Card */}
       <Card className="mb-6">
         <CardHeader>
@@ -513,7 +520,6 @@ export default function ControlePerdcomp() {
                 <SelectContent>
                   <SelectItem value="per">PER</SelectItem>
                   <SelectItem value="dcomp">DCOMP</SelectItem>
-                  <SelectItem value="situacao">Situações</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -536,7 +542,7 @@ export default function ControlePerdcomp() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">
-            Resultados - {tipoRegistro === 'per' ? 'PER' : tipoRegistro === 'dcomp' ? 'DCOMP' : 'Situações'}
+            Resultados - {tipoRegistro === 'per' ? 'PER' : 'DCOMP'}
           </CardTitle>
           {searched && (
             <Button onClick={handleNew} size="sm">
@@ -552,6 +558,15 @@ export default function ControlePerdcomp() {
 
       {/* Form Modal */}
       {renderFormModal()}
+
+      {/* Analisar PER Modal */}
+      <AnalisarPerModal
+        open={analisarModalOpen}
+        onOpenChange={setAnalisarModalOpen}
+        perNumero={selectedPerNumero}
+        situacaoAtual={selectedPerSituacao}
+        onSuccess={handleAnalisarSuccess}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
