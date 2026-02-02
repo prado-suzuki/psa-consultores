@@ -18,7 +18,8 @@ import {
   ArrowLeft,
   FileText,
   User,
-  Calculator
+  Calculator,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface DevLayoutProps {
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
   { icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' },
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
+  { icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' },
   { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
