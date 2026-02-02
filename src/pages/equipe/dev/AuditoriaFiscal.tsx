@@ -456,6 +456,7 @@ const AuditoriaFiscal = () => {
 
       setPendingDecisionsCount(count || 0);
       setSearchTriggered(true);
+      setStatusFilter('pending'); // Pré-selecionar Pendentes ao buscar
 
       toast({
         title: existingSession ? 'Sessão atualizada' : 'Sessão iniciada',
@@ -876,6 +877,25 @@ const AuditoriaFiscal = () => {
       {/* Estatísticas - Cards clicáveis para filtrar */}
       {searchTriggered && (totalItems > 0 || qtdValidados > 0 || qtdPendentes > 0) && (
         <div className="grid grid-cols-3 gap-4 mb-6">
+          {/* Card Pendentes - Primeiro (mais importante) */}
+          <Card 
+            className={cn(
+              "border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md",
+              statusFilter === 'pending' && "ring-2 ring-amber-500 ring-offset-2"
+            )}
+            onClick={() => handleStatusFilterChange('pending')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-700">{qtdPendentes}</p>
+                <p className="text-xs text-amber-600">Pendentes</p>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Card Total de Itens - Segundo */}
           <Card 
             className={cn(
               "border-slate-200 cursor-pointer transition-all hover:shadow-md",
@@ -893,6 +913,7 @@ const AuditoriaFiscal = () => {
               </div>
             </CardContent>
           </Card>
+          {/* Card Validados - Terceiro */}
           <Card 
             className={cn(
               "border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md",
@@ -907,23 +928,6 @@ const AuditoriaFiscal = () => {
               <div>
                 <p className="text-2xl font-bold text-green-700">{qtdValidados}</p>
                 <p className="text-xs text-green-600">Validados</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card 
-            className={cn(
-              "border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md",
-              statusFilter === 'pending' && "ring-2 ring-amber-500 ring-offset-2"
-            )}
-            onClick={() => handleStatusFilterChange('pending')}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-700">{qtdPendentes}</p>
-                <p className="text-xs text-amber-600">Pendentes</p>
               </div>
             </CardContent>
           </Card>
