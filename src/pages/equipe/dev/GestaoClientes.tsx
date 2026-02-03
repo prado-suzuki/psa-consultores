@@ -27,8 +27,6 @@ const GestaoClientes = () => {
   const [tipoPessoa, setTipoPessoa] = useState('');
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
-  const [inscricaoEstadual, setInscricaoEstadual] = useState('');
-  const [codCnae, setCodCnae] = useState('');
   const [setor, setSetor] = useState('');
   const [simplesNacional, setSimplesNacional] = useState('');
 
@@ -48,35 +46,19 @@ const GestaoClientes = () => {
     },
   });
 
-  // Query para municípios
-  const { data: municipios = [] } = useQuery({
-    queryKey: ['clientes-municipios', clienteTable],
+  // Query para nomes/razão social do contribuinte
+  const { data: nomesRazaoSocial = [] } = useQuery({
+    queryKey: ['contribuintes-nomes', contribuinteTable],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
-        .select('municipio')
-        .not('municipio', 'is', null)
-        .order('municipio');
+        .from(contribuinteTable)
+        .select('nome_razao_social')
+        .not('nome_razao_social', 'is', null)
+        .order('nome_razao_social');
       
       if (error) throw error;
-      const uniqueMunicipios = [...new Set(data?.map(d => d.municipio))];
-      return uniqueMunicipios.filter(Boolean) as string[];
-    },
-  });
-
-  // Query para UFs
-  const { data: ufs = [] } = useQuery({
-    queryKey: ['clientes-ufs', clienteTable],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from(clienteTable)
-        .select('uf')
-        .not('uf', 'is', null)
-        .order('uf');
-      
-      if (error) throw error;
-      const uniqueUfs = [...new Set(data?.map(d => d.uf))];
-      return uniqueUfs.filter(Boolean) as string[];
+      const uniqueNomes = [...new Set(data?.map(d => d.nome_razao_social))];
+      return uniqueNomes.filter(Boolean) as string[];
     },
   });
 
@@ -98,7 +80,7 @@ const GestaoClientes = () => {
 
   // Query principal com JOIN
   const { data: resultados = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-contribuintes-filtrados', contribuinteTable, nome, status, tipo, municipio, uf, tipoPessoa, cpfCnpj, nomeRazaoSocial, inscricaoEstadual, codCnae, setor, simplesNacional],
+    queryKey: ['clientes-contribuintes-filtrados', contribuinteTable, nome, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial, setor, simplesNacional],
     queryFn: async () => {
       let query = supabase
         .from(contribuinteTable)
@@ -119,9 +101,7 @@ const GestaoClientes = () => {
       // Filtros do contribuinte
       if (tipoPessoa) query = query.eq('tipo_pessoa', tipoPessoa);
       if (cpfCnpj) query = query.ilike('cpf_cnpj', `%${cpfCnpj}%`);
-      if (nomeRazaoSocial) query = query.ilike('nome_razao_social', `%${nomeRazaoSocial}%`);
-      if (inscricaoEstadual) query = query.ilike('inscricao_estadual', `%${inscricaoEstadual}%`);
-      if (codCnae) query = query.ilike('cod_cnae', `%${codCnae}%`);
+      if (nomeRazaoSocial) query = query.eq('nome_razao_social', nomeRazaoSocial);
       if (setor) query = query.eq('setor', setor);
       if (simplesNacional) query = query.eq('simples_nacional', simplesNacional === 'true');
 
@@ -133,8 +113,6 @@ const GestaoClientes = () => {
       if (nome) filtered = filtered.filter(r => r.cliente?.nome === nome);
       if (status) filtered = filtered.filter(r => r.cliente?.ativo === (status === 'true'));
       if (tipo) filtered = filtered.filter(r => r.cliente?.fixo === tipo);
-      if (municipio) filtered = filtered.filter(r => r.cliente?.municipio === municipio);
-      if (uf) filtered = filtered.filter(r => r.cliente?.uf === uf);
 
       return filtered;
     },
@@ -151,14 +129,10 @@ const GestaoClientes = () => {
     setNome('');
     setStatus('');
     setTipo('');
-    setMunicipio('');
-    setUf('');
     // Limpar filtros do contribuinte
     setTipoPessoa('');
     setCpfCnpj('');
     setNomeRazaoSocial('');
-    setInscricaoEstadual('');
-    setCodCnae('');
     setSetor('');
     setSimplesNacional('');
     setSearched(false);
@@ -197,7 +171,7 @@ const GestaoClientes = () => {
           <CardContent className="space-y-4">
             {/* LINHA 1 - Filtros do Cliente */}
             <div className="grid grid-cols-12 gap-4">
-              {/* Nome - 3 colunas */}
+              {/* Nome Cliente - 3 colunas */}
               <div className="col-span-12 md:col-span-3">
                 <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome Cliente</label>
                 <Select value={nome} onValueChange={setNome}>
@@ -240,31 +214,16 @@ const GestaoClientes = () => {
                 </Select>
               </div>
 
-              {/* Município - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Município</label>
-                <Select value={municipio} onValueChange={setMunicipio}>
+              {/* Nome/Razão Social - 4 colunas */}
+              <div className="col-span-12 md:col-span-4">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome/Razão Social</label>
+                <Select value={nomeRazaoSocial} onValueChange={setNomeRazaoSocial}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todos" />
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    {municipios.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* UF - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">UF</label>
-                <Select value={uf} onValueChange={setUf}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-50">
-                    {ufs.map((u) => (
-                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    {nomesRazaoSocial.map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -298,37 +257,33 @@ const GestaoClientes = () => {
                 />
               </div>
 
-              {/* Nome/Razão Social - 3 colunas */}
-              <div className="col-span-12 md:col-span-3">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome/Razão Social</label>
-                <Input
-                  placeholder="Digite o nome"
-                  value={nomeRazaoSocial}
-                  onChange={(e) => setNomeRazaoSocial(e.target.value)}
-                  className="bg-white"
-                />
+              {/* Setor - 3 colunas */}
+              <div className="col-span-6 md:col-span-3">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Setor</label>
+                <Select value={setor} onValueChange={setSetor}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {setores.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Inscrição Estadual - 2 colunas */}
+              {/* Simples Nacional - 2 colunas */}
               <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Inscrição Estadual</label>
-                <Input
-                  placeholder="Digite o número"
-                  value={inscricaoEstadual}
-                  onChange={(e) => setInscricaoEstadual(e.target.value)}
-                  className="bg-white"
-                />
-              </div>
-
-              {/* Cód. CNAE - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Cód. CNAE</label>
-                <Input
-                  placeholder="Digite o código"
-                  value={codCnae}
-                  onChange={(e) => setCodCnae(e.target.value)}
-                  className="bg-white"
-                />
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Simples Nacional</label>
+                <Select value={simplesNacional} onValueChange={setSimplesNacional}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="true">Sim</SelectItem>
+                    <SelectItem value="false">Não</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -408,12 +363,8 @@ const GestaoClientes = () => {
                         <TableHead>Tipo Pessoa</TableHead>
                         <TableHead>CPF/CNPJ</TableHead>
                         <TableHead>Nome/Razão Social</TableHead>
-                        <TableHead>Inscrição Estadual</TableHead>
-                        <TableHead>CNAE</TableHead>
                         <TableHead>Setor</TableHead>
                         <TableHead>Simples</TableHead>
-                        <TableHead>Município</TableHead>
-                        <TableHead>UF</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -425,12 +376,8 @@ const GestaoClientes = () => {
                           <TableCell>{row.tipo_pessoa || '-'}</TableCell>
                           <TableCell>{row.cpf_cnpj || '-'}</TableCell>
                           <TableCell>{row.nome_razao_social || '-'}</TableCell>
-                          <TableCell>{row.inscricao_estadual || '-'}</TableCell>
-                          <TableCell>{row.cod_cnae || '-'}</TableCell>
                           <TableCell>{row.setor || '-'}</TableCell>
                           <TableCell>{formatSimples(row.simples_nacional)}</TableCell>
-                          <TableCell>{row.cliente?.municipio || '-'}</TableCell>
-                          <TableCell>{row.cliente?.uf || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
