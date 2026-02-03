@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { 
   Upload, 
   Trash2, 
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
 type TableType = 'cliente' | 'contribuinte';
 type Environment = 'dev' | 'prod';
@@ -459,6 +461,12 @@ Empresa ABC;Filial ABC Norte;PJ;12345678000280;123456790;4711302;Varejo;true`}
             )}
           </CardContent>
         </Card>
+
+        {/* Separador */}
+        <Separator className="my-8" />
+
+        {/* Carga PER/DCOMP */}
+        <CargaPerdcompCSV />
       </div>
     </DevLayout>
   );
