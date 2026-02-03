@@ -1,194 +1,97 @@
 
-# Plano: Modal de Detalhes do PER com Gestao de DCOMPs
+# Plano: Corrigir Erro de Formato de Data no DCOMP
 
-## Visao Geral
+## Diagnóstico
 
-Criar um modal de detalhes ao clicar em uma linha de PER na tabela, seguindo o layout visual do modal EFDAnalysisModal. O modal tera duas colunas: lado esquerdo para gerenciar a situacao do PER, e lado direito para visualizar/adicionar DCOMPs vinculados.
+O erro `invalid input syntax for type date: "2025-02"` ocorre porque:
 
----
-
-## Estrutura do Modal
+1. O campo `mes_ano_exercicio` no banco de dados é do tipo **DATE** (requer formato `YYYY-MM-DD`)
+2. O input HTML `type="month"` retorna formato `YYYY-MM` (exemplo: `2025-02`)
+3. Ao salvar/atualizar, o valor `2025-02` é enviado diretamente, causando erro de sintaxe SQL
 
 ```text
-+-----------------------------------------------------------------------------------+
-|  HEADER: Numero PER | Contribuinte | Exercicio/Trimestre | Valor Total | [X]     |
-+-----------------------------------------------------------------------------------+
-|  SIDEBAR (Esquerda)         |        AREA PRINCIPAL (Direita)                     |
-|                             |                                                     |
-|  Situacao Atual: Badge      |  +-----------------------------------------------+  |
-|                             |  |  Tabela de DCOMPs vinculados                  |  |
-|  Atualizar Situacao:        |  |  - Nr Documento                               |  |
-|  [Select: Deferido,         |  |  - Mes/Ano                                    |  |
-|   Analisado, Em analise]    |  |  - Imposto                                    |  |
-|                             |  |  - Valor Compensado                           |  |
-|  [Botao Salvar Situacao]    |  |  - Acoes (Editar/Excluir)                     |  |
-|                             |  +-----------------------------------------------+  |
-|  Historico de Situacoes:    |                                                     |
-|  - Data | Situacao          |  Saldo Restante: R$ X.XXX,XX                        |
-|  - Data | Situacao          |                                                     |
-|                             |  [+ Adicionar DCOMP]                                |
-+-----------------------------------------------------------------------------------+
+Fluxo atual (com erro):
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Banco     │ --> │   Formulário │ --> │   Banco     │
+│ 2025-09-01  │     │   2025-09    │     │   2025-09   │ ❌ ERRO!
+└─────────────┘     └──────────────┘     └─────────────┘
 ```
 
 ---
 
-## Arquivos a Criar/Modificar
+## Solução
 
-### 1. Novo Componente: `PerDetailModal.tsx`
-**Caminho:** `src/components/equipe/dev/perdcomp/PerDetailModal.tsx`
-
-O modal principal com layout inspirado no EFDAnalysisModal:
-- Header com informacoes do PER selecionado
-- Duas colunas: sidebar + area principal
-- Estilo visual consistente com o resto do sistema
-
-### 2. Modificar: `ControlePerdcomp.tsx`
-**Caminho:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-Alteracoes:
-- Adicionar estado para controlar abertura do modal de detalhes
-- Adicionar estado para armazenar o PER selecionado
-- Tornar a linha da tabela clicavel (onClick na TableRow)
-- Importar e renderizar o novo PerDetailModal
-
----
-
-## Detalhes de Implementacao
-
-### PerDetailModal - Estrutura
+Normalizar o valor de `mes_ano_exercicio` antes de enviar para o banco, adicionando `-01` ao final para formar uma data válida.
 
 ```text
-Props:
-- open: boolean
-- onOpenChange: (open: boolean) => void
-- per: objeto PER selecionado (ou null)
-- contribuinteId: string
-
-Estados internos:
-- novaSituacao: string (valor selecionado para atualizar)
-- dcompModalOpen: boolean (controla modal de novo DCOMP)
-- editDcompData: objeto para edicao de DCOMP
-
-Queries:
-- DCOMPs vinculados ao PER (filtra por nr_per_orig)
-- Historico de situacoes (tabela per_situacao)
-
-Mutations:
-- Atualizar situacao (insert em per_situacao)
-- Excluir DCOMP
+Fluxo corrigido:
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Banco     │ --> │   Formulário │ --> │   Banco     │
+│ 2025-09-01  │     │   2025-09    │     │ 2025-09-01  │ ✓
+└─────────────┘     └──────────────┘     └─────────────┘
 ```
 
-### Layout do Modal
+---
 
-**Header (altura fixa):**
-- Icone + Numero do processo
-- Badge com tipo de credito (PIS/COFINS)
-- Valor total do credito
-- Exercicio/Trimestre
-- Botao fechar (X)
+## Arquivo a Modificar
 
-**Sidebar Esquerda (largura ~280px):**
-- Card com situacao atual (Badge colorido)
-- Select para nova situacao
-- Botao "Atualizar Situacao"
-- Divisor
-- Lista de historico de situacoes (scroll se necessario)
+**Arquivo:** `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`
 
-**Area Principal Direita:**
-- Tabela de DCOMPs com colunas:
-  - Nr Documento
-  - Mes/Ano Exercicio
-  - Data Envio
-  - Imposto
-  - Valor Compensado
-  - Acoes (editar/excluir)
-- Linha de resumo: Saldo Restante (Valor PER - Soma DCOMPs)
-- Botao "+ Novo DCOMP" que abre o DcompFormModal existente
+### Alteração 1: Criar Função de Normalização
 
-### Calculo do Saldo Restante
+Adicionar função auxiliar para garantir formato correto:
 
-```text
-saldoRestante = per.vlr_credito - somatorio(dcomps.vlr_compensado)
+```typescript
+const normalizeMesAno = (value: string): string => {
+  if (!value) return '';
+  // Se já está no formato YYYY-MM-DD, retornar como está
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  // Se está no formato YYYY-MM, adicionar -01
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    return `${value}-01`;
+  }
+  return value;
+};
 ```
 
-### Atualizacao de Situacao
+### Alteração 2: Aplicar nos Mutations
 
-Ao clicar em "Atualizar Situacao":
-1. Inserir novo registro em `per_situacao` com:
-   - nr_proc_per: numero do processo do PER
-   - situacao: valor selecionado
-2. Invalidar queries relacionadas
-3. Exibir toast de sucesso
+Modificar `createMutation` e `updateMutation` para usar a função:
 
-### Opcoes de Situacao
+```typescript
+// Em createMutation:
+mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
 
-- Deferido
-- Analisado
-- Em analise
-
----
-
-## Modificacoes em ControlePerdcomp.tsx
-
-### Novos Estados
-
-```text
-detailModalOpen: boolean
-selectedPer: objeto PER | null
+// Em updateMutation:
+mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
 ```
 
-### TableRow Clicavel
+### Alteração 3: Formatar ao Carregar Dados
 
-Adicionar className cursor-pointer e onClick que:
-1. Seta selectedPer com o item
-2. Abre detailModalOpen
+Ajustar o `useEffect` para converter o formato do banco (YYYY-MM-DD) para o formato do input (YYYY-MM):
 
-### Renderizacao do Modal
-
-Adicionar PerDetailModal no final do componente, passando:
-- open={detailModalOpen}
-- onOpenChange={setDetailModalOpen}
-- per={selectedPer}
-- contribuinteId={contribuinteId}
+```typescript
+mes_ano_exercicio: editData.mes_ano_exercicio?.substring(0, 7) || '',
+```
 
 ---
 
-## Estilos e UX
+## Resumo das Mudanças
 
-- Modal em fullscreen similar ao EFDAnalysisModal
-- Fundo escurecido (overlay)
-- Header com gradiente sutil
-- Badges coloridos para situacao:
-  - Deferido: verde
-  - Analisado: azul
-  - Em analise: amarelo
-- Tabela de DCOMPs com hover states
-- Botao de adicionar DCOMP proeminente
-- Saldo restante destacado (verde se positivo, vermelho se negativo/zero)
+| Localização | Mudança |
+|-------------|---------|
+| Linha ~33 | Adicionar função `normalizeMesAno` |
+| Linha ~101 | Formatar `mes_ano_exercicio` ao carregar (substring 0-7) |
+| Linha ~125 | Aplicar `normalizeMesAno` no insert |
+| Linha ~149 | Aplicar `normalizeMesAno` no update |
 
 ---
 
-## Fluxo do Usuario
+## Impacto
 
-1. Usuario clica em uma linha de PER na tabela principal
-2. Modal de detalhes abre com informacoes do PER
-3. No lado esquerdo, usuario pode:
-   - Ver situacao atual
-   - Selecionar nova situacao e salvar
-   - Ver historico de alteracoes
-4. No lado direito, usuario pode:
-   - Ver todos os DCOMPs vinculados
-   - Ver saldo restante do PER
-   - Adicionar novo DCOMP (abre modal existente pre-configurado)
-   - Editar DCOMP existente
-   - Excluir DCOMP
-5. Usuario fecha o modal clicando no X ou fora do modal
-
----
-
-## Resumo de Arquivos
-
-| Arquivo | Acao | Descricao |
-|---------|------|-----------|
-| `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` | Criar | Modal principal de detalhes do PER |
-| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Modificar | Adicionar click handler e renderizar modal |
+- Correção aplicada apenas no DcompFormModal
+- Funciona para criação e edição de DCOMPs
+- Compatível com dados existentes no banco
+- Sem necessidade de migração de dados
