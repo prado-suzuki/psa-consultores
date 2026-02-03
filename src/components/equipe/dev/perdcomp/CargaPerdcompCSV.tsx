@@ -220,10 +220,10 @@ export function CargaPerdcompCSV() {
       throw new Error('Nenhum registro válido de PER encontrado no CSV.');
     }
 
-    // Inserir PERs
+    // Inserir PERs com upsert (atualiza se já existir)
     const { error: perError } = await supabase
       .from('per')
-      .insert(persToInsert);
+      .upsert(persToInsert, { onConflict: 'numero_processo_per' });
 
     if (perError) throw perError;
 
