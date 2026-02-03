@@ -1,189 +1,186 @@
 
-# Plano: Paginação e Modal de Contribuintes
 
-## Objetivo
+# Plano de Melhorias na Ferramenta Controle PERDCOMP
 
-Adicionar paginação de 10 itens por página na tabela de clientes e criar um modal para visualizar os contribuintes de um cliente ao clicar no seu nome.
+## Resumo das Alteracoes
 
-## Alterações a Realizar
+Este plano implementa diversas melhorias no modal de cadastro de PER e na tabela de visualizacao, conforme solicitado:
 
-### 1. Adicionar Paginação (10 por página)
+---
 
-| Item | Descrição |
-|------|-----------|
-| Novo estado | `currentPage` (número da página atual) |
-| Constante | `ITEMS_PER_PAGE = 10` |
-| Cálculos | `totalPages`, `paginatedResults` |
-| Componentes | Importar componentes de paginação |
+## 1. Remover Coluna "Analisar" da Tabela
 
-### 2. Criar Modal de Contribuintes
+**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-O modal seguirá o mesmo estilo do `EFDAnalysisModal`:
+- Remover a coluna `<TableHead>Analisar</TableHead>` do cabecalho
+- Remover a celula correspondente que renderiza o botao "Analisar" / "Verificado!"
+- Remover estados relacionados: `analisarModalOpen`, `selectedPerNumero`, `selectedPerSituacao`, `recentlyVerified`
+- Remover funcoes `handleAnalisar` e `handleAnalisarSuccess`
+- Remover componente `AnalisarPerModal` (nao sera mais utilizado)
 
-```text
-+----------------------------------------------------------------+
-| [Building2 icon]  NOME DO CLIENTE                         [X]  |
-+----------------------------------------------------------------+
-|                                                                 |
-|  +----------------------------------------------------------+  |
-|  | Razão Social | Tipo | Setor | Simples | CPF/CNPJ | IE | CNAE |
-|  +----------------------------------------------------------+  |
-|  | Empresa XYZ  | PJ   | ...   | Sim     | 00.000...| ... | ... |
-|  | ...          | ...  | ...   | ...     | ...      | ... | ... |
-|  +----------------------------------------------------------+  |
-|                                                                 |
-|  Exibindo X de Y contribuintes           Página 1 de N  [<][>] |
-+----------------------------------------------------------------+
+---
+
+## 2. Remover Botao de Excluir PER
+
+**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
+
+- Remover o botao de `<Trash2>` da coluna de acoes para PER
+- Manter o botao de editar (Pencil) apenas
+- A mutation de delete e o AlertDialog podem ser removidos ou mantidos apenas para DCOMP
+
+---
+
+## 3. Formatacao Automatica do Numero do Processo
+
+**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+
+Implementar formatacao automatica no padrao: `31942.50758.311024.1.1.18-1220`
+
+**Logica de formatacao:**
+- Posicoes dos separadores: `.` apos 5, 11, 17, 19 e 21 caracteres; `-` apos 24 caracteres
+- Padrao regex: `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX`
+
+```
+Funcao formatProcessNumber(value):
+  1. Remove tudo que nao for numero
+  2. Limita a 26 caracteres numericos
+  3. Insere pontos e hifen nas posicoes corretas
+  4. Retorna string formatada
 ```
 
-### 3. Colunas do Modal (na ordem especificada)
+---
 
-| Coluna | Campo | Descrição |
-|--------|-------|-----------|
-| Nome/Razão Social | nome_razao_social | Nome ou razão social |
-| Tipo Pessoa | tipo_pessoa | PJ ou PF |
-| Setor | setor | Setor de atuação |
-| Simples Nacional | simples_nacional | Sim/Não |
-| CPF/CNPJ | cpf_cnpj | Documento formatado |
-| Inscrição Estadual | inscricao_estadual | IE do contribuinte |
-| Código CNAE | cod_cnae | Código CNAE |
+## 4. Tipo de Credito como Dropdown (PIS/COFINS)
 
-### 4. Estados a Adicionar
+**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-```text
-// Paginação da tabela principal
-currentPage: number (padrão 1)
+- Substituir o `<Input>` por um `<Select>` com opcoes:
+  - PIS
+  - COFINS
 
-// Modal de contribuintes
-modalOpen: boolean (padrão false)
-selectedCliente: { id: string, nome: string } | null
-modalPage: number (padrão 1)
+---
+
+## 5. Valor do Credito Formatado como R$ 0,00
+
+**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+
+- Implementar input com mascara de moeda brasileira
+- O usuario digita apenas numeros e o campo exibe formatado (R$ 1.234,56)
+- Ao salvar, converter para numero (1234.56) para armazenar no banco
+
+---
+
+## 6. Campo Data Solicitada com Calendario
+
+**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+
+- Substituir `<Input type="date">` por um Popover + Calendar (mesmo padrao de ConsultaXMLs)
+- Importar componentes necessarios: `Calendar`, `Popover`, `PopoverContent`, `PopoverTrigger`
+- Usar `format` e `parse` do date-fns com locale ptBR
+- Adicionar classe `pointer-events-auto` no Calendar para garantir interatividade
+
+---
+
+## 7. Criar Situacao "Analisado" ao Cadastrar PER
+
+**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+
+Na mutation de criacao (`createMutation`):
+1. Apos inserir o PER com sucesso
+2. Automaticamente inserir um registro em `per_situacao` com:
+   - `nr_proc_per`: numero do processo criado
+   - `situacao`: "Analisado"
+
+Isso garante que todo novo PER ja apareca com a situacao correta na tabela.
+
+---
+
+## Detalhes Tecnicos
+
+### Componentes e Imports Necessarios
+
+```typescript
+// PerFormModal.tsx - imports adicionais
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 ```
 
-### 5. Queries a Adicionar
+### Funcao de Formatacao do Numero do Processo
 
-```text
-// Query para contribuintes do cliente selecionado (no modal)
-useQuery({
-  queryKey: ['contribuintes-modal', selectedCliente?.id],
-  queryFn: buscar contribuintes onde cliente_id = selectedCliente.id
-  enabled: modalOpen && !!selectedCliente
-})
-```
-
-## Detalhes Técnicos
-
-### Imports a Adicionar
-
-```text
-- Dialog, DialogContent do @/components/ui/dialog
-- ChevronLeft, ChevronRight, Building2 do lucide-react
-- Pagination components do @/components/ui/pagination
-```
-
-### Lógica de Paginação (Tabela Principal)
-
-```text
-const ITEMS_PER_PAGE = 10;
-const totalPages = Math.ceil(resultados.length / ITEMS_PER_PAGE);
-const paginatedResults = resultados.slice(
-  (currentPage - 1) * ITEMS_PER_PAGE,
-  currentPage * ITEMS_PER_PAGE
-);
-```
-
-### Lógica de Paginação (Modal)
-
-```text
-const MODAL_ITEMS_PER_PAGE = 10;
-const modalTotalPages = Math.ceil(contribuintesModal.length / MODAL_ITEMS_PER_PAGE);
-const paginatedContribuintes = contribuintesModal.slice(
-  (modalPage - 1) * MODAL_ITEMS_PER_PAGE,
-  modalPage * MODAL_ITEMS_PER_PAGE
-);
-```
-
-### Estilo do Modal (baseado em EFDAnalysisModal)
-
-```text
-DialogContent:
-- max-w-6xl (largura ampla para a tabela)
-- h-auto max-h-[80vh]
-- Sem [&>button]:hidden (mantém botão X padrão)
-
-Header:
-- h-16 border-b bg-white
-- Ícone Building2 em círculo colorido
-- Nome do cliente em destaque
-
-Body:
-- Tabela com scroll se necessário
-- Padding adequado
-
-Footer:
-- Contagem de registros
-- Controles de paginação
-```
-
-### Handler para Abrir Modal
-
-```text
-const handleClienteClick = (cliente: { id: string, nome: string }) => {
-  setSelectedClienteModal(cliente);
-  setModalOpen(true);
-  setModalPage(1);
+```typescript
+const formatProcessNumber = (value: string): string => {
+  // Remove tudo que nao for numero
+  const digits = value.replace(/\D/g, '').slice(0, 26);
+  
+  // Aplica a mascara: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX
+  let formatted = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18 || i === 20) {
+      formatted += '.';
+    }
+    if (i === 22) {
+      formatted += '-';
+    }
+    formatted += digits[i];
+  }
+  return formatted;
 };
 ```
 
-## Formatadores a Adicionar
+### Funcao de Formatacao de Moeda
 
-```text
-// Formatar CPF/CNPJ
-formatCpfCnpj(value: string | null) => formatar com pontos/barras
+```typescript
+const formatCurrencyInput = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  const numberValue = parseInt(digits || '0', 10) / 100;
+  return numberValue.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
 
-// Formatar Simples Nacional
-formatSimples(value: string | null) => "Sim", "Não" ou "-"
+const parseCurrencyToNumber = (value: string): number => {
+  const digits = value.replace(/\D/g, '');
+  return parseInt(digits || '0', 10) / 100;
+};
 ```
 
-## Layout Final da Página
+### Criacao Automatica de Situacao
 
-```text
-+------------------------------------------+
-| Card de Filtros                          |
-| [Cliente] [Contribuinte] [Status] [Tipo] |
-| [Limpar] [Buscar]                        |
-+------------------------------------------+
+```typescript
+// Dentro de createMutation.mutationFn
+const { error: perError } = await supabase.from('per').insert([...]);
+if (perError) throw perError;
 
-+------------------------------------------+
-| Card de Resultados                       |
-| Resultados (X clientes)                  |
-| +--------------------------------------+ |
-| | Nome Cliente | Status | Tipo | Tel | | |
-| | [clicável]   | ...    | ...  | ... | | |
-| +--------------------------------------+ |
-| Página 1 de N                    [<][>]  |
-+------------------------------------------+
-
-+------------------------------------------+
-| Modal: NOME DO CLIENTE              [X]  |
-| +--------------------------------------+ |
-| | Razão | Tipo | Setor | Simples | ... | |
-| +--------------------------------------+ |
-| Exibindo X de Y           Pág 1 de N     |
-+------------------------------------------+
+// Criar situacao inicial automaticamente
+const { error: situacaoError } = await supabase.from('per_situacao').insert({
+  nr_proc_per: data.numero_processo_per,
+  situacao: 'Analisado',
+});
+if (situacaoError) {
+  console.error('Erro ao criar situacao inicial:', situacaoError);
+}
 ```
 
-## Arquivo a Modificar
+---
 
-`src/pages/equipe/dev/GestaoClientes.tsx`
+## Arquivos Afetados
 
-## Resumo das Alterações
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Remover coluna Analisar, remover botao excluir PER |
+| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Formatacao numero processo, dropdown tipo credito, mascara moeda, calendario, criacao automatica situacao |
 
-1. Adicionar paginação de 10 itens na tabela de clientes
-2. Tornar nome do cliente clicável (cursor-pointer, hover underline)
-3. Criar estados para modal e paginação
-4. Criar query para buscar contribuintes do cliente selecionado
-5. Implementar modal no estilo EFDAnalysisModal
-6. Tabela do modal com colunas na ordem especificada
-7. Paginação no modal com 10 itens por página
-8. Formatadores para CPF/CNPJ e Simples Nacional
+---
+
+## Resultado Esperado
+
+- A tabela de PERs tera uma coluna a menos (sem "Analisar")
+- Novos PERs serao automaticamente marcados como "Analisado"
+- O modal de cadastro tera campos mais intuitivos e formatados
+- Nao sera possivel excluir PERs (apenas editar)
+
