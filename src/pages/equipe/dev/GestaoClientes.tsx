@@ -568,31 +568,34 @@ const GestaoClientes = () => {
                 </div>
               ) : (
                 <>
-                  <div className="rounded-md border overflow-x-auto">
+                  <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-base font-semibold">Nome Cliente</TableHead>
-                          <TableHead className="text-base font-semibold">Status</TableHead>
-                          <TableHead className="text-base font-semibold">Tipo Cliente</TableHead>
-                          <TableHead className="text-base font-semibold">Telefone</TableHead>
-                          <TableHead className="text-base font-semibold">Setor</TableHead>
+                      <TableHeader className="bg-slate-50">
+                        <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
-                        {paginatedResults.map((row) => (
+                      <TableBody className="divide-y divide-slate-100">
+                        {paginatedResults.map((row, index) => (
                           <TableRow 
                             key={row.id}
-                            className="cursor-pointer hover:bg-slate-50 transition-colors"
+                            className={cn(
+                              "cursor-pointer transition-colors hover:bg-teal-50/60",
+                              index % 2 === 1 && "bg-slate-50/50"
+                            )}
                             onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
                           >
-                            <TableCell className="text-base font-medium text-primary">
+                            <TableCell className="px-4 py-3.5 font-medium text-slate-900">
                               {row.nome || '-'}
                             </TableCell>
-                            <TableCell className="text-base">{formatStatus(row.ativo)}</TableCell>
-                            <TableCell className="text-base">{formatTipo(row.fixo)}</TableCell>
-                            <TableCell className="text-base">{row.telefone || '-'}</TableCell>
-                            <TableCell className="text-base">{row.setor_cliente || '-'}</TableCell>
+                            <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
+                            <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
+                            <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || '-'}</TableCell>
+                            <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -695,29 +698,35 @@ const GestaoClientes = () => {
                 Nenhum contribuinte vinculado a este cliente.
               </div>
             ) : (
-              <div className="rounded-md border overflow-x-auto">
+              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome/Razão Social</TableHead>
-                      <TableHead>Tipo Pessoa</TableHead>
-                      <TableHead>Setor</TableHead>
-                      <TableHead>Simples Nacional</TableHead>
-                      <TableHead>CPF/CNPJ</TableHead>
-                      <TableHead>Inscrição Estadual</TableHead>
-                      <TableHead>Código CNAE</TableHead>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome/Razão Social</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Pessoa</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Simples Nacional</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">CPF/CNPJ</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Inscrição Estadual</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Código CNAE</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {paginatedContribuintes.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.nome_razao_social || '-'}</TableCell>
-                        <TableCell>{row.tipo_pessoa || '-'}</TableCell>
-                        <TableCell>{row.setor || '-'}</TableCell>
-                        <TableCell>{formatSimples(row.simples_nacional)}</TableCell>
-                        <TableCell className="font-mono text-sm">{formatCpfCnpj(row.cpf_cnpj)}</TableCell>
-                        <TableCell>{row.inscricao_estadual || '-'}</TableCell>
-                        <TableCell>{row.cod_cnae || '-'}</TableCell>
+                  <TableBody className="divide-y divide-slate-100">
+                    {paginatedContribuintes.map((row, index) => (
+                      <TableRow 
+                        key={row.id}
+                        className={cn(
+                          "transition-colors hover:bg-teal-50/60",
+                          index % 2 === 1 && "bg-slate-50/50"
+                        )}
+                      >
+                        <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome_razao_social || '-'}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.tipo_pessoa || '-'}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.setor || '-'}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{formatSimples(row.simples_nacional)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600 font-mono text-sm">{formatCpfCnpj(row.cpf_cnpj)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.inscricao_estadual || '-'}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.cod_cnae || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
