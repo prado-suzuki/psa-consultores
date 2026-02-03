@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
+import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
 
 type TipoRegistro = 'per' | 'dcomp';
 
@@ -76,6 +77,10 @@ export default function ControlePerdcomp() {
   const [editData, setEditData] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  
+  // PER Detail Modal states
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedPer, setSelectedPer] = useState<any>(null);
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -231,6 +236,11 @@ export default function ControlePerdcomp() {
     setFormModalOpen(true);
   };
 
+  const handlePerClick = (item: any) => {
+    setSelectedPer(item);
+    setDetailModalOpen(true);
+  };
+
   const handleDelete = (item: any) => {
     setItemToDelete(item);
     setDeleteDialogOpen(true);
@@ -303,7 +313,11 @@ export default function ControlePerdcomp() {
                 const situacaoInfo = perSituacoesMap[item.numero_processo_per];
                 
                 return (
-                  <TableRow key={item.numero_processo_per}>
+                  <TableRow 
+                    key={item.numero_processo_per} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handlePerClick(item)}
+                  >
                     <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
                     <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
                     <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
@@ -314,7 +328,11 @@ export default function ControlePerdcomp() {
                     <TableCell>{item.tp_credito}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -495,6 +513,14 @@ export default function ControlePerdcomp() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* PER Detail Modal */}
+      <PerDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        per={selectedPer}
+        contribuinteId={contribuinteId}
+      />
     </DevLayout>
   );
 }

@@ -48,6 +48,7 @@ interface DcompFormModalProps {
   onOpenChange: (open: boolean) => void;
   editData?: any;
   contribuinteId?: string;
+  preSelectedPer?: string;
 }
 
 export function DcompFormModal({
@@ -55,6 +56,7 @@ export function DcompFormModal({
   onOpenChange,
   editData,
   contribuinteId,
+  preSelectedPer,
 }: DcompFormModalProps) {
   const queryClient = useQueryClient();
   const isEditing = !!editData;
@@ -105,7 +107,7 @@ export function DcompFormModal({
     } else {
       form.reset({
         nr_documento: '',
-        nr_per_orig: '',
+        nr_per_orig: preSelectedPer || '',
         mes_ano_exercicio: '',
         dt_envio: new Date().toISOString().split('T')[0],
         imposto: '',
@@ -113,7 +115,7 @@ export function DcompFormModal({
         vlr_compensado: 0,
       });
     }
-  }, [editData, form]);
+  }, [editData, form, preSelectedPer]);
 
   const createMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
