@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
@@ -16,7 +16,7 @@ const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuin
 
 const GestaoClientes = () => {
   // Estados do cliente
-  const [nome, setNome] = useState('');
+  const [clienteId, setClienteId] = useState('');
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
   const [searched, setSearched] = useState(false);
@@ -27,49 +27,61 @@ const GestaoClientes = () => {
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
 
   // Verifica se há filtros ativos
-  const hasActiveFilters = nome || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
+  const hasActiveFilters = clienteId || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
 
   // Verifica se há filtros de contribuinte ativos
   const hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj;
 
-  // Query para nomes de clientes
-  const { data: nomes = [] } = useQuery({
-    queryKey: ['clientes-nomes', clienteTable],
+  // Query para lista de clientes (id + nome)
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientes-lista', clienteTable],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(clienteTable)
-        .select('nome')
+        .select('id, nome')
         .not('nome', 'is', null)
         .order('nome');
       
       if (error) throw error;
-      const uniqueNomes = [...new Set(data?.map(d => d.nome))];
-      return uniqueNomes.filter(Boolean) as string[];
+      return data || [];
     },
   });
 
-  // Query para nomes/razão social do contribuinte
-  const { data: nomesRazaoSocial = [] } = useQuery({
-    queryKey: ['contribuintes-nomes', contribuinteTable],
+  // Query para contribuintes - filtrado por cliente_id quando selecionado
+  const { data: contribuintes = [] } = useQuery({
+    queryKey: ['contribuintes-por-cliente', contribuinteTable, clienteId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from(contribuinteTable)
-        .select('nome_razao_social')
+        .select('id, nome_razao_social, cliente_id')
         .not('nome_razao_social', 'is', null)
         .order('nome_razao_social');
       
+      // Filtrar por cliente_id se um cliente específico estiver selecionado
+      if (clienteId && clienteId !== '__todos__') {
+        query = query.eq('cliente_id', clienteId);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
-      const uniqueNomes = [...new Set(data?.map(d => d.nome_razao_social))];
-      return uniqueNomes.filter(Boolean) as string[];
+      
+      // Retornar lista única de nomes
+      const uniqueContribuintes = [...new Map(data?.map(d => [d.nome_razao_social, d]) || []).values()];
+      return uniqueContribuintes;
     },
   });
 
+  // Limpar contribuinte quando cliente mudar
+  useEffect(() => {
+    setNomeRazaoSocial('');
+  }, [clienteId]);
+
   // Query principal - busca clientes (não contribuintes)
   const { data: resultados = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-filtrados', clienteTable, nome, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial],
+    queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial],
     queryFn: async () => {
       // Se houver filtros de contribuinte, primeiro buscar cliente_ids correspondentes
-      let clienteIds: string[] | null = null;
+      let filteredClienteIds: string[] | null = null;
       
       if (hasContribuinteFilters) {
         let contribuinteQuery = supabase
@@ -80,14 +92,14 @@ const GestaoClientes = () => {
         if (cpfCnpj) contribuinteQuery = contribuinteQuery.ilike('cpf_cnpj', `%${cpfCnpj}%`);
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq('nome_razao_social', nomeRazaoSocial);
 
-        const { data: contribuintes, error: contribError } = await contribuinteQuery;
+        const { data: contribData, error: contribError } = await contribuinteQuery;
         if (contribError) throw contribError;
         
         // Extrair cliente_ids únicos
-        clienteIds = [...new Set(contribuintes?.map(c => c.cliente_id))] as string[];
+        filteredClienteIds = [...new Set(contribData?.map(c => c.cliente_id))] as string[];
         
         // Se não houver contribuintes correspondentes, retornar vazio
-        if (clienteIds.length === 0) return [];
+        if (filteredClienteIds.length === 0) return [];
       }
 
       // Buscar clientes
@@ -95,14 +107,17 @@ const GestaoClientes = () => {
         .from(clienteTable)
         .select('*');
       
-      // Filtros diretos do cliente
-      if (nome && nome !== '__todos__') clienteQuery = clienteQuery.eq('nome', nome);
+      // Filtro direto por cliente_id
+      if (clienteId && clienteId !== '__todos__') {
+        clienteQuery = clienteQuery.eq('id', clienteId);
+      }
+      
       if (status) clienteQuery = clienteQuery.eq('ativo', status === 'true');
       if (tipo) clienteQuery = clienteQuery.eq('fixo', tipo);
       
       // Filtrar por cliente_ids (se houver filtros de contribuinte)
-      if (clienteIds !== null) {
-        clienteQuery = clienteQuery.in('id', clienteIds);
+      if (filteredClienteIds !== null) {
+        clienteQuery = clienteQuery.in('id', filteredClienteIds);
       }
 
       const { data, error } = await clienteQuery.order('nome');
@@ -120,7 +135,7 @@ const GestaoClientes = () => {
 
   const handleClear = () => {
     // Limpar filtros do cliente
-    setNome('');
+    setClienteId('');
     setStatus('');
     setTipo('');
     // Limpar filtros do contribuinte
@@ -161,14 +176,14 @@ const GestaoClientes = () => {
               {/* Cliente - 3 colunas */}
               <div className="col-span-12 md:col-span-3">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente</label>
-                <Select value={nome} onValueChange={setNome}>
+                <Select value={clienteId} onValueChange={setClienteId}>
                   <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
                     <SelectItem value="__todos__">Todos os Clientes</SelectItem>
-                    {nomes.map((n) => (
-                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -182,8 +197,8 @@ const GestaoClientes = () => {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    {nomesRazaoSocial.map((n) => (
-                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    {contribuintes.map((c) => (
+                      <SelectItem key={c.id} value={c.nome_razao_social}>{c.nome_razao_social}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
