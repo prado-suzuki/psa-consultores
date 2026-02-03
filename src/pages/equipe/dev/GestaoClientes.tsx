@@ -500,11 +500,12 @@ const GestaoClientes = () => {
                       </TableHeader>
                       <TableBody>
                         {paginatedResults.map((row) => (
-                          <TableRow key={row.id}>
-                            <TableCell 
-                              className="text-base font-medium text-primary cursor-pointer hover:underline"
-                              onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
-                            >
+                          <TableRow 
+                            key={row.id}
+                            className="cursor-pointer hover:bg-slate-50 transition-colors"
+                            onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
+                          >
+                            <TableCell className="text-base font-medium text-primary">
                               {row.nome || '-'}
                             </TableCell>
                             <TableCell className="text-base">{formatStatus(row.ativo)}</TableCell>
