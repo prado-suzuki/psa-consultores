@@ -1,183 +1,194 @@
 
 
-# Plano: Sistema de Análise de Situação PER
+# Plano: Ferramenta Gestão de Clientes
 
 ## Objetivo
 
-Implementar sistema de análise e marcação de situação diretamente na tabela de PERs, removendo "Situação" como opção de filtro separada e integrando-a como colunas dinâmicas na visualização de PER.
+Criar nova ferramenta "Gestão de Clientes" na área Dev com 5 filtros em dropdown, sendo 2 com opções fixas (Status e Tipo) e 3 com dados dinâmicos do banco (Nome, Município, UF).
 
-## Resumo das Alterações
+## Filtros
 
-| Tipo | Descrição |
-|------|-----------|
-| Remover | Opção "Situações" do filtro de Tipo de Registro |
-| Adicionar | 3 novas colunas na tabela PER: Analisar, Situação, Data Atualização |
-| Criar | Modal de análise simplificado (AnalisarPerModal) |
-| Modificar | Query de PER para incluir última situação via join |
+| Filtro | Tipo UI | Campo DB | Opções |
+|--------|---------|----------|--------|
+| Nome | Select dinâmico | `nome` | Populado via DISTINCT do banco |
+| Status | Select fixo | `ativo` | "Ativo" (true), "Inativo" (false) |
+| Tipo | Select fixo | `fixo` | "Fixos" (Sim), "Pontuais" (Não) |
+| Município | Select dinâmico | `municipio` | Populado via DISTINCT do banco |
+| UF | Select dinâmico | `uf` | Populado via DISTINCT do banco |
 
-## Arquivos a Modificar
+## Mapeamento de Valores
 
-### 1. ControlePerdcomp.tsx (página principal)
+### Filtro Status → Campo `ativo`
+| Opção no Select | Valor enviado na query |
+|-----------------|------------------------|
+| Ativo | `true` |
+| Inativo | `false` |
 
-**Alterações:**
+### Filtro Tipo → Campo `fixo`
+| Opção no Select | Valor enviado na query |
+|-----------------|------------------------|
+| Fixos | "Sim" |
+| Pontuais | "Não" |
 
-1. **Tipo de Registro**: Remover opção `situacao` do tipo e do Select
-   - Antes: `'per' | 'dcomp' | 'situacao'`
-   - Depois: `'per' | 'dcomp'`
+## Colunas da Tabela de Resultados
 
-2. **Query de PER**: Modificar para buscar a situação mais recente
-   ```text
-   Para cada PER, buscar da tabela per_situacao:
-   - situacao (string) - valor mais recente
-   - criado_em (timestamp) - data mais recente
-   WHERE nr_proc_per = numero_processo_per
-   ORDER BY criado_em DESC LIMIT 1
-   ```
-
-3. **Novas colunas na tabela PER**:
-   | Posição | Coluna | Descrição |
-   |---------|--------|-----------|
-   | 1ª | Analisar | Botão amarelo "Analisar" |
-   | 2ª | Situação | Texto da situação atual |
-   | 3ª | Atualização | Data `criado_em` mais recente |
-   | 4ª+ | Colunas existentes | Nº Processo, Contribuinte, etc. |
-
-4. **Estado para controlar botão "Verificado!"**:
-   - Manter um Map/Set de PERs recém-verificados na sessão
-   - Ao marcar, o botão muda de "Analisar" para "Verificado!"
-
-5. **Remover código relacionado a Situação**:
-   - Query `situacaoData`
-   - Mutation `deleteSituacaoMutation`
-   - Renderização da tabela de situações
-   - Import do `SituacaoFormModal`
-
-### 2. Criar AnalisarPerModal.tsx (novo componente)
-
-**Arquivo:** `src/components/equipe/dev/perdcomp/AnalisarPerModal.tsx`
-
-**Funcionalidade:**
-- Modal simples com dropdown de situação
-- Pré-carrega situação existente do PER (se houver)
-- Ao confirmar, insere novo registro em `per_situacao`
-
-**Interface:**
-
-```text
-+--------------------------------+
-|  Analisar PER                  |
-|  [X]                           |
-+--------------------------------+
-|                                |
-|  Situação:                     |
-|  [Dropdown com opções     ▼]   |
-|   - PER Deferido               |
-|   - Em análise                 |
-|   - Analisado                  |
-|                                |
-|  [Marcar como verificado]      |
-|                                |
-+--------------------------------+
-```
-
-**Props:**
-
-| Prop | Tipo | Descrição |
-|------|------|-----------|
-| open | boolean | Controla visibilidade |
-| onOpenChange | function | Callback de fechamento |
-| perNumero | string | Número do PER sendo analisado |
-| situacaoAtual | string ou null | Situação atual para pré-selecionar |
-| onSuccess | function | Callback após inserção bem-sucedida |
-
-**Comportamento:**
-1. Ao abrir, pré-seleciona situação atual no dropdown (se existir)
-2. Ao clicar "Marcar como verificado":
-   - Insere novo registro em `per_situacao`
-   - Chama `onSuccess()` para atualizar estado pai
-   - Fecha modal
-
-## Fluxo de Dados
-
-```text
-[Usuário aplica filtro Cliente + Contribuinte]
-                    ↓
-[Query busca PERs + última situação de cada um]
-                    ↓
-[Tabela renderiza com colunas: Analisar | Situação | Data | ... ]
-                    ↓
-[Usuário clica "Analisar" em uma linha]
-                    ↓
-[AnalisarPerModal abre com situação pré-selecionada]
-                    ↓
-[Usuário seleciona situação e clica "Marcar como verificado"]
-                    ↓
-[INSERT em per_situacao + invalidate queries]
-                    ↓
-[Tabela atualiza + botão muda para "Verificado!"]
-```
-
-## Detalhes Técnicos
-
-### Query Modificada de PER
-
-A query precisa fazer um subquery ou join para trazer a situação mais recente:
-
-```text
-Estratégia: Duas queries
-1. Query principal: busca PERs do contribuinte
-2. Query secundária: busca situações mais recentes para os PERs encontrados
-3. Combina os dados no frontend via map/reduce
-```
-
-Esta abordagem é mais simples que tentar fazer um join complexo no Supabase e permite melhor tratamento de PERs sem situação.
-
-### Estado de "Verificado!"
-
-```text
-Estado local: Set<string> de numero_processo_per recém-verificados
-
-Quando usuário marca como verificado:
-1. Adiciona PER ao Set
-2. Botão exibe "Verificado!" em vez de "Analisar"
-3. Ao refetch dos dados, situação aparece na coluna
-
-O estado "Verificado!" é visual/sessão para feedback imediato
-```
-
-### Opções do Dropdown
-
-| Valor | Label |
-|-------|-------|
-| PER Deferido | PER Deferido |
-| Em análise | Em análise |
-| Analisado | Analisado |
+| Ordem | Coluna | Campo | Formatação |
+|-------|--------|-------|------------|
+| 1 | Nome | nome | Texto |
+| 2 | Status | ativo | Badge: true = "Ativo" (verde), false = "Inativo" (vermelho) |
+| 3 | Tipo | fixo | "Sim" → "Fixo", "Não" → "Pontual" |
+| 4 | Telefone | telefone | Texto |
+| 5 | Setor | setor_cliente | Texto |
+| 6 | Município | municipio | Texto |
+| 7 | UF | uf | Texto |
 
 ## Arquivos a Criar
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/components/equipe/dev/perdcomp/AnalisarPerModal.tsx` | Modal simplificado de análise |
+| `src/pages/equipe/dev/GestaoClientes.tsx` | Página principal da ferramenta |
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Remover Situação do filtro, adicionar colunas, integrar modal |
+| `src/components/equipe/dev/DevLayout.tsx` | Adicionar item no menu lateral |
+| `src/config/protectedPages.ts` | Registrar página protegida |
+| `src/App.tsx` | Adicionar rota |
 
-## Arquivos a Remover/Descontinuar
+## Interface Visual
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | Pode ser mantido mas não será mais usado nesta página |
+```text
++------------------------------------------------+
+| DevLayout                                      |
+| +--------------------------------------------+ |
+| | Card: Filtros de Busca                     | |
+| | [icone Filter] FILTROS DE BUSCA            | |
+| |                                            | |
+| | Grid 12 colunas:                           | |
+| | [Nome (4col)] [Status (2col)] [Tipo (2col)]| |
+| | [Município (2col)] [UF (2col)]             | |
+| |                                            | |
+| | ------------------------------------------ | |
+| | [Limpar Filtros]              [Buscar]     | |
+| +--------------------------------------------+ |
+|                                                |
+| +--------------------------------------------+ |
+| | Card: Resultados                           | |
+| | X clientes encontrados                     | |
+| |                                            | |
+| | Nome | Status | Tipo | Tel | Setor | ...   | |
+| | ABC  | Ativo  | Fixo | 11... | ...         | |
+| | XYZ  |Inativo |Pontual| ... | ...          | |
+| +--------------------------------------------+ |
++------------------------------------------------+
+```
+
+## Detalhes Técnicos
+
+### Queries para Popular Dropdowns Dinâmicos
+
+```text
+Query 1 - Nomes:
+SELECT DISTINCT nome FROM cliente_dev 
+WHERE nome IS NOT NULL 
+ORDER BY nome
+
+Query 2 - Municípios:
+SELECT DISTINCT municipio FROM cliente_dev 
+WHERE municipio IS NOT NULL 
+ORDER BY municipio
+
+Query 3 - UFs:
+SELECT DISTINCT uf FROM cliente_dev 
+WHERE uf IS NOT NULL 
+ORDER BY uf
+```
+
+### Opções Fixas dos Selects
+
+```text
+Status:
+- { label: "Ativo", value: "true" }
+- { label: "Inativo", value: "false" }
+
+Tipo:
+- { label: "Fixos", value: "Sim" }
+- { label: "Pontuais", value: "Não" }
+```
+
+### Query Principal com Filtros
+
+```text
+let query = supabase.from(clienteTable).select('*')
+
+if (nome) query = query.eq('nome', nome)
+if (status) query = query.eq('ativo', status === 'true')
+if (tipo) query = query.eq('fixo', tipo)
+if (municipio) query = query.eq('municipio', municipio)
+if (uf) query = query.eq('uf', uf)
+
+query = query.order('nome')
+```
+
+### Formatação da Coluna Status
+
+```text
+ativo === true  → Badge verde "Ativo" (bg-green-100 text-green-800)
+ativo === false → Badge vermelho "Inativo" (bg-red-100 text-red-800)
+ativo === null  → "-"
+```
+
+### Formatação da Coluna Tipo
+
+```text
+fixo === "Sim" → "Fixo"
+fixo === "Não" → "Pontual"
+fixo === null  → "-"
+```
+
+### Estados do Componente
+
+```text
+Estados de filtro:
+- nome: string
+- status: string ('true' | 'false' | '')
+- tipo: string ('Sim' | 'Não' | '')
+- municipio: string
+- uf: string
+- searched: boolean
+
+Queries (useQuery):
+- nomesQuery: lista de nomes para dropdown
+- municipiosQuery: lista de municípios para dropdown
+- ufsQuery: lista de UFs para dropdown
+- clientesQuery: dados filtrados (enabled quando searched=true)
+```
+
+### Seleção de Tabela por Ambiente
+
+```text
+const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
+```
 
 ## Ordem de Implementação
 
-1. Criar `AnalisarPerModal.tsx` com dropdown e lógica de inserção
-2. Modificar `ControlePerdcomp.tsx`:
-   - Remover tipo `situacao` e código relacionado
-   - Alterar query de PER para buscar situações
-   - Adicionar novas colunas na tabela
-   - Integrar `AnalisarPerModal`
-   - Adicionar estado para "Verificado!"
+1. Atualizar `DevLayout.tsx`
+   - Adicionar item no menu com ícone `Users`
+   - Path: `/equipe/dev/gestao-clientes`
+   - Label: "Gestão de Clientes"
+
+2. Atualizar `protectedPages.ts`
+   - Registrar página protegida
+   - Categoria: 'dev'
+   - requires_team_member: true
+
+3. Criar `GestaoClientes.tsx`
+   - 3 queries para popular dropdowns dinâmicos
+   - 5 Selects (3 dinâmicos + 2 fixos)
+   - Query principal de clientes com filtros
+   - Tabela com formatação de Status e Tipo
+
+4. Atualizar `App.tsx`
+   - Adicionar rota com TeamRoute e PageAccessGate
 
