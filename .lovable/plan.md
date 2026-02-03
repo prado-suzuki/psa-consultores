@@ -1,109 +1,176 @@
 
-# Plano: Padronizar Gestão de Clientes conforme outras ferramentas
+# Plano: Paginação e Modal de Contribuintes
 
 ## Objetivo
 
-Padronizar a página de Gestão de Clientes seguindo o mesmo layout e design das outras ferramentas Dev (como ConsultaEFD), além de aplicar as alterações solicitadas.
+Adicionar paginação de 10 itens por página na tabela de clientes e criar um modal para visualizar os contribuintes de um cliente ao clicar no seu nome.
 
 ## Alterações a Realizar
 
-### 1. Renomear Labels de Filtros
+### 1. Adicionar Paginação (10 por página)
 
-| Antes | Depois |
-|-------|--------|
-| Nome Cliente | Cliente |
-| Nome/Razão Social | Contribuinte |
+| Item | Descrição |
+|------|-----------|
+| Novo estado | `currentPage` (número da página atual) |
+| Constante | `ITEMS_PER_PAGE = 10` |
+| Cálculos | `totalPages`, `paginatedResults` |
+| Componentes | Importar componentes de paginação |
 
-### 2. Remover Filtros
+### 2. Criar Modal de Contribuintes
 
-| Filtro a Remover | Motivo |
-|------------------|--------|
-| Setor | Solicitado pelo usuário |
-| Simples Nacional | Solicitado pelo usuário |
-
-### 3. Reorganizar Layout de Filtros
-
-O filtro "Contribuinte" será posicionado ao lado de "Cliente" na mesma linha:
+O modal seguirá o mesmo estilo do `EFDAnalysisModal`:
 
 ```text
-LINHA ÚNICA:
-[Cliente (3col)] [Contribuinte (5col)] [Status (2col)] [Tipo (2col)]
++----------------------------------------------------------------+
+| [Building2 icon]  NOME DO CLIENTE                         [X]  |
++----------------------------------------------------------------+
+|                                                                 |
+|  +----------------------------------------------------------+  |
+|  | Razão Social | Tipo | Setor | Simples | CPF/CNPJ | IE | CNAE |
+|  +----------------------------------------------------------+  |
+|  | Empresa XYZ  | PJ   | ...   | Sim     | 00.000...| ... | ... |
+|  | ...          | ...  | ...   | ...     | ...      | ... | ... |
+|  +----------------------------------------------------------+  |
+|                                                                 |
+|  Exibindo X de Y contribuintes           Página 1 de N  [<][>] |
++----------------------------------------------------------------+
 ```
 
-### 4. Padronizar Estilo Visual (conforme ConsultaEFD)
+### 3. Colunas do Modal (na ordem especificada)
 
-| Elemento | Antes | Depois |
-|----------|-------|--------|
-| Título do Card | `text-lg` simples | `text-lg flex items-center gap-2 text-primary` |
-| Texto do título | "Filtros de Busca" | `uppercase text-sm tracking-wider font-bold text-slate-800` |
-| Labels dos filtros | `text-sm font-medium` | `text-xs font-bold uppercase tracking-wider` |
-| Inputs | `bg-white` | `h-11 bg-white dark:bg-slate-800` |
-| Gap do grid | `gap-4` | `gap-6` |
+| Coluna | Campo | Descrição |
+|--------|-------|-----------|
+| Nome/Razão Social | nome_razao_social | Nome ou razão social |
+| Tipo Pessoa | tipo_pessoa | PJ ou PF |
+| Setor | setor | Setor de atuação |
+| Simples Nacional | simples_nacional | Sim/Não |
+| CPF/CNPJ | cpf_cnpj | Documento formatado |
+| Inscrição Estadual | inscricao_estadual | IE do contribuinte |
+| Código CNAE | cod_cnae | Código CNAE |
 
-### 5. Reorganizar Botões
-
-| Antes | Depois |
-|-------|--------|
-| Limpar à esquerda, Buscar à direita | Ambos à direita, lado a lado |
-| Limpar com variant="outline" | Limpar com fundo vermelho e texto branco |
-| Botão Limpar só aparece com filtros | Mantém comportamento |
-
-### 6. Remover Estados e Queries Não Utilizados
-
-- Remover estado `setor`
-- Remover estado `simplesNacional`
-- Remover query `setores`
-- Atualizar `hasActiveFilters` e `hasContribuinteFilters`
-
-## Layout Final dos Filtros
+### 4. Estados a Adicionar
 
 ```text
-+------------------------------------------------------------------+
-| 🔍 FILTROS DE BUSCA                                              |
-+------------------------------------------------------------------+
-| CLIENTE          | CONTRIBUINTE              | STATUS   | TIPO   |
-| [Select 3col]    | [Select 5col]             | [2col]   | [2col] |
-+------------------------------------------------------------------+
-|                                      | [Limpar🔴] [Buscar🟢] |
-+------------------------------------------------------------------+
+// Paginação da tabela principal
+currentPage: number (padrão 1)
+
+// Modal de contribuintes
+modalOpen: boolean (padrão false)
+selectedCliente: { id: string, nome: string } | null
+modalPage: number (padrão 1)
 ```
 
-## Estilo dos Botões
+### 5. Queries a Adicionar
 
 ```text
-Botão Limpar (quando há filtros):
-- Fundo: bg-red-600 hover:bg-red-700
-- Texto: text-white
-- Ícone: Eraser (da ConsultaEFD) ao invés de X
-
-Botão Buscar:
-- Mantém: bg-teal-600 hover:bg-teal-700
-- Texto: text-white
+// Query para contribuintes do cliente selecionado (no modal)
+useQuery({
+  queryKey: ['contribuintes-modal', selectedCliente?.id],
+  queryFn: buscar contribuintes onde cliente_id = selectedCliente.id
+  enabled: modalOpen && !!selectedCliente
+})
 ```
 
 ## Detalhes Técnicos
 
 ### Imports a Adicionar
-- `Eraser` do lucide-react (para o botão limpar, conforme padrão)
 
-### Estados Finais
 ```text
-// Cliente
-nome: string
-status: string
-tipo: string
-searched: boolean
-
-// Contribuinte (apenas para filtrar)
-tipoPessoa: string
-cpfCnpj: string
-nomeRazaoSocial: string
+- Dialog, DialogContent do @/components/ui/dialog
+- ChevronLeft, ChevronRight, Building2 do lucide-react
+- Pagination components do @/components/ui/pagination
 ```
 
-### Condições Atualizadas
+### Lógica de Paginação (Tabela Principal)
+
 ```text
-hasActiveFilters = nome || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj
-hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj
+const ITEMS_PER_PAGE = 10;
+const totalPages = Math.ceil(resultados.length / ITEMS_PER_PAGE);
+const paginatedResults = resultados.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+```
+
+### Lógica de Paginação (Modal)
+
+```text
+const MODAL_ITEMS_PER_PAGE = 10;
+const modalTotalPages = Math.ceil(contribuintesModal.length / MODAL_ITEMS_PER_PAGE);
+const paginatedContribuintes = contribuintesModal.slice(
+  (modalPage - 1) * MODAL_ITEMS_PER_PAGE,
+  modalPage * MODAL_ITEMS_PER_PAGE
+);
+```
+
+### Estilo do Modal (baseado em EFDAnalysisModal)
+
+```text
+DialogContent:
+- max-w-6xl (largura ampla para a tabela)
+- h-auto max-h-[80vh]
+- Sem [&>button]:hidden (mantém botão X padrão)
+
+Header:
+- h-16 border-b bg-white
+- Ícone Building2 em círculo colorido
+- Nome do cliente em destaque
+
+Body:
+- Tabela com scroll se necessário
+- Padding adequado
+
+Footer:
+- Contagem de registros
+- Controles de paginação
+```
+
+### Handler para Abrir Modal
+
+```text
+const handleClienteClick = (cliente: { id: string, nome: string }) => {
+  setSelectedClienteModal(cliente);
+  setModalOpen(true);
+  setModalPage(1);
+};
+```
+
+## Formatadores a Adicionar
+
+```text
+// Formatar CPF/CNPJ
+formatCpfCnpj(value: string | null) => formatar com pontos/barras
+
+// Formatar Simples Nacional
+formatSimples(value: string | null) => "Sim", "Não" ou "-"
+```
+
+## Layout Final da Página
+
+```text
++------------------------------------------+
+| Card de Filtros                          |
+| [Cliente] [Contribuinte] [Status] [Tipo] |
+| [Limpar] [Buscar]                        |
++------------------------------------------+
+
++------------------------------------------+
+| Card de Resultados                       |
+| Resultados (X clientes)                  |
+| +--------------------------------------+ |
+| | Nome Cliente | Status | Tipo | Tel | | |
+| | [clicável]   | ...    | ...  | ... | | |
+| +--------------------------------------+ |
+| Página 1 de N                    [<][>]  |
++------------------------------------------+
+
++------------------------------------------+
+| Modal: NOME DO CLIENTE              [X]  |
+| +--------------------------------------+ |
+| | Razão | Tipo | Setor | Simples | ... | |
+| +--------------------------------------+ |
+| Exibindo X de Y           Pág 1 de N     |
++------------------------------------------+
 ```
 
 ## Arquivo a Modificar
@@ -112,11 +179,11 @@ hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj
 
 ## Resumo das Alterações
 
-1. Renomear "Nome Cliente" para "Cliente"
-2. Renomear "Nome/Razão Social" para "Contribuinte" e mover ao lado de Cliente
-3. Remover filtros de Setor e Simples Nacional
-4. Aplicar estilos padronizados (uppercase, tracking-wider, h-11)
-5. Mover botão "Limpar Filtros" para o lado direito, ao lado de "Buscar"
-6. Alterar estilo do botão Limpar para fundo vermelho com texto branco
-7. Usar ícone Eraser no botão Limpar (padrão das outras ferramentas)
-8. Remover estados e queries não utilizados
+1. Adicionar paginação de 10 itens na tabela de clientes
+2. Tornar nome do cliente clicável (cursor-pointer, hover underline)
+3. Criar estados para modal e paginação
+4. Criar query para buscar contribuintes do cliente selecionado
+5. Implementar modal no estilo EFDAnalysisModal
+6. Tabela do modal com colunas na ordem especificada
+7. Paginação no modal com 10 itens por página
+8. Formatadores para CPF/CNPJ e Simples Nacional
