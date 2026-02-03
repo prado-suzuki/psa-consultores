@@ -30,13 +30,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, Trash2, X, Loader2, FileSpreadsheet, ClipboardCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, X, Loader2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
-import { AnalisarPerModal } from '@/components/equipe/dev/perdcomp/AnalisarPerModal';
 
 type TipoRegistro = 'per' | 'dcomp';
 
@@ -77,14 +76,6 @@ export default function ControlePerdcomp() {
   const [editData, setEditData] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  
-  // Analisar PER modal state
-  const [analisarModalOpen, setAnalisarModalOpen] = useState(false);
-  const [selectedPerNumero, setSelectedPerNumero] = useState<string>('');
-  const [selectedPerSituacao, setSelectedPerSituacao] = useState<string | null>(null);
-  
-  // Track recently verified PERs for visual feedback
-  const [recentlyVerified, setRecentlyVerified] = useState<Set<string>>(new Set());
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -200,22 +191,7 @@ export default function ControlePerdcomp() {
     enabled: tipoRegistro === 'dcomp' && searched && !!contribuinteId,
   });
 
-  // Delete mutations
-  const deletePerMutation = useMutation({
-    mutationFn: async (numero: string) => {
-      const { error } = await supabase.from('per').delete().eq('numero_processo_per', numero);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
-      toast.success('PER excluído com sucesso!');
-      setDeleteDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast.error(`Erro ao excluir: ${error.message}`);
-    },
-  });
-
+  // Delete mutation for DCOMP only
   const deleteDcompMutation = useMutation({
     mutationFn: async (numero: string) => {
       const { error } = await supabase.from('dcomp').delete().eq('nr_documento', numero);
@@ -237,14 +213,12 @@ export default function ControlePerdcomp() {
       return;
     }
     setSearched(true);
-    setRecentlyVerified(new Set()); // Clear recently verified on new search
   };
 
   const handleClear = () => {
     setClienteId('');
     setContribuinteId('');
     setSearched(false);
-    setRecentlyVerified(new Set());
   };
 
   const handleNew = () => {
@@ -262,31 +236,13 @@ export default function ControlePerdcomp() {
     setDeleteDialogOpen(true);
   };
 
-  const handleAnalisar = (perNumero: string, situacaoAtual: string | null) => {
-    setSelectedPerNumero(perNumero);
-    setSelectedPerSituacao(situacaoAtual);
-    setAnalisarModalOpen(true);
-  };
-
-  const handleAnalisarSuccess = () => {
-    setRecentlyVerified(prev => new Set([...prev, selectedPerNumero]));
-  };
-
   const confirmDelete = () => {
     if (!itemToDelete) return;
-    
-    switch (tipoRegistro) {
-      case 'per':
-        deletePerMutation.mutate(itemToDelete.numero_processo_per);
-        break;
-      case 'dcomp':
-        deleteDcompMutation.mutate(itemToDelete.nr_documento);
-        break;
-    }
+    deleteDcompMutation.mutate(itemToDelete.nr_documento);
   };
 
   const isLoading = perLoading || dcompLoading;
-  const isDeleting = deletePerMutation.isPending || deleteDcompMutation.isPending;
+  const isDeleting = deleteDcompMutation.isPending;
 
   const getCurrentData = () => {
     switch (tipoRegistro) {
@@ -330,7 +286,6 @@ export default function ControlePerdcomp() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[120px]">Analisar</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead>Atualização</TableHead>
                 <TableHead>Nº Processo</TableHead>
@@ -340,38 +295,15 @@ export default function ControlePerdcomp() {
                 <TableHead>Data Solicitada</TableHead>
                 <TableHead>Tipo Crédito</TableHead>
                 <TableHead className="text-right">Valor Crédito</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
+                <TableHead className="w-[80px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data as any[]).length === 0 ? emptyRow(11) : (data as any[]).map((item) => {
+              {(data as any[]).length === 0 ? emptyRow(10) : (data as any[]).map((item) => {
                 const situacaoInfo = perSituacoesMap[item.numero_processo_per];
-                const isVerified = recentlyVerified.has(item.numero_processo_per);
                 
                 return (
                   <TableRow key={item.numero_processo_per}>
-                    <TableCell>
-                      {isVerified ? (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
-                          disabled
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Verificado!
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          className="bg-amber-500 hover:bg-amber-600 text-white"
-                          onClick={() => handleAnalisar(item.numero_processo_per, situacaoInfo?.situacao || null)}
-                        >
-                          <ClipboardCheck className="h-4 w-4 mr-1" />
-                          Analisar
-                        </Button>
-                      )}
-                    </TableCell>
                     <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
                     <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
                     <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
@@ -382,14 +314,9 @@ export default function ControlePerdcomp() {
                     <TableCell>{item.tp_credito}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -462,15 +389,6 @@ export default function ControlePerdcomp() {
             contribuinteId={contribuinteId}
           />
         );
-    }
-  };
-
-  const getDeleteMessage = () => {
-    switch (tipoRegistro) {
-      case 'per':
-        return `o PER ${itemToDelete?.numero_processo_per}`;
-      case 'dcomp':
-        return `o DCOMP ${itemToDelete?.nr_documento}`;
     }
   };
 
@@ -559,22 +477,13 @@ export default function ControlePerdcomp() {
       {/* Form Modal */}
       {renderFormModal()}
 
-      {/* Analisar PER Modal */}
-      <AnalisarPerModal
-        open={analisarModalOpen}
-        onOpenChange={setAnalisarModalOpen}
-        perNumero={selectedPerNumero}
-        situacaoAtual={selectedPerSituacao}
-        onSuccess={handleAnalisarSuccess}
-      />
-
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog - Only for DCOMP */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {getDeleteMessage()}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o DCOMP {itemToDelete?.nr_documento}? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
