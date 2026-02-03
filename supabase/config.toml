@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.restructure-process]
 verify_jwt = false
+
+[functions.sync-cadastros]
+verify_jwt = false

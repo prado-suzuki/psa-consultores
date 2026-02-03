@@ -2,6 +2,50 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
+
+// Helper para sincronizar com DW em background (fire-and-forget)
+const syncCadastrosToDW = (payload: {
+  clientes?: Array<{
+    id_cliente: string;
+    nome: string;
+    fixo: string | null;
+    telefone: string | null;
+    setor_cliente: string | null;
+    municipio: string | null;
+    uf: string | null;
+    ativo: boolean | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+  contribuintes?: Array<{
+    id_contribuinte: string;
+    id_cliente: string;
+    tipo_pessoa: string;
+    cpf_cnpj: string | null;
+    nome_razao_social: string;
+    inscricao_estadual: string | null;
+    cod_cnae: string | null;
+    setor: string | null;
+    simples_nacional: boolean | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+}) => {
+  const environment = isProductionEnvironment ? 'production' : 'development';
+  
+  // Fire-and-forget - não aguarda resposta
+  supabase.functions.invoke('sync-cadastros', {
+    body: { ...payload, environment }
+  }).then(({ error }) => {
+    if (error) {
+      console.error('[sync-cadastros] Erro ao invocar:', error.message);
+    } else {
+      console.log('[sync-cadastros] Sync iniciado em background');
+    }
+  }).catch(err => {
+    console.error('[sync-cadastros] Erro:', err);
+  });
+};
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -290,13 +334,31 @@ const GestaoClientes = () => {
         uf: clienteForm.uf.trim() || null,
       };
       
-      const { error } = await supabase.from(clienteTable).insert(payload);
+      const { data, error } = await supabase.from(clienteTable).insert(payload).select().single();
       if (error) throw error;
       
       toast.success('Cliente criado com sucesso');
       setClienteDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
       queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
+      
+      // Sync assíncrono com DW (fire-and-forget)
+      if (data) {
+        syncCadastrosToDW({
+          clientes: [{
+            id_cliente: data.id,
+            nome: data.nome,
+            fixo: data.fixo,
+            telefone: data.telefone,
+            setor_cliente: data.setor_cliente,
+            municipio: data.municipio,
+            uf: data.uf,
+            ativo: data.ativo,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          }]
+        });
+      }
     } catch (error: any) {
       toast.error('Erro ao criar cliente: ' + error.message);
     } finally {
@@ -332,7 +394,7 @@ const GestaoClientes = () => {
     
     setSavingContribuinte(true);
     try {
-      const { error } = await supabase.from(contribuinteTable).insert({
+      const { data, error } = await supabase.from(contribuinteTable).insert({
         cliente_id: selectedCliente.id,
         nome_razao_social: contribuinteForm.nome_razao_social.trim(),
         tipo_pessoa: contribuinteForm.tipo_pessoa,
@@ -341,7 +403,7 @@ const GestaoClientes = () => {
         cod_cnae: contribuinteForm.cod_cnae.trim() || null,
         setor: contribuinteForm.setor.trim() || null,
         simples_nacional: contribuinteForm.simples_nacional,
-      });
+      }).select().single();
       
       if (error) throw error;
       
@@ -349,6 +411,25 @@ const GestaoClientes = () => {
       setContribuinteDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente.id] });
       queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
+      
+      // Sync assíncrono com DW (fire-and-forget)
+      if (data) {
+        syncCadastrosToDW({
+          contribuintes: [{
+            id_contribuinte: data.id,
+            id_cliente: data.cliente_id,
+            tipo_pessoa: data.tipo_pessoa,
+            cpf_cnpj: data.cpf_cnpj,
+            nome_razao_social: data.nome_razao_social,
+            inscricao_estadual: data.inscricao_estadual,
+            cod_cnae: data.cod_cnae,
+            setor: data.setor,
+            simples_nacional: data.simples_nacional,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          }]
+        });
+      }
     } catch (error: any) {
       toast.error('Erro ao adicionar contribuinte: ' + error.message);
     } finally {
