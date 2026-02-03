@@ -1,194 +1,190 @@
 
 
-# Plano: Ferramenta Gestão de Clientes
+# Plano: Criar Tabelas contrato e servico
 
 ## Objetivo
 
-Criar nova ferramenta "Gestão de Clientes" na área Dev com 5 filtros em dropdown, sendo 2 com opções fixas (Status e Tipo) e 3 com dados dinâmicos do banco (Nome, Município, UF).
+Criar as tabelas `contrato` e `servico` com as FKs ajustadas para as tabelas existentes no banco e adicionar triggers para atualização automática do campo `updated_at`.
 
-## Filtros
+## Ajustes Necessários no SQL Original
 
-| Filtro | Tipo UI | Campo DB | Opções |
-|--------|---------|----------|--------|
-| Nome | Select dinâmico | `nome` | Populado via DISTINCT do banco |
-| Status | Select fixo | `ativo` | "Ativo" (true), "Inativo" (false) |
-| Tipo | Select fixo | `fixo` | "Fixos" (Sim), "Pontuais" (Não) |
-| Município | Select dinâmico | `municipio` | Populado via DISTINCT do banco |
-| UF | Select dinâmico | `uf` | Populado via DISTINCT do banco |
+| Item | Original | Ajustado |
+|------|----------|----------|
+| FK cliente | `cliente(id_cliente)` | `cliente(id)` |
+| FK equipe | `equipe(id_equipe)` | `catalog_clients(id)` |
+| Coluna equipe | `id_equipe` | `id_catalog_client` |
+| Função trigger | Criar nova | Usar existente |
 
-## Mapeamento de Valores
+## Estrutura das Tabelas
 
-### Filtro Status → Campo `ativo`
-| Opção no Select | Valor enviado na query |
-|-----------------|------------------------|
-| Ativo | `true` |
-| Inativo | `false` |
+### Tabela contrato
 
-### Filtro Tipo → Campo `fixo`
-| Opção no Select | Valor enviado na query |
-|-----------------|------------------------|
-| Fixos | "Sim" |
-| Pontuais | "Não" |
+| Coluna | Tipo | Obrigatório | Descrição |
+|--------|------|-------------|-----------|
+| id_contrato | UUID | Sim (PK) | Identificador único |
+| id_cliente | UUID | Sim (FK) | Referência para cliente(id) |
+| numero_contrato | TEXT | Não | Número do contrato |
+| valor_fixo | NUMERIC | Não | Valor fixo do contrato |
+| aliquota_contrato | NUMERIC | Não | Alíquota do contrato |
+| data_inicio | DATE | Não | Data de início |
+| data_fim | DATE | Não | Data de término |
+| tipo_contrato | TEXT | Não | Tipo do contrato |
+| created_at | TIMESTAMPTZ | Não | Data de criação |
+| updated_at | TIMESTAMPTZ | Não | Data de atualização |
 
-## Colunas da Tabela de Resultados
+### Tabela servico
 
-| Ordem | Coluna | Campo | Formatação |
-|-------|--------|-------|------------|
-| 1 | Nome | nome | Texto |
-| 2 | Status | ativo | Badge: true = "Ativo" (verde), false = "Inativo" (vermelho) |
-| 3 | Tipo | fixo | "Sim" → "Fixo", "Não" → "Pontual" |
-| 4 | Telefone | telefone | Texto |
-| 5 | Setor | setor_cliente | Texto |
-| 6 | Município | municipio | Texto |
-| 7 | UF | uf | Texto |
+| Coluna | Tipo | Obrigatório | Descrição |
+|--------|------|-------------|-----------|
+| id_servico | UUID | Sim (PK) | Identificador único |
+| id_contrato | UUID | Sim (FK) | Referência para contrato |
+| descricao | TEXT | Não | Descrição do serviço |
+| valor | DOUBLE PRECISION | Não | Valor do serviço |
+| id_catalog_client | UUID | Não (FK) | Referência para catalog_clients |
+| created_at | TIMESTAMPTZ | Não | Data de criação |
+| updated_at | TIMESTAMPTZ | Não | Data de atualização |
 
-## Arquivos a Criar
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/pages/equipe/dev/GestaoClientes.tsx` | Página principal da ferramenta |
-
-## Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/equipe/dev/DevLayout.tsx` | Adicionar item no menu lateral |
-| `src/config/protectedPages.ts` | Registrar página protegida |
-| `src/App.tsx` | Adicionar rota |
-
-## Interface Visual
+## Diagrama de Relacionamentos
 
 ```text
-+------------------------------------------------+
-| DevLayout                                      |
-| +--------------------------------------------+ |
-| | Card: Filtros de Busca                     | |
-| | [icone Filter] FILTROS DE BUSCA            | |
-| |                                            | |
-| | Grid 12 colunas:                           | |
-| | [Nome (4col)] [Status (2col)] [Tipo (2col)]| |
-| | [Município (2col)] [UF (2col)]             | |
-| |                                            | |
-| | ------------------------------------------ | |
-| | [Limpar Filtros]              [Buscar]     | |
-| +--------------------------------------------+ |
-|                                                |
-| +--------------------------------------------+ |
-| | Card: Resultados                           | |
-| | X clientes encontrados                     | |
-| |                                            | |
-| | Nome | Status | Tipo | Tel | Setor | ...   | |
-| | ABC  | Ativo  | Fixo | 11... | ...         | |
-| | XYZ  |Inativo |Pontual| ... | ...          | |
-| +--------------------------------------------+ |
-+------------------------------------------------+
++----------------+       +----------------+       +-------------------+
+|    cliente     |       |    contrato    |       |      servico      |
++----------------+       +----------------+       +-------------------+
+| id (PK)        |<------| id_cliente(FK) |       | id_servico (PK)   |
+| nome           |       | id_contrato(PK)|<------| id_contrato (FK)  |
+| ...            |       | numero_contrato|       | descricao         |
++----------------+       | valor_fixo     |       | valor             |
+                         | ...            |       | id_catalog_client |--+
+                         +----------------+       +-------------------+  |
+                                                                         |
++-------------------+                                                    |
+| catalog_clients   |<---------------------------------------------------+
++-------------------+
+| id (PK)           |
+| name              |
+| ...               |
++-------------------+
 ```
 
-## Detalhes Técnicos
+## Policies RLS
 
-### Queries para Popular Dropdowns Dinâmicos
+Seguindo o padrão do projeto, as tabelas terão RLS com acesso para team_member e admin:
 
-```text
-Query 1 - Nomes:
-SELECT DISTINCT nome FROM cliente_dev 
-WHERE nome IS NOT NULL 
-ORDER BY nome
+| Operação | Permissão |
+|----------|-----------|
+| SELECT | team_member OU admin |
+| INSERT | team_member OU admin |
+| UPDATE | team_member OU admin |
+| DELETE | admin apenas |
 
-Query 2 - Municípios:
-SELECT DISTINCT municipio FROM cliente_dev 
-WHERE municipio IS NOT NULL 
-ORDER BY municipio
+## SQL da Migração
 
-Query 3 - UFs:
-SELECT DISTINCT uf FROM cliente_dev 
-WHERE uf IS NOT NULL 
-ORDER BY uf
+```sql
+-- Tabela contrato
+CREATE TABLE contrato (
+  id_contrato UUID DEFAULT gen_random_uuid() NOT NULL,
+  id_cliente UUID NOT NULL,
+  numero_contrato TEXT,
+  valor_fixo NUMERIC,
+  aliquota_contrato NUMERIC,
+  data_inicio DATE,
+  data_fim DATE,
+  tipo_contrato TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (id_contrato),
+  CONSTRAINT fk_contrato_cliente FOREIGN KEY (id_cliente) 
+    REFERENCES cliente(id) ON DELETE CASCADE
+);
+
+-- Tabela servico
+CREATE TABLE servico (
+  id_servico UUID DEFAULT gen_random_uuid() NOT NULL,
+  id_contrato UUID NOT NULL,
+  descricao TEXT,
+  valor DOUBLE PRECISION,
+  id_catalog_client UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (id_servico),
+  CONSTRAINT fk_servico_contrato FOREIGN KEY (id_contrato) 
+    REFERENCES contrato(id_contrato) ON DELETE CASCADE,
+  CONSTRAINT fk_servico_catalog_client FOREIGN KEY (id_catalog_client) 
+    REFERENCES catalog_clients(id) ON DELETE SET NULL
+);
+
+-- Triggers (usando função existente)
+CREATE TRIGGER update_contrato_updated_at
+  BEFORE UPDATE ON contrato
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_servico_updated_at
+  BEFORE UPDATE ON servico
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Índices para performance
+CREATE INDEX idx_contrato_id_cliente ON contrato(id_cliente);
+CREATE INDEX idx_servico_id_contrato ON servico(id_contrato);
+CREATE INDEX idx_servico_id_catalog_client ON servico(id_catalog_client);
+
+-- Habilitar RLS
+ALTER TABLE contrato ENABLE ROW LEVEL SECURITY;
+ALTER TABLE servico ENABLE ROW LEVEL SECURITY;
+
+-- Policies para contrato
+CREATE POLICY "Team members can view contratos" ON contrato
+  FOR SELECT USING (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Team members can create contratos" ON contrato
+  FOR INSERT WITH CHECK (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Team members can update contratos" ON contrato
+  FOR UPDATE USING (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Admins can delete contratos" ON contrato
+  FOR DELETE USING (
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+-- Policies para servico
+CREATE POLICY "Team members can view servicos" ON servico
+  FOR SELECT USING (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Team members can create servicos" ON servico
+  FOR INSERT WITH CHECK (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Team members can update servicos" ON servico
+  FOR UPDATE USING (
+    has_role(auth.uid(), 'team_member'::app_role) OR 
+    has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE POLICY "Admins can delete servicos" ON servico
+  FOR DELETE USING (
+    has_role(auth.uid(), 'admin'::app_role)
+  );
 ```
 
-### Opções Fixas dos Selects
+## Ordem de Execução
 
-```text
-Status:
-- { label: "Ativo", value: "true" }
-- { label: "Inativo", value: "false" }
-
-Tipo:
-- { label: "Fixos", value: "Sim" }
-- { label: "Pontuais", value: "Não" }
-```
-
-### Query Principal com Filtros
-
-```text
-let query = supabase.from(clienteTable).select('*')
-
-if (nome) query = query.eq('nome', nome)
-if (status) query = query.eq('ativo', status === 'true')
-if (tipo) query = query.eq('fixo', tipo)
-if (municipio) query = query.eq('municipio', municipio)
-if (uf) query = query.eq('uf', uf)
-
-query = query.order('nome')
-```
-
-### Formatação da Coluna Status
-
-```text
-ativo === true  → Badge verde "Ativo" (bg-green-100 text-green-800)
-ativo === false → Badge vermelho "Inativo" (bg-red-100 text-red-800)
-ativo === null  → "-"
-```
-
-### Formatação da Coluna Tipo
-
-```text
-fixo === "Sim" → "Fixo"
-fixo === "Não" → "Pontual"
-fixo === null  → "-"
-```
-
-### Estados do Componente
-
-```text
-Estados de filtro:
-- nome: string
-- status: string ('true' | 'false' | '')
-- tipo: string ('Sim' | 'Não' | '')
-- municipio: string
-- uf: string
-- searched: boolean
-
-Queries (useQuery):
-- nomesQuery: lista de nomes para dropdown
-- municipiosQuery: lista de municípios para dropdown
-- ufsQuery: lista de UFs para dropdown
-- clientesQuery: dados filtrados (enabled quando searched=true)
-```
-
-### Seleção de Tabela por Ambiente
-
-```text
-const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-```
-
-## Ordem de Implementação
-
-1. Atualizar `DevLayout.tsx`
-   - Adicionar item no menu com ícone `Users`
-   - Path: `/equipe/dev/gestao-clientes`
-   - Label: "Gestão de Clientes"
-
-2. Atualizar `protectedPages.ts`
-   - Registrar página protegida
-   - Categoria: 'dev'
-   - requires_team_member: true
-
-3. Criar `GestaoClientes.tsx`
-   - 3 queries para popular dropdowns dinâmicos
-   - 5 Selects (3 dinâmicos + 2 fixos)
-   - Query principal de clientes com filtros
-   - Tabela com formatação de Status e Tipo
-
-4. Atualizar `App.tsx`
-   - Adicionar rota com TeamRoute e PageAccessGate
+1. Executar migração SQL com todas as tabelas, triggers, índices e policies
+2. Verificar criação das tabelas
+3. Testar inserção de dados de exemplo
 
