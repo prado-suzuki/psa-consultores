@@ -1,219 +1,179 @@
 
-# Plano: Adicionar Botões de Criação de Clientes e Contribuintes
 
-## Contexto
+# Plano: Sincronização Assíncrona com DW via Edge Function
 
-A página `/equipe/dev/gestao-clientes` atualmente permite apenas consultar clientes e visualizar seus contribuintes. Precisamos adicionar:
+## Arquitetura
 
-1. Botão para criar novos clientes na página principal
-2. Botão para adicionar contribuintes dentro do modal de detalhes do cliente
+A sincronização será feita de forma **assíncrona** usando o padrão "fire-and-forget" com `EdgeRuntime.waitUntil()`. O usuário não precisa esperar o sync terminar para continuar usando a aplicação.
 
----
-
-## Estrutura das Tabelas
-
-### Tabela `cliente_dev`
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| nome | text | Sim |
-| telefone | text | Não |
-| setor_cliente | text | Não |
-| fixo | text ("Sim"/"Não") | Não |
-| ativo | boolean | Não (default: true) |
-| municipio | text | Não |
-| uf | text | Não |
-
-### Tabela `contribuinte_dev`
-| Campo | Tipo | Obrigatório |
-|-------|------|-------------|
-| cliente_id | uuid | Sim |
-| nome_razao_social | text | Sim |
-| tipo_pessoa | text | Sim |
-| cpf_cnpj | text | Não |
-| inscricao_estadual | text | Não |
-| cod_cnae | text | Não |
-| setor | text | Não |
-| simples_nacional | boolean | Não (default: false) |
+```text
+┌─────────────────┐     ┌───────────────────┐     ┌──────────────────┐
+│  GestaoClientes │────►│  Edge Function    │────►│  API DW          │
+│  (insert/update)│     │  sync-cadastros   │     │  /api/v1/sync    │
+└─────────────────┘     └───────────────────┘     └──────────────────┘
+        │                        │
+        │ Retorno imediato       │ Executa em
+        │ para o usuário         │ background
+        ▼                        ▼
+   "Cliente criado!"        POST assíncrono
+```
 
 ---
 
-## Alterações no Arquivo
+## Componentes
+
+### 1. Nova Edge Function: `sync-cadastros`
+
+**Arquivo:** `supabase/functions/sync-cadastros/index.ts`
+
+Responsabilidades:
+- Receber dados de cliente e/ou contribuinte
+- Enviar para a API do DW em background
+- Usar o token do usuário para autenticação
+- Não bloquear a resposta
+
+```typescript
+// Estrutura principal
+Deno.serve(async (req) => {
+  // 1. Validar autenticação
+  // 2. Receber dados (clientes e/ou contribuintes)
+  // 3. Iniciar sync em background com waitUntil
+  // 4. Retornar imediatamente para o frontend
+  
+  EdgeRuntime.waitUntil(syncWithDW(data, authToken));
+  return new Response(JSON.stringify({ status: 'syncing' }));
+});
+```
+
+### 2. Configuração de Secret
+
+**Secret necessário:** `DW_SYNC_TOKEN`
+- Token de serviço para autenticar com a API do DW
+- Será usado pela Edge Function para fazer o POST
+
+### 3. Atualização do Frontend
 
 **Arquivo:** `src/pages/equipe/dev/GestaoClientes.tsx`
 
-### Alteração 1: Importar componentes adicionais
-
-Adicionar imports para:
-- `DialogHeader`, `DialogTitle`, `DialogFooter` do dialog
-- `Input` para campos de texto
-- `Label` para rotular campos
-- `Checkbox` para campos booleanos
-- Ícone `Plus` do lucide-react
-
-### Alteração 2: Novos Estados
+Modificar as funções `handleSaveCliente` e `handleSaveContribuinte` para:
+1. Após salvar no banco, chamar a Edge Function `sync-cadastros`
+2. A chamada será "fire-and-forget" (não esperar resposta)
 
 ```typescript
-// Estados do modal de criar/editar cliente
-const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
-const [editingCliente, setEditingCliente] = useState<any>(null);
-const [clienteForm, setClienteForm] = useState({
-  nome: '',
-  telefone: '',
-  setor_cliente: '',
-  fixo: '',
-  ativo: true,
-  municipio: '',
-  uf: '',
-});
-
-// Estados do modal de criar contribuinte
-const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
-const [contribuinteForm, setContribuinteForm] = useState({
-  nome_razao_social: '',
-  tipo_pessoa: '',
-  cpf_cnpj: '',
-  inscricao_estadual: '',
-  cod_cnae: '',
-  setor: '',
-  simples_nacional: false,
-});
-```
-
-### Alteração 3: Funções de CRUD
-
-```typescript
-// Salvar Cliente
+// Exemplo de chamada assíncrona
 const handleSaveCliente = async () => {
-  if (!clienteForm.nome.trim()) {
-    toast.error('Nome é obrigatório');
-    return;
-  }
+  // ... validações e insert/update no banco ...
   
-  const payload = {
-    nome: clienteForm.nome.trim(),
-    telefone: clienteForm.telefone.trim() || null,
-    setor_cliente: clienteForm.setor_cliente.trim() || null,
-    fixo: clienteForm.fixo || null,
-    ativo: clienteForm.ativo,
-    municipio: clienteForm.municipio.trim() || null,
-    uf: clienteForm.uf.trim() || null,
-  };
-  
-  if (editingCliente) {
-    await supabase.from(clienteTable).update(payload).eq('id', editingCliente.id);
-    toast.success('Cliente atualizado');
-  } else {
-    await supabase.from(clienteTable).insert(payload);
-    toast.success('Cliente criado');
-  }
-  
+  toast.success('Cliente salvo');
   setClienteDialogOpen(false);
   refetch();
-};
-
-// Salvar Contribuinte
-const handleSaveContribuinte = async () => {
-  if (!contribuinteForm.nome_razao_social.trim() || !contribuinteForm.tipo_pessoa) {
-    toast.error('Nome/Razão Social e Tipo Pessoa são obrigatórios');
-    return;
-  }
   
-  await supabase.from(contribuinteTable).insert({
-    cliente_id: selectedCliente.id,
-    nome_razao_social: contribuinteForm.nome_razao_social.trim(),
-    tipo_pessoa: contribuinteForm.tipo_pessoa,
-    cpf_cnpj: contribuinteForm.cpf_cnpj.trim() || null,
-    inscricao_estadual: contribuinteForm.inscricao_estadual.trim() || null,
-    cod_cnae: contribuinteForm.cod_cnae.trim() || null,
-    setor: contribuinteForm.setor.trim() || null,
-    simples_nacional: contribuinteForm.simples_nacional,
-  });
-  
-  toast.success('Contribuinte adicionado');
-  setContribuinteDialogOpen(false);
-  // Refetch contribuintes do modal
+  // Sync assíncrono (não bloqueia)
+  supabase.functions.invoke('sync-cadastros', {
+    body: { clientes: [clienteData] }
+  }).catch(console.error); // Não espera resposta
 };
 ```
 
-### Alteração 4: Botão "Novo Cliente" no Card de Filtros
+---
 
-Adicionar botão ao lado direito do título "Filtros de Busca":
+## URLs por Ambiente
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  🔍 FILTROS DE BUSCA                    [+ Novo Cliente]    │
-├─────────────────────────────────────────────────────────────┤
-```
+A Edge Function detectará o ambiente e usará a URL correta:
 
-### Alteração 5: Botão "Adicionar Contribuinte" no Modal
-
-Adicionar botão no header do modal de contribuintes:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  🏢 Nome do Cliente               [+ Contribuinte]  [X]     │
-│     Contribuintes vinculados                                │
-├─────────────────────────────────────────────────────────────┤
-```
-
-### Alteração 6: Modal de Criar/Editar Cliente
-
-Campos do formulário:
-- Nome (obrigatório)
-- Telefone
-- Setor
-- Tipo (Select: Fixo/Pontual)
-- Status (Switch: Ativo/Inativo)
-- Município
-- UF
-
-### Alteração 7: Modal de Criar Contribuinte
-
-Campos do formulário:
-- Nome/Razão Social (obrigatório)
-- Tipo Pessoa (Select: PF/PJ - obrigatório)
-- CPF/CNPJ
-- Inscrição Estadual
-- Código CNAE
-- Setor
-- Simples Nacional (Checkbox)
+| Ambiente | URL da API DW |
+|----------|---------------|
+| Development | `https://psa-backend-api-456879351254.southamerica-east1.run.app` |
+| Production | `https://psa-backend-api-1010211821554.southamerica-east1.run.app` |
 
 ---
 
-## Fluxo de Uso
+## Payload da Sincronização
 
-```text
-Página Gestão de Clientes
-         │
-         ├──► [+ Novo Cliente] ──► Modal Cliente ──► Salvar ──► Refresh lista
-         │
-         └──► Clica no nome do cliente
-                    │
-                    └──► Modal Contribuintes
-                              │
-                              └──► [+ Contribuinte] ──► Modal Contribuinte 
-                                                              │
-                                                              └──► Salvar ──► Refresh modal
+```json
+{
+  "clientes": [{
+    "id_cliente": "uuid",
+    "nome": "string",
+    "fixo": "Fixo|Pontual",
+    "telefone": "string",
+    "setor_cliente": "string",
+    "municipio": "string",
+    "uf": "string",
+    "ativo": true,
+    "created_at": "timestamp",
+    "updated_at": "timestamp"
+  }],
+  "contribuintes": [{
+    "id_contribuinte": "uuid",
+    "id_cliente": "uuid",
+    "tipo_pessoa": "PF|PJ",
+    "cpf_cnpj": "string",
+    "nome_razao_social": "string",
+    "inscricao_estadual": "string",
+    "cod_cnae": "string",
+    "setor": "string",
+    "simples_nacional": false,
+    "created_at": "timestamp",
+    "updated_at": "timestamp"
+  }]
+}
 ```
 
 ---
 
-## Resumo das Mudanças
+## Arquivos a Criar/Modificar
 
-| Localização | Mudança |
-|-------------|---------|
-| Imports | Adicionar DialogHeader, DialogTitle, DialogFooter, Input, Label, Checkbox, Plus |
-| Estados (linha ~55) | Adicionar estados para dialogs e forms de cliente/contribuinte |
-| Funções (linha ~220) | Adicionar handleSaveCliente e handleSaveContribuinte |
-| Card Filtros (linha ~246) | Adicionar botão "Novo Cliente" no header |
-| Modal Contribuintes (linha ~432) | Adicionar botão "Adicionar Contribuinte" no header |
-| Final do arquivo | Adicionar 2 novos Dialogs para criar cliente e contribuinte |
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `supabase/functions/sync-cadastros/index.ts` | Criar | Edge Function para sync assíncrono |
+| `supabase/config.toml` | Editar | Adicionar configuração da nova função |
+| `src/pages/equipe/dev/GestaoClientes.tsx` | Editar | Chamar Edge Function após salvar |
 
 ---
 
-## Impacto
+## Detalhes Técnicos
 
-- Funcionalidade adicional sem alterar comportamento existente
-- Reutiliza padrões já usados em `EquipeCadastros.tsx`
-- Queries existentes serão invalidadas após inserções para atualizar dados
-- Nenhuma alteração no banco de dados necessária
+### Edge Function (`sync-cadastros`)
+
+```typescript
+// Principais características:
+// 1. Autenticação via getClaims()
+// 2. Validação de role (team_member ou admin)
+// 3. Detecção de ambiente para URL correta
+// 4. Execução em background com waitUntil
+// 5. Logs para debugging
+// 6. Tratamento de erros silencioso (não falha o request principal)
+```
+
+### Configuração TOML
+
+```toml
+[functions.sync-cadastros]
+verify_jwt = false
+```
+
+### Fluxo no Frontend
+
+1. Usuário clica em "Salvar"
+2. Insert/Update no Supabase (síncrono)
+3. Toast de sucesso + fecha modal
+4. Chama Edge Function (assíncrono, não espera)
+5. Edge Function faz POST para DW em background
+
+---
+
+## Vantagens desta Abordagem
+
+1. **Zero tempo de espera** - O usuário não percebe o sync
+2. **Resiliência** - Se o DW estiver offline, o dado já foi salvo no banco principal
+3. **Flexibilidade** - Pode sincronizar cliente, contribuinte ou ambos
+4. **Logs** - Edge Function tem logs para debugging
+5. **Segurança** - Usa autenticação do usuário + validação de role
+
+---
+
+## Próximo Passo Necessário
+
+Antes de implementar, preciso que você forneça o **token de autenticação** que a Edge Function usará para chamar sua API do DW. Este token será armazenado como secret `DW_SYNC_TOKEN`.
+
