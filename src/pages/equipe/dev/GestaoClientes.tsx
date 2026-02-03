@@ -491,26 +491,26 @@ const GestaoClientes = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Nome Cliente</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Tipo Cliente</TableHead>
-                          <TableHead>Telefone</TableHead>
-                          <TableHead>Setor</TableHead>
+                          <TableHead className="text-base font-semibold">Nome Cliente</TableHead>
+                          <TableHead className="text-base font-semibold">Status</TableHead>
+                          <TableHead className="text-base font-semibold">Tipo Cliente</TableHead>
+                          <TableHead className="text-base font-semibold">Telefone</TableHead>
+                          <TableHead className="text-base font-semibold">Setor</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedResults.map((row) => (
                           <TableRow key={row.id}>
                             <TableCell 
-                              className="font-medium text-primary cursor-pointer hover:underline"
+                              className="text-base font-medium text-primary cursor-pointer hover:underline"
                               onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
                             >
                               {row.nome || '-'}
                             </TableCell>
-                            <TableCell>{formatStatus(row.ativo)}</TableCell>
-                            <TableCell>{formatTipo(row.fixo)}</TableCell>
-                            <TableCell>{row.telefone || '-'}</TableCell>
-                            <TableCell>{row.setor_cliente || '-'}</TableCell>
+                            <TableCell className="text-base">{formatStatus(row.ativo)}</TableCell>
+                            <TableCell className="text-base">{formatTipo(row.fixo)}</TableCell>
+                            <TableCell className="text-base">{row.telefone || '-'}</TableCell>
+                            <TableCell className="text-base">{row.setor_cliente || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
