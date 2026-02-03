@@ -44,7 +44,7 @@ interface SyncPayload {
   environment: 'development' | 'production'
 }
 
-async function syncWithDW(payload: SyncPayload, authToken: string): Promise<void> {
+async function syncWithDW(payload: SyncPayload, userToken: string): Promise<void> {
   const apiUrl = API_URLS[payload.environment]
   const syncUrl = `${apiUrl}/api/v1/sync/cadastros`
   
@@ -67,7 +67,7 @@ async function syncWithDW(payload: SyncPayload, authToken: string): Promise<void
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
+        'Authorization': `Bearer ${userToken}`,
       },
       body: JSON.stringify(body),
     })
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
   try {
     // Verificar autenticação
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -103,20 +103,23 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const userToken = authHeader.replace('Bearer ', '')
     
-    // Verificar se o usuário está autenticado
+    // Verificar se o usuário está autenticado usando getClaims
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
     
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser()
-    if (userError || !user) {
-      console.error('[sync-cadastros] Usuário não autenticado:', userError?.message)
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(userToken)
+    if (claimsError || !claimsData?.claims) {
+      console.error('[sync-cadastros] Token inválido:', claimsError?.message)
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const userId = claimsData.claims.sub as string
 
     // Verificar role (team_member ou admin)
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
@@ -124,7 +127,7 @@ Deno.serve(async (req) => {
     const { data: roles, error: rolesError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
     
     if (rolesError) {
       console.error('[sync-cadastros] Erro ao verificar roles:', rolesError.message)
@@ -138,7 +141,7 @@ Deno.serve(async (req) => {
     const hasPermission = userRoles.includes('team_member') || userRoles.includes('admin')
     
     if (!hasPermission) {
-      console.error('[sync-cadastros] Usuário sem permissão:', user.id)
+      console.error('[sync-cadastros] Usuário sem permissão:', userId)
       return new Response(
         JSON.stringify({ error: 'Acesso negado' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -162,21 +165,11 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Obter token do DW
-    const dwToken = Deno.env.get('DW_SYNC_TOKEN')
-    if (!dwToken) {
-      console.error('[sync-cadastros] DW_SYNC_TOKEN não configurado')
-      return new Response(
-        JSON.stringify({ error: 'Configuração de sync incompleta' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Executar sync em background usando waitUntil
+    // Executar sync em background usando o token do usuário
     // @ts-ignore - EdgeRuntime é disponível em runtime
-    (globalThis as any).EdgeRuntime?.waitUntil?.(syncWithDW(body, dwToken)) || syncWithDW(body, dwToken);
+    (globalThis as any).EdgeRuntime?.waitUntil?.(syncWithDW(body, userToken)) || syncWithDW(body, userToken);
     
-    console.log(`[sync-cadastros] Sync iniciado em background para ${body.environment}`);
+    console.log(`[sync-cadastros] Sync iniciado em background para ${body.environment} (user: ${userId})`);
 
     // Retornar imediatamente
     return new Response(
