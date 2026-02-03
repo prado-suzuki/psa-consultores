@@ -1,18 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Filter, Search, Eraser, Users } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
+
+const ITEMS_PER_PAGE = 10;
+const MODAL_ITEMS_PER_PAGE = 10;
+
+// Formatadores
+const formatCpfCnpj = (value: string | null) => {
+  if (!value) return '-';
+  const clean = value.replace(/\D/g, '');
+  if (clean.length === 11) {
+    return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+  if (clean.length === 14) {
+    return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  }
+  return value;
+};
+
+const formatSimples = (value: boolean | null) => {
+  if (value === null || value === undefined) return '-';
+  return value ? 'Sim' : 'Não';
+};
 
 const GestaoClientes = () => {
   // Estados do cliente
@@ -20,11 +42,19 @@ const GestaoClientes = () => {
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
   const [searched, setSearched] = useState(false);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Estados do contribuinte (apenas para filtrar)
   const [tipoPessoa, setTipoPessoa] = useState('');
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
+
+  // Estados do modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState<{ id: string; nome: string } | null>(null);
+  const [modalPage, setModalPage] = useState(1);
 
   // Verifica se há filtros ativos
   const hasActiveFilters = clienteId || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
@@ -128,8 +158,50 @@ const GestaoClientes = () => {
     enabled: searched,
   });
 
+  // Query para contribuintes do modal
+  const { data: contribuintesModal = [], isLoading: loadingModal } = useQuery({
+    queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente?.id],
+    queryFn: async () => {
+      if (!selectedCliente?.id) return [];
+      
+      const { data, error } = await supabase
+        .from(contribuinteTable)
+        .select('*')
+        .eq('cliente_id', selectedCliente.id)
+        .order('nome_razao_social');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: modalOpen && !!selectedCliente?.id,
+  });
+
+  // Reset página quando buscar novamente
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [resultados]);
+
+  // Paginação da tabela principal
+  const totalPages = Math.ceil(resultados.length / ITEMS_PER_PAGE);
+  const paginatedResults = useMemo(() => {
+    return resultados.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
+  }, [resultados, currentPage]);
+
+  // Paginação do modal
+  const modalTotalPages = Math.ceil(contribuintesModal.length / MODAL_ITEMS_PER_PAGE);
+  const paginatedContribuintes = useMemo(() => {
+    return contribuintesModal.slice(
+      (modalPage - 1) * MODAL_ITEMS_PER_PAGE,
+      modalPage * MODAL_ITEMS_PER_PAGE
+    );
+  }, [contribuintesModal, modalPage]);
+
   const handleSearch = () => {
     setSearched(true);
+    setCurrentPage(1);
     refetch();
   };
 
@@ -143,6 +215,13 @@ const GestaoClientes = () => {
     setCpfCnpj('');
     setNomeRazaoSocial('');
     setSearched(false);
+    setCurrentPage(1);
+  };
+
+  const handleClienteClick = (cliente: { id: string; nome: string }) => {
+    setSelectedCliente(cliente);
+    setModalOpen(true);
+    setModalPage(1);
   };
 
   const formatStatus = (ativo: boolean | null) => {
@@ -269,35 +348,192 @@ const GestaoClientes = () => {
                   Nenhum cliente encontrado com os filtros selecionados.
                 </div>
               ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome Cliente</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Tipo Cliente</TableHead>
-                        <TableHead>Telefone</TableHead>
-                        <TableHead>Setor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {resultados.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-medium">{row.nome || '-'}</TableCell>
-                          <TableCell>{formatStatus(row.ativo)}</TableCell>
-                          <TableCell>{formatTipo(row.fixo)}</TableCell>
-                          <TableCell>{row.telefone || '-'}</TableCell>
-                          <TableCell>{row.setor_cliente || '-'}</TableCell>
+                <>
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome Cliente</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Tipo Cliente</TableHead>
+                          <TableHead>Telefone</TableHead>
+                          <TableHead>Setor</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedResults.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell 
+                              className="font-medium text-primary cursor-pointer hover:underline"
+                              onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
+                            >
+                              {row.nome || '-'}
+                            </TableCell>
+                            <TableCell>{formatStatus(row.ativo)}</TableCell>
+                            <TableCell>{formatTipo(row.fixo)}</TableCell>
+                            <TableCell>{row.telefone || '-'}</TableCell>
+                            <TableCell>{row.setor_cliente || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 px-2">
+                      <span className="text-xs text-slate-500">
+                        Exibindo {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, resultados.length)} de {resultados.length}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500">
+                          Página {currentPage} de {totalPages}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Modal de Contribuintes */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent 
+          className={cn(
+            "max-w-6xl h-auto max-h-[80vh] p-0",
+            "flex flex-col overflow-hidden",
+            "[&>button]:hidden"
+          )}
+        >
+          {/* Header */}
+          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {selectedCliente?.nome}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Contribuintes vinculados
+                </p>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setModalOpen(false)}
+              className="h-9 w-9 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-auto p-6">
+            {loadingModal ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : contribuintesModal.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                Nenhum contribuinte vinculado a este cliente.
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome/Razão Social</TableHead>
+                      <TableHead>Tipo Pessoa</TableHead>
+                      <TableHead>Setor</TableHead>
+                      <TableHead>Simples Nacional</TableHead>
+                      <TableHead>CPF/CNPJ</TableHead>
+                      <TableHead>Inscrição Estadual</TableHead>
+                      <TableHead>Código CNAE</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedContribuintes.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.nome_razao_social || '-'}</TableCell>
+                        <TableCell>{row.tipo_pessoa || '-'}</TableCell>
+                        <TableCell>{row.setor || '-'}</TableCell>
+                        <TableCell>{formatSimples(row.simples_nacional)}</TableCell>
+                        <TableCell className="font-mono text-sm">{formatCpfCnpj(row.cpf_cnpj)}</TableCell>
+                        <TableCell>{row.inscricao_estadual || '-'}</TableCell>
+                        <TableCell>{row.cod_cnae || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+
+          {/* Footer - Paginação */}
+          {contribuintesModal.length > 0 && (
+            <div className="h-12 px-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between flex-shrink-0">
+              <span className="text-xs text-slate-500">
+                Exibindo {paginatedContribuintes.length} de {contribuintesModal.length} contribuintes
+              </span>
+              
+              {modalTotalPages > 1 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">
+                    Página {modalPage} de {modalTotalPages}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={modalPage === 1 || loadingModal}
+                      onClick={() => setModalPage(p => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={modalPage === modalTotalPages || loadingModal}
+                      onClick={() => setModalPage(p => p + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DevLayout>
   );
 };
