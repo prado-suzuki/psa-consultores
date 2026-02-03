@@ -29,7 +29,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Loader2, CalendarIcon } from 'lucide-react';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+// Format process number: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX
+const formatProcessNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 26);
+  let formatted = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18 || i === 20) {
+      formatted += '.';
+    }
+    if (i === 22) {
+      formatted += '-';
+    }
+    formatted += digits[i];
+  }
+  return formatted;
+};
+
+// Format currency for display: R$ 1.234,56
+const formatCurrencyDisplay = (value: number): string => {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
+
+// Parse currency string to number
+const parseCurrencyToNumber = (value: string): number => {
+  const digits = value.replace(/\D/g, '');
+  return parseInt(digits || '0', 10) / 100;
+};
 
 const perSchema = z.object({
   numero_processo_per: z.string().min(1, 'Número do processo é obrigatório'),
@@ -60,6 +99,10 @@ export function PerFormModal({
 }: PerFormModalProps) {
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  
+  // Local state for formatted values
+  const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const form = useForm<PerFormData>({
     resolver: zodResolver(perSchema),
@@ -101,6 +144,7 @@ export function PerFormModal({
         tp_credito: editData.tp_credito,
         vlr_credito: editData.vlr_credito,
       });
+      setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_credito || 0));
     } else {
       form.reset({
         numero_processo_per: '',
@@ -111,12 +155,14 @@ export function PerFormModal({
         tp_credito: '',
         vlr_credito: 0,
       });
+      setCurrencyDisplay('R$ 0,00');
     }
   }, [editData, contribuinteId, form]);
 
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
-      const { error } = await supabase.from('per').insert([{
+      // Insert PER
+      const { error: perError } = await supabase.from('per').insert([{
         numero_processo_per: data.numero_processo_per,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
@@ -125,10 +171,20 @@ export function PerFormModal({
         tp_credito: data.tp_credito,
         vlr_credito: data.vlr_credito,
       }]);
-      if (error) throw error;
+      if (perError) throw perError;
+
+      // Automatically create initial situação as "Analisado"
+      const { error: situacaoError } = await supabase.from('per_situacao').insert({
+        nr_proc_per: data.numero_processo_per,
+        situacao: 'Analisado',
+      });
+      if (situacaoError) {
+        console.error('Erro ao criar situação inicial:', situacaoError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('PER criado com sucesso!');
       onOpenChange(false);
     },
@@ -170,6 +226,13 @@ export function PerFormModal({
     }
   };
 
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const numericValue = parseCurrencyToNumber(rawValue);
+    form.setValue('vlr_credito', numericValue);
+    setCurrencyDisplay(formatCurrencyDisplay(numericValue));
+  };
+
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -187,7 +250,15 @@ export function PerFormModal({
                 <FormItem>
                   <FormLabel>Número do Processo</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isEditing} />
+                    <Input
+                      {...field}
+                      disabled={isEditing}
+                      placeholder="00000.00000.000000.0.0.00-0000"
+                      onChange={(e) => {
+                        const formatted = formatProcessNumber(e.target.value);
+                        field.onChange(formatted);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -262,15 +333,54 @@ export function PerFormModal({
             <FormField
               control={form.control}
               name="dt_solicitada"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data Solicitada</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const selectedDate = field.value 
+                  ? parse(field.value, 'yyyy-MM-dd', new Date())
+                  : undefined;
+                
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data Solicitada</FormLabel>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(parse(field.value, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy', { locale: ptBR })
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              field.onChange(format(date, 'yyyy-MM-dd'));
+                            }
+                            setCalendarOpen(false);
+                          }}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                          locale={ptBR}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -279,9 +389,17 @@ export function PerFormModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Crédito</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Ex: PIS/COFINS" />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="PIS">PIS</SelectItem>
+                      <SelectItem value="COFINS">COFINS</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -290,11 +408,15 @@ export function PerFormModal({
             <FormField
               control={form.control}
               name="vlr_credito"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
-                  <FormLabel>Valor do Crédito (R$)</FormLabel>
+                  <FormLabel>Valor do Crédito</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} />
+                    <Input
+                      value={currencyDisplay}
+                      onChange={handleCurrencyChange}
+                      placeholder="R$ 0,00"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
