@@ -1,104 +1,109 @@
 
-
-# Plano: Ajustar Gestão de Clientes para Exibir Clientes
+# Plano: Padronizar Gestão de Clientes conforme outras ferramentas
 
 ## Objetivo
 
-Corrigir a página para que os resultados exibam **clientes** (não contribuintes), onde os filtros de contribuinte servem apenas para filtrar quais clientes aparecem.
+Padronizar a página de Gestão de Clientes seguindo o mesmo layout e design das outras ferramentas Dev (como ConsultaEFD), além de aplicar as alterações solicitadas.
 
-## O Que Será Feito
+## Alterações a Realizar
 
-### 1. Remover Elementos Duplicados e Não Utilizados
+### 1. Renomear Labels de Filtros
 
-| Item a Remover | Motivo |
-|----------------|--------|
-| Estados `municipio` e `uf` | Não são mais usados |
-| Linha 3 de filtros (duplicada) | Setor e Simples Nacional já aparecem na Linha 2 |
+| Antes | Depois |
+|-------|--------|
+| Nome Cliente | Cliente |
+| Nome/Razão Social | Contribuinte |
 
-### 2. Reorganizar Filtros em 2 Linhas
+### 2. Remover Filtros
 
-```text
-LINHA 1 - Filtros do Cliente:
-[Nome Cliente (3col)] [Status (2col)] [Tipo Cliente (2col)] [vazio (5col)]
+| Filtro a Remover | Motivo |
+|------------------|--------|
+| Setor | Solicitado pelo usuário |
+| Simples Nacional | Solicitado pelo usuário |
 
-LINHA 2 - Filtros do Contribuinte:
-[Nome/Razão Social (3col)] [Tipo Pessoa (2col)] [CPF/CNPJ (2col)] [Setor (3col)] [Simples (2col)]
-```
+### 3. Reorganizar Layout de Filtros
 
-### 3. Adicionar Opção "Todos os Clientes"
-
-No dropdown de Nome Cliente, adicionar uma opção para selecionar todos:
-- Valor especial: `"__todos__"`
-- Texto: "Todos os Clientes"
-
-### 4. Botão "Limpar Filtros" Condicional
-
-O botão só aparece quando há pelo menos um filtro selecionado:
+O filtro "Contribuinte" será posicionado ao lado de "Cliente" na mesma linha:
 
 ```text
-hasActiveFilters = nome || status || tipo || nomeRazaoSocial || 
-                   tipoPessoa || cpfCnpj || setor || simplesNacional
+LINHA ÚNICA:
+[Cliente (3col)] [Contribuinte (5col)] [Status (2col)] [Tipo (2col)]
 ```
 
-### 5. Inverter Lógica de Consulta
+### 4. Padronizar Estilo Visual (conforme ConsultaEFD)
 
-A query será em duas etapas:
+| Elemento | Antes | Depois |
+|----------|-------|--------|
+| Título do Card | `text-lg` simples | `text-lg flex items-center gap-2 text-primary` |
+| Texto do título | "Filtros de Busca" | `uppercase text-sm tracking-wider font-bold text-slate-800` |
+| Labels dos filtros | `text-sm font-medium` | `text-xs font-bold uppercase tracking-wider` |
+| Inputs | `bg-white` | `h-11 bg-white dark:bg-slate-800` |
+| Gap do grid | `gap-4` | `gap-6` |
 
-**Etapa 1 - Buscar cliente_ids filtrados (se houver filtros de contribuinte):**
+### 5. Reorganizar Botões
+
+| Antes | Depois |
+|-------|--------|
+| Limpar à esquerda, Buscar à direita | Ambos à direita, lado a lado |
+| Limpar com variant="outline" | Limpar com fundo vermelho e texto branco |
+| Botão Limpar só aparece com filtros | Mantém comportamento |
+
+### 6. Remover Estados e Queries Não Utilizados
+
+- Remover estado `setor`
+- Remover estado `simplesNacional`
+- Remover query `setores`
+- Atualizar `hasActiveFilters` e `hasContribuinteFilters`
+
+## Layout Final dos Filtros
+
 ```text
-Se algum filtro de contribuinte estiver ativo:
-  → Buscar cliente_ids da tabela contribuinte que atendem aos filtros
-  → Usar esses IDs para filtrar a query de clientes
++------------------------------------------------------------------+
+| 🔍 FILTROS DE BUSCA                                              |
++------------------------------------------------------------------+
+| CLIENTE          | CONTRIBUINTE              | STATUS   | TIPO   |
+| [Select 3col]    | [Select 5col]             | [2col]   | [2col] |
++------------------------------------------------------------------+
+|                                      | [Limpar🔴] [Buscar🟢] |
++------------------------------------------------------------------+
 ```
 
-**Etapa 2 - Buscar clientes:**
+## Estilo dos Botões
+
 ```text
-Query em cliente com:
-  - Filtros diretos (nome, status, tipo)
-  - Filtro de IDs (se etapa 1 retornou IDs)
-  - Ordenação por nome
+Botão Limpar (quando há filtros):
+- Fundo: bg-red-600 hover:bg-red-700
+- Texto: text-white
+- Ícone: Eraser (da ConsultaEFD) ao invés de X
+
+Botão Buscar:
+- Mantém: bg-teal-600 hover:bg-teal-700
+- Texto: text-white
 ```
-
-### 6. Colunas da Tabela de Resultados (Clientes)
-
-| Coluna | Campo | Descrição |
-|--------|-------|-----------|
-| Nome Cliente | nome | Nome do cliente |
-| Status | ativo | Badge Ativo/Inativo |
-| Tipo Cliente | fixo | Fixo/Pontual |
-| Telefone | telefone | Contato |
-| Setor | setor_cliente | Setor do cliente |
 
 ## Detalhes Técnicos
 
-### Lógica da Query Principal
-
-```text
-1. Verificar se há filtros de contribuinte ativos
-2. Se sim:
-   a. Buscar contribuintes que atendem aos filtros
-   b. Extrair lista de cliente_ids únicos
-   c. Usar .in('id', clienteIds) na query de clientes
-3. Aplicar filtros diretos de cliente (nome, status, tipo)
-4. Se nome === '__todos__', não filtrar por nome
-5. Retornar lista de clientes ordenada por nome
-```
+### Imports a Adicionar
+- `Eraser` do lucide-react (para o botão limpar, conforme padrão)
 
 ### Estados Finais
-
 ```text
 // Cliente
-nome: string ('' ou '__todos__' ou valor selecionado)
-status: string ('true' | 'false' | '')
-tipo: string ('Sim' | 'Não' | '')
+nome: string
+status: string
+tipo: string
 searched: boolean
 
 // Contribuinte (apenas para filtrar)
-nomeRazaoSocial: string
 tipoPessoa: string
 cpfCnpj: string
-setor: string
-simplesNacional: string
+nomeRazaoSocial: string
+```
+
+### Condições Atualizadas
+```text
+hasActiveFilters = nome || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj
+hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj
 ```
 
 ## Arquivo a Modificar
@@ -107,11 +112,11 @@ simplesNacional: string
 
 ## Resumo das Alterações
 
-1. Remover estados `municipio` e `uf`
-2. Remover Linha 3 duplicada de filtros
-3. Adicionar opção "Todos os Clientes" no dropdown de nome
-4. Tornar botão "Limpar Filtros" condicional
-5. Inverter query para buscar clientes (não contribuintes)
-6. Usar filtros de contribuinte apenas para filtrar cliente_ids
-7. Atualizar tabela para exibir colunas de cliente
-
+1. Renomear "Nome Cliente" para "Cliente"
+2. Renomear "Nome/Razão Social" para "Contribuinte" e mover ao lado de Cliente
+3. Remover filtros de Setor e Simples Nacional
+4. Aplicar estilos padronizados (uppercase, tracking-wider, h-11)
+5. Mover botão "Limpar Filtros" para o lado direito, ao lado de "Buscar"
+6. Alterar estilo do botão Limpar para fundo vermelho com texto branco
+7. Usar ícone Eraser no botão Limpar (padrão das outras ferramentas)
+8. Remover estados e queries não utilizados
