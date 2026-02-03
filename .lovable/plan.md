@@ -1,186 +1,194 @@
 
+# Plano: Modal de Detalhes do PER com Gestao de DCOMPs
 
-# Plano de Melhorias na Ferramenta Controle PERDCOMP
+## Visao Geral
 
-## Resumo das Alteracoes
-
-Este plano implementa diversas melhorias no modal de cadastro de PER e na tabela de visualizacao, conforme solicitado:
-
----
-
-## 1. Remover Coluna "Analisar" da Tabela
-
-**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-- Remover a coluna `<TableHead>Analisar</TableHead>` do cabecalho
-- Remover a celula correspondente que renderiza o botao "Analisar" / "Verificado!"
-- Remover estados relacionados: `analisarModalOpen`, `selectedPerNumero`, `selectedPerSituacao`, `recentlyVerified`
-- Remover funcoes `handleAnalisar` e `handleAnalisarSuccess`
-- Remover componente `AnalisarPerModal` (nao sera mais utilizado)
+Criar um modal de detalhes ao clicar em uma linha de PER na tabela, seguindo o layout visual do modal EFDAnalysisModal. O modal tera duas colunas: lado esquerdo para gerenciar a situacao do PER, e lado direito para visualizar/adicionar DCOMPs vinculados.
 
 ---
 
-## 2. Remover Botao de Excluir PER
+## Estrutura do Modal
 
-**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-- Remover o botao de `<Trash2>` da coluna de acoes para PER
-- Manter o botao de editar (Pencil) apenas
-- A mutation de delete e o AlertDialog podem ser removidos ou mantidos apenas para DCOMP
-
----
-
-## 3. Formatacao Automatica do Numero do Processo
-
-**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
-
-Implementar formatacao automatica no padrao: `31942.50758.311024.1.1.18-1220`
-
-**Logica de formatacao:**
-- Posicoes dos separadores: `.` apos 5, 11, 17, 19 e 21 caracteres; `-` apos 24 caracteres
-- Padrao regex: `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX`
-
-```
-Funcao formatProcessNumber(value):
-  1. Remove tudo que nao for numero
-  2. Limita a 26 caracteres numericos
-  3. Insere pontos e hifen nas posicoes corretas
-  4. Retorna string formatada
+```text
++-----------------------------------------------------------------------------------+
+|  HEADER: Numero PER | Contribuinte | Exercicio/Trimestre | Valor Total | [X]     |
++-----------------------------------------------------------------------------------+
+|  SIDEBAR (Esquerda)         |        AREA PRINCIPAL (Direita)                     |
+|                             |                                                     |
+|  Situacao Atual: Badge      |  +-----------------------------------------------+  |
+|                             |  |  Tabela de DCOMPs vinculados                  |  |
+|  Atualizar Situacao:        |  |  - Nr Documento                               |  |
+|  [Select: Deferido,         |  |  - Mes/Ano                                    |  |
+|   Analisado, Em analise]    |  |  - Imposto                                    |  |
+|                             |  |  - Valor Compensado                           |  |
+|  [Botao Salvar Situacao]    |  |  - Acoes (Editar/Excluir)                     |  |
+|                             |  +-----------------------------------------------+  |
+|  Historico de Situacoes:    |                                                     |
+|  - Data | Situacao          |  Saldo Restante: R$ X.XXX,XX                        |
+|  - Data | Situacao          |                                                     |
+|                             |  [+ Adicionar DCOMP]                                |
++-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Tipo de Credito como Dropdown (PIS/COFINS)
+## Arquivos a Criar/Modificar
 
-**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+### 1. Novo Componente: `PerDetailModal.tsx`
+**Caminho:** `src/components/equipe/dev/perdcomp/PerDetailModal.tsx`
 
-- Substituir o `<Input>` por um `<Select>` com opcoes:
-  - PIS
-  - COFINS
+O modal principal com layout inspirado no EFDAnalysisModal:
+- Header com informacoes do PER selecionado
+- Duas colunas: sidebar + area principal
+- Estilo visual consistente com o resto do sistema
 
----
+### 2. Modificar: `ControlePerdcomp.tsx`
+**Caminho:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-## 5. Valor do Credito Formatado como R$ 0,00
-
-**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
-
-- Implementar input com mascara de moeda brasileira
-- O usuario digita apenas numeros e o campo exibe formatado (R$ 1.234,56)
-- Ao salvar, converter para numero (1234.56) para armazenar no banco
-
----
-
-## 6. Campo Data Solicitada com Calendario
-
-**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
-
-- Substituir `<Input type="date">` por um Popover + Calendar (mesmo padrao de ConsultaXMLs)
-- Importar componentes necessarios: `Calendar`, `Popover`, `PopoverContent`, `PopoverTrigger`
-- Usar `format` e `parse` do date-fns com locale ptBR
-- Adicionar classe `pointer-events-auto` no Calendar para garantir interatividade
+Alteracoes:
+- Adicionar estado para controlar abertura do modal de detalhes
+- Adicionar estado para armazenar o PER selecionado
+- Tornar a linha da tabela clicavel (onClick na TableRow)
+- Importar e renderizar o novo PerDetailModal
 
 ---
 
-## 7. Criar Situacao "Analisado" ao Cadastrar PER
+## Detalhes de Implementacao
 
-**Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
+### PerDetailModal - Estrutura
 
-Na mutation de criacao (`createMutation`):
-1. Apos inserir o PER com sucesso
-2. Automaticamente inserir um registro em `per_situacao` com:
-   - `nr_proc_per`: numero do processo criado
-   - `situacao`: "Analisado"
+```text
+Props:
+- open: boolean
+- onOpenChange: (open: boolean) => void
+- per: objeto PER selecionado (ou null)
+- contribuinteId: string
 
-Isso garante que todo novo PER ja apareca com a situacao correta na tabela.
+Estados internos:
+- novaSituacao: string (valor selecionado para atualizar)
+- dcompModalOpen: boolean (controla modal de novo DCOMP)
+- editDcompData: objeto para edicao de DCOMP
 
----
+Queries:
+- DCOMPs vinculados ao PER (filtra por nr_per_orig)
+- Historico de situacoes (tabela per_situacao)
 
-## Detalhes Tecnicos
-
-### Componentes e Imports Necessarios
-
-```typescript
-// PerFormModal.tsx - imports adicionais
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+Mutations:
+- Atualizar situacao (insert em per_situacao)
+- Excluir DCOMP
 ```
 
-### Funcao de Formatacao do Numero do Processo
+### Layout do Modal
 
-```typescript
-const formatProcessNumber = (value: string): string => {
-  // Remove tudo que nao for numero
-  const digits = value.replace(/\D/g, '').slice(0, 26);
-  
-  // Aplica a mascara: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX
-  let formatted = '';
-  for (let i = 0; i < digits.length; i++) {
-    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18 || i === 20) {
-      formatted += '.';
-    }
-    if (i === 22) {
-      formatted += '-';
-    }
-    formatted += digits[i];
-  }
-  return formatted;
-};
+**Header (altura fixa):**
+- Icone + Numero do processo
+- Badge com tipo de credito (PIS/COFINS)
+- Valor total do credito
+- Exercicio/Trimestre
+- Botao fechar (X)
+
+**Sidebar Esquerda (largura ~280px):**
+- Card com situacao atual (Badge colorido)
+- Select para nova situacao
+- Botao "Atualizar Situacao"
+- Divisor
+- Lista de historico de situacoes (scroll se necessario)
+
+**Area Principal Direita:**
+- Tabela de DCOMPs com colunas:
+  - Nr Documento
+  - Mes/Ano Exercicio
+  - Data Envio
+  - Imposto
+  - Valor Compensado
+  - Acoes (editar/excluir)
+- Linha de resumo: Saldo Restante (Valor PER - Soma DCOMPs)
+- Botao "+ Novo DCOMP" que abre o DcompFormModal existente
+
+### Calculo do Saldo Restante
+
+```text
+saldoRestante = per.vlr_credito - somatorio(dcomps.vlr_compensado)
 ```
 
-### Funcao de Formatacao de Moeda
+### Atualizacao de Situacao
 
-```typescript
-const formatCurrencyInput = (value: string): string => {
-  const digits = value.replace(/\D/g, '');
-  const numberValue = parseInt(digits || '0', 10) / 100;
-  return numberValue.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
+Ao clicar em "Atualizar Situacao":
+1. Inserir novo registro em `per_situacao` com:
+   - nr_proc_per: numero do processo do PER
+   - situacao: valor selecionado
+2. Invalidar queries relacionadas
+3. Exibir toast de sucesso
 
-const parseCurrencyToNumber = (value: string): number => {
-  const digits = value.replace(/\D/g, '');
-  return parseInt(digits || '0', 10) / 100;
-};
-```
+### Opcoes de Situacao
 
-### Criacao Automatica de Situacao
-
-```typescript
-// Dentro de createMutation.mutationFn
-const { error: perError } = await supabase.from('per').insert([...]);
-if (perError) throw perError;
-
-// Criar situacao inicial automaticamente
-const { error: situacaoError } = await supabase.from('per_situacao').insert({
-  nr_proc_per: data.numero_processo_per,
-  situacao: 'Analisado',
-});
-if (situacaoError) {
-  console.error('Erro ao criar situacao inicial:', situacaoError);
-}
-```
+- Deferido
+- Analisado
+- Em analise
 
 ---
 
-## Arquivos Afetados
+## Modificacoes em ControlePerdcomp.tsx
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Remover coluna Analisar, remover botao excluir PER |
-| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Formatacao numero processo, dropdown tipo credito, mascara moeda, calendario, criacao automatica situacao |
+### Novos Estados
+
+```text
+detailModalOpen: boolean
+selectedPer: objeto PER | null
+```
+
+### TableRow Clicavel
+
+Adicionar className cursor-pointer e onClick que:
+1. Seta selectedPer com o item
+2. Abre detailModalOpen
+
+### Renderizacao do Modal
+
+Adicionar PerDetailModal no final do componente, passando:
+- open={detailModalOpen}
+- onOpenChange={setDetailModalOpen}
+- per={selectedPer}
+- contribuinteId={contribuinteId}
 
 ---
 
-## Resultado Esperado
+## Estilos e UX
 
-- A tabela de PERs tera uma coluna a menos (sem "Analisar")
-- Novos PERs serao automaticamente marcados como "Analisado"
-- O modal de cadastro tera campos mais intuitivos e formatados
-- Nao sera possivel excluir PERs (apenas editar)
+- Modal em fullscreen similar ao EFDAnalysisModal
+- Fundo escurecido (overlay)
+- Header com gradiente sutil
+- Badges coloridos para situacao:
+  - Deferido: verde
+  - Analisado: azul
+  - Em analise: amarelo
+- Tabela de DCOMPs com hover states
+- Botao de adicionar DCOMP proeminente
+- Saldo restante destacado (verde se positivo, vermelho se negativo/zero)
 
+---
+
+## Fluxo do Usuario
+
+1. Usuario clica em uma linha de PER na tabela principal
+2. Modal de detalhes abre com informacoes do PER
+3. No lado esquerdo, usuario pode:
+   - Ver situacao atual
+   - Selecionar nova situacao e salvar
+   - Ver historico de alteracoes
+4. No lado direito, usuario pode:
+   - Ver todos os DCOMPs vinculados
+   - Ver saldo restante do PER
+   - Adicionar novo DCOMP (abre modal existente pre-configurado)
+   - Editar DCOMP existente
+   - Excluir DCOMP
+5. Usuario fecha o modal clicando no X ou fora do modal
+
+---
+
+## Resumo de Arquivos
+
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` | Criar | Modal principal de detalhes do PER |
+| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Modificar | Adicionar click handler e renderizar modal |
