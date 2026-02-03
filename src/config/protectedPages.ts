@@ -71,9 +71,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/dev/auditoria-fiscal',
-    page_name: 'Auditoria Fiscal',
-    page_description: 'Ferramenta de auditoria fiscal',
+    page_path: '/equipe/dev/difal-inteligente',
+    page_name: 'DIFAL Inteligente',
+    page_description: 'Ferramenta DIFAL Inteligente',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
