@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
@@ -8,9 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -55,6 +60,34 @@ const GestaoClientes = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<{ id: string; nome: string } | null>(null);
   const [modalPage, setModalPage] = useState(1);
+
+  // Estados do modal de criar/editar cliente
+  const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
+  const [savingCliente, setSavingCliente] = useState(false);
+  const [clienteForm, setClienteForm] = useState({
+    nome: '',
+    telefone: '',
+    setor_cliente: '',
+    fixo: '',
+    ativo: true,
+    municipio: '',
+    uf: '',
+  });
+
+  // Estados do modal de criar contribuinte
+  const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
+  const [savingContribuinte, setSavingContribuinte] = useState(false);
+  const [contribuinteForm, setContribuinteForm] = useState({
+    nome_razao_social: '',
+    tipo_pessoa: '',
+    cpf_cnpj: '',
+    inscricao_estadual: '',
+    cod_cnae: '',
+    setor: '',
+    simples_nacional: false,
+  });
+
+  const queryClient = useQueryClient();
 
   // Verifica se há filtros ativos
   const hasActiveFilters = clienteId || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
@@ -224,6 +257,105 @@ const GestaoClientes = () => {
     setModalPage(1);
   };
 
+  // Abrir modal de novo cliente
+  const handleNovoCliente = () => {
+    setClienteForm({
+      nome: '',
+      telefone: '',
+      setor_cliente: '',
+      fixo: '',
+      ativo: true,
+      municipio: '',
+      uf: '',
+    });
+    setClienteDialogOpen(true);
+  };
+
+  // Salvar cliente
+  const handleSaveCliente = async () => {
+    if (!clienteForm.nome.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+    
+    setSavingCliente(true);
+    try {
+      const payload = {
+        nome: clienteForm.nome.trim(),
+        telefone: clienteForm.telefone.trim() || null,
+        setor_cliente: clienteForm.setor_cliente.trim() || null,
+        fixo: clienteForm.fixo || null,
+        ativo: clienteForm.ativo,
+        municipio: clienteForm.municipio.trim() || null,
+        uf: clienteForm.uf.trim() || null,
+      };
+      
+      const { error } = await supabase.from(clienteTable).insert(payload);
+      if (error) throw error;
+      
+      toast.success('Cliente criado com sucesso');
+      setClienteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
+      queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
+    } catch (error: any) {
+      toast.error('Erro ao criar cliente: ' + error.message);
+    } finally {
+      setSavingCliente(false);
+    }
+  };
+
+  // Abrir modal de novo contribuinte
+  const handleNovoContribuinte = () => {
+    setContribuinteForm({
+      nome_razao_social: '',
+      tipo_pessoa: '',
+      cpf_cnpj: '',
+      inscricao_estadual: '',
+      cod_cnae: '',
+      setor: '',
+      simples_nacional: false,
+    });
+    setContribuinteDialogOpen(true);
+  };
+
+  // Salvar contribuinte
+  const handleSaveContribuinte = async () => {
+    if (!contribuinteForm.nome_razao_social.trim() || !contribuinteForm.tipo_pessoa) {
+      toast.error('Nome/Razão Social e Tipo Pessoa são obrigatórios');
+      return;
+    }
+    
+    if (!selectedCliente?.id) {
+      toast.error('Nenhum cliente selecionado');
+      return;
+    }
+    
+    setSavingContribuinte(true);
+    try {
+      const { error } = await supabase.from(contribuinteTable).insert({
+        cliente_id: selectedCliente.id,
+        nome_razao_social: contribuinteForm.nome_razao_social.trim(),
+        tipo_pessoa: contribuinteForm.tipo_pessoa,
+        cpf_cnpj: contribuinteForm.cpf_cnpj.trim() || null,
+        inscricao_estadual: contribuinteForm.inscricao_estadual.trim() || null,
+        cod_cnae: contribuinteForm.cod_cnae.trim() || null,
+        setor: contribuinteForm.setor.trim() || null,
+        simples_nacional: contribuinteForm.simples_nacional,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Contribuinte adicionado com sucesso');
+      setContribuinteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente.id] });
+      queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
+    } catch (error: any) {
+      toast.error('Erro ao adicionar contribuinte: ' + error.message);
+    } finally {
+      setSavingContribuinte(false);
+    }
+  };
+
   const formatStatus = (ativo: boolean | null) => {
     if (ativo === null || ativo === undefined) return '-';
     return ativo ? (
@@ -244,10 +376,16 @@ const GestaoClientes = () => {
         {/* Card de Filtros */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg text-primary">
-              <Filter className="h-5 w-5 text-teal-600" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg text-primary">
+                <Filter className="h-5 w-5 text-teal-600" />
+                <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+              </CardTitle>
+              <Button onClick={handleNovoCliente} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+                <Plus className="h-4 w-4" />
+                Novo Cliente
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* LINHA ÚNICA - Todos os Filtros */}
@@ -444,14 +582,24 @@ const GestaoClientes = () => {
               </div>
             </div>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setModalOpen(false)}
-              className="h-9 w-9 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleNovoContribuinte}
+                className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                size="sm"
+              >
+                <Plus className="h-4 w-4" />
+                Contribuinte
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setModalOpen(false)}
+                className="h-9 w-9 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Body */}
@@ -532,6 +680,212 @@ const GestaoClientes = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Criar Cliente */}
+      <Dialog open={clienteDialogOpen} onOpenChange={setClienteDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-teal-600" />
+              Novo Cliente
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="nome">Nome *</Label>
+              <Input
+                id="nome"
+                value={clienteForm.nome}
+                onChange={(e) => setClienteForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Nome do cliente"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="telefone">Telefone</Label>
+                <Input
+                  id="telefone"
+                  value={clienteForm.telefone}
+                  onChange={(e) => setClienteForm(f => ({ ...f, telefone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="setor">Setor</Label>
+                <Input
+                  id="setor"
+                  value={clienteForm.setor_cliente}
+                  onChange={(e) => setClienteForm(f => ({ ...f, setor_cliente: e.target.value }))}
+                  placeholder="Setor do cliente"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo</Label>
+                <Select value={clienteForm.fixo} onValueChange={(v) => setClienteForm(f => ({ ...f, fixo: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sim">Fixo</SelectItem>
+                    <SelectItem value="Não">Pontual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Status</Label>
+                <div className="flex items-center gap-2 h-10">
+                  <Switch
+                    checked={clienteForm.ativo}
+                    onCheckedChange={(checked) => setClienteForm(f => ({ ...f, ativo: checked }))}
+                  />
+                  <span className="text-sm">{clienteForm.ativo ? 'Ativo' : 'Inativo'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="municipio">Município</Label>
+                <Input
+                  id="municipio"
+                  value={clienteForm.municipio}
+                  onChange={(e) => setClienteForm(f => ({ ...f, municipio: e.target.value }))}
+                  placeholder="Município"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="uf">UF</Label>
+                <Input
+                  id="uf"
+                  value={clienteForm.uf}
+                  onChange={(e) => setClienteForm(f => ({ ...f, uf: e.target.value }))}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClienteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCliente} disabled={savingCliente} className="bg-teal-600 hover:bg-teal-700">
+              {savingCliente && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Criar Contribuinte */}
+      <Dialog open={contribuinteDialogOpen} onOpenChange={setContribuinteDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-teal-600" />
+              Novo Contribuinte
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="nome_razao">Nome/Razão Social *</Label>
+              <Input
+                id="nome_razao"
+                value={contribuinteForm.nome_razao_social}
+                onChange={(e) => setContribuinteForm(f => ({ ...f, nome_razao_social: e.target.value }))}
+                placeholder="Nome ou Razão Social"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo Pessoa *</Label>
+                <Select 
+                  value={contribuinteForm.tipo_pessoa} 
+                  onValueChange={(v) => setContribuinteForm(f => ({ ...f, tipo_pessoa: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PF">Pessoa Física</SelectItem>
+                    <SelectItem value="PJ">Pessoa Jurídica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+                <Input
+                  id="cpf_cnpj"
+                  value={contribuinteForm.cpf_cnpj}
+                  onChange={(e) => setContribuinteForm(f => ({ ...f, cpf_cnpj: e.target.value }))}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="ie">Inscrição Estadual</Label>
+                <Input
+                  id="ie"
+                  value={contribuinteForm.inscricao_estadual}
+                  onChange={(e) => setContribuinteForm(f => ({ ...f, inscricao_estadual: e.target.value }))}
+                  placeholder="Inscrição Estadual"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="cnae">Código CNAE</Label>
+                <Input
+                  id="cnae"
+                  value={contribuinteForm.cod_cnae}
+                  onChange={(e) => setContribuinteForm(f => ({ ...f, cod_cnae: e.target.value }))}
+                  placeholder="Código CNAE"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="setor_contrib">Setor</Label>
+                <Input
+                  id="setor_contrib"
+                  value={contribuinteForm.setor}
+                  onChange={(e) => setContribuinteForm(f => ({ ...f, setor: e.target.value }))}
+                  placeholder="Setor"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Simples Nacional</Label>
+                <div className="flex items-center gap-2 h-10">
+                  <Checkbox
+                    checked={contribuinteForm.simples_nacional}
+                    onCheckedChange={(checked) => setContribuinteForm(f => ({ ...f, simples_nacional: !!checked }))}
+                  />
+                  <span className="text-sm">Optante do Simples Nacional</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContribuinteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveContribuinte} disabled={savingContribuinte} className="bg-teal-600 hover:bg-teal-700">
+              {savingContribuinte && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DevLayout>
