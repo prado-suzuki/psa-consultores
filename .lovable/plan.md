@@ -1,179 +1,192 @@
 
 
-# Plano: Sincronização Assíncrona com DW via Edge Function
+# Plano: Design Moderno para Tabelas - Abordagem Limpa
 
-## Arquitetura
+## Objetivo
 
-A sincronização será feita de forma **assíncrona** usando o padrão "fire-and-forget" com `EdgeRuntime.waitUntil()`. O usuário não precisa esperar o sync terminar para continuar usando a aplicação.
+Melhorar a diferenciação entre colunas e linhas de forma moderna e sutil, **sem usar bordas verticais** que deixam o visual pesado. A proposta segue tendências de UI contemporâneas usadas em produtos como Notion, Linear e Airtable.
+
+---
+
+## Técnicas Modernas Propostas
+
+### 1. Zebra Striping Sutil
+Linhas alternadas com fundo levemente diferente para facilitar a leitura horizontal.
+
+### 2. Padding e Espaçamento
+Espaçamento interno generoso nas células cria separação visual natural entre colunas.
+
+### 3. Tipografia Diferenciada
+- Header em **uppercase**, menor, com tracking largo e cor mais escura
+- Células com peso e cor diferentes conforme importância do dado
+
+### 4. Hover com Destaque
+Linha inteira ganha destaque suave ao passar o mouse, reforçando a percepção de linha.
+
+### 5. Primeira Coluna com Destaque
+A coluna principal (nome) recebe peso visual maior, criando âncora para os olhos.
+
+### 6. Fundo do Header Diferenciado
+Header com fundo `slate-50` e borda inferior mais marcada (`border-b-2`).
+
+---
+
+## Comparação Visual
 
 ```text
-┌─────────────────┐     ┌───────────────────┐     ┌──────────────────┐
-│  GestaoClientes │────►│  Edge Function    │────►│  API DW          │
-│  (insert/update)│     │  sync-cadastros   │     │  /api/v1/sync    │
-└─────────────────┘     └───────────────────┘     └──────────────────┘
-        │                        │
-        │ Retorno imediato       │ Executa em
-        │ para o usuário         │ background
-        ▼                        ▼
-   "Cliente criado!"        POST assíncrono
+ATUAL:
+┌────────────────────────────────────────────────────────────────┐
+│ Nome Cliente     Status    Tipo Cliente    Telefone    Setor  │
+├────────────────────────────────────────────────────────────────┤
+│ Fazenda Boa...   Ativo     Fixo           (11) 99...   Agro   │
+├────────────────────────────────────────────────────────────────┤
+│ Cooperativa...   Inativo   Pontual        (21) 88...   Coop   │
+└────────────────────────────────────────────────────────────────┘
+
+PROPOSTO (moderno/limpo):
+┌────────────────────────────────────────────────────────────────┐
+│ NOME CLIENTE     STATUS    TIPO CLIENTE   TELEFONE     SETOR  │  ← Header uppercase, bg-slate-50, border-b-2
+├────────────────────────────────────────────────────────────────┤
+│ Fazenda Boa...   ● Ativo   Fixo           (11) 99...   Agro   │  ← Fundo branco
+│ Cooperativa...   ○ Inativo Pontual        (21) 88...   Coop   │  ← Fundo slate-50/50 (zebra)
+│ Empresa XYZ...   ● Ativo   Fixo           (31) 77...   Tech   │  ← Fundo branco
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Componentes
+## Mudanças CSS Específicas
 
-### 1. Nova Edge Function: `sync-cadastros`
+### Container da Tabela
+```tsx
+<div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+```
+- Bordas arredondadas mais pronunciadas (`rounded-xl`)
+- Sombra sutil para elevação
 
-**Arquivo:** `supabase/functions/sync-cadastros/index.ts`
+### Header
+```tsx
+<TableHeader className="bg-slate-50">
+  <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+    <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">
+      ...
+    </TableHead>
+  </TableRow>
+</TableHeader>
+```
+- Fundo `bg-slate-50` destaca do body
+- `border-b-2` cria separação clara
+- Texto em `uppercase` + `tracking-wider` + `text-xs` = visual profissional
 
-Responsabilidades:
-- Receber dados de cliente e/ou contribuinte
-- Enviar para a API do DW em background
-- Usar o token do usuário para autenticação
-- Não bloquear a resposta
+### Body com Zebra Striping
+```tsx
+<TableBody className="divide-y divide-slate-100">
+  {data.map((row, index) => (
+    <TableRow 
+      className={cn(
+        "transition-colors cursor-pointer",
+        "hover:bg-teal-50/60",
+        index % 2 === 1 && "bg-slate-50/50"
+      )}
+    >
+      ...
+    </TableRow>
+  ))}
+</TableBody>
+```
+- `divide-y divide-slate-100` para linhas sutis
+- Linhas ímpares com `bg-slate-50/50`
+- Hover em `teal-50/60` mantém identidade da marca
 
-```typescript
-// Estrutura principal
-Deno.serve(async (req) => {
-  // 1. Validar autenticação
-  // 2. Receber dados (clientes e/ou contribuintes)
-  // 3. Iniciar sync em background com waitUntil
-  // 4. Retornar imediatamente para o frontend
-  
-  EdgeRuntime.waitUntil(syncWithDW(data, authToken));
-  return new Response(JSON.stringify({ status: 'syncing' }));
-});
+### Células
+```tsx
+// Primeira coluna (Nome) - âncora visual
+<TableCell className="px-4 py-3 font-medium text-slate-900">
+  {row.nome}
+</TableCell>
+
+// Colunas secundárias - mais leves
+<TableCell className="px-4 py-3 text-slate-600">
+  {row.valor}
+</TableCell>
+
+// Coluna numérica/código - fonte mono
+<TableCell className="px-4 py-3 text-slate-600 font-mono text-sm">
+  {row.cpf_cnpj}
+</TableCell>
+```
+- Padding `px-4 py-3` cria espaço entre colunas naturalmente
+- Primeira coluna em `font-medium text-slate-900` = destaque
+- Demais colunas em `text-slate-600` = hierarquia clara
+- Números/códigos em `font-mono` = alinhamento visual
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Mudanças |
+|---------|----------|
+| `src/pages/equipe/dev/GestaoClientes.tsx` | Aplicar novos estilos às tabelas principal e do modal |
+
+---
+
+## Detalhes da Implementação
+
+### Tabela Principal (Clientes)
+```tsx
+<div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+  <Table>
+    <TableHeader className="bg-slate-50">
+      <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+        <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">
+          Nome Cliente
+        </TableHead>
+        {/* ... outras colunas ... */}
+      </TableRow>
+    </TableHeader>
+    <TableBody className="divide-y divide-slate-100">
+      {paginatedResults.map((row, index) => (
+        <TableRow 
+          key={row.id}
+          className={cn(
+            "cursor-pointer transition-colors hover:bg-teal-50/60",
+            index % 2 === 1 && "bg-slate-50/50"
+          )}
+          onClick={() => handleClienteClick({ id: row.id, nome: row.nome })}
+        >
+          <TableCell className="px-4 py-3.5 font-medium text-slate-900">
+            {row.nome || '-'}
+          </TableCell>
+          <TableCell className="px-4 py-3.5 text-slate-600">
+            {formatStatus(row.ativo)}
+          </TableCell>
+          {/* ... outras células ... */}
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</div>
 ```
 
-### 2. Configuração de Secret
-
-**Secret necessário:** `DW_SYNC_TOKEN`
-- Token de serviço para autenticar com a API do DW
-- Será usado pela Edge Function para fazer o POST
-
-### 3. Atualização do Frontend
-
-**Arquivo:** `src/pages/equipe/dev/GestaoClientes.tsx`
-
-Modificar as funções `handleSaveCliente` e `handleSaveContribuinte` para:
-1. Após salvar no banco, chamar a Edge Function `sync-cadastros`
-2. A chamada será "fire-and-forget" (não esperar resposta)
-
-```typescript
-// Exemplo de chamada assíncrona
-const handleSaveCliente = async () => {
-  // ... validações e insert/update no banco ...
-  
-  toast.success('Cliente salvo');
-  setClienteDialogOpen(false);
-  refetch();
-  
-  // Sync assíncrono (não bloqueia)
-  supabase.functions.invoke('sync-cadastros', {
-    body: { clientes: [clienteData] }
-  }).catch(console.error); // Não espera resposta
-};
-```
+### Tabela do Modal (Contribuintes)
+Aplicar o mesmo padrão, com ajustes para a coluna CPF/CNPJ usar `font-mono`.
 
 ---
 
-## URLs por Ambiente
+## Benefícios
 
-A Edge Function detectará o ambiente e usará a URL correta:
-
-| Ambiente | URL da API DW |
-|----------|---------------|
-| Development | `https://psa-backend-api-456879351254.southamerica-east1.run.app` |
-| Production | `https://psa-backend-api-1010211821554.southamerica-east1.run.app` |
-
----
-
-## Payload da Sincronização
-
-```json
-{
-  "clientes": [{
-    "id_cliente": "uuid",
-    "nome": "string",
-    "fixo": "Fixo|Pontual",
-    "telefone": "string",
-    "setor_cliente": "string",
-    "municipio": "string",
-    "uf": "string",
-    "ativo": true,
-    "created_at": "timestamp",
-    "updated_at": "timestamp"
-  }],
-  "contribuintes": [{
-    "id_contribuinte": "uuid",
-    "id_cliente": "uuid",
-    "tipo_pessoa": "PF|PJ",
-    "cpf_cnpj": "string",
-    "nome_razao_social": "string",
-    "inscricao_estadual": "string",
-    "cod_cnae": "string",
-    "setor": "string",
-    "simples_nacional": false,
-    "created_at": "timestamp",
-    "updated_at": "timestamp"
-  }]
-}
-```
+| Aspecto | Melhoria |
+|---------|----------|
+| **Legibilidade** | Zebra striping facilita seguir linhas longas |
+| **Hierarquia** | Header diferenciado + primeira coluna em destaque |
+| **Modernidade** | Visual limpo sem bordas pesadas |
+| **Interatividade** | Hover em teal reforça clicabilidade |
+| **Consistência** | Segue design system já estabelecido (teal/slate) |
+| **Espaçamento** | Padding generoso cria separação natural entre colunas |
 
 ---
 
-## Arquivos a Criar/Modificar
+## Sem Alteração no Componente Base
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `supabase/functions/sync-cadastros/index.ts` | Criar | Edge Function para sync assíncrono |
-| `supabase/config.toml` | Editar | Adicionar configuração da nova função |
-| `src/pages/equipe/dev/GestaoClientes.tsx` | Editar | Chamar Edge Function após salvar |
-
----
-
-## Detalhes Técnicos
-
-### Edge Function (`sync-cadastros`)
-
-```typescript
-// Principais características:
-// 1. Autenticação via getClaims()
-// 2. Validação de role (team_member ou admin)
-// 3. Detecção de ambiente para URL correta
-// 4. Execução em background com waitUntil
-// 5. Logs para debugging
-// 6. Tratamento de erros silencioso (não falha o request principal)
-```
-
-### Configuração TOML
-
-```toml
-[functions.sync-cadastros]
-verify_jwt = false
-```
-
-### Fluxo no Frontend
-
-1. Usuário clica em "Salvar"
-2. Insert/Update no Supabase (síncrono)
-3. Toast de sucesso + fecha modal
-4. Chama Edge Function (assíncrono, não espera)
-5. Edge Function faz POST para DW em background
-
----
-
-## Vantagens desta Abordagem
-
-1. **Zero tempo de espera** - O usuário não percebe o sync
-2. **Resiliência** - Se o DW estiver offline, o dado já foi salvo no banco principal
-3. **Flexibilidade** - Pode sincronizar cliente, contribuinte ou ambos
-4. **Logs** - Edge Function tem logs para debugging
-5. **Segurança** - Usa autenticação do usuário + validação de role
-
----
-
-## Próximo Passo Necessário
-
-Antes de implementar, preciso que você forneça o **token de autenticação** que a Edge Function usará para chamar sua API do DW. Este token será armazenado como secret `DW_SYNC_TOKEN`.
+Esta abordagem **não requer modificar** o `src/components/ui/table.tsx`. Todas as customizações são feitas via className inline, mantendo o componente base reutilizável para outros contextos.
 
