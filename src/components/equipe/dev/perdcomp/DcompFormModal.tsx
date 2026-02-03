@@ -31,6 +31,20 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
+// Normaliza o formato de mês/ano para o banco de dados (YYYY-MM -> YYYY-MM-01)
+const normalizeMesAno = (value: string): string => {
+  if (!value) return '';
+  // Se já está no formato YYYY-MM-DD, retornar como está
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  // Se está no formato YYYY-MM, adicionar -01
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    return `${value}-01`;
+  }
+  return value;
+};
+
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
   nr_per_orig: z.string().min(1, 'PER de origem é obrigatório'),
@@ -98,7 +112,7 @@ export function DcompFormModal({
       form.reset({
         nr_documento: editData.nr_documento,
         nr_per_orig: editData.nr_per_orig,
-        mes_ano_exercicio: editData.mes_ano_exercicio,
+        mes_ano_exercicio: editData.mes_ano_exercicio?.substring(0, 7) || '',
         dt_envio: editData.dt_envio,
         imposto: editData.imposto,
         tp_credito: editData.tp_credito,
@@ -122,7 +136,7 @@ export function DcompFormModal({
       const { error } = await supabase.from('dcomp').insert([{
         nr_documento: data.nr_documento,
         nr_per_orig: data.nr_per_orig,
-        mes_ano_exercicio: data.mes_ano_exercicio,
+        mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
         imposto: data.imposto,
         tp_credito: data.tp_credito,
@@ -146,7 +160,7 @@ export function DcompFormModal({
         .from('dcomp')
         .update({
           nr_per_orig: data.nr_per_orig,
-          mes_ano_exercicio: data.mes_ano_exercicio,
+          mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
           dt_envio: data.dt_envio,
           imposto: data.imposto,
           tp_credito: data.tp_credito,
