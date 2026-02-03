@@ -5,14 +5,17 @@ import { isProductionEnvironment } from '@/config/api';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Filter, Search, X, Users } from 'lucide-react';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
+const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 
 const GestaoClientes = () => {
+  // Estados do cliente (existentes)
   const [nome, setNome] = useState('');
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
@@ -20,7 +23,16 @@ const GestaoClientes = () => {
   const [uf, setUf] = useState('');
   const [searched, setSearched] = useState(false);
 
-  // Query para nomes
+  // Estados do contribuinte (novos)
+  const [tipoPessoa, setTipoPessoa] = useState('');
+  const [cpfCnpj, setCpfCnpj] = useState('');
+  const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
+  const [inscricaoEstadual, setInscricaoEstadual] = useState('');
+  const [codCnae, setCodCnae] = useState('');
+  const [setor, setSetor] = useState('');
+  const [simplesNacional, setSimplesNacional] = useState('');
+
+  // Query para nomes de clientes
   const { data: nomes = [] } = useQuery({
     queryKey: ['clientes-nomes', clienteTable],
     queryFn: async () => {
@@ -68,21 +80,63 @@ const GestaoClientes = () => {
     },
   });
 
-  // Query principal de clientes
-  const { data: clientes = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-filtrados', clienteTable, nome, status, tipo, municipio, uf],
+  // Query para setores do contribuinte
+  const { data: setores = [] } = useQuery({
+    queryKey: ['contribuintes-setores', contribuinteTable],
     queryFn: async () => {
-      let query = supabase.from(clienteTable).select('*');
-
-      if (nome) query = query.eq('nome', nome);
-      if (status) query = query.eq('ativo', status === 'true');
-      if (tipo) query = query.eq('fixo', tipo);
-      if (municipio) query = query.eq('municipio', municipio);
-      if (uf) query = query.eq('uf', uf);
-
-      const { data, error } = await query.order('nome');
+      const { data, error } = await supabase
+        .from(contribuinteTable)
+        .select('setor')
+        .not('setor', 'is', null)
+        .order('setor');
+      
       if (error) throw error;
-      return data || [];
+      const uniqueSetores = [...new Set(data?.map(d => d.setor))];
+      return uniqueSetores.filter(Boolean) as string[];
+    },
+  });
+
+  // Query principal com JOIN
+  const { data: resultados = [], isLoading, refetch } = useQuery({
+    queryKey: ['clientes-contribuintes-filtrados', contribuinteTable, nome, status, tipo, municipio, uf, tipoPessoa, cpfCnpj, nomeRazaoSocial, inscricaoEstadual, codCnae, setor, simplesNacional],
+    queryFn: async () => {
+      let query = supabase
+        .from(contribuinteTable)
+        .select(`
+          *,
+          cliente:cliente_id (
+            id,
+            nome,
+            ativo,
+            fixo,
+            municipio,
+            uf,
+            telefone,
+            setor_cliente
+          )
+        `);
+
+      // Filtros do contribuinte
+      if (tipoPessoa) query = query.eq('tipo_pessoa', tipoPessoa);
+      if (cpfCnpj) query = query.ilike('cpf_cnpj', `%${cpfCnpj}%`);
+      if (nomeRazaoSocial) query = query.ilike('nome_razao_social', `%${nomeRazaoSocial}%`);
+      if (inscricaoEstadual) query = query.ilike('inscricao_estadual', `%${inscricaoEstadual}%`);
+      if (codCnae) query = query.ilike('cod_cnae', `%${codCnae}%`);
+      if (setor) query = query.eq('setor', setor);
+      if (simplesNacional) query = query.eq('simples_nacional', simplesNacional === 'true');
+
+      const { data, error } = await query.order('nome_razao_social');
+      if (error) throw error;
+
+      // Filtrar no cliente (após o join)
+      let filtered = data || [];
+      if (nome) filtered = filtered.filter(r => r.cliente?.nome === nome);
+      if (status) filtered = filtered.filter(r => r.cliente?.ativo === (status === 'true'));
+      if (tipo) filtered = filtered.filter(r => r.cliente?.fixo === tipo);
+      if (municipio) filtered = filtered.filter(r => r.cliente?.municipio === municipio);
+      if (uf) filtered = filtered.filter(r => r.cliente?.uf === uf);
+
+      return filtered;
     },
     enabled: searched,
   });
@@ -93,11 +147,20 @@ const GestaoClientes = () => {
   };
 
   const handleClear = () => {
+    // Limpar filtros do cliente
     setNome('');
     setStatus('');
     setTipo('');
     setMunicipio('');
     setUf('');
+    // Limpar filtros do contribuinte
+    setTipoPessoa('');
+    setCpfCnpj('');
+    setNomeRazaoSocial('');
+    setInscricaoEstadual('');
+    setCodCnae('');
+    setSetor('');
+    setSimplesNacional('');
     setSearched(false);
   };
 
@@ -115,8 +178,13 @@ const GestaoClientes = () => {
     return fixo === 'Sim' ? 'Fixo' : fixo === 'Não' ? 'Pontual' : '-';
   };
 
+  const formatSimples = (simples: boolean | null) => {
+    if (simples === null || simples === undefined) return '-';
+    return simples ? 'Sim' : 'Não';
+  };
+
   return (
-    <DevLayout title="Gestão de Clientes" subtitle="Consulta e filtros de clientes cadastrados">
+    <DevLayout title="Gestão de Clientes" subtitle="Consulta e filtros de clientes e contribuintes">
       <div className="space-y-6">
         {/* Card de Filtros */}
         <Card>
@@ -127,13 +195,14 @@ const GestaoClientes = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* LINHA 1 - Filtros do Cliente */}
             <div className="grid grid-cols-12 gap-4">
-              {/* Nome - 4 colunas */}
-              <div className="col-span-12 md:col-span-4">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome</label>
+              {/* Nome - 3 colunas */}
+              <div className="col-span-12 md:col-span-3">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome Cliente</label>
                 <Select value={nome} onValueChange={setNome}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Selecione o cliente" />
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
                     {nomes.map((n) => (
@@ -157,9 +226,9 @@ const GestaoClientes = () => {
                 </Select>
               </div>
 
-              {/* Tipo - 2 colunas */}
+              {/* Tipo Cliente - 2 colunas */}
               <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Tipo</label>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Tipo Cliente</label>
                 <Select value={tipo} onValueChange={setTipo}>
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Todos" />
@@ -202,6 +271,99 @@ const GestaoClientes = () => {
               </div>
             </div>
 
+            {/* LINHA 2 - Filtros do Contribuinte */}
+            <div className="grid grid-cols-12 gap-4">
+              {/* Tipo Pessoa - 2 colunas */}
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Tipo Pessoa</label>
+                <Select value={tipoPessoa} onValueChange={setTipoPessoa}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="PJ">PJ</SelectItem>
+                    <SelectItem value="PF">PF</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* CPF/CNPJ - 3 colunas */}
+              <div className="col-span-6 md:col-span-3">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">CPF/CNPJ</label>
+                <Input
+                  placeholder="Digite o número"
+                  value={cpfCnpj}
+                  onChange={(e) => setCpfCnpj(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+
+              {/* Nome/Razão Social - 3 colunas */}
+              <div className="col-span-12 md:col-span-3">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome/Razão Social</label>
+                <Input
+                  placeholder="Digite o nome"
+                  value={nomeRazaoSocial}
+                  onChange={(e) => setNomeRazaoSocial(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+
+              {/* Inscrição Estadual - 2 colunas */}
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Inscrição Estadual</label>
+                <Input
+                  placeholder="Digite o número"
+                  value={inscricaoEstadual}
+                  onChange={(e) => setInscricaoEstadual(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+
+              {/* Cód. CNAE - 2 colunas */}
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Cód. CNAE</label>
+                <Input
+                  placeholder="Digite o código"
+                  value={codCnae}
+                  onChange={(e) => setCodCnae(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+
+            {/* LINHA 3 - Filtros adicionais */}
+            <div className="grid grid-cols-12 gap-4">
+              {/* Setor - 3 colunas */}
+              <div className="col-span-6 md:col-span-3">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Setor</label>
+                <Select value={setor} onValueChange={setSetor}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {setores.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Simples Nacional - 2 colunas */}
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Simples Nacional</label>
+                <Select value={simplesNacional} onValueChange={setSimplesNacional}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="true">Sim</SelectItem>
+                    <SelectItem value="false">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* Botões */}
             <div className="flex items-center justify-between pt-4 border-t">
               <Button variant="outline" onClick={handleClear} className="gap-2">
@@ -224,41 +386,51 @@ const GestaoClientes = () => {
                 <Users className="h-5 w-5 text-teal-600" />
                 Resultados
                 <span className="text-sm font-normal text-slate-500">
-                  ({clientes.length} cliente{clientes.length !== 1 ? 's' : ''} encontrado{clientes.length !== 1 ? 's' : ''})
+                  ({resultados.length} registro{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''})
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <div className="text-center py-8 text-slate-500">Carregando...</div>
-              ) : clientes.length === 0 ? (
+              ) : resultados.length === 0 ? (
                 <div className="text-center py-8 text-slate-500">
-                  Nenhum cliente encontrado com os filtros selecionados.
+                  Nenhum registro encontrado com os filtros selecionados.
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nome</TableHead>
+                        <TableHead>Nome Cliente</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Telefone</TableHead>
+                        <TableHead>Tipo Cliente</TableHead>
+                        <TableHead>Tipo Pessoa</TableHead>
+                        <TableHead>CPF/CNPJ</TableHead>
+                        <TableHead>Nome/Razão Social</TableHead>
+                        <TableHead>Inscrição Estadual</TableHead>
+                        <TableHead>CNAE</TableHead>
                         <TableHead>Setor</TableHead>
+                        <TableHead>Simples</TableHead>
                         <TableHead>Município</TableHead>
                         <TableHead>UF</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {clientes.map((cliente) => (
-                        <TableRow key={cliente.id}>
-                          <TableCell className="font-medium">{cliente.nome}</TableCell>
-                          <TableCell>{formatStatus(cliente.ativo)}</TableCell>
-                          <TableCell>{formatTipo(cliente.fixo)}</TableCell>
-                          <TableCell>{cliente.telefone || '-'}</TableCell>
-                          <TableCell>{cliente.setor_cliente || '-'}</TableCell>
-                          <TableCell>{cliente.municipio || '-'}</TableCell>
-                          <TableCell>{cliente.uf || '-'}</TableCell>
+                      {resultados.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium">{row.cliente?.nome || '-'}</TableCell>
+                          <TableCell>{formatStatus(row.cliente?.ativo)}</TableCell>
+                          <TableCell>{formatTipo(row.cliente?.fixo)}</TableCell>
+                          <TableCell>{row.tipo_pessoa || '-'}</TableCell>
+                          <TableCell>{row.cpf_cnpj || '-'}</TableCell>
+                          <TableCell>{row.nome_razao_social || '-'}</TableCell>
+                          <TableCell>{row.inscricao_estadual || '-'}</TableCell>
+                          <TableCell>{row.cod_cnae || '-'}</TableCell>
+                          <TableCell>{row.setor || '-'}</TableCell>
+                          <TableCell>{formatSimples(row.simples_nacional)}</TableCell>
+                          <TableCell>{row.cliente?.municipio || '-'}</TableCell>
+                          <TableCell>{row.cliente?.uf || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
