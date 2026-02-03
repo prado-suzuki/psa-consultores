@@ -86,6 +86,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/gestao-clientes',
+    page_name: 'Gestão de Clientes',
+    page_description: 'Consulta e filtros de clientes cadastrados',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // === GESTÃO PAGES ===
   {
