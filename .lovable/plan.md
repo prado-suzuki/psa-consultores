@@ -1,190 +1,185 @@
 
 
-# Plano: Criar Tabelas contrato e servico
+# Plano: Adicionar Filtros de Contribuinte na Gestão de Clientes
 
 ## Objetivo
 
-Criar as tabelas `contrato` e `servico` com as FKs ajustadas para as tabelas existentes no banco e adicionar triggers para atualização automática do campo `updated_at`.
-
-## Ajustes Necessários no SQL Original
-
-| Item | Original | Ajustado |
-|------|----------|----------|
-| FK cliente | `cliente(id_cliente)` | `cliente(id)` |
-| FK equipe | `equipe(id_equipe)` | `catalog_clients(id)` |
-| Coluna equipe | `id_equipe` | `id_catalog_client` |
-| Função trigger | Criar nova | Usar existente |
+Expandir a página Gestão de Clientes com novos filtros baseados na tabela `contribuinte_dev`, conectando as duas tabelas via `cliente_id` para exibir dados combinados.
 
 ## Estrutura das Tabelas
 
-### Tabela contrato
+```text
++----------------+       +-------------------+
+|  cliente_dev   |       | contribuinte_dev  |
++----------------+       +-------------------+
+| id (PK)        |<------| cliente_id (FK)   |
+| nome           |       | tipo_pessoa       |
+| ativo          |       | cpf_cnpj          |
+| fixo           |       | nome_razao_social |
+| municipio      |       | inscricao_estadual|
+| uf             |       | cod_cnae          |
+| ...            |       | setor             |
++----------------+       | simples_nacional  |
+                         +-------------------+
+```
 
-| Coluna | Tipo | Obrigatório | Descrição |
-|--------|------|-------------|-----------|
-| id_contrato | UUID | Sim (PK) | Identificador único |
-| id_cliente | UUID | Sim (FK) | Referência para cliente(id) |
-| numero_contrato | TEXT | Não | Número do contrato |
-| valor_fixo | NUMERIC | Não | Valor fixo do contrato |
-| aliquota_contrato | NUMERIC | Não | Alíquota do contrato |
-| data_inicio | DATE | Não | Data de início |
-| data_fim | DATE | Não | Data de término |
-| tipo_contrato | TEXT | Não | Tipo do contrato |
-| created_at | TIMESTAMPTZ | Não | Data de criação |
-| updated_at | TIMESTAMPTZ | Não | Data de atualização |
+## Novos Filtros a Adicionar
 
-### Tabela servico
+| Filtro | Tipo UI | Campo DB | Opções |
+|--------|---------|----------|--------|
+| Tipo Pessoa | Select fixo | `tipo_pessoa` | "PJ", "PF" |
+| CPF/CNPJ | Input texto | `cpf_cnpj` | Busca parcial (ilike) |
+| Nome/Razão Social | Input texto | `nome_razao_social` | Busca parcial (ilike) |
+| Inscrição Estadual | Input texto | `inscricao_estadual` | Busca parcial (ilike) |
+| Cód. CNAE | Input texto | `cod_cnae` | Busca parcial (ilike) |
+| Setor | Select dinâmico | `setor` | Populado via DISTINCT |
+| Simples Nacional | Select fixo | `simples_nacional` | "Sim" (true), "Não" (false) |
 
-| Coluna | Tipo | Obrigatório | Descrição |
-|--------|------|-------------|-----------|
-| id_servico | UUID | Sim (PK) | Identificador único |
-| id_contrato | UUID | Sim (FK) | Referência para contrato |
-| descricao | TEXT | Não | Descrição do serviço |
-| valor | DOUBLE PRECISION | Não | Valor do serviço |
-| id_catalog_client | UUID | Não (FK) | Referência para catalog_clients |
-| created_at | TIMESTAMPTZ | Não | Data de criação |
-| updated_at | TIMESTAMPTZ | Não | Data de atualização |
-
-## Diagrama de Relacionamentos
+## Layout dos Filtros (Reorganizado)
 
 ```text
-+----------------+       +----------------+       +-------------------+
-|    cliente     |       |    contrato    |       |      servico      |
-+----------------+       +----------------+       +-------------------+
-| id (PK)        |<------| id_cliente(FK) |       | id_servico (PK)   |
-| nome           |       | id_contrato(PK)|<------| id_contrato (FK)  |
-| ...            |       | numero_contrato|       | descricao         |
-+----------------+       | valor_fixo     |       | valor             |
-                         | ...            |       | id_catalog_client |--+
-                         +----------------+       +-------------------+  |
-                                                                         |
-+-------------------+                                                    |
-| catalog_clients   |<---------------------------------------------------+
-+-------------------+
-| id (PK)           |
-| name              |
-| ...               |
-+-------------------+
++------------------------------------------------------------------+
+| LINHA 1 - Filtros do Cliente (existentes)                        |
+| [Nome (3col)] [Status (2col)] [Tipo (2col)] [Município (2col)] [UF (2col)] |
++------------------------------------------------------------------+
+| LINHA 2 - Filtros do Contribuinte (novos)                        |
+| [Tipo Pessoa (2col)] [CPF/CNPJ (3col)] [Nome/Razão (3col)] [IE (2col)] |
++------------------------------------------------------------------+
+| LINHA 3 - Filtros adicionais                                     |
+| [Cód.CNAE (2col)] [Setor (3col)] [Simples Nacional (2col)]       |
++------------------------------------------------------------------+
 ```
 
-## Policies RLS
+## Colunas Atualizadas da Tabela de Resultados
 
-Seguindo o padrão do projeto, as tabelas terão RLS com acesso para team_member e admin:
+| Ordem | Coluna | Fonte | Campo |
+|-------|--------|-------|-------|
+| 1 | Nome | cliente | nome |
+| 2 | Status | cliente | ativo |
+| 3 | Tipo Cliente | cliente | fixo |
+| 4 | Tipo Pessoa | contribuinte | tipo_pessoa |
+| 5 | CPF/CNPJ | contribuinte | cpf_cnpj |
+| 6 | Nome/Razão Social | contribuinte | nome_razao_social |
+| 7 | Inscrição Estadual | contribuinte | inscricao_estadual |
+| 8 | CNAE | contribuinte | cod_cnae |
+| 9 | Setor | contribuinte | setor |
+| 10 | Simples | contribuinte | simples_nacional |
+| 11 | Município | cliente | municipio |
+| 12 | UF | cliente | uf |
 
-| Operação | Permissão |
-|----------|-----------|
-| SELECT | team_member OU admin |
-| INSERT | team_member OU admin |
-| UPDATE | team_member OU admin |
-| DELETE | admin apenas |
+## Lógica de Consulta
 
-## SQL da Migração
+A consulta principal será baseada em `contribuinte_dev` com JOIN para `cliente_dev`:
 
-```sql
--- Tabela contrato
-CREATE TABLE contrato (
-  id_contrato UUID DEFAULT gen_random_uuid() NOT NULL,
-  id_cliente UUID NOT NULL,
-  numero_contrato TEXT,
-  valor_fixo NUMERIC,
-  aliquota_contrato NUMERIC,
-  data_inicio DATE,
-  data_fim DATE,
-  tipo_contrato TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (id_contrato),
-  CONSTRAINT fk_contrato_cliente FOREIGN KEY (id_cliente) 
-    REFERENCES cliente(id) ON DELETE CASCADE
-);
-
--- Tabela servico
-CREATE TABLE servico (
-  id_servico UUID DEFAULT gen_random_uuid() NOT NULL,
-  id_contrato UUID NOT NULL,
-  descricao TEXT,
-  valor DOUBLE PRECISION,
-  id_catalog_client UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (id_servico),
-  CONSTRAINT fk_servico_contrato FOREIGN KEY (id_contrato) 
-    REFERENCES contrato(id_contrato) ON DELETE CASCADE,
-  CONSTRAINT fk_servico_catalog_client FOREIGN KEY (id_catalog_client) 
-    REFERENCES catalog_clients(id) ON DELETE SET NULL
-);
-
--- Triggers (usando função existente)
-CREATE TRIGGER update_contrato_updated_at
-  BEFORE UPDATE ON contrato
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_servico_updated_at
-  BEFORE UPDATE ON servico
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
--- Índices para performance
-CREATE INDEX idx_contrato_id_cliente ON contrato(id_cliente);
-CREATE INDEX idx_servico_id_contrato ON servico(id_contrato);
-CREATE INDEX idx_servico_id_catalog_client ON servico(id_catalog_client);
-
--- Habilitar RLS
-ALTER TABLE contrato ENABLE ROW LEVEL SECURITY;
-ALTER TABLE servico ENABLE ROW LEVEL SECURITY;
-
--- Policies para contrato
-CREATE POLICY "Team members can view contratos" ON contrato
-  FOR SELECT USING (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Team members can create contratos" ON contrato
-  FOR INSERT WITH CHECK (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Team members can update contratos" ON contrato
-  FOR UPDATE USING (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Admins can delete contratos" ON contrato
-  FOR DELETE USING (
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
--- Policies para servico
-CREATE POLICY "Team members can view servicos" ON servico
-  FOR SELECT USING (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Team members can create servicos" ON servico
-  FOR INSERT WITH CHECK (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Team members can update servicos" ON servico
-  FOR UPDATE USING (
-    has_role(auth.uid(), 'team_member'::app_role) OR 
-    has_role(auth.uid(), 'admin'::app_role)
-  );
-
-CREATE POLICY "Admins can delete servicos" ON servico
-  FOR DELETE USING (
-    has_role(auth.uid(), 'admin'::app_role)
-  );
+```text
+Query base:
+SELECT 
+  contribuinte.*,
+  cliente.nome,
+  cliente.ativo,
+  cliente.fixo,
+  cliente.municipio,
+  cliente.uf
+FROM contribuinte_dev contribuinte
+INNER JOIN cliente_dev cliente ON cliente.id = contribuinte.cliente_id
+WHERE [filtros aplicados]
+ORDER BY cliente.nome
 ```
 
-## Ordem de Execução
+### Mapeamento de Filtros
 
-1. Executar migração SQL com todas as tabelas, triggers, índices e policies
-2. Verificar criação das tabelas
-3. Testar inserção de dados de exemplo
+| Filtro | Campo | Operação | Tabela |
+|--------|-------|----------|--------|
+| Nome | nome | eq | cliente (via join) |
+| Status | ativo | eq (boolean) | cliente |
+| Tipo Cliente | fixo | eq | cliente |
+| Município | municipio | eq | cliente |
+| UF | uf | eq | cliente |
+| Tipo Pessoa | tipo_pessoa | eq | contribuinte |
+| CPF/CNPJ | cpf_cnpj | ilike | contribuinte |
+| Nome/Razão Social | nome_razao_social | ilike | contribuinte |
+| Inscrição Estadual | inscricao_estadual | ilike | contribuinte |
+| Cód. CNAE | cod_cnae | ilike | contribuinte |
+| Setor | setor | eq | contribuinte |
+| Simples Nacional | simples_nacional | eq (boolean) | contribuinte |
+
+## Formatação do Simples Nacional
+
+```text
+simples_nacional === true  → "Sim" (texto simples, sem badge colorido)
+simples_nacional === false → "Não" (texto simples)
+simples_nacional === null  → "-"
+```
+
+## Detalhes Técnicos
+
+### Novos Estados
+
+```text
+// Estados existentes mantidos
+nome, status, tipo, municipio, uf, searched
+
+// Novos estados para contribuinte
+tipoPessoa: string ('PJ' | 'PF' | '')
+cpfCnpj: string (busca parcial)
+nomeRazaoSocial: string (busca parcial)
+inscricaoEstadual: string (busca parcial)
+codCnae: string (busca parcial)
+setor: string (dropdown dinâmico)
+simplesNacional: string ('true' | 'false' | '')
+```
+
+### Query com JOIN via Supabase
+
+```text
+// Supabase permite fazer join usando referência de FK:
+const { data } = await supabase
+  .from(contribuinteTable)
+  .select(`
+    *,
+    cliente:cliente_id (
+      id,
+      nome,
+      ativo,
+      fixo,
+      municipio,
+      uf,
+      telefone,
+      setor_cliente
+    )
+  `)
+  .eq('tipo_pessoa', tipoPessoa) // se filtro ativo
+  .ilike('cpf_cnpj', `%${cpfCnpj}%`) // se filtro ativo
+  // ... outros filtros
+  .order('nome_razao_social')
+```
+
+### Seleção de Tabelas por Ambiente
+
+```text
+const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
+const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
+```
+
+## Componentes de UI
+
+- Filtros de texto (CPF/CNPJ, Nome/Razão, IE, CNAE): usar componente `Input`
+- Filtros de seleção (Tipo Pessoa, Setor, Simples Nacional): usar componente `Select`
+
+## Arquivo a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/equipe/dev/GestaoClientes.tsx` | Adicionar novos filtros e reorganizar layout |
+
+## Ordem de Implementação
+
+1. Adicionar novos estados para os filtros de contribuinte
+2. Criar query para popular dropdown de setores
+3. Reorganizar grid de filtros em 3 linhas
+4. Adicionar inputs e selects dos novos filtros
+5. Modificar query principal para usar JOIN com contribuinte
+6. Atualizar função handleClear para limpar todos os filtros
+7. Atualizar tabela de resultados com novas colunas
+8. Adicionar formatação do Simples Nacional (sem cores)
 
