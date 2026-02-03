@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Filter, Search, X, Users } from 'lucide-react';
+import { Filter, Search, Eraser, Users } from 'lucide-react';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -25,14 +25,12 @@ const GestaoClientes = () => {
   const [tipoPessoa, setTipoPessoa] = useState('');
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
-  const [setor, setSetor] = useState('');
-  const [simplesNacional, setSimplesNacional] = useState('');
 
   // Verifica se há filtros ativos
-  const hasActiveFilters = nome || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj || setor || simplesNacional;
+  const hasActiveFilters = nome || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
 
   // Verifica se há filtros de contribuinte ativos
-  const hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj || setor || simplesNacional;
+  const hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj;
 
   // Query para nomes de clientes
   const { data: nomes = [] } = useQuery({
@@ -66,25 +64,9 @@ const GestaoClientes = () => {
     },
   });
 
-  // Query para setores do contribuinte
-  const { data: setores = [] } = useQuery({
-    queryKey: ['contribuintes-setores', contribuinteTable],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from(contribuinteTable)
-        .select('setor')
-        .not('setor', 'is', null)
-        .order('setor');
-      
-      if (error) throw error;
-      const uniqueSetores = [...new Set(data?.map(d => d.setor))];
-      return uniqueSetores.filter(Boolean) as string[];
-    },
-  });
-
   // Query principal - busca clientes (não contribuintes)
   const { data: resultados = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-filtrados', clienteTable, nome, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial, setor, simplesNacional],
+    queryKey: ['clientes-filtrados', clienteTable, nome, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial],
     queryFn: async () => {
       // Se houver filtros de contribuinte, primeiro buscar cliente_ids correspondentes
       let clienteIds: string[] | null = null;
@@ -97,8 +79,6 @@ const GestaoClientes = () => {
         if (tipoPessoa) contribuinteQuery = contribuinteQuery.eq('tipo_pessoa', tipoPessoa);
         if (cpfCnpj) contribuinteQuery = contribuinteQuery.ilike('cpf_cnpj', `%${cpfCnpj}%`);
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq('nome_razao_social', nomeRazaoSocial);
-        if (setor) contribuinteQuery = contribuinteQuery.eq('setor', setor);
-        if (simplesNacional) contribuinteQuery = contribuinteQuery.eq('simples_nacional', simplesNacional === 'true');
 
         const { data: contribuintes, error: contribError } = await contribuinteQuery;
         if (contribError) throw contribError;
@@ -147,8 +127,6 @@ const GestaoClientes = () => {
     setTipoPessoa('');
     setCpfCnpj('');
     setNomeRazaoSocial('');
-    setSetor('');
-    setSimplesNacional('');
     setSearched(false);
   };
 
@@ -172,19 +150,19 @@ const GestaoClientes = () => {
         {/* Card de Filtros */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg text-primary">
               <Filter className="h-5 w-5 text-teal-600" />
-              Filtros de Busca
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* LINHA 1 - Filtros do Cliente */}
-            <div className="grid grid-cols-12 gap-4">
-              {/* Nome Cliente - 3 colunas */}
+          <CardContent className="space-y-6">
+            {/* LINHA ÚNICA - Todos os Filtros */}
+            <div className="grid grid-cols-12 gap-6">
+              {/* Cliente - 3 colunas */}
               <div className="col-span-12 md:col-span-3">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome Cliente</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente</label>
                 <Select value={nome} onValueChange={setNome}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -196,42 +174,11 @@ const GestaoClientes = () => {
                 </Select>
               </div>
 
-              {/* Status - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Status</label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-50">
-                    <SelectItem value="true">Ativo</SelectItem>
-                    <SelectItem value="false">Inativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Tipo Cliente - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Tipo Cliente</label>
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-50">
-                    <SelectItem value="Sim">Fixos</SelectItem>
-                    <SelectItem value="Não">Pontuais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* LINHA 2 - Filtros do Contribuinte */}
-            <div className="grid grid-cols-12 gap-4">
-              {/* Nome/Razão Social - 3 colunas */}
-              <div className="col-span-12 md:col-span-3">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Nome/Razão Social</label>
+              {/* Contribuinte - 5 colunas */}
+              <div className="col-span-12 md:col-span-5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte</label>
                 <Select value={nomeRazaoSocial} onValueChange={setNomeRazaoSocial}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -242,72 +189,44 @@ const GestaoClientes = () => {
                 </Select>
               </div>
 
-              {/* Tipo Pessoa - 2 colunas */}
+              {/* Status - 2 colunas */}
               <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Tipo Pessoa</label>
-                <Select value={tipoPessoa} onValueChange={setTipoPessoa}>
-                  <SelectTrigger className="bg-white">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Status</label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    <SelectItem value="PJ">PJ</SelectItem>
-                    <SelectItem value="PF">PF</SelectItem>
+                    <SelectItem value="true">Ativo</SelectItem>
+                    <SelectItem value="false">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* CPF/CNPJ - 2 colunas */}
+              {/* Tipo - 2 colunas */}
               <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">CPF/CNPJ</label>
-                <Input
-                  placeholder="Digite o número"
-                  value={cpfCnpj}
-                  onChange={(e) => setCpfCnpj(e.target.value)}
-                  className="bg-white"
-                />
-              </div>
-
-              {/* Setor - 3 colunas */}
-              <div className="col-span-6 md:col-span-3">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Setor</label>
-                <Select value={setor} onValueChange={setSetor}>
-                  <SelectTrigger className="bg-white">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Tipo</label>
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
-                    {setores.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Simples Nacional - 2 colunas */}
-              <div className="col-span-6 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Simples Nacional</label>
-                <Select value={simplesNacional} onValueChange={setSimplesNacional}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-50">
-                    <SelectItem value="true">Sim</SelectItem>
-                    <SelectItem value="false">Não</SelectItem>
+                    <SelectItem value="Sim">Fixos</SelectItem>
+                    <SelectItem value="Não">Pontuais</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Botões */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              {hasActiveFilters ? (
-                <Button variant="outline" onClick={handleClear} className="gap-2">
-                  <X className="h-4 w-4" />
+            {/* Botões - Ambos à direita */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t">
+              {hasActiveFilters && (
+                <Button onClick={handleClear} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+                  <Eraser className="h-4 w-4" />
                   Limpar Filtros
                 </Button>
-              ) : (
-                <div />
               )}
-              <Button onClick={handleSearch} className="gap-2 bg-teal-600 hover:bg-teal-700">
+              <Button onClick={handleSearch} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                 <Search className="h-4 w-4" />
                 Buscar
               </Button>
