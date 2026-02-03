@@ -1,63 +1,44 @@
 
 
-# Plano: Renomear Página para DIFAL Inteligente (Nome e Caminho)
+# Plano: Remover Entrada Duplicada "Auditoria Fiscal"
 
-## Objetivo
+## Problema
 
-Alterar tanto o nome quanto o caminho da página de "Auditoria Fiscal" para "DIFAL Inteligente" no sistema de controle de acessos.
+O hook `useSyncProtectedPages` apenas insere novas páginas mas não remove as obsoletas. Resultado: duas entradas no banco para a mesma ferramenta.
 
-## Alterações a Realizar
+| Entrada | Caminho | Status |
+|---------|---------|--------|
+| Auditoria Fiscal | /equipe/dev/auditoria-fiscal | **Obsoleta** (rota não existe mais) |
+| DIFAL Inteligente | /equipe/dev/difal-inteligente | Atual |
 
-| Campo | Antes | Depois |
-|-------|-------|--------|
-| page_path | /equipe/dev/auditoria-fiscal | /equipe/dev/difal-inteligente |
-| page_name | Auditoria Fiscal | DIFAL Inteligente |
-| page_description | Ferramenta de auditoria fiscal | Ferramenta DIFAL Inteligente |
+## Solução
 
-## Arquivo a Modificar
+Executar uma migração SQL para deletar o registro antigo da tabela `page_permissions`.
 
-`src/config/protectedPages.ts`
+## SQL a Executar
 
-## Código Atual (linhas 74-80)
+```sql
+-- Primeiro, deletar acessos de usuário vinculados à página antiga
+DELETE FROM user_page_access 
+WHERE page_permission_id IN (
+  SELECT id FROM page_permissions 
+  WHERE page_path = '/equipe/dev/auditoria-fiscal'
+);
 
-```typescript
-{
-  page_path: '/equipe/dev/auditoria-fiscal',
-  page_name: 'Auditoria Fiscal',
-  page_description: 'Ferramenta de auditoria fiscal',
-  category: 'dev',
-  requires_admin: false,
-  requires_team_member: true,
-},
+-- Depois, deletar a página antiga
+DELETE FROM page_permissions 
+WHERE page_path = '/equipe/dev/auditoria-fiscal';
 ```
 
-## Código Após Alteração
+## Resultado Esperado
 
-```typescript
-{
-  page_path: '/equipe/dev/difal-inteligente',
-  page_name: 'DIFAL Inteligente',
-  page_description: 'Ferramenta DIFAL Inteligente',
-  category: 'dev',
-  requires_admin: false,
-  requires_team_member: true,
-},
-```
+Após a migração, apenas a entrada "DIFAL Inteligente" permanecerá na lista de controle de acessos.
 
-## Atenção: Alterações Adicionais Necessárias
+## Melhoria Futura (Opcional)
 
-Como o `page_path` será alterado, será necessário também atualizar:
+Atualizar o hook `useSyncProtectedPages` para também:
+- Atualizar nomes/descrições de páginas existentes
+- Remover páginas que não estão mais no código
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/App.tsx` | Atualizar a rota de `/equipe/dev/auditoria-fiscal` para `/equipe/dev/difal-inteligente` |
-| Menu de navegação (se houver) | Atualizar link para a nova rota |
-
-## Resumo das Alterações
-
-1. Alterar `page_path` para `/equipe/dev/difal-inteligente`
-2. Alterar `page_name` para `DIFAL Inteligente`
-3. Alterar `page_description` para `Ferramenta DIFAL Inteligente`
-4. Atualizar rota no `App.tsx`
-5. Após deploy, clicar em "Atualizar lista" para sincronizar com o banco
+Isso evitaria duplicações futuras.
 
