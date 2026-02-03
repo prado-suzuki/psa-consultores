@@ -1,79 +1,199 @@
 
-# Plano: Corrigir Erro de Formato de Data no DCOMP
+# Plano: Adicionar Botões de Criação de Clientes e Contribuintes
 
-## Diagnóstico
+## Contexto
 
-O erro `invalid input syntax for type date: "2025-02"` ocorre porque:
+A página `/equipe/dev/gestao-clientes` atualmente permite apenas consultar clientes e visualizar seus contribuintes. Precisamos adicionar:
 
-1. O campo `mes_ano_exercicio` no banco de dados é do tipo **DATE** (requer formato `YYYY-MM-DD`)
-2. O input HTML `type="month"` retorna formato `YYYY-MM` (exemplo: `2025-02`)
-3. Ao salvar/atualizar, o valor `2025-02` é enviado diretamente, causando erro de sintaxe SQL
-
-```text
-Fluxo atual (com erro):
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Banco     │ --> │   Formulário │ --> │   Banco     │
-│ 2025-09-01  │     │   2025-09    │     │   2025-09   │ ❌ ERRO!
-└─────────────┘     └──────────────┘     └─────────────┘
-```
+1. Botão para criar novos clientes na página principal
+2. Botão para adicionar contribuintes dentro do modal de detalhes do cliente
 
 ---
 
-## Solução
+## Estrutura das Tabelas
 
-Normalizar o valor de `mes_ano_exercicio` antes de enviar para o banco, adicionando `-01` ao final para formar uma data válida.
+### Tabela `cliente_dev`
+| Campo | Tipo | Obrigatório |
+|-------|------|-------------|
+| nome | text | Sim |
+| telefone | text | Não |
+| setor_cliente | text | Não |
+| fixo | text ("Sim"/"Não") | Não |
+| ativo | boolean | Não (default: true) |
+| municipio | text | Não |
+| uf | text | Não |
 
-```text
-Fluxo corrigido:
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Banco     │ --> │   Formulário │ --> │   Banco     │
-│ 2025-09-01  │     │   2025-09    │     │ 2025-09-01  │ ✓
-└─────────────┘     └──────────────┘     └─────────────┘
-```
+### Tabela `contribuinte_dev`
+| Campo | Tipo | Obrigatório |
+|-------|------|-------------|
+| cliente_id | uuid | Sim |
+| nome_razao_social | text | Sim |
+| tipo_pessoa | text | Sim |
+| cpf_cnpj | text | Não |
+| inscricao_estadual | text | Não |
+| cod_cnae | text | Não |
+| setor | text | Não |
+| simples_nacional | boolean | Não (default: false) |
 
 ---
 
-## Arquivo a Modificar
+## Alterações no Arquivo
 
-**Arquivo:** `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`
+**Arquivo:** `src/pages/equipe/dev/GestaoClientes.tsx`
 
-### Alteração 1: Criar Função de Normalização
+### Alteração 1: Importar componentes adicionais
 
-Adicionar função auxiliar para garantir formato correto:
+Adicionar imports para:
+- `DialogHeader`, `DialogTitle`, `DialogFooter` do dialog
+- `Input` para campos de texto
+- `Label` para rotular campos
+- `Checkbox` para campos booleanos
+- Ícone `Plus` do lucide-react
+
+### Alteração 2: Novos Estados
 
 ```typescript
-const normalizeMesAno = (value: string): string => {
-  if (!value) return '';
-  // Se já está no formato YYYY-MM-DD, retornar como está
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
+// Estados do modal de criar/editar cliente
+const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
+const [editingCliente, setEditingCliente] = useState<any>(null);
+const [clienteForm, setClienteForm] = useState({
+  nome: '',
+  telefone: '',
+  setor_cliente: '',
+  fixo: '',
+  ativo: true,
+  municipio: '',
+  uf: '',
+});
+
+// Estados do modal de criar contribuinte
+const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
+const [contribuinteForm, setContribuinteForm] = useState({
+  nome_razao_social: '',
+  tipo_pessoa: '',
+  cpf_cnpj: '',
+  inscricao_estadual: '',
+  cod_cnae: '',
+  setor: '',
+  simples_nacional: false,
+});
+```
+
+### Alteração 3: Funções de CRUD
+
+```typescript
+// Salvar Cliente
+const handleSaveCliente = async () => {
+  if (!clienteForm.nome.trim()) {
+    toast.error('Nome é obrigatório');
+    return;
   }
-  // Se está no formato YYYY-MM, adicionar -01
-  if (/^\d{4}-\d{2}$/.test(value)) {
-    return `${value}-01`;
+  
+  const payload = {
+    nome: clienteForm.nome.trim(),
+    telefone: clienteForm.telefone.trim() || null,
+    setor_cliente: clienteForm.setor_cliente.trim() || null,
+    fixo: clienteForm.fixo || null,
+    ativo: clienteForm.ativo,
+    municipio: clienteForm.municipio.trim() || null,
+    uf: clienteForm.uf.trim() || null,
+  };
+  
+  if (editingCliente) {
+    await supabase.from(clienteTable).update(payload).eq('id', editingCliente.id);
+    toast.success('Cliente atualizado');
+  } else {
+    await supabase.from(clienteTable).insert(payload);
+    toast.success('Cliente criado');
   }
-  return value;
+  
+  setClienteDialogOpen(false);
+  refetch();
+};
+
+// Salvar Contribuinte
+const handleSaveContribuinte = async () => {
+  if (!contribuinteForm.nome_razao_social.trim() || !contribuinteForm.tipo_pessoa) {
+    toast.error('Nome/Razão Social e Tipo Pessoa são obrigatórios');
+    return;
+  }
+  
+  await supabase.from(contribuinteTable).insert({
+    cliente_id: selectedCliente.id,
+    nome_razao_social: contribuinteForm.nome_razao_social.trim(),
+    tipo_pessoa: contribuinteForm.tipo_pessoa,
+    cpf_cnpj: contribuinteForm.cpf_cnpj.trim() || null,
+    inscricao_estadual: contribuinteForm.inscricao_estadual.trim() || null,
+    cod_cnae: contribuinteForm.cod_cnae.trim() || null,
+    setor: contribuinteForm.setor.trim() || null,
+    simples_nacional: contribuinteForm.simples_nacional,
+  });
+  
+  toast.success('Contribuinte adicionado');
+  setContribuinteDialogOpen(false);
+  // Refetch contribuintes do modal
 };
 ```
 
-### Alteração 2: Aplicar nos Mutations
+### Alteração 4: Botão "Novo Cliente" no Card de Filtros
 
-Modificar `createMutation` e `updateMutation` para usar a função:
+Adicionar botão ao lado direito do título "Filtros de Busca":
 
-```typescript
-// Em createMutation:
-mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
-
-// Em updateMutation:
-mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  🔍 FILTROS DE BUSCA                    [+ Novo Cliente]    │
+├─────────────────────────────────────────────────────────────┤
 ```
 
-### Alteração 3: Formatar ao Carregar Dados
+### Alteração 5: Botão "Adicionar Contribuinte" no Modal
 
-Ajustar o `useEffect` para converter o formato do banco (YYYY-MM-DD) para o formato do input (YYYY-MM):
+Adicionar botão no header do modal de contribuintes:
 
-```typescript
-mes_ano_exercicio: editData.mes_ano_exercicio?.substring(0, 7) || '',
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  🏢 Nome do Cliente               [+ Contribuinte]  [X]     │
+│     Contribuintes vinculados                                │
+├─────────────────────────────────────────────────────────────┤
+```
+
+### Alteração 6: Modal de Criar/Editar Cliente
+
+Campos do formulário:
+- Nome (obrigatório)
+- Telefone
+- Setor
+- Tipo (Select: Fixo/Pontual)
+- Status (Switch: Ativo/Inativo)
+- Município
+- UF
+
+### Alteração 7: Modal de Criar Contribuinte
+
+Campos do formulário:
+- Nome/Razão Social (obrigatório)
+- Tipo Pessoa (Select: PF/PJ - obrigatório)
+- CPF/CNPJ
+- Inscrição Estadual
+- Código CNAE
+- Setor
+- Simples Nacional (Checkbox)
+
+---
+
+## Fluxo de Uso
+
+```text
+Página Gestão de Clientes
+         │
+         ├──► [+ Novo Cliente] ──► Modal Cliente ──► Salvar ──► Refresh lista
+         │
+         └──► Clica no nome do cliente
+                    │
+                    └──► Modal Contribuintes
+                              │
+                              └──► [+ Contribuinte] ──► Modal Contribuinte 
+                                                              │
+                                                              └──► Salvar ──► Refresh modal
 ```
 
 ---
@@ -82,16 +202,18 @@ mes_ano_exercicio: editData.mes_ano_exercicio?.substring(0, 7) || '',
 
 | Localização | Mudança |
 |-------------|---------|
-| Linha ~33 | Adicionar função `normalizeMesAno` |
-| Linha ~101 | Formatar `mes_ano_exercicio` ao carregar (substring 0-7) |
-| Linha ~125 | Aplicar `normalizeMesAno` no insert |
-| Linha ~149 | Aplicar `normalizeMesAno` no update |
+| Imports | Adicionar DialogHeader, DialogTitle, DialogFooter, Input, Label, Checkbox, Plus |
+| Estados (linha ~55) | Adicionar estados para dialogs e forms de cliente/contribuinte |
+| Funções (linha ~220) | Adicionar handleSaveCliente e handleSaveContribuinte |
+| Card Filtros (linha ~246) | Adicionar botão "Novo Cliente" no header |
+| Modal Contribuintes (linha ~432) | Adicionar botão "Adicionar Contribuinte" no header |
+| Final do arquivo | Adicionar 2 novos Dialogs para criar cliente e contribuinte |
 
 ---
 
 ## Impacto
 
-- Correção aplicada apenas no DcompFormModal
-- Funciona para criação e edição de DCOMPs
-- Compatível com dados existentes no banco
-- Sem necessidade de migração de dados
+- Funcionalidade adicional sem alterar comportamento existente
+- Reutiliza padrões já usados em `EquipeCadastros.tsx`
+- Queries existentes serão invalidadas após inserções para atualizar dados
+- Nenhuma alteração no banco de dados necessária
