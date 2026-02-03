@@ -15,39 +15,70 @@ export function useSyncProtectedPages() {
       // Get existing pages from database
       const { data: existingPages, error: fetchError } = await supabase
         .from('page_permissions')
-        .select('page_path');
+        .select('id, page_path, page_name, page_description');
 
       if (fetchError) throw fetchError;
 
-      const existingPaths = new Set(existingPages?.map(p => p.page_path) || []);
+      const existingPagesMap = new Map(
+        existingPages?.map(p => [p.page_path, p]) || []
+      );
 
       // Find pages that need to be added
       const pagesToAdd = PROTECTED_PAGES.filter(
-        page => !existingPaths.has(page.page_path)
+        page => !existingPagesMap.has(page.page_path)
       );
 
-      if (pagesToAdd.length === 0) {
-        return { added: 0 };
-      }
+      // Find pages that need to be updated (name or description changed)
+      const pagesToUpdate = PROTECTED_PAGES.filter(page => {
+        const existing = existingPagesMap.get(page.page_path);
+        return existing && (
+          existing.page_name !== page.page_name ||
+          existing.page_description !== page.page_description
+        );
+      });
+
+      let added = 0;
+      let updated = 0;
 
       // Insert new pages
-      const { error: insertError } = await supabase
-        .from('page_permissions')
-        .insert(
-          pagesToAdd.map(page => ({
-            page_path: page.page_path,
-            page_name: page.page_name,
-            page_description: page.page_description,
-            category: page.category,
-            requires_admin: page.requires_admin,
-            requires_team_member: page.requires_team_member,
-            is_active: true,
-          }))
-        );
+      if (pagesToAdd.length > 0) {
+        const { error: insertError } = await supabase
+          .from('page_permissions')
+          .insert(
+            pagesToAdd.map(page => ({
+              page_path: page.page_path,
+              page_name: page.page_name,
+              page_description: page.page_description,
+              category: page.category,
+              requires_admin: page.requires_admin,
+              requires_team_member: page.requires_team_member,
+              is_active: true,
+            }))
+          );
 
-      if (insertError) throw insertError;
+        if (insertError) throw insertError;
+        added = pagesToAdd.length;
+      }
 
-      return { added: pagesToAdd.length };
+      // Update existing pages with changed names/descriptions
+      for (const page of pagesToUpdate) {
+        const existing = existingPagesMap.get(page.page_path);
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('page_permissions')
+            .update({
+              page_name: page.page_name,
+              page_description: page.page_description,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+
+          if (updateError) throw updateError;
+          updated++;
+        }
+      }
+
+      return { added, updated };
     },
     onSuccess: (result) => {
       // Invalidate all permission-related caches
@@ -55,10 +86,14 @@ export function useSyncProtectedPages() {
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
       queryClient.invalidateQueries({ queryKey: ['page-access'] });
 
-      if (result.added > 0) {
+      if (result.added > 0 && result.updated > 0) {
+        toast.success(`${result.added} página(s) adicionada(s), ${result.updated} atualizada(s)!`);
+      } else if (result.added > 0) {
         toast.success(`${result.added} nova(s) página(s) adicionada(s)!`);
+      } else if (result.updated > 0) {
+        toast.success(`${result.updated} página(s) atualizada(s)!`);
       } else {
-        toast.success('Lista de páginas atualizada');
+        toast.success('Lista de páginas já está atualizada');
       }
     },
     onError: (error) => {
