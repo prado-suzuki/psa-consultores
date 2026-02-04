@@ -1,8 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, ArrowLeft, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 
 interface FiscalLayoutProps {
@@ -13,13 +10,7 @@ interface FiscalLayoutProps {
 }
 
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
-  const { signOut, user } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
+  const { user } = useAuth();
 
   return (
     <div className="h-screen bg-slate-50 flex w-full overflow-hidden">
@@ -49,26 +40,6 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
                 {user?.email?.split('@')[0] || 'Usuario'}
               </span>
             </div>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-slate-600 hover:text-emerald-600"
-              onClick={() => navigate('/equipe/projetos')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Trocar área
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-slate-600 hover:text-red-600"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
           </div>
         </header>
 
