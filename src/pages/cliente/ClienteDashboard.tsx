@@ -239,9 +239,8 @@ export default function ClienteDashboard() {
                   <h2 className="text-lg font-semibold text-foreground">Meus Chamados</h2>
                   <p className="text-sm text-muted-foreground">Acompanhe o status das suas solicitações</p>
                 </div>
-                <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Chamado
+                <Button size="sm" variant="outline" onClick={() => navigate('/cliente/novo-chamado')}>
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -280,22 +279,12 @@ export default function ClienteDashboard() {
                   </div>
                 </Card>
               ) : filteredTickets.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {tickets.length === 0 ? 'Nenhum chamado encontrado' : 'Nenhum resultado'}
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">
                     {tickets.length === 0 
                       ? 'Você ainda não criou nenhum chamado.' 
                       : 'Nenhum chamado corresponde aos filtros selecionados.'}
                   </p>
-                  {tickets.length === 0 && (
-                    <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Abrir Primeiro Chamado
-                    </Button>
-                  )}
                 </Card>
               ) : (
                 <div className="space-y-3">
