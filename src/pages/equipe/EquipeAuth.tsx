@@ -14,6 +14,10 @@ import logo from '@/assets/logo-psa.png';
 const areas = [
   { id: 'digital', label: 'Digital' },
   { id: 'gestao', label: 'Gestão' },
+  { id: 'fiscal', label: 'Fiscal' },
+  { id: 'fixos', label: 'Fixos' },
+  { id: 'osg', label: 'OSG' },
+  { id: 'projetos', label: 'Projetos' },
 ];
 
 // Verifica se o usuário tem acesso à área específica
@@ -22,45 +26,35 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
   if (isAdmin) return true;
 
   try {
-    if (area === 'digital') {
-      // Para 'digital', verificar acesso a páginas de 'rotina' OU 'dev'
-      const { data: pages } = await supabase
-        .from('page_permissions')
-        .select('id')
-        .in('category', ['rotina', 'dev']);
+    // Mapeia as áreas para suas categorias de permissão
+    const areaCategories: Record<string, string[]> = {
+      digital: ['rotina', 'dev'],
+      gestao: ['gestao'],
+      fiscal: ['fiscal'],
+      fixos: ['fixos'],
+      osg: ['osg'],
+      projetos: ['projetos'],
+    };
 
-      if (!pages?.length) return false;
+    const categories = areaCategories[area];
+    if (!categories) return false;
 
-      const { data: access } = await supabase
-        .from('user_page_access')
-        .select('id')
-        .eq('user_id', userId)
-        .in('page_permission_id', pages.map(p => p.id))
-        .limit(1);
+    // Buscar páginas da categoria
+    const { data: pages } = await supabase
+      .from('page_permissions')
+      .select('id')
+      .in('category', categories);
 
-      return access !== null && access.length > 0;
-    }
+    if (!pages?.length) return false;
 
-    if (area === 'gestao') {
-      // Para 'gestao', verificar acesso a páginas de 'gestao'
-      const { data: pages } = await supabase
-        .from('page_permissions')
-        .select('id')
-        .eq('category', 'gestao');
+    const { data: access } = await supabase
+      .from('user_page_access')
+      .select('id')
+      .eq('user_id', userId)
+      .in('page_permission_id', pages.map(p => p.id))
+      .limit(1);
 
-      if (!pages?.length) return false;
-
-      const { data: access } = await supabase
-        .from('user_page_access')
-        .select('id')
-        .eq('user_id', userId)
-        .in('page_permission_id', pages.map(p => p.id))
-        .limit(1);
-
-      return access !== null && access.length > 0;
-    }
-
-    return false;
+    return access !== null && access.length > 0;
   } catch (error) {
     console.error('Erro ao verificar acesso:', error);
     return false;
@@ -68,13 +62,16 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
 };
 
 const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
-  if (area === 'digital') {
-    navigate('/equipe/digital');
-  } else if (area === 'gestao') {
-    navigate('/gestao');
-  } else {
-    navigate('/equipe/dashboard');
-  }
+  const areaRoutes: Record<string, string> = {
+    digital: '/equipe/digital',
+    gestao: '/gestao',
+    fiscal: '/equipe/fiscal/dashboard',
+    fixos: '/equipe/fixos/dashboard',
+    osg: '/equipe/osg/dashboard',
+    projetos: '/equipe/projetos/dashboard',
+  };
+  
+  navigate(areaRoutes[area] || '/equipe/dashboard');
 };
 
 const EquipeAuth = () => {
