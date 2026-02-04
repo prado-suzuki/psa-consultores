@@ -60,6 +60,9 @@ import { PageAccessGate } from "./components/auth/PageAccessGate";
 
 // New Area Dashboards
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
+import FiscalDemandasInbox from "./pages/equipe/fiscal/FiscalDemandasInbox";
+import FiscalDemandasPacotes from "./pages/equipe/fiscal/FiscalDemandasPacotes";
+import FiscalDemandasClientes from "./pages/equipe/fiscal/FiscalDemandasClientes";
 import FixosDashboard from "./pages/equipe/fixos/FixosDashboard";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
@@ -139,6 +142,9 @@ const App = () => (
             
             {/* Fiscal Routes (dentro de Projetos) */}
             <Route path="/equipe/projetos/fiscal/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/projetos/fiscal/demandas/inbox" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasInbox /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/projetos/fiscal/demandas/pacotes" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasPacotes /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/projetos/fiscal/demandas/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasClientes /></PageAccessGate></TeamRoute>} />
             
             {/* Fixos Routes (dentro de Projetos) */}
             <Route path="/equipe/projetos/fixos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fixos/dashboard"><FixosDashboard /></PageAccessGate></TeamRoute>} />
