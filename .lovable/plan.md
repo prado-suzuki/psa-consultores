@@ -1,31 +1,29 @@
 
 
-# Plano: Mover Fiscal e Fixos para dentro de Projetos
+# Plano: Reordenar Áreas e Adicionar "Board"
 
 ## Objetivo
 
-Transformar Fiscal e Fixos em ambientes internos da área Projetos, com um seletor de sub-áreas similar ao Digital (que possui Digital Rotina e Digital Dev).
+Ajustar a ordem das áreas no seletor de login da equipe, renomear "Gestão" para "Controle Site" e criar uma nova área chamada "Board".
 
 ---
 
-## Visão Geral da Mudança
+## Mudanças Solicitadas
 
-```text
-ANTES:
-/equipe → Seletor com 6 áreas (Digital, Gestão, Fiscal, Fixos, OSG, Projetos)
-           ↓
-/equipe/fiscal/dashboard (área independente)
-/equipe/fixos/dashboard (área independente)
-/equipe/projetos/dashboard (área independente)
+| Antes | Depois |
+|-------|--------|
+| Digital | Digital |
+| Gestão | Projetos |
+| OSG | OSG |
+| Projetos | Controle Site *(renomeado de Gestão)* |
+| - | Board *(nova)* |
 
-DEPOIS:
-/equipe → Seletor com 4 áreas (Digital, Gestão, OSG, Projetos)
-           ↓
-/equipe/projetos → Seletor de sub-áreas (Fiscal, Fixos)
-                    ↓
-/equipe/projetos/fiscal/dashboard
-/equipe/projetos/fixos/dashboard
-```
+**Nova ordem final:**
+1. Digital
+2. Projetos
+3. OSG
+4. Controle Site
+5. Board
 
 ---
 
@@ -33,7 +31,8 @@ DEPOIS:
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/pages/equipe/projetos/ProjetosAreaSelector.tsx` | Seletor de sub-áreas (Fiscal e Fixos), seguindo o padrão do DigitalAreaSelector |
+| `src/pages/equipe/board/BoardDashboard.tsx` | Dashboard inicial da área Board |
+| `src/components/equipe/board/BoardLayout.tsx` | Layout comum para páginas do Board |
 
 ---
 
@@ -41,60 +40,21 @@ DEPOIS:
 
 | Arquivo | Mudanças |
 |---------|----------|
-| `src/pages/equipe/EquipeAuth.tsx` | Remover Fiscal e Fixos do array de áreas |
-| `src/App.tsx` | Adicionar rota `/equipe/projetos` como seletor; mover rotas Fiscal e Fixos para dentro de `/equipe/projetos` |
-| `src/config/protectedPages.ts` | Atualizar paths de Fiscal e Fixos para `/equipe/projetos/fiscal/...` e `/equipe/projetos/fixos/...` |
-| `src/components/equipe/fiscal/FiscalLayout.tsx` | Atualizar botão "Trocar área" para navegar para `/equipe/projetos` |
-| `src/components/equipe/fixos/FixosLayout.tsx` | Atualizar botão "Trocar área" para navegar para `/equipe/projetos` |
-| `src/pages/equipe/fiscal/FiscalDashboard.tsx` | Nenhuma mudança (apenas rota muda) |
-| `src/pages/equipe/fixos/FixosDashboard.tsx` | Nenhuma mudança (apenas rota muda) |
+| `src/pages/equipe/EquipeAuth.tsx` | Reordenar áreas, renomear gestao→controle_site, adicionar board |
+| `src/App.tsx` | Adicionar rotas do Board |
+| `src/config/protectedPages.ts` | Adicionar categoria 'board' e páginas do Board |
 
 ---
 
-## Estrutura do Seletor de Sub-Áreas
+## Detalhamento das Mudanças
 
-O `ProjetosAreaSelector.tsx` seguirá exatamente o padrão do `DigitalAreaSelector.tsx`:
-
-```typescript
-const areas: AreaCard[] = [
-  {
-    id: 'fiscal',
-    label: 'Fiscal',
-    description: 'Projetos de Felipe, Washington e Ricardo (ambiente compartilhado)',
-    icon: Calculator,
-    path: '/equipe/projetos/fiscal/dashboard',
-    color: 'from-emerald-500 to-teal-500',
-  },
-  {
-    id: 'fixos',
-    label: 'Fixos',
-    description: 'Ambiente de projetos fixos da equipe',
-    icon: Building,
-    path: '/equipe/projetos/fixos/dashboard',
-    color: 'from-blue-500 to-indigo-500',
-  },
-];
-```
-
-**Visual:**
-- Fundo escuro com gradiente (gray-950)
-- Logo PSA centralizado
-- Título: "Área de Projetos"
-- Subtítulo: "Selecione o ambiente de trabalho"
-- Cards lado a lado com ícone, nome e descrição
-- Botão "Trocar de área" no rodapé que volta para `/equipe`
-
----
-
-## Mudanças no EquipeAuth.tsx
+### 1. EquipeAuth.tsx - Array de áreas
 
 **Antes:**
 ```typescript
 const areas = [
   { id: 'digital', label: 'Digital' },
   { id: 'gestao', label: 'Gestão' },
-  { id: 'fiscal', label: 'Fiscal' },
-  { id: 'fixos', label: 'Fixos' },
   { id: 'osg', label: 'OSG' },
   { id: 'projetos', label: 'Projetos' },
 ];
@@ -104,107 +64,121 @@ const areas = [
 ```typescript
 const areas = [
   { id: 'digital', label: 'Digital' },
-  { id: 'gestao', label: 'Gestão' },
-  { id: 'osg', label: 'OSG' },
   { id: 'projetos', label: 'Projetos' },
+  { id: 'osg', label: 'OSG' },
+  { id: 'controle_site', label: 'Controle Site' },
+  { id: 'board', label: 'Board' },
 ];
 ```
 
-**Atualizar também `checkAreaAccess` e `navigateToArea`:**
-- Remover referências a `fiscal` e `fixos` como áreas independentes
-- Projetos agora navega para `/equipe/projetos` (seletor)
-- Verificação de acesso para projetos deve considerar categorias `fiscal`, `fixos` e `projetos`
+### 2. EquipeAuth.tsx - Mapeamento de categorias
+
+**Antes:**
+```typescript
+const areaCategories: Record<string, string[]> = {
+  digital: ['rotina', 'dev'],
+  gestao: ['gestao'],
+  osg: ['osg'],
+  projetos: ['projetos', 'fiscal', 'fixos'],
+};
+```
+
+**Depois:**
+```typescript
+const areaCategories: Record<string, string[]> = {
+  digital: ['rotina', 'dev'],
+  projetos: ['projetos', 'fiscal', 'fixos'],
+  osg: ['osg'],
+  controle_site: ['gestao'],  // Mantém a categoria interna 'gestao'
+  board: ['board'],           // Nova categoria
+};
+```
+
+### 3. EquipeAuth.tsx - Rotas de navegação
+
+**Antes:**
+```typescript
+const areaRoutes: Record<string, string> = {
+  digital: '/equipe/digital',
+  gestao: '/gestao',
+  osg: '/equipe/osg/dashboard',
+  projetos: '/equipe/projetos',
+};
+```
+
+**Depois:**
+```typescript
+const areaRoutes: Record<string, string> = {
+  digital: '/equipe/digital',
+  projetos: '/equipe/projetos',
+  osg: '/equipe/osg/dashboard',
+  controle_site: '/gestao',
+  board: '/equipe/board/dashboard',
+};
+```
+
+---
+
+## Nova Estrutura: Board
+
+### BoardDashboard.tsx
+
+Dashboard inicial para a área Board, seguindo o padrão visual das demais áreas:
+
+- Fundo escuro com tema consistente
+- Cards de métricas/ações rápidas
+- Integração com BoardLayout
+
+### BoardLayout.tsx
+
+Layout compartilhado com:
+- Sidebar colapsável
+- Header com título da página
+- Botão "Trocar área" que volta para `/equipe`
+
+---
+
+## Atualização do protectedPages.ts
+
+Adicionar nova categoria ao tipo:
+```typescript
+category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board';
+```
+
+Adicionar página do Board:
+```typescript
+{
+  page_path: '/equipe/board/dashboard',
+  page_name: 'Board Dashboard',
+  page_description: 'Painel principal da área Board',
+  category: 'board',
+  requires_admin: false,
+  requires_team_member: true,
+},
+```
 
 ---
 
 ## Novas Rotas no App.tsx
 
 ```typescript
-// Projetos - Seletor de Sub-áreas
-<Route path="/equipe/projetos" element={
+// Board Routes
+<Route path="/equipe/board/dashboard" element={
   <TeamRoute>
-    <ProjetosAreaSelector />
-  </TeamRoute>
-} />
-
-// Projetos - Dashboard geral (nova rota)
-<Route path="/equipe/projetos/dashboard" element={...} />
-<Route path="/equipe/projetos/demandas" element={...} />
-
-// Projetos/Fiscal Routes (movidas)
-<Route path="/equipe/projetos/fiscal/dashboard" element={
-  <TeamRoute>
-    <PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard">
-      <FiscalDashboard />
-    </PageAccessGate>
-  </TeamRoute>
-} />
-
-// Projetos/Fixos Routes (movidas)
-<Route path="/equipe/projetos/fixos/dashboard" element={
-  <TeamRoute>
-    <PageAccessGate pagePath="/equipe/projetos/fixos/dashboard">
-      <FixosDashboard />
+    <PageAccessGate pagePath="/equipe/board/dashboard">
+      <BoardDashboard />
     </PageAccessGate>
   </TeamRoute>
 } />
 ```
-
----
-
-## Atualização do protectedPages.ts
-
-**Antes:**
-```typescript
-{
-  page_path: '/equipe/fiscal/dashboard',
-  category: 'fiscal',
-  ...
-},
-{
-  page_path: '/equipe/fixos/dashboard',
-  category: 'fixos',
-  ...
-},
-```
-
-**Depois:**
-```typescript
-{
-  page_path: '/equipe/projetos/fiscal/dashboard',
-  category: 'projetos',  // Unificado na categoria projetos
-  ...
-},
-{
-  page_path: '/equipe/projetos/fixos/dashboard',
-  category: 'projetos',  // Unificado na categoria projetos
-  ...
-},
-```
-
----
-
-## Atualização dos Layouts
-
-Em `FiscalLayout.tsx` e `FixosLayout.tsx`, o botão "Trocar área" mudará de:
-```typescript
-onClick={() => navigate('/equipe')}
-```
-
-Para:
-```typescript
-onClick={() => navigate('/equipe/projetos')}
-```
-
-Isso permite voltar ao seletor de sub-áreas de Projetos (Fiscal/Fixos).
 
 ---
 
 ## Resumo das Entregas
 
-1. **Novo seletor** - ProjetosAreaSelector.tsx com cards para Fiscal e Fixos
-2. **Simplificação do login** - EquipeAuth com apenas 4 áreas principais
-3. **Rotas reestruturadas** - Fiscal e Fixos agora sob `/equipe/projetos/`
-4. **Navegação consistente** - "Trocar área" dentro de Fiscal/Fixos volta para o seletor de Projetos
-5. **Permissões unificadas** - Todas as páginas sob a categoria "projetos"
+1. **Reordenação** - Nova ordem: Digital → Projetos → OSG → Controle Site → Board
+2. **Renomeação** - "Gestão" passa a se chamar "Controle Site" na interface (internamente mantém categoria 'gestao')
+3. **Nova área Board** - Dashboard e Layout criados do zero
+4. **Permissões** - Nova categoria 'board' no sistema de controle de acessos
+5. **Rotas** - Novas rotas configuradas no App.tsx
 
