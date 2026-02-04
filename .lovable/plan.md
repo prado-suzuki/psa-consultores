@@ -1,124 +1,48 @@
 
-
-# Plano: Design Moderno para Tabelas - Abordagem Limpa
+# Plano: Criação de 4 Novas Áreas com Layout Padronizado
 
 ## Objetivo
 
-Melhorar a diferenciação entre colunas e linhas de forma moderna e sutil, **sem usar bordas verticais** que deixam o visual pesado. A proposta segue tendências de UI contemporâneas usadas em produtos como Notion, Linear e Airtable.
+Criar 4 novas áreas de trabalho (Fiscal, Fixos, OSG, Projetos) que aparecem na seleção após autenticação, cada uma com um ambiente interno seguindo o mesmo design do Digital Rotina.
 
 ---
 
-## Técnicas Modernas Propostas
-
-### 1. Zebra Striping Sutil
-Linhas alternadas com fundo levemente diferente para facilitar a leitura horizontal.
-
-### 2. Padding e Espaçamento
-Espaçamento interno generoso nas células cria separação visual natural entre colunas.
-
-### 3. Tipografia Diferenciada
-- Header em **uppercase**, menor, com tracking largo e cor mais escura
-- Células com peso e cor diferentes conforme importância do dado
-
-### 4. Hover com Destaque
-Linha inteira ganha destaque suave ao passar o mouse, reforçando a percepção de linha.
-
-### 5. Primeira Coluna com Destaque
-A coluna principal (nome) recebe peso visual maior, criando âncora para os olhos.
-
-### 6. Fundo do Header Diferenciado
-Header com fundo `slate-50` e borda inferior mais marcada (`border-b-2`).
-
----
-
-## Comparação Visual
+## Visão Geral da Arquitetura
 
 ```text
-ATUAL:
-┌────────────────────────────────────────────────────────────────┐
-│ Nome Cliente     Status    Tipo Cliente    Telefone    Setor  │
-├────────────────────────────────────────────────────────────────┤
-│ Fazenda Boa...   Ativo     Fixo           (11) 99...   Agro   │
-├────────────────────────────────────────────────────────────────┤
-│ Cooperativa...   Inativo   Pontual        (21) 88...   Coop   │
-└────────────────────────────────────────────────────────────────┘
-
-PROPOSTO (moderno/limpo):
-┌────────────────────────────────────────────────────────────────┐
-│ NOME CLIENTE     STATUS    TIPO CLIENTE   TELEFONE     SETOR  │  ← Header uppercase, bg-slate-50, border-b-2
-├────────────────────────────────────────────────────────────────┤
-│ Fazenda Boa...   ● Ativo   Fixo           (11) 99...   Agro   │  ← Fundo branco
-│ Cooperativa...   ○ Inativo Pontual        (21) 88...   Coop   │  ← Fundo slate-50/50 (zebra)
-│ Empresa XYZ...   ● Ativo   Fixo           (31) 77...   Tech   │  ← Fundo branco
-└────────────────────────────────────────────────────────────────┘
+/equipe (EquipeAuth)
+    ↓ seleciona área
+/equipe/{area} (Seletor de subáreas - para Digital)
+    ↓ OU
+/equipe/{area}/dashboard (Dashboard da área)
 ```
+
+### Fluxo Proposto
+
+1. Usuário faz login em `/equipe`
+2. Seleciona uma das 6 áreas disponíveis:
+   - Digital (existente)
+   - Gestão (existente)
+   - **Fiscal** (nova)
+   - **Fixos** (nova)
+   - **OSG** (nova)
+   - **Projetos** (nova)
+3. É redirecionado para o dashboard da área selecionada
 
 ---
 
-## Mudanças CSS Específicas
+## Arquivos a Criar
 
-### Container da Tabela
-```tsx
-<div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-```
-- Bordas arredondadas mais pronunciadas (`rounded-xl`)
-- Sombra sutil para elevação
-
-### Header
-```tsx
-<TableHeader className="bg-slate-50">
-  <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-    <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">
-      ...
-    </TableHead>
-  </TableRow>
-</TableHeader>
-```
-- Fundo `bg-slate-50` destaca do body
-- `border-b-2` cria separação clara
-- Texto em `uppercase` + `tracking-wider` + `text-xs` = visual profissional
-
-### Body com Zebra Striping
-```tsx
-<TableBody className="divide-y divide-slate-100">
-  {data.map((row, index) => (
-    <TableRow 
-      className={cn(
-        "transition-colors cursor-pointer",
-        "hover:bg-teal-50/60",
-        index % 2 === 1 && "bg-slate-50/50"
-      )}
-    >
-      ...
-    </TableRow>
-  ))}
-</TableBody>
-```
-- `divide-y divide-slate-100` para linhas sutis
-- Linhas ímpares com `bg-slate-50/50`
-- Hover em `teal-50/60` mantém identidade da marca
-
-### Células
-```tsx
-// Primeira coluna (Nome) - âncora visual
-<TableCell className="px-4 py-3 font-medium text-slate-900">
-  {row.nome}
-</TableCell>
-
-// Colunas secundárias - mais leves
-<TableCell className="px-4 py-3 text-slate-600">
-  {row.valor}
-</TableCell>
-
-// Coluna numérica/código - fonte mono
-<TableCell className="px-4 py-3 text-slate-600 font-mono text-sm">
-  {row.cpf_cnpj}
-</TableCell>
-```
-- Padding `px-4 py-3` cria espaço entre colunas naturalmente
-- Primeira coluna em `font-medium text-slate-900` = destaque
-- Demais colunas em `text-slate-600` = hierarquia clara
-- Números/códigos em `font-mono` = alinhamento visual
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/equipe/fiscal/FiscalLayout.tsx` | Layout da área Fiscal |
+| `src/components/equipe/fixos/FixosLayout.tsx` | Layout da área Fixos |
+| `src/components/equipe/osg/OsgLayout.tsx` | Layout da área OSG |
+| `src/components/equipe/projetos/ProjetosLayout.tsx` | Layout da área Projetos |
+| `src/pages/equipe/fiscal/FiscalDashboard.tsx` | Dashboard da área Fiscal |
+| `src/pages/equipe/fixos/FixosDashboard.tsx` | Dashboard da área Fixos |
+| `src/pages/equipe/osg/OsgDashboard.tsx` | Dashboard da área OSG |
+| `src/pages/equipe/projetos/ProjetosDashboard.tsx` | Dashboard da área Projetos |
 
 ---
 
@@ -126,67 +50,149 @@ PROPOSTO (moderno/limpo):
 
 | Arquivo | Mudanças |
 |---------|----------|
-| `src/pages/equipe/dev/GestaoClientes.tsx` | Aplicar novos estilos às tabelas principal e do modal |
+| `src/pages/equipe/EquipeAuth.tsx` | Adicionar as 4 novas áreas no array `areas` e lógica de navegação |
+| `src/App.tsx` | Adicionar rotas para as 4 novas áreas |
+| `src/config/protectedPages.ts` | Registrar páginas das novas áreas para controle de acesso |
 
 ---
 
-## Detalhes da Implementação
+## Estrutura de Cada Layout
 
-### Tabela Principal (Clientes)
-```tsx
-<div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-  <Table>
-    <TableHeader className="bg-slate-50">
-      <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-        <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">
-          Nome Cliente
-        </TableHead>
-        {/* ... outras colunas ... */}
-      </TableRow>
-    </TableHeader>
-    <TableBody className="divide-y divide-slate-100">
-      {paginatedResults.map((row, index) => (
-        <TableRow 
-          key={row.id}
-          className={cn(
-            "cursor-pointer transition-colors hover:bg-teal-50/60",
-            index % 2 === 1 && "bg-slate-50/50"
-          )}
-          onClick={() => handleClienteClick({ id: row.id, nome: row.nome })}
-        >
-          <TableCell className="px-4 py-3.5 font-medium text-slate-900">
-            {row.nome || '-'}
-          </TableCell>
-          <TableCell className="px-4 py-3.5 text-slate-600">
-            {formatStatus(row.ativo)}
-          </TableCell>
-          {/* ... outras células ... */}
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</div>
+Cada layout seguirá o padrão do `EquipeLayout.tsx`:
+
+- **Sidebar colapsável** com fundo branco
+- **Header** com ícone e nome da área em container teal
+- **Navegação** inicialmente vazia (sem abas/subabas como solicitado)
+- **Footer** com card do usuário e botões de ação
+- **Área principal** com ScrollArea e padding consistente
+
+### Cores e Ícones por Área
+
+| Área | Ícone | Cor do Gradiente |
+|------|-------|------------------|
+| Fiscal | `Calculator` | from-emerald-500 to-teal-500 |
+| Fixos | `Building` | from-blue-500 to-indigo-500 |
+| OSG | `Briefcase` | from-orange-500 to-amber-500 |
+| Projetos | `FolderKanban` | from-violet-500 to-purple-500 |
+
+---
+
+## Detalhes Técnicos
+
+### 1. Atualização do EquipeAuth.tsx
+
+```typescript
+const areas = [
+  { id: 'digital', label: 'Digital' },
+  { id: 'gestao', label: 'Gestão' },
+  { id: 'fiscal', label: 'Fiscal' },
+  { id: 'fixos', label: 'Fixos' },
+  { id: 'osg', label: 'OSG' },
+  { id: 'projetos', label: 'Projetos' },
+];
+
+// Atualizar navigateToArea
+const navigateToArea = (navigate, area) => {
+  if (area === 'digital') navigate('/equipe/digital');
+  else if (area === 'gestao') navigate('/gestao');
+  else if (area === 'fiscal') navigate('/equipe/fiscal/dashboard');
+  else if (area === 'fixos') navigate('/equipe/fixos/dashboard');
+  else if (area === 'osg') navigate('/equipe/osg/dashboard');
+  else if (area === 'projetos') navigate('/equipe/projetos/dashboard');
+  else navigate('/equipe/dashboard');
+};
+
+// Atualizar checkAreaAccess para incluir novas categorias
 ```
 
-### Tabela do Modal (Contribuintes)
-Aplicar o mesmo padrão, com ajustes para a coluna CPF/CNPJ usar `font-mono`.
+### 2. Estrutura do Layout Base (exemplo: FiscalLayout)
+
+```typescript
+interface FiscalLayoutProps {
+  children: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  headerActions?: React.ReactNode;
+}
+
+// Sidebar com:
+// - Header com ícone Calculator em bg-teal-500/10
+// - Nome "Fiscal" e subtítulo
+// - Navegação vazia (sem itens por enquanto)
+// - Footer com user card, "Trocar área" e "Sair"
+```
+
+### 3. Estrutura do Dashboard Base (exemplo: FiscalDashboard)
+
+```typescript
+const FiscalDashboard = () => {
+  return (
+    <FiscalLayout title="Dashboard" subtitle="Visão geral da área">
+      <div className="flex items-center justify-center h-[60vh] text-slate-400">
+        <div className="text-center">
+          <Calculator className="h-16 w-16 mx-auto mb-4 opacity-50" />
+          <p className="text-lg">Área em desenvolvimento</p>
+        </div>
+      </div>
+    </FiscalLayout>
+  );
+};
+```
+
+### 4. Novas Rotas no App.tsx
+
+```typescript
+// Fiscal Routes
+<Route path="/equipe/fiscal/dashboard" element={
+  <TeamRoute>
+    <PageAccessGate pagePath="/equipe/fiscal/dashboard">
+      <FiscalDashboard />
+    </PageAccessGate>
+  </TeamRoute>
+} />
+
+// Fixos Routes
+<Route path="/equipe/fixos/dashboard" element={...} />
+
+// OSG Routes
+<Route path="/equipe/osg/dashboard" element={...} />
+
+// Projetos Routes
+<Route path="/equipe/projetos/dashboard" element={...} />
+```
+
+### 5. Registro em protectedPages.ts
+
+Adicionar entradas para cada nova área com categoria própria:
+
+```typescript
+// === FISCAL PAGES ===
+{
+  page_path: '/equipe/fiscal/dashboard',
+  page_name: 'Fiscal Dashboard',
+  page_description: 'Painel principal da área Fiscal',
+  category: 'fiscal',
+  requires_admin: false,
+  requires_team_member: true,
+},
+// ... similar para fixos, osg, projetos
+```
 
 ---
 
-## Benefícios
+## Resumo de Entregas
 
-| Aspecto | Melhoria |
-|---------|----------|
-| **Legibilidade** | Zebra striping facilita seguir linhas longas |
-| **Hierarquia** | Header diferenciado + primeira coluna em destaque |
-| **Modernidade** | Visual limpo sem bordas pesadas |
-| **Interatividade** | Hover em teal reforça clicabilidade |
-| **Consistência** | Segue design system já estabelecido (teal/slate) |
-| **Espaçamento** | Padding generoso cria separação natural entre colunas |
+1. **4 novos Layouts** - Componentes de layout seguindo o padrão visual existente
+2. **4 novos Dashboards** - Páginas iniciais vazias/placeholder para cada área
+3. **Atualização do seletor de áreas** - EquipeAuth com as 4 novas opções
+4. **Rotas configuradas** - App.tsx com proteção por TeamRoute e PageAccessGate
+5. **Controle de acesso** - protectedPages.ts com as novas páginas registradas
 
 ---
 
-## Sem Alteração no Componente Base
+## Observações
 
-Esta abordagem **não requer modificar** o `src/components/ui/table.tsx`. Todas as customizações são feitas via className inline, mantendo o componente base reutilizável para outros contextos.
-
+- Os layouts são criados sem navegação interna (sem abas/subabas) conforme solicitado
+- O design segue o padrão Light Teal/Slate do sistema
+- Cada área terá sua própria categoria para controle granular de permissões
+- Os dashboards mostram um placeholder indicando "área em desenvolvimento"
