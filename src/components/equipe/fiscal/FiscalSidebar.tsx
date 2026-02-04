@@ -48,8 +48,8 @@ const menuItems: MenuItem[] = [
     icon: ClipboardList,
     children: [
       {
-        id: 'inbox',
-        label: 'Caixa de Entrada',
+        id: 'minhas',
+        label: 'Minhas Demandas',
         icon: Inbox,
         path: '/equipe/projetos/fiscal/demandas/inbox'
       },
