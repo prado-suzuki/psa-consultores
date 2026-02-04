@@ -9,7 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink } from 'lucide-react';
+import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const statusConfig = {
   planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
@@ -18,9 +20,40 @@ const statusConfig = {
   completed: { label: 'Concluído', className: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' },
 } as const;
 
+const ticketStatusColors: Record<string, string> = {
+  aberto: 'bg-blue-100 text-blue-700',
+  em_andamento: 'bg-amber-100 text-amber-700',
+  resolvido: 'bg-emerald-100 text-emerald-700',
+  fechado: 'bg-slate-100 text-slate-700',
+};
+
+const ticketStatusLabels: Record<string, string> = {
+  aberto: 'Aberto',
+  em_andamento: 'Em Andamento',
+  resolvido: 'Resolvido',
+  fechado: 'Fechado',
+};
+
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+
+  // Fetch tickets for this client
+  const { data: tickets = [], isLoading: isLoadingTickets } = useQuery({
+    queryKey: ['client-tickets', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   // Fetch visible projects for this client
   const { data: visibleProjects, isLoading: isLoadingProjects } = useQuery({
@@ -121,39 +154,68 @@ export default function ClienteDashboard() {
 
             {/* Chamados Tab */}
             <TabsContent value="chamados" className="flex-1 flex flex-col mt-0">
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/novo-chamado')}>
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
-                      <Plus className="h-8 w-8 text-teal-600" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground">Abrir Chamado</h3>
-                    <p className="text-muted-foreground">
-                      Precisa de ajuda? Abra um novo chamado e nossa equipe entrará em contato.
-                    </p>
-                    <Button className="w-full bg-teal-600 hover:bg-teal-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Novo Chamado
-                    </Button>
-                  </div>
-                </Card>
-
-                <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/chamados')}>
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
-                      <FileText className="h-8 w-8 text-teal-600" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground">Meus Chamados</h3>
-                    <p className="text-muted-foreground">
-                      Visualize e acompanhe todos os seus chamados abertos e histórico.
-                    </p>
-                    <Button variant="outline" className="w-full border-teal-600 text-teal-600 hover:bg-teal-50">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Ver Chamados
-                    </Button>
-                  </div>
-                </Card>
+              {/* Header with button */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Meus Chamados</h2>
+                  <p className="text-sm text-muted-foreground">Acompanhe o status das suas solicitações</p>
+                </div>
+                <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Chamado
+                </Button>
               </div>
+
+              {/* Tickets list */}
+              {isLoadingTickets ? (
+                <Card>
+                  <div className="p-4 space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ) : tickets.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Nenhum chamado encontrado</h3>
+                  <p className="text-muted-foreground mb-6">Você ainda não criou nenhum chamado.</p>
+                  <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Abrir Primeiro Chamado
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map((ticket) => (
+                    <Card
+                      key={ticket.id}
+                      className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/cliente/chamados/${ticket.id}`)}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground truncate">{ticket.title}</h3>
+                          <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{ticket.description}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {format(new Date(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Badge className={ticketStatusColors[ticket.status] || 'bg-slate-100 text-slate-700'}>
+                          {ticketStatusLabels[ticket.status] || ticket.status}
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             {/* Projects Tab */}
