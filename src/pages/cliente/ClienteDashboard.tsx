@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -10,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DashboardFilters } from '@/components/cliente/DashboardFilters';
 
 const statusConfig = {
   planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
@@ -34,9 +36,44 @@ const ticketStatusLabels: Record<string, string> = {
   fechado: 'Fechado',
 };
 
+const ticketStatusOptions = [
+  { value: 'aberto', label: 'Aberto' },
+  { value: 'em_andamento', label: 'Em Andamento' },
+  { value: 'resolvido', label: 'Resolvido' },
+  { value: 'fechado', label: 'Fechado' },
+];
+
+const projectStatusOptions = [
+  { value: 'planning', label: 'Planejamento' },
+  { value: 'active', label: 'Em Andamento' },
+  { value: 'on_hold', label: 'Em Pausa' },
+  { value: 'completed', label: 'Concluído' },
+];
+
+const documentTypeOptions = [
+  { value: 'dashboard', label: 'Dashboard' },
+  { value: 'report', label: 'Relatório' },
+  { value: 'document', label: 'Documento' },
+];
+
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+
+  // Filter states for Chamados
+  const [ticketStatus, setTicketStatus] = useState<string>('__all__');
+  const [ticketDateFrom, setTicketDateFrom] = useState<Date | undefined>();
+  const [ticketDateTo, setTicketDateTo] = useState<Date | undefined>();
+
+  // Filter states for Projetos
+  const [projectStatus, setProjectStatus] = useState<string>('__all__');
+  const [projectDateFrom, setProjectDateFrom] = useState<Date | undefined>();
+  const [projectDateTo, setProjectDateTo] = useState<Date | undefined>();
+
+  // Filter states for Documentos
+  const [docType, setDocType] = useState<string>('__all__');
+  const [docDateFrom, setDocDateFrom] = useState<Date | undefined>();
+  const [docDateTo, setDocDateTo] = useState<Date | undefined>();
 
   // Fetch tickets for this client
   const { data: tickets = [], isLoading: isLoadingTickets } = useQuery({
@@ -116,6 +153,48 @@ export default function ClienteDashboard() {
     }
   };
 
+  // Filter tickets
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      if (ticketStatus !== '__all__' && ticket.status !== ticketStatus) return false;
+      const createdAt = new Date(ticket.created_at);
+      if (ticketDateFrom && isBefore(createdAt, startOfDay(ticketDateFrom))) return false;
+      if (ticketDateTo && isAfter(createdAt, endOfDay(ticketDateTo))) return false;
+      return true;
+    });
+  }, [tickets, ticketStatus, ticketDateFrom, ticketDateTo]);
+
+  // Filter projects
+  const filteredProjects = useMemo(() => {
+    if (!visibleProjects) return [];
+    return visibleProjects.filter((item) => {
+      const project = item.projects;
+      if (!project) return false;
+      if (projectStatus !== '__all__' && project.status !== projectStatus) return false;
+      const startDate = project.start_date ? new Date(project.start_date) : null;
+      if (projectDateFrom && startDate && isBefore(startDate, startOfDay(projectDateFrom))) return false;
+      if (projectDateTo && startDate && isAfter(startDate, endOfDay(projectDateTo))) return false;
+      return true;
+    });
+  }, [visibleProjects, projectStatus, projectDateFrom, projectDateTo]);
+
+  // Filter documents
+  const filteredDocuments = useMemo(() => {
+    if (!clientDocuments) return [];
+    return clientDocuments.filter((doc) => {
+      if (docType !== '__all__' && doc.document_type !== docType) return false;
+      const createdAt = doc.created_at ? new Date(doc.created_at) : null;
+      if (docDateFrom && createdAt && isBefore(createdAt, startOfDay(docDateFrom))) return false;
+      if (docDateTo && createdAt && isAfter(createdAt, endOfDay(docDateTo))) return false;
+      return true;
+    });
+  }, [clientDocuments, docType, docDateFrom, docDateTo]);
+
+  // Check for active filters
+  const hasTicketFilters = ticketStatus !== '__all__' || !!ticketDateFrom || !!ticketDateTo;
+  const hasProjectFilters = projectStatus !== '__all__' || !!projectDateFrom || !!projectDateTo;
+  const hasDocFilters = docType !== '__all__' || !!docDateFrom || !!docDateTo;
+
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
       {/* Header */}
@@ -166,6 +245,24 @@ export default function ClienteDashboard() {
                 </Button>
               </div>
 
+              {/* Filters */}
+              <DashboardFilters
+                statusOptions={ticketStatusOptions}
+                statusValue={ticketStatus}
+                onStatusChange={setTicketStatus}
+                statusLabel="Status"
+                dateFrom={ticketDateFrom}
+                dateTo={ticketDateTo}
+                onDateFromChange={setTicketDateFrom}
+                onDateToChange={setTicketDateTo}
+                onClearFilters={() => {
+                  setTicketStatus('__all__');
+                  setTicketDateFrom(undefined);
+                  setTicketDateTo(undefined);
+                }}
+                hasActiveFilters={hasTicketFilters}
+              />
+
               {/* Tickets list */}
               {isLoadingTickets ? (
                 <Card>
@@ -182,19 +279,27 @@ export default function ClienteDashboard() {
                     ))}
                   </div>
                 </Card>
-              ) : tickets.length === 0 ? (
+              ) : filteredTickets.length === 0 ? (
                 <Card className="p-12 text-center">
                   <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Nenhum chamado encontrado</h3>
-                  <p className="text-muted-foreground mb-6">Você ainda não criou nenhum chamado.</p>
-                  <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Abrir Primeiro Chamado
-                  </Button>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    {tickets.length === 0 ? 'Nenhum chamado encontrado' : 'Nenhum resultado'}
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    {tickets.length === 0 
+                      ? 'Você ainda não criou nenhum chamado.' 
+                      : 'Nenhum chamado corresponde aos filtros selecionados.'}
+                  </p>
+                  {tickets.length === 0 && (
+                    <Button onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Abrir Primeiro Chamado
+                    </Button>
+                  )}
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {tickets.map((ticket) => (
+                  {filteredTickets.map((ticket) => (
                     <Card
                       key={ticket.id}
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -220,6 +325,24 @@ export default function ClienteDashboard() {
 
             {/* Projects Tab */}
             <TabsContent value="projects" className="flex-1 mt-0">
+              {/* Filters */}
+              <DashboardFilters
+                statusOptions={projectStatusOptions}
+                statusValue={projectStatus}
+                onStatusChange={setProjectStatus}
+                statusLabel="Status"
+                dateFrom={projectDateFrom}
+                dateTo={projectDateTo}
+                onDateFromChange={setProjectDateFrom}
+                onDateToChange={setProjectDateTo}
+                onClearFilters={() => {
+                  setProjectStatus('__all__');
+                  setProjectDateFrom(undefined);
+                  setProjectDateTo(undefined);
+                }}
+                hasActiveFilters={hasProjectFilters}
+              />
+
               {isLoadingProjects ? (
                 <div className="grid md:grid-cols-2 gap-6">
                   {[1, 2].map((i) => (
@@ -234,13 +357,17 @@ export default function ClienteDashboard() {
                     </Card>
                   ))}
                 </div>
-              ) : !visibleProjects || visibleProjects.length === 0 ? (
+              ) : filteredProjects.length === 0 ? (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">Nenhum projeto atribuído no momento.</p>
+                  <p className="text-muted-foreground">
+                    {!visibleProjects || visibleProjects.length === 0 
+                      ? 'Nenhum projeto atribuído no momento.' 
+                      : 'Nenhum projeto corresponde aos filtros selecionados.'}
+                  </p>
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 gap-6">
-                  {visibleProjects.map((item) => {
+                  {filteredProjects.map((item) => {
                     const project = item.projects;
                     if (!project) return null;
                     
@@ -278,6 +405,24 @@ export default function ClienteDashboard() {
 
             {/* Documents Tab */}
             <TabsContent value="documents" className="flex-1 mt-0">
+              {/* Filters */}
+              <DashboardFilters
+                statusOptions={documentTypeOptions}
+                statusValue={docType}
+                onStatusChange={setDocType}
+                statusLabel="Tipo"
+                dateFrom={docDateFrom}
+                dateTo={docDateTo}
+                onDateFromChange={setDocDateFrom}
+                onDateToChange={setDocDateTo}
+                onClearFilters={() => {
+                  setDocType('__all__');
+                  setDocDateFrom(undefined);
+                  setDocDateTo(undefined);
+                }}
+                hasActiveFilters={hasDocFilters}
+              />
+
               {isLoadingDocuments ? (
                 <Card>
                   <div className="p-4 space-y-4">
@@ -290,9 +435,13 @@ export default function ClienteDashboard() {
                     ))}
                   </div>
                 </Card>
-              ) : !clientDocuments || clientDocuments.length === 0 ? (
+              ) : filteredDocuments.length === 0 ? (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">Nenhum documento disponível no momento.</p>
+                  <p className="text-muted-foreground">
+                    {!clientDocuments || clientDocuments.length === 0 
+                      ? 'Nenhum documento disponível no momento.' 
+                      : 'Nenhum documento corresponde aos filtros selecionados.'}
+                  </p>
                 </Card>
               ) : (
                 <Card>
@@ -306,7 +455,7 @@ export default function ClienteDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {clientDocuments.map((doc) => (
+                      {filteredDocuments.map((doc) => (
                         <TableRow key={doc.id}>
                           <TableCell>
                             <div className="flex items-center">
