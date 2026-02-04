@@ -7,7 +7,7 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -126,6 +126,46 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_description: 'Gerenciar permissões de acesso',
     category: 'gestao',
     requires_admin: true,
+    requires_team_member: true,
+  },
+
+  // === FISCAL PAGES ===
+  {
+    page_path: '/equipe/fiscal/dashboard',
+    page_name: 'Fiscal Dashboard',
+    page_description: 'Painel principal da área Fiscal',
+    category: 'fiscal',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // === FIXOS PAGES ===
+  {
+    page_path: '/equipe/fixos/dashboard',
+    page_name: 'Fixos Dashboard',
+    page_description: 'Painel principal da área Fixos',
+    category: 'fixos',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // === OSG PAGES ===
+  {
+    page_path: '/equipe/osg/dashboard',
+    page_name: 'OSG Dashboard',
+    page_description: 'Painel principal da área OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // === PROJETOS PAGES ===
+  {
+    page_path: '/equipe/projetos/dashboard',
+    page_name: 'Projetos Dashboard',
+    page_description: 'Painel principal da área de Projetos',
+    category: 'projetos',
+    requires_admin: false,
     requires_team_member: true,
   },
 ];

@@ -58,6 +58,12 @@ import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 
+// New Area Dashboards
+import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
+import FixosDashboard from "./pages/equipe/fixos/FixosDashboard";
+import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
+import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -123,6 +129,18 @@ const App = () => (
             <Route path="/gestao/chamados/:id" element={<GestaoAccessGate><GestaoDetalhesChamado /></GestaoAccessGate>} />
             <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
+            
+            {/* Fiscal Routes */}
+            <Route path="/equipe/fiscal/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/fiscal/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            
+            {/* Fixos Routes */}
+            <Route path="/equipe/fixos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/fixos/dashboard"><FixosDashboard /></PageAccessGate></TeamRoute>} />
+            
+            {/* OSG Routes */}
+            <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
+            
+            {/* Projetos Routes */}
+            <Route path="/equipe/projetos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/dashboard"><ProjetosDashboard /></PageAccessGate></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
