@@ -240,7 +240,8 @@ export default function ClienteDashboard() {
                   <p className="text-sm text-muted-foreground">Acompanhe o status das suas solicitações</p>
                 </div>
                 <Button size="sm" onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700 text-white">
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 mr-2" />
+                  Abrir Chamado
                 </Button>
               </div>
 
