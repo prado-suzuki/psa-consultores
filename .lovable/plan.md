@@ -1,48 +1,135 @@
 
-# Plano: Criação de 4 Novas Áreas com Layout Padronizado
+# Plano: Sistema de Gestão de Demandas Padronizado na Área de Projetos
 
 ## Objetivo
 
-Criar 4 novas áreas de trabalho (Fiscal, Fixos, OSG, Projetos) que aparecem na seleção após autenticação, cada uma com um ambiente interno seguindo o mesmo design do Digital Rotina.
+Criar um sistema de gestão de demandas padronizado dentro da área de Projetos que consolida todas as equipes (Fiscal, OSG) com visibilidade configurável, inspirado no OpenProject e baseado nos padrões do ClickUp existente.
 
 ---
 
-## Visão Geral da Arquitetura
+## Visão Geral da Estrutura
 
 ```text
-/equipe (EquipeAuth)
-    ↓ seleciona área
-/equipe/{area} (Seletor de subáreas - para Digital)
-    ↓ OU
-/equipe/{area}/dashboard (Dashboard da área)
+/equipe/projetos/dashboard      → Visão geral unificada
+/equipe/projetos/demandas       → Lista de pacotes de trabalho (Work Packages)
+/equipe/projetos/demandas/:id   → Detalhes do pacote (atividade, arquivos, relações)
 ```
 
-### Fluxo Proposto
+### Hierarquia Organizacional
 
-1. Usuário faz login em `/equipe`
-2. Seleciona uma das 6 áreas disponíveis:
-   - Digital (existente)
-   - Gestão (existente)
-   - **Fiscal** (nova)
-   - **Fixos** (nova)
-   - **OSG** (nova)
-   - **Projetos** (nova)
-3. É redirecionado para o dashboard da área selecionada
+- **Área Fiscal**: Projetos compartilhados entre Felipe, Washington e Ricardo
+- **Área OSG**: Ambiente isolado para Cuba (não compartilha informações)
+  - Sub-abas: Fixos (Ricardo), Pontuais (Felipe), outras conforme necessidade
+
+### Etapas Padrão de Projeto Fiscal
+
+1. Solicitação de documentos ao cliente
+2. Análise de documentação
+3. Elaboração de WP (Working Paper)
+4. Elaboração de relatórios
+5. Entrega ao cliente
+6. Conclusão
+
+---
+
+## Modelo de Dados
+
+### Nova Tabela: `project_work_packages` (Pacotes de Trabalho)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | uuid | ID único |
+| `code` | integer | Código numérico sequencial (#116, #117, etc.) |
+| `title` | text | Assunto do pacote |
+| `description` | text | Descrição detalhada |
+| `type` | enum | FASE, TAREFA, ÉPICO |
+| `status` | enum | Novo, Pendente agendamento, Agendado, Em progresso, Em revisão, Concluído, Rejeitado |
+| `priority` | enum | Alto, Normal, Baixo |
+| `assigned_to` | uuid | Atribuído para (FK profiles) |
+| `responsible` | uuid | Responsável (FK profiles) |
+| `parent_id` | uuid | Pacote pai (hierarquia) |
+| `project_id` | uuid | Projeto do cliente (FK projects) |
+| `client_id` | uuid | Cliente (FK catalog_clients) |
+| `area` | enum | fiscal, osg, fixos, pontuais |
+| `estimated_hours` | decimal | Horas estimadas |
+| `spent_hours` | decimal | Tempo gasto |
+| `remaining_hours` | decimal | Trabalho restante |
+| `completion_percent` | integer | % de conclusão |
+| `start_date` | date | Data de início |
+| `due_date` | date | Data de conclusão |
+| `stage` | enum | Etapa padrão do projeto |
+| `created_by` | uuid | Criado por |
+| `created_at` | timestamp | Data de criação |
+| `updated_at` | timestamp | Última atualização |
+
+### Nova Tabela: `work_package_activities` (Histórico de Atividades)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | uuid | ID único |
+| `work_package_id` | uuid | FK work_packages |
+| `user_id` | uuid | Quem realizou a ação |
+| `action_type` | text | Tipo: status_change, assignment, comment, file_upload |
+| `old_value` | text | Valor anterior |
+| `new_value` | text | Novo valor |
+| `comment` | text | Comentário opcional |
+| `created_at` | timestamp | Data da ação |
+
+### Nova Tabela: `work_package_relations` (Relações entre Pacotes)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | uuid | ID único |
+| `source_id` | uuid | Pacote origem |
+| `target_id` | uuid | Pacote destino |
+| `relation_type` | enum | filho, relacionado, anterior, sucessor, pai, duplicado |
+| `created_at` | timestamp | Data de criação |
+
+### Nova Tabela: `work_package_files` (Arquivos)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | uuid | ID único |
+| `work_package_id` | uuid | FK work_packages |
+| `file_name` | text | Nome do arquivo |
+| `file_path` | text | Caminho no storage |
+| `file_size` | integer | Tamanho em bytes |
+| `uploaded_by` | uuid | Quem enviou |
+| `created_at` | timestamp | Data de upload |
+
+### Nova Tabela: `work_package_watchers` (Observadores)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | uuid | ID único |
+| `work_package_id` | uuid | FK work_packages |
+| `user_id` | uuid | Usuário observador |
+| `created_at` | timestamp | Data de criação |
 
 ---
 
 ## Arquivos a Criar
 
+### Componentes
+
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/components/equipe/fiscal/FiscalLayout.tsx` | Layout da área Fiscal |
-| `src/components/equipe/fixos/FixosLayout.tsx` | Layout da área Fixos |
-| `src/components/equipe/osg/OsgLayout.tsx` | Layout da área OSG |
-| `src/components/equipe/projetos/ProjetosLayout.tsx` | Layout da área Projetos |
-| `src/pages/equipe/fiscal/FiscalDashboard.tsx` | Dashboard da área Fiscal |
-| `src/pages/equipe/fixos/FixosDashboard.tsx` | Dashboard da área Fixos |
-| `src/pages/equipe/osg/OsgDashboard.tsx` | Dashboard da área OSG |
-| `src/pages/equipe/projetos/ProjetosDashboard.tsx` | Dashboard da área Projetos |
+| `src/components/projetos/WorkPackageList.tsx` | Lista de pacotes com tabela hierárquica |
+| `src/components/projetos/WorkPackageFilters.tsx` | Barra de filtros lateral (padrão OpenProject) |
+| `src/components/projetos/WorkPackageDetail.tsx` | Detalhes do pacote com abas |
+| `src/components/projetos/WorkPackageForm.tsx` | Modal de criação/edição |
+| `src/components/projetos/ActivityTimeline.tsx` | Timeline de atividades |
+| `src/components/projetos/RelationsPanel.tsx` | Painel de relações (Pais/Filhos) |
+| `src/components/projetos/StatusBadge.tsx` | Badge de status com cores |
+| `src/components/projetos/ProjectSelector.tsx` | Dropdown de seleção de projeto |
+
+### Páginas
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/pages/equipe/projetos/ProjetosDemandas.tsx` | Lista principal de demandas |
+| `src/pages/equipe/projetos/ProjetosDemandasDetalhe.tsx` | Detalhes de uma demanda |
+| `src/pages/equipe/projetos/ProjetosVisaoGeral.tsx` | Dashboard com métricas |
 
 ---
 
@@ -50,149 +137,205 @@ Criar 4 novas áreas de trabalho (Fiscal, Fixos, OSG, Projetos) que aparecem na 
 
 | Arquivo | Mudanças |
 |---------|----------|
-| `src/pages/equipe/EquipeAuth.tsx` | Adicionar as 4 novas áreas no array `areas` e lógica de navegação |
-| `src/App.tsx` | Adicionar rotas para as 4 novas áreas |
-| `src/config/protectedPages.ts` | Registrar páginas das novas áreas para controle de acesso |
+| `src/components/equipe/projetos/ProjetosLayout.tsx` | Adicionar navegação lateral |
+| `src/pages/equipe/projetos/ProjetosDashboard.tsx` | Transformar em visão geral |
+| `src/App.tsx` | Adicionar novas rotas |
+| `src/config/protectedPages.ts` | Registrar novas páginas |
 
 ---
 
-## Estrutura de Cada Layout
+## Interface de Usuário (Baseada no OpenProject)
 
-Cada layout seguirá o padrão do `EquipeLayout.tsx`:
+### Sidebar de Filtros (Esquerda)
 
-- **Sidebar colapsável** com fundo branco
-- **Header** com ícone e nome da área em container teal
-- **Navegação** inicialmente vazia (sem abas/subabas como solicitado)
-- **Footer** com card do usuário e botões de ação
-- **Área principal** com ScrollArea e padding consistente
+```text
+PADRÃO
+├── Todos abertos
+├── Última atividade  
+├── Criado recentemente
+├── Atrasado
+├── Sumário
+├── Criado por mim
+├── Atribuído a mim
+├── Compartilhado com usuários
+└── Compartilhados comigo
 
-### Cores e Ícones por Área
+ÁREAS
+├── Fiscal
+├── OSG
+│   ├── Fixos
+│   └── Pontuais
+└── [Criar novo filtro salvo]
+```
 
-| Área | Ícone | Cor do Gradiente |
-|------|-------|------------------|
-| Fiscal | `Calculator` | from-emerald-500 to-teal-500 |
-| Fixos | `Building` | from-blue-500 to-indigo-500 |
-| OSG | `Briefcase` | from-orange-500 to-amber-500 |
-| Projetos | `FolderKanban` | from-violet-500 to-purple-500 |
+### Tabela Principal (Centro)
+
+| ID | ↓ ASSUNTO | TIPO | PAI | STATUS | PRIORIDADE | ATRIBUIÇÃO | RESPONSÁVEL |
+|----|-----------|------|-----|--------|------------|------------|-------------|
+| 116 | Folha de pagamentos | FASE | #115 Diagnóstico... | Novo | Normal | - | - |
+| 117 | Admissões | TAREFA | #116 Folha... | Em revisão | Normal | João | Maria |
+
+### Painel de Detalhes (Direita - Ao clicar em item)
+
+**Cabeçalho:**
+- Pai: Link para pacote pai
+- [←] [→] Navegação entre itens
+- Badge: FASE Folha de pagamentos
+- Botão: [+ Criar ▼]
+
+**Informações:**
+- Status (dropdown): Novo → Agendado → Em progresso → Em revisão → Concluído
+- Criado por: Nome. Última atualização em DD/MM/YYYY HH:MM
+
+**PESSOAS:**
+- Atribuído para: [Seletor de usuário]
+- Responsável: [Seletor de usuário]
+- Local*: [Seletor] (Cliente/Projeto)
+
+**DETALHES:**
+- % de conclusão: 0% · Σ 0%
+- Prioridade*: ● Normal
+
+**ESTIMATIVAS E PROGRESSO:**
+- Trabalho: - · Σ 20h
+- Tempo gasto: 15h ⏱
+- Pontos de história: -
+- Trabalho restante: - · Σ 20h
+
+**Abas:**
+- ATIVIDADE | ARQUIVOS | RELAÇÕES (5) | OBSERVADORES | REUNIÕES
+
+### Aba ATIVIDADE (Histórico completo)
+
+```text
+[Avatar] Arnon Locks  06/06/2023 11:19 PM
+Pai definido como Diagnóstico de levantamento...
+
+[Avatar] System  05/07/2025 09:14 AM
+Atualização do sistema OpenProject:
+- Cálculo de progresso automaticamente ajustado
+- Trabalho restante excluído 20h
+- % total concluída definido como 0%
+
+[Avatar] Patricia Melo  03/02/2026 02:25 PM
+Status alterado de Novo para Agendado
+Local definido como Prado Suzuki
+
+[Campo de comentário: "Adicione um comentário. Digite @ para notificar..."]
+```
+
+### Aba RELAÇÕES
+
+```text
+Pais (1)                              [+ Relação ▼]
+┌──────────────────────────────────────────────┐
+│ FASE #115 [Em progresso]                 ··· │
+│ Diagnóstico de levantamento...               │
+│ 📅 06/06/2023                                │
+└──────────────────────────────────────────────┘
+
+Filhos (4)                            [+ Filho ▼]
+┌──────────────────────────────────────────────┐
+│ TAREFA #117 [Em revisão]                 ··· │
+│ Admissões                                    │
+│ 📌 06/06/2023 -                              │
+├──────────────────────────────────────────────┤
+│ TAREFA #118 [Concluído]                  ··· │
+│ Demissões                                    │
+│ 📌 06/06/2023 -                              │
+└──────────────────────────────────────────────┘
+
+Menu [+ Relação]:
+├── Novo filho
+├── Filho
+├── Relacionado a
+├── Anterior (antes)
+├── Sucessor (depois)
+├── Pai
+└── Duplicados
+```
 
 ---
 
-## Detalhes Técnicos
+## Status Disponíveis (Workflow)
 
-### 1. Atualização do EquipeAuth.tsx
+| Status | Cor | Descrição |
+|--------|-----|-----------|
+| Novo | Azul | Recém criado |
+| Pendente agendamento | Amarelo | Aguardando data |
+| Agendado | Laranja | Data definida |
+| Em progresso | Azul escuro | Em execução |
+| Em revisão | Roxo | Aguardando validação |
+| Concluído | Verde | Finalizado |
+| Rejeitado | Vermelho | Cancelado/rejeitado |
+
+---
+
+## Etapas Padrão de Projeto (Campo `stage`)
+
+| Etapa | Ordem | Descrição |
+|-------|-------|-----------|
+| Solicitação de documentos | 1 | Solicitação inicial ao cliente |
+| Análise de documentação | 2 | Análise dos documentos recebidos |
+| Elaboração de WP | 3 | Criação do Working Paper |
+| Elaboração de relatórios | 4 | Montagem dos relatórios |
+| Entrega ao cliente | 5 | Envio dos resultados |
+| Conclusão | 6 | Projeto finalizado |
+
+---
+
+## Melhorias sobre OpenProject/ClickUp
+
+1. **Integração nativa com clientes PSA**: Dropdown já conectado a `catalog_clients`
+2. **Segregação por área**: Fiscal compartilhado, OSG isolado com sub-abas
+3. **Etapas padrão fiscais**: Workflow específico para projetos contábeis
+4. **Timeline de atividades**: Histórico completo de alterações
+5. **Hierarquia visual**: Indentação na tabela para Pai → Filho
+6. **Filtros salvos**: Usuário pode criar e salvar filtros personalizados
+7. **Cálculo automático**: % conclusão calculado de filhos
+8. **Notificações @menção**: Mencionar usuários em comentários
+
+---
+
+## Integração Futura: Slack
+
+Webhooks para notificar via Slack quando:
+- Novo pacote atribuído
+- Status alterado
+- Menção em comentário
+- Data limite se aproximando
+
+---
+
+## Rotas a Adicionar
 
 ```typescript
-const areas = [
-  { id: 'digital', label: 'Digital' },
-  { id: 'gestao', label: 'Gestão' },
-  { id: 'fiscal', label: 'Fiscal' },
-  { id: 'fixos', label: 'Fixos' },
-  { id: 'osg', label: 'OSG' },
-  { id: 'projetos', label: 'Projetos' },
+// Projetos - Gestão de Demandas
+<Route path="/equipe/projetos/demandas" element={...} />
+<Route path="/equipe/projetos/demandas/:id" element={...} />
+```
+
+---
+
+## Navegação no ProjetosLayout
+
+```typescript
+const navItems = [
+  { path: '/equipe/projetos/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+  { path: '/equipe/projetos/demandas', label: 'Demandas', icon: ListTodo },
 ];
-
-// Atualizar navigateToArea
-const navigateToArea = (navigate, area) => {
-  if (area === 'digital') navigate('/equipe/digital');
-  else if (area === 'gestao') navigate('/gestao');
-  else if (area === 'fiscal') navigate('/equipe/fiscal/dashboard');
-  else if (area === 'fixos') navigate('/equipe/fixos/dashboard');
-  else if (area === 'osg') navigate('/equipe/osg/dashboard');
-  else if (area === 'projetos') navigate('/equipe/projetos/dashboard');
-  else navigate('/equipe/dashboard');
-};
-
-// Atualizar checkAreaAccess para incluir novas categorias
-```
-
-### 2. Estrutura do Layout Base (exemplo: FiscalLayout)
-
-```typescript
-interface FiscalLayoutProps {
-  children: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  headerActions?: React.ReactNode;
-}
-
-// Sidebar com:
-// - Header com ícone Calculator em bg-teal-500/10
-// - Nome "Fiscal" e subtítulo
-// - Navegação vazia (sem itens por enquanto)
-// - Footer com user card, "Trocar área" e "Sair"
-```
-
-### 3. Estrutura do Dashboard Base (exemplo: FiscalDashboard)
-
-```typescript
-const FiscalDashboard = () => {
-  return (
-    <FiscalLayout title="Dashboard" subtitle="Visão geral da área">
-      <div className="flex items-center justify-center h-[60vh] text-slate-400">
-        <div className="text-center">
-          <Calculator className="h-16 w-16 mx-auto mb-4 opacity-50" />
-          <p className="text-lg">Área em desenvolvimento</p>
-        </div>
-      </div>
-    </FiscalLayout>
-  );
-};
-```
-
-### 4. Novas Rotas no App.tsx
-
-```typescript
-// Fiscal Routes
-<Route path="/equipe/fiscal/dashboard" element={
-  <TeamRoute>
-    <PageAccessGate pagePath="/equipe/fiscal/dashboard">
-      <FiscalDashboard />
-    </PageAccessGate>
-  </TeamRoute>
-} />
-
-// Fixos Routes
-<Route path="/equipe/fixos/dashboard" element={...} />
-
-// OSG Routes
-<Route path="/equipe/osg/dashboard" element={...} />
-
-// Projetos Routes
-<Route path="/equipe/projetos/dashboard" element={...} />
-```
-
-### 5. Registro em protectedPages.ts
-
-Adicionar entradas para cada nova área com categoria própria:
-
-```typescript
-// === FISCAL PAGES ===
-{
-  page_path: '/equipe/fiscal/dashboard',
-  page_name: 'Fiscal Dashboard',
-  page_description: 'Painel principal da área Fiscal',
-  category: 'fiscal',
-  requires_admin: false,
-  requires_team_member: true,
-},
-// ... similar para fixos, osg, projetos
 ```
 
 ---
 
 ## Resumo de Entregas
 
-1. **4 novos Layouts** - Componentes de layout seguindo o padrão visual existente
-2. **4 novos Dashboards** - Páginas iniciais vazias/placeholder para cada área
-3. **Atualização do seletor de áreas** - EquipeAuth com as 4 novas opções
-4. **Rotas configuradas** - App.tsx com proteção por TeamRoute e PageAccessGate
-5. **Controle de acesso** - protectedPages.ts com as novas páginas registradas
-
----
-
-## Observações
-
-- Os layouts são criados sem navegação interna (sem abas/subabas) conforme solicitado
-- O design segue o padrão Light Teal/Slate do sistema
-- Cada área terá sua própria categoria para controle granular de permissões
-- Os dashboards mostram um placeholder indicando "área em desenvolvimento"
+1. **Modelo de dados**: 4 novas tabelas para gestão completa de pacotes de trabalho
+2. **Interface similar ao OpenProject**: Lista hierárquica + painel de detalhes
+3. **Sistema de filtros**: Sidebar com filtros padrão e salvos
+4. **Histórico de atividades**: Timeline de todas as alterações
+5. **Sistema de relações**: Pai/Filho/Relacionado/Anterior/Sucessor
+6. **Gestão de arquivos**: Upload e download de documentos
+7. **Segregação por área**: Fiscal compartilhado, OSG isolado
+8. **Etapas padrão**: Workflow específico para projetos fiscais
+9. **Preparação para Slack**: Estrutura pronta para webhooks de notificação
