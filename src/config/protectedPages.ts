@@ -129,22 +129,22 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
-  // === FISCAL PAGES ===
+  // === FISCAL PAGES (dentro de Projetos) ===
   {
-    page_path: '/equipe/fiscal/dashboard',
+    page_path: '/equipe/projetos/fiscal/dashboard',
     page_name: 'Fiscal Dashboard',
     page_description: 'Painel principal da área Fiscal',
-    category: 'fiscal',
+    category: 'projetos',
     requires_admin: false,
     requires_team_member: true,
   },
 
-  // === FIXOS PAGES ===
+  // === FIXOS PAGES (dentro de Projetos) ===
   {
-    page_path: '/equipe/fixos/dashboard',
+    page_path: '/equipe/projetos/fixos/dashboard',
     page_name: 'Fixos Dashboard',
     page_description: 'Painel principal da área Fixos',
-    category: 'fixos',
+    category: 'projetos',
     requires_admin: false,
     requires_team_member: true,
   },
