@@ -61,7 +61,7 @@ interface FormData {
   status: WorkPackageStatus;
   priority: WorkPackagePriority;
   area: WorkPackageArea;
-  stage: WorkPackageStage | '';
+  stage: WorkPackageStage | '__none__';
   assigned_to: string;
   responsible: string;
   client_id: string;
@@ -87,12 +87,12 @@ export function WorkPackageForm({
       status: 'novo',
       priority: 'normal',
       area: 'fiscal',
-      stage: '',
-      assigned_to: '',
-      responsible: '',
-      client_id: '',
-      project_id: '',
-      parent_id: '',
+      stage: '__none__',
+      assigned_to: '__none__',
+      responsible: '__none__',
+      client_id: '__none__',
+      project_id: '__none__',
+      parent_id: '__none__',
       estimated_hours: '',
       start_date: undefined,
       due_date: undefined,
@@ -162,12 +162,12 @@ export function WorkPackageForm({
         status: initialData.status,
         priority: initialData.priority,
         area: initialData.area,
-        stage: initialData.stage || '',
-        assigned_to: initialData.assigned_to || '',
-        responsible: initialData.responsible || '',
-        client_id: initialData.client_id || '',
-        project_id: initialData.project_id || '',
-        parent_id: initialData.parent_id || '',
+        stage: initialData.stage || '__none__',
+        assigned_to: initialData.assigned_to || '__none__',
+        responsible: initialData.responsible || '__none__',
+        client_id: initialData.client_id || '__none__',
+        project_id: initialData.project_id || '__none__',
+        parent_id: initialData.parent_id || '__none__',
         estimated_hours: initialData.estimated_hours?.toString() || '',
         start_date: initialData.start_date ? new Date(initialData.start_date) : undefined,
         due_date: initialData.due_date ? new Date(initialData.due_date) : undefined,
@@ -180,18 +180,21 @@ export function WorkPackageForm({
         status: 'novo',
         priority: 'normal',
         area: 'fiscal',
-        stage: '',
-        assigned_to: '',
-        responsible: '',
-        client_id: '',
-        project_id: '',
-        parent_id: '',
+        stage: '__none__',
+        assigned_to: '__none__',
+        responsible: '__none__',
+        client_id: '__none__',
+        project_id: '__none__',
+        parent_id: '__none__',
         estimated_hours: '',
         start_date: undefined,
         due_date: undefined,
       });
     }
   }, [initialData, form]);
+
+  // Helper to convert __none__ to null
+  const toNullable = (value: string) => value === '__none__' ? null : value;
 
   const handleSubmit = (data: FormData) => {
     const submitData: Partial<WorkPackage> = {
@@ -201,12 +204,12 @@ export function WorkPackageForm({
       status: data.status,
       priority: data.priority,
       area: data.area,
-      stage: data.stage || null,
-      assigned_to: data.assigned_to || null,
-      responsible: data.responsible || null,
-      client_id: data.client_id || null,
-      project_id: data.project_id || null,
-      parent_id: data.parent_id || null,
+      stage: toNullable(data.stage) as WorkPackageStage | null,
+      assigned_to: toNullable(data.assigned_to),
+      responsible: toNullable(data.responsible),
+      client_id: toNullable(data.client_id),
+      project_id: toNullable(data.project_id),
+      parent_id: toNullable(data.parent_id),
       estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
       start_date: data.start_date ? format(data.start_date, 'yyyy-MM-dd') : null,
       due_date: data.due_date ? format(data.due_date, 'yyyy-MM-dd') : null,
@@ -379,7 +382,7 @@ export function WorkPackageForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="__none__">Nenhuma</SelectItem>
                         {Object.entries(STAGE_CONFIG)
                           .sort((a, b) => a[1].order - b[1].order)
                           .map(([key, config]) => (
@@ -425,7 +428,7 @@ export function WorkPackageForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Ninguém</SelectItem>
+                        <SelectItem value="__none__">Ninguém</SelectItem>
                         {teamMembers.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.first_name} {member.last_name}
@@ -452,7 +455,7 @@ export function WorkPackageForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Ninguém</SelectItem>
+                        <SelectItem value="__none__">Ninguém</SelectItem>
                         {teamMembers.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.first_name} {member.last_name}
@@ -479,7 +482,7 @@ export function WorkPackageForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="__none__">Nenhum</SelectItem>
                         {clients.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
@@ -506,7 +509,7 @@ export function WorkPackageForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="__none__">Nenhum</SelectItem>
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.name}
@@ -534,7 +537,7 @@ export function WorkPackageForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhum (nível raiz)</SelectItem>
+                      <SelectItem value="__none__">Nenhum (nível raiz)</SelectItem>
                       {parentPackages.map((pkg) => (
                         <SelectItem key={pkg.id} value={pkg.id}>
                           #{pkg.code} - {pkg.title}
