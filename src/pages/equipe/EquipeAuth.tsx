@@ -13,7 +13,7 @@ import logo from '@/assets/logo-psa.png';
 
 const areas = [
   { id: 'digital', label: 'Digital' },
-  { id: 'tex', label: 'Tex' },
+  { id: 'tex', label: 'Tax' },
   { id: 'osg', label: 'OSG' },
   { id: 'board', label: 'Board' },
   { id: 'controle_site', label: 'Site' },
