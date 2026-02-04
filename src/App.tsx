@@ -64,6 +64,7 @@ import FixosDashboard from "./pages/equipe/fixos/FixosDashboard";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
 import ProjetosDemandas from "./pages/equipe/projetos/ProjetosDemandas";
+import ProjetosAreaSelector from "./pages/equipe/projetos/ProjetosAreaSelector";
 
 const queryClient = new QueryClient();
 
@@ -131,18 +132,19 @@ const App = () => (
             <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
             
-            {/* Fiscal Routes */}
-            <Route path="/equipe/fiscal/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/fiscal/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            {/* Projetos - Seletor de Sub-áreas */}
+            <Route path="/equipe/projetos" element={<TeamRoute><ProjetosAreaSelector /></TeamRoute>} />
+            <Route path="/equipe/projetos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/dashboard"><ProjetosDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/projetos/demandas" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/demandas"><ProjetosDemandas /></PageAccessGate></TeamRoute>} />
             
-            {/* Fixos Routes */}
-            <Route path="/equipe/fixos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/fixos/dashboard"><FixosDashboard /></PageAccessGate></TeamRoute>} />
+            {/* Fiscal Routes (dentro de Projetos) */}
+            <Route path="/equipe/projetos/fiscal/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            
+            {/* Fixos Routes (dentro de Projetos) */}
+            <Route path="/equipe/projetos/fixos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fixos/dashboard"><FixosDashboard /></PageAccessGate></TeamRoute>} />
             
             {/* OSG Routes */}
             <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
-            
-            {/* Projetos Routes */}
-            <Route path="/equipe/projetos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/dashboard"><ProjetosDashboard /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/projetos/demandas" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/demandas"><ProjetosDemandas /></PageAccessGate></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

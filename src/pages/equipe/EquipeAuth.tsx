@@ -14,8 +14,6 @@ import logo from '@/assets/logo-psa.png';
 const areas = [
   { id: 'digital', label: 'Digital' },
   { id: 'gestao', label: 'Gestão' },
-  { id: 'fiscal', label: 'Fiscal' },
-  { id: 'fixos', label: 'Fixos' },
   { id: 'osg', label: 'OSG' },
   { id: 'projetos', label: 'Projetos' },
 ];
@@ -30,10 +28,8 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
     const areaCategories: Record<string, string[]> = {
       digital: ['rotina', 'dev'],
       gestao: ['gestao'],
-      fiscal: ['fiscal'],
-      fixos: ['fixos'],
       osg: ['osg'],
-      projetos: ['projetos'],
+      projetos: ['projetos', 'fiscal', 'fixos'],
     };
 
     const categories = areaCategories[area];
@@ -65,10 +61,8 @@ const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) 
   const areaRoutes: Record<string, string> = {
     digital: '/equipe/digital',
     gestao: '/gestao',
-    fiscal: '/equipe/fiscal/dashboard',
-    fixos: '/equipe/fixos/dashboard',
     osg: '/equipe/osg/dashboard',
-    projetos: '/equipe/projetos/dashboard',
+    projetos: '/equipe/projetos',
   };
   
   navigate(areaRoutes[area] || '/equipe/dashboard');

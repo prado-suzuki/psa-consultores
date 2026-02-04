@@ -93,7 +93,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
           <Button 
             variant="ghost" 
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-emerald-600 transition-colors`}
-            onClick={() => navigate('/equipe')}
+            onClick={() => navigate('/equipe/projetos')}
             title={collapsed ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
