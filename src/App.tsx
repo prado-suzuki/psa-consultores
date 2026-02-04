@@ -100,7 +100,6 @@ const App = () => (
             <Route path="/equipe/chamados" element={<TeamRoute><EquipeChamados /></TeamRoute>} />
             <Route path="/equipe/chamados/:id" element={<TeamRoute><EquipeDetalhesChamado /></TeamRoute>} />
             <Route path="/equipe/dashboard" element={<TeamRoute><EquipeDashboard /></TeamRoute>} />
-            <Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
             <Route path="/equipe/sprints" element={<TeamRoute><EquipeSprints /></TeamRoute>} />
             <Route path="/equipe/sprints/:id" element={<TeamRoute><EquipeSprintDetalhes /></TeamRoute>} />
