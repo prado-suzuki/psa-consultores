@@ -1,10 +1,13 @@
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
-import { FiscalInbox } from '@/components/equipe/fiscal/FiscalInbox';
+import { MinhasDemandas } from '@/components/equipe/fiscal/MinhasDemandas';
 
 const FiscalDemandasInbox = () => {
   return (
-    <FiscalLayout title="Caixa de Entrada" subtitle="Notificações e atividades">
-      <FiscalInbox />
+    <FiscalLayout 
+      title="Minhas Demandas" 
+      subtitle="Demandas atribuidas, criadas ou sob sua responsabilidade"
+    >
+      <MinhasDemandas />
     </FiscalLayout>
   );
 };
