@@ -1,184 +1,258 @@
 
 
-# Plano: Reordenar Áreas e Adicionar "Board"
+# Plano: Adaptar Layout para Gestao de Projetos Agil
 
-## Objetivo
+## Problema Identificado
 
-Ajustar a ordem das áreas no seletor de login da equipe, renomear "Gestão" para "Controle Site" e criar uma nova área chamada "Board".
+O layout atual (ProjetosDemandas.tsx) divide a tela em 3 paineis fixos:
+- Sidebar de filtros (240px)
+- Lista central 
+- Painel de detalhes (400px)
 
----
+Isso cria um visual "engessado" onde a tabela fica comprimida.
 
-## Mudanças Solicitadas
+## Solucao: Layout Agil
 
-| Antes | Depois |
-|-------|--------|
-| Digital | Digital |
-| Gestão | Projetos |
-| OSG | OSG |
-| Projetos | Controle Site *(renomeado de Gestão)* |
-| - | Board *(nova)* |
+### Novo Layout
 
-**Nova ordem final:**
-1. Digital
-2. Projetos
-3. OSG
-4. Controle Site
-5. Board
+```text
++------------------------------------------------------------------+
+| FISCAL                                                           |
+|------------------------------------------------------------------|
+| [ Caixa de Entrada ] [ Pacotes de Trabalho ] [ Clientes ]        |
+|------------------------------------------------------------------|
+|                                                                  |
+| [Projeto: v] [Filtrar v] [Buscar...             ] [+ Criar]      |
+|                                                                  |
+| +--------------------------------------------------------------+ |
+| | ID  | Assunto                    | Tipo | Status | Resp  |..| |
+| |-----|----------------------------|------|--------|-------|--| |
+| | #37 | > Preparacao de documentos | FASE | Novo   | Joao  |  | |
+| |     |   > 107 Abertura fiscal    | TAR  | Pend   | Maria |  | |
+| | #38 | > Validacao de dados       | FASE | Prog   | Pedro |  | |
+| +--------------------------------------------------------------+ |
+|                                                                  |
++------------------------------------------------------------------+
+                              |
+                              | (ao clicar numa linha)
+                              v
++------------------------------------------------------------------+
+|                                                       [X]        |
+| Sheet desliza da direita com detalhes do item                    |
+| (nao divide a tela, abre sobre o conteudo)                       |
++------------------------------------------------------------------+
+```
 
----
+### Mudancas Principais
 
-## Arquivos a Criar
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/pages/equipe/board/BoardDashboard.tsx` | Dashboard inicial da área Board |
-| `src/components/equipe/board/BoardLayout.tsx` | Layout comum para páginas do Board |
+1. **Tabela ocupa 100% da largura** - sem paineis laterais fixos
+2. **Detalhes abrem em Sheet** (painel deslizante) - nao em coluna fixa
+3. **Filtros no topo** - como dropdowns compactos
+4. **Hierarquia preservada** - FASE > TAREFA com indentacao
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Mudanças |
-|---------|----------|
-| `src/pages/equipe/EquipeAuth.tsx` | Reordenar áreas, renomear gestao→controle_site, adicionar board |
-| `src/App.tsx` | Adicionar rotas do Board |
-| `src/config/protectedPages.ts` | Adicionar categoria 'board' e páginas do Board |
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/pages/equipe/fiscal/FiscalDashboard.tsx` | Implementar sistema de 3 abas |
+| `src/components/equipe/fiscal/FiscalLayout.tsx` | Simplificar - remover sidebar vazia |
+
+## Novos Componentes
+
+| Componente | Descricao |
+|------------|-----------|
+| `src/components/equipe/fiscal/FiscalInbox.tsx` | Caixa de entrada (notificacoes) |
+| `src/components/equipe/fiscal/FiscalWorkPackages.tsx` | Pacotes de trabalho com tabela full-width |
+| `src/components/equipe/fiscal/FiscalClients.tsx` | Gestao de clientes |
+| `src/components/equipe/fiscal/WorkPackageSheet.tsx` | Sheet de detalhes (substitui painel fixo) |
 
 ---
 
-## Detalhamento das Mudanças
+## Detalhamento: FiscalWorkPackages
 
-### 1. EquipeAuth.tsx - Array de áreas
+### Estrutura
 
-**Antes:**
 ```typescript
-const areas = [
-  { id: 'digital', label: 'Digital' },
-  { id: 'gestao', label: 'Gestão' },
-  { id: 'osg', label: 'OSG' },
-  { id: 'projetos', label: 'Projetos' },
-];
-```
-
-**Depois:**
-```typescript
-const areas = [
-  { id: 'digital', label: 'Digital' },
-  { id: 'projetos', label: 'Projetos' },
-  { id: 'osg', label: 'OSG' },
-  { id: 'controle_site', label: 'Controle Site' },
-  { id: 'board', label: 'Board' },
-];
-```
-
-### 2. EquipeAuth.tsx - Mapeamento de categorias
-
-**Antes:**
-```typescript
-const areaCategories: Record<string, string[]> = {
-  digital: ['rotina', 'dev'],
-  gestao: ['gestao'],
-  osg: ['osg'],
-  projetos: ['projetos', 'fiscal', 'fixos'],
+const FiscalWorkPackages = () => {
+  const [selectedId, setSelectedId] = useState<string>();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  
+  const handleRowClick = (wp: WorkPackage) => {
+    setSelectedId(wp.id);
+    setSheetOpen(true);
+  };
+  
+  return (
+    <div className="space-y-4">
+      {/* Barra de Filtros no Topo */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Dropdown Projeto */}
+        <Select value={project} onValueChange={setProject}>
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Todos os projetos" />
+          </SelectTrigger>
+          <SelectContent>...</SelectContent>
+        </Select>
+        
+        <div className="flex items-center gap-2">
+          {/* Dropdown Filtrar */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ListFilter className="h-4 w-4 mr-2" />
+                {activeFilterLabel}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Todos abertos</DropdownMenuItem>
+              <DropdownMenuItem>Atrasados</DropdownMenuItem>
+              <DropdownMenuItem>Atribuidos a mim</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Busca */}
+          <Input placeholder="Buscar..." className="w-[200px]" />
+          
+          {/* Criar */}
+          <Button><Plus className="h-4 w-4 mr-2" />Criar</Button>
+        </div>
+      </div>
+      
+      {/* Tabela Hierarquica - FULL WIDTH */}
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Assunto</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Prioridade</TableHead>
+              <TableHead>Atribuido</TableHead>
+              <TableHead>Responsavel</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {hierarchicalData.map(({ wp, depth, hasChildren }) => (
+              <TableRow 
+                key={wp.id} 
+                onClick={() => handleRowClick(wp)}
+                className="cursor-pointer hover:bg-slate-50"
+              >
+                {/* Conteudo com indentacao */}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {/* Sheet de Detalhes (abre da direita) */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="w-[450px] sm:max-w-lg">
+          <WorkPackageSheet 
+            workPackageId={selectedId}
+            onClose={() => setSheetOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
 };
 ```
 
-**Depois:**
-```typescript
-const areaCategories: Record<string, string[]> = {
-  digital: ['rotina', 'dev'],
-  projetos: ['projetos', 'fiscal', 'fixos'],
-  osg: ['osg'],
-  controle_site: ['gestao'],  // Mantém a categoria interna 'gestao'
-  board: ['board'],           // Nova categoria
-};
-```
+### WorkPackageSheet (Painel Deslizante)
 
-### 3. EquipeAuth.tsx - Rotas de navegação
+Conteudo similar ao WorkPackageDetail atual, mas dentro de um Sheet:
 
-**Antes:**
-```typescript
-const areaRoutes: Record<string, string> = {
-  digital: '/equipe/digital',
-  gestao: '/gestao',
-  osg: '/equipe/osg/dashboard',
-  projetos: '/equipe/projetos',
-};
-```
+- Header com titulo e navegacao
+- Seletor de status
+- Secoes: Pessoas, Detalhes, Datas, Estimativas
+- Abas: Atividade, Arquivos, Relacoes
 
-**Depois:**
+---
+
+## FiscalLayout Simplificado
+
+Remover a sidebar de navegacao vazia e manter apenas:
+- Header compacto
+- Area de conteudo full-width
+- Footer com acoes (Trocar area, Sair)
+
 ```typescript
-const areaRoutes: Record<string, string> = {
-  digital: '/equipe/digital',
-  projetos: '/equipe/projetos',
-  osg: '/equipe/osg/dashboard',
-  controle_site: '/gestao',
-  board: '/equipe/board/dashboard',
+const FiscalLayout = ({ children, title }: Props) => {
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Header Compacto */}
+      <header className="h-14 bg-white border-b px-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Calculator className="h-5 w-5 text-emerald-600" />
+          <h1 className="font-semibold text-slate-900">{title}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => navigate('/equipe/projetos')}>
+            Trocar area
+          </Button>
+          <Button variant="ghost" onClick={signOut}>
+            Sair
+          </Button>
+        </div>
+      </header>
+      
+      {/* Conteudo Full Width */}
+      <main className="flex-1 p-6">
+        {children}
+      </main>
+    </div>
+  );
 };
 ```
 
 ---
 
-## Nova Estrutura: Board
+## Secao Tecnica
 
-### BoardDashboard.tsx
+### Componentes Reutilizados
 
-Dashboard inicial para a área Board, seguindo o padrão visual das demais áreas:
+| Componente | Uso |
+|------------|-----|
+| `Sheet` (shadcn) | Painel deslizante para detalhes |
+| `DropdownMenu` | Filtros no topo |
+| `Select` | Seletor de projeto |
+| `StatusBadge`, `TypeBadge` | Badges visuais |
+| `ActivityTimeline` | Timeline de atividades |
 
-- Fundo escuro com tema consistente
-- Cards de métricas/ações rápidas
-- Integração com BoardLayout
+### Filtros Disponiveis
 
-### BoardLayout.tsx
+- **Todos abertos**: status != 'concluido'
+- **Ultima atividade**: ordenado por updated_at desc
+- **Atrasado**: due_date < hoje AND status != 'concluido'
+- **Criado por mim**: created_by = user.id
+- **Atribuido a mim**: assigned_to = user.id
 
-Layout compartilhado com:
-- Sidebar colapsável
-- Header com título da página
-- Botão "Trocar área" que volta para `/equipe`
+### Hierarquia na Tabela
 
----
+Mantida atraves de indentacao visual (paddingLeft) e icones de expansao:
 
-## Atualização do protectedPages.ts
-
-Adicionar nova categoria ao tipo:
-```typescript
-category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board';
-```
-
-Adicionar página do Board:
-```typescript
-{
-  page_path: '/equipe/board/dashboard',
-  page_name: 'Board Dashboard',
-  page_description: 'Painel principal da área Board',
-  category: 'board',
-  requires_admin: false,
-  requires_team_member: true,
-},
-```
-
----
-
-## Novas Rotas no App.tsx
-
-```typescript
-// Board Routes
-<Route path="/equipe/board/dashboard" element={
-  <TeamRoute>
-    <PageAccessGate pagePath="/equipe/board/dashboard">
-      <BoardDashboard />
-    </PageAccessGate>
-  </TeamRoute>
-} />
+```text
+> 37  Preparacao de documentos  FASE  Novo
+    107  Abertura fiscal         TAREFA  Pendente
+    108  Validacao cadastral     TAREFA  Em revisao
+> 38  Contabilidade mensal       FASE  Em progresso
 ```
 
 ---
 
 ## Resumo das Entregas
 
-1. **Reordenação** - Nova ordem: Digital → Projetos → OSG → Controle Site → Board
-2. **Renomeação** - "Gestão" passa a se chamar "Controle Site" na interface (internamente mantém categoria 'gestao')
-3. **Nova área Board** - Dashboard e Layout criados do zero
-4. **Permissões** - Nova categoria 'board' no sistema de controle de acessos
-5. **Rotas** - Novas rotas configuradas no App.tsx
+1. **FiscalLayout** simplificado sem sidebar
+2. **FiscalDashboard** com 3 abas (Caixa de Entrada, Pacotes de Trabalho, Clientes)
+3. **FiscalWorkPackages** com:
+   - Filtros como dropdowns no topo
+   - Tabela hierarquica ocupando 100% da largura
+   - Detalhes em Sheet deslizante (nao painel fixo)
+4. **FiscalInbox** para notificacoes
+5. **FiscalClients** para gestao de clientes
+6. **WorkPackageSheet** com detalhes do item selecionado
 
