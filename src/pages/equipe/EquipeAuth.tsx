@@ -15,7 +15,7 @@ const areas = [
   { id: 'digital', label: 'Digital' },
   { id: 'projetos', label: 'Projetos' },
   { id: 'osg', label: 'OSG' },
-  { id: 'controle_site', label: 'Controle Site' },
+  { id: 'controle_site', label: 'Site' },
   { id: 'board', label: 'Board' },
 ];
 
