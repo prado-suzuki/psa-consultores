@@ -65,6 +65,7 @@ import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
 import ProjetosDemandas from "./pages/equipe/projetos/ProjetosDemandas";
 import ProjetosAreaSelector from "./pages/equipe/projetos/ProjetosAreaSelector";
+import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +146,9 @@ const App = () => (
             
             {/* OSG Routes */}
             <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
+            
+            {/* Board Routes */}
+            <Route path="/equipe/board/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

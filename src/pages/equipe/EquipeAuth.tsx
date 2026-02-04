@@ -13,9 +13,10 @@ import logo from '@/assets/logo-psa.png';
 
 const areas = [
   { id: 'digital', label: 'Digital' },
-  { id: 'gestao', label: 'Gestão' },
-  { id: 'osg', label: 'OSG' },
   { id: 'projetos', label: 'Projetos' },
+  { id: 'osg', label: 'OSG' },
+  { id: 'controle_site', label: 'Controle Site' },
+  { id: 'board', label: 'Board' },
 ];
 
 // Verifica se o usuário tem acesso à área específica
@@ -27,9 +28,10 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
     // Mapeia as áreas para suas categorias de permissão
     const areaCategories: Record<string, string[]> = {
       digital: ['rotina', 'dev'],
-      gestao: ['gestao'],
-      osg: ['osg'],
       projetos: ['projetos', 'fiscal', 'fixos'],
+      osg: ['osg'],
+      controle_site: ['gestao'],
+      board: ['board'],
     };
 
     const categories = areaCategories[area];
@@ -60,9 +62,10 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
 const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
   const areaRoutes: Record<string, string> = {
     digital: '/equipe/digital',
-    gestao: '/gestao',
-    osg: '/equipe/osg/dashboard',
     projetos: '/equipe/projetos',
+    osg: '/equipe/osg/dashboard',
+    controle_site: '/gestao',
+    board: '/equipe/board/dashboard',
   };
   
   navigate(areaRoutes[area] || '/equipe/dashboard');

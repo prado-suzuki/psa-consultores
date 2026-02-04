@@ -7,7 +7,7 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -173,6 +173,16 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_name: 'Demandas',
     page_description: 'Gestão de pacotes de trabalho e tarefas',
     category: 'projetos',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // === BOARD PAGES ===
+  {
+    page_path: '/equipe/board/dashboard',
+    page_name: 'Board Dashboard',
+    page_description: 'Painel principal da área Board',
+    category: 'board',
     requires_admin: false,
     requires_team_member: true,
   },
