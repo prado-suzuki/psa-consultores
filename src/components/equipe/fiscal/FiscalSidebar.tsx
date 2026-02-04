@@ -40,7 +40,7 @@ const menuItems: MenuItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/equipe/projetos/fiscal/dashboard'
+    path: '/equipe/tex/dashboard'
   },
   {
     id: 'demandas',
@@ -51,19 +51,19 @@ const menuItems: MenuItem[] = [
         id: 'minhas',
         label: 'Minhas Demandas',
         icon: Inbox,
-        path: '/equipe/projetos/fiscal/demandas/inbox'
+        path: '/equipe/tex/demandas/inbox'
       },
       {
         id: 'pacotes',
         label: 'Pacotes de Trabalho',
         icon: Package,
-        path: '/equipe/projetos/fiscal/demandas/pacotes'
+        path: '/equipe/tex/demandas/pacotes'
       },
       {
         id: 'clientes',
         label: 'Clientes',
         icon: Building,
-        path: '/equipe/projetos/fiscal/demandas/clientes'
+        path: '/equipe/tex/demandas/clientes'
       }
     ]
   }
@@ -106,7 +106,7 @@ export const FiscalSidebar = () => {
           <Calculator className="h-5 w-5 text-emerald-600" />
         </div>
         <div>
-          <h1 className="font-semibold text-slate-900 text-sm">Fiscal</h1>
+          <h1 className="font-semibold text-slate-900 text-sm">Tex</h1>
           <p className="text-xs text-slate-500">Gestão de Projetos</p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export const FiscalSidebar = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-          onClick={() => navigate('/equipe/projetos')}
+          onClick={() => navigate('/equipe')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Trocar área

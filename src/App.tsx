@@ -63,11 +63,7 @@ import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasInbox from "./pages/equipe/fiscal/FiscalDemandasInbox";
 import FiscalDemandasPacotes from "./pages/equipe/fiscal/FiscalDemandasPacotes";
 import FiscalDemandasClientes from "./pages/equipe/fiscal/FiscalDemandasClientes";
-import FixosDashboard from "./pages/equipe/fixos/FixosDashboard";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
-import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
-import ProjetosDemandas from "./pages/equipe/projetos/ProjetosDemandas";
-import ProjetosAreaSelector from "./pages/equipe/projetos/ProjetosAreaSelector";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 const queryClient = new QueryClient();
@@ -135,19 +131,11 @@ const App = () => (
             <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
             
-            {/* Projetos - Seletor de Sub-áreas */}
-            <Route path="/equipe/projetos" element={<TeamRoute><ProjetosAreaSelector /></TeamRoute>} />
-            <Route path="/equipe/projetos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/dashboard"><ProjetosDashboard /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/projetos/demandas" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/demandas"><ProjetosDemandas /></PageAccessGate></TeamRoute>} />
-            
-            {/* Fiscal Routes (dentro de Projetos) */}
-            <Route path="/equipe/projetos/fiscal/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/projetos/fiscal/demandas/inbox" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasInbox /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/projetos/fiscal/demandas/pacotes" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasPacotes /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/projetos/fiscal/demandas/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fiscal/dashboard"><FiscalDemandasClientes /></PageAccessGate></TeamRoute>} />
-            
-            {/* Fixos Routes (dentro de Projetos) */}
-            <Route path="/equipe/projetos/fixos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/fixos/dashboard"><FixosDashboard /></PageAccessGate></TeamRoute>} />
+            {/* Tex (Fiscal) Routes */}
+            <Route path="/equipe/tex/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/demandas/inbox" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasInbox /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/demandas/pacotes" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasPacotes /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/demandas/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasClientes /></PageAccessGate></TeamRoute>} />
             
             {/* OSG Routes */}
             <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
