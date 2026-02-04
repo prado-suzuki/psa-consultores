@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -9,7 +11,9 @@ import {
   Building,
   ChevronDown,
   ChevronRight,
-  Calculator
+  Calculator,
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import {
   Collapsible,
@@ -68,6 +72,7 @@ const menuItems: MenuItem[] = [
 export const FiscalSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signOut } = useAuth();
   const [openMenus, setOpenMenus] = useState<string[]>(['demandas']);
 
   const isActive = (path?: string) => {
@@ -86,6 +91,11 @@ export const FiscalSidebar = () => {
         ? prev.filter(m => m !== id)
         : [...prev, id]
     );
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
@@ -178,9 +188,31 @@ export const FiscalSidebar = () => {
         })}
       </nav>
 
-      {/* Footer com logo */}
-      <div className="p-4 border-t border-slate-200">
-        <img src={logoPsa} alt="PSA" className="h-6 opacity-60" />
+      {/* Footer com ações */}
+      <div className="p-3 border-t border-slate-200 space-y-2">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+          onClick={() => navigate('/equipe/projetos')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Trocar área
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
+        
+        <div className="pt-2 border-t border-slate-100">
+          <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
+        </div>
       </div>
     </div>
   );
