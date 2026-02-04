@@ -705,39 +705,56 @@ export default function EquipeSprintDetalhes() {
     return { overdue, dueToday, dueTomorrow, metricsAtRisk, sprintProgress };
   }, [deliverables, metrics, sprint]);
 
-  // Filtered deliverables
+  // Check if a deliverable matches the filter criteria
+  const matchesFilter = (d: Deliverable): boolean => {
+    if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
+    if (filterStatus !== 'all' && d.status !== filterStatus) return false;
+    
+    // Filtro por data
+    if (filterDate === 'today') {
+      return isTodayBrazil(parseDate(d.due_date)) && d.status !== 'completed';
+    }
+    if (filterDate === 'tomorrow') {
+      return isTomorrowBrazil(parseDate(d.due_date)) && d.status !== 'completed';
+    }
+    if (filterDate === 'overdue') {
+      const dueDate = parseDate(d.due_date);
+      return isPastBrazil(dueDate) && !isTodayBrazil(dueDate) && d.status !== 'completed';
+    }
+    
+    return true;
+  };
+
+  // Filtered deliverables - includes parent tasks if any of their subtasks match
   const filteredDeliverables = useMemo(() => {
-    return deliverables.filter(d => {
-      if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
-      if (filterStatus !== 'all' && d.status !== filterStatus) return false;
-      
-      // Filtro por data
-      if (filterDate === 'today') {
-        return isTodayBrazil(parseDate(d.due_date)) && d.status !== 'completed';
+    // First, find all tasks that directly match the filter
+    const directMatches = new Set(deliverables.filter(matchesFilter).map(d => d.id));
+    
+    // Find parent IDs of subtasks that match
+    const parentIdsOfMatchingSubtasks = new Set<string>();
+    deliverables.forEach(d => {
+      if (d.parent_id && directMatches.has(d.id)) {
+        parentIdsOfMatchingSubtasks.add(d.parent_id);
       }
-      if (filterDate === 'tomorrow') {
-        return isTomorrowBrazil(parseDate(d.due_date)) && d.status !== 'completed';
-      }
-      if (filterDate === 'overdue') {
-        const dueDate = parseDate(d.due_date);
-        return isPastBrazil(dueDate) && !isTodayBrazil(dueDate) && d.status !== 'completed';
-      }
-      
-      return true;
     });
+    
+    // Return tasks that either match directly OR are parents of matching subtasks
+    return deliverables.filter(d => 
+      directMatches.has(d.id) || parentIdsOfMatchingSubtasks.has(d.id)
+    );
   }, [deliverables, filterResponsible, filterStatus, filterDate]);
 
   // Hierarchical task structure (parent tasks with subtasks)
   const hierarchicalTasks = useMemo(() => {
-    // Get parent tasks (no parent_id)
+    // Get all parent tasks from filtered results
     const parentTasks = filteredDeliverables.filter(d => !d.parent_id);
     
-    // Get subtasks (has parent_id)
-    const subtasks = filteredDeliverables.filter(d => d.parent_id);
+    // Get subtasks that match the filter (from filtered deliverables)
+    const filteredSubtasks = filteredDeliverables.filter(d => d.parent_id);
     
-    // Group subtasks by parent
+    // Group filtered subtasks by parent
     const subtasksByParent: Record<string, Deliverable[]> = {};
-    subtasks.forEach(subtask => {
+    filteredSubtasks.forEach(subtask => {
       if (subtask.parent_id) {
         if (!subtasksByParent[subtask.parent_id]) {
           subtasksByParent[subtask.parent_id] = [];
@@ -766,11 +783,10 @@ export default function EquipeSprintDetalhes() {
     }));
   }, [filteredDeliverables]);
 
-  // Also get orphan tasks (subtasks without a visible parent due to filtering)
+  // Orphan subtasks are no longer needed since parents are now included
   const orphanSubtasks = useMemo(() => {
-    const parentIds = new Set(filteredDeliverables.filter(d => !d.parent_id).map(d => d.id));
-    return filteredDeliverables.filter(d => d.parent_id && !parentIds.has(d.parent_id));
-  }, [filteredDeliverables]);
+    return [] as Deliverable[];
+  }, []);
 
   // Toggle task expanded
   const toggleTaskExpanded = (taskId: string) => {
