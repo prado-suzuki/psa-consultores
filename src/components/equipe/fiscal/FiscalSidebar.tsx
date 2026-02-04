@@ -89,7 +89,7 @@ export const FiscalSidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-white border-r border-slate-200 flex flex-col h-full">
+    <div className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0">
       {/* Logo */}
       <div className="h-14 border-b border-slate-200 flex items-center px-4">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">

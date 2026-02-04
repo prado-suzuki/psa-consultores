@@ -22,12 +22,12 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="h-screen bg-slate-50 flex w-full overflow-hidden">
       {/* Sidebar */}
       <FiscalSidebar />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-14 bg-white border-b border-slate-200/60 px-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
@@ -73,11 +73,9 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
         </header>
 
         {/* Content */}
-        <ScrollArea className="flex-1">
-          <main className="p-6">
-            {children}
-          </main>
-        </ScrollArea>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );
