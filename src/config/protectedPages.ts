@@ -168,4 +168,12 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/projetos/demandas',
+    page_name: 'Demandas',
+    page_description: 'Gestão de pacotes de trabalho e tarefas',
+    category: 'projetos',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

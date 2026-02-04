@@ -10,8 +10,11 @@ import {
   ChevronRight,
   Menu,
   ArrowLeft,
-  User
+  User,
+  LayoutDashboard,
+  ListTodo
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ProjetosLayoutProps {
   children: React.ReactNode;
@@ -20,15 +23,23 @@ interface ProjetosLayoutProps {
   headerActions?: React.ReactNode;
 }
 
+const navItems = [
+  { path: '/equipe/projetos/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+  { path: '/equipe/projetos/demandas', label: 'Demandas', icon: ListTodo },
+];
+
 export const ProjetosLayout = ({ children, title, subtitle, headerActions }: ProjetosLayoutProps) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
@@ -68,9 +79,30 @@ export const ProjetosLayout = ({ children, title, subtitle, headerActions }: Pro
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
-        {/* Navigation - Empty for now */}
+        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {/* Navigation items will be added here later */}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-violet-100 text-violet-900'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                  collapsed && 'justify-center px-2'
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Footer Actions */}

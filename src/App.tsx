@@ -63,6 +63,7 @@ import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FixosDashboard from "./pages/equipe/fixos/FixosDashboard";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import ProjetosDashboard from "./pages/equipe/projetos/ProjetosDashboard";
+import ProjetosDemandas from "./pages/equipe/projetos/ProjetosDemandas";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
             
             {/* Projetos Routes */}
             <Route path="/equipe/projetos/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/dashboard"><ProjetosDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/projetos/demandas" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos/demandas"><ProjetosDemandas /></PageAccessGate></TeamRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

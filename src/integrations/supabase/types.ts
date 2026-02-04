@@ -1526,6 +1526,127 @@ export type Database = {
           },
         ]
       }
+      project_work_packages: {
+        Row: {
+          area: Database["public"]["Enums"]["work_package_area"]
+          assigned_to: string | null
+          client_id: string | null
+          code: number
+          completion_percent: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          parent_id: string | null
+          priority: Database["public"]["Enums"]["work_package_priority"]
+          project_id: string | null
+          remaining_hours: number | null
+          responsible: string | null
+          spent_hours: number | null
+          stage: Database["public"]["Enums"]["work_package_stage"] | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["work_package_status"]
+          title: string
+          type: Database["public"]["Enums"]["work_package_type"]
+          updated_at: string
+        }
+        Insert: {
+          area?: Database["public"]["Enums"]["work_package_area"]
+          assigned_to?: string | null
+          client_id?: string | null
+          code?: number
+          completion_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_id?: string | null
+          priority?: Database["public"]["Enums"]["work_package_priority"]
+          project_id?: string | null
+          remaining_hours?: number | null
+          responsible?: string | null
+          spent_hours?: number | null
+          stage?: Database["public"]["Enums"]["work_package_stage"] | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["work_package_status"]
+          title: string
+          type?: Database["public"]["Enums"]["work_package_type"]
+          updated_at?: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["work_package_area"]
+          assigned_to?: string | null
+          client_id?: string | null
+          code?: number
+          completion_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_id?: string | null
+          priority?: Database["public"]["Enums"]["work_package_priority"]
+          project_id?: string | null
+          remaining_hours?: number | null
+          responsible?: string | null
+          spent_hours?: number | null
+          stage?: Database["public"]["Enums"]["work_package_stage"] | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["work_package_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["work_package_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_work_packages_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_work_packages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_work_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_work_packages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_work_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_work_packages_responsible_fkey"
+            columns: ["responsible"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_id: string | null
@@ -2318,6 +2439,190 @@ export type Database = {
         }
         Relationships: []
       }
+      work_package_activities: {
+        Row: {
+          action_type: Database["public"]["Enums"]["work_package_activity_type"]
+          comment: string | null
+          created_at: string
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string | null
+          work_package_id: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["work_package_activity_type"]
+          comment?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+          work_package_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["work_package_activity_type"]
+          comment?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_package_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_package_activities_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_package_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_by: string | null
+          work_package_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_by?: string | null
+          work_package_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_by?: string | null
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_package_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_package_files_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_package_relations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          relation_type: Database["public"]["Enums"]["work_package_relation_type"]
+          source_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          relation_type: Database["public"]["Enums"]["work_package_relation_type"]
+          source_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          relation_type?: Database["public"]["Enums"]["work_package_relation_type"]
+          source_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_package_relations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_package_relations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_package_relations_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_package_watchers: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          work_package_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          work_package_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_package_watchers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_package_watchers_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "project_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2336,6 +2641,39 @@ export type Database = {
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "backlog" | "to_do" | "in_progress" | "review" | "done"
       work_cluster: "database" | "frontend" | "management"
+      work_package_activity_type:
+        | "status_change"
+        | "assignment"
+        | "comment"
+        | "file_upload"
+        | "relation_change"
+        | "field_update"
+        | "created"
+      work_package_area: "fiscal" | "osg" | "fixos" | "pontuais"
+      work_package_priority: "alta" | "normal" | "baixa"
+      work_package_relation_type:
+        | "filho"
+        | "relacionado"
+        | "anterior"
+        | "sucessor"
+        | "pai"
+        | "duplicado"
+      work_package_stage:
+        | "solicitacao_documentos"
+        | "analise_documentacao"
+        | "elaboracao_wp"
+        | "elaboracao_relatorios"
+        | "entrega_cliente"
+        | "conclusao"
+      work_package_status:
+        | "novo"
+        | "pendente_agendamento"
+        | "agendado"
+        | "em_progresso"
+        | "em_revisao"
+        | "concluido"
+        | "rejeitado"
+      work_package_type: "fase" | "tarefa" | "epico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2467,6 +2805,43 @@ export const Constants = {
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["backlog", "to_do", "in_progress", "review", "done"],
       work_cluster: ["database", "frontend", "management"],
+      work_package_activity_type: [
+        "status_change",
+        "assignment",
+        "comment",
+        "file_upload",
+        "relation_change",
+        "field_update",
+        "created",
+      ],
+      work_package_area: ["fiscal", "osg", "fixos", "pontuais"],
+      work_package_priority: ["alta", "normal", "baixa"],
+      work_package_relation_type: [
+        "filho",
+        "relacionado",
+        "anterior",
+        "sucessor",
+        "pai",
+        "duplicado",
+      ],
+      work_package_stage: [
+        "solicitacao_documentos",
+        "analise_documentacao",
+        "elaboracao_wp",
+        "elaboracao_relatorios",
+        "entrega_cliente",
+        "conclusao",
+      ],
+      work_package_status: [
+        "novo",
+        "pendente_agendamento",
+        "agendado",
+        "em_progresso",
+        "em_revisao",
+        "concluido",
+        "rejeitado",
+      ],
+      work_package_type: ["fase", "tarefa", "epico"],
     },
   },
 } as const
