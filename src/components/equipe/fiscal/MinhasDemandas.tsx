@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyWorkPackages, useAllFiscalWorkPackages, type MyWorkPackage } from '@/hooks/useMyWorkPackages';
 import { useUpdateWorkPackage, useCreateWorkPackage } from '@/hooks/useWorkPackages';
@@ -433,5 +433,3 @@ function DemandaRow({ workPackage, onClick, showEditIndicator }: DemandaRowProps
   );
 }
 
-// Add React import for forwardRef
-import React from 'react';
