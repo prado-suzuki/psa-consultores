@@ -100,206 +100,201 @@ export default function ClienteDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold text-foreground">
-              Bem-vindo à sua Área do Cliente
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Aqui você pode abrir chamados, acompanhar solicitações e gerenciar seus documentos.
-            </p>
-          </div>
+      <main className="container mx-auto px-4 py-6 flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col">
+          {/* Tabs at the top */}
+          <Tabs defaultValue="chamados" className="flex-1 flex flex-col">
+            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-muted mb-6">
+              <TabsTrigger value="chamados" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+                <FileText className="mr-2 h-4 w-4" />
+                Chamados
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+                <FolderKanban className="mr-2 h-4 w-4" />
+                Projetos
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Documentos
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Action Cards */}
-          <div className="grid md:grid-cols-2 gap-6 mt-12">
-            <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/novo-chamado')}>
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
-                  <Plus className="h-8 w-8 text-teal-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground">Abrir Chamado</h3>
-                <p className="text-muted-foreground">
-                  Precisa de ajuda? Abra um novo chamado e nossa equipe entrará em contato.
-                </p>
-                <Button className="w-full bg-teal-600 hover:bg-teal-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Chamado
-                </Button>
+            {/* Chamados Tab */}
+            <TabsContent value="chamados" className="flex-1 flex flex-col mt-0">
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/novo-chamado')}>
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
+                      <Plus className="h-8 w-8 text-teal-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground">Abrir Chamado</h3>
+                    <p className="text-muted-foreground">
+                      Precisa de ajuda? Abra um novo chamado e nossa equipe entrará em contato.
+                    </p>
+                    <Button className="w-full bg-teal-600 hover:bg-teal-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Novo Chamado
+                    </Button>
+                  </div>
+                </Card>
+
+                <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/chamados')}>
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
+                      <FileText className="h-8 w-8 text-teal-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground">Meus Chamados</h3>
+                    <p className="text-muted-foreground">
+                      Visualize e acompanhe todos os seus chamados abertos e histórico.
+                    </p>
+                    <Button variant="outline" className="w-full border-teal-600 text-teal-600 hover:bg-teal-50">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Ver Chamados
+                    </Button>
+                  </div>
+                </Card>
               </div>
-            </Card>
+            </TabsContent>
 
-            <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/cliente/chamados')}>
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
-                  <FileText className="h-8 w-8 text-teal-600" />
+            {/* Projects Tab */}
+            <TabsContent value="projects" className="flex-1 mt-0">
+              {isLoadingProjects ? (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {[1, 2].map((i) => (
+                    <Card key={i} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-full mt-2" />
+                      </CardHeader>
+                      <CardContent>
+                        <Skeleton className="h-2 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">Meus Chamados</h3>
-                <p className="text-muted-foreground">
-                  Visualize e acompanhe todos os seus chamados abertos e histórico.
-                </p>
-                <Button variant="outline" className="w-full border-teal-600 text-teal-600 hover:bg-teal-50">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Ver Chamados
-                </Button>
-              </div>
-            </Card>
-          </div>
-
-          {/* Projects and Documents Section */}
-          <div className="mt-12">
-            <Tabs defaultValue="projects" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-muted">
-                <TabsTrigger value="projects" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
-                  <FolderKanban className="mr-2 h-4 w-4" />
-                  Projetos em Andamento
-                </TabsTrigger>
-                <TabsTrigger value="documents" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Dashboards e Documentos
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Projects Tab */}
-              <TabsContent value="projects" className="mt-6">
-                {isLoadingProjects ? (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {[1, 2].map((i) => (
-                      <Card key={i} className="overflow-hidden">
+              ) : !visibleProjects || visibleProjects.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">Nenhum projeto atribuído no momento.</p>
+                </Card>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {visibleProjects.map((item) => {
+                    const project = item.projects;
+                    if (!project) return null;
+                    
+                    const status = (project.status as keyof typeof statusConfig) || 'planning';
+                    const progress = getProjectProgress(project.status);
+                    
+                    return (
+                      <Card key={item.id} className="overflow-hidden">
                         <CardHeader className="pb-3">
-                          <Skeleton className="h-6 w-3/4" />
-                          <Skeleton className="h-4 w-full mt-2" />
+                          <div className="flex items-start justify-between">
+                            <CardTitle className="text-lg">{project.name}</CardTitle>
+                            <Badge className={statusConfig[status]?.className || statusConfig.planning.className}>
+                              {statusConfig[status]?.label || 'Em Planejamento'}
+                            </Badge>
+                          </div>
+                          <CardDescription className="mt-2">
+                            {project.description || 'Sem descrição disponível'}
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Skeleton className="h-2 w-full" />
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Progresso</span>
+                              <span className="font-medium text-teal-700">{progress}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2 [&>div]:bg-teal-600" />
+                          </div>
                         </CardContent>
                       </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="flex-1 mt-0">
+              {isLoadingDocuments ? (
+                <Card>
+                  <div className="p-4 space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 flex-1" />
+                        <Skeleton className="h-8 w-20" />
+                      </div>
                     ))}
                   </div>
-                ) : !visibleProjects || visibleProjects.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="text-muted-foreground">Nenhum projeto atribuído no momento.</p>
-                  </Card>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {visibleProjects.map((item) => {
-                      const project = item.projects;
-                      if (!project) return null;
-                      
-                      const status = (project.status as keyof typeof statusConfig) || 'planning';
-                      const progress = getProjectProgress(project.status);
-                      
-                      return (
-                        <Card key={item.id} className="overflow-hidden">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <CardTitle className="text-lg">{project.name}</CardTitle>
-                              <Badge className={statusConfig[status]?.className || statusConfig.planning.className}>
-                                {statusConfig[status]?.label || 'Em Planejamento'}
-                              </Badge>
-                            </div>
-                            <CardDescription className="mt-2">
-                              {project.description || 'Sem descrição disponível'}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Progresso</span>
-                                <span className="font-medium text-teal-700">{progress}%</span>
-                              </div>
-                              <Progress value={progress} className="h-2 [&>div]:bg-teal-600" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Documents Tab */}
-              <TabsContent value="documents" className="mt-6">
-                {isLoadingDocuments ? (
-                  <Card>
-                    <div className="p-4 space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex items-center gap-4">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <Skeleton className="h-4 flex-1" />
-                          <Skeleton className="h-8 w-20" />
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                ) : !clientDocuments || clientDocuments.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="text-muted-foreground">Nenhum documento disponível no momento.</p>
-                  </Card>
-                ) : (
-                  <Card>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[100px]">Tipo</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead className="hidden md:table-cell">Descrição</TableHead>
-                          <TableHead className="text-right w-[120px]">Ação</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {clientDocuments.map((doc) => (
-                          <TableRow key={doc.id}>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {doc.document_type === 'dashboard' ? (
-                                  <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
-                                    <BarChart3 className="h-4 w-4 text-teal-600" />
-                                  </div>
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                                    <FileText className="h-4 w-4 text-slate-600" />
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-medium">{doc.name}</TableCell>
-                            <TableCell className="hidden md:table-cell text-muted-foreground">
-                              {doc.description || '-'}
-                            </TableCell>
-                            <TableCell className="text-right">
+                </Card>
+              ) : !clientDocuments || clientDocuments.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">Nenhum documento disponível no momento.</p>
+                </Card>
+              ) : (
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[100px]">Tipo</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead className="hidden md:table-cell">Descrição</TableHead>
+                        <TableHead className="text-right w-[120px]">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clientDocuments.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell>
+                            <div className="flex items-center">
                               {doc.document_type === 'dashboard' ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-teal-600 text-teal-600 hover:bg-teal-50"
-                                  onClick={() => doc.url && window.open(doc.url, '_blank')}
-                                  disabled={!doc.url}
-                                >
-                                  <ExternalLink className="mr-1 h-3 w-3" />
-                                  Abrir
-                                </Button>
+                                <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
+                                  <BarChart3 className="h-4 w-4 text-teal-600" />
+                                </div>
                               ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-slate-400 text-slate-600 hover:bg-slate-50"
-                                  disabled={!doc.file_path}
-                                >
-                                  <Download className="mr-1 h-3 w-3" />
-                                  Baixar
-                                </Button>
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                  <FileText className="h-4 w-4 text-slate-600" />
+                                </div>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{doc.name}</TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground">
+                            {doc.description || '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {doc.document_type === 'dashboard' ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-teal-600 text-teal-600 hover:bg-teal-50"
+                                onClick={() => doc.url && window.open(doc.url, '_blank')}
+                                disabled={!doc.url}
+                              >
+                                <ExternalLink className="mr-1 h-3 w-3" />
+                                Abrir
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                                disabled={!doc.file_path}
+                              >
+                                <Download className="mr-1 h-3 w-3" />
+                                Baixar
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
