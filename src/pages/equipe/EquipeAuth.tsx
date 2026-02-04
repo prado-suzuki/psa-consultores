@@ -12,11 +12,11 @@ import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
 
 const areas = [
+  { id: 'board', label: 'Gerencial' },
+  { id: 'controle_site', label: 'Chamados' },
   { id: 'digital', label: 'Digital' },
-  { id: 'tex', label: 'Tax' },
   { id: 'osg', label: 'OSG' },
-  { id: 'board', label: 'Board' },
-  { id: 'controle_site', label: 'Site' },
+  { id: 'tex', label: 'Tax' },
 ];
 
 // Verifica se o usuário tem acesso à área específica
