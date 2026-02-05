@@ -233,9 +233,24 @@ export function ProcessImprovementModal({
         setResults(roiData.results);
       }
 
+      // Atualizar tabela processes com os dados "DEPOIS" como novo baseline
+      const { error: updateProcessError } = await supabase
+        .from('processes')
+        .update({
+          time_spent_hours: improvedHours || form.improved_time_hours,
+          cost_monthly: improvedCost || form.improved_cost_monthly,
+          volume_executions: form.improved_volume,
+          people_involved: improvedMembers.length || form.improved_people_involved
+        })
+        .eq('id', processId);
+
+      if (updateProcessError) {
+        console.error('Error updating process baseline:', updateProcessError);
+      }
+
       toast({
         title: "Avaliação criada!",
-        description: "A melhoria foi registrada e o ROI calculado."
+        description: "A melhoria foi registrada, o ROI calculado e o baseline do processo atualizado."
       });
 
       onSaved?.();
@@ -434,7 +449,12 @@ export function ProcessImprovementModal({
           {(baselineMembers.length > 0 || improvedMembers.length > 0) && (
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="pt-4">
-                <h4 className="font-semibold text-primary mb-3">Prévia dos Resultados</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-primary">Prévia dos Resultados</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Os dados de "DEPOIS" serão salvos como novo baseline
+                  </p>
+                </div>
                 <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-primary">
