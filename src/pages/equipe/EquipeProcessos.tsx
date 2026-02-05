@@ -174,14 +174,7 @@ const EquipeProcessos = () => {
     priority: '',
     frequency: '',
     volume_month: '',
-    financial_impact: '',
-    // Performance baseline fields
-    time_spent_hours: '',
-    time_spent_frequency: '',
-    cost_monthly: '',
-    volume_executions: '',
-    people_involved: '',
-    complexity_level: ''
+    financial_impact: ''
   });
 
   // Import state
@@ -443,14 +436,7 @@ const EquipeProcessos = () => {
       priority: selectedProcess.priority || '',
       frequency: selectedProcess.frequency || '',
       volume_month: selectedProcess.volume_month?.toString() || '',
-      financial_impact: selectedProcess.financial_impact || '',
-      // Performance baseline fields
-      time_spent_hours: (selectedProcess as any).time_spent_hours?.toString() || '',
-      time_spent_frequency: (selectedProcess as any).time_spent_frequency || '',
-      cost_monthly: (selectedProcess as any).cost_monthly?.toString() || '',
-      volume_executions: (selectedProcess as any).volume_executions?.toString() || '',
-      people_involved: (selectedProcess as any).people_involved?.toString() || '',
-      complexity_level: (selectedProcess as any).complexity_level || ''
+      financial_impact: selectedProcess.financial_impact || ''
     });
     setIsEditing(true);
   };
@@ -473,14 +459,7 @@ const EquipeProcessos = () => {
         priority: editForm.priority || null,
         frequency: editForm.frequency.trim() || null,
         volume_month: editForm.volume_month ? parseInt(editForm.volume_month) : null,
-        financial_impact: editForm.financial_impact.trim() || null,
-        // Performance baseline fields
-        time_spent_hours: editForm.time_spent_hours ? parseFloat(editForm.time_spent_hours) : null,
-        time_spent_frequency: editForm.time_spent_frequency || null,
-        cost_monthly: editForm.cost_monthly ? parseFloat(editForm.cost_monthly) : null,
-        volume_executions: editForm.volume_executions ? parseInt(editForm.volume_executions) : null,
-        people_involved: editForm.people_involved ? parseInt(editForm.people_involved) : null,
-        complexity_level: editForm.complexity_level || null
+        financial_impact: editForm.financial_impact.trim() || null
       };
 
       const { error } = await supabase
@@ -1086,110 +1065,6 @@ const EquipeProcessos = () => {
                         />
                       </div>
                     </div>
-                    
-                    {/* Performance Baseline Card */}
-                    <Card className="border-amber-200 bg-amber-50/50">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-amber-600" />
-                          Performance Baseline (Antes da Melhoria)
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="edit-time-spent">Tempo Gasto (horas)</Label>
-                            <Input
-                              id="edit-time-spent"
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              value={editForm.time_spent_hours}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, time_spent_hours: e.target.value }))}
-                              placeholder="Ex: 4"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="edit-time-frequency">Frequência do Tempo</Label>
-                            <Select 
-                              value={editForm.time_spent_frequency || "none"} 
-                              onValueChange={(value) => setEditForm(prev => ({ ...prev, time_spent_frequency: value === "none" ? "" : value }))}
-                            >
-                              <SelectTrigger id="edit-time-frequency">
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Não definida</SelectItem>
-                                <SelectItem value="diária">Diária</SelectItem>
-                                <SelectItem value="semanal">Semanal</SelectItem>
-                                <SelectItem value="mensal">Mensal</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="edit-cost-monthly">Custo Mensal (R$)</Label>
-                            <Input
-                              id="edit-cost-monthly"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={editForm.cost_monthly}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, cost_monthly: e.target.value }))}
-                              placeholder="Ex: 5000"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="edit-volume-executions">Volume de Execuções</Label>
-                            <Input
-                              id="edit-volume-executions"
-                              type="number"
-                              min="0"
-                              value={editForm.volume_executions}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, volume_executions: e.target.value }))}
-                              placeholder="Ex: 100"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="edit-people-involved">Pessoas Envolvidas</Label>
-                            <Input
-                              id="edit-people-involved"
-                              type="number"
-                              min="0"
-                              value={editForm.people_involved}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, people_involved: e.target.value }))}
-                              placeholder="Ex: 3"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="edit-complexity">Complexidade</Label>
-                            <Select 
-                              value={editForm.complexity_level || "none"} 
-                              onValueChange={(value) => setEditForm(prev => ({ ...prev, complexity_level: value === "none" ? "" : value }))}
-                            >
-                              <SelectTrigger id="edit-complexity">
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Não definida</SelectItem>
-                                <SelectItem value="baixa">Baixa</SelectItem>
-                                <SelectItem value="média">Média</SelectItem>
-                                <SelectItem value="alta">Alta</SelectItem>
-                                <SelectItem value="crítica">Crítica</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        
-                        <p className="text-xs text-amber-700">
-                          💡 Preencha estes campos para permitir o cálculo automático de ROI quando melhorias forem implementadas.
-                        </p>
-                      </CardContent>
-                    </Card>
                     
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={cancelEditing} disabled={saving}>
