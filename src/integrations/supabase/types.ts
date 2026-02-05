@@ -1234,6 +1234,7 @@ export type Database = {
           baseline_people_involved: number | null
           baseline_time_hours: number | null
           baseline_volume: number | null
+          build_vs_buy_savings: number | null
           cost_saved_monthly: number | null
           cost_saved_percent: number | null
           created_at: string | null
@@ -1250,12 +1251,14 @@ export type Database = {
           improved_time_hours: number | null
           improved_volume: number | null
           improvement_description: string | null
+          other_savings_monthly: number | null
           process_id: string
           project_id: string | null
           roi_fte_annual: number | null
           roi_percentage: number | null
           roi_time_months: number | null
           sprint_deliverable_id: string | null
+          system_savings_monthly: number | null
           time_saved_hours: number | null
           time_saved_percent: number | null
           updated_at: string | null
@@ -1265,6 +1268,7 @@ export type Database = {
           baseline_people_involved?: number | null
           baseline_time_hours?: number | null
           baseline_volume?: number | null
+          build_vs_buy_savings?: number | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
@@ -1281,12 +1285,14 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          other_savings_monthly?: number | null
           process_id: string
           project_id?: string | null
           roi_fte_annual?: number | null
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
+          system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
           updated_at?: string | null
@@ -1296,6 +1302,7 @@ export type Database = {
           baseline_people_involved?: number | null
           baseline_time_hours?: number | null
           baseline_volume?: number | null
+          build_vs_buy_savings?: number | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
@@ -1312,12 +1319,14 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          other_savings_monthly?: number | null
           process_id?: string
           project_id?: string | null
           roi_fte_annual?: number | null
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
+          system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
           updated_at?: string | null
@@ -1439,6 +1448,10 @@ export type Database = {
           frequency: string | null
           id: string
           last_ai_sync: string | null
+          last_cost_saved_monthly: number | null
+          last_improvement_date: string | null
+          last_roi_percentage: number | null
+          last_time_saved_hours: number | null
           name: string
           people_involved: number | null
           priority: string | null
@@ -1469,6 +1482,10 @@ export type Database = {
           frequency?: string | null
           id?: string
           last_ai_sync?: string | null
+          last_cost_saved_monthly?: number | null
+          last_improvement_date?: string | null
+          last_roi_percentage?: number | null
+          last_time_saved_hours?: number | null
           name: string
           people_involved?: number | null
           priority?: string | null
@@ -1499,6 +1516,10 @@ export type Database = {
           frequency?: string | null
           id?: string
           last_ai_sync?: string | null
+          last_cost_saved_monthly?: number | null
+          last_improvement_date?: string | null
+          last_roi_percentage?: number | null
+          last_time_saved_hours?: number | null
           name?: string
           people_involved?: number | null
           priority?: string | null

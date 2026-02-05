@@ -44,6 +44,9 @@ interface ProcessImprovement {
   evaluation_period_days: number;
   implementation_hours: number;
   improvement_description: string;
+  system_savings_monthly?: number;
+  build_vs_buy_savings?: number;
+  other_savings_monthly?: number;
 }
 
 interface ProcessImprovementModalProps {
@@ -80,6 +83,12 @@ export function ProcessImprovementModal({
   const [baselineMembers, setBaselineMembers] = useState<TeamMember[]>([]);
   const [improvedMembers, setImprovedMembers] = useState<TeamMember[]>([]);
   const [results, setResults] = useState<any>(null);
+  
+  const [additionalSavings, setAdditionalSavings] = useState({
+    system_savings_monthly: 0,
+    build_vs_buy_savings: 0,
+    other_savings_monthly: 0
+  });
   
   const [form, setForm] = useState<ProcessImprovement>({
     process_id: processId,
@@ -195,7 +204,10 @@ export function ProcessImprovementModal({
           evaluation_status: 'in_evaluation',
           implementation_hours: form.implementation_hours,
           improvement_description: form.improvement_description,
-          evaluated_by: user?.id
+          evaluated_by: user?.id,
+          system_savings_monthly: additionalSavings.system_savings_monthly,
+          build_vs_buy_savings: additionalSavings.build_vs_buy_savings,
+          other_savings_monthly: additionalSavings.other_savings_monthly
         })
         .select()
         .single();
@@ -240,7 +252,11 @@ export function ProcessImprovementModal({
           time_spent_hours: improvedHours || form.improved_time_hours,
           cost_monthly: improvedCost || form.improved_cost_monthly,
           volume_executions: form.improved_volume,
-          people_involved: improvedMembers.length || form.improved_people_involved
+          people_involved: improvedMembers.length || form.improved_people_involved,
+          last_roi_percentage: roiData?.results?.roi_percentage || null,
+          last_cost_saved_monthly: roiData?.results?.cost_saved_monthly || null,
+          last_time_saved_hours: roiData?.results?.time_saved_hours || null,
+          last_improvement_date: new Date().toISOString()
         })
         .eq('id', processId);
 
@@ -269,8 +285,10 @@ export function ProcessImprovementModal({
 
   const baselineCost = calculateCost(baselineMembers);
   const improvedCost = calculateCost(improvedMembers);
-  const savingsMonthly = baselineCost - improvedCost;
-  const savingsPercent = baselineCost > 0 ? (savingsMonthly / baselineCost) * 100 : 0;
+  const laborSavingsMonthly = baselineCost - improvedCost;
+  const totalSavingsMonthly = laborSavingsMonthly + additionalSavings.system_savings_monthly + additionalSavings.other_savings_monthly;
+  const savingsMonthly = totalSavingsMonthly;
+  const savingsPercent = baselineCost > 0 ? (laborSavingsMonthly / baselineCost) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -444,6 +462,54 @@ export function ProcessImprovementModal({
               </CardContent>
             </Card>
           </div>
+
+          {/* Economias Adicionais */}
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="pt-4">
+              <h4 className="font-semibold text-blue-700 mb-4">Economias Adicionais (opcional)</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Economia com Sistemas</Label>
+                  <Input
+                    type="number"
+                    placeholder="R$/mês"
+                    value={additionalSavings.system_savings_monthly || ''}
+                    onChange={(e) => setAdditionalSavings({
+                      ...additionalSavings, 
+                      system_savings_monthly: parseFloat(e.target.value) || 0
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">Licenças, softwares, etc</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Construir vs Comprar</Label>
+                  <Input
+                    type="number"
+                    placeholder="R$ (único)"
+                    value={additionalSavings.build_vs_buy_savings || ''}
+                    onChange={(e) => setAdditionalSavings({
+                      ...additionalSavings, 
+                      build_vs_buy_savings: parseFloat(e.target.value) || 0
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">Economia por desenvolver internamente</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Outras Economias</Label>
+                  <Input
+                    type="number"
+                    placeholder="R$/mês"
+                    value={additionalSavings.other_savings_monthly || ''}
+                    onChange={(e) => setAdditionalSavings({
+                      ...additionalSavings, 
+                      other_savings_monthly: parseFloat(e.target.value) || 0
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">Outros ganhos recorrentes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Resultados Prévios */}
           {(baselineMembers.length > 0 || improvedMembers.length > 0) && (
