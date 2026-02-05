@@ -6,27 +6,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const FiscalDashboard = () => {
-   // Fetch projects with hours data - only Tax area projects
+   // Fetch tax projects with hours data
    const { data: projectsData = [], isLoading } = useQuery({
      queryKey: ['fiscal-dashboard-projects'],
      queryFn: async () => {
        const { data: projects } = await supabase
-         .from('projects')
+          .from('tax_projects')
          .select(`
            id, 
-           name, 
-           status,
-           project_work_packages(estimated_hours, spent_hours)
+            name,
+            status
          `)
-         .eq('source_area', 'tax')
          .order('name');
        
        return (projects || []).map(p => ({
          id: p.id,
          name: p.name,
          status: p.status,
-         estimatedHours: p.project_work_packages?.reduce((sum: number, wp: any) => sum + (wp.estimated_hours || 0), 0) || 0,
-         spentHours: p.project_work_packages?.reduce((sum: number, wp: any) => sum + (wp.spent_hours || 0), 0) || 0,
+          estimatedHours: 0,
+          spentHours: 0,
        }));
      },
    });

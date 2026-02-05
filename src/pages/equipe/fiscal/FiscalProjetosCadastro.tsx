@@ -139,19 +139,18 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch projects for Tax client
+  // Fetch projects for Tax area
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['fiscal-projects-tax-area'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
+        .from('tax_projects')
         .select(`
           *,
-          responsible:profiles!projects_responsible_id_fkey(id, first_name, last_name),
-          leader:profiles!projects_leader_id_fkey(id, first_name, last_name),
-          external_client:cliente!projects_external_client_id_fkey(id, nome)
+          responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
+          leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
+          external_client:cliente!tax_projects_external_client_id_fkey(id, nome)
         `)
-        .eq('source_area', 'tax')
         .order('name');
       if (error) throw error;
       return data;
@@ -160,11 +159,10 @@ const FiscalProjetosCadastro = () => {
 
   const createProject = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('projects').insert({
+      const { error } = await supabase.from('tax_projects').insert({
         name: data.name,
         description: data.description || null,
         status: data.status,
-        source_area: 'tax',
         responsible_id: data.responsible_id || null,
         leader_id: data.leader_id || null,
         external_client_id: data.external_client_id || null,
@@ -187,7 +185,7 @@ const FiscalProjetosCadastro = () => {
   const updateProject = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
       const { error } = await supabase
-        .from('projects')
+        .from('tax_projects')
         .update({
           name: data.name,
           description: data.description || null,
@@ -214,7 +212,7 @@ const FiscalProjetosCadastro = () => {
 
   const deleteProject = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
+      const { error } = await supabase.from('tax_projects').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
