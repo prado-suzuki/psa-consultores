@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ClipboardList,
   ListTodo,
-  Building,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -58,25 +57,12 @@ const menuItems: MenuItem[] = [
         label: 'Cadastro',
         icon: FolderKanban,
         path: '/equipe/tex/projetos/cadastro'
-      }
-    ]
-  },
-  {
-    id: 'demandas',
-    label: 'Demandas',
-    icon: ClipboardList,
-    children: [
-      {
-        id: 'tarefas',
-        label: 'Tarefas',
-        icon: ListTodo,
-        path: '/equipe/tex/demandas/tarefas'
-      },
-      {
-        id: 'clientes',
-        label: 'Clientes',
-        icon: Building,
-        path: '/equipe/tex/demandas/clientes'
+       },
+       {
+         id: 'tarefas',
+         label: 'Tarefas',
+         icon: ListTodo,
+         path: '/equipe/tex/projetos/tarefas'
       }
     ]
   }
@@ -86,7 +72,7 @@ export const FiscalSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const [openMenus, setOpenMenus] = useState<string[]>(['demandas', 'projetos']);
+   const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isActive = (path?: string) => {
