@@ -38,7 +38,7 @@ import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
 import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
 
-type TipoRegistro = 'per' | 'dcomp';
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -69,7 +69,7 @@ export default function ControlePerdcomp() {
   // Filter states
   const [clienteId, setClienteId] = useState<string>('');
   const [contribuinteId, setContribuinteId] = useState<string>('');
-  const [tipoRegistro, setTipoRegistro] = useState<TipoRegistro>('per');
+  
   const [searched, setSearched] = useState(false);
   
   // Modal states
@@ -128,7 +128,7 @@ export default function ControlePerdcomp() {
       if (error) throw error;
       return data || [];
     },
-    enabled: tipoRegistro === 'per' && searched && !!contribuinteId,
+    enabled: searched && !!contribuinteId,
   });
 
   // Query for situações (most recent for each PER)
@@ -167,7 +167,7 @@ export default function ControlePerdcomp() {
       }
       return map;
     },
-    enabled: tipoRegistro === 'per' && searched && !!contribuinteId,
+    enabled: searched && !!contribuinteId,
   });
 
   // Query for DCOMP data
@@ -193,7 +193,7 @@ export default function ControlePerdcomp() {
       if (error) throw error;
       return data || [];
     },
-    enabled: tipoRegistro === 'dcomp' && searched && !!contribuinteId,
+    enabled: searched && !!contribuinteId,
   });
 
   // Delete mutation for DCOMP only
@@ -254,17 +254,8 @@ export default function ControlePerdcomp() {
   const isLoading = perLoading || dcompLoading;
   const isDeleting = deleteDcompMutation.isPending;
 
-  const getCurrentData = () => {
-    switch (tipoRegistro) {
-      case 'per': return perData;
-      case 'dcomp': return dcompData;
-      default: return [];
-    }
-  };
 
   const renderTable = () => {
-    const data = getCurrentData();
-    
     if (!searched) {
       return (
         <div className="text-center py-12 text-muted-foreground">
@@ -282,132 +273,74 @@ export default function ControlePerdcomp() {
       );
     }
 
-    const emptyRow = (colSpan: number) => (
-      <TableRow>
-        <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">
-          Nenhum registro encontrado
-        </TableCell>
-      </TableRow>
-    );
-
-    switch (tipoRegistro) {
-      case 'per':
-        return (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Situação</TableHead>
-                <TableHead>Atualização</TableHead>
-                <TableHead>Nº Processo</TableHead>
-                <TableHead>Contribuinte</TableHead>
-                <TableHead>Exercício</TableHead>
-                <TableHead>Trimestre</TableHead>
-                <TableHead>Data Solicitada</TableHead>
-                <TableHead>Tipo Crédito</TableHead>
-                <TableHead className="text-right">Valor Crédito</TableHead>
-                <TableHead className="w-[80px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data as any[]).length === 0 ? emptyRow(10) : (data as any[]).map((item) => {
-                const situacaoInfo = perSituacoesMap[item.numero_processo_per];
-                
-                return (
-                  <TableRow 
-                    key={item.numero_processo_per} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handlePerClick(item)}
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Situação</TableHead>
+            <TableHead>Atualização</TableHead>
+            <TableHead>Nº Processo</TableHead>
+            <TableHead>Contribuinte</TableHead>
+            <TableHead>Exercício</TableHead>
+            <TableHead>Trimestre</TableHead>
+            <TableHead>Data Solicitada</TableHead>
+            <TableHead>Tipo Crédito</TableHead>
+            <TableHead className="text-right">Valor Crédito</TableHead>
+            <TableHead className="w-[80px]">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {perData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                Nenhum registro encontrado
+              </TableCell>
+            </TableRow>
+          ) : perData.map((item) => {
+            const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+            
+            return (
+              <TableRow 
+                key={item.numero_processo_per} 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handlePerClick(item)}
+              >
+                <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+                <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+                <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
+                <TableCell>{item.exercicio}</TableCell>
+                <TableCell>{item.tri_exercicio}º</TableCell>
+                <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
+                <TableCell>{item.tp_credito}</TableCell>
+                <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                <TableCell>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                   >
-                    <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
-                    <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
-                    <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
-                    <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
-                    <TableCell>{item.exercicio}</TableCell>
-                    <TableCell>{item.tri_exercicio}º</TableCell>
-                    <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
-                    <TableCell>{item.tp_credito}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        );
-
-      case 'dcomp':
-        return (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nº Documento</TableHead>
-                <TableHead>PER Origem</TableHead>
-                <TableHead>Mês/Ano</TableHead>
-                <TableHead>Data Envio</TableHead>
-                <TableHead>Imposto</TableHead>
-                <TableHead>Tipo Crédito</TableHead>
-                <TableHead className="text-right">Valor Compensado</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data as any[]).length === 0 ? emptyRow(8) : (data as any[]).map((item) => (
-                <TableRow key={item.nr_documento}>
-                  <TableCell className="font-medium">{item.nr_documento}</TableCell>
-                  <TableCell>{item.nr_per_orig}</TableCell>
-                  <TableCell>{item.mes_ano_exercicio}</TableCell>
-                  <TableCell>{formatDate(item.dt_envio)}</TableCell>
-                  <TableCell>{item.imposto}</TableCell>
-                  <TableCell>{item.tp_credito}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.vlr_compensado)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
-    }
+            );
+          })}
+        </TableBody>
+      </Table>
+    );
   };
 
   const renderFormModal = () => {
-    switch (tipoRegistro) {
-      case 'per':
-        return (
-          <PerFormModal
-            open={formModalOpen}
-            onOpenChange={setFormModalOpen}
-            editData={editData}
-            clienteId={clienteId}
-            contribuinteId={contribuinteId}
-          />
-        );
-      case 'dcomp':
-        return (
-          <DcompFormModal
-            open={formModalOpen}
-            onOpenChange={setFormModalOpen}
-            editData={editData}
-            contribuinteId={contribuinteId}
-          />
-        );
-    }
+    return (
+      <PerFormModal
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        editData={editData}
+        clienteId={clienteId}
+        contribuinteId={contribuinteId}
+      />
+    );
   };
 
   return (
@@ -447,18 +380,6 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tipo de Registro</Label>
-              <Select value={tipoRegistro} onValueChange={(v) => setTipoRegistro(v as TipoRegistro)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="per">PER</SelectItem>
-                  <SelectItem value="dcomp">DCOMP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="flex items-end gap-2">
               <Button onClick={handleClear} variant="outline" className="flex-1">
@@ -477,9 +398,7 @@ export default function ControlePerdcomp() {
       {/* Results Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">
-            Resultados - {tipoRegistro === 'per' ? 'PER' : 'DCOMP'}
-          </CardTitle>
+          <CardTitle className="text-lg">Resultados - PER</CardTitle>
           {searched && (
             <Button onClick={handleNew} size="sm">
               <Plus className="h-4 w-4 mr-2" />
