@@ -1,264 +1,166 @@
 
-# Plano: Correcao do SOP e Navegacao de Projetos em Digital Rotina
-
-## Status: ✅ CONCLUÍDO
+# Plano: Isolamento de Projetos por Area e Ordenacao por Nome
 
 ## Resumo
 
-Este plano resolve dois problemas identificados na area Digital Rotina:
-1. Corrigir o erro "Page Not Found" ao acessar Projetos
-2. Adicionar suporte para associar SOP ao processo via link externo ou documento anexado
+Este plano garante que:
+1. Projetos em Digital Rotina sejam ordenados por nome (nao por data)
+2. Projetos fiquem isolados por area - cada ambiente usa sua propria base
+3. Outras areas que precisem de gestao de projetos criem suas proprias tabelas
 
-## Implementações Realizadas
+## Diagnostico Atual
 
-### Problema 1: Navegação Projetos - RESOLVIDO
-- Rota `/equipe/projetos` adicionada ao `App.tsx` (linha 110)
+### Projetos no Banco
+Existem 8 projetos ativos (nenhum foi removido):
+- **Fiscal (5):** P2, P3, P4, P5, P7
+- **Transversal (2):** P6, P8
+- **Sem cliente (1):** P9
 
-### Problema 2: SOP via Link/Documento - RESOLVIDO
-- Migração executada: colunas `sop_link` e `sop_document_path` adicionadas à tabela `processes`
-- Bucket `sop-documents` criado com políticas RLS para team members
-- `SOPConfigModal.tsx` criado para configurar fonte do SOP (link, documento ou texto)
-- `SOPViewerModal.tsx` atualizado para exibir link externo, documento anexado ou Markdown
-- `EquipeProcessos.tsx` atualizado com integração dos novos modais
+### Problema de Ordenacao
+Em `EquipeProjetos.tsx`, a consulta ordena por `created_at` descendente:
+```
+.order('created_at', { ascending: false })
+```
+Isso faz projetos recentes aparecerem primeiro, nao em ordem alfabetica.
 
----
+### Uso Compartilhado (Problema)
+A tabela `projects` e usada em:
+- **Digital Rotina** (`EquipeProjetos.tsx`) - lista todos
+- **Sprints/Kanban/Daily** - seleciona projetos
+- **Area Tax** (`FiscalWorkPackages.tsx`) - ja filtra por client_id "Fiscal"
 
-## Problema 1: Navegacao Projetos - Page Not Found
+## Solucao Proposta
 
-### Diagnostico
+### 1. Ordenar por Nome em Digital Rotina
+Alterar `EquipeProjetos.tsx`:
+```typescript
+// Antes
+.order('created_at', { ascending: false })
 
-O menu lateral em `EquipeLayout.tsx` tem um item "Projetos" que redireciona para `/equipe/projetos`. Porem, essa rota nao esta registrada no `App.tsx`. A pagina `EquipeProjetos.tsx` existe, mas nunca foi adicionada as rotas.
-
-### Solucao
-
-Adicionar a rota `/equipe/projetos` no `App.tsx`:
-
-```text
-// Em App.tsx, adicionar:
-<Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
+// Depois
+.order('name', { ascending: true })
 ```
 
-### Arquivos a Modificar
+### 2. Filtrar Projetos por Area em Digital Rotina
+Digital Rotina deve exibir apenas projetos do cliente "Digital" ou sem cliente definido. Adicionar filtro na consulta:
 
-1. `src/App.tsx` - Adicionar rota para EquipeProjetos
+```typescript
+// Buscar ID do cliente Digital
+const { data: digitalClient } = await supabase
+  .from('catalog_clients')
+  .select('id')
+  .ilike('name', '%digital%')
+  .single();
 
----
+// Filtrar projetos
+const { data, error } = await supabase
+  .from('projects')
+  .select('*')
+  .or(`client_id.eq.${digitalClient?.id},client_id.is.null`)
+  .order('name', { ascending: true });
+```
 
-## Problema 2: SOP Mapeado via Link ou Documento
+### 3. Criar Estrutura Isolada para Novas Areas
+Para areas que precisarem de gestao de projetos independente, criar tabelas dedicadas:
 
-### Situacao Atual
-
-- O campo `formatted_content` na tabela `processes` armazena o conteudo Markdown do SOP
-- O botao "SOP Mapeado" abre um modal (`SOPViewerModal`) que renderiza este Markdown
-- Nao ha opcao para vincular um link externo ou documento anexado
-
-### Solucao Proposta
-
-Adicionar dois novos campos na tabela `processes`:
-- `sop_link` (text) - URL externa para o SOP (Google Docs, Notion, SharePoint, etc.)
-- `sop_document_path` (text) - Caminho do arquivo no storage
-
-### Alteracoes de Banco de Dados
-
+**Opcao A: Nova tabela por area (recomendado para isolamento total)**
 ```sql
--- Adicionar campos para SOP via link ou documento
-ALTER TABLE public.processes
-ADD COLUMN IF NOT EXISTS sop_link text,
-ADD COLUMN IF NOT EXISTS sop_document_path text;
+-- Exemplo para area OSG
+CREATE TABLE public.osg_projects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  status text DEFAULT 'active',
+  created_by uuid REFERENCES public.profiles(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 ```
 
-### Interface do Usuario
+**Opcao B: Usar coluna `area` na tabela existente**
+```sql
+ALTER TABLE public.projects 
+ADD COLUMN IF NOT EXISTS area text DEFAULT 'digital';
 
-Modificar a aba "Etapas" em `EquipeProcessos.tsx` para:
-
-1. **Adicionar botao "Configurar SOP"** que abre um modal para definir a fonte do SOP:
-   - Opcao 1: Link externo (input de URL)
-   - Opcao 2: Upload de documento (file input)
-   - Opcao 3: Conteudo formatado (ja existente, via `formatted_content`)
-
-2. **Modificar o modal SOPViewerModal** para exibir:
-   - Se `sop_link` preenchido: Mostrar link clicavel e botao para abrir em nova aba
-   - Se `sop_document_path` preenchido: Mostrar nome do arquivo e botao de download
-   - Se `formatted_content` preenchido: Renderizar o Markdown (comportamento atual)
-   - Se nenhum: Mostrar mensagem de "Nenhum SOP documentado"
-
-### Layout do Modal "Configurar SOP"
-
-```text
-+--------------------------------------------------+
-|  Configurar SOP                              [X] |
-+--------------------------------------------------+
-|                                                  |
-|  Como deseja associar o SOP a este processo?     |
-|                                                  |
-|  [Link Externo]  [Documento]  [Conteudo Texto]   |
-|                                                  |
-|  ------------------------------------------------|
-|                                                  |
-|  (Se Link Externo selecionado:)                  |
-|  URL do SOP: [_________________________]         |
-|  Ex: https://docs.google.com/document/d/...      |
-|                                                  |
-|  (Se Documento selecionado:)                     |
-|  [Selecionar Arquivo] documento-sop.pdf          |
-|                                                  |
-|  ------------------------------------------------|
-|  [Cancelar]                        [Salvar]      |
-+--------------------------------------------------+
+-- Cada area filtra por sua propria area
 ```
-
-### Layout do SOPViewerModal Atualizado
-
-```text
-+--------------------------------------------------+
-|  SOP Mapeado                                 [X] |
-|  Nome do Processo                                |
-+--------------------------------------------------+
-|                                                  |
-|  (Se link externo:)                              |
-|  +----------------------------------------------+|
-|  | Link externo para documentacao               ||
-|  | https://docs.google.com/document/d/...       ||
-|  |                                              ||
-|  | [Abrir em nova aba]                          ||
-|  +----------------------------------------------+|
-|                                                  |
-|  (Se documento:)                                 |
-|  +----------------------------------------------+|
-|  | Documento anexado                            ||
-|  | sop-processo-fiscal.pdf (2.4 MB)             ||
-|  |                                              ||
-|  | [Baixar documento]                           ||
-|  +----------------------------------------------+|
-|                                                  |
-|  (Se conteudo texto:)                            |
-|  +----------------------------------------------+|
-|  | [Conteudo Markdown renderizado...]           ||
-|  +----------------------------------------------+|
-+--------------------------------------------------+
-```
-
----
 
 ## Secao Tecnica
 
-### Estrutura de Storage
+### Arquivos a Modificar
 
-Criar bucket para documentos SOP (se nao existir):
+1. **src/pages/equipe/EquipeProjetos.tsx**
+   - Alterar ordenacao para `name` ascendente
+   - Adicionar filtro por cliente "Digital" ou null
 
+2. **src/pages/equipe/EquipeDaily.tsx** (opcional)
+   - Filtrar projetos por area se necessario
+
+3. **src/pages/equipe/EquipeSprints.tsx** (opcional)
+   - Filtrar projetos por area se necessario
+
+### Migracao de Banco (se necessario)
+
+Se optar por adicionar coluna `area`:
 ```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('sop-documents', 'sop-documents', false)
-ON CONFLICT (id) DO NOTHING;
+ALTER TABLE public.projects 
+ADD COLUMN IF NOT EXISTS area text;
 
--- Politica de leitura para membros da equipe
-CREATE POLICY "Team members can read SOP documents"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'sop-documents');
+-- Atualizar projetos existentes
+UPDATE public.projects 
+SET area = 'fiscal' 
+WHERE client_id = '2bc6cab1-0d94-4855-a785-e09da0558466';
 
--- Politica de upload para membros da equipe
-CREATE POLICY "Team members can upload SOP documents"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'sop-documents');
+UPDATE public.projects 
+SET area = 'digital' 
+WHERE area IS NULL;
 ```
 
-### Componentes a Criar/Modificar
-
-1. **SOPConfigModal.tsx** (novo componente)
-   - Tabs para alternar entre Link, Documento, Texto
-   - Input para URL
-   - File input para upload
-   - Textarea para conteudo texto
-   - Logica de upload para storage
-
-2. **SOPViewerModal.tsx** (modificar)
-   - Aceitar novos props: `sopLink`, `sopDocumentPath`, `sopDocumentName`
-   - Renderizar conforme o tipo de fonte
-
-3. **EquipeProcessos.tsx** (modificar)
-   - Adicionar estado e modal para configuracao de SOP
-   - Passar novos campos para SOPViewerModal
-
-### Interface do Process Atualizada
+### Alteracoes em EquipeProjetos.tsx
 
 ```typescript
-interface Process {
-  // ... campos existentes
-  formatted_content?: string | null;
-  sop_link?: string | null;
-  sop_document_path?: string | null;
-}
+const fetchProjects = async () => {
+  try {
+    // Buscar cliente Digital do catalogo
+    const { data: digitalClient } = await supabase
+      .from('catalog_clients')
+      .select('id')
+      .ilike('name', '%transversal%') // ou criar cliente "Digital"
+      .single();
+
+    // Buscar projetos filtrados e ordenados por nome
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .or(digitalClient?.id 
+        ? `client_id.eq.${digitalClient.id},client_id.is.null`
+        : 'client_id.is.null')
+      .order('name', { ascending: true }); // Ordenar por nome
+    
+    if (error) throw error;
+    setProjects(data || []);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 ```
 
-### Fluxo de Upload de Documento
+## Resumo das Alteracoes
 
-```text
-1. Usuario clica em "Configurar SOP" > seleciona "Documento"
-2. Seleciona arquivo local
-3. Ao salvar:
-   a. Upload do arquivo para storage bucket 'sop-documents'
-   b. Caminho gerado: sop-documents/{process_id}/{filename}
-   c. Atualiza campo sop_document_path no banco
-4. Na visualizacao:
-   a. Busca URL assinada do storage
-   b. Exibe nome do arquivo e botao de download
-```
+| Arquivo | Alteracao |
+|---------|-----------|
+| `EquipeProjetos.tsx` | Ordenar por nome, filtrar por area Digital |
+| `EquipeDaily.tsx` | Filtrar projetos por area (opcional) |
+| `EquipeSprints.tsx` | Filtrar projetos por area (opcional) |
+| `EquipeKanban.tsx` | Filtrar projetos por area (opcional) |
 
----
+## Proximos Passos (Novas Areas)
 
-## Arquivos a Modificar
+Quando uma nova area precisar de gestao de projetos propria:
+1. Criar tabela dedicada (ex: `osg_projects`, `fixos_projects`)
+2. Criar componentes/paginas dedicados para a area
+3. Implementar CRUD isolado
 
-1. `src/App.tsx`
-   - Adicionar rota /equipe/projetos
-
-2. `src/pages/equipe/EquipeProcessos.tsx`
-   - Adicionar botao "Configurar SOP"
-   - Integrar SOPConfigModal
-   - Atualizar props do SOPViewerModal
-
-3. `src/components/equipe/SOPViewerModal.tsx`
-   - Adicionar suporte para link externo e documento
-   - Exibir conforme o tipo de fonte
-
-## Arquivos a Criar
-
-1. `src/components/equipe/SOPConfigModal.tsx`
-   - Modal para configurar fonte do SOP (link, documento ou texto)
-
-## Migracao de Banco de Dados
-
-```sql
--- Adicionar colunas para SOP
-ALTER TABLE public.processes
-ADD COLUMN IF NOT EXISTS sop_link text,
-ADD COLUMN IF NOT EXISTS sop_document_path text;
-
--- Criar bucket para documentos
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('sop-documents', 'sop-documents', false)
-ON CONFLICT (id) DO NOTHING;
-
--- Politicas de storage
-CREATE POLICY "Team members can read SOP documents"
-ON storage.objects FOR SELECT TO authenticated
-USING (bucket_id = 'sop-documents');
-
-CREATE POLICY "Team members can upload SOP documents"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'sop-documents');
-
-CREATE POLICY "Team members can delete SOP documents"
-ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'sop-documents');
-```
-
----
-
-## Dependencias
-
-Componentes e pacotes ja disponiveis:
-- Dialog, Tabs, Input, Button (shadcn/ui)
-- Supabase storage client
-- Lucide icons (Link, FileUp, FileText, ExternalLink, Download)
+Isso garante que cada ambiente opere de forma independente, sem conflito de dados.
