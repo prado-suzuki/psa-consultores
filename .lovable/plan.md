@@ -1,323 +1,264 @@
 
-# Plano: Ajustes no Calculo de ROI e Exibicao em Sprints
+# Plano: Editar Projetos em Processos e Ajustar Layout de Sprints
 
-## Resumo da Analise
+## Resumo
 
-Apos revisao completa do codigo, identifiquei os seguintes pontos sobre o sistema de ROI atual:
-
-### O Que Ja Funciona
-
-1. **ProcessImprovementModal**: Calcula ROI atraves da edge function `calculate-process-roi`
-2. **Edge Function**: Calcula corretamente:
-   - Tempo economizado (horas)
-   - Custo economizado (baseado em membros + hourly_rate de job_roles)
-   - FTE liberados (horas / 176)
-   - ROI percentual anual
-   - Payback em meses
-
-3. **Tabela job_roles**: Possui 10+ cargos com custos/hora definidos (R$ 15-80/hora)
-
-4. **ImpactDashboard**: Busca melhorias completadas e exibe metricas agregadas
-
-5. **ProcessImprovementModal** (linha 236-249): Ja atualiza a tabela `processes` com os dados "melhorados" apos salvar
-
-### Pontos a Ajustar
-
-1. **ROI nao esta sendo salvo na tabela processes diretamente** - Apenas no `process_improvements`
-2. **Sprints nao exibem valor de melhoria gerado** - Cards de sprint nao mostram economia
-3. **Variaveis adicionais de economia nao consideradas** - Sistema atual so considera mao de obra, nao economia de sistemas
+Este plano aborda duas necessidades:
+1. **Processos**: Adicionar capacidade de vincular multiplos projetos ao editar um processo
+2. **Sprints**: Redesenhar os cards das sprints, removendo a visao geral de horas (ja existe no Dashboard) e aplicando design mais limpo
 
 ---
 
-## Alteracoes Necessarias
+## Parte 1: Vincular Multiplos Projetos aos Processos
 
-### 1. Adicionar Campos de ROI na Tabela Processes
+### Situacao Atual
+- A aba "Projetos" no modal de processo apenas exibe os projetos vinculados (somente leitura)
+- Os vinculos sao gerenciados na tabela `project_processes` (N:N)
+- Nao existe interface para adicionar/remover projetos de um processo
 
-Adicionar campos para armazenar o ROI calculado diretamente no processo:
+### Solucao Proposta
 
-```sql
-ALTER TABLE public.processes
-ADD COLUMN IF NOT EXISTS last_roi_percentage numeric,
-ADD COLUMN IF NOT EXISTS last_cost_saved_monthly numeric,
-ADD COLUMN IF NOT EXISTS last_time_saved_hours numeric,
-ADD COLUMN IF NOT EXISTS last_improvement_date timestamptz;
-```
-
-### 2. Atualizar ProcessImprovementModal
-
-Modificar o `handleSave()` para tambem salvar os valores de ROI no processo:
-
-```typescript
-// Apos calcular ROI, atualizar processes com os resultados
-await supabase
-  .from('processes')
-  .update({
-    time_spent_hours: improvedHours || form.improved_time_hours,
-    cost_monthly: improvedCost || form.improved_cost_monthly,
-    volume_executions: form.improved_volume,
-    people_involved: improvedMembers.length || form.improved_people_involved,
-    // Adicionar campos de ROI
-    last_roi_percentage: roiData.results.roi_percentage,
-    last_cost_saved_monthly: roiData.results.cost_saved_monthly,
-    last_time_saved_hours: roiData.results.time_saved_hours,
-    last_improvement_date: new Date().toISOString()
-  })
-  .eq('id', processId);
-```
-
-### 3. Exibir Valor de Melhoria no Card da Sprint
-
-Em `EquipeSprints.tsx`, buscar melhorias associadas a cada sprint e exibir economia total:
+Adicionar funcionalidade de edicao na aba "Projetos" do modal:
 
 ```text
-+----------------------------------------------------+
-| Sprint 1 - Janeiro                      [Ativa]    |
-| Projeto: Automacao Fiscal                          |
-|                                                    |
-| [Progresso: ████████░░ 80%]                        |
-|                                                    |
-| 12 tarefas • 40h estimadas                         |
-|                                                    |
-| ┌─────────────────────────────────────────────┐    |
-| │ Impacto Digital:                            │    |
-| │ 💰 R$ 2.500/mes economizados                │    |
-| │ ⏱️ 15h/mes liberadas                         │    |
-| └─────────────────────────────────────────────┘    |
-+----------------------------------------------------+
++-------------------------------------------------------------+
+|  Projetos (3)                                               |
++-------------------------------------------------------------+
+|                                                             |
+|  [+ Adicionar Projeto]                                      |
+|                                                             |
+|  +-------------------------------------------------------+  |
+|  | P2 - Automacao SPED              [Principal]  [X]     |  |
+|  +-------------------------------------------------------+  |
+|  | P6 - Dashboard Gestao            [Secundario] [X]     |  |
+|  +-------------------------------------------------------+  |
+|  | P9 - Site e Chamados             [Suporte]    [X]     |  |
+|  +-------------------------------------------------------+  |
+|                                                             |
++-------------------------------------------------------------+
 ```
 
-### 4. Adicionar Variaveis de Economia no Calculo
+### Componentes da Interface
 
-Expandir o formulario e edge function para incluir:
+1. **Botao "Adicionar Projeto"**: Abre um popover/dialog com:
+   - Select de projetos (filtrados para nao mostrar ja vinculados)
+   - Select de tipo de impacto (Principal, Secundario, Suporte)
+   - Botao confirmar
+
+2. **Lista de Projetos Vinculados**:
+   - Mostra cada projeto com badge de tipo de impacto
+   - Botao X para remover vinculo
+   - Confirmacao antes de remover
+
+---
+
+## Parte 2: Ajustar Layout de Sprints
+
+### Mudancas no Design
+
+1. **Remover componente HorasAcumuladas**: Esta duplicando informacao do Dashboard
+
+2. **Cards mais limpos**:
+   - Remover icones decorativos desnecessarios
+   - Tipografia mais equilibrada (titulos menores)
+   - Sem emojis
+   - Espacamento mais consistente
+
+### Antes vs Depois
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ Economias Adicionais (opcional)                         │
-│                                                         │
-│ Economia com sistemas (licencas, etc):                  │
-│ [R$ ________/mes]                                       │
-│                                                         │
-│ Economia com construcao propria (one-time):             │
-│ [R$ ________]                                           │
-│                                                         │
-│ Outras economias recorrentes:                           │
-│ [R$ ________/mes]                                       │
-└─────────────────────────────────────────────────────────┘
+ANTES (atual):
++------------------------------------------------------------------+
+|  [Card HorasAcumuladas - REMOVER]                                |
++------------------------------------------------------------------+
+|                                                                  |
+|  +------------------------------------------------------------+  |
+|  | [Target Icon] Sprint 1 - Janeiro        [Ativa] [Projeto]  |  |
+|  | Objetivo da sprint completo aqui                           |  |
+|  | [Calendar] 01/01 - 07/01   [Clock] 40.5h alocadas          |  |
+|  | [TrendingUp] Impacto Digital: R$ 2.500/mes   15h liberadas |  |
+|  | [User] Horas por Pessoa (3)                    [v]         |  |
+|  +------------------------------------------------------------+  |
+
+DEPOIS (proposto):
++------------------------------------------------------------------+
+|  +------------------------------------------------------------+  |
+|  | Sprint 1 - Janeiro                      [Ativa] [Projeto]  |  |
+|  |------------------------------------------------------------+  |
+|  | Objetivo da sprint                                         |  |
+|  |                                                            |  |
+|  | 01/01 - 07/01  •  40.5h alocadas                           |  |
+|  |                                                            |  |
+|  | Impacto: R$ 2.500/mes  •  15h liberadas                    |  |
+|  |                                        [Ver Detalhes] [...]|  |
+|  +------------------------------------------------------------+  |
 ```
 
 ---
 
 ## Secao Tecnica
 
-### Migracao de Banco de Dados
-
-```sql
--- Adicionar campos de ROI calculado na tabela processes
-ALTER TABLE public.processes
-ADD COLUMN IF NOT EXISTS last_roi_percentage numeric,
-ADD COLUMN IF NOT EXISTS last_cost_saved_monthly numeric,
-ADD COLUMN IF NOT EXISTS last_time_saved_hours numeric,
-ADD COLUMN IF NOT EXISTS last_improvement_date timestamptz;
-
--- Adicionar campos de economia adicional em process_improvements
-ALTER TABLE public.process_improvements
-ADD COLUMN IF NOT EXISTS system_savings_monthly numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS build_vs_buy_savings numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS other_savings_monthly numeric DEFAULT 0;
-```
-
 ### Arquivos a Modificar
 
-1. **src/components/equipe/ProcessImprovementModal.tsx**
-   - Adicionar campos para economias adicionais (sistemas, construcao propria, outros)
-   - Atualizar handleSave() para salvar ROI calculado na tabela processes
-   - Calcular economia total incluindo todas as variaveis
+#### 1. src/pages/equipe/EquipeProcessos.tsx
 
-2. **supabase/functions/calculate-process-roi/index.ts**
-   - Considerar system_savings_monthly e other_savings_monthly no calculo
-   - Incluir build_vs_buy_savings como economia one-time no ROI
-
-3. **src/pages/equipe/EquipeSprints.tsx**
-   - Buscar melhorias associadas a cada sprint (via sprint_deliverable_id)
-   - Exibir badge com economia total quando houver melhorias
-
-4. **src/components/equipe/ImpactDashboard.tsx**
-   - Ja funciona corretamente, apenas garantir atualizacao automatica
-
-### Alteracoes no ProcessImprovementModal
-
-Adicionar ao formulario:
+Adicionar estado e funcoes para gerenciar projetos:
 
 ```typescript
-const [form, setForm] = useState({
-  // ... campos existentes
-  system_savings_monthly: 0,     // Economia com licencas/sistemas
-  build_vs_buy_savings: 0,       // Economia unica por construir vs comprar
-  other_savings_monthly: 0       // Outras economias recorrentes
+const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
+const [isAddingProject, setIsAddingProject] = useState(false);
+const [newProjectLink, setNewProjectLink] = useState({
+  project_id: '',
+  impact_type: 'principal'
 });
 ```
 
-Adicionar secao no UI:
-
-```tsx
-<Card className="border-blue-200 bg-blue-50/50">
-  <CardContent className="pt-4">
-    <h4 className="font-semibold text-blue-700 mb-4">Economias Adicionais</h4>
-    <div className="grid grid-cols-3 gap-4">
-      <div className="space-y-2">
-        <Label>Economia com Sistemas</Label>
-        <Input
-          type="number"
-          placeholder="R$/mes"
-          value={form.system_savings_monthly}
-          onChange={(e) => setForm({...form, system_savings_monthly: parseFloat(e.target.value) || 0})}
-        />
-        <p className="text-xs text-muted-foreground">Licencas, softwares, etc</p>
-      </div>
-      <div className="space-y-2">
-        <Label>Construir vs Comprar</Label>
-        <Input
-          type="number"
-          placeholder="R$ (unico)"
-          value={form.build_vs_buy_savings}
-          onChange={(e) => setForm({...form, build_vs_buy_savings: parseFloat(e.target.value) || 0})}
-        />
-        <p className="text-xs text-muted-foreground">Economia por desenvolver internamente</p>
-      </div>
-      <div className="space-y-2">
-        <Label>Outras Economias</Label>
-        <Input
-          type="number"
-          placeholder="R$/mes"
-          value={form.other_savings_monthly}
-          onChange={(e) => setForm({...form, other_savings_monthly: parseFloat(e.target.value) || 0})}
-        />
-        <p className="text-xs text-muted-foreground">Outros ganhos recorrentes</p>
-      </div>
-    </div>
-  </CardContent>
-</Card>
-```
-
-### Alteracoes na Edge Function
-
-Atualizar `calculate-process-roi/index.ts`:
+Adicionar funcoes:
 
 ```typescript
-// Buscar dados incluindo economias adicionais
-const improvement = await supabase
-  .from("process_improvements")
-  .select("*, system_savings_monthly, build_vs_buy_savings, other_savings_monthly")
-  .eq("id", improvement_id)
-  .single();
+const addProjectToProcess = async () => {
+  const { error } = await supabase
+    .from('project_processes')
+    .insert({
+      process_id: selectedProcess.id,
+      project_id: newProjectLink.project_id,
+      impact_type: newProjectLink.impact_type
+    });
+  // Refresh data
+};
 
-// Calcular economia total mensal
-const laborSavingsMonthly = baselineCost - improvedCost;
-const systemSavings = improvement.system_savings_monthly || 0;
-const otherSavings = improvement.other_savings_monthly || 0;
-const totalMonthlySavings = laborSavingsMonthly + systemSavings + otherSavings;
-
-// Calcular ROI considerando economias unicas
-const buildVsBuySavings = improvement.build_vs_buy_savings || 0;
-const annualSavings = (totalMonthlySavings * 12) + buildVsBuySavings;
-
-const roiPercentage = implementationCost > 0 
-  ? ((annualSavings - implementationCost) / implementationCost) * 100 
-  : 0;
-
-// Atualizar com economia total
-await supabase
-  .from("process_improvements")
-  .update({
-    cost_saved_monthly: totalMonthlySavings, // Total incluindo sistemas
-    // ... outros campos
-  });
-```
-
-### Alteracoes no EquipeSprints
-
-Adicionar busca de impacto por sprint:
-
-```typescript
-interface SprintImpact {
-  sprintId: string;
-  totalCostSaved: number;
-  totalTimeSaved: number;
-  improvementsCount: number;
-}
-
-// Na funcao fetchData()
-const fetchSprintImpacts = async (sprintIds: string[]) => {
-  const { data: improvements } = await supabase
-    .from('process_improvements')
-    .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
-    .eq('evaluation_status', 'completed');
-
-  // Buscar sprint_id de cada deliverable
-  const { data: deliverables } = await supabase
-    .from('sprint_deliverables')
-    .select('id, sprint_id')
-    .in('id', improvements?.map(i => i.sprint_deliverable_id).filter(Boolean) || []);
-
-  // Agregar por sprint
-  const impactMap: Record<string, SprintImpact> = {};
-  // ... logica de agregacao
-  
-  return impactMap;
+const removeProjectFromProcess = async (linkId: string) => {
+  await supabase.from('project_processes').delete().eq('id', linkId);
+  // Refresh data
 };
 ```
 
-Exibir no card da sprint:
+Modificar aba "Projetos" para permitir edicao:
 
 ```tsx
-{sprintImpact && sprintImpact.totalCostSaved > 0 && (
-  <div className="mt-3 flex items-center gap-4 px-3 py-2 bg-green-50 rounded-lg">
-    <Badge className="bg-green-100 text-green-700 border-0">
-      <DollarSign className="h-3 w-3 mr-1" />
-      R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR')}/mes
-    </Badge>
-    <Badge variant="outline" className="border-blue-300 text-blue-600">
-      <Clock className="h-3 w-3 mr-1" />
-      {sprintImpact.totalTimeSaved}h liberadas
-    </Badge>
-    <span className="text-xs text-muted-foreground">
-      {sprintImpact.improvementsCount} melhoria(s)
-    </span>
+<TabsContent value="projects">
+  {/* Botao adicionar */}
+  <div className="flex justify-end mb-4">
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Projeto
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <div className="space-y-3">
+          <Select value={newProjectLink.project_id} onValueChange={...}>
+            {/* Lista de projetos disponiveis */}
+          </Select>
+          <Select value={newProjectLink.impact_type} onValueChange={...}>
+            <SelectItem value="principal">Principal</SelectItem>
+            <SelectItem value="secundario">Secundario</SelectItem>
+            <SelectItem value="suporte">Suporte</SelectItem>
+          </Select>
+          <Button onClick={addProjectToProcess}>Vincular</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   </div>
-)}
+
+  {/* Lista com botao remover */}
+  {projectProcesses.map((pp) => (
+    <Card key={pp.id}>
+      <CardContent className="flex justify-between items-center">
+        <div>
+          <p className="font-medium">{pp.projects?.name}</p>
+          <Badge>{pp.impact_type}</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => removeProjectFromProcess(pp.id)}>
+          <Trash2 className="h-4 w-4 text-red-500" />
+        </Button>
+      </CardContent>
+    </Card>
+  ))}
+</TabsContent>
+```
+
+#### 2. src/pages/equipe/EquipeSprints.tsx
+
+Remover HorasAcumuladas e redesenhar cards:
+
+```tsx
+// REMOVER estas linhas (519-525):
+// <div className="mb-6">
+//   <HorasAcumuladas showRoutines={true} title="Visao Geral de Horas" />
+// </div>
+
+// Remover import do HorasAcumuladas
+
+// Redesenhar Card da Sprint:
+<Card key={sprint.id} className="bg-white border-gray-100 shadow-sm">
+  <CardContent className="p-5">
+    {/* Header com titulo e badges */}
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-3">
+        <h3 className="font-semibold text-gray-900 text-base">
+          {sprint.name}
+        </h3>
+        {getStatusBadge(sprint.status)}
+        {sprint.project_id && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            {getProjectName(sprint.project_id)}
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={() => {setSelectedSprint(sprint); setIsEditMode(true)}}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}>
+          Ver Detalhes
+        </Button>
+      </div>
+    </div>
+    
+    {/* Objetivo (se houver) */}
+    {sprint.goal && (
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{sprint.goal}</p>
+    )}
+    
+    {/* Meta info em linha */}
+    <div className="flex items-center gap-4 text-sm text-gray-500">
+      <span>
+        {parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - 
+        {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}
+      </span>
+      {totalHours > 0 && (
+        <span>{totalHours.toFixed(0)}h alocadas</span>
+      )}
+    </div>
+    
+    {/* Impacto Digital (se houver) */}
+    {sprintImpact && sprintImpact.totalCostSaved > 0 && (
+      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
+        <span className="text-green-600 font-medium">
+          Impacto: R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR')}/mes
+        </span>
+        <span className="text-blue-600">
+          {sprintImpact.totalTimeSaved.toFixed(0)}h liberadas
+        </span>
+      </div>
+    )}
+  </CardContent>
+</Card>
 ```
 
 ---
 
 ## Resumo das Alteracoes
 
-| Componente | Alteracao |
-|------------|-----------|
-| Banco de dados | Adicionar campos de ROI em `processes` e economias extras em `process_improvements` |
-| ProcessImprovementModal | Adicionar campos de economia adicional e salvar ROI no processo |
-| calculate-process-roi | Incluir economias de sistemas e build vs buy no calculo |
-| EquipeSprints | Buscar e exibir impacto agregado por sprint |
-| ImpactDashboard | Ja funciona - sera atualizado automaticamente |
+| Arquivo | Alteracao |
+|---------|-----------|
+| `EquipeProcessos.tsx` | Adicionar funcionalidade para vincular/desvincular projetos na aba "Projetos" |
+| `EquipeSprints.tsx` | Remover HorasAcumuladas, redesenhar cards mais limpos |
 
-## Fluxo Completo Apos Implementacao
+## Beneficios
 
-```text
-1. Usuario cria melhoria em ProcessImprovementModal
-   ↓
-2. Preenche membros ANTES e DEPOIS + economias adicionais
-   ↓
-3. Salva → Chama edge function calculate-process-roi
-   ↓
-4. Edge function calcula:
-   - Economia de mao de obra (horas × custo/hora)
-   - Economia de sistemas (licencas)
-   - Economia unica (build vs buy)
-   - FTE liberados
-   - ROI percentual
-   ↓
-5. Salva em process_improvements + atualiza processes
-   ↓
-6. ImpactDashboard atualiza automaticamente (query em tempo real)
-   ↓
-7. Sprint cards mostram economia total das melhorias vinculadas
-```
+1. **Processos**: Usuarios podem gerenciar projetos vinculados diretamente na interface
+2. **Sprints**: Layout mais limpo, sem duplicacao de informacao, design profissional sem emojis
+3. **Consistencia**: Horas consolidadas ficam apenas no Dashboard (fonte unica)
