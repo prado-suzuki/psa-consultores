@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import {
   Scale,
   Building2,
-  ShieldCheck,
   BarChart3,
   Gavel,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import { PilarCard } from "@/components/services/PilarCard";
 
 import consultoriaTributaria from "@/assets/services/consultoria-tributaria.jpg";
 import reestruturacaoSocietaria from "@/assets/services/reestruturacao-societaria.jpg";
-import consultoriaPrevidenciaria from "@/assets/services/consultoria-previdenciaria.jpg";
 import businessIntelligence from "@/assets/services/business-intelligence.jpg";
 import consultoriaContabil from "@/assets/services/consultoria-contabil.jpg";
 
@@ -62,20 +60,6 @@ const pilares = [
         nome: "Pessoa Física",
         descricao:
           "Gestão tributária, sucessória e patrimonial para pessoas físicas e grupos familiares. Planejamento sucessório e proteção patrimonial.",
-      },
-    ],
-  },
-  {
-    id: "previdenciario",
-    titulo: "Previdenciário",
-    descricao: "Gestão e planejamento previdenciário patronal",
-    imagem: consultoriaPrevidenciaria,
-    icone: ShieldCheck,
-    servicos: [
-      {
-        nome: "Consultoria Previdenciária",
-        descricao:
-          "Atuação especializada em revisão, planejamento e regularização previdenciária patronal, mitigando riscos e recuperando créditos.",
       },
     ],
   },
