@@ -1890,6 +1890,7 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          source_area: string | null
           start_date: string | null
           status: string | null
           updated_at: string | null
@@ -1903,6 +1904,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          source_area?: string | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -1916,6 +1918,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          source_area?: string | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
