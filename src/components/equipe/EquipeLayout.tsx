@@ -23,7 +23,8 @@ import {
   ArrowLeft,
   Layers,
   Settings,
-  User
+   User,
+   FileBarChart
 } from 'lucide-react';
 
 interface EquipeLayoutProps {
@@ -43,6 +44,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
+   { icon: FileBarChart, label: 'Relatórios', path: '/equipe/relatorios' },
   { 
     icon: FolderKanban, 
     label: 'Projetos', 

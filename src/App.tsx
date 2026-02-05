@@ -55,6 +55,7 @@ import Ajuda from "./pages/Ajuda";
 import Missao from "./pages/Missao";
 import NotFound from "./pages/NotFound";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
+import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/equipe/chamados" element={<TeamRoute><EquipeChamados /></TeamRoute>} />
             <Route path="/equipe/chamados/:id" element={<TeamRoute><EquipeDetalhesChamado /></TeamRoute>} />
             <Route path="/equipe/dashboard" element={<TeamRoute><EquipeDashboard /></TeamRoute>} />
+            <Route path="/equipe/relatorios" element={<TeamRoute><EquipeRelatorios /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
             <Route path="/equipe/sprints" element={<TeamRoute><EquipeSprints /></TeamRoute>} />
             <Route path="/equipe/sprints/:id" element={<TeamRoute><EquipeSprintDetalhes /></TeamRoute>} />
