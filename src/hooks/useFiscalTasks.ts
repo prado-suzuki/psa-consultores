@@ -1,0 +1,301 @@
+ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { supabase } from '@/integrations/supabase/client';
+ import { useAuth } from '@/contexts/AuthContext';
+ import { toast } from 'sonner';
+ 
+ export type FiscalTaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+ export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+ export type FiscalTaskCategory = 'task' | 'fixed_event';
+ export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+ export type FiscalTaskDepartment = 'commercial' | 'financial' | 'administrative' | 'operations';
+ 
+ export interface FiscalTask {
+   id: string;
+   title: string;
+   description: string | null;
+   status: FiscalTaskStatus;
+   priority: FiscalTaskPriority;
+   assigned_to: string | null;
+   assigned_to_name: string | null;
+   created_by: string | null;
+   due_date: string | null;
+   due_time: string | null;
+   is_recurring: boolean;
+   recurrence_type: FiscalRecurrenceType | null;
+   category: FiscalTaskCategory;
+   tags: string[];
+   department: FiscalTaskDepartment | null;
+   parent_task_id: string | null;
+   created_at: string;
+   updated_at: string;
+ }
+ 
+ export interface FiscalTaskComment {
+   id: string;
+   task_id: string;
+   user_id: string | null;
+   user_name: string | null;
+   comment: string;
+   is_system: boolean;
+   created_at: string;
+ }
+ 
+ export interface TaskFilters {
+   search?: string;
+   assignedTo?: string | 'mine' | 'all';
+   status?: FiscalTaskStatus[];
+   priority?: FiscalTaskPriority[];
+   department?: FiscalTaskDepartment[];
+   startDate?: string;
+   endDate?: string;
+ }
+ 
+ export interface CreateFiscalTaskInput {
+   title: string;
+   description?: string;
+   status?: FiscalTaskStatus;
+   priority?: FiscalTaskPriority;
+   assigned_to?: string;
+   assigned_to_name?: string;
+   due_date?: string;
+   due_time?: string;
+   is_recurring?: boolean;
+   recurrence_type?: FiscalRecurrenceType;
+   category?: FiscalTaskCategory;
+   tags?: string[];
+   department?: FiscalTaskDepartment;
+   parent_task_id?: string;
+ }
+ 
+ export const useFiscalTasks = (filters?: TaskFilters) => {
+   const { user } = useAuth();
+ 
+   return useQuery({
+     queryKey: ['fiscal-tasks', filters],
+     queryFn: async () => {
+       let query = supabase
+         .from('fiscal_tasks')
+         .select('*')
+         .order('created_at', { ascending: false });
+ 
+       if (filters?.search) {
+         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+       }
+ 
+       if (filters?.assignedTo === 'mine' && user) {
+         query = query.eq('assigned_to', user.id);
+       } else if (filters?.assignedTo && filters.assignedTo !== 'all') {
+         query = query.eq('assigned_to', filters.assignedTo);
+       }
+ 
+       if (filters?.status && filters.status.length > 0) {
+         query = query.in('status', filters.status);
+       }
+ 
+       if (filters?.priority && filters.priority.length > 0) {
+         query = query.in('priority', filters.priority);
+       }
+ 
+       if (filters?.department && filters.department.length > 0) {
+         query = query.in('department', filters.department);
+       }
+ 
+       if (filters?.startDate) {
+         query = query.gte('due_date', filters.startDate);
+       }
+ 
+       if (filters?.endDate) {
+         query = query.lte('due_date', filters.endDate);
+       }
+ 
+       const { data, error } = await query;
+       if (error) throw error;
+       return data as FiscalTask[];
+     },
+   });
+ };
+ 
+ export const useCreateFiscalTask = () => {
+   const queryClient = useQueryClient();
+   const { user } = useAuth();
+ 
+   return useMutation({
+     mutationFn: async (input: CreateFiscalTaskInput) => {
+       const { data, error } = await supabase
+         .from('fiscal_tasks')
+         .insert({
+           ...input,
+           created_by: user?.id,
+         })
+         .select()
+         .single();
+ 
+       if (error) throw error;
+       return data;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       toast.success('Tarefa criada com sucesso');
+     },
+     onError: (error) => {
+       toast.error('Erro ao criar tarefa: ' + error.message);
+     },
+   });
+ };
+ 
+ export const useUpdateFiscalTask = () => {
+   const queryClient = useQueryClient();
+ 
+   return useMutation({
+     mutationFn: async ({ id, ...updates }: Partial<FiscalTask> & { id: string }) => {
+       const { data, error } = await supabase
+         .from('fiscal_tasks')
+         .update(updates)
+         .eq('id', id)
+         .select()
+         .single();
+ 
+       if (error) throw error;
+       return data;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       toast.success('Tarefa atualizada');
+     },
+     onError: (error) => {
+       toast.error('Erro ao atualizar tarefa: ' + error.message);
+     },
+   });
+ };
+ 
+ export const useDeleteFiscalTask = () => {
+   const queryClient = useQueryClient();
+ 
+   return useMutation({
+     mutationFn: async (id: string) => {
+       const { error } = await supabase
+         .from('fiscal_tasks')
+         .delete()
+         .eq('id', id);
+ 
+       if (error) throw error;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       toast.success('Tarefa excluída');
+     },
+     onError: (error) => {
+       toast.error('Erro ao excluir tarefa: ' + error.message);
+     },
+   });
+ };
+ 
+ export const useReassignFiscalTask = () => {
+   const queryClient = useQueryClient();
+   const { user } = useAuth();
+ 
+   return useMutation({
+     mutationFn: async ({ taskId, newAssigneeId, newAssigneeName, comment, currentUserName }: {
+       taskId: string;
+       newAssigneeId: string;
+       newAssigneeName: string;
+       comment: string;
+       currentUserName: string;
+     }) => {
+       const { error: updateError } = await supabase
+         .from('fiscal_tasks')
+         .update({
+           assigned_to: newAssigneeId,
+           assigned_to_name: newAssigneeName,
+         })
+         .eq('id', taskId);
+ 
+       if (updateError) throw updateError;
+ 
+       const { error: commentError } = await supabase
+         .from('fiscal_task_comments')
+         .insert({
+           task_id: taskId,
+           user_id: user?.id,
+           user_name: currentUserName,
+           comment: `Tarefa reatribuída para ${newAssigneeName}. Motivo: ${comment}`,
+           is_system: true,
+         });
+ 
+       if (commentError) throw commentError;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       toast.success('Tarefa reatribuída com sucesso');
+     },
+     onError: (error) => {
+       toast.error('Erro ao reatribuir tarefa: ' + error.message);
+     },
+   });
+ };
+ 
+ export const useFiscalTaskComments = (taskId: string) => {
+   return useQuery({
+     queryKey: ['fiscal-task-comments', taskId],
+     queryFn: async () => {
+       const { data, error } = await supabase
+         .from('fiscal_task_comments')
+         .select('*')
+         .eq('task_id', taskId)
+         .order('created_at', { ascending: false });
+ 
+       if (error) throw error;
+       return data as FiscalTaskComment[];
+     },
+     enabled: !!taskId,
+   });
+ };
+ 
+ export const useCreateFiscalTaskComment = () => {
+   const queryClient = useQueryClient();
+   const { user } = useAuth();
+ 
+   return useMutation({
+     mutationFn: async ({ taskId, comment, userName }: { taskId: string; comment: string; userName: string }) => {
+       const { data, error } = await supabase
+         .from('fiscal_task_comments')
+         .insert({
+           task_id: taskId,
+           user_id: user?.id,
+           user_name: userName,
+           comment,
+           is_system: false,
+         })
+         .select()
+         .single();
+ 
+       if (error) throw error;
+       return data;
+     },
+     onSuccess: (_, variables) => {
+       queryClient.invalidateQueries({ queryKey: ['fiscal-task-comments', variables.taskId] });
+       toast.success('Comentário adicionado');
+     },
+     onError: (error) => {
+       toast.error('Erro ao adicionar comentário: ' + error.message);
+     },
+   });
+ };
+ 
+ export const useTaskStatusCounts = () => {
+   const { data: tasks } = useFiscalTasks();
+ 
+   const counts = {
+     backlog: 0,
+     todo: 0,
+     in_progress: 0,
+     review: 0,
+     done: 0,
+   };
+ 
+   tasks?.forEach(task => {
+     counts[task.status]++;
+   });
+ 
+   return counts;
+ };

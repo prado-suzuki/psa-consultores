@@ -786,6 +786,148 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_task_comments: {
+        Row: {
+          comment: string
+          created_at: string | null
+          id: string
+          is_system: boolean | null
+          task_id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          task_id: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          task_id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_task_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_tasks: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          category: Database["public"]["Enums"]["fiscal_task_category"]
+          created_at: string | null
+          created_by: string | null
+          department:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean | null
+          parent_task_id: string | null
+          priority: Database["public"]["Enums"]["fiscal_task_priority"]
+          recurrence_type:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          status: Database["public"]["Enums"]["fiscal_task_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
+          created_at?: string | null
+          created_by?: string | null
+          department?:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          recurrence_type?:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
+          created_at?: string | null
+          created_by?: string | null
+          department?:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          recurrence_type?:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gestao_area_password: {
         Row: {
           id: string
@@ -2638,6 +2780,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "client" | "team_member"
+      fiscal_recurrence_type: "daily" | "weekly" | "monthly" | "yearly"
+      fiscal_task_category: "task" | "fixed_event"
+      fiscal_task_department:
+        | "commercial"
+        | "financial"
+        | "administrative"
+        | "operations"
+      fiscal_task_priority: "low" | "medium" | "high" | "urgent"
+      fiscal_task_status: "backlog" | "todo" | "in_progress" | "review" | "done"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "backlog" | "to_do" | "in_progress" | "review" | "done"
       work_cluster: "database" | "frontend" | "management"
@@ -2802,6 +2953,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "client", "team_member"],
+      fiscal_recurrence_type: ["daily", "weekly", "monthly", "yearly"],
+      fiscal_task_category: ["task", "fixed_event"],
+      fiscal_task_department: [
+        "commercial",
+        "financial",
+        "administrative",
+        "operations",
+      ],
+      fiscal_task_priority: ["low", "medium", "high", "urgent"],
+      fiscal_task_status: ["backlog", "todo", "in_progress", "review", "done"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["backlog", "to_do", "in_progress", "review", "done"],
       work_cluster: ["database", "frontend", "management"],

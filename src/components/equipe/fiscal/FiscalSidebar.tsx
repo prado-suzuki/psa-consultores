@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   ClipboardList,
-  Inbox,
-  Package,
+   ListTodo,
   Building,
   ChevronDown,
   ChevronRight,
@@ -47,18 +46,12 @@ const menuItems: MenuItem[] = [
     label: 'Demandas',
     icon: ClipboardList,
     children: [
-      {
-        id: 'minhas',
-        label: 'Minhas Demandas',
-        icon: Inbox,
-        path: '/equipe/tex/demandas/inbox'
-      },
-      {
-        id: 'pacotes',
-        label: 'Pacotes de Trabalho',
-        icon: Package,
-        path: '/equipe/tex/demandas/pacotes'
-      },
+       {
+         id: 'tarefas',
+         label: 'Tarefas',
+         icon: ListTodo,
+         path: '/equipe/tex/demandas/tarefas'
+       },
       {
         id: 'clientes',
         label: 'Clientes',
