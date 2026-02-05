@@ -53,6 +53,7 @@ import { ImprovementHistoryModal } from '@/components/equipe/ImprovementHistoryM
 import { ProcessImprovementModal } from '@/components/equipe/ProcessImprovementModal';
 import { StageEditCard } from '@/components/equipe/StageEditCard';
 import { NewStageForm } from '@/components/equipe/NewStageForm';
+ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Process {
   id: string;
@@ -192,6 +193,11 @@ const EquipeProcessos = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isImprovementModalOpen, setIsImprovementModalOpen] = useState(false);
 
+   // State for project management in processes
+   const [allProjects, setAllProjects] = useState<Project[]>([]);
+   const [newProjectLink, setNewProjectLink] = useState({ project_id: '', impact_type: 'principal' });
+   const [isAddingProjectLink, setIsAddingProjectLink] = useState(false);
+
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -319,7 +325,23 @@ const EquipeProcessos = () => {
   useEffect(() => {
     fetchProcesses();
     fetchCatalogClients();
+     fetchAllProjects();
   }, []);
+
+   const fetchAllProjects = async () => {
+     try {
+       const { data, error } = await supabase
+         .from('projects')
+         .select('id, name')
+         .eq('status', 'active')
+         .order('name');
+       
+       if (error) throw error;
+       setAllProjects(data || []);
+     } catch (error) {
+       console.error('Error fetching projects:', error);
+     }
+   };
 
   const fetchCatalogClients = async () => {
     try {
@@ -540,6 +562,74 @@ const EquipeProcessos = () => {
 
   // Get unique areas from catalog_clients
   const areas = catalogClients.map(c => c.name).sort();
+
+   const getAvailableProjects = () => {
+     const linkedProjectIds = projectProcesses.map(pp => pp.project_id);
+     return allProjects.filter(p => !linkedProjectIds.includes(p.id));
+   };
+ 
+   const addProjectToProcess = async () => {
+     if (!selectedProcess || !newProjectLink.project_id) return;
+     
+     setIsAddingProjectLink(true);
+     try {
+       const { error } = await supabase
+         .from('project_processes')
+         .insert({
+           process_id: selectedProcess.id,
+           project_id: newProjectLink.project_id,
+           impact_type: newProjectLink.impact_type
+         });
+ 
+       if (error) throw error;
+ 
+       toast({
+         title: "Projeto vinculado",
+         description: "O projeto foi vinculado ao processo com sucesso."
+       });
+ 
+       setNewProjectLink({ project_id: '', impact_type: 'principal' });
+       fetchProcessDetails(selectedProcess.id);
+       fetchProcesses();
+     } catch (error: any) {
+       console.error('Error adding project to process:', error);
+       toast({
+         title: "Erro",
+         description: "Não foi possível vincular o projeto.",
+         variant: "destructive"
+       });
+     } finally {
+       setIsAddingProjectLink(false);
+     }
+   };
+ 
+   const removeProjectFromProcess = async (linkId: string) => {
+     if (!selectedProcess) return;
+ 
+     try {
+       const { error } = await supabase
+         .from('project_processes')
+         .delete()
+         .eq('id', linkId);
+ 
+       if (error) throw error;
+ 
+       toast({
+         title: "Vínculo removido",
+         description: "O projeto foi desvinculado do processo."
+       });
+ 
+       fetchProcessDetails(selectedProcess.id);
+       fetchProcesses();
+     } catch (error: any) {
+       console.error('Error removing project from process:', error);
+       toast({
+         title: "Erro",
+         description: "Não foi possível remover o vínculo.",
+         variant: "destructive"
+       });
+     }
+   };
 
   // Helper to get client badge
   const getClientBadge = (process: Process) => {
@@ -1172,46 +1262,112 @@ const EquipeProcessos = () => {
 
               {/* Projects Tab */}
               <TabsContent value="projects" className="mt-0">
+                 {/* Botão Adicionar Projeto */}
+                 <div className="flex justify-end mb-4">
+                   <Popover>
+                     <PopoverTrigger asChild>
+                       <Button variant="outline" size="sm">
+                         <Plus className="h-4 w-4 mr-2" />
+                         Adicionar Projeto
+                       </Button>
+                     </PopoverTrigger>
+                     <PopoverContent className="w-80" align="end">
+                       <div className="space-y-4">
+                         <h4 className="font-medium text-sm">Vincular Projeto</h4>
+                         <div className="space-y-2">
+                           <Label className="text-xs">Projeto</Label>
+                           <Select 
+                             value={newProjectLink.project_id} 
+                             onValueChange={(value) => setNewProjectLink(prev => ({ ...prev, project_id: value }))}
+                           >
+                             <SelectTrigger>
+                               <SelectValue placeholder="Selecione um projeto" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {getAvailableProjects().map(project => (
+                                 <SelectItem key={project.id} value={project.id}>
+                                   {project.name}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <div className="space-y-2">
+                           <Label className="text-xs">Tipo de Impacto</Label>
+                           <Select 
+                             value={newProjectLink.impact_type} 
+                             onValueChange={(value) => setNewProjectLink(prev => ({ ...prev, impact_type: value }))}
+                           >
+                             <SelectTrigger>
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="principal">Principal</SelectItem>
+                               <SelectItem value="secundario">Secundário</SelectItem>
+                               <SelectItem value="suporte">Suporte</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <Button 
+                           onClick={addProjectToProcess} 
+                           disabled={!newProjectLink.project_id || isAddingProjectLink}
+                           className="w-full"
+                           size="sm"
+                         >
+                           {isAddingProjectLink ? 'Vinculando...' : 'Vincular'}
+                         </Button>
+                       </div>
+                     </PopoverContent>
+                   </Popover>
+                 </div>
+ 
                 {loadingDetails ? (
                   <div className="text-center py-8 text-gray-500">Carregando projetos...</div>
                 ) : projectProcesses.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    Nenhum projeto relacionado a este processo.
+                     Nenhum projeto vinculado. Clique em "Adicionar Projeto" para vincular.
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                   <div className="space-y-3">
                     {projectProcesses.map((pp) => (
-                      <Card key={pp.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <FolderKanban className="h-5 w-5 text-primary" />
-                              <div>
-                                <p className="font-medium">{pp.projects?.name || 'Projeto não encontrado'}</p>
-                                <div className="flex gap-2 mt-1">
-                                  {pp.impact_type && (
-                                    <Badge 
-                                      variant={pp.impact_type === 'principal' ? 'default' : 'secondary'}
-                                      className="text-xs"
-                                    >
-                                      {pp.impact_type === 'principal' ? 'Principal' : 
-                                       pp.impact_type === 'secundario' ? 'Secundário' : 'Suporte'}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {pp.impacted_stages && pp.impacted_stages.length > 0 && (
-                              <div className="text-right">
-                                <p className="text-xs text-gray-500">Etapas Impactadas</p>
-                                <div className="flex gap-1 mt-1 justify-end flex-wrap">
-                                  {pp.impacted_stages.map((stage, i) => (
-                                    <Badge key={i} variant="outline" className="text-xs">{stage}</Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                       <Card key={pp.id} className="border-gray-100">
+                         <CardContent className="p-4 flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                             <FolderKanban className="h-5 w-5 text-primary" />
+                             <div>
+                               <p className="font-medium">{pp.projects?.name || 'Projeto não encontrado'}</p>
+                               {pp.impact_type && (
+                                 <Badge 
+                                   variant={pp.impact_type === 'principal' ? 'default' : 'secondary'}
+                                   className="text-xs mt-1"
+                                 >
+                                   {pp.impact_type === 'principal' ? 'Principal' : 
+                                    pp.impact_type === 'secundario' ? 'Secundário' : 'Suporte'}
+                                 </Badge>
+                               )}
+                             </div>
                           </div>
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                 <Trash2 className="h-4 w-4" />
+                               </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Remover vínculo?</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   Tem certeza que deseja remover o vínculo com o projeto "{pp.projects?.name}"?
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                 <AlertDialogAction onClick={() => removeProjectFromProcess(pp.id)} className="bg-red-600 hover:bg-red-700">
+                                   Remover
+                                 </AlertDialogAction>
+                               </AlertDialogFooter>
+                             </AlertDialogContent>
+                           </AlertDialog>
                         </CardContent>
                       </Card>
                     ))}
