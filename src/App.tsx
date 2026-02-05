@@ -107,6 +107,7 @@ const App = () => (
             {/* <Route path="/equipe/demandas" element={<TeamRoute><EquipeDemandas /></TeamRoute>} /> OCULTO */}
             
             <Route path="/equipe/processos" element={<TeamRoute><EquipeProcessos /></TeamRoute>} />
+            <Route path="/equipe/projetos" element={<TeamRoute><EquipeProjetos /></TeamRoute>} />
             <Route path="/equipe/biblioteca" element={<TeamRoute><EquipeBiblioteca /></TeamRoute>} />
             <Route path="/equipe/backlog" element={<TeamRoute><EquipeBacklog /></TeamRoute>} />
             <Route path="/equipe/digital" element={<TeamRoute><DigitalAreaSelector /></TeamRoute>} />
