@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -74,6 +74,8 @@ export default function ControlePerdcomp() {
   const [processoFilter, setProcessoFilter] = useState<string>('');
   
   const [searched, setSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   
   // Modal states
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -229,6 +231,7 @@ export default function ControlePerdcomp() {
     setExercicioFilter('');
     setProcessoFilter('');
     setSearched(false);
+    setCurrentPage(1);
   };
 
   // Frontend filtering
@@ -237,6 +240,13 @@ export default function ControlePerdcomp() {
     if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
     return true;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPerData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredPerData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const handleNew = () => {
     setEditData(null);
@@ -286,58 +296,90 @@ export default function ControlePerdcomp() {
     }
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nº Processo</TableHead>
-            <TableHead>Situação</TableHead>
-            <TableHead>Atualização</TableHead>
-            <TableHead>Exercício</TableHead>
-            <TableHead>Trimestre</TableHead>
-            <TableHead>Data Solicitada</TableHead>
-            <TableHead>Tipo Crédito</TableHead>
-            <TableHead className="text-right">Valor Crédito</TableHead>
-            <TableHead className="w-[80px]">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredPerData.length === 0 ? (
+      <>
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                Nenhum registro encontrado
-              </TableCell>
+              <TableHead>Nº Processo</TableHead>
+              <TableHead>Situação</TableHead>
+              <TableHead>Atualização</TableHead>
+              <TableHead>Exercício</TableHead>
+              <TableHead>Trimestre</TableHead>
+              <TableHead>Data Solicitada</TableHead>
+              <TableHead>Tipo Crédito</TableHead>
+              <TableHead className="text-right">Valor Crédito</TableHead>
+              <TableHead className="w-[80px]">Editar</TableHead>
             </TableRow>
-          ) : filteredPerData.map((item) => {
-            const situacaoInfo = perSituacoesMap[item.numero_processo_per];
-            
-            return (
-              <TableRow 
-                key={item.numero_processo_per} 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handlePerClick(item)}
-              >
-                <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
-                <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
-                <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
-                <TableCell>{item.exercicio}</TableCell>
-                <TableCell>{item.tri_exercicio}º</TableCell>
-                <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
-                <TableCell>{item.tp_credito}</TableCell>
-                <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  Nenhum registro encontrado
                 </TableCell>
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            ) : paginatedData.map((item) => {
+              const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+              
+              return (
+                <TableRow 
+                  key={item.numero_processo_per} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handlePerClick(item)}
+                >
+                  <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+                  <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                  <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+                  <TableCell>{item.exercicio}</TableCell>
+                  <TableCell>{item.tri_exercicio}º</TableCell>
+                  <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
+                  <TableCell>{item.tp_credito}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <span className="text-sm text-muted-foreground">
+              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredPerData.length)} de {filteredPerData.length} registros
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
