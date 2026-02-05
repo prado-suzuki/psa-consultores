@@ -1,24 +1,62 @@
 
-# Atualização da Novidade "PSA Consultores"
+# Ajustes na Tabela de Controle PERDCOMP
 
 ## Resumo
-Atualizar o conteúdo da novidade existente no banco de dados para refletir a nova mensagem sobre a consolidação da presença nacional da PSA Consultores.
+Reorganizar colunas da tabela, remover coluna desnecessária e adicionar novos filtros de pesquisa.
 
-## Alterações Necessárias
+## Alterações
 
-### Atualização no Banco de Dados
-Será executado um UPDATE na tabela `novidades` para modificar o registro existente:
+### 1. Reordenar Colunas da Tabela
+A nova ordem será:
+1. Nº Processo (primeira coluna, destaque)
+2. Situação
+3. Atualização
+4. Exercício
+5. Trimestre
+6. Data Solicitada
+7. Tipo Crédito
+8. Valor Crédito
+9. Ações
 
-| Campo | Valor Atual | Novo Valor |
-|-------|-------------|------------|
-| **titulo** | PSA Consultores Expande Atuação para o Centro-Oeste | PSA Consultores Consolida Presença Nacional |
-| **descricao** | Com mais de 20 anos de experiência no agronegócio brasileiro, a PSA Consultores anuncia a abertura de sua nova unidade em Cuiabá... | Desde 2004, quando iniciamos nossa jornada em Cuiabá/MT, a Prado Suzuki construiu uma trajetória sólida no agronegócio brasileiro. Em 2024, nos transformamos em uma rede associativa de marcas e serviços, e agora em 2025 consolidamos nossa presença nacional com escritórios estratégicos nas principais regiões produtoras do país. Com mais de 110 colaboradores e atuação em três estados brasileiros, mantemos nossa expertise em consultoria fiscal e tributária para o agronegócio. |
-| **itens** | Lista antiga com 4 itens | Nova lista: Matriz em Cuiabá/MT (sede desde 2004), Filial em Barreiras/BA, Filial em Curitiba/PR, Atendimento presencial e remoto, Equipe especializada em agronegócio regional |
+### 2. Remover Coluna "Contribuinte"
+A coluna "Contribuinte" será removida da tabela, já que o contribuinte já está selecionado nos filtros superiores.
 
-### Detalhes Técnicos
-- **Tabela**: `novidades`
-- **ID do registro**: `d42c9e0b-156c-445e-b32a-11dfbfc79178`
-- **Tipo de operação**: UPDATE SQL
-- Não será necessário alterar código frontend, apenas os dados no banco
+### 3. Adicionar Novos Filtros
+- **Exercício**: Select com anos (2020-2026)
+- **Nº do Processo**: Input de texto para digitar/buscar pelo número
 
-O conteúdo será atualizado automaticamente na página de Novidades após a execução do SQL.
+### 4. Atualizar Lógica de Filtragem
+Os novos filtros serão aplicados no frontend sobre os dados retornados, filtrando:
+- Por ano de exercício selecionado
+- Por número do processo (busca parcial)
+
+## Detalhes Técnicos
+
+### Estados a adicionar
+```typescript
+const [exercicioFilter, setExercicioFilter] = useState<string>('');
+const [processoFilter, setProcessoFilter] = useState<string>('');
+```
+
+### Layout dos filtros (grid 6 colunas)
+- Cliente: 1 coluna
+- Contribuinte: 1 coluna  
+- Exercício: 1 coluna
+- Nº Processo: 1 coluna
+- Botões: 2 colunas
+
+### Filtragem dos dados
+```typescript
+const filteredPerData = perData.filter(item => {
+  if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
+  if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
+  return true;
+});
+```
+
+### Nova estrutura da tabela
+```text
+| Nº Processo | Situação | Atualização | Exercício | Trimestre | Data Solicitada | Tipo Crédito | Valor Crédito | Ações |
+```
+
+**Arquivo a modificar:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
