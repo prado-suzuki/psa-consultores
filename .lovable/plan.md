@@ -1,302 +1,445 @@
 
-# Plano: Adicionar Filtros e Visao de Tabela no Impacto Digital
 
-## Resumo
+# Plano: Corrigir Sidebar Tax e Adicionar Gestao de Projetos com Vinculos
 
-Adicionar ao componente `ImpactDashboard.tsx` uma barra de filtros interativa e uma nova visao de tabela detalhada com todas as melhorias implementadas.
+## Resumo dos Problemas Identificados
+
+### 1. Sidebar Tax Fixo (nao colapsa)
+O `FiscalSidebar.tsx` atual usa um layout estático com `w-64` fixo e não implementa a lógica de colapso/expansão. Diferente do componente `ui/sidebar.tsx` que tem `SidebarProvider` e `SidebarTrigger` para controlar estados.
+
+### 2. Nome "Tex" deve ser "Tax"
+Em `FiscalSidebar.tsx` linha 102, está escrito "Tex" ao invés de "Tax".
+
+### 3. Falta aba de Projetos na área Tax
+Não existe uma seção de "Projetos" no menu lateral e nem páginas correspondentes.
+
+### 4. Tarefas não têm vínculo com projetos, clientes ou serviços
+A tabela `fiscal_tasks` não possui campos para `project_id`, `client_id` ou `service_id`.
 
 ---
 
-## Novas Funcionalidades
+## Alteracoes Necessarias
 
-### 1. Barra de Filtros
+### Parte 1: Corrigir Sidebar - Adicionar Colapso/Expansao
 
-Adicionar filtros para refinar os dados exibidos:
-
-```text
-+-------------------------------------------------------------------------+
-| Filtros                                                                 |
-+-------------------------------------------------------------------------+
-| Processo: [Todos         v]  Projeto: [Todos         v]                 |
-| Responsavel: [Todos      v]  Area: [Todas           v]                  |
-| [Limpar Filtros]                                                        |
-+-------------------------------------------------------------------------+
-```
-
-**Filtros disponiveis:**
-- **Processo**: Lista de processos com melhorias
-- **Projeto**: P2 - Automacao SPED, P3 - Automacao Consultas, etc.
-- **Responsavel**: Lista de membros da equipe (profiles)
-- **Area de Atuacao**: Fiscal, Fixos, Transversal, Consultoria
-
-### 2. Visao de Tabela com Melhorias Implementadas
-
-Nova aba ou secao com tabela detalhada:
+Refatorar `FiscalSidebar.tsx` para usar o sistema de sidebar colapsável do Shadcn:
 
 ```text
-+-------------------------------------------------------------------------+
-| Melhorias Implementadas                                    [Cards|Tabela] |
-+-------------------------------------------------------------------------+
-| Processo      | Projeto    | Area      | ROI   | Economia  | Tempo     |
-|---------------|------------|-----------|-------|-----------|-----------|
-| Conciliacao   | P2 - Auto  | Fiscal    | 245%  | R$ 3.200  | 15h/mes   |
-| Apuracao ICMS | P4 - PIS   | Fiscal    | 180%  | R$ 2.800  | 12h/mes   |
-| Folha Pgto    | P6 - Dash  | Fixos     | 120%  | R$ 1.500  |  8h/mes   |
-+-------------------------------------------------------------------------+
++----------------------------------------------------------+
+|  [<]  Tax                              (quando expandido)|
+|       Gestão de Projetos                                 |
++----------------------------------------------------------+
+|  Dashboard                                               |
+|                                                          |
+|  v Projetos                                              |
+|    - Cadastro                                            |
+|                                                          |
+|  v Demandas                                              |
+|    - Tarefas                                             |
+|    - Clientes                                            |
+|                                                          |
++----------------------------------------------------------+
+|  [Trocar área]                                           |
+|  [Sair]                                                  |
++----------------------------------------------------------+
 ```
 
-**Colunas da tabela:**
-- Processo (nome)
-- Projeto vinculado
-- Area de atuacao
-- ROI (%)
-- Economia mensal (R$)
-- Tempo economizado (h/mes)
-- Responsavel pela avaliacao
-- Data da melhoria
+### Parte 2: Renomear "Tex" para "Tax"
+
+Atualizar referências de "Tex" para "Tax" no título do sidebar.
+
+### Parte 3: Adicionar aba "Projetos" com Cadastro
+
+Criar nova seção no menu antes de "Demandas":
+
+- Projetos (grupo)
+  - Cadastro (subitem)
+
+Criar página `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` para gerenciar projetos da área fiscal.
+
+### Parte 4: Vincular Projetos, Clientes e Servicos as Tarefas
+
+Adicionar campos no banco de dados:
+
+```sql
+ALTER TABLE public.fiscal_tasks 
+ADD COLUMN project_id uuid REFERENCES public.projects(id),
+ADD COLUMN client_id uuid REFERENCES public.cliente(id),
+ADD COLUMN service_id uuid REFERENCES public.servico(id_servico);
+```
+
+Atualizar `TaskModal.tsx` para incluir selects de Projeto, Cliente e Serviço.
 
 ---
 
 ## Secao Tecnica
 
-### Arquivo a Modificar
+### Migracao de Banco de Dados
 
-**src/components/equipe/ImpactDashboard.tsx**
+```sql
+-- Adicionar campos de vinculo em fiscal_tasks
+ALTER TABLE public.fiscal_tasks 
+ADD COLUMN IF NOT EXISTS project_id uuid REFERENCES public.projects(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS client_id uuid REFERENCES public.cliente(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS service_id uuid REFERENCES public.servico(id_servico) ON DELETE SET NULL;
 
-### Novos Estados
+-- Adicionar indices para performance
+CREATE INDEX IF NOT EXISTS idx_fiscal_tasks_project_id ON public.fiscal_tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_tasks_client_id ON public.fiscal_tasks(client_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_tasks_service_id ON public.fiscal_tasks(service_id);
+```
+
+### Arquivos a Modificar/Criar
+
+#### 1. src/components/equipe/fiscal/FiscalSidebar.tsx
+
+Refatorar completamente para suportar colapso:
 
 ```typescript
-// Filtros
-const [filters, setFilters] = useState({
-  processId: '',
-  projectId: '',
-  responsibleId: '',
-  area: ''
-});
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import {
+  LayoutDashboard,
+  ClipboardList,
+  ListTodo,
+  Building,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Calculator,
+  FolderKanban,
+  ArrowLeft,
+  LogOut
+} from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
+import logoPsa from '@/assets/logo-psa.png';
 
-// Dados para filtros
-const [processes, setProcesses] = useState<{id: string, name: string}[]>([]);
-const [projects, setProjects] = useState<{id: string, name: string}[]>([]);
-const [profiles, setProfiles] = useState<{id: string, first_name: string, last_name: string}[]>([]);
-const areas = ['Fiscal', 'Fixos', 'Transversal', 'Consultoria'];
+const menuItems = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/equipe/tex/dashboard'
+  },
+  {
+    id: 'projetos',
+    label: 'Projetos',
+    icon: FolderKanban,
+    children: [
+      {
+        id: 'cadastro-projetos',
+        label: 'Cadastro',
+        icon: FolderKanban,
+        path: '/equipe/tex/projetos/cadastro'
+      }
+    ]
+  },
+  {
+    id: 'demandas',
+    label: 'Demandas',
+    icon: ClipboardList,
+    children: [
+      {
+        id: 'tarefas',
+        label: 'Tarefas',
+        icon: ListTodo,
+        path: '/equipe/tex/demandas/tarefas'
+      },
+      {
+        id: 'clientes',
+        label: 'Clientes',
+        icon: Building,
+        path: '/equipe/tex/demandas/clientes'
+      }
+    ]
+  }
+];
 
-// Toggle de visualizacao
-const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+export const FiscalSidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { signOut } = useAuth();
+  const [openMenus, setOpenMenus] = useState<string[]>(['demandas', 'projetos']);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-// Dados completos das melhorias para tabela
-const [allImprovements, setAllImprovements] = useState<ImprovementDetail[]>([]);
-```
-
-### Interface para Tabela
-
-```typescript
-interface ImprovementDetail {
-  id: string;
-  process_name: string;
-  project_name: string | null;
-  area: string | null;
-  roi_percentage: number;
-  cost_saved_monthly: number;
-  time_saved_hours: number;
-  evaluated_by_name: string | null;
-  created_at: string;
-}
-```
-
-### Busca de Dados para Filtros
-
-```typescript
-// Na funcao fetchImpactData()
-const { data: processesData } = await supabase
-  .from('processes')
-  .select('id, name')
-  .order('name');
-setProcesses(processesData || []);
-
-const { data: projectsData } = await supabase
-  .from('projects')
-  .select('id, name')
-  .eq('status', 'active')
-  .order('name');
-setProjects(projectsData || []);
-
-const { data: profilesData } = await supabase
-  .from('profiles')
-  .select('id, first_name, last_name')
-  .order('first_name');
-setProfiles(profilesData || []);
-```
-
-### Aplicacao de Filtros
-
-```typescript
-// Filtrar melhorias baseado nos filtros selecionados
-const filteredImprovements = useMemo(() => {
-  return allImprovements.filter(imp => {
-    if (filters.processId && imp.process_id !== filters.processId) return false;
-    if (filters.projectId && imp.project_id !== filters.projectId) return false;
-    if (filters.responsibleId && imp.evaluated_by !== filters.responsibleId) return false;
-    if (filters.area && imp.area !== filters.area) return false;
-    return true;
-  });
-}, [allImprovements, filters]);
-```
-
-### Componente de Filtros
-
-```tsx
-<Card className="bg-white border-gray-200 mb-6">
-  <CardContent className="pt-4">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-sm font-medium text-gray-700">Filtros</h3>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        onClick={() => setFilters({processId: '', projectId: '', responsibleId: '', area: ''})}
-      >
-        <X className="h-4 w-4 mr-1" />
-        Limpar
-      </Button>
-    </div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Select value={filters.processId} onValueChange={(v) => setFilters({...filters, processId: v})}>
-        <SelectTrigger><SelectValue placeholder="Processo" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
-          {processes.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      
-      <Select value={filters.projectId} onValueChange={(v) => setFilters({...filters, projectId: v})}>
-        <SelectTrigger><SelectValue placeholder="Projeto" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
-          {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      
-      <Select value={filters.responsibleId} onValueChange={(v) => setFilters({...filters, responsibleId: v})}>
-        <SelectTrigger><SelectValue placeholder="Responsavel" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
-          {profiles.map(p => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.first_name} {p.last_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select value={filters.area} onValueChange={(v) => setFilters({...filters, area: v})}>
-        <SelectTrigger><SelectValue placeholder="Area" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">Todas</SelectItem>
-          {areas.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-  </CardContent>
-</Card>
-```
-
-### Componente de Tabela
-
-```tsx
-<Card className="bg-white border-gray-200">
-  <CardHeader className="pb-2">
-    <div className="flex items-center justify-between">
-      <CardTitle className="text-gray-900 text-base font-medium">
-        Melhorias Implementadas ({filteredImprovements.length})
-      </CardTitle>
-      <div className="flex items-center gap-2">
+  // ... resto da logica com suporte a collapse
+  
+  return (
+    <div className={cn(
+      "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      {/* Header com botao de colapso */}
+      <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4">
+        {!isCollapsed && (
+          <div className="flex items-center">
+            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
+              <p className="text-xs text-slate-500">Gestão de Projetos</p>
+            </div>
+          </div>
+        )}
         <Button 
-          variant={viewMode === 'cards' ? 'default' : 'outline'} 
-          size="sm"
-          onClick={() => setViewMode('cards')}
+          variant="ghost" 
+          size="icon"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="h-8 w-8"
         >
-          <LayoutGrid className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant={viewMode === 'table' ? 'default' : 'outline'} 
-          size="sm"
-          onClick={() => setViewMode('table')}
-        >
-          <TableIcon className="h-4 w-4" />
+          <ChevronLeft className={cn(
+            "h-4 w-4 transition-transform",
+            isCollapsed && "rotate-180"
+          )} />
         </Button>
       </div>
+      
+      {/* Menu - esconder labels quando colapsado */}
+      {/* ... */}
     </div>
-  </CardHeader>
-  <CardContent>
-    {viewMode === 'table' ? (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Processo</TableHead>
-            <TableHead>Projeto</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead className="text-right">ROI</TableHead>
-            <TableHead className="text-right">Economia/mes</TableHead>
-            <TableHead className="text-right">Tempo/mes</TableHead>
-            <TableHead>Data</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredImprovements.map((imp) => (
-            <TableRow key={imp.id}>
-              <TableCell className="font-medium">{imp.process_name}</TableCell>
-              <TableCell>{imp.project_name || '-'}</TableCell>
-              <TableCell>
-                <Badge variant="outline">{imp.area || '-'}</Badge>
-              </TableCell>
-              <TableCell className="text-right text-green-600 font-semibold">
-                {imp.roi_percentage?.toFixed(0)}%
-              </TableCell>
-              <TableCell className="text-right">
-                R$ {imp.cost_saved_monthly?.toLocaleString('pt-BR')}
-              </TableCell>
-              <TableCell className="text-right">
-                {imp.time_saved_hours?.toFixed(0)}h
-              </TableCell>
-              <TableCell className="text-sm text-gray-500">
-                {new Date(imp.created_at).toLocaleDateString('pt-BR')}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    ) : (
-      /* Manter visualizacao atual de cards */
-    )}
-  </CardContent>
-</Card>
+  );
+};
 ```
 
-### Imports Adicionais
+#### 2. src/components/equipe/fiscal/FiscalLayout.tsx
+
+Nenhuma alteração necessária - já suporta o sidebar como componente filho.
+
+#### 3. Criar src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx
+
+Nova página para cadastro de projetos:
 
 ```typescript
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { X, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+// ... imports de componentes
+
+const FiscalProjetosCadastro = () => {
+  // Buscar projetos filtrados por client_id fiscal
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ['fiscal-projects'],
+    queryFn: async () => {
+      // Primeiro buscar o ID do cliente Fiscal
+      const { data: fiscalClient } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .ilike('name', '%fiscal%')
+        .single();
+
+      if (!fiscalClient) return [];
+
+      const { data } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('client_id', fiscalClient.id)
+        .order('name');
+      
+      return data || [];
+    }
+  });
+
+  // Modal de criacao/edicao
+  // Tabela com projetos
+  // ...
+};
+
+export default FiscalProjetosCadastro;
 ```
 
----
+#### 4. src/App.tsx
 
-## Fluxo de Dados
+Adicionar rota para nova página:
 
-```text
-1. Ao carregar ImpactDashboard
-   ↓
-2. Busca processos, projetos, profiles para popular filtros
-   ↓
-3. Busca todas as melhorias com joins para process, project, evaluator
-   ↓
-4. Usuario seleciona filtros
-   ↓
-5. useMemo recalcula filteredImprovements
-   ↓
-6. Metricas e graficos atualizam com base nos dados filtrados
-   ↓
-7. Tabela exibe detalhes das melhorias filtradas
+```typescript
+import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
+
+// Na secao de rotas Tax:
+<Route path="/equipe/tex/projetos/cadastro" element={
+  <TeamRoute>
+    <PageAccessGate pagePath="/equipe/tex/dashboard">
+      <FiscalProjetosCadastro />
+    </PageAccessGate>
+  </TeamRoute>
+} />
+```
+
+#### 5. src/hooks/useFiscalTasks.ts
+
+Atualizar interfaces e queries para incluir vinculos:
+
+```typescript
+export interface FiscalTask {
+  // ... campos existentes
+  project_id: string | null;
+  client_id: string | null;
+  service_id: string | null;
+  // Joins
+  project?: { id: string; name: string } | null;
+  client?: { id: string; nome: string } | null;
+  service?: { id_servico: string; descricao: string } | null;
+}
+
+export interface CreateFiscalTaskInput {
+  // ... campos existentes
+  project_id?: string;
+  client_id?: string;
+  service_id?: string;
+}
+
+// Atualizar query para incluir joins
+const { data, error } = await supabase
+  .from('fiscal_tasks')
+  .select(`
+    *,
+    project:projects(id, name),
+    client:cliente(id, nome),
+    service:servico(id_servico, descricao)
+  `)
+  .order('created_at', { ascending: false });
+```
+
+#### 6. src/components/equipe/fiscal/tasks/TaskModal.tsx
+
+Adicionar campos de vinculo:
+
+```typescript
+// Adicionar campos no schema
+const taskSchema = z.object({
+  // ... campos existentes
+  project_id: z.string().optional(),
+  client_id: z.string().optional(),
+  service_id: z.string().optional(),
+});
+
+// Buscar dados para os selects
+const { data: projects = [] } = useQuery({
+  queryKey: ['fiscal-projects-for-tasks'],
+  queryFn: async () => {
+    const { data: fiscalClient } = await supabase
+      .from('catalog_clients')
+      .select('id')
+      .ilike('name', '%fiscal%')
+      .single();
+    
+    if (!fiscalClient) return [];
+
+    const { data } = await supabase
+      .from('projects')
+      .select('id, name')
+      .eq('client_id', fiscalClient.id)
+      .order('name');
+    return data || [];
+  }
+});
+
+const { data: clients = [] } = useQuery({
+  queryKey: ['clients-for-tasks'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('cliente')
+      .select('id, nome')
+      .eq('ativo', true)
+      .order('nome');
+    return data || [];
+  }
+});
+
+const { data: services = [] } = useQuery({
+  queryKey: ['services-for-tasks'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('servico')
+      .select('id_servico, descricao');
+    return data || [];
+  }
+});
+
+// Adicionar selects no formulario
+<div className="grid grid-cols-3 gap-4">
+  <FormField
+    control={form.control}
+    name="project_id"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Projeto</FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="">Nenhum</SelectItem>
+            {projects.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormItem>
+    )}
+  />
+  
+  <FormField
+    control={form.control}
+    name="client_id"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Cliente</FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="">Nenhum</SelectItem>
+            {clients.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormItem>
+    )}
+  />
+  
+  <FormField
+    control={form.control}
+    name="service_id"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Servico</FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="">Nenhum</SelectItem>
+            {services.map(s => (
+              <SelectItem key={s.id_servico} value={s.id_servico}>
+                {s.descricao}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormItem>
+    )}
+  />
+</div>
 ```
 
 ---
@@ -305,14 +448,31 @@ import { X, LayoutGrid, Table as TableIcon } from 'lucide-react';
 
 | Componente | Alteracao |
 |------------|-----------|
-| `ImpactDashboard.tsx` | Adicionar barra de filtros (processo, projeto, responsavel, area) |
-| `ImpactDashboard.tsx` | Adicionar toggle cards/tabela |
-| `ImpactDashboard.tsx` | Adicionar tabela detalhada com melhorias |
-| `ImpactDashboard.tsx` | Metricas atualizam com base nos filtros |
+| Banco de dados | Adicionar `project_id`, `client_id`, `service_id` em `fiscal_tasks` |
+| `FiscalSidebar.tsx` | Adicionar botao de colapso/expansao, renomear para "Tax", adicionar seção Projetos |
+| `FiscalProjetosCadastro.tsx` | Criar nova página para cadastro de projetos da área Tax |
+| `App.tsx` | Adicionar rota `/equipe/tex/projetos/cadastro` |
+| `useFiscalTasks.ts` | Atualizar interface e queries para incluir vinculos |
+| `TaskModal.tsx` | Adicionar selects de Projeto, Cliente e Servico |
 
-## Beneficios
+---
 
-1. **Analise detalhada**: Usuarios podem filtrar e analisar melhorias por diferentes dimensoes
-2. **Visibilidade**: Tabela mostra todas as melhorias com dados consolidados
-3. **Flexibilidade**: Toggle entre visualizacao de cards e tabela
-4. **Rastreabilidade**: Dados de ROI, economia e tempo por melhoria individual
+## Fluxo de Uso Apos Implementacao
+
+```text
+1. Usuario acessa area Tax
+   ↓
+2. Menu lateral mostra Dashboard, Projetos > Cadastro, Demandas > Tarefas/Clientes
+   ↓
+3. Usuario pode colapsar/expandir sidebar clicando no botao [<]
+   ↓
+4. Em Projetos > Cadastro, usuario cria projetos especificos da area fiscal
+   ↓
+5. Em Demandas > Tarefas, ao criar/editar tarefa:
+   - Pode vincular a um Projeto da area
+   - Pode vincular a um Cliente
+   - Pode vincular a um Servico (produtos existentes)
+   ↓
+6. Vinculos aparecem nas listas e filtros de tarefas
+```
+
