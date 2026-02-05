@@ -186,10 +186,27 @@ const EquipeDaily = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data } = await supabase
+      // Buscar cliente "Transversal" do catálogo (área Digital)
+      const { data: digitalClients } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .or('name.ilike.%transversal%,name.ilike.%digital%');
+
+      const digitalClientIds = digitalClients?.map(c => c.id) || [];
+
+      // Buscar projetos filtrados por área Digital (Transversal ou sem cliente)
+      let query = supabase
         .from('projects')
         .select('id, name')
         .order('name', { ascending: true });
+
+      if (digitalClientIds.length > 0) {
+        query = query.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
+      } else {
+        query = query.is('client_id', null);
+      }
+
+      const { data } = await query;
       setProjects(data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);

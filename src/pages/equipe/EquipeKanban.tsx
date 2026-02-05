@@ -137,10 +137,30 @@ const EquipeKanban = () => {
 
   const fetchData = async () => {
     try {
+      // Buscar cliente "Transversal" do catálogo (área Digital)
+      const { data: digitalClients } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .or('name.ilike.%transversal%,name.ilike.%digital%');
+
+      const digitalClientIds = digitalClients?.map(c => c.id) || [];
+
+      // Fetch projects (filtrados por área Digital)
+      let projectsQuery = supabase
+        .from('projects')
+        .select('id, name')
+        .order('name');
+
+      if (digitalClientIds.length > 0) {
+        projectsQuery = projectsQuery.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
+      } else {
+        projectsQuery = projectsQuery.is('client_id', null);
+      }
+
       const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
         supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
         supabase.from('profiles').select('id, first_name, last_name'),
-        supabase.from('projects').select('id, name').order('name'),
+        projectsQuery,
         supabase.from('processes').select('id, name, project_id').order('name'),
         supabase.from('sprint_deliverables').select('id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code')
       ]);

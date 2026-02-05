@@ -371,10 +371,28 @@ const EquipeProjetos = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar cliente "Transversal" do catálogo (área Digital)
+      const { data: digitalClients } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .or('name.ilike.%transversal%,name.ilike.%digital%');
+
+      const digitalClientIds = digitalClients?.map(c => c.id) || [];
+
+      // Buscar projetos filtrados por área Digital (Transversal ou sem cliente)
+      let query = supabase
         .from('projects')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('name', { ascending: true });
+
+      // Filtrar: projetos da área Digital ou sem cliente definido
+      if (digitalClientIds.length > 0) {
+        query = query.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
+      } else {
+        query = query.is('client_id', null);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       setProjects(data || []);
