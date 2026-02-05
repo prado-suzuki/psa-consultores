@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,25 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
-import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
-import { 
-  Plus,
-  Target,
-  CheckCircle2,
-  Clock,
-  Calendar,
-  User,
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  Pencil,
-  Trash2,
-  TrendingUp,
-  DollarSign
-} from 'lucide-react';
+ import { Plus, Calendar, Pencil, Trash2 } from 'lucide-react';
 
 interface Sprint {
   id: string;
@@ -70,7 +54,6 @@ const EquipeSprints = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sprintHoursMap, setSprintHoursMap] = useState<Record<string, SprintHours[]>>({});
   const [sprintImpactMap, setSprintImpactMap] = useState<Record<string, SprintImpact>>({});
-  const [expandedSprints, setExpandedSprints] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
@@ -394,25 +377,14 @@ const EquipeSprints = () => {
   };
 
   const toggleSprintExpanded = (sprintId: string) => {
-    setExpandedSprints(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sprintId)) {
-        newSet.delete(sprintId);
-      } else {
-        newSet.add(sprintId);
-      }
-      return newSet;
-    });
-  };
-
-  const getStatusBadge = (status: string) => {
+   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-700">Ativa</Badge>;
+         return <Badge className="bg-green-100 text-green-700 border-0 text-xs font-medium">Ativa</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-100 text-blue-700">Concluída</Badge>;
+         return <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">Concluída</Badge>;
       case 'planned':
-        return <Badge className="bg-gray-100 text-gray-700">Planejada</Badge>;
+         return <Badge className="bg-gray-100 text-gray-700 border-0 text-xs font-medium">Planejada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -516,14 +488,6 @@ const EquipeSprints = () => {
         </Dialog>
       }
     >
-      {/* Card de Horas no topo */}
-      <div className="mb-6">
-        <HorasAcumuladas 
-          showRoutines={true}
-          title="Visão Geral de Horas"
-        />
-      </div>
-
       {/* Lista de Sprints */}
       {loading ? (
         <div className="flex justify-center py-20">
@@ -532,135 +496,37 @@ const EquipeSprints = () => {
       ) : sprints.length > 0 ? (
         <div className="space-y-4">
           {sprints.map((sprint) => {
-            const isExpanded = expandedSprints.has(sprint.id);
             const sprintHours = sprintHoursMap[sprint.id] || [];
             const totalHours = getSprintTotalHours(sprint.id);
-                const sprintImpact = sprintImpactMap[sprint.id];
+             const sprintImpact = sprintImpactMap[sprint.id];
             
             return (
-              <Card key={sprint.id} className="bg-white border-gray-200">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Target className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-gray-900">{sprint.name}</CardTitle>
+               <Card key={sprint.id} className="bg-white border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                 <CardContent className="p-5">
+                   <div className="flex items-center justify-between mb-3">
+                     <div className="flex items-center gap-3 min-w-0">
+                       <h3 className="font-semibold text-gray-900 text-base truncate">{sprint.name}</h3>
                       {getStatusBadge(sprint.status)}
                       {sprint.project_id && (
-                        <Badge variant="outline" className="border-gray-300 text-gray-600">
-                          {getProjectName(sprint.project_id)}
-                        </Badge>
+                         <Badge variant="secondary" className="text-xs font-normal">{getProjectName(sprint.project_id)}</Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="text-gray-500 hover:text-gray-700"
-                        onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}
-                      >
+                     <div className="flex items-center gap-1">
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500" onClick={() => { setSelectedSprint(sprint); setIsEditMode(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-primary text-primary hover:bg-primary/10"
-                        onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver Detalhes
-                      </Button>
-                      {sprint.status === 'active' ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          onClick={() => updateSprintStatus(sprint.id, 'completed')}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Concluir
-                        </Button>
-                      ) : sprint.status === 'completed' ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          onClick={() => updateSprintStatus(sprint.id, 'active')}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Reabrir
-                        </Button>
-                      ) : null}
+                       <Button variant="outline" size="sm" onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}>Ver Detalhes</Button>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {sprint.goal && (
-                    <p className="text-gray-600 mb-4">{sprint.goal}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}
-                    </span>
-                    {totalHours > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {totalHours.toFixed(1)}h alocadas
-                      </span>
-                    )}
+                   {sprint.goal && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{sprint.goal}</p>}
+                   <div className="flex items-center gap-4 text-sm text-gray-500">
+                     <span>{parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}</span>
+                     {totalHours > 0 && <><span className="text-gray-300">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
                   </div>
-
-                  {/* Impacto Digital da Sprint */}
                   {sprintImpact && sprintImpact.totalCostSaved > 0 && (
-                    <div className="flex items-center gap-3 px-3 py-2 bg-green-50 rounded-lg mb-4">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">Impacto Digital:</span>
-                      <Badge className="bg-green-100 text-green-700 border-0">
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}/mês
-                      </Badge>
-                      <Badge variant="outline" className="border-blue-300 text-blue-600">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {sprintImpact.totalTimeSaved.toFixed(0)}h liberadas
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        ({sprintImpact.improvementsCount} melhoria{sprintImpact.improvementsCount > 1 ? 's' : ''})
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Horas por pessoa - expansível */}
-                  {sprintHours.length > 0 && (
-                    <div className="border-t border-gray-100 pt-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-between text-gray-600 hover:text-gray-900"
-                        onClick={() => toggleSprintExpanded(sprint.id)}
-                      >
-                        <span className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          Horas por Pessoa ({sprintHours.length})
-                        </span>
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                      
-                      {isExpanded && (
-                        <div className="mt-3 space-y-3">
-                          {sprintHours.map((item) => (
-                            <div key={item.userId} className="space-y-1">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-700">{item.name}</span>
-                                <span className="font-medium text-gray-900">{item.hours.toFixed(1)}h</span>
-                              </div>
-                              <Progress 
-                                value={Math.min((item.hours / 40) * 100, 100)} 
-                                className="h-1.5"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
+                       <span className="text-green-600 font-medium">Impacto: R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR')}/mês</span>
+                       <span className="text-blue-600">{sprintImpact.totalTimeSaved.toFixed(0)}h liberadas</span>
                     </div>
                   )}
                 </CardContent>
@@ -692,7 +558,6 @@ const EquipeSprints = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="text-gray-900 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
                   Editar Sprint
                 </DialogTitle>
               </DialogHeader>
