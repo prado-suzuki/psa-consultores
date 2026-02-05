@@ -26,8 +26,13 @@
    tags: string[];
    department: FiscalTaskDepartment | null;
    parent_task_id: string | null;
+  project_id: string | null;
+  client_id: string | null;
    created_at: string;
    updated_at: string;
+  // Joined data
+  project?: { id: string; name: string } | null;
+  client?: { id: string; nome: string } | null;
  }
  
  export interface FiscalTaskComment {
@@ -65,6 +70,8 @@
    tags?: string[];
    department?: FiscalTaskDepartment;
    parent_task_id?: string;
+  project_id?: string;
+  client_id?: string;
  }
  
  export const useFiscalTasks = (filters?: TaskFilters) => {
@@ -75,7 +82,11 @@
      queryFn: async () => {
        let query = supabase
          .from('fiscal_tasks')
-         .select('*')
+        .select(`
+          *,
+          project:projects(id, name),
+          client:cliente(id, nome)
+        `)
          .order('created_at', { ascending: false });
  
        if (filters?.search) {

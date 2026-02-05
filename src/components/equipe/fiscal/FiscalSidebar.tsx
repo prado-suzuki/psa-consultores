@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   ClipboardList,
-   ListTodo,
+  ListTodo,
   Building,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Calculator,
+  FolderKanban,
   ArrowLeft,
   LogOut
 } from 'lucide-react';
@@ -19,9 +21,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import logoPsa from '@/assets/logo-psa.png';
 
-interface MenuItem {
+export interface MenuItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -42,16 +49,29 @@ const menuItems: MenuItem[] = [
     path: '/equipe/tex/dashboard'
   },
   {
+    id: 'projetos',
+    label: 'Projetos',
+    icon: FolderKanban,
+    children: [
+      {
+        id: 'cadastro-projetos',
+        label: 'Cadastro',
+        icon: FolderKanban,
+        path: '/equipe/tex/projetos/cadastro'
+      }
+    ]
+  },
+  {
     id: 'demandas',
     label: 'Demandas',
     icon: ClipboardList,
     children: [
-       {
-         id: 'tarefas',
-         label: 'Tarefas',
-         icon: ListTodo,
-         path: '/equipe/tex/demandas/tarefas'
-       },
+      {
+        id: 'tarefas',
+        label: 'Tarefas',
+        icon: ListTodo,
+        path: '/equipe/tex/demandas/tarefas'
+      },
       {
         id: 'clientes',
         label: 'Clientes',
@@ -66,7 +86,8 @@ export const FiscalSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const [openMenus, setOpenMenus] = useState<string[]>(['demandas']);
+  const [openMenus, setOpenMenus] = useState<string[]>(['demandas', 'projetos']);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -91,122 +112,225 @@ export const FiscalSidebar = () => {
     navigate('/');
   };
 
-  return (
-    <div className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0">
-      {/* Logo */}
-      <div className="h-14 border-b border-slate-200 flex items-center px-4">
-        <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
-          <Calculator className="h-5 w-5 text-emerald-600" />
-        </div>
-        <div>
-          <h1 className="font-semibold text-slate-900 text-sm">Tex</h1>
-          <p className="text-xs text-slate-500">Gestão de Projetos</p>
-        </div>
-      </div>
+  const renderMenuItem = (item: MenuItem) => {
+    const Icon = item.icon;
+    const hasChildren = item.children && item.children.length > 0;
+    const isOpen = openMenus.includes(item.id);
+    const parentActive = isParentActive(item.children);
+    const active = isActive(item.path);
 
-      {/* Menu */}
-      <nav className="flex-1 p-3 space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const hasChildren = item.children && item.children.length > 0;
-          const isOpen = openMenus.includes(item.id);
-          const parentActive = isParentActive(item.children);
+    if (isCollapsed) {
+      if (hasChildren) {
+        return (
+          <div key={item.id} className="space-y-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => item.children?.[0]?.path && navigate(item.children[0].path)}
+                  className={cn(
+                    "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
+                    parentActive
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          </div>
+        );
+      }
 
-          if (hasChildren) {
-            return (
-              <Collapsible
-                key={item.id}
-                open={isOpen}
-                onOpenChange={() => toggleMenu(item.id)}
-              >
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      parentActive
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {isOpen ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 mt-1 space-y-1">
-                  {item.children?.map((child) => {
-                    const ChildIcon = child.icon;
-                    const active = isActive(child.path);
-                    return (
-                      <button
-                        key={child.id}
-                        onClick={() => navigate(child.path)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                          active
-                            ? "bg-emerald-100 text-emerald-700 font-medium"
-                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                        )}
-                      >
-                        <ChildIcon className="h-4 w-4" />
-                        <span>{child.label}</span>
-                      </button>
-                    );
-                  })}
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          }
-
-          const active = isActive(item.path);
-          return (
+      return (
+        <Tooltip key={item.id}>
+          <TooltipTrigger asChild>
             <button
-              key={item.id}
               onClick={() => item.path && navigate(item.path)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
                 active
                   ? "bg-emerald-100 text-emerald-700"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              <Icon className="h-5 w-5" />
             </button>
-          );
-        })}
+          </TooltipTrigger>
+          <TooltipContent side="right">{item.label}</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    // Expanded view
+    if (hasChildren) {
+      return (
+        <Collapsible
+          key={item.id}
+          open={isOpen}
+          onOpenChange={() => toggleMenu(item.id)}
+        >
+          <CollapsibleTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                parentActive
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="flex-1 text-left">{item.label}</span>
+              {isOpen ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pl-4 mt-1 space-y-1">
+            {item.children?.map((child) => {
+              const ChildIcon = child.icon;
+              const childActive = isActive(child.path);
+              return (
+                <button
+                  key={child.id}
+                  onClick={() => navigate(child.path)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                    childActive
+                      ? "bg-emerald-100 text-emerald-700 font-medium"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                  )}
+                >
+                  <ChildIcon className="h-4 w-4" />
+                  <span>{child.label}</span>
+                </button>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
+      );
+    }
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => item.path && navigate(item.path)}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+          active
+            ? "bg-emerald-100 text-emerald-700"
+            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{item.label}</span>
+      </button>
+    );
+  };
+
+  return (
+    <div 
+      className={cn(
+        "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
+        isCollapsed ? "w-16" : "w-64"
+      )}
+    >
+      {/* Header with collapse button */}
+      <div className="h-14 border-b border-slate-200 flex items-center justify-between px-3">
+        {!isCollapsed && (
+          <div className="flex items-center">
+            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
+              <p className="text-xs text-slate-500">Gestão de Projetos</p>
+            </div>
+          </div>
+        )}
+        {isCollapsed && (
+          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mx-auto">
+            <Calculator className="h-5 w-5 text-emerald-600" />
+          </div>
+        )}
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn("h-8 w-8 flex-shrink-0", isCollapsed && "absolute right-1 top-3")}
+        >
+          <ChevronLeft className={cn(
+            "h-4 w-4 transition-transform",
+            isCollapsed && "rotate-180"
+          )} />
+        </Button>
+      </div>
+
+      {/* Menu */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {menuItems.map(renderMenuItem)}
       </nav>
 
-      {/* Footer com ações */}
-      <div className="p-3 border-t border-slate-200 space-y-2">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-          onClick={() => navigate('/equipe')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Trocar área
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
-        </Button>
-        
-        <div className="pt-2 border-t border-slate-100">
-          <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
+      {/* Footer with actions */}
+      <div className={cn("p-3 border-t border-slate-200 space-y-2", isCollapsed && "px-2")}>
+        {isCollapsed ? (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="w-full text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+                  onClick={() => navigate('/equipe')}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Trocar área</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="w-full text-slate-600 hover:text-red-600 hover:bg-red-50"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Sair</TooltipContent>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+              onClick={() => navigate('/equipe')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Trocar área
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+            <div className="pt-2 border-t border-slate-100">
+              <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
+            </div>
+          </>
+        )}
         </div>
-      </div>
     </div>
   );
 };

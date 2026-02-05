@@ -39,9 +39,11 @@
  import { 
    FiscalTask, 
    CreateFiscalTaskInput,
-   useCreateFiscalTask,
-   useUpdateFiscalTask
+  useCreateFiscalTask,
+  useUpdateFiscalTask
  } from '@/hooks/useFiscalTasks';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
  
  const taskSchema = z.object({
    title: z.string().min(1, 'Título é obrigatório'),
@@ -57,6 +59,8 @@
    category: z.enum(['task', 'fixed_event']),
    department: z.enum(['commercial', 'financial', 'administrative', 'operations']).optional(),
    parent_task_id: z.string().optional(),
+  project_id: z.string().optional(),
+  client_id: z.string().optional(),
  });
  
  type TaskFormValues = z.infer<typeof taskSchema>;
@@ -80,6 +84,44 @@
    const updateTask = useUpdateFiscalTask();
    const isEditing = !!task;
  
+  // Fetch projects for Tax area
+  const { data: projects = [] } = useQuery({
+    queryKey: ['fiscal-projects-for-tasks'],
+    queryFn: async () => {
+      const { data: taxClient } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .or('name.ilike.%fiscal%,name.ilike.%tax%')
+        .limit(1)
+        .single();
+      
+      if (!taxClient) return [];
+
+      const { data } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('client_id', taxClient.id)
+        .eq('status', 'active')
+        .order('name');
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  // Fetch clients
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-for-tasks'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      return data || [];
+    },
+    enabled: open,
+  });
+
    const form = useForm<TaskFormValues>({
      resolver: zodResolver(taskSchema),
      defaultValues: {
@@ -108,6 +150,8 @@
          category: task.category,
          department: task.department || undefined,
          parent_task_id: task.parent_task_id || undefined,
+          project_id: task.project_id || undefined,
+          client_id: task.client_id || undefined,
        });
      } else {
        form.reset({
@@ -142,6 +186,8 @@
        category: values.category,
        department: values.department,
        parent_task_id: values.parent_task_id,
+        project_id: values.project_id || undefined,
+        client_id: values.client_id || undefined,
      };
  
      try {
@@ -424,6 +470,63 @@
                />
              )}
  
+            {/* Project and Client Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="project_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Projeto</FormLabel>
+                    <Select 
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
+                      value={field.value || '_none'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {projects.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliente</FormLabel>
+                    <Select 
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
+                      value={field.value || '_none'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
              {parentTasks.length > 0 && (
                <FormField
                  control={form.control}

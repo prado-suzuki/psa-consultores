@@ -836,6 +836,7 @@ export type Database = {
           assigned_to: string | null
           assigned_to_name: string | null
           category: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id: string | null
           created_at: string | null
           created_by: string | null
           department:
@@ -848,6 +849,7 @@ export type Database = {
           is_recurring: boolean | null
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id: string | null
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -860,6 +862,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id?: string | null
           created_at?: string | null
           created_by?: string | null
           department?:
@@ -872,6 +875,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -884,6 +888,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id?: string | null
           created_at?: string | null
           created_by?: string | null
           department?:
@@ -896,6 +901,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id?: string | null
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -913,6 +919,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fiscal_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fiscal_tasks_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -924,6 +937,13 @@ export type Database = {
             columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "fiscal_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
