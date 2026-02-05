@@ -18,6 +18,7 @@
  
  // Fetch Sprint Data
  async function fetchSprintData(config: ReportConfig): Promise<ReportData> {
+   try {
    const { data: sprints } = await supabase
      .from('sprints')
      .select(`
@@ -62,10 +63,21 @@
        }
      ]
    };
+   } catch (error) {
+     console.error('Error fetching sprint data:', error);
+     return {
+       title: 'Relatório de Sprints',
+       subtitle: 'Erro ao carregar dados',
+       period: 'N/A',
+       metrics: [],
+       tables: []
+     };
+   }
  }
  
  // Fetch Impact Data
  async function fetchImpactData(config: ReportConfig): Promise<ReportData> {
+   try {
    let query = supabase
      .from('process_improvements')
      .select(`
@@ -116,10 +128,21 @@
        }
      ]
    };
+   } catch (error) {
+     console.error('Error fetching impact data:', error);
+     return {
+       title: 'Relatório de Impacto Digital',
+       subtitle: 'Erro ao carregar dados',
+       period: 'N/A',
+       metrics: [],
+       tables: []
+     };
+   }
  }
  
  // Fetch Processes Data
  async function fetchProcessesData(config: ReportConfig): Promise<ReportData> {
+   try {
    let query = supabase.from('processes').select('*');
    
    if (config.area) {
@@ -169,10 +192,21 @@
        }
      ]
    };
+   } catch (error) {
+     console.error('Error fetching processes data:', error);
+     return {
+       title: 'Relatório de Processos',
+       subtitle: 'Erro ao carregar dados',
+       period: 'N/A',
+       metrics: [],
+       tables: []
+     };
+   }
  }
  
  // Fetch Routines Data
  async function fetchRoutinesData(config: ReportConfig): Promise<ReportData> {
+   try {
    const { data: routines } = await supabase
      .from('routines')
     .select('*')
@@ -231,10 +265,21 @@
        }
      ]
    };
+   } catch (error) {
+     console.error('Error fetching routines data:', error);
+     return {
+       title: 'Relatório de Rotinas',
+       subtitle: 'Erro ao carregar dados',
+       period: 'N/A',
+       metrics: [],
+       tables: []
+     };
+   }
  }
  
  // Fetch Consolidated Data
  async function fetchConsolidatedData(config: ReportConfig): Promise<ReportData> {
+   try {
    const [sprintData, impactData, processData, routineData] = await Promise.all([
      fetchSprintData(config),
      fetchImpactData(config),
@@ -258,6 +303,16 @@
        processData.tables[0]
      ]
    };
+   } catch (error) {
+     console.error('Error fetching consolidated data:', error);
+     return {
+       title: 'Relatório Consolidado',
+       subtitle: 'Erro ao carregar dados',
+       period: 'N/A',
+       metrics: [],
+       tables: []
+     };
+   }
  }
  
  // Main fetch function

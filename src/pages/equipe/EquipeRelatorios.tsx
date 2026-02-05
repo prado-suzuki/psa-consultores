@@ -19,7 +19,9 @@
    Clock,
    BarChart3,
    Loader2,
-   Eye
+   Eye,
+   AlertCircle,
+   RefreshCw
  } from 'lucide-react';
  import logoPsa from '@/assets/logo-psa.png';
  import { 
@@ -83,20 +85,29 @@
    const [logoBase64, setLogoBase64] = useState<string>('');
    const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
    const [projectFilter, setProjectFilter] = useState<string>('');
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
  
    // Convert logo to base64 on mount
    useEffect(() => {
      const convertLogo = async () => {
        try {
          const response = await fetch(logoPsa);
+         if (!response.ok) {
+           console.warn('Failed to fetch logo, continuing without it');
+           return;
+         }
          const blob = await response.blob();
          const reader = new FileReader();
          reader.onloadend = () => {
            setLogoBase64(reader.result as string);
          };
+         reader.onerror = () => {
+           console.warn('Error reading logo file, continuing without it');
+         };
          reader.readAsDataURL(blob);
        } catch (error) {
-         console.error('Error converting logo:', error);
+         console.warn('Error converting logo, continuing without it:', error);
        }
      };
      convertLogo();
@@ -105,11 +116,26 @@
    // Fetch projects for filter
    useEffect(() => {
      const fetchProjects = async () => {
-       const { data } = await supabase
-         .from('projects')
-         .select('id, name')
-         .order('name');
-       if (data) setProjects(data);
+       try {
+         setLoading(true);
+         setError(null);
+         const { data, error: fetchError } = await supabase
+           .from('projects')
+           .select('id, name')
+           .order('name');
+         
+         if (fetchError) {
+           console.error('Error fetching projects:', fetchError);
+           // Continue without projects - not a blocking error
+         }
+         
+         if (data) setProjects(data);
+       } catch (err) {
+         console.error('Error fetching projects:', err);
+         setError('Erro ao carregar dados. Tente recarregar a página.');
+       } finally {
+         setLoading(false);
+       }
      };
      fetchProjects();
    }, []);
@@ -194,7 +220,30 @@
        title="Relatórios" 
        subtitle="Gere relatórios automáticos com indicadores do Digital Rotina"
      >
-       <div className="space-y-6">
+       {loading ? (
+         <div className="flex items-center justify-center py-12">
+           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <span className="ml-3 text-muted-foreground">Carregando...</span>
+         </div>
+       ) : error ? (
+         <Card className="border-destructive">
+           <CardContent className="py-6">
+             <div className="flex items-center gap-3 text-destructive">
+               <AlertCircle className="h-5 w-5" />
+               <span>{error}</span>
+             </div>
+             <Button 
+               variant="outline" 
+               className="mt-4"
+               onClick={() => window.location.reload()}
+             >
+               <RefreshCw className="h-4 w-4 mr-2" />
+               Recarregar Página
+             </Button>
+           </CardContent>
+         </Card>
+       ) : (
+         <div className="space-y-6">
          {/* Filters */}
          <Card>
            <CardHeader className="pb-4">
@@ -400,7 +449,8 @@
              </CardContent>
            </Card>
          )}
-       </div>
+         </div>
+       )}
      </EquipeLayout>
    );
  };
