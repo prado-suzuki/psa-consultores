@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface CatalogClient {
+interface AreaInterna {
   id: string;
   name: string;
   responsible: string | null;
@@ -50,11 +50,11 @@ interface Stats {
 }
 
 const EquipeCadastros = () => {
-  const [clients, setClients] = useState<CatalogClient[]>([]);
+  const [areas, setAreas] = useState<AreaInterna[]>([]);
   const [stats, setStats] = useState<Stats>({ clients: 0, projects: 0, processes: 0 });
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<CatalogClient | null>(null);
+  const [editingArea, setEditingArea] = useState<AreaInterna | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     responsible: '',
@@ -73,7 +73,7 @@ const EquipeCadastros = () => {
         .order('name');
       
       if (clientsError) throw clientsError;
-      setClients(clientsData || []);
+      setAreas(clientsData || []);
 
       // Fetch stats
       const [projectsRes, processesRes] = await Promise.all([
@@ -99,18 +99,18 @@ const EquipeCadastros = () => {
   }, []);
 
   const openCreateDialog = () => {
-    setEditingClient(null);
+    setEditingArea(null);
     setFormData({ name: '', responsible: '', description: '', color: '#3B82F6' });
     setDialogOpen(true);
   };
 
-  const openEditDialog = (client: CatalogClient) => {
-    setEditingClient(client);
+  const openEditDialog = (area: AreaInterna) => {
+    setEditingArea(area);
     setFormData({
-      name: client.name,
-      responsible: client.responsible || '',
-      description: client.description || '',
-      color: client.color || '#3B82F6',
+      name: area.name,
+      responsible: area.responsible || '',
+      description: area.description || '',
+      color: area.color || '#3B82F6',
     });
     setDialogOpen(true);
   };
@@ -122,7 +122,7 @@ const EquipeCadastros = () => {
     }
 
     try {
-      if (editingClient) {
+      if (editingArea) {
         const { error } = await supabase
           .from('catalog_clients')
           .update({
@@ -131,10 +131,10 @@ const EquipeCadastros = () => {
             description: formData.description.trim() || null,
             color: formData.color,
           })
-          .eq('id', editingClient.id);
+          .eq('id', editingArea.id);
 
         if (error) throw error;
-        toast.success('Cliente/Área atualizado');
+        toast.success('Área atualizada');
       } else {
         const { error } = await supabase
           .from('catalog_clients')
@@ -146,30 +146,30 @@ const EquipeCadastros = () => {
           });
 
         if (error) throw error;
-        toast.success('Cliente/Área criado');
+        toast.success('Área criada');
       }
 
       setDialogOpen(false);
       fetchData();
     } catch (error: any) {
-      console.error('Error saving client:', error);
+      console.error('Error saving area:', error);
       if (error.code === '23505') {
-        toast.error('Já existe um cliente/área com esse nome');
+        toast.error('Já existe uma área com esse nome');
       } else {
         toast.error('Erro ao salvar');
       }
     }
   };
 
-  const handleToggleActive = async (client: CatalogClient) => {
+  const handleToggleActive = async (area: AreaInterna) => {
     try {
       const { error } = await supabase
         .from('catalog_clients')
-        .update({ is_active: !client.is_active })
-        .eq('id', client.id);
+        .update({ is_active: !area.is_active })
+        .eq('id', area.id);
 
       if (error) throw error;
-      toast.success(client.is_active ? 'Cliente/Área desativado' : 'Cliente/Área ativado');
+      toast.success(area.is_active ? 'Área desativada' : 'Área ativada');
       fetchData();
     } catch (error) {
       console.error('Error toggling client:', error);
@@ -177,20 +177,20 @@ const EquipeCadastros = () => {
     }
   };
 
-  const handleDelete = async (client: CatalogClient) => {
-    if (!confirm(`Tem certeza que deseja excluir "${client.name}"?`)) return;
+  const handleDelete = async (area: AreaInterna) => {
+    if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
 
     try {
       const { error } = await supabase
         .from('catalog_clients')
         .delete()
-        .eq('id', client.id);
+        .eq('id', area.id);
 
       if (error) throw error;
-      toast.success('Cliente/Área excluído');
+      toast.success('Área excluída');
       fetchData();
     } catch (error: any) {
-      console.error('Error deleting client:', error);
+      console.error('Error deleting area:', error);
       if (error.code === '23503') {
         toast.error('Não é possível excluir: existem projetos ou processos vinculados');
       } else {
@@ -211,12 +211,12 @@ const EquipeCadastros = () => {
   ];
 
   return (
-    <EquipeLayout title="Cadastros" subtitle="Gerencie clientes, áreas e configurações do sistema">
+    <EquipeLayout title="Cadastros" subtitle="Gerencie áreas internas, líderes e configurações do sistema">
       <Tabs defaultValue="clients" className="space-y-6">
         <TabsList>
           <TabsTrigger value="clients" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            Clientes/Áreas
+            Áreas Internas
           </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -227,11 +227,11 @@ const EquipeCadastros = () => {
         <TabsContent value="clients" className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              Cadastre os clientes internos (áreas/setores) que serão usados em projetos e processos.
+              Cadastre as áreas internas da PSA e seus líderes responsáveis.
             </p>
             <Button onClick={openCreateDialog} className="gap-2">
               <Plus className="h-4 w-4" />
-              Novo Cliente/Área
+              Nova Área
             </Button>
           </div>
 
@@ -239,39 +239,39 @@ const EquipeCadastros = () => {
             <CardContent className="p-0">
               {loading ? (
                 <div className="p-8 text-center text-muted-foreground">Carregando...</div>
-              ) : clients.length === 0 ? (
+              ) : areas.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  Nenhum cliente/área cadastrado
+                  Nenhuma área cadastrada
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Cor</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Responsável</TableHead>
+                      <TableHead>Área</TableHead>
+                      <TableHead>Líder</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clients.map((client) => (
-                      <TableRow key={client.id}>
+                    {areas.map((area) => (
+                      <TableRow key={area.id}>
                         <TableCell>
                           <div
                             className="w-6 h-6 rounded-full border"
-                            style={{ backgroundColor: client.color }}
+                            style={{ backgroundColor: area.color }}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{client.name}</TableCell>
-                        <TableCell>{client.responsible || '-'}</TableCell>
+                        <TableCell className="font-medium">{area.name}</TableCell>
+                        <TableCell>{area.responsible || '-'}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={client.is_active ? 'default' : 'secondary'}
+                            variant={area.is_active ? 'default' : 'secondary'}
                             className="cursor-pointer"
-                            onClick={() => handleToggleActive(client)}
+                            onClick={() => handleToggleActive(area)}
                           >
-                            {client.is_active ? 'Ativo' : 'Inativo'}
+                            {area.is_active ? 'Ativa' : 'Inativa'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -279,14 +279,14 @@ const EquipeCadastros = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => openEditDialog(client)}
+                              onClick={() => openEditDialog(area)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(client)}
+                              onClick={() => handleDelete(area)}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -307,7 +307,7 @@ const EquipeCadastros = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Clientes/Áreas
+                  Áreas Internas
                 </CardTitle>
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -352,20 +352,20 @@ const EquipeCadastros = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Clientes por Status</CardTitle>
+                <CardTitle className="text-base">Áreas por Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span className="text-sm">
-                    Ativos: {clients.filter(c => c.is_active).length}
+                      Ativas: {areas.filter(a => a.is_active).length}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-gray-400" />
                   <span className="text-sm">
-                    Inativos: {clients.filter(c => !c.is_active).length}
+                      Inativas: {areas.filter(a => !a.is_active).length}
                   </span>
                 </div>
               </div>
@@ -374,33 +374,32 @@ const EquipeCadastros = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingClient ? 'Editar Cliente/Área' : 'Novo Cliente/Área'}
+              {editingArea ? 'Editar Área' : 'Nova Área'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
+              <Label htmlFor="name">Nome da Área *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Fiscal, Consultoria, Fixos..."
+                placeholder="Ex: Fiscal, Consultoria, Digital..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="responsible">Responsável</Label>
+              <Label htmlFor="responsible">Líder da Área</Label>
               <Input
                 id="responsible"
                 value={formData.responsible}
                 onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
-                placeholder="Nome do responsável pela área"
+                placeholder="Ex: Ricardo, Felipe..."
               />
             </div>
 
@@ -445,7 +444,7 @@ const EquipeCadastros = () => {
               Cancelar
             </Button>
             <Button onClick={handleSave}>
-              {editingClient ? 'Salvar' : 'Criar'}
+              {editingArea ? 'Salvar' : 'Criar'}
             </Button>
           </DialogFooter>
         </DialogContent>
