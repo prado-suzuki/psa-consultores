@@ -66,9 +66,18 @@ export function FiscalWorkPackages() {
   const { data: projects = [] } = useQuery({
     queryKey: ['fiscal-projects'],
     queryFn: async () => {
+      // First get the fiscal/tax client from catalog
+      const { data: fiscalClient } = await supabase
+        .from('catalog_clients')
+        .select('id')
+        .ilike('name', '%fiscal%')
+        .single();
+
+      // Fetch projects filtered by fiscal client
       const { data, error } = await supabase
         .from('projects')
         .select('id, name')
+        .eq('client_id', fiscalClient?.id || '')
         .order('name');
       if (error) throw error;
       return data;
