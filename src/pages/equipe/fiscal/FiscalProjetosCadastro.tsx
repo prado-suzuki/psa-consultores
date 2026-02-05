@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2 } from 'lucide-react';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +54,46 @@ interface Project {
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+  responsible_id: string | null;
+  leader_id: string | null;
+  external_client_id: string | null;
+  area: string | null;
+  objective: string | null;
+  categories: string[] | null;
 }
+
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+}
+
+interface ExternalClient {
+  id: string;
+  nome: string;
+  setor_cliente: string | null;
+}
+
+const AREA_OPTIONS = [
+  { value: 'tributario', label: 'Tributário' },
+  { value: 'contabil', label: 'Contábil' },
+  { value: 'previdenciario', label: 'Previdenciário' },
+  { value: 'societario', label: 'Societário' },
+  { value: 'consultivo', label: 'Consultivo' },
+  { value: 'outro', label: 'Outro' },
+];
+
+const CATEGORY_OPTIONS = [
+  'Recuperação de Crédito',
+  'Planejamento Tributário',
+  'Compliance Fiscal',
+  'Auditoria',
+  'Consultoria',
+  'Due Diligence',
+  'Contencioso',
+  'Revisão de Obrigações',
+];
 
 const FiscalProjetosCadastro = () => {
   const queryClient = useQueryClient();
@@ -62,19 +104,38 @@ const FiscalProjetosCadastro = () => {
     name: '',
     description: '',
     status: 'active',
+    responsible_id: '',
+    leader_id: '',
+    external_client_id: '',
+    area: '',
+    objective: '',
+    categories: [] as string[],
   });
 
-  // Fetch Tax client ID first
-  const { data: taxClientId } = useQuery({
-    queryKey: ['tax-client-id'],
+  // Fetch team members (profiles)
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team-members-profiles'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%fiscal%,name.ilike.%tax%')
-        .limit(1)
-        .maybeSingle();
-      return data?.id || null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .order('first_name');
+      if (error) throw error;
+      return data as Profile[];
+    },
+  });
+
+  // Fetch external clients
+  const { data: externalClients = [] } = useQuery({
+    queryKey: ['external-clients-tax'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('id, nome, setor_cliente')
+        .eq('ativo', true)
+        .order('nome');
+      if (error) throw error;
+      return data as ExternalClient[];
     },
   });
 
@@ -84,11 +145,16 @@ const FiscalProjetosCadastro = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          responsible:profiles!projects_responsible_id_fkey(id, first_name, last_name),
+          leader:profiles!projects_leader_id_fkey(id, first_name, last_name),
+          external_client:cliente!projects_external_client_id_fkey(id, nome)
+        `)
         .eq('source_area', 'tax')
         .order('name');
       if (error) throw error;
-      return data as Project[];
+      return data;
     },
   });
 
@@ -99,11 +165,17 @@ const FiscalProjetosCadastro = () => {
         description: data.description || null,
         status: data.status,
         source_area: 'tax',
+        responsible_id: data.responsible_id || null,
+        leader_id: data.leader_id || null,
+        external_client_id: data.external_client_id || null,
+        area: data.area || null,
+        objective: data.objective || null,
+        categories: data.categories.length > 0 ? data.categories : null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
       toast.success('Projeto criado com sucesso');
       handleCloseModal();
     },
@@ -120,12 +192,18 @@ const FiscalProjetosCadastro = () => {
           name: data.name,
           description: data.description || null,
           status: data.status,
+          responsible_id: data.responsible_id || null,
+          leader_id: data.leader_id || null,
+          external_client_id: data.external_client_id || null,
+          area: data.area || null,
+          objective: data.objective || null,
+          categories: data.categories.length > 0 ? data.categories : null,
         })
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
       toast.success('Projeto atualizado');
       handleCloseModal();
     },
@@ -140,7 +218,7 @@ const FiscalProjetosCadastro = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
       toast.success('Projeto excluído');
       setDeleteProjectId(null);
     },
@@ -156,10 +234,26 @@ const FiscalProjetosCadastro = () => {
         name: project.name,
         description: project.description || '',
         status: project.status,
+        responsible_id: project.responsible_id || '',
+        leader_id: project.leader_id || '',
+        external_client_id: project.external_client_id || '',
+        area: project.area || '',
+        objective: project.objective || '',
+        categories: project.categories || [],
       });
     } else {
       setEditingProject(null);
-      setFormData({ name: '', description: '', status: 'active' });
+      setFormData({ 
+        name: '', 
+        description: '', 
+        status: 'active',
+        responsible_id: '',
+        leader_id: '',
+        external_client_id: '',
+        area: '',
+        objective: '',
+        categories: [],
+      });
     }
     setIsModalOpen(true);
   };
@@ -167,7 +261,17 @@ const FiscalProjetosCadastro = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProject(null);
-    setFormData({ name: '', description: '', status: 'active' });
+    setFormData({ 
+      name: '', 
+      description: '', 
+      status: 'active',
+      responsible_id: '',
+      leader_id: '',
+      external_client_id: '',
+      area: '',
+      objective: '',
+      categories: [],
+    });
   };
 
   const handleSubmit = () => {
@@ -180,6 +284,15 @@ const FiscalProjetosCadastro = () => {
     } else {
       createProject.mutate(formData);
     }
+  };
+
+  const handleCategoryToggle = (category: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category],
+    }));
   };
 
   const getStatusBadge = (status: string) => {
@@ -195,6 +308,11 @@ const FiscalProjetosCadastro = () => {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const getAreaLabel = (area: string | null) => {
+    if (!area) return '-';
+    return AREA_OPTIONS.find(a => a.value === area)?.label || area;
   };
 
   return (
@@ -224,36 +342,63 @@ const FiscalProjetosCadastro = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Área</TableHead>
+                  <TableHead>Responsável</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Criado em</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                       Nenhum projeto cadastrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  projects.map((project) => (
+                  projects.map((project: any) => (
                     <TableRow key={project.id}>
-                      <TableCell className="font-medium">{project.name}</TableCell>
-                      <TableCell className="text-slate-500 max-w-xs truncate">
-                        {project.description || '-'}
+                      <TableCell>
+                        <div>
+                          <span className="font-medium">{project.name}</span>
+                          {project.objective && (
+                            <p className="text-xs text-slate-500 truncate max-w-xs">{project.objective}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {project.external_client ? (
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-sm">{project.external_client.nome}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{getAreaLabel(project.area)}</span>
+                      </TableCell>
+                      <TableCell>
+                        {project.responsible ? (
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-sm">
+                              {project.responsible.first_name} {project.responsible.last_name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
-                      <TableCell className="text-slate-500">
-                        {format(new Date(project.created_at), 'dd/MM/yyyy')}
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -284,48 +429,169 @@ const FiscalProjetosCadastro = () => {
 
       {/* Create/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {editingProject ? 'Editar Projeto' : 'Novo Projeto'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700">Nome *</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome do projeto"
-              />
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Informações Básicas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Nome do Projeto *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Nome do projeto"
+                    />
+                  </div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="completed">Concluído</SelectItem>
+                        <SelectItem value="on_hold">Pausado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Área</Label>
+                    <Select
+                      value={formData.area}
+                      onValueChange={(value) => setFormData({ ...formData, area: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a área" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AREA_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Client & Team */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Cliente e Equipe</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Cliente</Label>
+                    <Select
+                      value={formData.external_client_id}
+                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {externalClients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.nome} {client.setor_cliente && `(${client.setor_cliente})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Responsável Interno</Label>
+                    <Select
+                      value={formData.responsible_id}
+                      onValueChange={(value) => setFormData({ ...formData, responsible_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.map(member => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.first_name} {member.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Líder Responsável</Label>
+                    <Select
+                      value={formData.leader_id}
+                      onValueChange={(value) => setFormData({ ...formData, leader_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.map(member => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.first_name} {member.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Objective & Description */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Objetivo e Descrição</h3>
+                <div>
+                  <Label>Objetivo do Projeto</Label>
+                  <Textarea
+                    value={formData.objective}
+                    onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
+                    placeholder="Descreva o objetivo principal do projeto"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label>Descrição Detalhada</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descrição completa do projeto"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {CATEGORY_OPTIONS.map(category => (
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={category}
+                        checked={formData.categories.includes(category)}
+                        onCheckedChange={() => handleCategoryToggle(category)}
+                      />
+                      <label
+                        htmlFor={category}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {category}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Descrição</label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descrição do projeto"
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Status</label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="on_hold">Pausado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseModal}>
               Cancelar
