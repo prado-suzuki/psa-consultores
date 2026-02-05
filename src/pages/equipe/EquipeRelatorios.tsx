@@ -78,13 +78,15 @@
  ];
  
  const EquipeRelatorios = () => {
+  const ALL_PROJECTS = '__ALL_PROJECTS__';
    const [dateRange, setDateRange] = useState({ start: '', end: '' });
    const [generating, setGenerating] = useState<ReportType | null>(null);
    const [previewData, setPreviewData] = useState<ReportData | null>(null);
    const [previewHtml, setPreviewHtml] = useState<string | null>(null);
    const [logoBase64, setLogoBase64] = useState<string>('');
    const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-   const [projectFilter, setProjectFilter] = useState<string>('');
+  // Radix Select não permite value="" em SelectItem. Usamos sentinela para "Todos".
+  const [projectFilter, setProjectFilter] = useState<string>(ALL_PROJECTS);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
@@ -147,7 +149,7 @@
        const config: ReportConfig = {
          type,
          dateRange,
-         projectId: projectFilter || undefined
+          projectId: projectFilter !== ALL_PROJECTS ? projectFilter : undefined
        };
  
        const data = await fetchReportData(config);
@@ -187,7 +189,7 @@
        const config: ReportConfig = {
          type: 'consolidated',
          dateRange,
-         projectId: projectFilter || undefined
+          projectId: projectFilter !== ALL_PROJECTS ? projectFilter : undefined
        };
  
        const data = await fetchReportData(config);
@@ -277,7 +279,7 @@
                      <SelectValue placeholder="Todos os projetos" />
                    </SelectTrigger>
                    <SelectContent>
-                     <SelectItem value="">Todos os projetos</SelectItem>
+                      <SelectItem value={ALL_PROJECTS}>Todos os projetos</SelectItem>
                      {projects.map(p => (
                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                      ))}
@@ -290,7 +292,7 @@
                    className="w-full"
                    onClick={() => {
                      setDateRange({ start: '', end: '' });
-                     setProjectFilter('');
+                      setProjectFilter(ALL_PROJECTS);
                    }}
                  >
                    Limpar Filtros
