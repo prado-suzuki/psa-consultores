@@ -392,12 +392,12 @@ export default function ControlePerdcomp() {
 
             <div className="space-y-2">
               <Label>Exercício</Label>
-              <Select value={exercicioFilter} onValueChange={setExercicioFilter}>
+              <Select value={exercicioFilter || "__none__"} onValueChange={(v) => setExercicioFilter(v === "__none__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="__none__">Todos</SelectItem>
                   {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
                     <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                   ))}
