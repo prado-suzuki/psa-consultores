@@ -96,6 +96,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { error };
     } catch (error: any) {
+      console.error('SignIn error:', error);
+      const errorMessage = error?.message || 'Falha na conexão. Verifique sua internet e tente novamente.';
+      toast({
+        title: "Erro ao fazer login",
+        description: errorMessage,
+        variant: "destructive",
+      });
       return { error };
     }
   };

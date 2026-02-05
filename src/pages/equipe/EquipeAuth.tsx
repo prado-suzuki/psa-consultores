@@ -110,48 +110,56 @@ const EquipeAuth = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await signIn(email, password);
-    
-    if (!error) {
-      // Buscar a sessão recém criada para obter o user ID
-      const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const { error } = await signIn(email, password);
       
-      if (session?.user) {
-        // Verificar roles do usuário
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id);
+      if (!error) {
+        // Buscar a sessão recém criada para obter o user ID
+        const { data: { session } } = await supabase.auth.getSession();
         
-        const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
-        const userIsTeamMember = roles?.some(r => r.role === 'team_member') || false;
-        
-        // Verificar se é membro da equipe
-        if (!userIsAdmin && !userIsTeamMember) {
-          toast.error('Acesso restrito a membros da equipe', {
-            position: 'bottom-right',
-            duration: 3000,
-          });
-          setIsLoading(false);
-          return;
+        if (session?.user) {
+          // Verificar roles do usuário
+          const { data: roles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id);
+          
+          const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
+          const userIsTeamMember = roles?.some(r => r.role === 'team_member') || false;
+          
+          // Verificar se é membro da equipe
+          if (!userIsAdmin && !userIsTeamMember) {
+            toast.error('Acesso restrito a membros da equipe', {
+              position: 'bottom-right',
+              duration: 3000,
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          // Verificar acesso à área selecionada
+          const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
+          
+          if (!hasAccess) {
+            setSelectedArea('');
+            toast.error('Você não possui acesso a esta área', {
+              position: 'bottom-right',
+              duration: 3000,
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          // Tem acesso, pode navegar
+          navigateToArea(navigate, selectedArea);
         }
-        
-        // Verificar acesso à área selecionada
-        const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
-        
-        if (!hasAccess) {
-          setSelectedArea('');
-          toast.error('Você não possui acesso a esta área', {
-            position: 'bottom-right',
-            duration: 3000,
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Tem acesso, pode navegar
-        navigateToArea(navigate, selectedArea);
       }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      toast.error('Falha na conexão. Verifique sua internet e tente novamente.', {
+        position: 'bottom-right',
+        duration: 4000,
+      });
     }
     
     setIsLoading(false);
