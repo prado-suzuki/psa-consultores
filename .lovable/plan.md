@@ -1,264 +1,318 @@
 
-# Plano: Editar Projetos em Processos e Ajustar Layout de Sprints
+# Plano: Adicionar Filtros e Visao de Tabela no Impacto Digital
 
 ## Resumo
 
-Este plano aborda duas necessidades:
-1. **Processos**: Adicionar capacidade de vincular multiplos projetos ao editar um processo
-2. **Sprints**: Redesenhar os cards das sprints, removendo a visao geral de horas (ja existe no Dashboard) e aplicando design mais limpo
+Adicionar ao componente `ImpactDashboard.tsx` uma barra de filtros interativa e uma nova visao de tabela detalhada com todas as melhorias implementadas.
 
 ---
 
-## Parte 1: Vincular Multiplos Projetos aos Processos
+## Novas Funcionalidades
 
-### Situacao Atual
-- A aba "Projetos" no modal de processo apenas exibe os projetos vinculados (somente leitura)
-- Os vinculos sao gerenciados na tabela `project_processes` (N:N)
-- Nao existe interface para adicionar/remover projetos de um processo
+### 1. Barra de Filtros
 
-### Solucao Proposta
-
-Adicionar funcionalidade de edicao na aba "Projetos" do modal:
+Adicionar filtros para refinar os dados exibidos:
 
 ```text
-+-------------------------------------------------------------+
-|  Projetos (3)                                               |
-+-------------------------------------------------------------+
-|                                                             |
-|  [+ Adicionar Projeto]                                      |
-|                                                             |
-|  +-------------------------------------------------------+  |
-|  | P2 - Automacao SPED              [Principal]  [X]     |  |
-|  +-------------------------------------------------------+  |
-|  | P6 - Dashboard Gestao            [Secundario] [X]     |  |
-|  +-------------------------------------------------------+  |
-|  | P9 - Site e Chamados             [Suporte]    [X]     |  |
-|  +-------------------------------------------------------+  |
-|                                                             |
-+-------------------------------------------------------------+
++-------------------------------------------------------------------------+
+| Filtros                                                                 |
++-------------------------------------------------------------------------+
+| Processo: [Todos         v]  Projeto: [Todos         v]                 |
+| Responsavel: [Todos      v]  Area: [Todas           v]                  |
+| [Limpar Filtros]                                                        |
++-------------------------------------------------------------------------+
 ```
 
-### Componentes da Interface
+**Filtros disponiveis:**
+- **Processo**: Lista de processos com melhorias
+- **Projeto**: P2 - Automacao SPED, P3 - Automacao Consultas, etc.
+- **Responsavel**: Lista de membros da equipe (profiles)
+- **Area de Atuacao**: Fiscal, Fixos, Transversal, Consultoria
 
-1. **Botao "Adicionar Projeto"**: Abre um popover/dialog com:
-   - Select de projetos (filtrados para nao mostrar ja vinculados)
-   - Select de tipo de impacto (Principal, Secundario, Suporte)
-   - Botao confirmar
+### 2. Visao de Tabela com Melhorias Implementadas
 
-2. **Lista de Projetos Vinculados**:
-   - Mostra cada projeto com badge de tipo de impacto
-   - Botao X para remover vinculo
-   - Confirmacao antes de remover
-
----
-
-## Parte 2: Ajustar Layout de Sprints
-
-### Mudancas no Design
-
-1. **Remover componente HorasAcumuladas**: Esta duplicando informacao do Dashboard
-
-2. **Cards mais limpos**:
-   - Remover icones decorativos desnecessarios
-   - Tipografia mais equilibrada (titulos menores)
-   - Sem emojis
-   - Espacamento mais consistente
-
-### Antes vs Depois
+Nova aba ou secao com tabela detalhada:
 
 ```text
-ANTES (atual):
-+------------------------------------------------------------------+
-|  [Card HorasAcumuladas - REMOVER]                                |
-+------------------------------------------------------------------+
-|                                                                  |
-|  +------------------------------------------------------------+  |
-|  | [Target Icon] Sprint 1 - Janeiro        [Ativa] [Projeto]  |  |
-|  | Objetivo da sprint completo aqui                           |  |
-|  | [Calendar] 01/01 - 07/01   [Clock] 40.5h alocadas          |  |
-|  | [TrendingUp] Impacto Digital: R$ 2.500/mes   15h liberadas |  |
-|  | [User] Horas por Pessoa (3)                    [v]         |  |
-|  +------------------------------------------------------------+  |
-
-DEPOIS (proposto):
-+------------------------------------------------------------------+
-|  +------------------------------------------------------------+  |
-|  | Sprint 1 - Janeiro                      [Ativa] [Projeto]  |  |
-|  |------------------------------------------------------------+  |
-|  | Objetivo da sprint                                         |  |
-|  |                                                            |  |
-|  | 01/01 - 07/01  •  40.5h alocadas                           |  |
-|  |                                                            |  |
-|  | Impacto: R$ 2.500/mes  •  15h liberadas                    |  |
-|  |                                        [Ver Detalhes] [...]|  |
-|  +------------------------------------------------------------+  |
++-------------------------------------------------------------------------+
+| Melhorias Implementadas                                    [Cards|Tabela] |
++-------------------------------------------------------------------------+
+| Processo      | Projeto    | Area      | ROI   | Economia  | Tempo     |
+|---------------|------------|-----------|-------|-----------|-----------|
+| Conciliacao   | P2 - Auto  | Fiscal    | 245%  | R$ 3.200  | 15h/mes   |
+| Apuracao ICMS | P4 - PIS   | Fiscal    | 180%  | R$ 2.800  | 12h/mes   |
+| Folha Pgto    | P6 - Dash  | Fixos     | 120%  | R$ 1.500  |  8h/mes   |
++-------------------------------------------------------------------------+
 ```
+
+**Colunas da tabela:**
+- Processo (nome)
+- Projeto vinculado
+- Area de atuacao
+- ROI (%)
+- Economia mensal (R$)
+- Tempo economizado (h/mes)
+- Responsavel pela avaliacao
+- Data da melhoria
 
 ---
 
 ## Secao Tecnica
 
-### Arquivos a Modificar
+### Arquivo a Modificar
 
-#### 1. src/pages/equipe/EquipeProcessos.tsx
+**src/components/equipe/ImpactDashboard.tsx**
 
-Adicionar estado e funcoes para gerenciar projetos:
+### Novos Estados
 
 ```typescript
-const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
-const [isAddingProject, setIsAddingProject] = useState(false);
-const [newProjectLink, setNewProjectLink] = useState({
-  project_id: '',
-  impact_type: 'principal'
+// Filtros
+const [filters, setFilters] = useState({
+  processId: '',
+  projectId: '',
+  responsibleId: '',
+  area: ''
 });
+
+// Dados para filtros
+const [processes, setProcesses] = useState<{id: string, name: string}[]>([]);
+const [projects, setProjects] = useState<{id: string, name: string}[]>([]);
+const [profiles, setProfiles] = useState<{id: string, first_name: string, last_name: string}[]>([]);
+const areas = ['Fiscal', 'Fixos', 'Transversal', 'Consultoria'];
+
+// Toggle de visualizacao
+const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+
+// Dados completos das melhorias para tabela
+const [allImprovements, setAllImprovements] = useState<ImprovementDetail[]>([]);
 ```
 
-Adicionar funcoes:
+### Interface para Tabela
 
 ```typescript
-const addProjectToProcess = async () => {
-  const { error } = await supabase
-    .from('project_processes')
-    .insert({
-      process_id: selectedProcess.id,
-      project_id: newProjectLink.project_id,
-      impact_type: newProjectLink.impact_type
-    });
-  // Refresh data
-};
-
-const removeProjectFromProcess = async (linkId: string) => {
-  await supabase.from('project_processes').delete().eq('id', linkId);
-  // Refresh data
-};
+interface ImprovementDetail {
+  id: string;
+  process_name: string;
+  project_name: string | null;
+  area: string | null;
+  roi_percentage: number;
+  cost_saved_monthly: number;
+  time_saved_hours: number;
+  evaluated_by_name: string | null;
+  created_at: string;
+}
 ```
 
-Modificar aba "Projetos" para permitir edicao:
+### Busca de Dados para Filtros
 
-```tsx
-<TabsContent value="projects">
-  {/* Botao adicionar */}
-  <div className="flex justify-end mb-4">
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar Projeto
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <div className="space-y-3">
-          <Select value={newProjectLink.project_id} onValueChange={...}>
-            {/* Lista de projetos disponiveis */}
-          </Select>
-          <Select value={newProjectLink.impact_type} onValueChange={...}>
-            <SelectItem value="principal">Principal</SelectItem>
-            <SelectItem value="secundario">Secundario</SelectItem>
-            <SelectItem value="suporte">Suporte</SelectItem>
-          </Select>
-          <Button onClick={addProjectToProcess}>Vincular</Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  </div>
+```typescript
+// Na funcao fetchImpactData()
+const { data: processesData } = await supabase
+  .from('processes')
+  .select('id, name')
+  .order('name');
+setProcesses(processesData || []);
 
-  {/* Lista com botao remover */}
-  {projectProcesses.map((pp) => (
-    <Card key={pp.id}>
-      <CardContent className="flex justify-between items-center">
-        <div>
-          <p className="font-medium">{pp.projects?.name}</p>
-          <Badge>{pp.impact_type}</Badge>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => removeProjectFromProcess(pp.id)}>
-          <Trash2 className="h-4 w-4 text-red-500" />
-        </Button>
-      </CardContent>
-    </Card>
-  ))}
-</TabsContent>
+const { data: projectsData } = await supabase
+  .from('projects')
+  .select('id, name')
+  .eq('status', 'active')
+  .order('name');
+setProjects(projectsData || []);
+
+const { data: profilesData } = await supabase
+  .from('profiles')
+  .select('id, first_name, last_name')
+  .order('first_name');
+setProfiles(profilesData || []);
 ```
 
-#### 2. src/pages/equipe/EquipeSprints.tsx
+### Aplicacao de Filtros
 
-Remover HorasAcumuladas e redesenhar cards:
+```typescript
+// Filtrar melhorias baseado nos filtros selecionados
+const filteredImprovements = useMemo(() => {
+  return allImprovements.filter(imp => {
+    if (filters.processId && imp.process_id !== filters.processId) return false;
+    if (filters.projectId && imp.project_id !== filters.projectId) return false;
+    if (filters.responsibleId && imp.evaluated_by !== filters.responsibleId) return false;
+    if (filters.area && imp.area !== filters.area) return false;
+    return true;
+  });
+}, [allImprovements, filters]);
+```
+
+### Componente de Filtros
 
 ```tsx
-// REMOVER estas linhas (519-525):
-// <div className="mb-6">
-//   <HorasAcumuladas showRoutines={true} title="Visao Geral de Horas" />
-// </div>
+<Card className="bg-white border-gray-200 mb-6">
+  <CardContent className="pt-4">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-sm font-medium text-gray-700">Filtros</h3>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => setFilters({processId: '', projectId: '', responsibleId: '', area: ''})}
+      >
+        <X className="h-4 w-4 mr-1" />
+        Limpar
+      </Button>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <Select value={filters.processId} onValueChange={(v) => setFilters({...filters, processId: v})}>
+        <SelectTrigger><SelectValue placeholder="Processo" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Todos</SelectItem>
+          {processes.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      
+      <Select value={filters.projectId} onValueChange={(v) => setFilters({...filters, projectId: v})}>
+        <SelectTrigger><SelectValue placeholder="Projeto" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Todos</SelectItem>
+          {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      
+      <Select value={filters.responsibleId} onValueChange={(v) => setFilters({...filters, responsibleId: v})}>
+        <SelectTrigger><SelectValue placeholder="Responsavel" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Todos</SelectItem>
+          {profiles.map(p => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.first_name} {p.last_name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select value={filters.area} onValueChange={(v) => setFilters({...filters, area: v})}>
+        <SelectTrigger><SelectValue placeholder="Area" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Todas</SelectItem>
+          {areas.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  </CardContent>
+</Card>
+```
 
-// Remover import do HorasAcumuladas
+### Componente de Tabela
 
-// Redesenhar Card da Sprint:
-<Card key={sprint.id} className="bg-white border-gray-100 shadow-sm">
-  <CardContent className="p-5">
-    {/* Header com titulo e badges */}
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <h3 className="font-semibold text-gray-900 text-base">
-          {sprint.name}
-        </h3>
-        {getStatusBadge(sprint.status)}
-        {sprint.project_id && (
-          <Badge variant="secondary" className="text-xs font-normal">
-            {getProjectName(sprint.project_id)}
-          </Badge>
-        )}
-      </div>
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={() => {setSelectedSprint(sprint); setIsEditMode(true)}}>
-          <Pencil className="h-4 w-4" />
+```tsx
+<Card className="bg-white border-gray-200">
+  <CardHeader className="pb-2">
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-gray-900 text-base font-medium">
+        Melhorias Implementadas ({filteredImprovements.length})
+      </CardTitle>
+      <div className="flex items-center gap-2">
+        <Button 
+          variant={viewMode === 'cards' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setViewMode('cards')}
+        >
+          <LayoutGrid className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigate(`/equipe/sprints/${sprint.id}`)}>
-          Ver Detalhes
+        <Button 
+          variant={viewMode === 'table' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setViewMode('table')}
+        >
+          <TableIcon className="h-4 w-4" />
         </Button>
       </div>
     </div>
-    
-    {/* Objetivo (se houver) */}
-    {sprint.goal && (
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{sprint.goal}</p>
-    )}
-    
-    {/* Meta info em linha */}
-    <div className="flex items-center gap-4 text-sm text-gray-500">
-      <span>
-        {parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - 
-        {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}
-      </span>
-      {totalHours > 0 && (
-        <span>{totalHours.toFixed(0)}h alocadas</span>
-      )}
-    </div>
-    
-    {/* Impacto Digital (se houver) */}
-    {sprintImpact && sprintImpact.totalCostSaved > 0 && (
-      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
-        <span className="text-green-600 font-medium">
-          Impacto: R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR')}/mes
-        </span>
-        <span className="text-blue-600">
-          {sprintImpact.totalTimeSaved.toFixed(0)}h liberadas
-        </span>
-      </div>
+  </CardHeader>
+  <CardContent>
+    {viewMode === 'table' ? (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Processo</TableHead>
+            <TableHead>Projeto</TableHead>
+            <TableHead>Area</TableHead>
+            <TableHead className="text-right">ROI</TableHead>
+            <TableHead className="text-right">Economia/mes</TableHead>
+            <TableHead className="text-right">Tempo/mes</TableHead>
+            <TableHead>Data</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredImprovements.map((imp) => (
+            <TableRow key={imp.id}>
+              <TableCell className="font-medium">{imp.process_name}</TableCell>
+              <TableCell>{imp.project_name || '-'}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{imp.area || '-'}</Badge>
+              </TableCell>
+              <TableCell className="text-right text-green-600 font-semibold">
+                {imp.roi_percentage?.toFixed(0)}%
+              </TableCell>
+              <TableCell className="text-right">
+                R$ {imp.cost_saved_monthly?.toLocaleString('pt-BR')}
+              </TableCell>
+              <TableCell className="text-right">
+                {imp.time_saved_hours?.toFixed(0)}h
+              </TableCell>
+              <TableCell className="text-sm text-gray-500">
+                {new Date(imp.created_at).toLocaleDateString('pt-BR')}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    ) : (
+      /* Manter visualizacao atual de cards */
     )}
   </CardContent>
 </Card>
+```
+
+### Imports Adicionais
+
+```typescript
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { X, LayoutGrid, Table as TableIcon } from 'lucide-react';
+```
+
+---
+
+## Fluxo de Dados
+
+```text
+1. Ao carregar ImpactDashboard
+   ↓
+2. Busca processos, projetos, profiles para popular filtros
+   ↓
+3. Busca todas as melhorias com joins para process, project, evaluator
+   ↓
+4. Usuario seleciona filtros
+   ↓
+5. useMemo recalcula filteredImprovements
+   ↓
+6. Metricas e graficos atualizam com base nos dados filtrados
+   ↓
+7. Tabela exibe detalhes das melhorias filtradas
 ```
 
 ---
 
 ## Resumo das Alteracoes
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `EquipeProcessos.tsx` | Adicionar funcionalidade para vincular/desvincular projetos na aba "Projetos" |
-| `EquipeSprints.tsx` | Remover HorasAcumuladas, redesenhar cards mais limpos |
+| Componente | Alteracao |
+|------------|-----------|
+| `ImpactDashboard.tsx` | Adicionar barra de filtros (processo, projeto, responsavel, area) |
+| `ImpactDashboard.tsx` | Adicionar toggle cards/tabela |
+| `ImpactDashboard.tsx` | Adicionar tabela detalhada com melhorias |
+| `ImpactDashboard.tsx` | Metricas atualizam com base nos filtros |
 
 ## Beneficios
 
-1. **Processos**: Usuarios podem gerenciar projetos vinculados diretamente na interface
-2. **Sprints**: Layout mais limpo, sem duplicacao de informacao, design profissional sem emojis
-3. **Consistencia**: Horas consolidadas ficam apenas no Dashboard (fonte unica)
+1. **Analise detalhada**: Usuarios podem filtrar e analisar melhorias por diferentes dimensoes
+2. **Visibilidade**: Tabela mostra todas as melhorias com dados consolidados
+3. **Flexibilidade**: Toggle entre visualizacao de cards e tabela
+4. **Rastreabilidade**: Dados de ROI, economia e tempo por melhoria individual
