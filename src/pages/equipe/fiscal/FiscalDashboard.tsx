@@ -6,25 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const FiscalDashboard = () => {
-   // Fetch Tax client ID first
-   const { data: taxClientId } = useQuery({
-     queryKey: ['tax-client-id'],
-     queryFn: async () => {
-       const { data } = await supabase
-         .from('catalog_clients')
-         .select('id')
-         .or('name.ilike.%fiscal%,name.ilike.%tax%')
-         .limit(1)
-         .single();
-       return data?.id || null;
-     },
-   });
-
-   // Fetch projects with hours data
+   // Fetch projects with hours data - only Tax area projects
    const { data: projectsData = [], isLoading } = useQuery({
-     queryKey: ['fiscal-projects-hours', taxClientId],
+     queryKey: ['fiscal-dashboard-projects'],
      queryFn: async () => {
-       if (!taxClientId) return [];
        const { data: projects } = await supabase
          .from('projects')
          .select(`
@@ -33,7 +18,7 @@ const FiscalDashboard = () => {
            status,
            project_work_packages(estimated_hours, spent_hours)
          `)
-         .eq('client_id', taxClientId)
+         .eq('source_area', 'tax')
          .order('name');
        
        return (projects || []).map(p => ({
@@ -44,7 +29,6 @@ const FiscalDashboard = () => {
          spentHours: p.project_work_packages?.reduce((sum: number, wp: any) => sum + (wp.spent_hours || 0), 0) || 0,
        }));
      },
-     enabled: !!taxClientId,
    });
 
    const totalProjects = projectsData.length;
