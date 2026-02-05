@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Users, User } from "lucide-react";
+import { Menu, X, Users } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo-psa.png";
 import {
@@ -15,7 +15,6 @@ const navItems = [
   { id: "missao", label: "Missão", href: "/missao", external: false, isRoute: true },
   { id: "servicos", label: "Serviços", href: "/#servicos", external: false, isRoute: false },
   { id: "novidades", label: "Novidades", href: "/novidades", external: false, isRoute: true },
-  { id: "ajuda", label: "Ajuda", href: "/ajuda", external: false, isRoute: true },
 ];
 
 export const Header = () => {
@@ -79,7 +78,7 @@ export const Header = () => {
           </nav>
 
           {/* CTA Buttons - Right */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-3">
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -96,21 +95,12 @@ export const Header = () => {
               </Tooltip>
             </TooltipProvider>
             
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="/auth"
-                    className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200"
-                  >
-                    <User className="h-5 w-5 text-primary" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Área do Cliente</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Link
+              to="/ajuda"
+              className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
+            >
+              Área do Cliente
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
