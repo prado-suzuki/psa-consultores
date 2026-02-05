@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { X, FileText, Plus, Pencil, Trash2, Loader2, History } from 'lucide-react';
+import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -238,6 +238,13 @@ export function PerDetailModal({
                     {per.exercicio}/{per.tri_exercicio}T
                   </span>
                 </p>
+                {per.nr_proc_ret && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" />
+                    <span>Retifica:</span>
+                    <span className="font-mono font-medium">{per.nr_proc_ret}</span>
+                  </p>
+                )}
               </div>
             </div>
             
