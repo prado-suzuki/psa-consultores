@@ -4,7 +4,8 @@
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { Badge } from '@/components/ui/badge';
  import { Card, CardContent } from '@/components/ui/card';
- import { History, TrendingUp, Clock, DollarSign, Users, Calendar, Loader2 } from 'lucide-react';
+ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+ import { History, TrendingUp, Clock, DollarSign, Users, Calendar, Loader2, Monitor, ShoppingCart, Sparkles, ChevronDown } from 'lucide-react';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
  
@@ -26,6 +27,19 @@
    roi_percentage: number | null;
    evaluation_period_days: number | null;
    evaluated_by: string | null;
+   system_savings_monthly: number | null;
+   build_vs_buy_savings: number | null;
+   other_savings_monthly: number | null;
+ }
+ 
+ interface SavingsDetail {
+   id: string;
+   savings_type: string;
+   description: string;
+   cost_before: number | null;
+   cost_after: number | null;
+   savings_value: number;
+   is_monthly: boolean;
  }
  
  interface ImprovementHistoryModalProps {
@@ -37,7 +51,9 @@
  
  export function ImprovementHistoryModal({ open, onClose, processId, processName }: ImprovementHistoryModalProps) {
    const [improvements, setImprovements] = useState<ProcessImprovement[]>([]);
+   const [savingsDetails, setSavingsDetails] = useState<Record<string, SavingsDetail[]>>({});
    const [loading, setLoading] = useState(false);
+   const [expandedSavings, setExpandedSavings] = useState<Record<string, boolean>>({});
  
    useEffect(() => {
      if (open && processId) {
@@ -56,6 +72,27 @@
  
        if (error) throw error;
        setImprovements(data || []);
+       
+       // Buscar detalhes das economias para cada melhoria
+       if (data && data.length > 0) {
+         const improvementIds = data.map(i => i.id);
+         const { data: details, error: detailsError } = await supabase
+           .from('improvement_savings_details')
+           .select('*')
+           .in('improvement_id', improvementIds);
+         
+         if (!detailsError && details) {
+           // Agrupar por improvement_id
+           const grouped: Record<string, SavingsDetail[]> = {};
+           details.forEach(detail => {
+             if (!grouped[detail.improvement_id]) {
+               grouped[detail.improvement_id] = [];
+             }
+             grouped[detail.improvement_id].push(detail);
+           });
+           setSavingsDetails(grouped);
+         }
+       }
      } catch (error) {
        console.error('Error fetching improvements:', error);
      } finally {
@@ -84,6 +121,30 @@
    const formatPercent = (value: number | null) => {
      if (value === null) return '-';
      return `${value.toFixed(1)}%`;
+   };
+ 
+   const getSavingsTypeIcon = (type: string) => {
+     switch (type) {
+       case 'system': return <Monitor className="h-3 w-3 text-blue-600" />;
+       case 'build_vs_buy': return <ShoppingCart className="h-3 w-3 text-purple-600" />;
+       case 'other': return <Sparkles className="h-3 w-3 text-amber-600" />;
+       default: return null;
+     }
+   };
+ 
+   const getSavingsTypeLabel = (type: string) => {
+     switch (type) {
+       case 'system': return 'Sistemas';
+       case 'build_vs_buy': return 'Build vs Buy';
+       case 'other': return 'Outras';
+       default: return type;
+     }
+   };
+ 
+   const hasAdditionalSavings = (improvement: ProcessImprovement) => {
+     return (improvement.system_savings_monthly || 0) > 0 || 
+            (improvement.build_vs_buy_savings || 0) > 0 || 
+            (improvement.other_savings_monthly || 0) > 0;
    };
  
    return (
@@ -181,6 +242,76 @@
                          </p>
                        </div>
                      </div>
+                     
+                     {/* Economias Adicionais */}
+                     {hasAdditionalSavings(improvement) && (
+                       <Collapsible 
+                         open={expandedSavings[improvement.id]} 
+                         onOpenChange={(open) => setExpandedSavings({...expandedSavings, [improvement.id]: open})}
+                       >
+                         <CollapsibleTrigger asChild>
+                           <div className="flex items-center justify-between p-2 mt-3 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors">
+                             <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                               <ChevronDown className={`h-4 w-4 transition-transform ${expandedSavings[improvement.id] ? 'rotate-180' : ''}`} />
+                               Economias Adicionais
+                             </div>
+                             <div className="flex gap-2">
+                               {(improvement.system_savings_monthly || 0) > 0 && (
+                                 <Badge variant="outline" className="text-xs">
+                                   <Monitor className="h-3 w-3 mr-1" />
+                                   {formatCurrency(improvement.system_savings_monthly)}/mês
+                                 </Badge>
+                               )}
+                               {(improvement.build_vs_buy_savings || 0) > 0 && (
+                                 <Badge variant="outline" className="text-xs">
+                                   <ShoppingCart className="h-3 w-3 mr-1" />
+                                   {formatCurrency(improvement.build_vs_buy_savings)}
+                                 </Badge>
+                               )}
+                               {(improvement.other_savings_monthly || 0) > 0 && (
+                                 <Badge variant="outline" className="text-xs">
+                                   <Sparkles className="h-3 w-3 mr-1" />
+                                   {formatCurrency(improvement.other_savings_monthly)}/mês
+                                 </Badge>
+                               )}
+                             </div>
+                           </div>
+                         </CollapsibleTrigger>
+                         <CollapsibleContent>
+                           <div className="mt-2 p-3 bg-muted/30 rounded space-y-2">
+                             {savingsDetails[improvement.id]?.length > 0 ? (
+                               <div className="space-y-2">
+                                 {savingsDetails[improvement.id].map((detail) => (
+                                   <div key={detail.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                                     <div className="flex items-center gap-2">
+                                       {getSavingsTypeIcon(detail.savings_type)}
+                                       <span className="text-muted-foreground text-xs">
+                                         [{getSavingsTypeLabel(detail.savings_type)}]
+                                       </span>
+                                       <span>{detail.description}</span>
+                                     </div>
+                                     <div className="flex items-center gap-4 text-xs">
+                                       {(detail.cost_before || detail.cost_after) ? (
+                                         <span className="text-muted-foreground">
+                                           {formatCurrency(detail.cost_before)} → {formatCurrency(detail.cost_after)}
+                                         </span>
+                                       ) : null}
+                                       <span className="font-medium text-green-600">
+                                         {formatCurrency(detail.savings_value)}{detail.is_monthly ? '/mês' : ''}
+                                       </span>
+                                     </div>
+                                   </div>
+                                 ))}
+                               </div>
+                             ) : (
+                               <p className="text-xs text-muted-foreground italic">
+                                 Detalhamento não disponível para esta melhoria
+                               </p>
+                             )}
+                           </div>
+                         </CollapsibleContent>
+                       </Collapsible>
+                     )}
                    </CardContent>
                  </Card>
                ))}

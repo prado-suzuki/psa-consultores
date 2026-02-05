@@ -969,6 +969,50 @@ export type Database = {
         }
         Relationships: []
       }
+      improvement_savings_details: {
+        Row: {
+          cost_after: number | null
+          cost_before: number | null
+          created_at: string | null
+          description: string
+          id: string
+          improvement_id: string
+          is_monthly: boolean | null
+          savings_type: string
+          savings_value: number
+        }
+        Insert: {
+          cost_after?: number | null
+          cost_before?: number | null
+          created_at?: string | null
+          description: string
+          id?: string
+          improvement_id: string
+          is_monthly?: boolean | null
+          savings_type: string
+          savings_value?: number
+        }
+        Update: {
+          cost_after?: number | null
+          cost_before?: number | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          improvement_id?: string
+          is_monthly?: boolean | null
+          savings_type?: string
+          savings_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "improvement_savings_details_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       improvement_team_members: {
         Row: {
           created_at: string | null
