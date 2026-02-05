@@ -1,278 +1,147 @@
 
+# Plano: Liberacao de Edicao de Etapas e Botoes de Versoes
 
-# Plano: Substituir Caixa de Entrada por Visao de Minhas Demandas
+## Resumo
 
-## Objetivo
+Este plano visa resolver o bloqueio de edicao de etapas na pagina Digital Rotina (EquipeProcessos) e adicionar botoes para visualizar o SOP original mapeado e as versoes de melhoria implementadas.
 
-Substituir o conceito de "Caixa de Entrada" por uma visao inteligente das demandas do usuario logado, com organizacao por prioridade, projeto e data, incluindo alertas e informacoes contextuais. Habilitar edicao para criadores de demandas.
+## Alteracoes Propostas
 
----
+### 1. Liberar Edicao de Etapas
 
-## Mudancas no Menu Lateral
+**Arquivo:** `src/pages/equipe/EquipeProcessos.tsx`
 
-```text
-Antes:                          Depois:
-- Dashboard                     - Dashboard
-- Demandas                      - Demandas
-  - Caixa de Entrada              - Minhas Demandas   <-- NOVO
-  - Pacotes de Trabalho           - Pacotes de Trabalho
-  - Clientes                      - Clientes
-```
+Atualmente, a aba "Etapas" esta desabilitada quando em modo de edicao. Vou:
 
----
+- Remover a restricao `disabled={isEditing}` da aba "Etapas"
+- Adicionar modo de edicao inline para cada etapa:
+  - Botao de editar em cada card de etapa
+  - Formulario expandivel com campos editaveis (nome, descricao, responsavel, tempo atual/alvo, frequencia, volume)
+  - Botoes de salvar/cancelar
+- Adicionar botao "+ Nova Etapa" para criar novas etapas
+- Adicionar botao de excluir etapa com confirmacao
 
-## Novo Componente: Minhas Demandas
+### 2. Adicionar Botao "SOP Mapeado"
 
-Vista personalizada para o usuario logado mostrando:
+**Arquivo:** `src/pages/equipe/EquipeProcessos.tsx`
 
-### Secao 1: Alertas (Cards no Topo)
+No cabecalho da aba "Etapas", adicionar botao que:
 
-```text
-+----------------+  +----------------+  +----------------+
-| ⚠ ATRASADAS    |  | 📅 PARA HOJE   |  | 📋 ALTA PRIO   |
-|      3         |  |      5         |  |      2         |
-+----------------+  +----------------+  +----------------+
-```
+- Abre um modal/drawer exibindo o conteudo original do mapeamento
+- Utiliza o campo `formatted_content` do processo (conteudo Markdown gerado pela funcao AI `restructure-process`)
+- Permite visualizar como o processo foi originalmente documentado
+- Estilizado como visualizacao somente-leitura
 
-### Secao 2: Lista Agrupada de Demandas
+### 3. Adicionar Botao "Versoes de Melhoria"
 
-Organizacao com grupos expansiveis:
+**Arquivos:** 
+- `src/pages/equipe/EquipeProcessos.tsx`
+- `src/components/equipe/ProcessImprovementModal.tsx`
 
-```text
-▼ PRIORIDADE ALTA (2)
-  +--------------------------------------------------------+
-  | #45 | Analise ICMS - Projeto CCO | Em progresso | Hoje |
-  | #52 | Revisao PIS/COFINS - PQR   | Agendado     | Amanh |
-  +--------------------------------------------------------+
+Adicionar na interface:
 
-▼ ATRASADAS (3)
-  +--------------------------------------------------------+
-  | #31 | Levantamento fiscal | Em progresso | 28/01 (-3d) |
-  ...
+- Botao "Avaliar Melhoria" que abre o `ProcessImprovementModal` ja existente
+- Botao "Historico de Versoes" que exibe lista de melhorias registradas
+- Modal de historico mostrando:
+  - Data de cada avaliacao
+  - Status (em avaliacao, concluida)
+  - Resumo das metricas (economia de tempo/custo)
+  - Descricao da melhoria
 
-▼ PARA ESTA SEMANA (4)
-  +--------------------------------------------------------+
-  ...
-```
-
-### Filtros Rapidos
+### Interface Visual Proposta
 
 ```text
-[Atribuidas a mim ▾] [Criadas por mim ▾] [Da minha area ▾]
++--------------------------------------------------+
+|  Etapas (5)                                      |
+|  +------------------------------------------+    |
+|  | [SOP Mapeado]  [+ Nova Etapa]            |    |
+|  | [Avaliar Melhoria]  [Historico Versoes]  |    |
+|  +------------------------------------------+    |
+|                                                  |
+|  +------------------------------------------+    |
+|  | 1. Nome da Etapa           [Editar] [X]  |    |
+|  | Descricao...                             |    |
+|  | Responsavel | Tempo | Frequencia         |    |
+|  +------------------------------------------+    |
+|                                                  |
+|  +------------------------------------------+    |
+|  | 2. Proxima Etapa           [Editar] [X]  |    |
+|  | ...                                      |    |
+|  +------------------------------------------+    |
++--------------------------------------------------+
 ```
-
----
-
-## Regras de Visibilidade e Edicao
-
-| Condicao | Pode Ver | Pode Editar |
-|----------|----------|-------------|
-| Demanda atribuida a mim | Sim | Nao (apenas status) |
-| Demanda criada por mim | Sim | Sim |
-| Demanda da minha area (fiscal) | Sim | Nao |
-| Sou responsavel | Sim | Sim |
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/equipe/fiscal/FiscalSidebar.tsx` | Renomear "Caixa de Entrada" para "Minhas Demandas" |
-| `src/pages/equipe/fiscal/FiscalDemandasInbox.tsx` | Atualizar titulo e componente |
-| `src/components/equipe/fiscal/FiscalInbox.tsx` | Substituir completamente por novo componente |
-
-## Novos Componentes
-
-| Componente | Descricao |
-|------------|-----------|
-| `src/components/equipe/fiscal/MinhasDemandas.tsx` | Lista inteligente de demandas do usuario |
-| `src/components/equipe/fiscal/DemandaAlertCards.tsx` | Cards de alerta (atrasadas, hoje, alta prioridade) |
-
----
-
-## Detalhamento: MinhasDemandas.tsx
-
-### Queries Necessarias
-
-```typescript
-// Buscar demandas onde usuario e:
-// 1. Atribuido (assigned_to = user.id)
-// 2. Responsavel (responsible = user.id)  
-// 3. Criador (created_by = user.id)
-// 4. Da area fiscal
-
-const filters = {
-  area: ['fiscal'],
-  // Combinar com OR para assigned_to, responsible, created_by
-};
-```
-
-### Agrupamento Dinamico
-
-```typescript
-const groupedData = useMemo(() => {
-  const today = getTodayBrazil();
-  const groups = {
-    atrasadas: [],      // due_date < today && status != 'concluido'
-    alta_prioridade: [], // priority === 'alta' && status != 'concluido'
-    para_hoje: [],       // due_date === today
-    esta_semana: [],     // due_date dentro da semana
-    proximas: [],        // restantes
-  };
-  
-  workPackages.forEach(wp => {
-    // Classificar em grupos
-  });
-  
-  return groups;
-}, [workPackages]);
-```
-
-### Permissao de Edicao
-
-```typescript
-const canEdit = (wp: WorkPackage) => {
-  return wp.created_by === user?.id || wp.responsible === user?.id;
-};
-```
-
----
-
-## Detalhamento: DemandaAlertCards.tsx
-
-Cards informativos no topo da pagina:
-
-```typescript
-const alertCards = [
-  {
-    icon: AlertTriangle,
-    label: 'Atrasadas',
-    count: atrasadas.length,
-    color: 'red',
-    onClick: () => scrollToGroup('atrasadas'),
-  },
-  {
-    icon: Calendar,
-    label: 'Para Hoje',
-    count: paraHoje.length,
-    color: 'amber',
-    onClick: () => scrollToGroup('para_hoje'),
-  },
-  {
-    icon: ArrowUp,
-    label: 'Alta Prioridade',
-    count: altaPrioridade.length,
-    color: 'orange',
-    onClick: () => scrollToGroup('alta_prioridade'),
-  },
-];
-```
-
----
-
-## Estrutura Visual Final
-
-```text
-+------------------------------------------------------------------+
-| FISCAL - Minhas Demandas                                         |
-|------------------------------------------------------------------|
-| Mostrando demandas atribuidas, criadas ou sob sua responsabilid. |
-|                                                                  |
-| +---------------+ +---------------+ +---------------+            |
-| | ⚠ Atrasadas  | | 📅 Hoje       | | 🔴 Alta prio  |            |
-| |      3       | |      2        | |      1        |            |
-| +---------------+ +---------------+ +---------------+            |
-|                                                                  |
-| [Atribuidas a mim v] [Criadas por mim v] [Da minha area v]       |
-|                                                                  |
-| ▼ ATRASADAS (3)                                                  |
-| +--------------------------------------------------------------+ |
-| | #31 Levantamento fiscal   | TAREFA | Em prog | 28/01 | [Abrir]| |
-| +--------------------------------------------------------------+ |
-|                                                                  |
-| ▼ ALTA PRIORIDADE (1)                                            |
-| +--------------------------------------------------------------+ |
-| | #45 Analise ICMS - CCO    | FASE   | Agend   | 02/02 | [Edit]| |
-| +--------------------------------------------------------------+ |
-|                                                                  |
-| ▼ PARA ESTA SEMANA (4)                                           |
-| ...                                                              |
-+------------------------------------------------------------------+
-```
-
----
-
-## Sheet de Detalhes com Botao Editar
-
-Atualizar o `WorkPackageSheet.tsx` para:
-
-1. Receber callback `onEdit` quando usuario pode editar
-2. Mostrar botao "Editar" condicional
-3. Integrar com `WorkPackageForm` para edicao
-
-```typescript
-// WorkPackageSheet.tsx
-const canEdit = workPackage.created_by === user?.id || workPackage.responsible === user?.id;
-
-{canEdit && (
-  <Button onClick={() => onEdit?.(workPackage.id)}>
-    <Edit className="h-4 w-4 mr-2" />
-    Editar
-  </Button>
-)}
-```
-
----
 
 ## Secao Tecnica
 
-### Hook para Minhas Demandas
+### Estrutura de Dados Utilizadas
 
-Criar filtro especial que combina criterios com OR:
+**Tabela `process_stages`:**
+- `id`, `process_id`, `stage_order`, `name`, `description`
+- `responsible`, `time_current`, `time_target`, `frequency`, `volume`
+- `automation_level`, `inputs`, `outputs`, `systems` (JSONB)
 
-```typescript
-// useMyWorkPackages.ts
-export function useMyWorkPackages(userId: string) {
-  return useQuery({
-    queryKey: ['my-work-packages', userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_work_packages')
-        .select(`
-          *,
-          assigned_to_profile:profiles!project_work_packages_assigned_to_fkey(...),
-          ...
-        `)
-        .eq('area', 'fiscal')
-        .or(`assigned_to.eq.${userId},responsible.eq.${userId},created_by.eq.${userId}`)
-        .neq('status', 'concluido')
-        .order('due_date', { ascending: true });
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!userId,
-  });
-}
+**Tabela `process_improvements`:**
+- `process_id`, `evaluation_status`, `improvement_description`
+- Metricas baseline vs improved (time_hours, cost_monthly, volume, people)
+- Resultados calculados (roi_percentage, time_saved_hours, cost_saved_monthly)
+
+### Componentes a Criar/Modificar
+
+1. **StageEditForm** (novo componente inline)
+   - Formulario para edicao de etapa individual
+   - Validacao de campos obrigatorios
+
+2. **SOPViewerModal** (novo componente)
+   - Renderizador de Markdown para `formatted_content`
+   - Estilo de documento somente-leitura
+
+3. **ImprovementHistoryModal** (novo componente)
+   - Lista de `process_improvements` para o processo
+   - Detalhes de cada versao de melhoria
+
+### Funcoes de Backend Existentes
+
+- `restructure-process`: Gera documentacao formatada
+- `calculate-process-roi`: Calcula metricas de ROI
+
+### Operacoes de Banco de Dados
+
+```sql
+-- Criar nova etapa
+INSERT INTO process_stages (process_id, stage_order, name, ...)
+
+-- Atualizar etapa
+UPDATE process_stages SET name=?, description=? WHERE id=?
+
+-- Excluir etapa
+DELETE FROM process_stages WHERE id=?
+
+-- Buscar historico de melhorias
+SELECT * FROM process_improvements 
+WHERE process_id = ? 
+ORDER BY created_at DESC
 ```
 
-### Rotas
+## Arquivos a Modificar
 
-Manter mesma rota (`/equipe/projetos/fiscal/demandas/inbox`) mas renomear visualmente para "Minhas Demandas".
+1. `src/pages/equipe/EquipeProcessos.tsx`
+   - Remover `disabled` da aba Etapas
+   - Adicionar estado para edicao de etapas
+   - Adicionar barra de acoes com botoes
+   - Implementar CRUD de etapas
+   - Integrar modais
 
----
+2. `src/components/equipe/SOPViewerModal.tsx` (novo)
+   - Modal para visualizar SOP original
 
-## Resumo das Entregas
+3. `src/components/equipe/ImprovementHistoryModal.tsx` (novo)
+   - Modal para historico de versoes
 
-1. **FiscalSidebar** - Renomear "Caixa de Entrada" para "Minhas Demandas"
-2. **MinhasDemandas.tsx** - Novo componente com:
-   - Cards de alerta (Atrasadas, Hoje, Alta prioridade)
-   - Filtros rapidos (Atribuidas, Criadas, Da area)
-   - Lista agrupada por categoria
-   - Indicador de permissao de edicao
-3. **DemandaAlertCards.tsx** - Cards de resumo no topo
-4. **WorkPackageSheet.tsx** - Adicionar botao Editar condicional
-5. **FiscalDemandasInbox.tsx** - Atualizar titulo e descricao
-6. **Integracao com WorkPackageForm** - Modal de edicao para usuarios autorizados
+4. `src/lib/markdownRenderer.tsx` (reutilizar)
+   - Renderizacao do conteudo formatado
 
+## Dependencias
+
+- Componentes UI existentes: Dialog, Button, Card, Badge, ScrollArea
+- Hook useAuth para permissoes
+- Supabase client para operacoes de banco
