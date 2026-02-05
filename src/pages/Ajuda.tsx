@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lock, Mail, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import psaFachada from "@/assets/ajuda/psa-fachada.png";
+import psaFachada from "@/assets/ajuda/psa-fachada.jpg";
 import {
   Accordion,
   AccordionContent,
