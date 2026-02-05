@@ -88,19 +88,10 @@ import { supabase } from '@/integrations/supabase/client';
   const { data: projects = [] } = useQuery({
     queryKey: ['fiscal-projects-for-tasks'],
     queryFn: async () => {
-      const { data: taxClient } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%fiscal%,name.ilike.%tax%')
-        .limit(1)
-        .single();
-      
-      if (!taxClient) return [];
-
+      // Fetch directly from tax_projects table
       const { data } = await supabase
-        .from('projects')
+        .from('tax_projects')
         .select('id, name')
-        .eq('client_id', taxClient.id)
         .eq('status', 'active')
         .order('name');
       return data || [];
