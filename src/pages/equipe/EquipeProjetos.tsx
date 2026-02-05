@@ -127,13 +127,13 @@ const PROJECT_FRONTS = [
 
 // Justification types
 const JUSTIFICATION_TYPES = [
-  { value: 'financeiro', label: '💰 Economia Financeira', description: 'Redução de custos ou aumento de receita' },
-  { value: 'tempo', label: '⏱️ Economia de Tempo', description: 'Redução de horas de trabalho' },
-  { value: 'automacao', label: '🤖 Automação', description: 'Eliminação de tarefas manuais' },
-  { value: 'qualidade', label: '✅ Qualidade', description: 'Redução de erros e retrabalho' },
-  { value: 'comunicacao', label: '💬 Comunicação', description: 'Melhoria na comunicação interna/externa' },
-  { value: 'compliance', label: '📋 Compliance', description: 'Atendimento a requisitos legais/regulatórios' },
-  { value: 'estrategico', label: '🎯 Estratégico', description: 'Alinhamento com objetivos estratégicos' }
+  { value: 'financeiro', label: 'Economia Financeira', description: 'Redução de custos ou aumento de receita' },
+  { value: 'tempo', label: 'Economia de Tempo', description: 'Redução de horas de trabalho' },
+  { value: 'automacao', label: 'Automação', description: 'Eliminação de tarefas manuais' },
+  { value: 'qualidade', label: 'Qualidade', description: 'Redução de erros e retrabalho' },
+  { value: 'comunicacao', label: 'Comunicação', description: 'Melhoria na comunicação interna/externa' },
+  { value: 'compliance', label: 'Compliance', description: 'Atendimento a requisitos legais/regulatórios' },
+  { value: 'estrategico', label: 'Estratégico', description: 'Alinhamento com objetivos estratégicos' }
 ];
 
 // Process stages configuration
@@ -1401,7 +1401,7 @@ const EquipeProjetos = () => {
 
       {/* Project Details/Edit Dialog */}
       <Dialog open={!!selectedProject} onOpenChange={() => { setSelectedProject(null); setIsEditMode(false); setActiveTab('info'); }}>
-        <DialogContent className="bg-white border-gray-200 max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-white border-gray-200 max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedProject && (
             <>
               <DialogHeader>
