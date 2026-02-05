@@ -40,12 +40,18 @@ import {
   Plus,
   TrendingUp,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  History
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Json } from '@/integrations/supabase/types';
+import { SOPViewerModal } from '@/components/equipe/SOPViewerModal';
+import { ImprovementHistoryModal } from '@/components/equipe/ImprovementHistoryModal';
+import { ProcessImprovementModal } from '@/components/equipe/ProcessImprovementModal';
+import { StageEditCard } from '@/components/equipe/StageEditCard';
+import { NewStageForm } from '@/components/equipe/NewStageForm';
 
 interface Process {
   id: string;
@@ -180,6 +186,14 @@ const EquipeProcessos = () => {
   const [importData, setImportData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Stage editing state
+  const [isAddingStage, setIsAddingStage] = useState(false);
+  
+  // Modal states
+  const [isSOPModalOpen, setIsSOPModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isImprovementModalOpen, setIsImprovementModalOpen] = useState(false);
 
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -919,7 +933,7 @@ const EquipeProcessos = () => {
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="info">Informações</TabsTrigger>
-              <TabsTrigger value="stages" disabled={isEditing}>Etapas ({processStages.length})</TabsTrigger>
+              <TabsTrigger value="stages">Etapas ({processStages.length})</TabsTrigger>
               <TabsTrigger value="projects" disabled={isEditing}>Projetos ({projectProcesses.length})</TabsTrigger>
             </TabsList>
 
@@ -1189,184 +1203,82 @@ const EquipeProcessos = () => {
 
               {/* Stages Tab */}
               <TabsContent value="stages" className="mt-0">
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsSOPModalOpen(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    SOP Mapeado
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsAddingStage(true)}
+                    disabled={isAddingStage}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Etapa
+                  </Button>
+                  <div className="flex-1" />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsImprovementModalOpen(true)}
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Avaliar Melhoria
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsHistoryModalOpen(true)}
+                  >
+                    <History className="h-4 w-4 mr-2" />
+                    Histórico Versões
+                  </Button>
+                </div>
+
                 {loadingDetails ? (
-                  <div className="text-center py-8 text-gray-500">Carregando etapas...</div>
-                ) : processStages.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    Nenhuma etapa cadastrada para este processo.
-                  </div>
+                  <div className="text-center py-8 text-muted-foreground">Carregando etapas...</div>
                 ) : (
                   <div className="space-y-4">
-                    {processStages.map((stage, index) => (
-                      <div key={stage.id} className="relative">
-                        {/* Connector line */}
-                        {index < processStages.length - 1 && (
-                          <div className="absolute left-6 top-full h-4 w-0.5 bg-gray-200" />
-                        )}
-                        
-                        <Card className="border-l-4 border-l-primary">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base flex items-center gap-2">
-                                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                  {stage.stage_order}
-                                </span>
-                                {stage.name}
-                              </CardTitle>
-                              {stage.automation_level && (
-                                <Badge className={getAutomationInfo(stage.automation_level).color}>
-                                  <Zap className="h-3 w-3 mr-1" />
-                                  {getAutomationInfo(stage.automation_level).label}
-                                </Badge>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {stage.description && (
-                              <p className="text-sm text-gray-600">{stage.description}</p>
-                            )}
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              {stage.responsible && (
-                                <div>
-                                  <span className="text-gray-500 flex items-center gap-1">
-                                    <User className="h-3 w-3" /> Responsável
-                                  </span>
-                                  <p className="font-medium">{stage.responsible}</p>
-                                </div>
-                              )}
-                              {(stage.time_current || stage.time_target) && (
-                                <div>
-                                  <span className="text-gray-500 flex items-center gap-1">
-                                    <Clock className="h-3 w-3" /> Tempo
-                                  </span>
-                                  <p className="font-medium">
-                                    {stage.time_current || '-'} → {stage.time_target || '-'}
-                                  </p>
-                                </div>
-                              )}
-                              {stage.frequency && (
-                                <div>
-                                  <span className="text-gray-500">Frequência</span>
-                                  <p className="font-medium">{stage.frequency}</p>
-                                </div>
-                              )}
-                              {stage.volume && (
-                                <div>
-                                  <span className="text-gray-500">Volume</span>
-                                  <p className="font-medium">{stage.volume}</p>
-                                </div>
-                              )}
-                            </div>
+                    {/* New Stage Form */}
+                    {isAddingStage && (
+                      <NewStageForm
+                        processId={selectedProcess?.id || ''}
+                        nextOrder={processStages.length + 1}
+                        onCreated={() => {
+                          setIsAddingStage(false);
+                          if (selectedProcess) fetchProcessDetails(selectedProcess.id);
+                        }}
+                        onCancel={() => setIsAddingStage(false)}
+                      />
+                    )}
 
-                            <Accordion type="single" collapsible className="w-full">
-                              {/* Inputs */}
-                              {parseInputs(stage.inputs).length > 0 && (
-                                <AccordionItem value="inputs">
-                                  <AccordionTrigger className="text-sm py-2">
-                                    <span className="flex items-center gap-2">
-                                      <FileInput className="h-4 w-4 text-blue-500" />
-                                      Entradas ({parseInputs(stage.inputs).length})
-                                    </span>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ul className="space-y-2">
-                                      {parseInputs(stage.inputs).map((input, i) => (
-                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
-                                          <span className="font-medium">{getInputName(input)}</span>
-                                          {getInputSource(input) && <span className="text-muted-foreground"> - {getInputSource(input)}</span>}
-                                          {getInputFormat(input) && <Badge variant="outline" className="ml-2 text-xs">{getInputFormat(input)}</Badge>}
-                                          {getInputCriticality(input) && (
-                                            <Badge 
-                                              variant="outline" 
-                                              className={`ml-2 text-xs ${getInputCriticality(input) === 'high' ? 'border-red-300 text-red-600' : ''}`}
-                                            >
-                                              {getInputCriticality(input) === 'high' ? 'Alta' : getInputCriticality(input) === 'medium' ? 'Média' : getInputCriticality(input)}
-                                            </Badge>
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
-
-                              {/* Outputs */}
-                              {parseOutputs(stage.outputs).length > 0 && (
-                                <AccordionItem value="outputs">
-                                  <AccordionTrigger className="text-sm py-2">
-                                    <span className="flex items-center gap-2">
-                                      <FileOutput className="h-4 w-4 text-green-500" />
-                                      Saídas ({parseOutputs(stage.outputs).length})
-                                    </span>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ul className="space-y-2">
-                                      {parseOutputs(stage.outputs).map((output, i) => (
-                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
-                                          <span className="font-medium">{getOutputName(output)}</span>
-                                          {getOutputDestination(output) && <span className="text-muted-foreground"> → {getOutputDestination(output)}</span>}
-                                          {getOutputFormat(output) && <Badge variant="outline" className="ml-2 text-xs">{getOutputFormat(output)}</Badge>}
-                                          {getOutputPurpose(output) && <p className="text-muted-foreground text-xs mt-1">{getOutputPurpose(output)}</p>}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
-
-                              {/* Systems */}
-                              {parseSystems(stage.systems).length > 0 && (
-                                <AccordionItem value="systems">
-                                  <AccordionTrigger className="text-sm py-2">
-                                    <span className="flex items-center gap-2">
-                                      <Monitor className="h-4 w-4 text-purple-500" />
-                                      Sistemas ({parseSystems(stage.systems).length})
-                                    </span>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ul className="space-y-2">
-                                      {parseSystems(stage.systems).map((system, i) => (
-                                        <li key={i} className="text-sm bg-muted/50 p-2 rounded">
-                                          <span className="font-medium">{getSystemName(system)}</span>
-                                          {getSystemFunction(system) && <span className="text-muted-foreground"> ({getSystemFunction(system)})</span>}
-                                          {getSystemFrequency(system) && <Badge variant="outline" className="ml-2 text-xs">{getSystemFrequency(system)}</Badge>}
-                                          {getSystemBottleneck(system) && (
-                                            <p className="text-orange-600 text-xs mt-1 flex items-center gap-1">
-                                              <AlertTriangle className="h-3 w-3" />
-                                              Gargalo: {getSystemBottleneck(system)}
-                                            </p>
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
-
-                              {/* Related Projects */}
-                              {stage.related_projects && stage.related_projects.length > 0 && (
-                                <AccordionItem value="related">
-                                  <AccordionTrigger className="text-sm py-2">
-                                    <span className="flex items-center gap-2">
-                                      <FolderKanban className="h-4 w-4 text-orange-500" />
-                                      Projetos Relacionados ({stage.related_projects.length})
-                                    </span>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="flex flex-wrap gap-2">
-                                      {stage.related_projects.map((project, i) => (
-                                        <Badge key={i} variant="outline">{project}</Badge>
-                                      ))}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
-                            </Accordion>
-                          </CardContent>
-                        </Card>
+                    {processStages.length === 0 && !isAddingStage ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Nenhuma etapa cadastrada para este processo.</p>
+                        <p className="text-sm mt-1">Clique em "Nova Etapa" para adicionar.</p>
                       </div>
-                    ))}
+                    ) : (
+                      processStages.map((stage, index) => (
+                        <StageEditCard
+                          key={stage.id}
+                          stage={stage}
+                          index={index}
+                          totalStages={processStages.length}
+                          onUpdate={() => {
+                            if (selectedProcess) fetchProcessDetails(selectedProcess.id);
+                          }}
+                          onDelete={() => {
+                            if (selectedProcess) fetchProcessDetails(selectedProcess.id);
+                          }}
+                        />
+                      ))
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -1429,6 +1341,41 @@ const EquipeProcessos = () => {
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreated={fetchProcesses}
+      />
+
+      {/* SOP Viewer Modal */}
+      <SOPViewerModal
+        open={isSOPModalOpen}
+        onClose={() => setIsSOPModalOpen(false)}
+        processName={selectedProcess?.name || ''}
+        formattedContent={selectedProcess?.formatted_content || null}
+      />
+
+      {/* Improvement History Modal */}
+      <ImprovementHistoryModal
+        open={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        processId={selectedProcess?.id || ''}
+        processName={selectedProcess?.name || ''}
+      />
+
+      {/* Process Improvement Modal */}
+      <ProcessImprovementModal
+        open={isImprovementModalOpen}
+        onClose={() => setIsImprovementModalOpen(false)}
+        processId={selectedProcess?.id || ''}
+        processName={selectedProcess?.name || ''}
+        baselineData={{
+          time_spent_hours: (selectedProcess as any)?.time_spent_hours,
+          cost_monthly: (selectedProcess as any)?.cost_monthly,
+          volume_executions: (selectedProcess as any)?.volume_executions,
+          people_involved: (selectedProcess as any)?.people_involved,
+          evaluation_period_days: (selectedProcess as any)?.evaluation_period_days
+        }}
+        onSaved={() => {
+          setIsImprovementModalOpen(false);
+          if (selectedProcess) fetchProcessDetails(selectedProcess.id);
+        }}
       />
     </EquipeLayout>
   );
