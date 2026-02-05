@@ -30,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, Trash2, X, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -69,6 +70,8 @@ export default function ControlePerdcomp() {
   // Filter states
   const [clienteId, setClienteId] = useState<string>('');
   const [contribuinteId, setContribuinteId] = useState<string>('');
+  const [exercicioFilter, setExercicioFilter] = useState<string>('');
+  const [processoFilter, setProcessoFilter] = useState<string>('');
   
   const [searched, setSearched] = useState(false);
   
@@ -223,8 +226,17 @@ export default function ControlePerdcomp() {
   const handleClear = () => {
     setClienteId('');
     setContribuinteId('');
+    setExercicioFilter('');
+    setProcessoFilter('');
     setSearched(false);
   };
+
+  // Frontend filtering
+  const filteredPerData = perData.filter(item => {
+    if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
+    if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
+    return true;
+  });
 
   const handleNew = () => {
     setEditData(null);
@@ -277,10 +289,9 @@ export default function ControlePerdcomp() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Nº Processo</TableHead>
             <TableHead>Situação</TableHead>
             <TableHead>Atualização</TableHead>
-            <TableHead>Nº Processo</TableHead>
-            <TableHead>Contribuinte</TableHead>
             <TableHead>Exercício</TableHead>
             <TableHead>Trimestre</TableHead>
             <TableHead>Data Solicitada</TableHead>
@@ -290,13 +301,13 @@ export default function ControlePerdcomp() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {perData.length === 0 ? (
+          {filteredPerData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                 Nenhum registro encontrado
               </TableCell>
             </TableRow>
-          ) : perData.map((item) => {
+          ) : filteredPerData.map((item) => {
             const situacaoInfo = perSituacoesMap[item.numero_processo_per];
             
             return (
@@ -305,10 +316,9 @@ export default function ControlePerdcomp() {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handlePerClick(item)}
               >
+                <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                 <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
                 <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
-                <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
-                <TableCell>{item.contribuinte?.nome_razao_social || '-'}</TableCell>
                 <TableCell>{item.exercicio}</TableCell>
                 <TableCell>{item.tri_exercicio}º</TableCell>
                 <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
@@ -351,7 +361,7 @@ export default function ControlePerdcomp() {
           <CardTitle className="text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); setSearched(false); }}>
@@ -380,8 +390,31 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>Exercício</Label>
+              <Select value={exercicioFilter} onValueChange={setExercicioFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <div className="flex items-end gap-2">
+            <div className="space-y-2">
+              <Label>Nº do Processo</Label>
+              <Input
+                placeholder="Digite o número..."
+                value={processoFilter}
+                onChange={(e) => setProcessoFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-end gap-2 md:col-span-2">
               <Button onClick={handleClear} variant="outline" className="flex-1">
                 <X className="h-4 w-4 mr-2" />
                 Limpar
