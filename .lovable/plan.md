@@ -1,147 +1,330 @@
 
-# Plano: Liberacao de Edicao de Etapas e Botoes de Versoes
+# Plano: Sistema Completo de Gestao de Tarefas para Area Fiscal
 
 ## Resumo
 
-Este plano visa resolver o bloqueio de edicao de etapas na pagina Digital Rotina (EquipeProcessos) e adicionar botoes para visualizar o SOP original mapeado e as versoes de melhoria implementadas.
+Este plano cria um sistema completo de gestao de tarefas para a area Tax (Fiscal), removendo as abas "Minhas Demandas" e "Pacotes de Trabalho", mantendo "Clientes" e adicionando uma nova sub-aba "Tarefas" com multiplas visualizacoes (Calendario, Tabela, Kanban, Hoje, Futuras).
 
-## Alteracoes Propostas
+## Alteracoes de Navegacao
 
-### 1. Liberar Edicao de Etapas
+### Remover Rotas e Componentes
+- Remover rota `/equipe/tex/demandas/inbox` (FiscalDemandasInbox)
+- Remover rota `/equipe/tex/demandas/pacotes` (FiscalDemandasPacotes)
+- Manter rota `/equipe/tex/demandas/clientes` (FiscalDemandasClientes)
+- Adicionar rota `/equipe/tex/demandas/tarefas` (FiscalDemandasTarefas)
 
-**Arquivo:** `src/pages/equipe/EquipeProcessos.tsx`
+### Atualizar Menu Lateral (FiscalSidebar)
+Alterar itens do submenu "Demandas":
+```text
+Demandas
+  ├── Tarefas (nova)
+  └── Clientes (manter)
+```
 
-Atualmente, a aba "Etapas" esta desabilitada quando em modo de edicao. Vou:
+## Banco de Dados
 
-- Remover a restricao `disabled={isEditing}` da aba "Etapas"
-- Adicionar modo de edicao inline para cada etapa:
-  - Botao de editar em cada card de etapa
-  - Formulario expandivel com campos editaveis (nome, descricao, responsavel, tempo atual/alvo, frequencia, volume)
-  - Botoes de salvar/cancelar
-- Adicionar botao "+ Nova Etapa" para criar novas etapas
-- Adicionar botao de excluir etapa com confirmacao
+### Nova Tabela: fiscal_tasks
+Criar tabela separada para nao conflitar com tabela `tasks` existente usada para sprints:
 
-### 2. Adicionar Botao "SOP Mapeado"
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | Chave primaria |
+| title | text | Titulo obrigatorio |
+| description | text | Descricao opcional |
+| status | enum | backlog, todo, in_progress, review, done |
+| priority | enum | low, medium, high, urgent |
+| assigned_to | uuid | Usuario atribuido |
+| assigned_to_name | text | Nome do responsavel |
+| created_by | uuid | Quem criou |
+| due_date | date | Data de vencimento |
+| due_time | time | Hora de vencimento |
+| is_recurring | boolean | Se e recorrente |
+| recurrence_type | enum | daily, weekly, monthly, yearly |
+| category | enum | task, fixed_event |
+| tags | text[] | Array de tags |
+| department | enum | commercial, financial, administrative, operations |
+| parent_task_id | uuid | Para subtarefas |
+| created_at | timestamptz | Criado em |
+| updated_at | timestamptz | Atualizado em |
 
-**Arquivo:** `src/pages/equipe/EquipeProcessos.tsx`
+### Nova Tabela: fiscal_task_comments
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | Chave primaria |
+| task_id | uuid | Referencia a fiscal_tasks |
+| user_id | uuid | Usuario que comentou |
+| user_name | text | Nome do usuario |
+| comment | text | Conteudo do comentario |
+| is_system | boolean | Se e mensagem automatica |
+| created_at | timestamptz | Criado em |
 
-No cabecalho da aba "Etapas", adicionar botao que:
+### Politicas RLS
+- SELECT: usuarios autenticados com role team_member ou admin
+- INSERT: usuarios autenticados com role team_member ou admin
+- UPDATE: usuarios autenticados com role team_member ou admin
+- DELETE: apenas o criador ou admin
 
-- Abre um modal/drawer exibindo o conteudo original do mapeamento
-- Utiliza o campo `formatted_content` do processo (conteudo Markdown gerado pela funcao AI `restructure-process`)
-- Permite visualizar como o processo foi originalmente documentado
-- Estilizado como visualizacao somente-leitura
-
-### 3. Adicionar Botao "Versoes de Melhoria"
-
-**Arquivos:** 
-- `src/pages/equipe/EquipeProcessos.tsx`
-- `src/components/equipe/ProcessImprovementModal.tsx`
-
-Adicionar na interface:
-
-- Botao "Avaliar Melhoria" que abre o `ProcessImprovementModal` ja existente
-- Botao "Historico de Versoes" que exibe lista de melhorias registradas
-- Modal de historico mostrando:
-  - Data de cada avaliacao
-  - Status (em avaliacao, concluida)
-  - Resumo das metricas (economia de tempo/custo)
-  - Descricao da melhoria
-
-### Interface Visual Proposta
+## Estrutura de Arquivos
 
 ```text
-+--------------------------------------------------+
-|  Etapas (5)                                      |
-|  +------------------------------------------+    |
-|  | [SOP Mapeado]  [+ Nova Etapa]            |    |
-|  | [Avaliar Melhoria]  [Historico Versoes]  |    |
-|  +------------------------------------------+    |
-|                                                  |
-|  +------------------------------------------+    |
-|  | 1. Nome da Etapa           [Editar] [X]  |    |
-|  | Descricao...                             |    |
-|  | Responsavel | Tempo | Frequencia         |    |
-|  +------------------------------------------+    |
-|                                                  |
-|  +------------------------------------------+    |
-|  | 2. Proxima Etapa           [Editar] [X]  |    |
-|  | ...                                      |    |
-|  +------------------------------------------+    |
-+--------------------------------------------------+
+src/
+├── pages/equipe/fiscal/
+│   ├── FiscalDemandasTarefas.tsx (nova pagina principal)
+│   ├── FiscalDemandasClientes.tsx (manter)
+│   └── FiscalDemandasInbox.tsx (remover)
+│   └── FiscalDemandasPacotes.tsx (remover)
+├── hooks/
+│   └── useFiscalTasks.ts (novo hook CRUD)
+├── components/equipe/fiscal/tasks/
+│   ├── TaskFilters.tsx (filtros globais)
+│   ├── TaskKPICards.tsx (cards de contagem por status)
+│   ├── TaskCard.tsx (card de tarefa)
+│   ├── TaskTable.tsx (visualizacao tabela)
+│   ├── TaskKanban.tsx (visualizacao kanban)
+│   ├── TaskCalendar.tsx (visualizacao calendario)
+│   ├── TaskTodayView.tsx (visualizacao hoje)
+│   ├── TaskFutureView.tsx (visualizacao futuras)
+│   ├── TaskModal.tsx (modal criar/editar)
+│   └── ReassignModal.tsx (modal reatribuicao)
 ```
+
+## Visualizacoes Detalhadas
+
+### 1. Calendario (View Padrao)
+- Grade mensal com dias
+- Cada dia mostra indicadores coloridos (badges) das tarefas
+- Cores baseadas na prioridade (vermelho=urgente, amarelo=alta, azul=media, cinza=baixa)
+- Eventos fixos destacados em roxo
+- Clicar em um dia abre painel lateral com cards detalhados
+
+### 2. Tabela
+- Colunas: Titulo, Status, Prioridade, Responsavel, Data, Departamento
+- Dropdowns inline para alterar status/prioridade
+- Suporte a subtarefas com indentacao e expandir/colapsar
+- Ordenacao por qualquer coluna
+
+### 3. Kanban
+- 5 colunas: Backlog, A Fazer, Em Progresso, Revisao, Concluido
+- Drag-and-drop entre colunas
+- Contador de tarefas por coluna
+- Cards compactos com titulo, prioridade, avatar do responsavel
+
+### 4. Hoje
+- Lista simplificada com checkboxes
+- Apenas tarefas do dia atual
+- Ordenadas por prioridade (urgente primeiro)
+- Resumo de pendentes/concluidas
+
+### 5. Futuras
+- Tarefas agrupadas por semana (proximas 12 semanas)
+- Paineis colapsaveis por semana
+- Opcao de agrupar por mes (proximos 6 meses)
+
+## Filtros Globais
+
+```text
++-----------------------------------------------------------+
+| [Buscar...]  [Responsavel v]  [Filtros Avancados]         |
++-----------------------------------------------------------+
+| [Status: Em Progresso x] [Prioridade: Alta x]             |
++-----------------------------------------------------------+
+```
+
+- Campo de busca por texto (titulo, descricao)
+- Dropdown de responsavel: Todas, Minhas, ou usuario especifico
+- Popover de filtros avancados: Status, Prioridade, Departamento, Periodo
+- Badges removiveis mostrando filtros ativos
+
+## KPI Cards
+
+5 cards horizontais mostrando contagem por status:
+```text
+| Backlog | A Fazer | Em Progresso | Revisao | Concluido |
+|   12    |    8    |      5       |    3    |    27     |
+```
+
+## Modal de Criacao/Edicao
+
+Formulario com campos:
+- Titulo (obrigatorio)
+- Descricao (editor de texto)
+- Status (select)
+- Prioridade (select)
+- Responsavel (select com avatares)
+- Data de vencimento (datepicker)
+- Hora (timepicker, opcional)
+- Departamento (select)
+- Categoria: Tarefa ou Evento Fixo (switch)
+- Recorrente (switch + tipo de recorrencia)
+- Tags (input com chips)
+- Tarefa pai (select, para subtarefas)
+
+## Modal de Reatribuicao
+
+- Lista de usuarios com avatares
+- Campo de comentario obrigatorio (motivo da reatribuicao)
+- Gera comentario automatico no historico
 
 ## Secao Tecnica
 
-### Estrutura de Dados Utilizadas
-
-**Tabela `process_stages`:**
-- `id`, `process_id`, `stage_order`, `name`, `description`
-- `responsible`, `time_current`, `time_target`, `frequency`, `volume`
-- `automation_level`, `inputs`, `outputs`, `systems` (JSONB)
-
-**Tabela `process_improvements`:**
-- `process_id`, `evaluation_status`, `improvement_description`
-- Metricas baseline vs improved (time_hours, cost_monthly, volume, people)
-- Resultados calculados (roi_percentage, time_saved_hours, cost_saved_monthly)
-
-### Componentes a Criar/Modificar
-
-1. **StageEditForm** (novo componente inline)
-   - Formulario para edicao de etapa individual
-   - Validacao de campos obrigatorios
-
-2. **SOPViewerModal** (novo componente)
-   - Renderizador de Markdown para `formatted_content`
-   - Estilo de documento somente-leitura
-
-3. **ImprovementHistoryModal** (novo componente)
-   - Lista de `process_improvements` para o processo
-   - Detalhes de cada versao de melhoria
-
-### Funcoes de Backend Existentes
-
-- `restructure-process`: Gera documentacao formatada
-- `calculate-process-roi`: Calcula metricas de ROI
-
-### Operacoes de Banco de Dados
+### SQL de Criacao
 
 ```sql
--- Criar nova etapa
-INSERT INTO process_stages (process_id, stage_order, name, ...)
+-- Enums (se nao existirem)
+DO $$ BEGIN
+  CREATE TYPE fiscal_task_status AS ENUM ('backlog', 'todo', 'in_progress', 'review', 'done');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Atualizar etapa
-UPDATE process_stages SET name=?, description=? WHERE id=?
+DO $$ BEGIN
+  CREATE TYPE fiscal_task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Excluir etapa
-DELETE FROM process_stages WHERE id=?
+DO $$ BEGIN
+  CREATE TYPE fiscal_task_category AS ENUM ('task', 'fixed_event');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Buscar historico de melhorias
-SELECT * FROM process_improvements 
-WHERE process_id = ? 
-ORDER BY created_at DESC
+DO $$ BEGIN
+  CREATE TYPE fiscal_recurrence_type AS ENUM ('daily', 'weekly', 'monthly', 'yearly');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE fiscal_task_department AS ENUM ('commercial', 'financial', 'administrative', 'operations');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Tabela principal
+CREATE TABLE public.fiscal_tasks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  status fiscal_task_status NOT NULL DEFAULT 'todo',
+  priority fiscal_task_priority NOT NULL DEFAULT 'medium',
+  assigned_to uuid REFERENCES public.profiles(id),
+  assigned_to_name text,
+  created_by uuid REFERENCES public.profiles(id),
+  due_date date,
+  due_time time,
+  is_recurring boolean DEFAULT false,
+  recurrence_type fiscal_recurrence_type,
+  category fiscal_task_category NOT NULL DEFAULT 'task',
+  tags text[] DEFAULT '{}',
+  department fiscal_task_department,
+  parent_task_id uuid REFERENCES public.fiscal_tasks(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Tabela de comentarios
+CREATE TABLE public.fiscal_task_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id uuid NOT NULL REFERENCES public.fiscal_tasks(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES public.profiles(id),
+  user_name text,
+  comment text NOT NULL,
+  is_system boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE public.fiscal_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fiscal_task_comments ENABLE ROW LEVEL SECURITY;
+
+-- Politicas para fiscal_tasks
+CREATE POLICY "Team members can view fiscal tasks" ON public.fiscal_tasks
+FOR SELECT TO authenticated
+USING (has_role(auth.uid(), 'team_member') OR has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Team members can create fiscal tasks" ON public.fiscal_tasks
+FOR INSERT TO authenticated
+WITH CHECK (has_role(auth.uid(), 'team_member') OR has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Team members can update fiscal tasks" ON public.fiscal_tasks
+FOR UPDATE TO authenticated
+USING (has_role(auth.uid(), 'team_member') OR has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Creators and admins can delete fiscal tasks" ON public.fiscal_tasks
+FOR DELETE TO authenticated
+USING (created_by = auth.uid() OR has_role(auth.uid(), 'admin'));
+
+-- Politicas para fiscal_task_comments
+CREATE POLICY "Team members can view fiscal task comments" ON public.fiscal_task_comments
+FOR SELECT TO authenticated
+USING (has_role(auth.uid(), 'team_member') OR has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Team members can create fiscal task comments" ON public.fiscal_task_comments
+FOR INSERT TO authenticated
+WITH CHECK (has_role(auth.uid(), 'team_member') OR has_role(auth.uid(), 'admin'));
+
+-- Trigger para atualizar updated_at
+CREATE TRIGGER update_fiscal_tasks_updated_at
+  BEFORE UPDATE ON public.fiscal_tasks
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 ```
+
+### Hook useFiscalTasks
+
+```typescript
+// Operacoes principais
+- useFiscalTasks(filters) - listar com filtros
+- useCreateFiscalTask() - criar tarefa
+- useUpdateFiscalTask() - atualizar tarefa
+- useDeleteFiscalTask() - excluir tarefa
+- useReassignFiscalTask() - reatribuir com comentario
+- useFiscalTaskComments(taskId) - listar comentarios
+- useCreateFiscalTaskComment() - criar comentario
+```
+
+### Drag-and-Drop no Kanban
+Usar biblioteca nativa HTML5 Drag and Drop ou @dnd-kit para:
+- Arrastar cards entre colunas
+- Atualizar status automaticamente ao soltar
+- Feedback visual durante arraste
+
+### Componentes UI Utilizados
+- Card, Badge, Button, Dialog, Sheet
+- Select, Tabs, Table, Calendar
+- Popover, ScrollArea, Collapsible
+- Avatar, Tooltip, Checkbox, Switch
+- DatePicker (react-day-picker)
 
 ## Arquivos a Modificar
 
-1. `src/pages/equipe/EquipeProcessos.tsx`
-   - Remover `disabled` da aba Etapas
-   - Adicionar estado para edicao de etapas
-   - Adicionar barra de acoes com botoes
-   - Implementar CRUD de etapas
-   - Integrar modais
+1. `src/App.tsx` - Remover rotas inbox/pacotes, adicionar rota tarefas
+2. `src/components/equipe/fiscal/FiscalSidebar.tsx` - Atualizar menu
 
-2. `src/components/equipe/SOPViewerModal.tsx` (novo)
-   - Modal para visualizar SOP original
+## Arquivos a Criar
 
-3. `src/components/equipe/ImprovementHistoryModal.tsx` (novo)
-   - Modal para historico de versoes
+1. `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx`
+2. `src/hooks/useFiscalTasks.ts`
+3. `src/components/equipe/fiscal/tasks/TaskFilters.tsx`
+4. `src/components/equipe/fiscal/tasks/TaskKPICards.tsx`
+5. `src/components/equipe/fiscal/tasks/TaskCard.tsx`
+6. `src/components/equipe/fiscal/tasks/TaskTable.tsx`
+7. `src/components/equipe/fiscal/tasks/TaskKanban.tsx`
+8. `src/components/equipe/fiscal/tasks/TaskCalendar.tsx`
+9. `src/components/equipe/fiscal/tasks/TaskTodayView.tsx`
+10. `src/components/equipe/fiscal/tasks/TaskFutureView.tsx`
+11. `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+12. `src/components/equipe/fiscal/tasks/ReassignModal.tsx`
 
-4. `src/lib/markdownRenderer.tsx` (reutilizar)
-   - Renderizacao do conteudo formatado
+## Arquivos a Remover
+
+1. `src/pages/equipe/fiscal/FiscalDemandasInbox.tsx`
+2. `src/pages/equipe/fiscal/FiscalDemandasPacotes.tsx`
+3. `src/components/equipe/fiscal/MinhasDemandas.tsx`
+4. `src/components/equipe/fiscal/FiscalWorkPackages.tsx`
 
 ## Dependencias
 
-- Componentes UI existentes: Dialog, Button, Card, Badge, ScrollArea
-- Hook useAuth para permissoes
-- Supabase client para operacoes de banco
+Pacotes ja disponiveis no projeto:
+- @tanstack/react-query
+- @supabase/supabase-js
+- date-fns
+- lucide-react
+- react-hook-form + zod
+- Componentes shadcn/ui
