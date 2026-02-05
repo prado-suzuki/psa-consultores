@@ -46,6 +46,13 @@ interface Project {
   status: string;
   client_name: string | null;
   client_id: string | null;
+  external_client_id: string | null;
+  leader_id: string | null;
+  area: string | null;
+  product_service: string | null;
+  project_front: string | null;
+  justification_type: string | null;
+  justification_detail: string | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -85,11 +92,49 @@ interface CatalogClient {
   is_active: boolean;
 }
 
+interface ExternalClient {
+  id: string;
+  nome: string;
+}
+
 interface TeamMember {
   id: string;
   first_name: string;
   last_name: string;
 }
+
+// Project areas for Digital Rotina
+const PROJECT_AREAS = [
+  { value: 'fiscal', label: 'Fiscal' },
+  { value: 'consultoria', label: 'Consultoria' },
+  { value: 'fixos', label: 'Fixos' },
+  { value: 'transversal', label: 'Transversal' },
+  { value: 'administrativo', label: 'Administrativo' },
+  { value: 'ti', label: 'TI' }
+];
+
+// Project fronts/categories
+const PROJECT_FRONTS = [
+  { value: 'processo', label: 'Melhoria de Processo' },
+  { value: 'automacao', label: 'Automação' },
+  { value: 'sistema', label: 'Sistema/Ferramenta' },
+  { value: 'integracao', label: 'Integração' },
+  { value: 'relatorio', label: 'Relatório/Dashboard' },
+  { value: 'compliance', label: 'Compliance' },
+  { value: 'capacitacao', label: 'Capacitação' },
+  { value: 'outro', label: 'Outro' }
+];
+
+// Justification types
+const JUSTIFICATION_TYPES = [
+  { value: 'financeiro', label: '💰 Economia Financeira', description: 'Redução de custos ou aumento de receita' },
+  { value: 'tempo', label: '⏱️ Economia de Tempo', description: 'Redução de horas de trabalho' },
+  { value: 'automacao', label: '🤖 Automação', description: 'Eliminação de tarefas manuais' },
+  { value: 'qualidade', label: '✅ Qualidade', description: 'Redução de erros e retrabalho' },
+  { value: 'comunicacao', label: '💬 Comunicação', description: 'Melhoria na comunicação interna/externa' },
+  { value: 'compliance', label: '📋 Compliance', description: 'Atendimento a requisitos legais/regulatórios' },
+  { value: 'estrategico', label: '🎯 Estratégico', description: 'Alinhamento com objetivos estratégicos' }
+];
 
 // Process stages configuration
 const PROCESS_STAGES = [
@@ -128,6 +173,7 @@ const EquipeProjetos = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
+  const [externalClients, setExternalClients] = useState<ExternalClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -153,6 +199,13 @@ const EquipeProjetos = () => {
     name: '',
     description: '',
     client_name: '',
+    external_client_id: '',
+    leader_id: '',
+    area: '',
+    product_service: '',
+    project_front: '',
+    justification_type: '',
+    justification_detail: '',
     start_date: '',
     end_date: ''
   });
@@ -160,6 +213,13 @@ const EquipeProjetos = () => {
     name: '',
     description: '',
     client_name: '',
+    external_client_id: '',
+    leader_id: '',
+    area: '',
+    product_service: '',
+    project_front: '',
+    justification_type: '',
+    justification_detail: '',
     start_date: '',
     end_date: '',
     status: ''
@@ -314,6 +374,7 @@ const EquipeProjetos = () => {
     fetchProjects();
     fetchTeamMembers();
     fetchCatalogClients();
+    fetchExternalClients();
   }, []);
   
   const fetchCatalogClients = async () => {
@@ -331,12 +392,34 @@ const EquipeProjetos = () => {
     }
   };
 
+  const fetchExternalClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (error) throw error;
+      setExternalClients(data || []);
+    } catch (error) {
+      console.error('Error fetching external clients:', error);
+    }
+  };
+
   useEffect(() => {
     if (selectedProject && isEditMode) {
       setEditProject({
         name: selectedProject.name,
         description: selectedProject.description || '',
         client_name: selectedProject.client_name || '',
+        external_client_id: selectedProject.external_client_id || '',
+        leader_id: selectedProject.leader_id || '',
+        area: selectedProject.area || '',
+        product_service: selectedProject.product_service || '',
+        project_front: selectedProject.project_front || '',
+        justification_type: selectedProject.justification_type || '',
+        justification_detail: selectedProject.justification_detail || '',
         start_date: selectedProject.start_date || '',
         end_date: selectedProject.end_date || '',
         status: selectedProject.status
@@ -490,6 +573,13 @@ const EquipeProjetos = () => {
         name: newProject.name,
         description: newProject.description || null,
         client_name: newProject.client_name || null,
+        external_client_id: newProject.external_client_id || null,
+        leader_id: newProject.leader_id || null,
+        area: newProject.area || null,
+        product_service: newProject.product_service || null,
+        project_front: newProject.project_front || null,
+        justification_type: newProject.justification_type || null,
+        justification_detail: newProject.justification_detail || null,
         start_date: newProject.start_date || null,
         end_date: newProject.end_date || null,
         status: 'active',
@@ -504,7 +594,20 @@ const EquipeProjetos = () => {
       });
 
       setIsDialogOpen(false);
-      setNewProject({ name: '', description: '', client_name: '', start_date: '', end_date: '' });
+      setNewProject({ 
+        name: '', 
+        description: '', 
+        client_name: '', 
+        external_client_id: '',
+        leader_id: '',
+        area: '',
+        product_service: '',
+        project_front: '',
+        justification_type: '',
+        justification_detail: '',
+        start_date: '', 
+        end_date: '' 
+      });
       fetchProjects();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -526,6 +629,13 @@ const EquipeProjetos = () => {
           name: editProject.name,
           description: editProject.description || null,
           client_name: editProject.client_name || null,
+          external_client_id: editProject.external_client_id || null,
+          leader_id: editProject.leader_id || null,
+          area: editProject.area || null,
+          product_service: editProject.product_service || null,
+          project_front: editProject.project_front || null,
+          justification_type: editProject.justification_type || null,
+          justification_detail: editProject.justification_detail || null,
           start_date: editProject.start_date || null,
           end_date: editProject.end_date || null,
           status: editProject.status
@@ -852,7 +962,7 @@ const EquipeProjetos = () => {
                 Novo Projeto
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-background border-border">
+            <DialogContent className="bg-background border-border max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Criar Novo Projeto</DialogTitle>
               </DialogHeader>
@@ -867,6 +977,128 @@ const EquipeProjetos = () => {
                     required
                   />
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="external_client">Cliente PSA</Label>
+                    <Select 
+                      value={newProject.external_client_id} 
+                      onValueChange={(v) => setNewProject({ ...newProject, external_client_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {externalClients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="leader">Líder Interno</Label>
+                    <Select 
+                      value={newProject.leader_id} 
+                      onValueChange={(v) => setNewProject({ ...newProject, leader_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o líder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.first_name} {member.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="area">Área</Label>
+                    <Select 
+                      value={newProject.area} 
+                      onValueChange={(v) => setNewProject({ ...newProject, area: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a área" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROJECT_AREAS.map((area) => (
+                          <SelectItem key={area.value} value={area.value}>
+                            {area.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="product_service">Produto/Serviço</Label>
+                    <Input
+                      id="product_service"
+                      value={newProject.product_service}
+                      onChange={(e) => setNewProject({ ...newProject, product_service: e.target.value })}
+                      placeholder="Ex: Auditoria Fiscal, BI"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="project_front">Frente do Projeto</Label>
+                  <Select 
+                    value={newProject.project_front} 
+                    onValueChange={(v) => setNewProject({ ...newProject, project_front: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a frente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROJECT_FRONTS.map((front) => (
+                        <SelectItem key={front.value} value={front.value}>
+                          {front.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Justificativa do Projeto</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {JUSTIFICATION_TYPES.map((jt) => (
+                      <div
+                        key={jt.value}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          newProject.justification_type === jt.value 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => setNewProject({ ...newProject, justification_type: jt.value })}
+                      >
+                        <div className="font-medium text-sm">{jt.label}</div>
+                        <div className="text-xs text-muted-foreground">{jt.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {newProject.justification_type && (
+                  <div className="space-y-2">
+                    <Label htmlFor="justification_detail">Detalhamento da Justificativa</Label>
+                    <Textarea
+                      id="justification_detail"
+                      value={newProject.justification_detail}
+                      onChange={(e) => setNewProject({ ...newProject, justification_detail: e.target.value })}
+                      placeholder="Descreva o impacto esperado, métricas, economia estimada..."
+                      rows={3}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
@@ -876,15 +1108,7 @@ const EquipeProjetos = () => {
                     placeholder="Descreva o projeto..."
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="client_name">Cliente</Label>
-                  <Input
-                    id="client_name"
-                    value={newProject.client_name}
-                    onChange={(e) => setNewProject({ ...newProject, client_name: e.target.value })}
-                    placeholder="Nome do cliente"
-                  />
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="start_date">Data Início</Label>
