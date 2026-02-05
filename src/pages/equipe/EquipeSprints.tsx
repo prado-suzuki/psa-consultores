@@ -26,7 +26,9 @@ import {
   ChevronUp,
   Eye,
   Pencil,
-  Trash2
+  Trash2,
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 
 interface Sprint {
@@ -51,6 +53,13 @@ interface SprintHours {
   hours: number;
 }
 
+interface SprintImpact {
+  sprintId: string;
+  totalCostSaved: number;
+  totalTimeSaved: number;
+  improvementsCount: number;
+}
+
 const EquipeSprints = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -60,6 +69,7 @@ const EquipeSprints = () => {
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [sprintHoursMap, setSprintHoursMap] = useState<Record<string, SprintHours[]>>({});
+  const [sprintImpactMap, setSprintImpactMap] = useState<Record<string, SprintImpact>>({});
   const [expandedSprints, setExpandedSprints] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -142,6 +152,7 @@ const EquipeSprints = () => {
       // Fetch hours for each sprint
       if (sprintsData && sprintsData.length > 0) {
         await fetchSprintHours(sprintsData);
+        await fetchSprintImpacts(sprintsData);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -203,6 +214,60 @@ const EquipeSprints = () => {
       setSprintHoursMap(result);
     } catch (error) {
       console.error('Error fetching sprint hours:', error);
+    }
+  };
+
+  const fetchSprintImpacts = async (sprintsList: Sprint[]) => {
+    try {
+      // Buscar deliverables de todas as sprints
+      const { data: deliverables } = await supabase
+        .from('sprint_deliverables')
+        .select('id, sprint_id')
+        .in('sprint_id', sprintsList.map(s => s.id));
+
+      if (!deliverables || deliverables.length === 0) {
+        return;
+      }
+
+      const deliverableIds = deliverables.map(d => d.id);
+      const deliverableToSprintMap: Record<string, string> = {};
+      deliverables.forEach(d => {
+        deliverableToSprintMap[d.id] = d.sprint_id;
+      });
+
+      // Buscar melhorias completadas vinculadas a esses deliverables
+      const { data: improvements } = await supabase
+        .from('process_improvements')
+        .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
+        .eq('evaluation_status', 'completed')
+        .in('sprint_deliverable_id', deliverableIds);
+
+      if (!improvements || improvements.length === 0) {
+        return;
+      }
+
+      // Agregar por sprint
+      const impactMap: Record<string, SprintImpact> = {};
+      improvements.forEach(imp => {
+        const sprintId = deliverableToSprintMap[imp.sprint_deliverable_id || ''];
+        if (sprintId) {
+          if (!impactMap[sprintId]) {
+            impactMap[sprintId] = {
+              sprintId,
+              totalCostSaved: 0,
+              totalTimeSaved: 0,
+              improvementsCount: 0
+            };
+          }
+          impactMap[sprintId].totalCostSaved += imp.cost_saved_monthly || 0;
+          impactMap[sprintId].totalTimeSaved += imp.time_saved_hours || 0;
+          impactMap[sprintId].improvementsCount++;
+        }
+      });
+
+      setSprintImpactMap(impactMap);
+    } catch (error) {
+      console.error('Error fetching sprint impacts:', error);
     }
   };
 
@@ -470,6 +535,7 @@ const EquipeSprints = () => {
             const isExpanded = expandedSprints.has(sprint.id);
             const sprintHours = sprintHoursMap[sprint.id] || [];
             const totalHours = getSprintTotalHours(sprint.id);
+                const sprintImpact = sprintImpactMap[sprint.id];
             
             return (
               <Card key={sprint.id} className="bg-white border-gray-200">
@@ -543,6 +609,25 @@ const EquipeSprints = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Impacto Digital da Sprint */}
+                  {sprintImpact && sprintImpact.totalCostSaved > 0 && (
+                    <div className="flex items-center gap-3 px-3 py-2 bg-green-50 rounded-lg mb-4">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">Impacto Digital:</span>
+                      <Badge className="bg-green-100 text-green-700 border-0">
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}/mês
+                      </Badge>
+                      <Badge variant="outline" className="border-blue-300 text-blue-600">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {sprintImpact.totalTimeSaved.toFixed(0)}h liberadas
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({sprintImpact.improvementsCount} melhoria{sprintImpact.improvementsCount > 1 ? 's' : ''})
+                      </span>
+                    </div>
+                  )}
 
                   {/* Horas por pessoa - expansível */}
                   {sprintHours.length > 0 && (

@@ -80,7 +80,7 @@ serve(async (req) => {
     // Buscar dados da melhoria
     const { data: improvement, error: fetchError } = await supabase
       .from("process_improvements")
-      .select("*")
+      .select("*, system_savings_monthly, build_vs_buy_savings, other_savings_monthly")
       .eq("id", improvement_id)
       .single();
 
@@ -121,7 +121,7 @@ serve(async (req) => {
       improvedCost = improvement.improved_cost_monthly || 0;
     }
 
-    // Cálculos de economia
+    // Cálculos de economia de mão de obra
     const baselineTimeHours = improvement.baseline_time_hours || 0;
     const improvedTimeHours = improvement.improved_time_hours || 0;
     
@@ -130,7 +130,15 @@ serve(async (req) => {
       ? (timeSavedHours / baselineTimeHours) * 100 
       : 0;
     
-    const costSavedMonthly = baselineCost - improvedCost;
+    const laborSavingsMonthly = baselineCost - improvedCost;
+    
+    // Economias adicionais
+    const systemSavings = improvement.system_savings_monthly || 0;
+    const otherSavings = improvement.other_savings_monthly || 0;
+    const buildVsBuySavings = improvement.build_vs_buy_savings || 0;
+    
+    // Economia total mensal
+    const costSavedMonthly = laborSavingsMonthly + systemSavings + otherSavings;
     const costSavedPercent = baselineCost > 0 
       ? (costSavedMonthly / baselineCost) * 100 
       : 0;
@@ -140,7 +148,8 @@ serve(async (req) => {
     const avgHourlyCost = 60; // Custo médio hora da equipe digital
     const implementationCost = implementationHours * avgHourlyCost;
 
-    const annualSavings = costSavedMonthly * 12;
+    // Economia anual incluindo savings únicos (build vs buy)
+    const annualSavings = (costSavedMonthly * 12) + buildVsBuySavings;
     const roiPercentage = implementationCost > 0 
       ? ((annualSavings - implementationCost) / implementationCost) * 100 
       : 0;
@@ -172,6 +181,21 @@ serve(async (req) => {
       })
       .eq("id", improvement_id);
 
+    // Também atualizar a tabela processes com os resultados de ROI
+    const { error: processUpdateError } = await supabase
+      .from("processes")
+      .update({
+        last_roi_percentage: roiPercentage,
+        last_cost_saved_monthly: costSavedMonthly,
+        last_time_saved_hours: timeSavedHours,
+        last_improvement_date: new Date().toISOString()
+      })
+      .eq("id", improvement.process_id);
+
+    if (processUpdateError) {
+      console.error("Error updating process ROI:", processUpdateError);
+    }
+
     if (updateError) {
       console.error("Error updating improvement:", updateError);
       return new Response(
@@ -192,7 +216,11 @@ serve(async (req) => {
           payback_months: paybackMonths,
           fte_saved: fteSaved,
           annual_savings: annualSavings
-        }
+        },
+        labor_savings_monthly: laborSavingsMonthly,
+        system_savings_monthly: systemSavings,
+        other_savings_monthly: otherSavings,
+        build_vs_buy_savings: buildVsBuySavings
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
