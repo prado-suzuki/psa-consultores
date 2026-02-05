@@ -377,7 +377,9 @@ const EquipeSprints = () => {
   };
 
   const toggleSprintExpanded = (sprintId: string) => {
-   const getStatusBadge = (status: string) => {
+  };
+
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
          return <Badge className="bg-green-100 text-green-700 border-0 text-xs font-medium">Ativa</Badge>;
