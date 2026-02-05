@@ -371,27 +371,10 @@ const EquipeProjetos = () => {
 
   const fetchProjects = async () => {
     try {
-      // Buscar clientes da área Digital (Transversal ou Digital)
-      const { data: digitalClients, error: clientError } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%transversal%,name.ilike.%digital%');
-
-      if (clientError) {
-        console.error('Error fetching digital clients:', clientError);
-      }
-
-      const digitalClientIds = digitalClients?.map(c => c.id) || [];
-
-      // Buscar projetos: área Digital (Transversal/Digital) OU sem cliente definido
+      // Buscar TODOS os projetos - tabela projects é exclusiva de Digital Rotina
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .or(
-          digitalClientIds.length > 0 
-            ? `client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`
-            : 'client_id.is.null'
-        )
         .order('name', { ascending: true });
       
       if (error) throw error;
