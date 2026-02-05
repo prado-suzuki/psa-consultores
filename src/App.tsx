@@ -60,8 +60,9 @@ import { PageAccessGate } from "./components/auth/PageAccessGate";
 
 // New Area Dashboards
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
- import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
+import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
 import FiscalDemandasClientes from "./pages/equipe/fiscal/FiscalDemandasClientes";
+import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
@@ -133,7 +134,8 @@ const App = () => (
             
             {/* Tex (Fiscal) Routes */}
             <Route path="/equipe/tex/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
-             <Route path="/equipe/tex/demandas/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/demandas/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/tex/demandas/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasClientes /></PageAccessGate></TeamRoute>} />
             
             {/* OSG Routes */}
