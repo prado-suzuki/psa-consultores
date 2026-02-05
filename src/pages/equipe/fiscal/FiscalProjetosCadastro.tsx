@@ -73,35 +73,32 @@ const FiscalProjetosCadastro = () => {
         .select('id')
         .or('name.ilike.%fiscal%,name.ilike.%tax%')
         .limit(1)
-        .single();
+        .maybeSingle();
       return data?.id || null;
     },
   });
 
   // Fetch projects for Tax client
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['fiscal-projects', taxClientId],
+    queryKey: ['fiscal-projects-tax-area'],
     queryFn: async () => {
-      if (!taxClientId) return [];
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('client_id', taxClientId)
+        .eq('source_area', 'tax')
         .order('name');
       if (error) throw error;
       return data as Project[];
     },
-    enabled: !!taxClientId,
   });
 
   const createProject = useMutation({
     mutationFn: async (data: typeof formData) => {
-      if (!taxClientId) throw new Error('Cliente Tax não encontrado');
       const { error } = await supabase.from('projects').insert({
         name: data.name,
         description: data.description || null,
         status: data.status,
-        client_id: taxClientId,
+        source_area: 'tax',
       });
       if (error) throw error;
     },
