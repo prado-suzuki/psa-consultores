@@ -1,11 +1,25 @@
 
 # Plano: Correcao do SOP e Navegacao de Projetos em Digital Rotina
 
+## Status: ✅ CONCLUÍDO
+
 ## Resumo
 
 Este plano resolve dois problemas identificados na area Digital Rotina:
 1. Corrigir o erro "Page Not Found" ao acessar Projetos
 2. Adicionar suporte para associar SOP ao processo via link externo ou documento anexado
+
+## Implementações Realizadas
+
+### Problema 1: Navegação Projetos - RESOLVIDO
+- Rota `/equipe/projetos` adicionada ao `App.tsx` (linha 110)
+
+### Problema 2: SOP via Link/Documento - RESOLVIDO
+- Migração executada: colunas `sop_link` e `sop_document_path` adicionadas à tabela `processes`
+- Bucket `sop-documents` criado com políticas RLS para team members
+- `SOPConfigModal.tsx` criado para configurar fonte do SOP (link, documento ou texto)
+- `SOPViewerModal.tsx` atualizado para exibir link externo, documento anexado ou Markdown
+- `EquipeProcessos.tsx` atualizado com integração dos novos modais
 
 ---
 

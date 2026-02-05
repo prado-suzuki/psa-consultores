@@ -48,6 +48,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Json } from '@/integrations/supabase/types';
 import { SOPViewerModal } from '@/components/equipe/SOPViewerModal';
+ import { SOPConfigModal } from '@/components/equipe/SOPConfigModal';
 import { ImprovementHistoryModal } from '@/components/equipe/ImprovementHistoryModal';
 import { ProcessImprovementModal } from '@/components/equipe/ProcessImprovementModal';
 import { StageEditCard } from '@/components/equipe/StageEditCard';
@@ -68,6 +69,8 @@ interface Process {
   created_at: string;
   formatted_content?: string | null;
   document_path?: string | null;
+   sop_link?: string | null;
+   sop_document_path?: string | null;
   last_ai_sync?: string | null;
   catalog_client?: CatalogClient | null;
   linked_projects?: LinkedProject[];
@@ -192,6 +195,7 @@ const EquipeProcessos = () => {
   
   // Modal states
   const [isSOPModalOpen, setIsSOPModalOpen] = useState(false);
+   const [isSOPConfigModalOpen, setIsSOPConfigModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isImprovementModalOpen, setIsImprovementModalOpen] = useState(false);
 
@@ -1205,13 +1209,21 @@ const EquipeProcessos = () => {
               <TabsContent value="stages" className="mt-0">
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
+                 <Button 
+                   variant="outline" 
+                   size="sm"
+                   onClick={() => setIsSOPConfigModalOpen(true)}
+                 >
+                   <Edit2 className="h-4 w-4 mr-2" />
+                   Configurar SOP
+                 </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => setIsSOPModalOpen(true)}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    SOP Mapeado
+                   Ver SOP
                   </Button>
                   <Button 
                     variant="outline" 
@@ -1349,7 +1361,34 @@ const EquipeProcessos = () => {
         onClose={() => setIsSOPModalOpen(false)}
         processName={selectedProcess?.name || ''}
         formattedContent={selectedProcess?.formatted_content || null}
+         sopLink={selectedProcess?.sop_link || null}
+         sopDocumentPath={selectedProcess?.sop_document_path || null}
       />
+
+       {/* SOP Config Modal */}
+       <SOPConfigModal
+         open={isSOPConfigModalOpen}
+         onClose={() => setIsSOPConfigModalOpen(false)}
+         processId={selectedProcess?.id || ''}
+         processName={selectedProcess?.name || ''}
+         currentLink={selectedProcess?.sop_link || null}
+         currentDocumentPath={selectedProcess?.sop_document_path || null}
+         currentFormattedContent={selectedProcess?.formatted_content || null}
+         onUpdated={() => {
+           fetchProcesses();
+           if (selectedProcess) {
+             // Refresh the selected process data
+             supabase
+               .from('processes')
+               .select('*')
+               .eq('id', selectedProcess.id)
+               .single()
+               .then(({ data }) => {
+                 if (data) setSelectedProcess(prev => prev ? { ...prev, ...data } : null);
+               });
+           }
+         }}
+       />
 
       {/* Improvement History Modal */}
       <ImprovementHistoryModal
