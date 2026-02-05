@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lock, Mail, User, ChevronDown } from "lucide-react";
-import { WelcomeVideoCard } from "@/components/ui/welcome-video-card";
 import { toast } from "sonner";
-import farmersIllustration from "@/assets/contact/farmers-illustration.jpg";
+import psaFachada from "@/assets/ajuda/psa-fachada.png";
 import {
   Accordion,
   AccordionContent,
@@ -111,11 +110,10 @@ const Ajuda = () => {
             </p>
             
             <div className="max-w-2xl mx-auto">
-              <WelcomeVideoCard
-                videoThumbnail={farmersIllustration}
-                videoTitle="Bem-vindo à Plataforma PSA"
-                videoDescription="Conheça todos os recursos disponíveis para você"
-                videoUrl="#"
+              <img 
+                src={psaFachada} 
+                alt="Fachada PSA Prado Suzuki" 
+                className="w-full rounded-2xl shadow-lg"
               />
             </div>
           </div>
