@@ -141,13 +141,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setIsAdmin(false);
-    setIsTeamMember(false);
-    toast({
-      title: "Logout realizado",
-      description: "Você saiu da sua conta.",
-    });
+    try {
+      // Limpa estado local ANTES do signOut para garantir que a UI atualize
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      setIsTeamMember(false);
+      
+      // Faz o signOut no Supabase (limpa localStorage também)
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      
+      if (error) {
+        console.error('Erro ao fazer logout:', error);
+      }
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta.",
+      });
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Mesmo com erro, mantém o estado limpo
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta.",
+      });
+    }
   };
 
   const refreshSession = async (): Promise<Session | null> => {
