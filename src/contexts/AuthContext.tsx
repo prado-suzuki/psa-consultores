@@ -142,26 +142,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log('[Auth] Iniciando logout...');
+      
       // Limpa estado local ANTES do signOut para garantir que a UI atualize
       setUser(null);
       setSession(null);
       setIsAdmin(false);
       setIsTeamMember(false);
       
-      // Faz o signOut no Supabase (limpa localStorage também)
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      // Faz o signOut no Supabase com scope global para invalidar no servidor também
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
-        console.error('Erro ao fazer logout:', error);
+        console.error('[Auth] Erro ao fazer logout:', error);
+      } else {
+        console.log('[Auth] Logout realizado com sucesso');
       }
+      
+      // Força limpeza do localStorage como fallback
+      localStorage.removeItem('sb-zwoainzzqhudmmknuycq-auth-token');
       
       toast({
         title: "Logout realizado",
         description: "Você saiu da sua conta.",
       });
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      // Mesmo com erro, mantém o estado limpo
+      console.error('[Auth] Erro ao fazer logout:', error);
+      // Força limpeza mesmo com erro
+      localStorage.removeItem('sb-zwoainzzqhudmmknuycq-auth-token');
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      setIsTeamMember(false);
       toast({
         title: "Logout realizado",
         description: "Você saiu da sua conta.",
