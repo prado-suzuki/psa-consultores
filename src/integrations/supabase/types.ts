@@ -1882,40 +1882,61 @@ export type Database = {
       }
       projects: {
         Row: {
+          area: string | null
           client_id: string | null
           client_name: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           end_date: string | null
+          external_client_id: string | null
           id: string
+          justification_detail: string | null
+          justification_type: string | null
+          leader_id: string | null
           name: string
+          product_service: string | null
+          project_front: string | null
           start_date: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          area?: string | null
           client_id?: string | null
           client_name?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          external_client_id?: string | null
           id?: string
+          justification_detail?: string | null
+          justification_type?: string | null
+          leader_id?: string | null
           name: string
+          product_service?: string | null
+          project_front?: string | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          area?: string | null
           client_id?: string | null
           client_name?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          external_client_id?: string | null
           id?: string
+          justification_detail?: string | null
+          justification_type?: string | null
+          leader_id?: string | null
           name?: string
+          product_service?: string | null
+          project_front?: string | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -1926,6 +1947,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_external_client_id_fkey"
+            columns: ["external_client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
