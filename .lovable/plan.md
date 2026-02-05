@@ -1,304 +1,460 @@
 
+# Plano: Criar Pagina de Relatorios em Digital Rotina
 
-# Plano: Adicionar Calculadora Detalhada para Economias Opcionais
+## Visao Geral
 
-## Problema Atual
+Criar uma nova pagina "Relatorios" no modulo Digital Rotina, posicionada no menu lateral entre "Dashboard" e "Projetos". A pagina permitira gerar relatorios automaticos formatados com a logo da PSA, incluindo indicadores relevantes de sprints, processos, melhorias e rotinas.
 
-As economias adicionais no modal de melhoria (`ProcessImprovementModal.tsx`) são apenas campos de valor:
+---
+
+## Estrutura de Navegacao
+
+O menu lateral do Digital Rotina (EquipeLayout.tsx) sera atualizado:
 
 ```text
-+----------------------------------+
-| Economia com Sistemas: [R$500]   |  <- Só o valor final
-| Build vs Buy: [R$2000]           |  <- Não sabemos de onde veio
-| Outras Economias: [R$300]        |  <- Sem histórico
-+----------------------------------+
++------------------------------------------+
+|  Dashboard         <-- Posicao atual     |
+|  Relatorios        <-- NOVA PAGINA       |
+|  v Projetos                              |
+|    - Processos                           |
+|    - Kanban                              |
+|    - Sprints                             |
+|    - Backlog                             |
+|    - Daily                               |
++------------------------------------------+
 ```
-
-**Problema**: Não há como saber de onde esses valores vieram, dificultando auditoria e análise futura.
 
 ---
 
-## Solução Proposta
+## Tipos de Relatorios Disponiveis
 
-Transformar cada campo de economia em uma seção expandível com detalhamento:
+Baseado nos dados existentes no Digital Rotina:
+
+### 1. Relatorio de Sprint
+- **Dados**: Entregas por status, horas alocadas, taxa de conclusao
+- **Fonte**: `sprints`, `sprint_deliverables`
+- **Filtros**: Sprint especifica ou periodo
+
+### 2. Relatorio de Impacto Digital
+- **Dados**: ROI, economia mensal/anual, FTEs liberados, top melhorias
+- **Fonte**: `process_improvements`, `processes`
+- **Filtros**: Periodo, projeto, area, responsavel
+
+### 3. Relatorio de Processos
+- **Dados**: Processos por area, status de mapeamento, melhorias aplicadas
+- **Fonte**: `processes`, `process_improvements`
+- **Filtros**: Area, projeto, periodo
+
+### 4. Relatorio de Rotinas
+- **Dados**: Rotinas ativas, frequencia, responsaveis, horas estimadas
+- **Fonte**: `routines`
+- **Filtros**: Responsavel, frequencia
+
+### 5. Relatorio Consolidado Mensal
+- **Dados**: Resumo de todos os indicadores do periodo
+- **Fonte**: Todas as tabelas combinadas
+- **Filtros**: Mes/Ano
+
+---
+
+## Interface da Pagina
 
 ```text
-+------------------------------------------------------------------------+
-| Economias Adicionais (opcional)                                        |
-+------------------------------------------------------------------------+
-|                                                                        |
-| v Economia com Sistemas                                    R$ 950/mês  |
-| +------------------------------------------------------------------+  |
-| | Sistema/Ferramenta        | Custo ANTES | Custo DEPOIS | Economia | |
-| |---------------------------|-------------|--------------|----------|  |
-| | Alterdata                 | R$ 500      | R$ 0         | R$ 500   | |
-| | Planilha Excel Online     | R$ 50       | R$ 0         | R$ 50    | |
-| | Licença Power BI          | R$ 400      | R$ 0         | R$ 400   | |
-| | [+ Adicionar Sistema]                                              | |
-| +------------------------------------------------------------------+  |
-|                                                                        |
-| v Construir vs Comprar (economia única)                   R$ 12.000   |
-| +------------------------------------------------------------------+  |
-| | Item                      | Custo Mercado | Custo Interno| Economia| |
-| |---------------------------|---------------|--------------|---------|  |
-| | Sistema de Conciliação    | R$ 10.000     | R$ 0         | R$10.000| |
-| | Consultoria Implementação | R$ 2.000      | R$ 0         | R$ 2.000| |
-| | [+ Adicionar Item]                                                 | |
-| +------------------------------------------------------------------+  |
-|                                                                        |
-| v Outras Economias                                         R$ 200/mês |
-| +------------------------------------------------------------------+  |
-| | Descrição                          | Valor/mês                    | |
-| |------------------------------------|------------------------------|  |
-| | Redução de papel/impressões        | R$ 100                       | |
-| | Economia com energia               | R$ 100                       | |
-| | [+ Adicionar Economia]                                             | |
-| +------------------------------------------------------------------+  |
-+------------------------------------------------------------------------+
++-------------------------------------------------------------------------+
+|  Relatorios                                                             |
+|  Gere relatorios automaticos com indicadores do Digital Rotina          |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  [Tipo de Relatorio v]  [Periodo: Inicio - Fim]  [Projeto v]  [Area v]  |
+|                                                                         |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  +----------------------------------+  +--------------------------------+|
+|  | Sprint                           |  | Impacto Digital                ||
+|  | Entregas, horas, conclusao       |  | ROI, economia, FTEs            ||
+|  | [Gerar PDF] [XLSX] [HTML]        |  | [Gerar PDF] [XLSX] [HTML]      ||
+|  +----------------------------------+  +--------------------------------+|
+|                                                                         |
+|  +----------------------------------+  +--------------------------------+|
+|  | Processos                        |  | Rotinas                        ||
+|  | Mapeamento, melhorias, areas     |  | Atividades recorrentes         ||
+|  | [Gerar PDF] [XLSX] [HTML]        |  | [Gerar PDF] [XLSX] [HTML]      ||
+|  +----------------------------------+  +--------------------------------+|
+|                                                                         |
+|  +---------------------------------------------------------------------+|
+|  | Relatorio Consolidado Mensal                                        ||
+|  | Todos os indicadores do periodo selecionado                          ||
+|  | [Gerar PDF] [XLSX] [HTML]                                            ||
+|  +---------------------------------------------------------------------+|
+|                                                                         |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  PREVIEW DO RELATORIO (quando gerado em HTML)                           |
+|  +---------------------------------------------------------------------+|
+|  |  [Logo PSA]                                                         ||
+|  |  Relatorio de Impacto Digital                                        ||
+|  |  Periodo: 01/01/2026 - 31/01/2026                                   ||
+|  |                                                                     ||
+|  |  +----------+  +----------+  +----------+  +----------+             ||
+|  |  | Economia |  | Horas    |  | ROI      |  | FTEs     |             ||
+|  |  | R$ 5.200 |  | 45h/mes  |  | 156%     |  | 0.3      |             ||
+|  |  +----------+  +----------+  +----------+  +----------+             ||
+|  |                                                                     ||
+|  |  Top Melhorias:                                                     ||
+|  |  1. Processo X - R$ 2.000/mes                                       ||
+|  |  2. Processo Y - R$ 1.500/mes                                       ||
+|  |                                                                     ||
+|  +---------------------------------------------------------------------+|
+|                                                                         |
++-------------------------------------------------------------------------+
 ```
 
 ---
 
-## Estrutura de Dados
+## Secao Tecnica
 
-### Nova Tabela: `improvement_savings_details`
+### Arquivos a Criar
 
-```sql
-CREATE TABLE public.improvement_savings_details (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  improvement_id uuid REFERENCES public.process_improvements(id) ON DELETE CASCADE,
-  savings_type text NOT NULL CHECK (savings_type IN ('system', 'build_vs_buy', 'other')),
-  description text NOT NULL,
-  cost_before numeric DEFAULT 0,
-  cost_after numeric DEFAULT 0,
-  savings_value numeric NOT NULL,
-  is_monthly boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-```
+#### 1. `src/pages/equipe/EquipeRelatorios.tsx`
 
-**Campos**:
-- `savings_type`: Tipo da economia (system, build_vs_buy, other)
-- `description`: Nome do sistema, item ou descrição
-- `cost_before`: Custo anterior (para sistemas e build vs buy)
-- `cost_after`: Custo atual (geralmente 0 quando elimina)
-- `savings_value`: Valor economizado (calculado ou manual)
-- `is_monthly`: Se é recorrente mensal ou único
-
----
-
-## Alteracoes no Frontend
-
-### 1. Novos Estados e Interfaces
+Nova pagina principal com:
 
 ```typescript
-interface SavingsItem {
-  id?: string;
-  savings_type: 'system' | 'build_vs_buy' | 'other';
-  description: string;
-  cost_before: number;
-  cost_after: number;
-  savings_value: number;
-  is_monthly: boolean;
+import { useState } from 'react';
+import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { FileText, FileSpreadsheet, Code, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import logoPsa from '@/assets/logo-psa.png';
+
+// Tipos de relatorio
+type ReportType = 'sprint' | 'impact' | 'processes' | 'routines' | 'consolidated';
+
+const EquipeRelatorios = () => {
+  const [reportType, setReportType] = useState<ReportType>('impact');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [projectFilter, setProjectFilter] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
+  
+  // Funcoes de geracao
+  // ...
+};
+```
+
+#### 2. `src/lib/reportGenerator.ts`
+
+Logica de geracao de relatorios:
+
+```typescript
+import { supabase } from '@/integrations/supabase/client';
+import * as XLSX from 'xlsx';
+
+interface ReportConfig {
+  type: 'sprint' | 'impact' | 'processes' | 'routines' | 'consolidated';
+  dateRange: { start: string; end: string };
+  projectId?: string;
+  area?: string;
 }
 
-// Estados
-const [systemSavings, setSystemSavings] = useState<SavingsItem[]>([]);
-const [buildVsBuySavings, setBuildVsBuySavings] = useState<SavingsItem[]>([]);
-const [otherSavings, setOtherSavings] = useState<SavingsItem[]>([]);
-```
+interface ReportData {
+  title: string;
+  subtitle: string;
+  period: string;
+  metrics: { label: string; value: string | number; icon?: string }[];
+  tables: { title: string; headers: string[]; rows: any[][] }[];
+  charts?: any[];
+}
 
-### 2. Componente de Linha de Economia
+// Buscar dados para cada tipo de relatorio
+export async function fetchReportData(config: ReportConfig): Promise<ReportData> {
+  switch (config.type) {
+    case 'sprint':
+      return fetchSprintData(config);
+    case 'impact':
+      return fetchImpactData(config);
+    case 'processes':
+      return fetchProcessesData(config);
+    case 'routines':
+      return fetchRoutinesData(config);
+    case 'consolidated':
+      return fetchConsolidatedData(config);
+  }
+}
 
-```tsx
-const SavingsItemRow = ({ 
-  item, 
-  type, 
-  onUpdate, 
-  onRemove,
-  showCosts = true 
-}) => (
-  <div className="flex items-center gap-2 py-2 border-b border-gray-100">
-    <Input
-      placeholder={type === 'other' ? 'Descrição' : 'Sistema/Item'}
-      value={item.description}
-      onChange={(e) => onUpdate({ ...item, description: e.target.value })}
-      className="flex-1"
-    />
-    {showCosts && (
-      <>
-        <Input
-          type="number"
-          placeholder="Custo Antes"
-          value={item.cost_before || ''}
-          onChange={(e) => {
-            const before = parseFloat(e.target.value) || 0;
-            onUpdate({ 
-              ...item, 
-              cost_before: before,
-              savings_value: before - item.cost_after
-            });
-          }}
-          className="w-28"
-        />
-        <Input
-          type="number"
-          placeholder="Custo Depois"
-          value={item.cost_after || ''}
-          onChange={(e) => {
-            const after = parseFloat(e.target.value) || 0;
-            onUpdate({ 
-              ...item, 
-              cost_after: after,
-              savings_value: item.cost_before - after
-            });
-          }}
-          className="w-28"
-        />
-      </>
-    )}
-    <div className="w-24 text-right font-medium text-green-600">
-      R$ {item.savings_value.toLocaleString('pt-BR')}
-    </div>
-    <Button variant="ghost" size="icon" onClick={onRemove}>
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  </div>
-);
-```
-
-### 3. Seção de Economias Expandível
-
-```tsx
-<Collapsible open={systemOpen} onOpenChange={setSystemOpen}>
-  <CollapsibleTrigger asChild>
-    <div className="flex items-center justify-between p-3 hover:bg-blue-100/50 rounded cursor-pointer">
-      <div className="flex items-center gap-2">
-        <ChevronRight className={cn("h-4 w-4 transition-transform", systemOpen && "rotate-90")} />
-        <Monitor className="h-4 w-4 text-blue-600" />
-        <span className="font-medium">Economia com Sistemas</span>
+// Gerar HTML formatado com logo PSA
+export function generateReportHTML(data: ReportData, logoBase64: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Inter', sans-serif; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .logo { height: 60px; }
+        .title { font-size: 24px; font-weight: bold; color: #0d9488; }
+        .subtitle { color: #6b7280; margin-top: 4px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .metric-card { background: #f8fafc; border-radius: 8px; padding: 16px; }
+        .metric-value { font-size: 28px; font-weight: bold; color: #0d9488; }
+        .metric-label { color: #6b7280; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th { background: #0d9488; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="title">${data.title}</div>
+          <div class="subtitle">${data.subtitle}</div>
+          <div style="color: #9ca3af; font-size: 12px; margin-top: 8px;">${data.period}</div>
+        </div>
+        <img src="${logoBase64}" class="logo" alt="PSA Consultores" />
       </div>
-      <Badge variant="outline" className="text-green-600 border-green-300">
-        R$ {totalSystemSavings.toLocaleString('pt-BR')}/mês
-      </Badge>
-    </div>
-  </CollapsibleTrigger>
-  <CollapsibleContent>
-    <div className="pl-6 pr-2 pb-3 space-y-2">
-      <div className="grid grid-cols-[1fr_100px_100px_80px_32px] gap-2 text-xs font-medium text-muted-foreground px-2">
-        <span>Sistema/Ferramenta</span>
-        <span>Custo Antes</span>
-        <span>Custo Depois</span>
-        <span className="text-right">Economia</span>
-        <span></span>
+      
+      <div class="metrics-grid">
+        ${data.metrics.map(m => `
+          <div class="metric-card">
+            <div class="metric-value">${m.value}</div>
+            <div class="metric-label">${m.label}</div>
+          </div>
+        `).join('')}
       </div>
-      {systemSavings.map((item, i) => (
-        <SavingsItemRow
-          key={i}
-          item={item}
-          type="system"
-          onUpdate={(updated) => updateSavingsItem(i, updated, 'system')}
-          onRemove={() => removeSavingsItem(i, 'system')}
-        />
-      ))}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => addSavingsItem('system')}
-        className="w-full border-dashed border"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Adicionar Sistema
-      </Button>
-    </div>
-  </CollapsibleContent>
-</Collapsible>
-```
+      
+      ${data.tables.map(t => `
+        <h3 style="color: #374151; margin-top: 32px;">${t.title}</h3>
+        <table>
+          <thead>
+            <tr>${t.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${t.rows.map(row => `
+              <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `).join('')}
+      
+      <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;">
+        Gerado automaticamente em ${new Date().toLocaleDateString('pt-BR')} | PSA Consultores
+      </div>
+    </body>
+    </html>
+  `;
+}
 
-### 4. Cálculo Automático dos Totais
-
-```typescript
-const totalSystemSavings = useMemo(() => 
-  systemSavings.reduce((sum, item) => sum + item.savings_value, 0), 
-  [systemSavings]
-);
-
-const totalBuildVsBuy = useMemo(() => 
-  buildVsBuySavings.reduce((sum, item) => sum + item.savings_value, 0), 
-  [buildVsBuySavings]
-);
-
-const totalOtherSavings = useMemo(() => 
-  otherSavings.reduce((sum, item) => sum + item.savings_value, 0), 
-  [otherSavings]
-);
-
-// Atualizar additionalSavings automaticamente
-useEffect(() => {
-  setAdditionalSavings({
-    system_savings_monthly: totalSystemSavings,
-    build_vs_buy_savings: totalBuildVsBuy,
-    other_savings_monthly: totalOtherSavings
+// Gerar Excel
+export function generateReportXLSX(data: ReportData): Blob {
+  const wb = XLSX.utils.book_new();
+  
+  // Aba de metricas
+  const metricsData = data.metrics.map(m => ({
+    Indicador: m.label,
+    Valor: m.value
+  }));
+  const metricsSheet = XLSX.utils.json_to_sheet(metricsData);
+  XLSX.utils.book_append_sheet(wb, metricsSheet, 'Resumo');
+  
+  // Abas de tabelas
+  data.tables.forEach(table => {
+    const tableData = table.rows.map(row => {
+      const obj: Record<string, any> = {};
+      table.headers.forEach((h, i) => { obj[h] = row[i]; });
+      return obj;
+    });
+    const sheet = XLSX.utils.json_to_sheet(tableData);
+    XLSX.utils.book_append_sheet(wb, sheet, table.title.substring(0, 31));
   });
-}, [totalSystemSavings, totalBuildVsBuy, totalOtherSavings]);
-```
+  
+  return new Blob([XLSX.write(wb, { type: 'array', bookType: 'xlsx' })]);
+}
 
-### 5. Salvar Detalhes ao Criar Melhoria
-
-```typescript
-// Após criar o improvement, salvar os detalhes
-const allSavingsDetails = [
-  ...systemSavings.map(s => ({ ...s, improvement_id: improvement.id, savings_type: 'system' })),
-  ...buildVsBuySavings.map(s => ({ ...s, improvement_id: improvement.id, savings_type: 'build_vs_buy' })),
-  ...otherSavings.map(s => ({ ...s, improvement_id: improvement.id, savings_type: 'other' }))
-].filter(s => s.description.trim());
-
-if (allSavingsDetails.length > 0) {
-  await supabase
-    .from('improvement_savings_details')
-    .insert(allSavingsDetails);
+// Gerar PDF (usando print do HTML)
+export function printReportPDF(htmlContent: string) {
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+  }
 }
 ```
+
+### Arquivos a Modificar
+
+#### 1. `src/components/equipe/EquipeLayout.tsx`
+
+Adicionar item "Relatorios" no menu:
+
+```typescript
+const navItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
+  { icon: FileBarChart, label: 'Relatorios', path: '/equipe/relatorios' }, // NOVO
+  { 
+    icon: FolderKanban, 
+    label: 'Projetos', 
+    path: '/equipe/projetos',
+    children: [
+      // ...
+    ]
+  },
+];
+```
+
+#### 2. `src/App.tsx`
+
+Adicionar rota:
+
+```typescript
+import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
+
+// Na secao de rotas:
+<Route path="/equipe/relatorios" element={<TeamRoute><EquipeRelatorios /></TeamRoute>} />
+```
+
+---
+
+## Dados Disponiveis para Cada Relatorio
+
+### Relatorio de Sprint
+```sql
+-- Fonte: sprints + sprint_deliverables
+SELECT 
+  s.name, s.start_date, s.end_date, s.status,
+  COUNT(sd.id) as total_entregas,
+  SUM(CASE WHEN sd.status = 'completed' THEN 1 ELSE 0 END) as concluidas,
+  SUM(sd.estimated_hours) as horas_totais
+FROM sprints s
+LEFT JOIN sprint_deliverables sd ON sd.sprint_id = s.id
+WHERE s.start_date >= :inicio AND s.end_date <= :fim
+GROUP BY s.id
+```
+
+### Relatorio de Impacto Digital
+```sql
+-- Fonte: process_improvements
+SELECT 
+  p.name as processo,
+  pi.cost_saved_monthly,
+  pi.time_saved_hours,
+  pi.roi_percentage,
+  pi.created_at
+FROM process_improvements pi
+JOIN processes p ON p.id = pi.process_id
+WHERE pi.evaluation_status = 'completed'
+  AND pi.created_at BETWEEN :inicio AND :fim
+ORDER BY pi.cost_saved_monthly DESC
+```
+
+### Relatorio de Processos
+```sql
+-- Fonte: processes
+SELECT 
+  area,
+  COUNT(*) as total,
+  SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as ativos
+FROM processes
+GROUP BY area
+```
+
+### Relatorio de Rotinas
+```sql
+-- Fonte: routines
+SELECT 
+  r.title,
+  r.frequency,
+  r.estimated_hours,
+  r.status,
+  p.first_name || ' ' || p.last_name as responsavel
+FROM routines r
+LEFT JOIN profiles p ON p.id = r.assigned_to
+WHERE r.status != 'completed'
+```
+
+---
+
+## Formatos de Exportacao
+
+| Formato | Implementacao |
+|---------|---------------|
+| **PDF** | Gerar HTML e usar `window.print()` para salvar como PDF |
+| **XLSX** | Biblioteca `xlsx` ja instalada no projeto |
+| **HTML** | Gerar HTML completo com CSS inline para download |
 
 ---
 
 ## Fluxo de Uso
 
 ```text
-1. Usuario clica em "Avaliar Melhoria" no processo
-   ↓
-2. Na seção "Economias Adicionais", expande "Economia com Sistemas"
-   ↓
-3. Clica em "+ Adicionar Sistema"
-   ↓
-4. Preenche: "Alterdata" | Antes: R$500 | Depois: R$0
-   ↓
-5. Sistema calcula automaticamente: Economia = R$500
-   ↓
-6. Badge atualiza mostrando total: "R$ 500/mês"
-   ↓
-7. Ao salvar, registra tanto o total quanto o detalhamento
-   ↓
-8. No histórico, pode ver de onde veio cada economia
+1. Usuario acessa Digital Rotina > Relatorios
+   |
+2. Seleciona tipo de relatorio (Sprint, Impacto, etc.)
+   |
+3. Define filtros (periodo, projeto, area)
+   |
+4. Clica em "Gerar Relatorio"
+   |
+5. Sistema busca dados do banco
+   |
+6. Exibe preview HTML na tela
+   |
+7. Usuario escolhe formato de download:
+   - [PDF] -> Abre janela de impressao
+   - [XLSX] -> Download direto do arquivo
+   - [HTML] -> Download do arquivo HTML
 ```
 
 ---
 
-## Arquivos a Alterar
+## Resumo das Alteracoes
 
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `migrations/` | Criar tabela `improvement_savings_details` |
-| `ProcessImprovementModal.tsx` | Refatorar seção de economias com collapsibles e linhas detalhadas |
-| `ImprovementHistoryModal.tsx` | Mostrar detalhamento das economias no histórico |
+| `src/pages/equipe/EquipeRelatorios.tsx` | Criar nova pagina de relatorios |
+| `src/lib/reportGenerator.ts` | Criar utilitario de geracao de relatorios |
+| `src/components/equipe/EquipeLayout.tsx` | Adicionar "Relatorios" no menu lateral |
+| `src/App.tsx` | Adicionar rota `/equipe/relatorios` |
 
 ---
 
-## Benefícios
+## Exemplo de Relatorio Gerado (HTML)
 
-1. **Rastreabilidade**: Histórico completo de cada economia registrada
-2. **Cálculo Automático**: Sistema calcula economia baseado em antes/depois
-3. **Auditoria**: Fácil identificar de onde vieram os valores
-4. **Documentação**: Detalhamento serve como memória do projeto
-5. **Precisão**: Evita estimativas vagas, força o detalhamento
-
+```text
++---------------------------------------------------------------------+
+|  [Logo PSA]                         Relatorio de Impacto Digital    |
+|                                     Janeiro 2026                    |
++---------------------------------------------------------------------+
+|                                                                     |
+|  +------------+  +------------+  +------------+  +------------+     |
+|  | Economia   |  | Horas      |  | ROI Medio  |  | FTEs       |     |
+|  | R$ 5.200   |  | 45h/mes    |  | 156%       |  | 0.3        |     |
+|  | /mes       |  | liberadas  |  | anual      |  | liberados  |     |
+|  +------------+  +------------+  +------------+  +------------+     |
+|                                                                     |
+|  Top 5 Melhorias por Economia                                       |
+|  +-----+---------------------+----------+-----------+               |
+|  | #   | Processo            | Economia | ROI       |               |
+|  +-----+---------------------+----------+-----------+               |
+|  | 1   | Conciliacao Fiscal  | R$ 2.000 | 200%      |               |
+|  | 2   | Importacao NFe      | R$ 1.500 | 180%      |               |
+|  | 3   | Apuracao ICMS       | R$ 1.000 | 120%      |               |
+|  +-----+---------------------+----------+-----------+               |
+|                                                                     |
+|  Economia por Area                                                  |
+|  +----------------+----------+--------+                             |
+|  | Area           | Economia | Horas  |                             |
+|  +----------------+----------+--------+                             |
+|  | Fiscal         | R$ 3.500 | 30h    |                             |
+|  | Transversal    | R$ 1.700 | 15h    |                             |
+|  +----------------+----------+--------+                             |
+|                                                                     |
++---------------------------------------------------------------------+
+|  Gerado em 05/02/2026 | PSA Consultores                             |
++---------------------------------------------------------------------+
+```
