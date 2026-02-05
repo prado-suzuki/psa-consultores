@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -9,8 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, TrendingUp, Clock, DollarSign, Users, CheckCircle2 } from 'lucide-react';
+ import { Loader2, Plus, Trash2, TrendingUp, Clock, DollarSign, Users, CheckCircle2, Monitor, ShoppingCart, Sparkles, ChevronRight } from 'lucide-react';
+ import { cn } from '@/lib/utils';
 
 interface JobRole {
   id: string;
@@ -28,6 +30,16 @@ interface TeamMember {
   job_role?: JobRole;
 }
 
+ interface SavingsItem {
+   id?: string;
+   savings_type: 'system' | 'build_vs_buy' | 'other';
+   description: string;
+   cost_before: number;
+   cost_after: number;
+   savings_value: number;
+   is_monthly: boolean;
+ }
+ 
 interface ProcessImprovement {
   id?: string;
   process_id: string;
@@ -84,11 +96,31 @@ export function ProcessImprovementModal({
   const [improvedMembers, setImprovedMembers] = useState<TeamMember[]>([]);
   const [results, setResults] = useState<any>(null);
   
-  const [additionalSavings, setAdditionalSavings] = useState({
-    system_savings_monthly: 0,
-    build_vs_buy_savings: 0,
-    other_savings_monthly: 0
-  });
+   // Estados para economias detalhadas
+   const [systemSavings, setSystemSavings] = useState<SavingsItem[]>([]);
+   const [buildVsBuySavings, setBuildVsBuySavings] = useState<SavingsItem[]>([]);
+   const [otherSavings, setOtherSavings] = useState<SavingsItem[]>([]);
+   
+   // Estados de colapsáveis
+   const [systemOpen, setSystemOpen] = useState(false);
+   const [buildVsBuyOpen, setBuildVsBuyOpen] = useState(false);
+   const [otherOpen, setOtherOpen] = useState(false);
+   
+   // Calcular totais automaticamente
+   const totalSystemSavings = useMemo(() => 
+     systemSavings.reduce((sum, item) => sum + (item.savings_value || 0), 0), 
+     [systemSavings]
+   );
+   
+   const totalBuildVsBuy = useMemo(() => 
+     buildVsBuySavings.reduce((sum, item) => sum + (item.savings_value || 0), 0), 
+     [buildVsBuySavings]
+   );
+   
+   const totalOtherSavings = useMemo(() => 
+     otherSavings.reduce((sum, item) => sum + (item.savings_value || 0), 0), 
+     [otherSavings]
+   );
   
   const [form, setForm] = useState<ProcessImprovement>({
     process_id: processId,
@@ -126,6 +158,66 @@ export function ProcessImprovementModal({
     }
   };
 
+   const addSavingsItem = (type: 'system' | 'build_vs_buy' | 'other') => {
+     const newItem: SavingsItem = {
+       savings_type: type,
+       description: '',
+       cost_before: 0,
+       cost_after: 0,
+       savings_value: 0,
+       is_monthly: type !== 'build_vs_buy'
+     };
+     
+     switch (type) {
+       case 'system':
+         setSystemSavings([...systemSavings, newItem]);
+         setSystemOpen(true);
+         break;
+       case 'build_vs_buy':
+         setBuildVsBuySavings([...buildVsBuySavings, newItem]);
+         setBuildVsBuyOpen(true);
+         break;
+       case 'other':
+         setOtherSavings([...otherSavings, newItem]);
+         setOtherOpen(true);
+         break;
+     }
+   };
+ 
+   const updateSavingsItem = (index: number, updated: SavingsItem, type: 'system' | 'build_vs_buy' | 'other') => {
+     switch (type) {
+       case 'system':
+         const sysItems = [...systemSavings];
+         sysItems[index] = updated;
+         setSystemSavings(sysItems);
+         break;
+       case 'build_vs_buy':
+         const bvbItems = [...buildVsBuySavings];
+         bvbItems[index] = updated;
+         setBuildVsBuySavings(bvbItems);
+         break;
+       case 'other':
+         const otherItems = [...otherSavings];
+         otherItems[index] = updated;
+         setOtherSavings(otherItems);
+         break;
+     }
+   };
+ 
+   const removeSavingsItem = (index: number, type: 'system' | 'build_vs_buy' | 'other') => {
+     switch (type) {
+       case 'system':
+         setSystemSavings(systemSavings.filter((_, i) => i !== index));
+         break;
+       case 'build_vs_buy':
+         setBuildVsBuySavings(buildVsBuySavings.filter((_, i) => i !== index));
+         break;
+       case 'other':
+         setOtherSavings(otherSavings.filter((_, i) => i !== index));
+         break;
+     }
+   };
+ 
   const addTeamMember = (isBaseline: boolean) => {
     const newMember: TeamMember = {
       job_role_id: '',
@@ -205,15 +297,54 @@ export function ProcessImprovementModal({
           implementation_hours: form.implementation_hours,
           improvement_description: form.improvement_description,
           evaluated_by: user?.id,
-          system_savings_monthly: additionalSavings.system_savings_monthly,
-          build_vs_buy_savings: additionalSavings.build_vs_buy_savings,
-          other_savings_monthly: additionalSavings.other_savings_monthly
+           system_savings_monthly: totalSystemSavings,
+           build_vs_buy_savings: totalBuildVsBuy,
+           other_savings_monthly: totalOtherSavings
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
+       // Salvar detalhes das economias
+       const allSavingsDetails = [
+         ...systemSavings.map(s => ({ 
+           improvement_id: improvement.id, 
+           savings_type: 'system' as const,
+           description: s.description,
+           cost_before: s.cost_before,
+           cost_after: s.cost_after,
+           savings_value: s.savings_value,
+           is_monthly: true
+         })),
+         ...buildVsBuySavings.map(s => ({ 
+           improvement_id: improvement.id, 
+           savings_type: 'build_vs_buy' as const,
+           description: s.description,
+           cost_before: s.cost_before,
+           cost_after: s.cost_after,
+           savings_value: s.savings_value,
+           is_monthly: false
+         })),
+         ...otherSavings.map(s => ({ 
+           improvement_id: improvement.id, 
+           savings_type: 'other' as const,
+           description: s.description,
+           cost_before: 0,
+           cost_after: 0,
+           savings_value: s.savings_value,
+           is_monthly: true
+         }))
+       ].filter(s => s.description.trim());
+ 
+       if (allSavingsDetails.length > 0) {
+         const { error: savingsError } = await supabase
+           .from('improvement_savings_details')
+           .insert(allSavingsDetails);
+         
+         if (savingsError) console.error('Error saving savings details:', savingsError);
+       }
+ 
       // Inserir membros da equipe
       const allMembers = [
         ...baselineMembers.map(m => ({ ...m, is_baseline: true, improvement_id: improvement.id })),
@@ -286,7 +417,7 @@ export function ProcessImprovementModal({
   const baselineCost = calculateCost(baselineMembers);
   const improvedCost = calculateCost(improvedMembers);
   const laborSavingsMonthly = baselineCost - improvedCost;
-  const totalSavingsMonthly = laborSavingsMonthly + additionalSavings.system_savings_monthly + additionalSavings.other_savings_monthly;
+   const totalSavingsMonthly = laborSavingsMonthly + totalSystemSavings + totalOtherSavings;
   const savingsMonthly = totalSavingsMonthly;
   const savingsPercent = baselineCost > 0 ? (laborSavingsMonthly / baselineCost) * 100 : 0;
 
@@ -466,48 +597,263 @@ export function ProcessImprovementModal({
           {/* Economias Adicionais */}
           <Card className="border-blue-200 bg-blue-50/50">
             <CardContent className="pt-4">
-              <h4 className="font-semibold text-blue-700 mb-4">Economias Adicionais (opcional)</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Economia com Sistemas</Label>
-                  <Input
-                    type="number"
-                    placeholder="R$/mês"
-                    value={additionalSavings.system_savings_monthly || ''}
-                    onChange={(e) => setAdditionalSavings({
-                      ...additionalSavings, 
-                      system_savings_monthly: parseFloat(e.target.value) || 0
-                    })}
-                  />
-                  <p className="text-xs text-muted-foreground">Licenças, softwares, etc</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Construir vs Comprar</Label>
-                  <Input
-                    type="number"
-                    placeholder="R$ (único)"
-                    value={additionalSavings.build_vs_buy_savings || ''}
-                    onChange={(e) => setAdditionalSavings({
-                      ...additionalSavings, 
-                      build_vs_buy_savings: parseFloat(e.target.value) || 0
-                    })}
-                  />
-                  <p className="text-xs text-muted-foreground">Economia por desenvolver internamente</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Outras Economias</Label>
-                  <Input
-                    type="number"
-                    placeholder="R$/mês"
-                    value={additionalSavings.other_savings_monthly || ''}
-                    onChange={(e) => setAdditionalSavings({
-                      ...additionalSavings, 
-                      other_savings_monthly: parseFloat(e.target.value) || 0
-                    })}
-                  />
-                  <p className="text-xs text-muted-foreground">Outros ganhos recorrentes</p>
-                </div>
+               <div className="flex items-center justify-between mb-4">
+                 <h4 className="font-semibold text-blue-700">Economias Adicionais (opcional)</h4>
+                 {(totalSystemSavings + totalBuildVsBuy + totalOtherSavings) > 0 && (
+                   <Badge className="bg-green-100 text-green-700 border-green-300">
+                     Total: R$ {(totalSystemSavings + totalBuildVsBuy + totalOtherSavings).toLocaleString('pt-BR')}
+                   </Badge>
+                 )}
               </div>
+ 
+               <div className="space-y-2">
+                 {/* Economia com Sistemas */}
+                 <Collapsible open={systemOpen} onOpenChange={setSystemOpen}>
+                   <CollapsibleTrigger asChild>
+                     <div className="flex items-center justify-between p-3 hover:bg-blue-100/50 rounded cursor-pointer border border-blue-200/50">
+                       <div className="flex items-center gap-2">
+                         <ChevronRight className={cn("h-4 w-4 transition-transform text-blue-600", systemOpen && "rotate-90")} />
+                         <Monitor className="h-4 w-4 text-blue-600" />
+                         <span className="font-medium text-sm">Economia com Sistemas</span>
+                         <span className="text-xs text-muted-foreground">(licenças, softwares)</span>
+                       </div>
+                       {totalSystemSavings > 0 && (
+                         <Badge variant="outline" className="text-green-600 border-green-300">
+                           R$ {totalSystemSavings.toLocaleString('pt-BR')}/mês
+                         </Badge>
+                       )}
+                     </div>
+                   </CollapsibleTrigger>
+                   <CollapsibleContent>
+                     <div className="pl-6 pr-2 pb-3 pt-2 space-y-2 border-l-2 border-blue-200 ml-2">
+                       {systemSavings.length > 0 && (
+                         <div className="grid grid-cols-[1fr_100px_100px_90px_32px] gap-2 text-xs font-medium text-muted-foreground px-2">
+                           <span>Sistema/Ferramenta</span>
+                           <span>Custo Antes</span>
+                           <span>Custo Depois</span>
+                           <span className="text-right">Economia</span>
+                           <span></span>
+                         </div>
+                       )}
+                       {systemSavings.map((item, i) => (
+                         <div key={i} className="grid grid-cols-[1fr_100px_100px_90px_32px] gap-2 items-center">
+                           <Input
+                             placeholder="Nome do sistema"
+                             value={item.description}
+                             onChange={(e) => updateSavingsItem(i, { ...item, description: e.target.value }, 'system')}
+                             className="h-9"
+                           />
+                           <Input
+                             type="number"
+                             placeholder="R$"
+                             value={item.cost_before || ''}
+                             onChange={(e) => {
+                               const before = parseFloat(e.target.value) || 0;
+                               updateSavingsItem(i, { 
+                                 ...item, 
+                                 cost_before: before,
+                                 savings_value: before - item.cost_after
+                               }, 'system');
+                             }}
+                             className="h-9"
+                           />
+                           <Input
+                             type="number"
+                             placeholder="R$"
+                             value={item.cost_after || ''}
+                             onChange={(e) => {
+                               const after = parseFloat(e.target.value) || 0;
+                               updateSavingsItem(i, { 
+                                 ...item, 
+                                 cost_after: after,
+                                 savings_value: item.cost_before - after
+                               }, 'system');
+                             }}
+                             className="h-9"
+                           />
+                           <div className="text-right font-medium text-green-600 text-sm">
+                             R$ {(item.savings_value || 0).toLocaleString('pt-BR')}
+                           </div>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-8 w-8"
+                             onClick={() => removeSavingsItem(i, 'system')}
+                           >
+                             <Trash2 className="h-4 w-4 text-muted-foreground" />
+                           </Button>
+                         </div>
+                       ))}
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => addSavingsItem('system')}
+                         className="w-full border-dashed border mt-2"
+                       >
+                         <Plus className="h-4 w-4 mr-2" />
+                         Adicionar Sistema
+                       </Button>
+                     </div>
+                   </CollapsibleContent>
+                 </Collapsible>
+ 
+                 {/* Construir vs Comprar */}
+                 <Collapsible open={buildVsBuyOpen} onOpenChange={setBuildVsBuyOpen}>
+                   <CollapsibleTrigger asChild>
+                     <div className="flex items-center justify-between p-3 hover:bg-blue-100/50 rounded cursor-pointer border border-blue-200/50">
+                       <div className="flex items-center gap-2">
+                         <ChevronRight className={cn("h-4 w-4 transition-transform text-blue-600", buildVsBuyOpen && "rotate-90")} />
+                         <ShoppingCart className="h-4 w-4 text-blue-600" />
+                         <span className="font-medium text-sm">Construir vs Comprar</span>
+                         <span className="text-xs text-muted-foreground">(economia única)</span>
+                       </div>
+                       {totalBuildVsBuy > 0 && (
+                         <Badge variant="outline" className="text-green-600 border-green-300">
+                           R$ {totalBuildVsBuy.toLocaleString('pt-BR')}
+                         </Badge>
+                       )}
+                     </div>
+                   </CollapsibleTrigger>
+                   <CollapsibleContent>
+                     <div className="pl-6 pr-2 pb-3 pt-2 space-y-2 border-l-2 border-blue-200 ml-2">
+                       {buildVsBuySavings.length > 0 && (
+                         <div className="grid grid-cols-[1fr_100px_100px_90px_32px] gap-2 text-xs font-medium text-muted-foreground px-2">
+                           <span>Item/Solução</span>
+                           <span>Preço Mercado</span>
+                           <span>Custo Interno</span>
+                           <span className="text-right">Economia</span>
+                           <span></span>
+                         </div>
+                       )}
+                       {buildVsBuySavings.map((item, i) => (
+                         <div key={i} className="grid grid-cols-[1fr_100px_100px_90px_32px] gap-2 items-center">
+                           <Input
+                             placeholder="Nome da solução"
+                             value={item.description}
+                             onChange={(e) => updateSavingsItem(i, { ...item, description: e.target.value }, 'build_vs_buy')}
+                             className="h-9"
+                           />
+                           <Input
+                             type="number"
+                             placeholder="R$"
+                             value={item.cost_before || ''}
+                             onChange={(e) => {
+                               const before = parseFloat(e.target.value) || 0;
+                               updateSavingsItem(i, { 
+                                 ...item, 
+                                 cost_before: before,
+                                 savings_value: before - item.cost_after
+                               }, 'build_vs_buy');
+                             }}
+                             className="h-9"
+                           />
+                           <Input
+                             type="number"
+                             placeholder="R$"
+                             value={item.cost_after || ''}
+                             onChange={(e) => {
+                               const after = parseFloat(e.target.value) || 0;
+                               updateSavingsItem(i, { 
+                                 ...item, 
+                                 cost_after: after,
+                                 savings_value: item.cost_before - after
+                               }, 'build_vs_buy');
+                             }}
+                             className="h-9"
+                           />
+                           <div className="text-right font-medium text-green-600 text-sm">
+                             R$ {(item.savings_value || 0).toLocaleString('pt-BR')}
+                           </div>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-8 w-8"
+                             onClick={() => removeSavingsItem(i, 'build_vs_buy')}
+                           >
+                             <Trash2 className="h-4 w-4 text-muted-foreground" />
+                           </Button>
+                         </div>
+                       ))}
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => addSavingsItem('build_vs_buy')}
+                         className="w-full border-dashed border mt-2"
+                       >
+                         <Plus className="h-4 w-4 mr-2" />
+                         Adicionar Item
+                       </Button>
+                     </div>
+                   </CollapsibleContent>
+                 </Collapsible>
+ 
+                 {/* Outras Economias */}
+                 <Collapsible open={otherOpen} onOpenChange={setOtherOpen}>
+                   <CollapsibleTrigger asChild>
+                     <div className="flex items-center justify-between p-3 hover:bg-blue-100/50 rounded cursor-pointer border border-blue-200/50">
+                       <div className="flex items-center gap-2">
+                         <ChevronRight className={cn("h-4 w-4 transition-transform text-blue-600", otherOpen && "rotate-90")} />
+                         <Sparkles className="h-4 w-4 text-blue-600" />
+                         <span className="font-medium text-sm">Outras Economias</span>
+                         <span className="text-xs text-muted-foreground">(ganhos recorrentes)</span>
+                       </div>
+                       {totalOtherSavings > 0 && (
+                         <Badge variant="outline" className="text-green-600 border-green-300">
+                           R$ {totalOtherSavings.toLocaleString('pt-BR')}/mês
+                         </Badge>
+                       )}
+                     </div>
+                   </CollapsibleTrigger>
+                   <CollapsibleContent>
+                     <div className="pl-6 pr-2 pb-3 pt-2 space-y-2 border-l-2 border-blue-200 ml-2">
+                       {otherSavings.length > 0 && (
+                         <div className="grid grid-cols-[1fr_120px_32px] gap-2 text-xs font-medium text-muted-foreground px-2">
+                           <span>Descrição</span>
+                           <span className="text-right">Valor/mês</span>
+                           <span></span>
+                         </div>
+                       )}
+                       {otherSavings.map((item, i) => (
+                         <div key={i} className="grid grid-cols-[1fr_120px_32px] gap-2 items-center">
+                           <Input
+                             placeholder="Descrição da economia"
+                             value={item.description}
+                             onChange={(e) => updateSavingsItem(i, { ...item, description: e.target.value }, 'other')}
+                             className="h-9"
+                           />
+                           <Input
+                             type="number"
+                             placeholder="R$/mês"
+                             value={item.savings_value || ''}
+                             onChange={(e) => updateSavingsItem(i, { 
+                               ...item, 
+                               savings_value: parseFloat(e.target.value) || 0 
+                             }, 'other')}
+                             className="h-9"
+                           />
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-8 w-8"
+                             onClick={() => removeSavingsItem(i, 'other')}
+                           >
+                             <Trash2 className="h-4 w-4 text-muted-foreground" />
+                           </Button>
+                         </div>
+                       ))}
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => addSavingsItem('other')}
+                         className="w-full border-dashed border mt-2"
+                       >
+                         <Plus className="h-4 w-4 mr-2" />
+                         Adicionar Economia
+                       </Button>
+                     </div>
+                   </CollapsibleContent>
+                 </Collapsible>
+               </div>
             </CardContent>
           </Card>
 
