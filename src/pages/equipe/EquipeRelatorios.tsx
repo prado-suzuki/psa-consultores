@@ -23,7 +23,7 @@
    AlertCircle,
    RefreshCw
  } from 'lucide-react';
- import logoPsa from '@/assets/logo-psa.png';
+ import logoPsa from '@/assets/logo-psa-dark.png';
  import { 
    fetchReportData, 
    generateReportHTML, 
