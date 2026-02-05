@@ -56,6 +56,8 @@ interface ImprovementDetail {
   roi_percentage: number;
   cost_saved_monthly: number;
   time_saved_hours: number;
+  baseline_time_hours: number;
+  improved_time_hours: number;
   evaluated_by: string | null;
   evaluated_by_name: string | null;
   created_at: string;
@@ -132,13 +134,17 @@ export function ImpactDashboard() {
       ? filteredImprovements.reduce((sum, i) => sum + (i.roi_percentage || 0), 0) / filteredImprovements.length
       : 0;
     const fteSaved = totalTimeSaved / 176;
+    const totalBaselineHours = filteredImprovements.reduce((sum, i) => sum + (i.baseline_time_hours || 0), 0);
+    const totalImprovedHours = filteredImprovements.reduce((sum, i) => sum + (i.improved_time_hours || 0), 0);
 
     return {
       improvedProcesses: filteredImprovements.length,
       totalTimeSaved,
       totalCostSaved,
       avgRoi,
-      fteSaved
+      fteSaved,
+      totalBaselineHours,
+      totalImprovedHours
     };
   }, [filteredImprovements]);
 
@@ -195,6 +201,8 @@ export function ImpactDashboard() {
         roi_percentage: i.roi_percentage || 0,
         cost_saved_monthly: i.cost_saved_monthly || 0,
         time_saved_hours: i.time_saved_hours || 0,
+        baseline_time_hours: i.baseline_time_hours || 0,
+        improved_time_hours: i.improved_time_hours || 0,
         evaluated_by: i.evaluated_by,
         evaluated_by_name: i.evaluator ? `${i.evaluator.first_name} ${i.evaluator.last_name}` : null,
         created_at: i.created_at
@@ -534,6 +542,103 @@ export function ImpactDashboard() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Comparativo de Horas */}
+      <Card className="bg-white border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-gray-900 text-base font-medium">
+            Comparativo de Horas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredImprovements.length > 0 ? (
+            <div className="space-y-4">
+              {/* Summary Bar */}
+              <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">Antes</p>
+                  <p className="text-2xl font-bold text-gray-700">
+                    {filteredMetrics.totalBaselineHours.toFixed(0)}h
+                  </p>
+                  <p className="text-xs text-gray-500">/mês</p>
+                </div>
+                <div className="text-center flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mb-1">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-primary">
+                    -{filteredMetrics.totalBaselineHours > 0 
+                      ? ((1 - filteredMetrics.totalImprovedHours / filteredMetrics.totalBaselineHours) * 100).toFixed(0) 
+                      : 0}%
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">Depois</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {filteredMetrics.totalImprovedHours.toFixed(0)}h
+                  </p>
+                  <p className="text-xs text-gray-500">/mês</p>
+                </div>
+              </div>
+
+              {/* Process-level breakdown */}
+              <div className="space-y-2">
+                {filteredImprovements
+                  .filter(i => i.baseline_time_hours > 0)
+                  .sort((a, b) => (b.baseline_time_hours - b.improved_time_hours) - (a.baseline_time_hours - a.improved_time_hours))
+                  .slice(0, 8)
+                  .map((imp) => {
+                    const reduction = imp.baseline_time_hours > 0 
+                      ? ((1 - imp.improved_time_hours / imp.baseline_time_hours) * 100) 
+                      : 0;
+                    const barWidthBefore = 100;
+                    const barWidthAfter = imp.baseline_time_hours > 0 
+                      ? (imp.improved_time_hours / imp.baseline_time_hours) * 100 
+                      : 0;
+                    
+                    return (
+                      <div key={imp.id} className="group">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-700 font-medium truncate max-w-[200px]">
+                            {imp.process_name}
+                          </span>
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="text-gray-500">{imp.baseline_time_hours.toFixed(0)}h</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="text-primary font-medium">{imp.improved_time_hours.toFixed(0)}h</span>
+                            <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
+                              -{reduction.toFixed(0)}%
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="absolute h-full bg-gray-400 rounded-full transition-all"
+                            style={{ width: `${barWidthBefore}%` }}
+                          />
+                          <div 
+                            className="absolute h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${barWidthAfter}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {filteredImprovements.filter(i => i.baseline_time_hours > 0).length > 8 && (
+                <p className="text-center text-xs text-gray-500">
+                  +{filteredImprovements.filter(i => i.baseline_time_hours > 0).length - 8} processos com dados de horas
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-6 text-sm">
+              Nenhuma melhoria com dados de horas registrados.
+            </p>
+          )}
         </CardContent>
       </Card>
 
