@@ -39,6 +39,7 @@ interface DcompRecord {
   imposto: string
   tp_credito: string
   vlr_compensado: number
+  nr_dcomp_ret?: string | null
 }
 
 interface SyncPayload {

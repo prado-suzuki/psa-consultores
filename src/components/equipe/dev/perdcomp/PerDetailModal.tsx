@@ -160,10 +160,23 @@ export function PerDetailModal({
   // Situação atual (mais recente)
   const situacaoAtual = situacoes.length > 0 ? situacoes[0].situacao : null;
 
-  // Calcular saldo restante
+  // Filtrar DCOMPs para exibir apenas os vigentes (excluir retificados)
+  const dcompsRetificadosSet = useMemo(() => {
+    return new Set(
+      dcomps
+        .filter((d: any) => d.nr_dcomp_ret)
+        .map((d: any) => d.nr_dcomp_ret)
+    );
+  }, [dcomps]);
+
+  const dcompsVigentes = useMemo(() => {
+    return dcomps.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento));
+  }, [dcomps, dcompsRetificadosSet]);
+
+  // Calcular saldo restante (baseado apenas em DCOMPs vigentes)
   const saldoRestante = useMemo(() => {
     if (!per) return 0;
-    const totalCompensado = dcomps.reduce((sum, d) => sum + (d.vlr_compensado || 0), 0);
+    const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
     return per.vlr_credito - totalCompensado;
   }, [per, dcomps]);
 
@@ -428,7 +441,7 @@ export function PerDetailModal({
                     DCOMPs Vinculados
                   </h4>
                   <Badge variant="secondary" className="text-xs">
-                    {dcomps.length} registro{dcomps.length !== 1 ? 's' : ''}
+                    {dcompsVigentes.length} registro{dcompsVigentes.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
                 
@@ -458,16 +471,23 @@ export function PerDetailModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {dcomps.length === 0 ? (
+                      {dcompsVigentes.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             Nenhum DCOMP vinculado a este PER
                           </TableCell>
                         </TableRow>
                       ) : (
-                        dcomps.map((dcomp) => (
+                        dcompsVigentes.map((dcomp: any) => (
                           <TableRow key={dcomp.nr_documento}>
-                            <TableCell className="font-medium">{dcomp.nr_documento}</TableCell>
+                            <TableCell className="font-medium">
+                              {dcomp.nr_documento}
+                              {dcomp.nr_dcomp_ret && (
+                                <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
+                                  (Retifica: {dcomp.nr_dcomp_ret})
+                                </span>
+                              )}
+                            </TableCell>
                             <TableCell>{dcomp.mes_ano_exercicio}</TableCell>
                             <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
                             <TableCell>{dcomp.imposto}</TableCell>
