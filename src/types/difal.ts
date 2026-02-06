@@ -14,6 +14,7 @@ export interface DifalApiGroupedItem {
   tot_nfes: number;
   vlr_total: number;
   aliq_prod: number | null;
+  pRedBC: number | null;
 }
 
 // Resposta paginada da API agrupada
@@ -39,6 +40,7 @@ export interface DifalGroupedItem {
   cfop: string;
   cst_icms: string | null;
   aliq_icms: number | null;
+  pRedBC: number | null;
   
   // Agregações
   count: number;
