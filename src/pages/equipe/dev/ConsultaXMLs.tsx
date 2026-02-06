@@ -253,6 +253,7 @@ const ConsultaXMLs = () => {
   const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida" | "">(DEFAULT_TIPO_MOV);
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
+  const [chaveAcesso, setChaveAcesso] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isDownloadingXml, setIsDownloadingXml] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -268,9 +269,10 @@ const ConsultaXMLs = () => {
       tipoDocumento !== DEFAULT_TIPO_DOCUMENTO ||
       tipoMov !== DEFAULT_TIPO_MOV ||
       emitente !== "" ||
-      destinatario !== ""
+      destinatario !== "" ||
+      chaveAcesso !== ""
     );
-  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento, tipoMov, emitente, destinatario]);
+  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento, tipoMov, emitente, destinatario, chaveAcesso]);
 
   const handleClearFilters = () => {
     setSelectedCliente("");
@@ -281,6 +283,7 @@ const ConsultaXMLs = () => {
     setTipoMov(DEFAULT_TIPO_MOV);
     setEmitente("");
     setDestinatario("");
+    setChaveAcesso("");
     setSearchTriggered(false);
     setCurrentPage(1);
     setSelectedKeys(new Set());
@@ -369,7 +372,7 @@ const ConsultaXMLs = () => {
     error: errorNfe,
     refetch: refetchNfe,
   } = useQuery({
-    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
+    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, chaveAcesso],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -383,6 +386,7 @@ const ConsultaXMLs = () => {
       if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+      if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
 
@@ -409,7 +413,7 @@ const ConsultaXMLs = () => {
     error: errorCte,
     refetch: refetchCte,
   } = useQuery({
-    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario],
+    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, chaveAcesso],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -423,6 +427,7 @@ const ConsultaXMLs = () => {
       if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+      if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
 
@@ -864,7 +869,7 @@ const ConsultaXMLs = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Emitente</label>
                 <Input
                   placeholder="Digite o CPF ou CNPJ"
@@ -876,7 +881,7 @@ const ConsultaXMLs = () => {
                   className="h-11"
                 />
               </div>
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Destinatário</label>
                 <Input
                   placeholder="Digite o CPF ou CNPJ"
@@ -886,6 +891,19 @@ const ConsultaXMLs = () => {
                     setSearchTriggered(false);
                   }}
                   className="h-11"
+                />
+              </div>
+              <div className="md:col-span-4">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Chave de Acesso</label>
+                <Input
+                  placeholder="Digite a chave de acesso (44 dígitos)"
+                  value={chaveAcesso}
+                  onChange={(e) => {
+                    setChaveAcesso(e.target.value);
+                    setSearchTriggered(false);
+                  }}
+                  className="h-11 font-mono text-sm"
+                  maxLength={50}
                 />
               </div>
             </div>
