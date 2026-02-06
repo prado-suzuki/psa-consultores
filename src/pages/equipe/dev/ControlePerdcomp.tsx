@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -241,6 +242,17 @@ export default function ControlePerdcomp() {
       .map(item => item.nr_proc_ret)
   );
 
+  // Create map of total compensated value per PER
+  const dcompTotalMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const dcomp of dcompData) {
+      const perNum = dcomp.nr_per_orig;
+      if (!map[perNum]) map[perNum] = 0;
+      map[perNum] += dcomp.vlr_compensado || 0;
+    }
+    return map;
+  }, [dcompData]);
+
   // Frontend filtering - hide rectified processes and apply user filters
   const filteredPerData = perData.filter(item => {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
@@ -317,13 +329,14 @@ export default function ControlePerdcomp() {
               <TableHead>Data Solicitada</TableHead>
               <TableHead>Tipo Crédito</TableHead>
               <TableHead className="text-right">Valor Crédito</TableHead>
+              <TableHead className="text-right">Saldo Restante do PER</TableHead>
               <TableHead className="w-[80px]">Editar</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Nenhum registro encontrado
                 </TableCell>
               </TableRow>
@@ -344,6 +357,21 @@ export default function ControlePerdcomp() {
                   <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                   <TableCell>{item.tp_credito}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                  <TableCell className="text-right">
+                    {(() => {
+                      const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
+                      const saldo = item.vlr_credito - totalCompensado;
+                      return (
+                        <span className={cn(
+                          "font-medium",
+                          saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                          saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                        )}>
+                          {formatCurrency(saldo)}
+                        </span>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell>
                     <Button 
                       variant="ghost" 
