@@ -292,7 +292,7 @@ export function PerDetailModal({
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
-                    Saldo Restante
+                    Saldo Restante do PER
                   </p>
                   <p className={cn(
                     "text-lg font-mono font-bold",
@@ -508,7 +508,7 @@ export function PerDetailModal({
                   <p className="font-mono font-bold">{formatCurrency(per.vlr_credito)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-slate-500">Saldo Restante</p>
+                  <p className="text-xs text-slate-500">Saldo Restante do PER</p>
                   <p className={cn(
                     "font-mono font-bold",
                     saldoRestante > 0 
