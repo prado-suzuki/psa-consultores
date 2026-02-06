@@ -59,12 +59,38 @@ interface PerDetailModalProps {
 }
 
 const SITUACAO_OPTIONS = [
-  { value: 'Deferido', label: 'Deferido' },
-  { value: 'Analisado', label: 'Analisado' },
-  { value: 'Em análise', label: 'Em análise' },
+  { value: 'Analise concluida', label: 'Análise concluída' },
+  { value: 'Analise preliminar disponibilizada', label: 'Análise preliminar disponibilizada' },
+  { value: 'Cancelado', label: 'Cancelado' },
+  { value: 'Contribuinte intimado', label: 'Contribuinte intimado' },
+  { value: 'Despacho decisorio emitido', label: 'Despacho decisório emitido' },
+  { value: 'Em analise', label: 'Em análise' },
+  { value: 'Em discussao administrativa - CARF', label: 'Em discussão administrativa - CARF' },
+  { value: 'Em discussao administrativa - CSRF', label: 'Em discussão administrativa - CSRF' },
+  { value: 'Em discussao administrativa - DRJ', label: 'Em discussão administrativa - DRJ' },
+  { value: 'Homologado', label: 'Homologado' },
+  { value: 'Nao admitido', label: 'Não admitido' },
+  { value: 'Pedido de cancelamento deferido', label: 'Pedido de cancelamento deferido' },
+  { value: 'PER deferido', label: 'PER deferido' },
+  { value: 'Retificado', label: 'Retificado' },
 ];
 
 const SITUACAO_COLORS: Record<string, string> = {
+  'Analise concluida': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  'Analise preliminar disponibilizada': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  'Cancelado': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  'Contribuinte intimado': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+  'Despacho decisorio emitido': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+  'Em analise': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  'Em discussao administrativa - CARF': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  'Em discussao administrativa - CSRF': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  'Em discussao administrativa - DRJ': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  'Homologado': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+  'Nao admitido': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+  'Pedido de cancelamento deferido': 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
+  'PER deferido': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  'Retificado': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+  // Backwards compatibility with old values
   'Deferido': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   'Analisado': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   'Em análise': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',

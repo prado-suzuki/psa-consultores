@@ -234,8 +234,17 @@ export default function ControlePerdcomp() {
     setCurrentPage(1);
   };
 
-  // Frontend filtering
+  // Create set of rectified processes (processes that appear in nr_proc_ret of another record)
+  const retificadosSet = new Set(
+    perData
+      .filter(item => item.nr_proc_ret)
+      .map(item => item.nr_proc_ret)
+  );
+
+  // Frontend filtering - hide rectified processes and apply user filters
   const filteredPerData = perData.filter(item => {
+    // Hide processes that have been rectified (appear in nr_proc_ret of another record)
+    if (retificadosSet.has(item.numero_processo_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
     if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
     return true;
