@@ -52,7 +52,6 @@ const dcompSchema = z.object({
   mes_ano_exercicio: z.string().min(1, 'Mês/Ano é obrigatório'),
   dt_envio: z.string().min(1, 'Data de envio é obrigatória'),
   imposto: z.string().min(1, 'Imposto é obrigatório'),
-  tp_credito: z.string().min(1, 'Tipo de crédito é obrigatório'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
 });
@@ -86,7 +85,6 @@ export function DcompFormModal({
       mes_ano_exercicio: '',
       dt_envio: new Date().toISOString().split('T')[0],
       imposto: '',
-      tp_credito: '',
       vlr_compensado: 0,
       nr_dcomp_ret: null,
     },
@@ -135,7 +133,6 @@ export function DcompFormModal({
         mes_ano_exercicio: editData.mes_ano_exercicio?.substring(0, 7) || '',
         dt_envio: editData.dt_envio,
         imposto: editData.imposto,
-        tp_credito: editData.tp_credito,
         vlr_compensado: editData.vlr_compensado,
         nr_dcomp_ret: editData.nr_dcomp_ret || null,
       });
@@ -147,7 +144,6 @@ export function DcompFormModal({
         mes_ano_exercicio: '',
         dt_envio: new Date().toISOString().split('T')[0],
         imposto: '',
-        tp_credito: '',
         vlr_compensado: 0,
         nr_dcomp_ret: null,
       });
@@ -163,7 +159,7 @@ export function DcompFormModal({
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
         imposto: data.imposto,
-        tp_credito: data.tp_credito,
+        tp_credito: data.imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: tipoDeclaracao === 'retificadora' ? data.nr_dcomp_ret : null,
       };
@@ -191,7 +187,7 @@ export function DcompFormModal({
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
         imposto: data.imposto,
-        tp_credito: data.tp_credito,
+        tp_credito: data.imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: tipoDeclaracao === 'retificadora' ? data.nr_dcomp_ret : null,
       };
@@ -376,19 +372,6 @@ export function DcompFormModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="tp_credito"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Crédito</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Ex: Ressarcimento" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
