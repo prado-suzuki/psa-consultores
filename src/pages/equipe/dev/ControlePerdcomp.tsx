@@ -62,6 +62,7 @@ interface PerSituacaoMap {
   [key: string]: {
     situacao: string;
     criado_em: string;
+    dt_pagamento: string | null;
   };
 }
 
@@ -156,7 +157,7 @@ export default function ControlePerdcomp() {
       // Get all situações for these PERs
       const { data: situacoes, error } = await supabase
         .from('per_situacao')
-        .select('nr_proc_per, situacao, criado_em')
+        .select('nr_proc_per, situacao, criado_em, dt_pagamento')
         .in('nr_proc_per', perNumbers)
         .order('criado_em', { ascending: false });
       if (error) throw error;
@@ -168,6 +169,7 @@ export default function ControlePerdcomp() {
           map[sit.nr_proc_per] = {
             situacao: sit.situacao,
             criado_em: sit.criado_em || '',
+            dt_pagamento: sit.dt_pagamento || null,
           };
         }
       }
@@ -324,24 +326,29 @@ export default function ControlePerdcomp() {
               <TableHead>Nº Processo</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead>Atualização</TableHead>
+              <TableHead>Data Solicitada</TableHead>
               <TableHead>Exercício</TableHead>
               <TableHead>Trimestre</TableHead>
-              <TableHead>Data Solicitada</TableHead>
               <TableHead>Tipo Crédito</TableHead>
               <TableHead className="text-right">Valor Crédito</TableHead>
-              <TableHead className="text-right">Saldo Restante do PER</TableHead>
+              <TableHead className="text-right">PER Compensado</TableHead>
+              <TableHead className="text-right">Saldo Disponível</TableHead>
+              <TableHead className="text-right">Ressarcido</TableHead>
+              <TableHead>Data Pagamento</TableHead>
               <TableHead className="w-[80px]">Editar</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                   Nenhum registro encontrado
                 </TableCell>
               </TableRow>
             ) : paginatedData.map((item) => {
               const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+              const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
+              const saldo = item.vlr_credito - totalCompensado;
               
               return (
                 <TableRow 
@@ -352,25 +359,26 @@ export default function ControlePerdcomp() {
                   <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                   <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
                   <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+                  <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                   <TableCell>{item.exercicio}</TableCell>
                   <TableCell>{item.tri_exercicio}º</TableCell>
-                  <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                   <TableCell>{item.tp_credito}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
                   <TableCell className="text-right">
-                    {(() => {
-                      const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
-                      const saldo = item.vlr_credito - totalCompensado;
-                      return (
-                        <span className={cn(
-                          "font-medium",
-                          saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                          saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-                        )}>
-                          {formatCurrency(saldo)}
-                        </span>
-                      );
-                    })()}
+                    <span className={cn(
+                      "font-medium",
+                      saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                      saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                    )}>
+                      {formatCurrency(saldo)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {situacaoInfo?.dt_pagamento ? formatCurrency(item.vlr_credito) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
                   </TableCell>
                   <TableCell>
                     <Button 
