@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -174,19 +175,37 @@ export function PerFormModal({
       if (perError) throw perError;
 
       // Automatically create initial situação as "Analisado"
-      const { error: situacaoError } = await supabase.from('per_situacao').insert({
+      const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
         nr_proc_per: data.numero_processo_per,
         situacao: 'Analisado',
-      });
+      }).select().single();
       if (situacaoError) {
         console.error('Erro ao criar situação inicial:', situacaoError);
       }
+
+      return { perData: data, sitData };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('PER criado com sucesso!');
       onOpenChange(false);
+
+      // Sync fire-and-forget
+      const perRecord = {
+        numero_processo_per: result.perData.numero_processo_per,
+        id_contribuinte: result.perData.id_contribuinte,
+        exercicio: result.perData.exercicio,
+        tri_exercicio: result.perData.tri_exercicio,
+        dt_solicitada: result.perData.dt_solicitada,
+        tp_credito: result.perData.tp_credito,
+        vlr_credito: result.perData.vlr_credito,
+      };
+      const syncPayload: any = { per: [perRecord] };
+      if (result.sitData) {
+        syncPayload.per_situacao = [result.sitData];
+      }
+      syncPerdcompToDW(syncPayload);
     },
     onError: (error: any) => {
       toast.error(`Erro ao criar PER: ${error.message}`);
@@ -207,11 +226,24 @@ export function PerFormModal({
         })
         .eq('numero_processo_per', editData?.numero_processo_per);
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       toast.success('PER atualizado com sucesso!');
       onOpenChange(false);
+
+      syncPerdcompToDW({
+        per: [{
+          numero_processo_per: editData?.numero_processo_per,
+          id_contribuinte: data.id_contribuinte,
+          exercicio: data.exercicio,
+          tri_exercicio: data.tri_exercicio,
+          dt_solicitada: data.dt_solicitada,
+          tp_credito: data.tp_credito,
+          vlr_credito: data.vlr_credito,
+        }],
+      });
     },
     onError: (error: any) => {
       toast.error(`Erro ao atualizar PER: ${error.message}`);

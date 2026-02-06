@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -143,17 +144,22 @@ export function PerDetailModal({
   // Mutation para atualizar situação
   const updateSituacaoMutation = useMutation({
     mutationFn: async (situacao: string) => {
-      const { error } = await supabase.from('per_situacao').insert({
+      const { data, error } = await supabase.from('per_situacao').insert({
         nr_proc_per: per?.numero_processo_per,
         situacao,
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['per-situacoes', per?.numero_processo_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('Situação atualizada com sucesso!');
       setNovaSituacao('');
+
+      if (data) {
+        syncPerdcompToDW({ per_situacao: [data] });
+      }
     },
     onError: (error: any) => {
       toast.error(`Erro ao atualizar situação: ${error.message}`);

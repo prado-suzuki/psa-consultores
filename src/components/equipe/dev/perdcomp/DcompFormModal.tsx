@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -133,7 +134,7 @@ export function DcompFormModal({
 
   const createMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
-      const { error } = await supabase.from('dcomp').insert([{
+      const record = {
         nr_documento: data.nr_documento,
         nr_per_orig: data.nr_per_orig,
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
@@ -141,13 +142,18 @@ export function DcompFormModal({
         imposto: data.imposto,
         tp_credito: data.tp_credito,
         vlr_compensado: data.vlr_compensado,
-      }]);
+      };
+      const { error } = await supabase.from('dcomp').insert([record]);
       if (error) throw error;
+      return record;
     },
-    onSuccess: () => {
+    onSuccess: (record) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
+      queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       toast.success('DCOMP criado com sucesso!');
       onOpenChange(false);
+
+      syncPerdcompToDW({ dcomp: [record] });
     },
     onError: (error: any) => {
       toast.error(`Erro ao criar DCOMP: ${error.message}`);
@@ -156,23 +162,28 @@ export function DcompFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
+      const record = {
+        nr_per_orig: data.nr_per_orig,
+        mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
+        dt_envio: data.dt_envio,
+        imposto: data.imposto,
+        tp_credito: data.tp_credito,
+        vlr_compensado: data.vlr_compensado,
+      };
       const { error } = await supabase
         .from('dcomp')
-        .update({
-          nr_per_orig: data.nr_per_orig,
-          mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
-          dt_envio: data.dt_envio,
-          imposto: data.imposto,
-          tp_credito: data.tp_credito,
-          vlr_compensado: data.vlr_compensado,
-        })
+        .update(record)
         .eq('nr_documento', editData?.nr_documento);
       if (error) throw error;
+      return { ...record, nr_documento: editData?.nr_documento };
     },
-    onSuccess: () => {
+    onSuccess: (record) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
+      queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       toast.success('DCOMP atualizado com sucesso!');
       onOpenChange(false);
+
+      syncPerdcompToDW({ dcomp: [record] });
     },
     onError: (error: any) => {
       toast.error(`Erro ao atualizar DCOMP: ${error.message}`);
