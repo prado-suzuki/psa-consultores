@@ -311,6 +311,7 @@ const AuditoriaFiscal = () => {
         cfop: item.CFOP,
         cst_icms: item.CST,
         aliq_icms: item.aliq_prod,
+        pRedBC: item.pRedBC ?? null,
         count: item.tot_itens,
         totalValue: item.vlr_total,
         nfesCount: item.tot_nfes,

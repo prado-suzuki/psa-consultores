@@ -222,7 +222,7 @@ export const DifalAuditModal = ({
                     <span className="text-xs text-slate-500 uppercase font-medium">
                       Tributação
                     </span>
-                    <div className="flex gap-6 mt-2">
+                    <div className="flex gap-6 mt-2 flex-wrap">
                       <div>
                         <span className="text-xs text-slate-400">CST ICMS:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
@@ -233,6 +233,12 @@ export const DifalAuditModal = ({
                         <span className="text-xs text-slate-400">Alíquota:</span>
                         <span className="ml-2 font-mono text-sm font-medium">
                           {group.aliq_icms !== null ? `${group.aliq_icms}%` : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-400">Red BC:</span>
+                        <span className="ml-2 font-mono text-sm font-medium">
+                          {group.pRedBC !== null && group.pRedBC !== undefined ? `${group.pRedBC}%` : '—'}
                         </span>
                       </div>
                     </div>
