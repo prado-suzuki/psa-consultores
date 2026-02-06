@@ -59,6 +59,8 @@ export interface RegraICMSST {
   aliquota_st: number;
   percentual_reducao: number | null;
   base_legal: string;
+  convenio: string | null;
+  anexo: string | null;
 }
 
 // Resposta da API de regras NCM
