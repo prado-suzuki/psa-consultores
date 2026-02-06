@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -119,13 +120,18 @@ export function SituacaoFormModal({
       if (data.dt_pagamento) {
         insertData.dt_pagamento = data.dt_pagamento;
       }
-      const { error } = await supabase.from('per_situacao').insert(insertData);
+      const { data: result, error } = await supabase.from('per_situacao').insert(insertData).select().single();
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
       toast.success('Situação registrada com sucesso!');
       onOpenChange(false);
+
+      if (result) {
+        syncPerdcompToDW({ per_situacao: [result] });
+      }
     },
     onError: (error: any) => {
       toast.error(`Erro ao registrar situação: ${error.message}`);
@@ -143,16 +149,23 @@ export function SituacaoFormModal({
       } else {
         updateData.dt_pagamento = null;
       }
-      const { error } = await supabase
+      const { data: result, error } = await supabase
         .from('per_situacao')
         .update(updateData)
-        .eq('id', editData?.id);
+        .eq('id', editData?.id)
+        .select()
+        .single();
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
       toast.success('Situação atualizada com sucesso!');
       onOpenChange(false);
+
+      if (result) {
+        syncPerdcompToDW({ per_situacao: [result] });
+      }
     },
     onError: (error: any) => {
       toast.error(`Erro ao atualizar situação: ${error.message}`);
