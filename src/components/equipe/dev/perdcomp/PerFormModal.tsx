@@ -36,10 +36,18 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, Search } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 // Format process number: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX
 const formatProcessNumber = (value: string): string => {
@@ -79,6 +87,7 @@ const perSchema = z.object({
   dt_solicitada: z.string().min(1, 'Data é obrigatória'),
   tp_credito: z.string().min(1, 'Tipo de crédito é obrigatório'),
   vlr_credito: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  nr_proc_ret: z.string().nullable().optional(),
 });
 
 type PerFormData = z.infer<typeof perSchema>;
@@ -104,6 +113,12 @@ export function PerFormModal({
   // Local state for formatted values
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  
+  // State for declaration type (Original or Retificadora)
+  const [tipoDeclaracao, setTipoDeclaracao] = useState<'original' | 'retificadora'>('original');
+  const [perRetificadoOpen, setPerRetificadoOpen] = useState(false);
+  const [selectedPerRetificado, setSelectedPerRetificado] = useState<string | null>(null);
+  const [perSearchQuery, setPerSearchQuery] = useState('');
 
   const form = useForm<PerFormData>({
     resolver: zodResolver(perSchema),
@@ -115,6 +130,7 @@ export function PerFormModal({
       dt_solicitada: new Date().toISOString().split('T')[0],
       tp_credito: '',
       vlr_credito: 0,
+      nr_proc_ret: null,
     },
   });
 
@@ -134,6 +150,27 @@ export function PerFormModal({
     enabled: !!clienteId,
   });
 
+  // Fetch existing PERs for the contribuinte (for rectification selection)
+  const { data: persExistentes = [] } = useQuery({
+    queryKey: ['pers-existentes', contribuinteId],
+    queryFn: async () => {
+      if (!contribuinteId) return [];
+      const { data, error } = await supabase
+        .from('per')
+        .select('numero_processo_per, exercicio, tri_exercicio, tp_credito')
+        .eq('id_contribuinte', contribuinteId)
+        .order('exercicio', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!contribuinteId && !isEditing,
+  });
+
+  // Filter PERs based on search query
+  const filteredPersExistentes = persExistentes.filter(per => 
+    per.numero_processo_per.toLowerCase().includes(perSearchQuery.toLowerCase())
+  );
+
   useEffect(() => {
     if (editData) {
       form.reset({
@@ -144,8 +181,17 @@ export function PerFormModal({
         dt_solicitada: editData.dt_solicitada,
         tp_credito: editData.tp_credito,
         vlr_credito: editData.vlr_credito,
+        nr_proc_ret: editData.nr_proc_ret || null,
       });
       setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_credito || 0));
+      // Set tipo declaração based on existing nr_proc_ret
+      if (editData.nr_proc_ret) {
+        setTipoDeclaracao('retificadora');
+        setSelectedPerRetificado(editData.nr_proc_ret);
+      } else {
+        setTipoDeclaracao('original');
+        setSelectedPerRetificado(null);
+      }
     } else {
       form.reset({
         numero_processo_per: '',
@@ -155,14 +201,25 @@ export function PerFormModal({
         dt_solicitada: new Date().toISOString().split('T')[0],
         tp_credito: '',
         vlr_credito: 0,
+        nr_proc_ret: null,
       });
       setCurrencyDisplay('R$ 0,00');
+      setTipoDeclaracao('original');
+      setSelectedPerRetificado(null);
     }
   }, [editData, contribuinteId, form]);
 
+  // Reset retificado selection when tipo changes
+  useEffect(() => {
+    if (tipoDeclaracao === 'original') {
+      setSelectedPerRetificado(null);
+      form.setValue('nr_proc_ret', null);
+    }
+  }, [tipoDeclaracao, form]);
+
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
-      // Insert PER
+      // Insert PER with nr_proc_ret if retificadora
       const { error: perError } = await supabase.from('per').insert([{
         numero_processo_per: data.numero_processo_per,
         id_contribuinte: data.id_contribuinte,
@@ -171,6 +228,7 @@ export function PerFormModal({
         dt_solicitada: data.dt_solicitada,
         tp_credito: data.tp_credito,
         vlr_credito: data.vlr_credito,
+        nr_proc_ret: data.nr_proc_ret || null,
       }]);
       if (perError) throw perError;
 
@@ -181,6 +239,17 @@ export function PerFormModal({
       }).select().single();
       if (situacaoError) {
         console.error('Erro ao criar situação inicial:', situacaoError);
+      }
+
+      // If retificadora, update the original PER's situação to "Retificado"
+      if (data.nr_proc_ret) {
+        const { error: retError } = await supabase.from('per_situacao').insert({
+          nr_proc_per: data.nr_proc_ret,
+          situacao: 'Retificado',
+        });
+        if (retError) {
+          console.error('Erro ao atualizar situação do PER retificado:', retError);
+        }
       }
 
       return { perData: data, sitData };
@@ -200,6 +269,7 @@ export function PerFormModal({
         dt_solicitada: result.perData.dt_solicitada,
         tp_credito: result.perData.tp_credito,
         vlr_credito: result.perData.vlr_credito,
+        nr_proc_ret: result.perData.nr_proc_ret,
       };
       const syncPayload: any = { per: [perRecord] };
       if (result.sitData) {
@@ -223,6 +293,7 @@ export function PerFormModal({
           dt_solicitada: data.dt_solicitada,
           tp_credito: data.tp_credito,
           vlr_credito: data.vlr_credito,
+          nr_proc_ret: data.nr_proc_ret || null,
         })
         .eq('numero_processo_per', editData?.numero_processo_per);
       if (error) throw error;
@@ -242,6 +313,7 @@ export function PerFormModal({
           dt_solicitada: data.dt_solicitada,
           tp_credito: data.tp_credito,
           vlr_credito: data.vlr_credito,
+          nr_proc_ret: data.nr_proc_ret,
         }],
       });
     },
@@ -251,10 +323,16 @@ export function PerFormModal({
   });
 
   const onSubmit = (data: PerFormData) => {
+    // Set nr_proc_ret based on tipo declaração
+    const submissionData = {
+      ...data,
+      nr_proc_ret: tipoDeclaracao === 'retificadora' ? selectedPerRetificado : null,
+    };
+    
     if (isEditing) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(submissionData);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(submissionData);
     }
   };
 
@@ -269,12 +347,92 @@ export function PerFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar PER' : 'Novo PER'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Tipo de Declaração - Only show when creating */}
+            {!isEditing && (
+              <div className="space-y-2">
+                <FormLabel>Tipo de Declaração</FormLabel>
+                <Select 
+                  value={tipoDeclaracao} 
+                  onValueChange={(v) => setTipoDeclaracao(v as 'original' | 'retificadora')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="original">Original</SelectItem>
+                    <SelectItem value="retificadora">Retificadora</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* PER Retificado - Only show when Retificadora is selected and not editing */}
+            {!isEditing && tipoDeclaracao === 'retificadora' && (
+              <div className="space-y-2">
+                <FormLabel>PER a ser Retificado</FormLabel>
+                <Popover open={perRetificadoOpen} onOpenChange={setPerRetificadoOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={perRetificadoOpen}
+                      className={cn(
+                        "w-full justify-between font-normal",
+                        !selectedPerRetificado && "text-muted-foreground"
+                      )}
+                    >
+                      {selectedPerRetificado || "Selecione o processo..."}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 pointer-events-auto" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Buscar número do processo..." 
+                        value={perSearchQuery}
+                        onValueChange={setPerSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {filteredPersExistentes.map((per) => (
+                            <CommandItem
+                              key={per.numero_processo_per}
+                              value={per.numero_processo_per}
+                              onSelect={() => {
+                                setSelectedPerRetificado(per.numero_processo_per);
+                                form.setValue('nr_proc_ret', per.numero_processo_per);
+                                setPerRetificadoOpen(false);
+                                setPerSearchQuery('');
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-mono text-sm">{per.numero_processo_per}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {per.exercicio}/{per.tri_exercicio}T • {per.tp_credito}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {tipoDeclaracao === 'retificadora' && !selectedPerRetificado && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Selecione o processo que será retificado
+                  </p>
+                )}
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="numero_processo_per"
@@ -459,7 +617,10 @@ export function PerFormModal({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                disabled={isLoading || (tipoDeclaracao === 'retificadora' && !selectedPerRetificado && !isEditing)}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Salvar' : 'Criar'}
               </Button>
