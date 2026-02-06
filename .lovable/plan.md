@@ -1,274 +1,183 @@
 
-# Plano: Retificacao de DCOMPs
 
-## Visao Geral
+# Plano: Reorganizar Colunas da Tabela Principal de PER
 
-Aplicar a mesma logica de retificacao implementada para PER, agora para DCOMPs:
-1. Nova coluna `nr_dcomp_ret` na tabela `dcomp`
-2. Tipo de declaracao (Original/Retificadora) no formulario de criacao
-3. Filtragem inteligente para mostrar apenas DCOMPs vigentes
+## Objetivo
+
+Atualizar a tabela principal de PER para exibir as colunas na ordem especificada, adicionando novas colunas e mantendo as existentes.
 
 ---
 
-## 1. Migracao de Banco de Dados
+## Analise das Colunas
 
-### Adicionar coluna `nr_dcomp_ret` na tabela `dcomp`
-
-```sql
-ALTER TABLE dcomp 
-ADD COLUMN nr_dcomp_ret character varying REFERENCES dcomp(nr_documento);
-```
-
-A coluna tera:
-- Tipo: `VARCHAR`
-- Nullable: `YES`
-- Foreign Key: referencia `dcomp.nr_documento`
+### Colunas Finais (na ordem)
+| # | Coluna | Status | Fonte de Dados |
+|---|--------|--------|----------------|
+| 1 | Nr Processo PER | Existe | `per.numero_processo_per` |
+| 2 | Situacao | Existe | `per_situacao.situacao` |
+| 3 | Atualizacao | Existe (manter) | `per_situacao.criado_em` |
+| 4 | Data Solicitada | Existe | `per.dt_solicitada` |
+| 5 | Exercicio | Existe | `per.exercicio` |
+| 6 | Trimestre | Existe (manter) | `per.tri_exercicio` |
+| 7 | Tipo de Cred. | Existe | `per.tp_credito` |
+| 8 | Valor do Credito | Existe | `per.vlr_credito` |
+| 9 | PER Compensado | **NOVA** | Soma de `dcomp.vlr_compensado` (ja calculado em `dcompTotalMap`) |
+| 10 | Saldo Disponivel | Existe (renomear de "Saldo Restante do PER") | `vlr_credito - total_compensado` |
+| 11 | Ressarcido | **NOVA** | Valor ressarcido quando existe `dt_pagamento` |
+| 12 | Data do Pagamento | **NOVA** | `per_situacao.dt_pagamento` |
+| 13 | Editar | Existe | Botao de acao |
 
 ---
 
-## 2. Atualizacao do DcompFormModal.tsx
+## Alteracoes Tecnicas
 
-### Novos campos no formulario
+### 1. Atualizar Interface `PerSituacaoMap`
 
-| Campo | Tipo | Comportamento |
-|-------|------|---------------|
-| Tipo de Declaracao | Select | Opcoes: "Original" (padrao) e "Retificadora" |
-| DCOMP Retificado | Select (condicional) | Aparece apenas quando "Retificadora" esta selecionado. Lista DCOMPs existentes vinculados ao mesmo PER |
+Adicionar campo `dt_pagamento`:
 
-### Alteracoes tecnicas
-
-1. Adicionar campo `nr_dcomp_ret` ao schema Zod:
 ```typescript
-const dcompSchema = z.object({
-  // ... campos existentes
-  nr_dcomp_ret: z.string().nullable().optional(),
-});
+interface PerSituacaoMap {
+  [key: string]: {
+    situacao: string;
+    criado_em: string;
+    dt_pagamento: string | null; // NOVO
+  };
+}
 ```
 
-2. Adicionar estado para tipo de declaracao:
+### 2. Atualizar Query de Situacoes
+
+Incluir `dt_pagamento` na consulta e no mapeamento:
+
 ```typescript
-const [tipoDeclaracao, setTipoDeclaracao] = useState<'original' | 'retificadora'>('original');
-```
+.select('nr_proc_per, situacao, criado_em, dt_pagamento')
 
-3. Query para buscar DCOMPs existentes do mesmo PER:
-```typescript
-const { data: dcompsExistentes = [] } = useQuery({
-  queryKey: ['dcomps-existentes', preSelectedPer],
-  queryFn: async () => {
-    if (!preSelectedPer) return [];
-    const { data, error } = await supabase
-      .from('dcomp')
-      .select('nr_documento, mes_ano_exercicio, imposto')
-      .eq('nr_per_orig', preSelectedPer)
-      .order('dt_envio', { ascending: false });
-    if (error) throw error;
-    return data || [];
-  },
-  enabled: !!preSelectedPer && !isEditing,
-});
-```
-
-4. Campo condicional no formulario:
-```tsx
-{/* Tipo de Declaracao */}
-<FormItem>
-  <FormLabel>Tipo de Declaracao</FormLabel>
-  <Select value={tipoDeclaracao} onValueChange={(v) => setTipoDeclaracao(v as 'original' | 'retificadora')}>
-    <SelectTrigger>
-      <SelectValue />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="original">Original</SelectItem>
-      <SelectItem value="retificadora">Retificadora</SelectItem>
-    </SelectContent>
-  </Select>
-</FormItem>
-
-{/* Seletor de DCOMP retificado (condicional) */}
-{tipoDeclaracao === 'retificadora' && (
-  <FormField
-    control={form.control}
-    name="nr_dcomp_ret"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>DCOMP Retificado</FormLabel>
-        <Select onValueChange={field.onChange} value={field.value || ''}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o DCOMP a retificar" />
-          </SelectTrigger>
-          <SelectContent>
-            {dcompsExistentes.map((dcomp) => (
-              <SelectItem key={dcomp.nr_documento} value={dcomp.nr_documento}>
-                {dcomp.nr_documento} ({dcomp.imposto})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-)}
-```
-
-5. Atualizar mutation para incluir `nr_dcomp_ret`:
-```typescript
-const record = {
-  // ... outros campos
-  nr_dcomp_ret: tipoDeclaracao === 'retificadora' ? data.nr_dcomp_ret : null,
+// No mapeamento:
+map[sit.nr_proc_per] = {
+  situacao: sit.situacao,
+  criado_em: sit.criado_em || '',
+  dt_pagamento: sit.dt_pagamento || null,
 };
 ```
 
----
-
-## 3. Atualizacao do PerDetailModal.tsx
-
-### Filtragem inteligente de DCOMPs
-
-Aplicar a mesma logica do PER: ocultar DCOMPs que aparecem na coluna `nr_dcomp_ret` de outro registro.
-
-```typescript
-// Criar set de DCOMPs retificados
-const dcompsRetificadosSet = useMemo(() => {
-  return new Set(
-    dcomps
-      .filter(d => d.nr_dcomp_ret)
-      .map(d => d.nr_dcomp_ret)
-  );
-}, [dcomps]);
-
-// Filtrar para mostrar apenas DCOMPs vigentes
-const dcompsVigentes = useMemo(() => {
-  return dcomps.filter(d => !dcompsRetificadosSet.has(d.nr_documento));
-}, [dcomps, dcompsRetificadosSet]);
-```
-
-### Indicador visual de DCOMP retificadora
-
-Na tabela de DCOMPs, adicionar indicador quando o DCOMP retifica outro:
+### 3. Atualizar Headers da Tabela
 
 ```tsx
-<TableCell className="font-medium">
-  {dcomp.nr_documento}
-  {dcomp.nr_dcomp_ret && (
-    <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
-      (Retifica: {dcomp.nr_dcomp_ret})
-    </span>
-  )}
+<TableHeader>
+  <TableRow>
+    <TableHead>Nr Processo</TableHead>
+    <TableHead>Situacao</TableHead>
+    <TableHead>Atualizacao</TableHead>
+    <TableHead>Data Solicitada</TableHead>
+    <TableHead>Exercicio</TableHead>
+    <TableHead>Trimestre</TableHead>
+    <TableHead>Tipo Credito</TableHead>
+    <TableHead className="text-right">Valor Credito</TableHead>
+    <TableHead className="text-right">PER Compensado</TableHead>
+    <TableHead className="text-right">Saldo Disponivel</TableHead>
+    <TableHead className="text-right">Ressarcido</TableHead>
+    <TableHead>Data Pagamento</TableHead>
+    <TableHead className="w-[80px]">Editar</TableHead>
+  </TableRow>
+</TableHeader>
+```
+
+### 4. Atualizar Celulas da Tabela
+
+```tsx
+{/* 1. Nr Processo PER */}
+<TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+
+{/* 2. Situacao */}
+<TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+
+{/* 3. Atualizacao (MANTER) */}
+<TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+
+{/* 4. Data Solicitada */}
+<TableCell>{formatDate(item.dt_solicitada)}</TableCell>
+
+{/* 5. Exercicio */}
+<TableCell>{item.exercicio}</TableCell>
+
+{/* 6. Trimestre (MANTER) */}
+<TableCell>{item.tri_exercicio}o</TableCell>
+
+{/* 7. Tipo Credito */}
+<TableCell>{item.tp_credito}</TableCell>
+
+{/* 8. Valor Credito */}
+<TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+
+{/* 9. PER Compensado (NOVA) */}
+<TableCell className="text-right">
+  {formatCurrency(dcompTotalMap[item.numero_processo_per] || 0)}
+</TableCell>
+
+{/* 10. Saldo Disponivel (renomeado) */}
+<TableCell className="text-right">
+  {(() => {
+    const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
+    const saldo = item.vlr_credito - totalCompensado;
+    return (
+      <span className={cn(
+        "font-medium",
+        saldo > 0 ? "text-green-600 dark:text-green-400" : 
+        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+      )}>
+        {formatCurrency(saldo)}
+      </span>
+    );
+  })()}
+</TableCell>
+
+{/* 11. Ressarcido (NOVA) */}
+<TableCell className="text-right">
+  {situacaoInfo?.dt_pagamento ? formatCurrency(item.vlr_credito) : '-'}
+</TableCell>
+
+{/* 12. Data Pagamento (NOVA) */}
+<TableCell>
+  {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
+</TableCell>
+
+{/* 13. Editar */}
+<TableCell>
+  <Button variant="ghost" size="icon" ...>
+    <Pencil className="h-4 w-4" />
+  </Button>
 </TableCell>
 ```
 
----
+### 5. Atualizar colSpan da Mensagem Vazia
 
-## 4. Atualizacao do syncPerdcomp.ts
-
-Adicionar o novo campo na interface `DcompSync`:
-
-```typescript
-interface DcompSync {
-  nr_documento: string;
-  nr_per_orig: string;
-  mes_ano_exercicio: string;
-  dt_envio: string;
-  imposto: string;
-  tp_credito: string;
-  vlr_compensado: number;
-  nr_dcomp_ret?: string | null; // NOVO
-}
+```tsx
+<TableCell colSpan={13}>
 ```
 
 ---
 
-## 5. Atualizacao da Edge Function sync-perdcomp
+## Logica de "Ressarcido"
 
-Adicionar o campo `nr_dcomp_ret` na interface `DcompRecord`:
-
-```typescript
-interface DcompRecord {
-  nr_documento: string
-  nr_per_orig: string
-  mes_ano_exercicio: string
-  dt_envio: string
-  imposto: string
-  tp_credito: string
-  vlr_compensado: number
-  nr_dcomp_ret?: string | null // NOVO
-}
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Alteracoes |
-|---------|-----------|
-| *Migracao SQL* | Adicionar coluna `nr_dcomp_ret` na tabela `dcomp` |
-| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Adicionar tipo de declaracao e seletor de DCOMP retificado |
-| `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` | Filtrar DCOMPs retificados e exibir indicador |
-| `src/lib/syncPerdcomp.ts` | Adicionar campo `nr_dcomp_ret` na interface |
-| `supabase/functions/sync-perdcomp/index.ts` | Adicionar campo `nr_dcomp_ret` na interface |
+- **Se existe `dt_pagamento`**: Exibe o valor do credito (`vlr_credito`) como ressarcido
+- **Se nao existe `dt_pagamento`**: Exibe "-"
 
 ---
 
 ## Resultado Visual
 
-### Formulario de Criacao de DCOMP
-
 ```text
-┌─────────────────────────────────────────────┐
-│  Novo DCOMP                                 │
-├─────────────────────────────────────────────┤
-│  Numero do Documento: [_______________]     │
-│  PER de Origem: [Dropdown]                  │
-│                                             │
-│  Tipo de Declaracao:                        │
-│  ○ Original  ● Retificadora                 │
-│                                             │
-│  DCOMP Retificado: [Dropdown]   ← NOVO      │
-│                                             │
-│  Mes/Ano Exercicio: [___]                   │
-│  Data de Envio: [___]                       │
-│  ... demais campos ...                      │
-└─────────────────────────────────────────────┘
-```
-
-### Tabela de DCOMPs no PerDetailModal
-
-```text
-| Nr Documento          | Mes/Ano  | Data Envio | Imposto | ... |
-|-----------------------|----------|------------|---------|-----|
-| DOC-002 (Retifica: DOC-001) | 2024-01 | 15/02/2024 | PIS     | ... |  ← DOC-002 aparece
-| (DOC-001 oculto, pois foi retificado)                                |
+| Nr Processo | Situacao     | Atualizacao | Data Solic. | Exerc | Tri | Tipo   | Valor Cred   | PER Comp    | Saldo Disp   | Ressarcido   | Data Pgto  | Editar |
+|-------------|--------------|-------------|-------------|-------|-----|--------|--------------|-------------|--------------|--------------|------------|--------|
+| 28688.835.. | PER Deferido | 20/02/2025  | 15/01/2024  | 2024  | 1o  | PIS    | R$ 100.000   | R$ 25.000   | R$ 75.000    | R$ 100.000   | 25/02/2025 | [icon] |
+| 41407.405.. | Em analise   | 15/01/2025  | 20/03/2024  | 2024  | 2o  | COFINS | R$ 50.000    | R$ 0        | R$ 50.000    | -            | -          | [icon] |
 ```
 
 ---
 
-## Fluxo de Dados
+## Arquivo a Modificar
 
-```text
-Usuario cria DCOMP Retificadora
-         │
-         ▼
-┌────────────────────────┐
-│  Seleciona "Retificadora" │
-│  Escolhe DCOMP original   │
-└────────────┬───────────┘
-             │
-             ▼
-┌────────────────────────┐
-│  Salva com nr_dcomp_ret │
-│  = nr_documento original │
-└────────────┬───────────┘
-             │
-             ▼
-┌────────────────────────┐
-│  Sync para DW com novo  │
-│  campo nr_dcomp_ret     │
-└────────────┬───────────┘
-             │
-             ▼
-┌────────────────────────┐
-│  Tabela filtra e exibe  │
-│  apenas DCOMP vigente   │
-└────────────────────────┘
-```
+| Arquivo | Alteracoes |
+|---------|-----------|
+| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Atualizar interface, query, headers e celulas da tabela |
+
