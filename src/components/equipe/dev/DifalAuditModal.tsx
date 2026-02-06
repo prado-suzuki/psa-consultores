@@ -335,24 +335,22 @@ export const DifalAuditModal = ({
                                 Redução: <span className="font-medium">{regra.percentual_reducao}%</span>
                               </p>
                             )}
-                            {(regra.convenio || regra.anexo) && (
-                              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                {regra.convenio && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Convênio: {regra.convenio}
-                                  </Badge>
-                                )}
-                                {regra.anexo && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {regra.anexo}
-                                  </Badge>
-                                )}
-                              </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {regra.convenio && (
+                              <Badge variant="secondary" className="text-xs">
+                                Convênio: {regra.convenio}
+                              </Badge>
+                            )}
+                            {regra.anexo && (
+                              <Badge variant="secondary" className="text-xs">
+                                {regra.anexo}
+                              </Badge>
+                            )}
+                            {selectedRegraId === regra.id && (
+                              <CheckCircle2 className="h-6 w-6 text-teal-600 flex-shrink-0" />
                             )}
                           </div>
-                          {selectedRegraId === regra.id && (
-                            <CheckCircle2 className="h-6 w-6 text-teal-600 flex-shrink-0" />
-                          )}
                         </div>
                       </CardContent>
                     </Card>
