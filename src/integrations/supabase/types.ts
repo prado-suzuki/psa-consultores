@@ -509,6 +509,7 @@ export type Database = {
           dt_envio: string
           imposto: string
           mes_ano_exercicio: string
+          nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
           tp_credito: string
@@ -522,6 +523,7 @@ export type Database = {
           dt_envio: string
           imposto: string
           mes_ano_exercicio: string
+          nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
           tp_credito: string
@@ -535,12 +537,20 @@ export type Database = {
           dt_envio?: string
           imposto?: string
           mes_ano_exercicio?: string
+          nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
           tp_credito?: string
           vlr_compensado?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "dcomp_nr_dcomp_ret_fkey"
+            columns: ["nr_dcomp_ret"]
+            isOneToOne: false
+            referencedRelation: "dcomp"
+            referencedColumns: ["nr_documento"]
+          },
           {
             foreignKeyName: "dcomp_nr_per_orig_fkey"
             columns: ["nr_per_orig"]

@@ -54,6 +54,7 @@ const dcompSchema = z.object({
   imposto: z.string().min(1, 'Imposto é obrigatório'),
   tp_credito: z.string().min(1, 'Tipo de crédito é obrigatório'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  nr_dcomp_ret: z.string().nullable().optional(),
 });
 
 type DcompFormData = z.infer<typeof dcompSchema>;
@@ -75,6 +76,7 @@ export function DcompFormModal({
 }: DcompFormModalProps) {
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  const [tipoDeclaracao, setTipoDeclaracao] = useState<'original' | 'retificadora'>('original');
 
   const form = useForm<DcompFormData>({
     resolver: zodResolver(dcompSchema),
@@ -86,7 +88,24 @@ export function DcompFormModal({
       imposto: '',
       tp_credito: '',
       vlr_compensado: 0,
+      nr_dcomp_ret: null,
     },
+  });
+
+  // Query para buscar DCOMPs existentes do mesmo PER (para retificação)
+  const { data: dcompsExistentes = [] } = useQuery({
+    queryKey: ['dcomps-existentes', preSelectedPer],
+    queryFn: async () => {
+      if (!preSelectedPer) return [];
+      const { data, error } = await supabase
+        .from('dcomp')
+        .select('nr_documento, mes_ano_exercicio, imposto')
+        .eq('nr_per_orig', preSelectedPer)
+        .order('dt_envio', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!preSelectedPer && !isEditing,
   });
 
   // Fetch PERs for selection (filtered by contribuinte if available)
@@ -118,7 +137,9 @@ export function DcompFormModal({
         imposto: editData.imposto,
         tp_credito: editData.tp_credito,
         vlr_compensado: editData.vlr_compensado,
+        nr_dcomp_ret: editData.nr_dcomp_ret || null,
       });
+      setTipoDeclaracao(editData.nr_dcomp_ret ? 'retificadora' : 'original');
     } else {
       form.reset({
         nr_documento: '',
@@ -128,7 +149,9 @@ export function DcompFormModal({
         imposto: '',
         tp_credito: '',
         vlr_compensado: 0,
+        nr_dcomp_ret: null,
       });
+      setTipoDeclaracao('original');
     }
   }, [editData, form, preSelectedPer]);
 
@@ -142,6 +165,7 @@ export function DcompFormModal({
         imposto: data.imposto,
         tp_credito: data.tp_credito,
         vlr_compensado: data.vlr_compensado,
+        nr_dcomp_ret: tipoDeclaracao === 'retificadora' ? data.nr_dcomp_ret : null,
       };
       const { error } = await supabase.from('dcomp').insert([record]);
       if (error) throw error;
@@ -169,6 +193,7 @@ export function DcompFormModal({
         imposto: data.imposto,
         tp_credito: data.tp_credito,
         vlr_compensado: data.vlr_compensado,
+        nr_dcomp_ret: tipoDeclaracao === 'retificadora' ? data.nr_dcomp_ret : null,
       };
       const { error } = await supabase
         .from('dcomp')
@@ -246,6 +271,56 @@ export function DcompFormModal({
                 </FormItem>
               )}
             />
+
+            {/* Tipo de Declaração */}
+            <FormItem>
+              <FormLabel>Tipo de Declaração</FormLabel>
+              <Select 
+                value={tipoDeclaracao} 
+                onValueChange={(v) => {
+                  setTipoDeclaracao(v as 'original' | 'retificadora');
+                  if (v === 'original') {
+                    form.setValue('nr_dcomp_ret', null);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="original">Original</SelectItem>
+                  <SelectItem value="retificadora">Retificadora</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
+
+            {/* Seletor de DCOMP retificado (condicional) */}
+            {tipoDeclaracao === 'retificadora' && !isEditing && (
+              <FormField
+                control={form.control}
+                name="nr_dcomp_ret"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>DCOMP Retificado</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o DCOMP a retificar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {dcompsExistentes.map((dcomp) => (
+                          <SelectItem key={dcomp.nr_documento} value={dcomp.nr_documento}>
+                            {dcomp.nr_documento} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
