@@ -332,8 +332,8 @@ export default function ControlePerdcomp() {
               <TableHead>Tipo Crédito</TableHead>
               <TableHead className="text-right">Valor Crédito</TableHead>
               <TableHead className="text-right">PER Compensado</TableHead>
-              <TableHead className="text-right">Saldo Disponível</TableHead>
               <TableHead className="text-right">Ressarcido</TableHead>
+              <TableHead className="text-right">Saldo Disponível</TableHead>
               <TableHead>Data Pagamento</TableHead>
               <TableHead className="w-[80px]">Editar</TableHead>
             </TableRow>
@@ -348,7 +348,10 @@ export default function ControlePerdcomp() {
             ) : paginatedData.map((item) => {
               const situacaoInfo = perSituacoesMap[item.numero_processo_per];
               const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
-              const saldo = item.vlr_credito - totalCompensado;
+              const valorRessarcido = situacaoInfo?.dt_pagamento 
+                ? (item.vlr_credito - totalCompensado) 
+                : 0;
+              const saldo = item.vlr_credito - (totalCompensado + valorRessarcido);
               
               return (
                 <TableRow 
@@ -366,6 +369,9 @@ export default function ControlePerdcomp() {
                   <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
                   <TableCell className="text-right">
+                    {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
                     <span className={cn(
                       "font-medium",
                       saldo > 0 ? "text-green-600 dark:text-green-400" : 
@@ -373,9 +379,6 @@ export default function ControlePerdcomp() {
                     )}>
                       {formatCurrency(saldo)}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {situacaoInfo?.dt_pagamento ? formatCurrency(item.vlr_credito) : '-'}
                   </TableCell>
                   <TableCell>
                     {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
