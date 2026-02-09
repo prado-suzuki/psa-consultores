@@ -122,8 +122,9 @@ const GestaoClientes = () => {
     categoria: '',
   });
 
-  // Estados do modal de criar contribuinte
+  // Estados do modal de criar/editar contribuinte
   const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
+  const [editingContribuinteId, setEditingContribuinteId] = useState<string | null>(null);
   const [savingContribuinte, setSavingContribuinte] = useState(false);
   const [contribuinteForm, setContribuinteForm] = useState({
     nome_razao_social: '',
@@ -405,6 +406,7 @@ const GestaoClientes = () => {
 
   // Abrir modal de novo contribuinte
   const handleNovoContribuinte = () => {
+    setEditingContribuinteId(null);
     setContribuinteForm({
       nome_razao_social: '',
       tipo_pessoa: '',
@@ -413,6 +415,22 @@ const GestaoClientes = () => {
       cod_cnae: '',
       setor: '',
       simples_nacional: false,
+    });
+    setContribuinteDialogOpen(true);
+  };
+
+  // Abrir modal de editar contribuinte
+  const handleEditContribuinte = (e: React.MouseEvent, row: any) => {
+    e.stopPropagation();
+    setEditingContribuinteId(row.id);
+    setContribuinteForm({
+      nome_razao_social: row.nome_razao_social || '',
+      tipo_pessoa: row.tipo_pessoa || '',
+      cpf_cnpj: row.cpf_cnpj || '',
+      inscricao_estadual: row.inscricao_estadual || '',
+      cod_cnae: row.cod_cnae || '',
+      setor: row.setor || '',
+      simples_nacional: row.simples_nacional ?? false,
     });
     setContribuinteDialogOpen(true);
   };
@@ -431,8 +449,7 @@ const GestaoClientes = () => {
     
     setSavingContribuinte(true);
     try {
-      const { data, error } = await supabase.from(contribuinteTable).insert({
-        cliente_id: selectedCliente.id,
+      const contribPayload = {
         nome_razao_social: contribuinteForm.nome_razao_social.trim(),
         tipo_pessoa: contribuinteForm.tipo_pessoa,
         cpf_cnpj: contribuinteForm.cpf_cnpj.trim() || null,
@@ -440,12 +457,25 @@ const GestaoClientes = () => {
         cod_cnae: contribuinteForm.cod_cnae.trim() || null,
         setor: contribuinteForm.setor.trim() || null,
         simples_nacional: contribuinteForm.simples_nacional,
-      }).select().single();
-      
-      if (error) throw error;
-      
-      toast.success('Contribuinte adicionado com sucesso');
+      };
+
+      let data: any;
+      if (editingContribuinteId) {
+        const { data: updated, error } = await supabase.from(contribuinteTable).update(contribPayload).eq('id', editingContribuinteId).select().single();
+        if (error) throw error;
+        data = updated;
+        toast.success('Contribuinte atualizado com sucesso');
+      } else {
+        const { data: inserted, error } = await supabase.from(contribuinteTable).insert({
+          ...contribPayload,
+          cliente_id: selectedCliente!.id,
+        }).select().single();
+        if (error) throw error;
+        data = inserted;
+        toast.success('Contribuinte adicionado com sucesso');
+      }
       setContribuinteDialogOpen(false);
+      setEditingContribuinteId(null);
       queryClient.invalidateQueries({ queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente.id] });
       queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
       
@@ -786,6 +816,7 @@ const GestaoClientes = () => {
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">CPF/CNPJ</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Inscrição Estadual</TableHead>
                       <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Código CNAE</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-slate-100">
@@ -804,6 +835,16 @@ const GestaoClientes = () => {
                         <TableCell className="px-4 py-3.5 text-slate-600 font-mono text-sm">{formatCpfCnpj(row.cpf_cnpj)}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.inscricao_estadual || '-'}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.cod_cnae || '-'}</TableCell>
+                        <TableCell className="px-4 py-3.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
+                            onClick={(e) => handleEditContribuinte(e, row)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -973,7 +1014,7 @@ const GestaoClientes = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-teal-600" />
-              Novo Contribuinte
+              {editingContribuinteId ? 'Editar Contribuinte' : 'Novo Contribuinte'}
             </DialogTitle>
           </DialogHeader>
           
