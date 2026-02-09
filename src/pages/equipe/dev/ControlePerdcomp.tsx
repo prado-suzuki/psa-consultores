@@ -16,6 +16,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -39,6 +40,9 @@ import { ptBR } from 'date-fns/locale';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
 import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
+import { useSelicData } from '@/hooks/useSelicData';
+import { applySelicCorrection } from '@/lib/selicCalculator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 
@@ -264,6 +268,64 @@ export default function ControlePerdcomp() {
     return true;
   });
 
+  // Determine date range for Selic fetch based on filtered PER data
+  const selicDateRange = useMemo(() => {
+    if (filteredPerData.length === 0) return { inicio: null, fim: null };
+    const dates = filteredPerData.map(p => p.dt_solicitada).filter(Boolean).sort();
+    const inicio = dates[0] || null;
+    const fim = format(new Date(), 'yyyy-MM-dd');
+    return { inicio, fim };
+  }, [filteredPerData]);
+
+  // Fetch Selic rates for the full range
+  const { data: selicTaxas = [], isLoading: selicLoading } = useSelicData(
+    selicDateRange.inicio,
+    selicDateRange.fim
+  );
+
+  // Pre-calculate corrected values for all filtered PERs
+  const selicCorrectionMap = useMemo(() => {
+    if (selicTaxas.length === 0) return {};
+    const hoje = format(new Date(), 'yyyy-MM-dd');
+    const map: Record<string, { valorCorrigido: number; fator: number }> = {};
+    for (const per of filteredPerData) {
+      if (per.dt_solicitada) {
+        map[per.numero_processo_per] = applySelicCorrection(
+          per.vlr_credito,
+          selicTaxas,
+          per.dt_solicitada,
+          hoje
+        );
+      }
+    }
+    return map;
+  }, [selicTaxas, filteredPerData]);
+
+  // Calculate totals for footer
+  const totals = useMemo(() => {
+    let credito = 0;
+    let corrigido = 0;
+    let compensado = 0;
+    let ressarcido = 0;
+    let saldo = 0;
+
+    for (const item of filteredPerData) {
+      const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+      const totalComp = dcompTotalMap[item.numero_processo_per] || 0;
+      const valRessarcido = situacaoInfo?.dt_pagamento ? (item.vlr_credito - totalComp) : 0;
+      const valSaldo = item.vlr_credito - (totalComp + valRessarcido);
+      const correction = selicCorrectionMap[item.numero_processo_per];
+
+      credito += item.vlr_credito;
+      corrigido += correction?.valorCorrigido || item.vlr_credito;
+      compensado += totalComp;
+      ressarcido += valRessarcido;
+      saldo += valSaldo;
+    }
+
+    return { credito, corrigido, compensado, ressarcido, saldo };
+  }, [filteredPerData, perSituacoesMap, dcompTotalMap, selicCorrectionMap]);
+
   // Pagination
   const totalPages = Math.ceil(filteredPerData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredPerData.slice(
@@ -319,115 +381,174 @@ export default function ControlePerdcomp() {
     }
 
     return (
-      <>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nº Processo</TableHead>
-              <TableHead>Situação</TableHead>
-              <TableHead>Atualização</TableHead>
-              <TableHead>Data Solicitada</TableHead>
-              <TableHead>Exercício</TableHead>
-              <TableHead>Trimestre</TableHead>
-              <TableHead>Tipo Crédito</TableHead>
-              <TableHead className="text-right">Valor Crédito</TableHead>
-              <TableHead className="text-right">PER Compensado</TableHead>
-              <TableHead className="text-right">Ressarcido</TableHead>
-              <TableHead className="text-right">Saldo Disponível</TableHead>
-              <TableHead>Data Pagamento</TableHead>
-              <TableHead className="w-[80px]">Editar</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
+      <TooltipProvider>
+        <>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
-                  Nenhum registro encontrado
-                </TableCell>
+                <TableHead>Nº Processo</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead>Atualização</TableHead>
+                <TableHead>Data Solicitada</TableHead>
+                <TableHead>Exercício</TableHead>
+                <TableHead>Trimestre</TableHead>
+                <TableHead>Tipo Crédito</TableHead>
+                <TableHead className="text-right">Valor Crédito</TableHead>
+                <TableHead className="text-right">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help border-b border-dashed border-muted-foreground/50">
+                        Vlr. Corrigido
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Valor do crédito corrigido pela taxa Selic até a data atual</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="text-right">PER Compensado</TableHead>
+                <TableHead className="text-right">Ressarcido</TableHead>
+                <TableHead className="text-right">Saldo Disponível</TableHead>
+                <TableHead>Data Pagamento</TableHead>
+                <TableHead className="w-[80px]">Editar</TableHead>
               </TableRow>
-            ) : paginatedData.map((item) => {
-              const situacaoInfo = perSituacoesMap[item.numero_processo_per];
-              const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
-              const valorRessarcido = situacaoInfo?.dt_pagamento 
-                ? (item.vlr_credito - totalCompensado) 
-                : 0;
-              const saldo = item.vlr_credito - (totalCompensado + valorRessarcido);
-              
-              return (
-                <TableRow 
-                  key={item.numero_processo_per} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handlePerClick(item)}
-                >
-                  <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
-                  <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
-                  <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
-                  <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
-                  <TableCell>{item.exercicio}</TableCell>
-                  <TableCell>{item.tri_exercicio}º</TableCell>
-                  <TableCell>{item.tp_credito}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                    Nenhum registro encontrado
+                  </TableCell>
+                </TableRow>
+              ) : paginatedData.map((item) => {
+                const situacaoInfo = perSituacoesMap[item.numero_processo_per];
+                const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
+                const valorRessarcido = situacaoInfo?.dt_pagamento 
+                  ? (item.vlr_credito - totalCompensado) 
+                  : 0;
+                const saldo = item.vlr_credito - (totalCompensado + valorRessarcido);
+                const correction = selicCorrectionMap[item.numero_processo_per];
+                
+                return (
+                  <TableRow 
+                    key={item.numero_processo_per} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handlePerClick(item)}
+                  >
+                    <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+                    <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                    <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
+                    <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
+                    <TableCell>{item.exercicio}</TableCell>
+                    <TableCell>{item.tri_exercicio}º</TableCell>
+                    <TableCell>{item.tp_credito}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                    <TableCell className="text-right">
+                      {correction ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
+                              {formatCurrency(correction.valorCorrigido)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Fator Selic: {correction.fator.toFixed(6)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : selicLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin ml-auto" />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
+                    <TableCell className="text-right">
+                      {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={cn(
+                        "font-medium",
+                        saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                      )}>
+                        {formatCurrency(saldo)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+            {filteredPerData.length > 0 && (
+              <TableFooter>
+                <TableRow className="bg-muted/50 font-semibold">
+                  <TableCell colSpan={7} className="text-right">
+                    Totais ({filteredPerData.length} PERs)
+                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(totals.credito)}</TableCell>
+                  <TableCell className="text-right text-blue-600 dark:text-blue-400">
+                    {selicTaxas.length > 0 ? formatCurrency(totals.corrigido) : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(totals.compensado)}</TableCell>
                   <TableCell className="text-right">
-                    {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
+                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={cn(
-                      "font-medium",
-                      saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                      saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                      totals.saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                      totals.saldo < 0 ? "text-red-600 dark:text-red-400" : ""
                     )}>
-                      {formatCurrency(saldo)}
+                      {formatCurrency(totals.saldo)}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+                  <TableCell colSpan={2} />
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <span className="text-sm text-muted-foreground">
-              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredPerData.length)} de {filteredPerData.length} registros
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Página {currentPage} de {totalPages}
+              </TableFooter>
+            )}
+          </Table>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <span className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredPerData.length)} de {filteredPerData.length} registros
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </>
+          )}
+        </>
+      </TooltipProvider>
     );
   };
 
