@@ -14,6 +14,7 @@ const syncCadastrosToDW = (payload: {
     municipio: string | null;
     uf: string | null;
     ativo: boolean | null;
+    categoria: string | null;
     created_at: string;
     updated_at: string;
   }>;
@@ -90,6 +91,7 @@ const GestaoClientes = () => {
   const [clienteId, setClienteId] = useState('');
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [searched, setSearched] = useState(false);
   
   // Estados de paginação
@@ -116,6 +118,7 @@ const GestaoClientes = () => {
     ativo: true,
     municipio: '',
     uf: '',
+    categoria: '',
   });
 
   // Estados do modal de criar contribuinte
@@ -134,7 +137,7 @@ const GestaoClientes = () => {
   const queryClient = useQueryClient();
 
   // Verifica se há filtros ativos
-  const hasActiveFilters = clienteId || status || tipo || nomeRazaoSocial || tipoPessoa || cpfCnpj;
+  const hasActiveFilters = clienteId || status || tipo || categoria || nomeRazaoSocial || tipoPessoa || cpfCnpj;
 
   // Verifica se há filtros de contribuinte ativos
   const hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj;
@@ -185,7 +188,7 @@ const GestaoClientes = () => {
 
   // Query principal - busca clientes (não contribuintes)
   const { data: resultados = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, tipoPessoa, cpfCnpj, nomeRazaoSocial],
+    queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, categoria, tipoPessoa, cpfCnpj, nomeRazaoSocial],
     queryFn: async () => {
       // Se houver filtros de contribuinte, primeiro buscar cliente_ids correspondentes
       let filteredClienteIds: string[] | null = null;
@@ -221,6 +224,7 @@ const GestaoClientes = () => {
       
       if (status) clienteQuery = clienteQuery.eq('ativo', status === 'true');
       if (tipo) clienteQuery = clienteQuery.eq('fixo', tipo);
+      if (categoria) clienteQuery = clienteQuery.eq('categoria', categoria);
       
       // Filtrar por cliente_ids (se houver filtros de contribuinte)
       if (filteredClienteIds !== null) {
@@ -287,6 +291,7 @@ const GestaoClientes = () => {
     setClienteId('');
     setStatus('');
     setTipo('');
+    setCategoria('');
     // Limpar filtros do contribuinte
     setTipoPessoa('');
     setCpfCnpj('');
@@ -311,6 +316,7 @@ const GestaoClientes = () => {
       ativo: true,
       municipio: '',
       uf: '',
+      categoria: '',
     });
     setClienteDialogOpen(true);
   };
@@ -332,6 +338,7 @@ const GestaoClientes = () => {
         ativo: clienteForm.ativo,
         municipio: clienteForm.municipio.trim() || null,
         uf: clienteForm.uf.trim() || null,
+        categoria: clienteForm.categoria || null,
       };
       
       const { data, error } = await supabase.from(clienteTable).insert(payload).select().single();
@@ -354,6 +361,7 @@ const GestaoClientes = () => {
             municipio: data.municipio,
             uf: data.uf,
             ativo: data.ativo,
+            categoria: (data as any).categoria ?? null,
             created_at: data.created_at,
             updated_at: data.updated_at,
           }]
@@ -451,6 +459,17 @@ const GestaoClientes = () => {
     return fixo === 'Sim' ? 'Fixo' : fixo === 'Não' ? 'Pontual' : '-';
   };
 
+  const formatCategoria = (cat: string | null) => {
+    if (!cat) return '-';
+    const colors: Record<string, string> = {
+      Bronze: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
+      Prata: 'bg-slate-200 text-slate-700 hover:bg-slate-200',
+      Ouro: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+      Diamante: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
+    };
+    return <Badge className={colors[cat] || ''}>{cat}</Badge>;
+  };
+
   return (
     <DevLayout title="Gestão de Clientes" subtitle="Consulta e filtros de clientes">
       <div className="space-y-6">
@@ -529,6 +548,22 @@ const GestaoClientes = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Categoria - 2 colunas */}
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Categoria</label>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="Bronze">Bronze</SelectItem>
+                    <SelectItem value="Prata">Prata</SelectItem>
+                    <SelectItem value="Ouro">Ouro</SelectItem>
+                    <SelectItem value="Diamante">Diamante</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Botões - Ambos à direita */}
@@ -573,6 +608,7 @@ const GestaoClientes = () => {
                       <TableHeader className="bg-slate-50">
                         <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Categoria</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
@@ -592,6 +628,7 @@ const GestaoClientes = () => {
                             <TableCell className="px-4 py-3.5 font-medium text-slate-900">
                               {row.nome || '-'}
                             </TableCell>
+                            <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || '-'}</TableCell>
@@ -816,7 +853,7 @@ const GestaoClientes = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Tipo</Label>
                 <Select value={clienteForm.fixo} onValueChange={(v) => setClienteForm(f => ({ ...f, fixo: v }))}>
@@ -826,6 +863,20 @@ const GestaoClientes = () => {
                   <SelectContent>
                     <SelectItem value="Sim">Fixo</SelectItem>
                     <SelectItem value="Não">Pontual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Categoria</Label>
+                <Select value={clienteForm.categoria} onValueChange={(v) => setClienteForm(f => ({ ...f, categoria: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Bronze">Bronze</SelectItem>
+                    <SelectItem value="Prata">Prata</SelectItem>
+                    <SelectItem value="Ouro">Ouro</SelectItem>
+                    <SelectItem value="Diamante">Diamante</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
