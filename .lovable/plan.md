@@ -1,73 +1,92 @@
 
 
-# Reordenar Coluna "Ressarcido" e Atualizar Calculo do Saldo
+# Adicionar Coluna Categoria ao Lado do Nome + Filtro de Categoria
 
-## Objetivo
+## Resumo
 
-1. Mover a coluna "Ressarcido" para logo apos "PER Compensado"
-2. Valor Ressarcido = saldo do PER na data de pagamento (vlr_credito - totalCompensado), somente quando dt_pagamento existe
-3. Saldo Disponivel = vlr_credito - (totalCompensado + valorRessarcido)
-
----
-
-## Nova Ordem das Colunas
-
-| # | Coluna | Mudanca |
-|---|--------|---------|
-| 1-9 | (sem mudanca) | Nr Processo ate PER Compensado |
-| 10 | **Ressarcido** | Movido para ca (era 11) |
-| 11 | **Saldo Disponivel** | Movido para ca (era 10), formula alterada |
-| 12-13 | Data Pagamento, Editar | Sem mudanca |
+Duas alteracoes na tela de Gestao de Clientes:
+1. Adicionar coluna **Categoria** na tabela de resultados, posicionada logo apos "Nome Cliente"
+2. Adicionar filtro de **Categoria** na area de filtros de busca
 
 ---
 
-## Alteracoes no Arquivo `src/pages/equipe/dev/ControlePerdcomp.tsx`
+## 1. Migracao de Banco de Dados
 
-### 1. Reordenar Headers (linhas 334-336)
+Adicionar coluna `categoria` (text, nullable) nas tabelas `cliente` e `cliente_dev`:
 
-De:
-```
-PER Compensado -> Saldo Disponivel -> Ressarcido
-```
-Para:
-```
-PER Compensado -> Ressarcido -> Saldo Disponivel
+```text
+ALTER TABLE public.cliente ADD COLUMN categoria text DEFAULT NULL;
+ALTER TABLE public.cliente_dev ADD COLUMN categoria text DEFAULT NULL;
 ```
 
-### 2. Atualizar Logica de Calculo (linha 351)
+As politicas de RLS existentes ja cobrem novas colunas automaticamente.
 
-De:
-```typescript
-const saldo = item.vlr_credito - totalCompensado;
-```
-Para:
-```typescript
-const valorRessarcido = situacaoInfo?.dt_pagamento 
-  ? (item.vlr_credito - totalCompensado) 
-  : 0;
-const saldo = item.vlr_credito - (totalCompensado + valorRessarcido);
-```
+---
 
-Nota: Quando ha `dt_pagamento`, o ressarcido = saldo do PER naquele momento (vlr_credito - compensado). O saldo disponivel entao zera (vlr_credito - compensado - ressarcido = 0).
+## 2. Filtro de Categoria (area de filtros)
 
-### 3. Reordenar Celulas no Body (linhas 367-379)
+Adicionar um novo Select de **Categoria** na grade de filtros, apos o filtro de Tipo.
 
-Apos PER Compensado, colocar primeiro Ressarcido, depois Saldo Disponivel:
+Reorganizar o grid de 12 colunas para acomodar o novo filtro:
+- Cliente: 3 colunas
+- Contribuinte: 4 colunas
+- Status: 2 colunas
+- Tipo: 1.5 colunas
+- **Categoria: 1.5 colunas**
 
-```tsx
-{/* PER Compensado */}
-<TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
+Opcoes do Select:
+- Todos (placeholder/default)
+- Bronze
+- Prata
+- Ouro
+- Diamante
 
-{/* Ressarcido (movido para ca) */}
-<TableCell className="text-right">
-  {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
-</TableCell>
+O filtro sera aplicado no `useMemo` que gera `resultados`, filtrando por `categoria` quando selecionado.
 
-{/* Saldo Disponivel (nova formula) */}
-<TableCell className="text-right">
-  <span className={cn("font-medium", ...)}>
-    {formatCurrency(saldo)}
-  </span>
-</TableCell>
-```
+---
+
+## 3. Coluna Categoria na Tabela de Resultados
+
+Nova ordem das colunas:
+
+| Nome Cliente | **Categoria** | Status | Tipo Cliente | Telefone | Setor |
+
+Exibicao como Badge colorido:
+- **Bronze**: bg-amber-100 text-amber-800
+- **Prata**: bg-slate-200 text-slate-700
+- **Ouro**: bg-yellow-100 text-yellow-800
+- **Diamante**: bg-blue-100 text-blue-800
+- Sem categoria: exibe "-"
+
+---
+
+## 4. Sincronizacao com DW
+
+Atualizar o tipo do payload em `syncCadastrosToDW` para incluir o campo `categoria`.
+
+---
+
+## 5. FiscalClients.tsx
+
+Adicionar coluna "Categoria" na tabela de clientes do fiscal, apos "Nome", com o mesmo Badge colorido.
+
+---
+
+## Detalhes Tecnicos
+
+### Arquivo: `src/pages/equipe/dev/GestaoClientes.tsx`
+
+1. **Novo estado**: `const [categoria, setCategoria] = useState('')`
+2. **syncCadastrosToDW payload** (linha 8): adicionar `categoria: string | null`
+3. **hasActiveFilters** (linha ~290): incluir `|| categoria`
+4. **handleClear**: resetar `categoria`
+5. **resultados useMemo**: adicionar filtro por `categoria`
+6. **Grid de filtros** (linha 473): ajustar colunas e adicionar Select de Categoria
+7. **TableHeader** (linha 574): inserir "Categoria" apos "Nome Cliente"
+8. **TableBody** (linha 592): inserir celula com Badge colorido apos nome
+9. **handleSaveCliente**: incluir `categoria` no payload de insert/update
+10. **Modal de criar/editar**: adicionar campo Select de categoria
+
+### Arquivo: `src/components/equipe/fiscal/FiscalClients.tsx`
+- Adicionar coluna "Categoria" apos "Cliente" com Badge colorido
 
