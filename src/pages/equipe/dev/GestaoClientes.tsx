@@ -61,6 +61,7 @@ import { Switch } from '@/components/ui/switch';
 import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2, Plus, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import NewClientModal from '@/components/equipe/dev/NewClientModal';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -135,6 +136,9 @@ const GestaoClientes = () => {
     setor: '',
     simples_nacional: false,
   });
+
+  // Novo modal de cadastro completo
+  const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -540,7 +544,7 @@ const GestaoClientes = () => {
                 <Filter className="h-5 w-5 text-teal-600" />
                 <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
               </CardTitle>
-              <Button onClick={handleNovoCliente} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              <Button onClick={() => setNovoClienteModalOpen(true)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                 <Plus className="h-4 w-4" />
                 Novo Cliente
               </Button>
@@ -892,13 +896,13 @@ const GestaoClientes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Criar/Editar Cliente */}
+      {/* Modal de Editar Cliente */}
       <Dialog open={clienteDialogOpen} onOpenChange={setClienteDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-teal-600" />
-              {editingClienteId ? 'Editar Cliente' : 'Novo Cliente'}
+              Editar Cliente
             </DialogTitle>
           </DialogHeader>
           
@@ -1111,6 +1115,9 @@ const GestaoClientes = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Cadastro Completo (Novo Cliente) */}
+      <NewClientModal open={novoClienteModalOpen} onOpenChange={setNovoClienteModalOpen} />
     </DevLayout>
   );
 };
