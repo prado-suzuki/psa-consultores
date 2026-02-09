@@ -388,7 +388,6 @@ export default function ControlePerdcomp() {
               <TableRow>
                 <TableHead>Nº Processo</TableHead>
                 <TableHead>Situação</TableHead>
-                <TableHead>Atualização</TableHead>
                 <TableHead>Data Solicitada</TableHead>
                 <TableHead>Exercício</TableHead>
                 <TableHead>Trimestre</TableHead>
@@ -416,7 +415,7 @@ export default function ControlePerdcomp() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -437,7 +436,6 @@ export default function ControlePerdcomp() {
                   >
                     <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                     <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
-                    <TableCell>{situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}</TableCell>
                     <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                     <TableCell>{item.exercicio}</TableCell>
                     <TableCell>{item.tri_exercicio}º</TableCell>
