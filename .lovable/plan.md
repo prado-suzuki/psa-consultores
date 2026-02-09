@@ -1,92 +1,205 @@
 
 
-# Adicionar Coluna Categoria ao Lado do Nome + Filtro de Categoria
+# Novo Modal de Cadastro Completo de Cliente
 
 ## Resumo
 
-Duas alteracoes na tela de Gestao de Clientes:
-1. Adicionar coluna **Categoria** na tabela de resultados, posicionada logo apos "Nome Cliente"
-2. Adicionar filtro de **Categoria** na area de filtros de busca
+Substituir o modal simples de "+ Novo Cliente" (linhas 895-1009 do GestaoClientes.tsx) por um modal full-screen com 4 secoes em scroll vertical, seguindo a estrutura do arquivo modelo `NewClientModal.tsx`. O modal de **edicao** (icone lapis) permanece inalterado.
 
 ---
 
-## 1. Migracao de Banco de Dados
+## 1. Migracao: Criar tabela `participante` / `participante_dev`
 
-Adicionar coluna `categoria` (text, nullable) nas tabelas `cliente` e `cliente_dev`:
+Baseado na estrutura fornecida:
 
 ```text
-ALTER TABLE public.cliente ADD COLUMN categoria text DEFAULT NULL;
-ALTER TABLE public.cliente_dev ADD COLUMN categoria text DEFAULT NULL;
+CREATE TABLE public.participante (
+  id_participante uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id_cliente uuid NOT NULL REFERENCES public.cliente(id) ON DELETE CASCADE,
+  nome text NOT NULL,
+  email text,
+  telefone text,
+  cargo text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE public.participante_dev (
+  id_participante uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id_cliente uuid NOT NULL REFERENCES public.cliente_dev(id) ON DELETE CASCADE,
+  nome text NOT NULL,
+  email text,
+  telefone text,
+  cargo text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE public.participante ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.participante_dev ENABLE ROW LEVEL SECURITY;
+
+-- Politicas (mesmas das tabelas existentes - team_member e admin)
+CREATE POLICY "team_members_all_participante" ON public.participante
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('team_member','admin'))
+  );
+
+CREATE POLICY "team_members_all_participante_dev" ON public.participante_dev
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('team_member','admin'))
+  );
 ```
 
-As politicas de RLS existentes ja cobrem novas colunas automaticamente.
+---
+
+## 2. Mapeamento de Campos por Tabela
+
+### Secao 1 - Dados do Cliente -> `cliente` / `cliente_dev`
+| Campo Modal | Coluna BD |
+|---|---|
+| Nome do Cliente | `nome` |
+| Categoria | `categoria` |
+| Status (Switch) | `ativo` |
+| Tipo (Fixo/Pontual) | `fixo` ("Sim"/"Nao") |
+| Telefone | `telefone` |
+| Municipio | `municipio` |
+| UF | `uf` |
+
+### Secao 2 - Contribuintes -> `contribuinte` / `contribuinte_dev`
+| Campo Modal | Coluna BD |
+|---|---|
+| Tipo (PJ/PF) | `tipo_pessoa` |
+| CPF/CNPJ | `cpf_cnpj` |
+| Razao Social | `nome_razao_social` |
+| Insc. Estadual | `inscricao_estadual` |
+| CNAE | `cod_cnae` |
+| Setor | `setor` |
+| Simples Nacional | `simples_nacional` |
+| (auto) | `cliente_id` -> FK do cliente recem-criado |
+
+### Secao 3 - Participantes -> `participante` / `participante_dev` (NOVA)
+| Campo Modal | Coluna BD |
+|---|---|
+| Nome | `nome` |
+| Cargo | `cargo` |
+| E-mail | `email` |
+| Telefone | `telefone` |
+| (auto) | `id_cliente` -> FK do cliente recem-criado |
+
+Nota: o campo `obs` e `linked_entity_id` do modelo serao removidos pois a tabela real nao os possui. O participante se vincula ao **cliente**, nao ao contribuinte.
+
+### Secao 4 - Contratos -> `contrato` + `servico`
+| Campo Modal | Coluna BD (`contrato`) |
+|---|---|
+| Tipo (Mensal/Pontual) | `tipo_contrato` |
+| Numero | `numero_contrato` |
+| Data Inicio | `data_inicio` |
+| Data Fim | `data_fim` |
+| Valor | `valor_fixo` |
+| Aliquota % | `aliquota_contrato` |
+| (auto) | `id_cliente` -> FK do cliente |
+
+Sub-itens de servico por contrato:
+
+| Campo Modal | Coluna BD (`servico`) |
+|---|---|
+| Descricao | `descricao` |
+| Valor | `valor` |
+| Catalogo | `id_catalog_client` -> FK da `catalog_clients` |
+| (auto) | `id_contrato` -> FK do contrato recem-criado |
+
+O dropdown de servicos buscara da tabela `catalog_clients` (Fiscal, Consultoria, Fixos, Transversal) como catalogo base.
 
 ---
 
-## 2. Filtro de Categoria (area de filtros)
+## 3. Estrutura do Novo Modal
 
-Adicionar um novo Select de **Categoria** na grade de filtros, apos o filtro de Tipo.
-
-Reorganizar o grid de 12 colunas para acomodar o novo filtro:
-- Cliente: 3 colunas
-- Contribuinte: 4 colunas
-- Status: 2 colunas
-- Tipo: 1.5 colunas
-- **Categoria: 1.5 colunas**
-
-Opcoes do Select:
-- Todos (placeholder/default)
-- Bronze
-- Prata
-- Ouro
-- Diamante
-
-O filtro sera aplicado no `useMemo` que gera `resultados`, filtrando por `categoria` quando selecionado.
-
----
-
-## 3. Coluna Categoria na Tabela de Resultados
-
-Nova ordem das colunas:
-
-| Nome Cliente | **Categoria** | Status | Tipo Cliente | Telefone | Setor |
-
-Exibicao como Badge colorido:
-- **Bronze**: bg-amber-100 text-amber-800
-- **Prata**: bg-slate-200 text-slate-700
-- **Ouro**: bg-yellow-100 text-yellow-800
-- **Diamante**: bg-blue-100 text-blue-800
-- Sem categoria: exibe "-"
-
----
-
-## 4. Sincronizacao com DW
-
-Atualizar o tipo do payload em `syncCadastrosToDW` para incluir o campo `categoria`.
+```text
++------------------------------------------------------+
+| [Plus icon] Cadastro Completo                    [X]  |
+| "Adicione todos os dados..."                          |
++------------------------------------------------------+
+| [ScrollArea - 95vh]                                   |
+|                                                       |
+| (1) Dados do Cliente [circulo azul]                   |
+|   Nome* | Categoria | Status                          |
+|   Tipo(toggle) | Telefone | Municipio | UF            |
+|                                                       |
+| (2) Contribuintes (N) [circulo roxo]                  |
+|   [cards dos adicionados - grid 2 cols]               |
+|   [form inline: tipo, cpf, razao, ie, cnae, setor,   |
+|    simples] + botao "Adicionar"                       |
+|                                                       |
+| (3) Participantes (N) [circulo amber]                 |
+|   [cards dos adicionados - grid 2 cols]               |
+|   [form inline: nome, cargo, email, telefone]         |
+|   + botao "Adicionar"                                 |
+|                                                       |
+| (4) Contratos (N) [circulo emerald]                   |
+|   [cards dos adicionados com servicos listados]       |
+|   [form inline: tipo, numero, datas, valor,           |
+|    aliquota + dropdown servicos catalogo]              |
+|   + botao "Adicionar Contrato"                        |
+|                                                       |
++------------------------------------------------------+
+| [Cancelar]              [Salvar Cliente Completo]     |
++------------------------------------------------------+
+```
 
 ---
 
-## 5. FiscalClients.tsx
-
-Adicionar coluna "Categoria" na tabela de clientes do fiscal, apos "Nome", com o mesmo Badge colorido.
-
----
-
-## Detalhes Tecnicos
+## 4. Detalhes Tecnicos
 
 ### Arquivo: `src/pages/equipe/dev/GestaoClientes.tsx`
 
-1. **Novo estado**: `const [categoria, setCategoria] = useState('')`
-2. **syncCadastrosToDW payload** (linha 8): adicionar `categoria: string | null`
-3. **hasActiveFilters** (linha ~290): incluir `|| categoria`
-4. **handleClear**: resetar `categoria`
-5. **resultados useMemo**: adicionar filtro por `categoria`
-6. **Grid de filtros** (linha 473): ajustar colunas e adicionar Select de Categoria
-7. **TableHeader** (linha 574): inserir "Categoria" apos "Nome Cliente"
-8. **TableBody** (linha 592): inserir celula com Badge colorido apos nome
-9. **handleSaveCliente**: incluir `categoria` no payload de insert/update
-10. **Modal de criar/editar**: adicionar campo Select de categoria
+**Novos estados** (adicionados junto aos existentes, ~linha 138):
+```text
+// Novo modal de cadastro completo
+const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
+const [novoClienteData, setNovoClienteData] = useState({...});
+const [draftEntities, setDraftEntities] = useState<DraftEntity[]>([]);
+const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({...});
+const [draftParticipants, setDraftParticipants] = useState<DraftParticipant[]>([]);
+const [draftParticipant, setDraftParticipant] = useState<Partial<DraftParticipant>>({...});
+const [draftContracts, setDraftContracts] = useState<DraftContract[]>([]);
+const [draftContract, setDraftContract] = useState<Partial<DraftContract>>({...});
+const [draftServices, setDraftServices] = useState<DraftService[]>([]);
+const [savingNovoCliente, setSavingNovoCliente] = useState(false);
+```
 
-### Arquivo: `src/components/equipe/fiscal/FiscalClients.tsx`
-- Adicionar coluna "Categoria" apos "Cliente" com Badge colorido
+**Query para catalogo de servicos**:
+Buscar `catalog_clients` para popular o dropdown de servicos no contrato.
+
+**Novo handler `handleSaveNovoCliente`**:
+Cadeia sequencial de inserts:
+1. INSERT `cliente` -> obtem `id`
+2. INSERT em lote `contribuinte` (cada um com `cliente_id`)
+3. INSERT em lote `participante` (cada um com `id_cliente`)
+4. Para cada contrato: INSERT `contrato` (com `id_cliente`) -> obtem `id_contrato` -> INSERT em lote `servico` (com `id_contrato`)
+5. Sync DW (fire-and-forget) para cliente e contribuintes
+6. Invalidar queries, fechar modal, toast de sucesso
+
+**Botao "+ Novo Cliente"** (linha ~480):
+- Chamar `setNovoClienteModalOpen(true)` em vez de `handleNovoCliente()`
+- O modal antigo (linhas 895-1009) permanece exclusivo para **edicao** (`editingClienteId`)
+
+**Componentes UI utilizados** (design existente do projeto):
+- `Dialog` / `DialogContent` (com `className="max-w-5xl max-h-[95vh]"`)
+- `ScrollArea` para o corpo
+- `Input`, `Label`, `Select`, `Switch`, `Checkbox`, `Badge`, `Button` do projeto
+- `toast` (sonner) para feedback
+- Cores: `bg-teal-600` para botao primario, circulos numerados com cores do modelo (blue, purple, amber, emerald)
+
+**Tabela ambiente**:
+Usar a mesma logica de `isProductionEnvironment` para definir `participanteTable`:
+```text
+const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
+```
+
+### Arquivos modificados:
+- `src/pages/equipe/dev/GestaoClientes.tsx` - modal novo + estados + handler de save completo
+
+### Migracao de banco:
+- Criar tabelas `participante` e `participante_dev` com RLS
 
