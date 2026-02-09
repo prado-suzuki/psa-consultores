@@ -22,7 +22,7 @@ export function filterTaxasByRange(
  */
 export function calculateCorrectionFactor(taxasNoRange: SelicTaxa[]): number {
   if (taxasNoRange.length === 0) return 1;
-  return taxasNoRange.reduce((acc, t) => acc * (1 + t.valor_decimal), 1);
+  return taxasNoRange.reduce((acc, t) => acc * (1 + t.vlr_acumulado_dec), 1);
 }
 
 /**
