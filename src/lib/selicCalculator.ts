@@ -21,8 +21,8 @@ export function filterTaxasByRange(
  * Fórmula: Π (1 + taxa_decimal) para cada mês no range.
  */
 export function calculateCorrectionFactor(taxasNoRange: SelicTaxa[]): number {
-  if (taxasNoRange.length === 0) return 1;
-  return taxasNoRange.reduce((acc, t) => acc * (1 + t.vlr_acumulado_dec), 1);
+  if (taxasNoRange.length === 0) return 0;
+  return taxasNoRange.reduce((acc, t) => acc + t.vlr_acumulado_dec, 0);
 }
 
 /**
@@ -33,12 +33,14 @@ export function applySelicCorrection(
   taxas: SelicTaxa[],
   dataInicio: string,
   dataFim: string
-): { valorCorrigido: number; fator: number } {
+): { valorCorrigido: number; fator: number; valorAcumulado: number } {
   const taxasRange = filterTaxasByRange(taxas, dataInicio, dataFim);
   const fator = calculateCorrectionFactor(taxasRange);
+  const lastTaxa = taxasRange.length > 0 ? taxasRange[taxasRange.length - 1] : null;
   return {
     valorCorrigido: valor * fator,
     fator,
+    valorAcumulado: lastTaxa ? lastTaxa.valor_acumulado : 0,
   };
 }
 
@@ -50,7 +52,7 @@ export function calculateBatchCorrection(
   taxas: SelicTaxa[],
   dataFim: string
 ): {
-  itens: Array<{ id: string; valorOriginal: number; valorCorrigido: number; fator: number }>;
+  itens: Array<{ id: string; valorOriginal: number; valorCorrigido: number; fator: number; valorAcumulado: number }>;
   totalOriginal: number;
   totalCorrigido: number;
 } {
@@ -58,7 +60,7 @@ export function calculateBatchCorrection(
   let totalCorrigido = 0;
 
   const resultado = itens.map((item) => {
-    const { valorCorrigido, fator } = applySelicCorrection(
+    const { valorCorrigido, fator, valorAcumulado } = applySelicCorrection(
       item.valor,
       taxas,
       item.dataInicio,
@@ -71,6 +73,7 @@ export function calculateBatchCorrection(
       valorOriginal: item.valor,
       valorCorrigido,
       fator,
+      valorAcumulado,
     };
   });
 

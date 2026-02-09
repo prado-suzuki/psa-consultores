@@ -287,7 +287,7 @@ export default function ControlePerdcomp() {
   const selicCorrectionMap = useMemo(() => {
     if (selicTaxas.length === 0) return {};
     const hoje = format(new Date(), 'yyyy-MM-dd');
-    const map: Record<string, { valorCorrigido: number; fator: number }> = {};
+    const map: Record<string, { valorCorrigido: number; fator: number; valorAcumulado: number }> = {};
     for (const per of filteredPerData) {
       if (per.dt_solicitada) {
         map[per.numero_processo_per] = applySelicCorrection(
@@ -452,7 +452,7 @@ export default function ControlePerdcomp() {
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Fator Selic: {correction.fator.toFixed(6)}</p>
+                            <p>Selic acumulada: {correction.valorAcumulado.toFixed(2)}%</p>
                           </TooltipContent>
                         </Tooltip>
                       ) : selicLoading ? (
