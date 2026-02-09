@@ -58,7 +58,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2, Plus } from 'lucide-react';
+import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2, Plus, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -109,6 +109,7 @@ const GestaoClientes = () => {
 
   // Estados do modal de criar/editar cliente
   const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
+  const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
   const [savingCliente, setSavingCliente] = useState(false);
   const [clienteForm, setClienteForm] = useState({
     nome: '',
@@ -308,6 +309,7 @@ const GestaoClientes = () => {
 
   // Abrir modal de novo cliente
   const handleNovoCliente = () => {
+    setEditingClienteId(null);
     setClienteForm({
       nome: '',
       telefone: '',
@@ -317,6 +319,23 @@ const GestaoClientes = () => {
       municipio: '',
       uf: '',
       categoria: '',
+    });
+    setClienteDialogOpen(true);
+  };
+
+  // Abrir modal de editar cliente
+  const handleEditCliente = (e: React.MouseEvent, row: any) => {
+    e.stopPropagation();
+    setEditingClienteId(row.id);
+    setClienteForm({
+      nome: row.nome || '',
+      telefone: row.telefone || '',
+      setor_cliente: row.setor_cliente || '',
+      fixo: row.fixo || '',
+      ativo: row.ativo ?? true,
+      municipio: row.municipio || '',
+      uf: row.uf || '',
+      categoria: (row as any).categoria || '',
     });
     setClienteDialogOpen(true);
   };
@@ -341,11 +360,21 @@ const GestaoClientes = () => {
         categoria: clienteForm.categoria || null,
       };
       
-      const { data, error } = await supabase.from(clienteTable).insert(payload).select().single();
-      if (error) throw error;
+      let data: any;
+      if (editingClienteId) {
+        const { data: updated, error } = await supabase.from(clienteTable).update(payload).eq('id', editingClienteId).select().single();
+        if (error) throw error;
+        data = updated;
+        toast.success('Cliente atualizado com sucesso');
+      } else {
+        const { data: inserted, error } = await supabase.from(clienteTable).insert(payload).select().single();
+        if (error) throw error;
+        data = inserted;
+        toast.success('Cliente criado com sucesso');
+      }
       
-      toast.success('Cliente criado com sucesso');
       setClienteDialogOpen(false);
+      setEditingClienteId(null);
       queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
       queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
       
@@ -368,7 +397,7 @@ const GestaoClientes = () => {
         });
       }
     } catch (error: any) {
-      toast.error('Erro ao criar cliente: ' + error.message);
+      toast.error(`Erro ao ${editingClienteId ? 'atualizar' : 'criar'} cliente: ` + error.message);
     } finally {
       setSavingCliente(false);
     }
@@ -613,6 +642,7 @@ const GestaoClientes = () => {
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-slate-100">
@@ -633,6 +663,16 @@ const GestaoClientes = () => {
                             <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || '-'}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || '-'}</TableCell>
+                            <TableCell className="px-4 py-3.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
+                                onClick={(e) => handleEditCliente(e, row)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -811,13 +851,13 @@ const GestaoClientes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Criar Cliente */}
+      {/* Modal de Criar/Editar Cliente */}
       <Dialog open={clienteDialogOpen} onOpenChange={setClienteDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-teal-600" />
-              Novo Cliente
+              {editingClienteId ? 'Editar Cliente' : 'Novo Cliente'}
             </DialogTitle>
           </DialogHeader>
           
