@@ -1213,6 +1213,88 @@ export type Database = {
         }
         Relationships: []
       }
+      participante: {
+        Row: {
+          cargo: string | null
+          created_at: string | null
+          email: string | null
+          id_cliente: string
+          id_participante: string
+          nome: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          id_cliente: string
+          id_participante?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          id_cliente?: string
+          id_participante?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participante_id_cliente_fkey"
+            columns: ["id_cliente"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participante_dev: {
+        Row: {
+          cargo: string | null
+          created_at: string | null
+          email: string | null
+          id_cliente: string
+          id_participante: string
+          nome: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          id_cliente: string
+          id_participante?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          id_cliente?: string
+          id_participante?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participante_dev_id_cliente_fkey"
+            columns: ["id_cliente"]
+            isOneToOne: false
+            referencedRelation: "cliente_dev"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       per: {
         Row: {
           atualizado_em: string | null
