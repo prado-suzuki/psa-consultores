@@ -24,6 +24,7 @@ interface Cliente {
   telefone: string | null;
   fixo: string | null;
   ativo: boolean | null;
+  categoria: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +95,7 @@ export function FiscalClients() {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold">Cliente</TableHead>
+                <TableHead className="font-semibold">Categoria</TableHead>
                 <TableHead className="font-semibold">Setor</TableHead>
                 <TableHead className="font-semibold">Município</TableHead>
                 <TableHead className="font-semibold">UF</TableHead>
@@ -107,6 +109,18 @@ export function FiscalClients() {
                 >
                   <TableCell>
                     <span className="font-medium text-foreground">{client.nome}</span>
+                  </TableCell>
+                  <TableCell>
+                    {client.categoria ? (
+                      <Badge variant="outline" className={
+                        client.categoria === 'Bronze' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                        client.categoria === 'Prata' ? 'bg-slate-200 text-slate-700 border-slate-300' :
+                        client.categoria === 'Ouro' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                        client.categoria === 'Diamante' ? 'bg-blue-100 text-blue-800 border-blue-200' : ''
+                      }>
+                        {client.categoria}
+                      </Badge>
+                    ) : '-'}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {client.setor_cliente ? (

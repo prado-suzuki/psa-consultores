@@ -166,6 +166,7 @@ export type Database = {
       cliente: {
         Row: {
           ativo: boolean | null
+          categoria: string | null
           created_at: string
           fixo: string | null
           id: string
@@ -178,6 +179,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          categoria?: string | null
           created_at?: string
           fixo?: string | null
           id?: string
@@ -190,6 +192,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          categoria?: string | null
           created_at?: string
           fixo?: string | null
           id?: string
@@ -205,6 +208,7 @@ export type Database = {
       cliente_dev: {
         Row: {
           ativo: boolean | null
+          categoria: string | null
           created_at: string
           fixo: string | null
           id: string
@@ -217,6 +221,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          categoria?: string | null
           created_at?: string
           fixo?: string | null
           id?: string
@@ -229,6 +234,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          categoria?: string | null
           created_at?: string
           fixo?: string | null
           id?: string
