@@ -6,41 +6,39 @@ import type { SelicTaxa } from '@/hooks/useSelicData';
  * @param dataInicio - Data início (YYYY-MM-DD) - baseada na dt_solicitada do PER
  * @param dataFim - Data fim (YYYY-MM-DD) - data de referência (geralmente hoje)
  */
-export function filterTaxasByRange(
-  taxas: SelicTaxa[],
-  dataInicio: string,
-  dataFim: string
-): SelicTaxa[] {
-  return taxas.filter((t) => {
-    return t.data_atualizacao >= dataInicio && t.data_atualizacao <= dataFim;
-  });
-}
-
 /**
- * Calcula o fator de correção monetária acumulado pela Selic.
- * Fórmula: Π (1 + taxa_decimal) para cada mês no range.
+ * Encontra a taxa Selic cuja data_atualizacao é a mais próxima (<=) da data solicitada do PER.
+ * Retorna null se nenhuma taxa for encontrada.
  */
-export function calculateCorrectionFactor(taxasNoRange: SelicTaxa[]): number {
-  if (taxasNoRange.length === 0) return 0;
-  return taxasNoRange.reduce((acc, t) => acc + t.vlr_acumulado_dec, 0);
+export function findTaxaByDate(
+  taxas: SelicTaxa[],
+  dataSolicitada: string
+): SelicTaxa | null {
+  // Ordena por data_atualizacao desc para encontrar a mais próxima <= dataSolicitada
+  const candidatas = taxas
+    .filter((t) => t.data_atualizacao <= dataSolicitada)
+    .sort((a, b) => b.data_atualizacao.localeCompare(a.data_atualizacao));
+  return candidatas.length > 0 ? candidatas[0] : null;
 }
 
 /**
  * Aplica a correção monetária Selic sobre um valor.
+ * Fórmula: valor_credito * vlr_acumulado_dec (valor já acumulado pela API)
  */
 export function applySelicCorrection(
   valor: number,
   taxas: SelicTaxa[],
   dataInicio: string,
-  dataFim: string
+  _dataFim: string
 ): { valorCorrigido: number; fator: number; valorAcumulado: number } {
-  const taxasRange = filterTaxasByRange(taxas, dataInicio, dataFim);
-  const fator = calculateCorrectionFactor(taxasRange);
-  const lastTaxa = taxasRange.length > 0 ? taxasRange[taxasRange.length - 1] : null;
+  const taxa = findTaxaByDate(taxas, dataInicio);
+  if (!taxa) {
+    return { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
+  }
   return {
-    valorCorrigido: valor * fator,
-    fator,
-    valorAcumulado: lastTaxa ? lastTaxa.valor_acumulado : 0,
+    valorCorrigido: valor * taxa.vlr_acumulado_dec,
+    fator: taxa.vlr_acumulado_dec,
+    valorAcumulado: taxa.valor_acumulado,
   };
 }
 
