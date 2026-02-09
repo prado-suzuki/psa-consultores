@@ -272,7 +272,12 @@ export default function ControlePerdcomp() {
   const selicDateRange = useMemo(() => {
     if (filteredPerData.length === 0) return { inicio: null, fim: null };
     const dates = filteredPerData.map(p => p.dt_solicitada).filter(Boolean).sort();
-    const inicio = dates[0] || null;
+    if (dates.length === 0) return { inicio: null, fim: null };
+    // Start 2 months before the earliest dt_solicitada to ensure the API returns
+    // accumulated rates that cover all PER dates (including mid-month ones)
+    const earliest = new Date(dates[0]);
+    earliest.setMonth(earliest.getMonth() - 2);
+    const inicio = format(earliest, 'yyyy-MM-dd');
     const fim = format(new Date(), 'yyyy-MM-dd');
     return { inicio, fim };
   }, [filteredPerData]);
