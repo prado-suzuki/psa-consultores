@@ -427,10 +427,8 @@ export default function ControlePerdcomp() {
               ) : paginatedData.map((item) => {
                 const situacaoInfo = perSituacoesMap[item.numero_processo_per];
                 const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
-                const valorRessarcido = situacaoInfo?.dt_pagamento 
-                  ? (item.vlr_credito - totalCompensado) 
-                  : 0;
-                const saldo = item.vlr_credito - (totalCompensado + valorRessarcido);
+                const valorRessarcido = (item as any).vlr_ressarcido || 0;
+                const saldo = item.vlr_credito - totalCompensado - valorRessarcido;
                 const correction = selicCorrectionMap[item.numero_processo_per];
                 
                 return (
