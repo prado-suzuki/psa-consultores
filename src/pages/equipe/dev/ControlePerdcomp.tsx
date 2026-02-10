@@ -391,7 +391,7 @@ export default function ControlePerdcomp() {
     return (
       <TooltipProvider>
         <>
-          <Table>
+          <Table className="text-xs">
             <TableHeader>
               <TableRow>
                 <TableHead>Nº Processo</TableHead>
