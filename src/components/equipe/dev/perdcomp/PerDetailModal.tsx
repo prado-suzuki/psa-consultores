@@ -499,13 +499,13 @@ export function PerDetailModal({
 
                 <Separator />
 
-                {/* Histórico de Situações */}
+              {/* Histórico de Situações */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
                     <History className="h-3 w-3" />
                     Histórico
                   </h4>
-                  <ScrollArea className="h-[300px]">
+                  <ScrollArea className={perPago ? "h-[200px]" : "h-[300px]"}>
                     {loadingSituacoes ? (
                       <div className="flex items-center justify-center py-4">
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -544,6 +544,43 @@ export function PerDetailModal({
                   </ScrollArea>
                 </div>
               </div>
+
+              {/* Banner de Ressarcimento Registrado - bottom of sidebar */}
+              {perPago && (
+                <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-700">
+                  <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                          Ressarcimento Registrado
+                        </h5>
+                        <div className="flex items-center gap-4 mt-1">
+                          <div>
+                            <span className="text-[10px] text-green-600 dark:text-green-400">Valor Ressarcido</span>
+                            <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                              {formatCurrency(vlrRessarcido)}
+                            </p>
+                          </div>
+                          {(() => {
+                            const sitComPagamento = situacoes.find((s: any) => s.dt_pagamento);
+                            return sitComPagamento ? (
+                              <div>
+                                <span className="text-[10px] text-green-600 dark:text-green-400">Data Pagamento</span>
+                                <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                                  {formatDate(sitComPagamento.dt_pagamento)}
+                                </p>
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </aside>
 
             {/* Área Principal - Lançamentos PER */}
