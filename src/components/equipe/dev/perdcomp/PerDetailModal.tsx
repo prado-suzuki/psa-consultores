@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
-import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign } from 'lucide-react';
+import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -149,6 +149,27 @@ export function PerDetailModal({
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
 
+  // Query para dados atualizados do PER (refetch após mutations)
+  const { data: perAtualizado } = useQuery({
+    queryKey: ['per-detail', per?.numero_processo_per],
+    queryFn: async () => {
+      if (!per?.numero_processo_per) return null;
+      const { data, error } = await supabase
+        .from('per')
+        .select('*, contribuinte(nome_razao_social)')
+        .eq('numero_processo_per', per.numero_processo_per)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!per?.numero_processo_per,
+  });
+
+  // Usar dados atualizados com fallback para prop
+  const perAtual = perAtualizado || per;
+  const vlrRessarcido = (perAtual as any)?.vlr_ressarcido || 0;
+  const perPago = vlrRessarcido > 0;
+
   // Query DCOMPs vinculados ao PER
   const { data: dcomps = [], isLoading: loadingDcomps } = useQuery({
     queryKey: ['per-dcomps', per?.numero_processo_per],
@@ -199,11 +220,10 @@ export function PerDetailModal({
 
   // Calcular saldo restante (baseado apenas em DCOMPs vigentes)
   const saldoRestante = useMemo(() => {
-    if (!per) return 0;
+    if (!perAtual) return 0;
     const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    const vlrRessarcido = per.vlr_ressarcido || 0;
-    return per.vlr_credito - totalCompensado - vlrRessarcido;
-  }, [per, dcompsVigentes]);
+    return (perAtual as any).vlr_credito - totalCompensado - vlrRessarcido;
+  }, [perAtual, dcompsVigentes, vlrRessarcido]);
 
   // Mutation para atualizar situação
   const updateSituacaoMutation = useMutation({
@@ -255,6 +275,7 @@ export function PerDetailModal({
       return { valor, sitData };
     },
     onSuccess: ({ valor, sitData }) => {
+      queryClient.invalidateQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
@@ -539,14 +560,23 @@ export function PerDetailModal({
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Novo Ressarcimento
-                  </Button>
-                  <Button onClick={handleNewDcomp} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo DCOMP
-                  </Button>
+                  {perPago ? (
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Ressarcido
+                    </Badge>
+                  ) : (
+                    <>
+                      <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Novo Ressarcimento
+                      </Button>
+                      <Button onClick={handleNewDcomp} size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo DCOMP
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -622,7 +652,42 @@ export function PerDetailModal({
                             </TableRow>
                           );
                         })
-                      )}
+              )}
+
+              {/* Banner de Ressarcimento Registrado */}
+              {perPago && (
+                <div className="mx-6 mb-4 mt-4 rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                        Ressarcimento Registrado
+                      </h5>
+                      <div className="flex items-center gap-6 mt-1">
+                        <div>
+                          <span className="text-xs text-green-600 dark:text-green-400">Valor Ressarcido</span>
+                          <p className="text-lg font-mono font-bold text-green-800 dark:text-green-200">
+                            {formatCurrency(vlrRessarcido)}
+                          </p>
+                        </div>
+                        {(() => {
+                          const sitComPagamento = situacoes.find((s: any) => s.dt_pagamento);
+                          return sitComPagamento ? (
+                            <div>
+                              <span className="text-xs text-green-600 dark:text-green-400">Data Pagamento</span>
+                              <p className="text-lg font-mono font-bold text-green-800 dark:text-green-200">
+                                {formatDate(sitComPagamento.dt_pagamento)}
+                              </p>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
                     </TableBody>
                   </Table>
                 )}
