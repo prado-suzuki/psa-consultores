@@ -264,7 +264,11 @@ export default function ControlePerdcomp() {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
     if (retificadosSet.has(item.numero_processo_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
-    if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
+    if (processoFilter) {
+      const matchPer = item.numero_processo_per.includes(processoFilter);
+      const matchDcomp = dcompData.some(d => d.nr_per_orig === item.numero_processo_per && d.nr_documento.includes(processoFilter));
+      if (!matchPer && !matchDcomp) return false;
+    }
     return true;
   });
 
@@ -392,11 +396,16 @@ export default function ControlePerdcomp() {
               <TableRow>
                 <TableHead>Nº Processo</TableHead>
                 <TableHead>Situação</TableHead>
+                <TableHead>Última atualização</TableHead>
                 <TableHead>Data Solicitada</TableHead>
                 <TableHead>Exercício</TableHead>
                 <TableHead>Trimestre</TableHead>
                 <TableHead>Tipo Crédito</TableHead>
                 <TableHead className="text-right">Valor Crédito</TableHead>
+                <TableHead className="text-right">Valor Compensado</TableHead>
+                <TableHead className="text-right">Ressarcido</TableHead>
+                <TableHead>Data Pagamento</TableHead>
+                <TableHead className="text-right">Saldo Disponível</TableHead>
                 <TableHead className="text-right">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -409,11 +418,6 @@ export default function ControlePerdcomp() {
                     </TooltipContent>
                   </Tooltip>
                 </TableHead>
-                <TableHead className="text-right">PER Compensado</TableHead>
-                <TableHead className="text-right">Ressarcido</TableHead>
-                <TableHead className="text-right">Saldo Disponível</TableHead>
-                <TableHead>Data Pagamento</TableHead>
-                <TableHead>Última atualização</TableHead>
                 <TableHead className="w-[80px]">Editar</TableHead>
               </TableRow>
             </TableHeader>
@@ -439,11 +443,30 @@ export default function ControlePerdcomp() {
                   >
                     <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                     <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}
+                    </TableCell>
                     <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                     <TableCell>{item.exercicio}</TableCell>
                     <TableCell>{item.tri_exercicio}º</TableCell>
                     <TableCell>{item.tp_credito}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
+                    <TableCell className="text-right">
+                      {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={cn(
+                        "font-medium",
+                        saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                      )}>
+                        {formatCurrency(saldo)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       {correction ? (
                         <Tooltip>
@@ -462,25 +485,6 @@ export default function ControlePerdcomp() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
-                    <TableCell className="text-right">
-                      {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={cn(
-                        "font-medium",
-                        saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-                      )}>
-                        {formatCurrency(saldo)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}
-                    </TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 
@@ -494,32 +498,6 @@ export default function ControlePerdcomp() {
                 );
               })}
             </TableBody>
-            {filteredPerData.length > 0 && (
-              <TableFooter>
-                <TableRow className="bg-muted/50 font-semibold">
-                  <TableCell colSpan={7} className="text-right">
-                    Totais ({filteredPerData.length} PERs)
-                  </TableCell>
-                  <TableCell className="text-right">{formatCurrency(totals.credito)}</TableCell>
-                  <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                    {selicTaxas.length > 0 ? formatCurrency(totals.corrigido) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">{formatCurrency(totals.compensado)}</TableCell>
-                  <TableCell className="text-right">
-                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={cn(
-                      totals.saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                      totals.saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-                    )}>
-                      {formatCurrency(totals.saldo)}
-                    </span>
-                  </TableCell>
-                  <TableCell colSpan={3} />
-                </TableRow>
-              </TableFooter>
-            )}
           </Table>
           
           {/* Pagination */}
@@ -654,6 +632,40 @@ export default function ControlePerdcomp() {
             </Button>
           )}
         </CardHeader>
+        {searched && filteredPerData.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-6 pb-4">
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground mb-1">Valor Crédito</p>
+              <p className="text-sm font-semibold">{formatCurrency(totals.credito)}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground mb-1">Vlr. Corrigido</p>
+              <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {selicTaxas.length > 0 ? formatCurrency(totals.corrigido) : '-'}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground mb-1">Valor Compensado</p>
+              <p className="text-sm font-semibold">{formatCurrency(totals.compensado)}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground mb-1">Valor Ressarcido</p>
+              <p className="text-sm font-semibold">
+                {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : '-'}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground mb-1">Saldo Disponível</p>
+              <p className={cn(
+                "text-sm font-semibold",
+                totals.saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                totals.saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+              )}>
+                {formatCurrency(totals.saldo)}
+              </p>
+            </div>
+          </div>
+        )}
         <CardContent>
           {renderTable()}
         </CardContent>
