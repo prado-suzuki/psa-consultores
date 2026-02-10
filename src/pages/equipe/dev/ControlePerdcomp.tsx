@@ -414,13 +414,14 @@ export default function ControlePerdcomp() {
                 <TableHead className="text-right">Ressarcido</TableHead>
                 <TableHead className="text-right">Saldo Disponível</TableHead>
                 <TableHead>Data Pagamento</TableHead>
+                <TableHead>Última atualização</TableHead>
                 <TableHead className="w-[80px]">Editar</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -480,6 +481,9 @@ export default function ControlePerdcomp() {
                     <TableCell>
                       {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
                     </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}
+                    </TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 
@@ -515,7 +519,7 @@ export default function ControlePerdcomp() {
                       {formatCurrency(totals.saldo)}
                     </span>
                   </TableCell>
-                  <TableCell colSpan={2} />
+                  <TableCell colSpan={3} />
                 </TableRow>
               </TableFooter>
             )}
