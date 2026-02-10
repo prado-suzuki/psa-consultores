@@ -630,43 +630,12 @@ export default function ControlePerdcomp() {
               <Plus className="h-4 w-4 mr-2" />
               Novo
             </Button>
-          )}
-        </CardHeader>
-        {searched && filteredPerData.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-6 pb-4">
-            <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground mb-1">Valor Crédito</p>
-              <p className="text-sm font-semibold">{formatCurrency(totals.credito)}</p>
-            </div>
-            <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground mb-1">Vlr. Corrigido</p>
-              <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                {selicTaxas.length > 0 ? formatCurrency(totals.corrigido) : '-'}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground mb-1">Valor Compensado</p>
-              <p className="text-sm font-semibold">{formatCurrency(totals.compensado)}</p>
-            </div>
-            <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground mb-1">Valor Ressarcido</p>
-              <p className="text-sm font-semibold">
-                {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : '-'}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground mb-1">Saldo Disponível</p>
-              <p className={cn(
-                "text-sm font-semibold",
-                totals.saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                totals.saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-              )}>
-                {formatCurrency(totals.saldo)}
-              </p>
-            </div>
-          </div>
         )}
-        <CardContent>
+        </CardContent>
+      </Card>
+
+      {/* Results Card */}
+      <Card>
           {renderTable()}
         </CardContent>
       </Card>
