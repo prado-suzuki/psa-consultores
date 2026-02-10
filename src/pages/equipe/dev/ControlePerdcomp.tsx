@@ -498,32 +498,6 @@ export default function ControlePerdcomp() {
                 );
               })}
             </TableBody>
-            {filteredPerData.length > 0 && (
-              <TableFooter>
-                <TableRow className="bg-muted/50 font-semibold">
-                  <TableCell colSpan={7} className="text-right">
-                    Totais ({filteredPerData.length} PERs)
-                  </TableCell>
-                  <TableCell className="text-right">{formatCurrency(totals.credito)}</TableCell>
-                  <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                    {selicTaxas.length > 0 ? formatCurrency(totals.corrigido) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">{formatCurrency(totals.compensado)}</TableCell>
-                  <TableCell className="text-right">
-                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={cn(
-                      totals.saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                      totals.saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-                    )}>
-                      {formatCurrency(totals.saldo)}
-                    </span>
-                  </TableCell>
-                  <TableCell colSpan={3} />
-                </TableRow>
-              </TableFooter>
-            )}
           </Table>
           
           {/* Pagination */}
