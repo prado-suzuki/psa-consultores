@@ -531,7 +531,7 @@ export default function ControlePerdcomp() {
               </div>
             </div>
           )}
-        </>
+        </div>
       </TooltipProvider>
     );
   };
