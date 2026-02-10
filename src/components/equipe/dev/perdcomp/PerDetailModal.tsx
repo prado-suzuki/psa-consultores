@@ -448,8 +448,8 @@ export function PerDetailModal({
           {/* Body: Sidebar + Content */}
           <div className="flex-1 flex overflow-hidden">
             {/* Sidebar - Situação */}
-            <aside className="w-80 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0">
-              <div className="p-4 space-y-4">
+            <aside className="w-80 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 overflow-hidden">
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
                 {/* Situação Atual */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
