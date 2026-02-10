@@ -389,8 +389,11 @@ export default function ControlePerdcomp() {
 
     return (
       <TooltipProvider>
-        <>
-          <Table className="text-xs min-w-[1200px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
+        <div className="overflow-x-auto w-full">
+          <Table className="text-xs [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
+            <colgroup>
+              <col className="min-w-[200px]" />
+            </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead className="whitespace-nowrap">Nº Processo</TableHead>
