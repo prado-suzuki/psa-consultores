@@ -1309,6 +1309,7 @@ export type Database = {
           tp_credito: string
           tri_exercicio: number
           vlr_credito: number
+          vlr_ressarcido: number | null
         }
         Insert: {
           atualizado_em?: string | null
@@ -1323,6 +1324,7 @@ export type Database = {
           tp_credito: string
           tri_exercicio: number
           vlr_credito: number
+          vlr_ressarcido?: number | null
         }
         Update: {
           atualizado_em?: string | null
@@ -1337,6 +1339,7 @@ export type Database = {
           tp_credito?: string
           tri_exercicio?: number
           vlr_credito?: number
+          vlr_ressarcido?: number | null
         }
         Relationships: [
           {
