@@ -1,48 +1,45 @@
 
+# Ajustes na Tabela Principal do PERDCOMP
 
-# Exibir Ressarcimento no Modal de Detalhamento PER
+## 1. Filtro "N do Processo" busca tambem por DCOMP
 
-## Problema
-Quando um ressarcimento e registrado, nao ha feedback visual no modal. O saldo nao atualiza e os botoes continuam visiveis.
+O filtro `processoFilter` atualmente so filtra pelo `numero_processo_per`. Sera alterado para tambem verificar se algum DCOMP vinculado ao PER contem o texto digitado no campo `nr_documento`.
 
-## Solucao
+## 2. Nova ordem das colunas
 
-### 1. Query propria para dados atualizados do PER
-
-O `per` e passado como prop e nao se atualiza apos o mutation. Adicionar um `useQuery` interno que busca o PER atualizado pelo `numero_processo_per`, e invalidar essa query no `onSuccess` do `ressarcimentoMutation`.
-
-Usar os dados dessa query (com fallback para o prop) em todo o modal: calculo de saldo, exibicao de ressarcimento, condicional de botoes.
-
-### 2. Bloco visual de ressarcimento (abaixo da tabela de DCOMPs)
-
-Quando `vlr_ressarcido > 0`, exibir um card/banner abaixo da tabela com:
+A tabela sera reordenada conforme solicitado:
 
 ```text
-+----------------------------------------------------------+
-|  [icone DollarSign]  RESSARCIMENTO REGISTRADO             |
-|                                                           |
-|  Valor Ressarcido:  R$ 150.000,00                         |
-|  Data Pagamento:    15/03/2026                            |
-+----------------------------------------------------------+
+N Processo | Situacao | Ultima atualizacao | Data da solicitacao | Exercicio | Trimestre | Tipo do credito | Valor credito | Valor compensado | Valor ressarcido | Data do pagamento | Saldo disponivel | Vlr. Corrigido | Editar
 ```
 
-- Fundo verde claro (green-50/green-900), borda green
-- Buscar `dt_pagamento` da `per_situacao` mais recente que tenha esse campo preenchido
+Isso move "Ultima atualizacao" e "Data do pagamento" para posicoes diferentes, e coloca "Vlr. Corrigido" como penultima coluna (antes de "Editar").
 
-### 3. Esconder botoes quando PER esta pago
+## 3. Totais movidos para a parte superior
 
-Quando `vlr_ressarcido > 0`:
-- Esconder botao "Novo DCOMP"
-- Esconder botao "Novo Ressarcimento"
-- Exibir badge "Ressarcido" no lugar
+Os cards de totais (Valor Credito, Valor Corrigido, Valor Compensado, Valor Ressarcido, Saldo Disponivel) serao exibidos em cards acima da tabela (entre o header "Resultados - PER" e a tabela). O `TableFooter` com totais sera removido.
 
-### 4. Saldo atualizado automaticamente
+A logica de calculo dos totais (`totals` useMemo) permanece a mesma, apenas a renderizacao muda de `TableFooter` para cards no topo.
 
-Com a query propria, o `saldoRestante` usara o `vlr_ressarcido` atualizado sem precisar reabrir o modal.
+## Detalhes tecnicos
 
-## Arquivo modificado
+**Arquivo**: `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-| Arquivo | Mudanca |
-|---|---|
-| `PerDetailModal.tsx` | `useQuery` para PER atualizado; bloco visual de ressarcimento; condicional de botoes; invalidacao de queries |
+### Filtro por DCOMP (linha 267)
+- Alterar a condicao `processoFilter` para verificar tambem se existe algum DCOMP cujo `nr_documento` contem o texto:
+```ts
+if (processoFilter) {
+  const matchPer = item.numero_processo_per.includes(processoFilter);
+  const matchDcomp = dcompData.some(d => d.nr_per_orig === item.numero_processo_per && d.nr_documento.includes(processoFilter));
+  if (!matchPer && !matchDcomp) return false;
+}
+```
 
+### Reordenacao das colunas (linhas 392-493)
+- Reordenar `TableHead` e `TableCell` na sequencia: N Processo, Situacao, Ultima atualizacao, Data da solicitacao, Exercicio, Trimestre, Tipo do credito, Valor credito, Valor compensado, Valor ressarcido, Data do pagamento, Saldo disponivel, Vlr. Corrigido, Editar
+
+### Totais no topo (linhas 497-521 e 646-660)
+- Remover o `TableFooter`
+- Adicionar cards de totais entre o `CardHeader` e o `CardContent` do card de resultados, exibidos apenas quando `searched && filteredPerData.length > 0`
+- 5 mini-cards em grid: Valor Credito, Vlr. Corrigido, Valor Compensado, Valor Ressarcido, Saldo Disponivel
+- Atualizar colSpan do "Nenhum registro" para 14
