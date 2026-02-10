@@ -1,85 +1,92 @@
 
 
-# Reestruturacao do Modal PER e Tabela DCOMP
+# Reestruturacao do Modal PER e Tabela DCOMP (Revisado - Sem nr_dcomp_orig)
 
 ## Resumo
 
-Cinco mudancas interconectadas no sistema PERDCOMP: reestruturar o modal de detalhamento, adicionar campo de ressarcimento no PER, separar colunas de retificacao no DCOMP, e remover coluna desnecessaria.
+Quatro mudancas no sistema PERDCOMP, usando apenas a estrutura de banco existente (exceto `vlr_ressarcido` no `per`). A coluna "DCOMP Original" sera derivada no frontend percorrendo a cadeia de `nr_dcomp_ret`.
 
 ---
 
 ## 1. Migracao de Banco de Dados
 
-### Tabela `per` — apenas `vlr_ressarcido` (nova)
-
-A coluna `dt_pagamento` **ja existe em `per_situacao`** e continuara sendo usada de la. Somente o valor ressarcido precisa ser persistido, pois hoje e calculado em tempo real como `vlr_credito - totalCompensado` (logica que sera substituida).
+Apenas **uma coluna nova**:
 
 ```text
 ALTER TABLE public.per ADD COLUMN vlr_ressarcido numeric DEFAULT 0;
 ```
 
-### Tabela `dcomp` — nova coluna `nr_dcomp_orig`
-
-```text
-ALTER TABLE public.dcomp ADD COLUMN nr_dcomp_orig character varying;
-```
-
-Logica de retificacao:
-- DCOMP original (A): `nr_dcomp_orig = null`, `nr_dcomp_ret = null`
-- Retificacao 1 (B): `nr_dcomp_orig = A`, `nr_dcomp_ret = A`
-- Retificacao 2 (C): `nr_dcomp_orig = A`, `nr_dcomp_ret = B`
-- O `nr_dcomp_orig` sempre aponta para o primeiro da cadeia
+**Nenhuma nova coluna em `dcomp`** — o campo `nr_dcomp_ret` ja existente e suficiente. O "DCOMP Original" sera calculado no frontend percorrendo a cadeia.
 
 ---
 
-## 2. Modal de Detalhamento PER (`PerDetailModal.tsx`)
+## 2. Logica de "DCOMP Original" (derivada no frontend)
+
+Com os DCOMPs do mesmo PER ja carregados, construimos um mapa para encontrar o original:
+
+```text
+Exemplo:
+  A (nr_dcomp_ret = null) -> Original
+  B (nr_dcomp_ret = A)    -> Original = A (via B.nr_dcomp_ret)
+  C (nr_dcomp_ret = B)    -> Original = A (C -> B -> A, onde A.nr_dcomp_ret = null)
+```
+
+Funcao utilitaria que percorre a cadeia ate encontrar um DCOMP sem `nr_dcomp_ret` (o original).
+
+---
+
+## 3. Modal de Detalhamento PER (`PerDetailModal.tsx`)
 
 ### Renomear secao
-- **Antes**: "DCOMPs Vinculados"
-- **Depois**: "Lancamentos PER"
+- "DCOMPs Vinculados" passa a ser **"Lancamentos PER"**
 
-### Dois botoes no header da area
-- "Novo DCOMP" (existente, sem mudanca)
-- "Novo Ressarcimento" (novo) — abre um mini-dialog com:
-  - **Valor Ressarcido (R$)** — input numerico
-  - **Data do Pagamento** — input date (fara UPDATE em `per_situacao` adicionando um registro com a data, mantendo a logica atual)
-  - Ao salvar: UPDATE `per.vlr_ressarcido` + INSERT `per_situacao` com `dt_pagamento`
+### Dois botoes no header
+- **"Novo DCOMP"** (existente)
+- **"Novo Ressarcimento"** (novo) — abre mini-dialog com:
+  - Valor Ressarcido (R$) — input numerico
+  - Data do Pagamento — input date
+  - Ao salvar: `UPDATE per SET vlr_ressarcido = X` + `INSERT per_situacao` com `dt_pagamento`
 
 ### Tabela de DCOMPs — colunas atualizadas
+
 | Antes | Depois |
 |---|---|
-| N Documento | N DCOMP Original (`nr_dcomp_orig` ou `nr_documento` se for original) |
-| — | N DCOMP Retificado (`nr_documento` quando `nr_dcomp_orig` existe) |
+| N Documento (com "(Retifica: X)" inline) | N DCOMP Original (derivado pela cadeia de nr_dcomp_ret) |
+| — | N DCOMP Retificado (nr_documento do DCOMP atual, exibido apenas quando nr_dcomp_ret existe) |
 | Tipo Credito | **REMOVIDO** |
 | Demais colunas | Sem mudanca |
 
 ---
 
-## 3. Formulario DCOMP (`DcompFormModal.tsx`)
+## 4. Formulario DCOMP (`DcompFormModal.tsx`)
 
 ### Alteracoes
-- Remover campo `tp_credito` do formulario (manter no insert como copia do `imposto` para compatibilidade)
-- Adicionar campo "N DCOMP Original" (select dos DCOMPs existentes do mesmo PER)
-- Quando preenchido, o sistema busca o ultimo DCOMP vigente da cadeia e preenche `nr_dcomp_ret` automaticamente
-- Substituir o toggle "Original/Retificadora" por logica automatica: se `nr_dcomp_orig` esta preenchido, e retificacao
+- Remover toggle "Original/Retificadora"
+- Substituir por campo "DCOMP a Retificar" (select dos DCOMPs vigentes do mesmo PER)
+  - Se preenchido: `nr_dcomp_ret` recebe o valor selecionado (e retificacao)
+  - Se vazio: `nr_dcomp_ret` fica null (e original)
+- Remover campo `tp_credito` da UI (manter no insert como copia do `imposto`)
 
 ---
 
-## 4. Tabela Principal (`ControlePerdcomp.tsx`)
+## 5. Tabela Principal (`ControlePerdcomp.tsx`)
 
 ### Coluna "Ressarcido"
-- **Antes**: `vlr_credito - totalCompensado` quando `per_situacao.dt_pagamento` existe
+- **Antes**: calculado como `vlr_credito - totalCompensado` quando `per_situacao.dt_pagamento` existe
 - **Depois**: lido diretamente de `per.vlr_ressarcido`
 
 ### Coluna "Data Pagamento"
 - Continua vindo de `per_situacao.dt_pagamento` (sem mudanca)
 
 ### Coluna "Saldo Disponivel"
-- Calculo ajustado: `vlr_credito - totalCompensado - (per.vlr_ressarcido || 0)`
+- Calculo: `vlr_credito - totalCompensado - (per.vlr_ressarcido || 0)`
+
+### Totais do rodape
+- Ajustados para usar `per.vlr_ressarcido`
 
 ---
 
-## 5. Sync DW (`syncPerdcomp.ts`)
+## 6. Sync DW (`syncPerdcomp.ts`)
 
 Adicionar `vlr_ressarcido` na interface `PerSync`.
 
@@ -89,9 +96,9 @@ Adicionar `vlr_ressarcido` na interface `PerSync`.
 
 | Arquivo | Mudanca |
 |---|---|
-| Migracao SQL | `vlr_ressarcido` em `per`; `nr_dcomp_orig` em `dcomp` |
-| `PerDetailModal.tsx` | Renomear secao, botao "Novo Ressarcimento", colunas DCOMP |
-| `DcompFormModal.tsx` | Logica de retificacao com `nr_dcomp_orig`, remover tp_credito da UI |
-| `ControlePerdcomp.tsx` | Usar `per.vlr_ressarcido` direto, ajustar saldo |
+| Migracao SQL | `vlr_ressarcido` em `per` (unica mudanca de schema) |
+| `PerDetailModal.tsx` | Renomear secao, botao "Novo Ressarcimento", colunas DCOMP com derivacao do original |
+| `DcompFormModal.tsx` | Campo "DCOMP a Retificar" substitui toggle, remover tp_credito da UI |
+| `ControlePerdcomp.tsx` | Usar `per.vlr_ressarcido` direto, ajustar saldo e totais |
 | `syncPerdcomp.ts` | Adicionar campo na interface |
 
