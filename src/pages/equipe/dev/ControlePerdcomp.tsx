@@ -390,22 +390,22 @@ export default function ControlePerdcomp() {
     return (
       <TooltipProvider>
         <>
-          <Table className="text-xs">
+          <Table className="text-xs [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
             <TableHeader>
               <TableRow>
-                <TableHead>Nº Processo</TableHead>
-                <TableHead>Situação</TableHead>
-                <TableHead>Última atualização</TableHead>
-                <TableHead>Data Solicitada</TableHead>
-                <TableHead>Exercício</TableHead>
-                <TableHead>Trimestre</TableHead>
-                <TableHead>Tipo Crédito</TableHead>
-                <TableHead className="text-right">Valor Crédito</TableHead>
-                <TableHead className="text-right">Valor Compensado</TableHead>
-                <TableHead className="text-right">Ressarcido</TableHead>
-                <TableHead>Data Pagamento</TableHead>
-                <TableHead className="text-right">Saldo Disponível</TableHead>
-                <TableHead className="text-right">
+                <TableHead className="whitespace-nowrap">Nº Processo</TableHead>
+                <TableHead className="whitespace-nowrap">Situação</TableHead>
+                <TableHead className="whitespace-nowrap">Últ. atualização</TableHead>
+                <TableHead className="whitespace-nowrap">Dt. Solicitada</TableHead>
+                <TableHead>Exerc.</TableHead>
+                <TableHead>Tri.</TableHead>
+                <TableHead className="whitespace-nowrap">Tipo Crédito</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Vlr. Crédito</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Vlr. Compensado</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Ressarcido</TableHead>
+                <TableHead className="whitespace-nowrap">Dt. Pagamento</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Saldo Disp.</TableHead>
+                <TableHead className="text-right whitespace-nowrap">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-help border-b border-dashed border-muted-foreground/50">
@@ -417,7 +417,7 @@ export default function ControlePerdcomp() {
                     </TooltipContent>
                   </Tooltip>
                 </TableHead>
-                <TableHead className="w-[80px]">Editar</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
