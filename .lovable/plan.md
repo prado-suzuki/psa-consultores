@@ -1,205 +1,97 @@
 
 
-# Novo Modal de Cadastro Completo de Cliente
+# Reestruturacao do Modal PER e Tabela DCOMP
 
 ## Resumo
 
-Substituir o modal simples de "+ Novo Cliente" (linhas 895-1009 do GestaoClientes.tsx) por um modal full-screen com 4 secoes em scroll vertical, seguindo a estrutura do arquivo modelo `NewClientModal.tsx`. O modal de **edicao** (icone lapis) permanece inalterado.
+Cinco mudancas interconectadas no sistema PERDCOMP: reestruturar o modal de detalhamento, adicionar campo de ressarcimento no PER, separar colunas de retificacao no DCOMP, e remover coluna desnecessaria.
 
 ---
 
-## 1. Migracao: Criar tabela `participante` / `participante_dev`
+## 1. Migracao de Banco de Dados
 
-Baseado na estrutura fornecida:
+### Tabela `per` — apenas `vlr_ressarcido` (nova)
+
+A coluna `dt_pagamento` **ja existe em `per_situacao`** e continuara sendo usada de la. Somente o valor ressarcido precisa ser persistido, pois hoje e calculado em tempo real como `vlr_credito - totalCompensado` (logica que sera substituida).
 
 ```text
-CREATE TABLE public.participante (
-  id_participante uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  id_cliente uuid NOT NULL REFERENCES public.cliente(id) ON DELETE CASCADE,
-  nome text NOT NULL,
-  email text,
-  telefone text,
-  cargo text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-CREATE TABLE public.participante_dev (
-  id_participante uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  id_cliente uuid NOT NULL REFERENCES public.cliente_dev(id) ON DELETE CASCADE,
-  nome text NOT NULL,
-  email text,
-  telefone text,
-  cargo text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
--- RLS
-ALTER TABLE public.participante ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.participante_dev ENABLE ROW LEVEL SECURITY;
-
--- Politicas (mesmas das tabelas existentes - team_member e admin)
-CREATE POLICY "team_members_all_participante" ON public.participante
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('team_member','admin'))
-  );
-
-CREATE POLICY "team_members_all_participante_dev" ON public.participante_dev
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('team_member','admin'))
-  );
+ALTER TABLE public.per ADD COLUMN vlr_ressarcido numeric DEFAULT 0;
 ```
+
+### Tabela `dcomp` — nova coluna `nr_dcomp_orig`
+
+```text
+ALTER TABLE public.dcomp ADD COLUMN nr_dcomp_orig character varying;
+```
+
+Logica de retificacao:
+- DCOMP original (A): `nr_dcomp_orig = null`, `nr_dcomp_ret = null`
+- Retificacao 1 (B): `nr_dcomp_orig = A`, `nr_dcomp_ret = A`
+- Retificacao 2 (C): `nr_dcomp_orig = A`, `nr_dcomp_ret = B`
+- O `nr_dcomp_orig` sempre aponta para o primeiro da cadeia
 
 ---
 
-## 2. Mapeamento de Campos por Tabela
+## 2. Modal de Detalhamento PER (`PerDetailModal.tsx`)
 
-### Secao 1 - Dados do Cliente -> `cliente` / `cliente_dev`
-| Campo Modal | Coluna BD |
+### Renomear secao
+- **Antes**: "DCOMPs Vinculados"
+- **Depois**: "Lancamentos PER"
+
+### Dois botoes no header da area
+- "Novo DCOMP" (existente, sem mudanca)
+- "Novo Ressarcimento" (novo) — abre um mini-dialog com:
+  - **Valor Ressarcido (R$)** — input numerico
+  - **Data do Pagamento** — input date (fara UPDATE em `per_situacao` adicionando um registro com a data, mantendo a logica atual)
+  - Ao salvar: UPDATE `per.vlr_ressarcido` + INSERT `per_situacao` com `dt_pagamento`
+
+### Tabela de DCOMPs — colunas atualizadas
+| Antes | Depois |
 |---|---|
-| Nome do Cliente | `nome` |
-| Categoria | `categoria` |
-| Status (Switch) | `ativo` |
-| Tipo (Fixo/Pontual) | `fixo` ("Sim"/"Nao") |
-| Telefone | `telefone` |
-| Municipio | `municipio` |
-| UF | `uf` |
-
-### Secao 2 - Contribuintes -> `contribuinte` / `contribuinte_dev`
-| Campo Modal | Coluna BD |
-|---|---|
-| Tipo (PJ/PF) | `tipo_pessoa` |
-| CPF/CNPJ | `cpf_cnpj` |
-| Razao Social | `nome_razao_social` |
-| Insc. Estadual | `inscricao_estadual` |
-| CNAE | `cod_cnae` |
-| Setor | `setor` |
-| Simples Nacional | `simples_nacional` |
-| (auto) | `cliente_id` -> FK do cliente recem-criado |
-
-### Secao 3 - Participantes -> `participante` / `participante_dev` (NOVA)
-| Campo Modal | Coluna BD |
-|---|---|
-| Nome | `nome` |
-| Cargo | `cargo` |
-| E-mail | `email` |
-| Telefone | `telefone` |
-| (auto) | `id_cliente` -> FK do cliente recem-criado |
-
-Nota: o campo `obs` e `linked_entity_id` do modelo serao removidos pois a tabela real nao os possui. O participante se vincula ao **cliente**, nao ao contribuinte.
-
-### Secao 4 - Contratos -> `contrato` + `servico`
-| Campo Modal | Coluna BD (`contrato`) |
-|---|---|
-| Tipo (Mensal/Pontual) | `tipo_contrato` |
-| Numero | `numero_contrato` |
-| Data Inicio | `data_inicio` |
-| Data Fim | `data_fim` |
-| Valor | `valor_fixo` |
-| Aliquota % | `aliquota_contrato` |
-| (auto) | `id_cliente` -> FK do cliente |
-
-Sub-itens de servico por contrato:
-
-| Campo Modal | Coluna BD (`servico`) |
-|---|---|
-| Descricao | `descricao` |
-| Valor | `valor` |
-| Catalogo | `id_catalog_client` -> FK da `catalog_clients` |
-| (auto) | `id_contrato` -> FK do contrato recem-criado |
-
-O dropdown de servicos buscara da tabela `catalog_clients` (Fiscal, Consultoria, Fixos, Transversal) como catalogo base.
+| N Documento | N DCOMP Original (`nr_dcomp_orig` ou `nr_documento` se for original) |
+| — | N DCOMP Retificado (`nr_documento` quando `nr_dcomp_orig` existe) |
+| Tipo Credito | **REMOVIDO** |
+| Demais colunas | Sem mudanca |
 
 ---
 
-## 3. Estrutura do Novo Modal
+## 3. Formulario DCOMP (`DcompFormModal.tsx`)
 
-```text
-+------------------------------------------------------+
-| [Plus icon] Cadastro Completo                    [X]  |
-| "Adicione todos os dados..."                          |
-+------------------------------------------------------+
-| [ScrollArea - 95vh]                                   |
-|                                                       |
-| (1) Dados do Cliente [circulo azul]                   |
-|   Nome* | Categoria | Status                          |
-|   Tipo(toggle) | Telefone | Municipio | UF            |
-|                                                       |
-| (2) Contribuintes (N) [circulo roxo]                  |
-|   [cards dos adicionados - grid 2 cols]               |
-|   [form inline: tipo, cpf, razao, ie, cnae, setor,   |
-|    simples] + botao "Adicionar"                       |
-|                                                       |
-| (3) Participantes (N) [circulo amber]                 |
-|   [cards dos adicionados - grid 2 cols]               |
-|   [form inline: nome, cargo, email, telefone]         |
-|   + botao "Adicionar"                                 |
-|                                                       |
-| (4) Contratos (N) [circulo emerald]                   |
-|   [cards dos adicionados com servicos listados]       |
-|   [form inline: tipo, numero, datas, valor,           |
-|    aliquota + dropdown servicos catalogo]              |
-|   + botao "Adicionar Contrato"                        |
-|                                                       |
-+------------------------------------------------------+
-| [Cancelar]              [Salvar Cliente Completo]     |
-+------------------------------------------------------+
-```
+### Alteracoes
+- Remover campo `tp_credito` do formulario (manter no insert como copia do `imposto` para compatibilidade)
+- Adicionar campo "N DCOMP Original" (select dos DCOMPs existentes do mesmo PER)
+- Quando preenchido, o sistema busca o ultimo DCOMP vigente da cadeia e preenche `nr_dcomp_ret` automaticamente
+- Substituir o toggle "Original/Retificadora" por logica automatica: se `nr_dcomp_orig` esta preenchido, e retificacao
 
 ---
 
-## 4. Detalhes Tecnicos
+## 4. Tabela Principal (`ControlePerdcomp.tsx`)
 
-### Arquivo: `src/pages/equipe/dev/GestaoClientes.tsx`
+### Coluna "Ressarcido"
+- **Antes**: `vlr_credito - totalCompensado` quando `per_situacao.dt_pagamento` existe
+- **Depois**: lido diretamente de `per.vlr_ressarcido`
 
-**Novos estados** (adicionados junto aos existentes, ~linha 138):
-```text
-// Novo modal de cadastro completo
-const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
-const [novoClienteData, setNovoClienteData] = useState({...});
-const [draftEntities, setDraftEntities] = useState<DraftEntity[]>([]);
-const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({...});
-const [draftParticipants, setDraftParticipants] = useState<DraftParticipant[]>([]);
-const [draftParticipant, setDraftParticipant] = useState<Partial<DraftParticipant>>({...});
-const [draftContracts, setDraftContracts] = useState<DraftContract[]>([]);
-const [draftContract, setDraftContract] = useState<Partial<DraftContract>>({...});
-const [draftServices, setDraftServices] = useState<DraftService[]>([]);
-const [savingNovoCliente, setSavingNovoCliente] = useState(false);
-```
+### Coluna "Data Pagamento"
+- Continua vindo de `per_situacao.dt_pagamento` (sem mudanca)
 
-**Query para catalogo de servicos**:
-Buscar `catalog_clients` para popular o dropdown de servicos no contrato.
+### Coluna "Saldo Disponivel"
+- Calculo ajustado: `vlr_credito - totalCompensado - (per.vlr_ressarcido || 0)`
 
-**Novo handler `handleSaveNovoCliente`**:
-Cadeia sequencial de inserts:
-1. INSERT `cliente` -> obtem `id`
-2. INSERT em lote `contribuinte` (cada um com `cliente_id`)
-3. INSERT em lote `participante` (cada um com `id_cliente`)
-4. Para cada contrato: INSERT `contrato` (com `id_cliente`) -> obtem `id_contrato` -> INSERT em lote `servico` (com `id_contrato`)
-5. Sync DW (fire-and-forget) para cliente e contribuintes
-6. Invalidar queries, fechar modal, toast de sucesso
+---
 
-**Botao "+ Novo Cliente"** (linha ~480):
-- Chamar `setNovoClienteModalOpen(true)` em vez de `handleNovoCliente()`
-- O modal antigo (linhas 895-1009) permanece exclusivo para **edicao** (`editingClienteId`)
+## 5. Sync DW (`syncPerdcomp.ts`)
 
-**Componentes UI utilizados** (design existente do projeto):
-- `Dialog` / `DialogContent` (com `className="max-w-5xl max-h-[95vh]"`)
-- `ScrollArea` para o corpo
-- `Input`, `Label`, `Select`, `Switch`, `Checkbox`, `Badge`, `Button` do projeto
-- `toast` (sonner) para feedback
-- Cores: `bg-teal-600` para botao primario, circulos numerados com cores do modelo (blue, purple, amber, emerald)
+Adicionar `vlr_ressarcido` na interface `PerSync`.
 
-**Tabela ambiente**:
-Usar a mesma logica de `isProductionEnvironment` para definir `participanteTable`:
-```text
-const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
-```
+---
 
-### Arquivos modificados:
-- `src/pages/equipe/dev/GestaoClientes.tsx` - modal novo + estados + handler de save completo
+## Arquivos modificados
 
-### Migracao de banco:
-- Criar tabelas `participante` e `participante_dev` com RLS
+| Arquivo | Mudanca |
+|---|---|
+| Migracao SQL | `vlr_ressarcido` em `per`; `nr_dcomp_orig` em `dcomp` |
+| `PerDetailModal.tsx` | Renomear secao, botao "Novo Ressarcimento", colunas DCOMP |
+| `DcompFormModal.tsx` | Logica de retificacao com `nr_dcomp_orig`, remover tp_credito da UI |
+| `ControlePerdcomp.tsx` | Usar `per.vlr_ressarcido` direto, ajustar saldo |
+| `syncPerdcomp.ts` | Adicionar campo na interface |
 
