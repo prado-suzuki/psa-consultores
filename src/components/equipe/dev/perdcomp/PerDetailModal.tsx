@@ -652,7 +652,42 @@ export function PerDetailModal({
                             </TableRow>
                           );
                         })
-                      )}
+              )}
+
+              {/* Banner de Ressarcimento Registrado */}
+              {perPago && (
+                <div className="mx-6 mb-4 mt-4 rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                        Ressarcimento Registrado
+                      </h5>
+                      <div className="flex items-center gap-6 mt-1">
+                        <div>
+                          <span className="text-xs text-green-600 dark:text-green-400">Valor Ressarcido</span>
+                          <p className="text-lg font-mono font-bold text-green-800 dark:text-green-200">
+                            {formatCurrency(vlrRessarcido)}
+                          </p>
+                        </div>
+                        {(() => {
+                          const sitComPagamento = situacoes.find((s: any) => s.dt_pagamento);
+                          return sitComPagamento ? (
+                            <div>
+                              <span className="text-xs text-green-600 dark:text-green-400">Data Pagamento</span>
+                              <p className="text-lg font-mono font-bold text-green-800 dark:text-green-200">
+                                {formatDate(sitComPagamento.dt_pagamento)}
+                              </p>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
                     </TableBody>
                   </Table>
                 )}
