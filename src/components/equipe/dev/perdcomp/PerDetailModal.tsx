@@ -220,11 +220,10 @@ export function PerDetailModal({
 
   // Calcular saldo restante (baseado apenas em DCOMPs vigentes)
   const saldoRestante = useMemo(() => {
-    if (!per) return 0;
+    if (!perAtual) return 0;
     const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    const vlrRessarcido = per.vlr_ressarcido || 0;
-    return per.vlr_credito - totalCompensado - vlrRessarcido;
-  }, [per, dcompsVigentes]);
+    return (perAtual as any).vlr_credito - totalCompensado - vlrRessarcido;
+  }, [perAtual, dcompsVigentes, vlrRessarcido]);
 
   // Mutation para atualizar situação
   const updateSituacaoMutation = useMutation({
