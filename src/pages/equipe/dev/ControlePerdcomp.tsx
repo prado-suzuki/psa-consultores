@@ -264,7 +264,11 @@ export default function ControlePerdcomp() {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
     if (retificadosSet.has(item.numero_processo_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
-    if (processoFilter && !item.numero_processo_per.includes(processoFilter)) return false;
+    if (processoFilter) {
+      const matchPer = item.numero_processo_per.includes(processoFilter);
+      const matchDcomp = dcompData.some(d => d.nr_per_orig === item.numero_processo_per && d.nr_documento.includes(processoFilter));
+      if (!matchPer && !matchDcomp) return false;
+    }
     return true;
   });
 
