@@ -275,6 +275,7 @@ export function PerDetailModal({
       return { valor, sitData };
     },
     onSuccess: ({ valor, sitData }) => {
+      queryClient.invalidateQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
