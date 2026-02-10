@@ -118,6 +118,7 @@ export const DifalAuditModal = ({
       toast({
         title: 'Decisão registrada',
         description: 'Clique em "Salvar Alterações" para enviar ao banco principal.',
+        duration: 500,
       });
 
       onDecisionSaved(group); // Passa o grupo decidido
