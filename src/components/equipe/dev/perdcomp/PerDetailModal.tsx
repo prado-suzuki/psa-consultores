@@ -2,10 +2,12 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
-import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight } from 'lucide-react';
+import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -47,6 +49,7 @@ interface PerData {
   dt_solicitada: string;
   tp_credito: string;
   vlr_credito: number;
+  vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
   contribuinte?: { nome_razao_social: string } | null;
 }
@@ -90,7 +93,6 @@ const SITUACAO_COLORS: Record<string, string> = {
   'Pedido de cancelamento deferido': 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
   'PER deferido': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   'Retificado': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-  // Backwards compatibility with old values
   'Deferido': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   'Analisado': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   'Em análise': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -112,6 +114,23 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+/**
+ * Derives the original DCOMP of a rectification chain by traversing nr_dcomp_ret links.
+ * Returns the nr_documento of the root DCOMP (the one with nr_dcomp_ret = null).
+ */
+function findOriginalDcomp(nrDocumento: string, allDcomps: any[]): string {
+  const byDoc = new Map(allDcomps.map((d: any) => [d.nr_documento, d]));
+  let current = byDoc.get(nrDocumento);
+  const visited = new Set<string>();
+  while (current && current.nr_dcomp_ret && !visited.has(current.nr_documento)) {
+    visited.add(current.nr_documento);
+    const prev = byDoc.get(current.nr_dcomp_ret);
+    if (!prev) break;
+    current = prev;
+  }
+  return current?.nr_documento || nrDocumento;
+}
+
 export function PerDetailModal({
   open,
   onOpenChange,
@@ -124,6 +143,11 @@ export function PerDetailModal({
   const [editDcompData, setEditDcompData] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dcompToDelete, setDcompToDelete] = useState<any>(null);
+
+  // Ressarcimento form state
+  const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
+  const [ressarcimentoValor, setRessarcimentoValor] = useState('');
+  const [ressarcimentoData, setRessarcimentoData] = useState('');
 
   // Query DCOMPs vinculados ao PER
   const { data: dcomps = [], isLoading: loadingDcomps } = useQuery({
@@ -177,8 +201,9 @@ export function PerDetailModal({
   const saldoRestante = useMemo(() => {
     if (!per) return 0;
     const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    return per.vlr_credito - totalCompensado;
-  }, [per, dcomps]);
+    const vlrRessarcido = per.vlr_ressarcido || 0;
+    return per.vlr_credito - totalCompensado - vlrRessarcido;
+  }, [per, dcompsVigentes]);
 
   // Mutation para atualizar situação
   const updateSituacaoMutation = useMutation({
@@ -202,6 +227,61 @@ export function PerDetailModal({
     },
     onError: (error: any) => {
       toast.error(`Erro ao atualizar situação: ${error.message}`);
+    },
+  });
+
+  // Mutation para salvar ressarcimento
+  const ressarcimentoMutation = useMutation({
+    mutationFn: async ({ valor, dataPagamento }: { valor: number; dataPagamento: string }) => {
+      // Update per.vlr_ressarcido
+      const { error: perError } = await supabase
+        .from('per')
+        .update({ vlr_ressarcido: valor })
+        .eq('numero_processo_per', per?.numero_processo_per);
+      if (perError) throw perError;
+
+      // Insert per_situacao with dt_pagamento
+      const { data: sitData, error: sitError } = await supabase
+        .from('per_situacao')
+        .insert({
+          nr_proc_per: per?.numero_processo_per,
+          situacao: 'PER deferido',
+          dt_pagamento: dataPagamento,
+        })
+        .select()
+        .single();
+      if (sitError) throw sitError;
+
+      return { valor, sitData };
+    },
+    onSuccess: ({ valor, sitData }) => {
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
+      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
+      toast.success('Ressarcimento registrado com sucesso!');
+      setRessarcimentoOpen(false);
+      setRessarcimentoValor('');
+      setRessarcimentoData('');
+
+      if (per) {
+        syncPerdcompToDW({
+          per: [{
+            numero_processo_per: per.numero_processo_per,
+            id_contribuinte: per.id_contribuinte,
+            exercicio: per.exercicio,
+            tri_exercicio: per.tri_exercicio,
+            dt_solicitada: per.dt_solicitada,
+            tp_credito: per.tp_credito,
+            vlr_credito: per.vlr_credito,
+            vlr_ressarcido: valor,
+            nr_proc_ret: per.nr_proc_ret,
+          }],
+          per_situacao: sitData ? [sitData] : undefined,
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao registrar ressarcimento: ${error.message}`);
     },
   });
 
@@ -250,6 +330,19 @@ export function PerDetailModal({
     if (dcompToDelete) {
       deleteDcompMutation.mutate(dcompToDelete.nr_documento);
     }
+  };
+
+  const handleSaveRessarcimento = () => {
+    const valor = parseFloat(ressarcimentoValor);
+    if (isNaN(valor) || valor <= 0) {
+      toast.error('Informe um valor válido');
+      return;
+    }
+    if (!ressarcimentoData) {
+      toast.error('Informe a data do pagamento');
+      return;
+    }
+    ressarcimentoMutation.mutate({ valor, dataPagamento: ressarcimentoData });
   };
 
   if (!per) return null;
@@ -432,23 +525,29 @@ export function PerDetailModal({
               </div>
             </aside>
 
-            {/* Área Principal - DCOMPs */}
+            {/* Área Principal - Lançamentos PER */}
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
               {/* Header da área */}
               <div className="h-14 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 bg-white dark:bg-slate-900 flex-shrink-0">
                 <div className="flex items-center gap-4">
                   <h4 className="text-lg font-bold text-slate-800 dark:text-white">
-                    DCOMPs Vinculados
+                    Lançamentos PER
                   </h4>
                   <Badge variant="secondary" className="text-xs">
                     {dcompsVigentes.length} registro{dcompsVigentes.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
                 
-                <Button onClick={handleNewDcomp} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo DCOMP
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Novo Ressarcimento
+                  </Button>
+                  <Button onClick={handleNewDcomp} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo DCOMP
+                  </Button>
+                </div>
               </div>
               
               {/* Tabela de DCOMPs */}
@@ -461,11 +560,11 @@ export function PerDetailModal({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nº Documento</TableHead>
+                        <TableHead>N DCOMP Original</TableHead>
+                        <TableHead>N DCOMP Retificado</TableHead>
                         <TableHead>Mês/Ano</TableHead>
                         <TableHead>Data Envio</TableHead>
                         <TableHead>Imposto</TableHead>
-                        <TableHead>Tipo Crédito</TableHead>
                         <TableHead className="text-right">Valor Compensado</TableHead>
                         <TableHead className="w-[100px]">Ações</TableHead>
                       </TableRow>
@@ -478,43 +577,51 @@ export function PerDetailModal({
                           </TableCell>
                         </TableRow>
                       ) : (
-                        dcompsVigentes.map((dcomp: any) => (
-                          <TableRow key={dcomp.nr_documento}>
-                            <TableCell className="font-medium">
-                              {dcomp.nr_documento}
-                              {dcomp.nr_dcomp_ret && (
-                                <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
-                                  (Retifica: {dcomp.nr_dcomp_ret})
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>{dcomp.mes_ano_exercicio}</TableCell>
-                            <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
-                            <TableCell>{dcomp.imposto}</TableCell>
-                            <TableCell>{dcomp.tp_credito}</TableCell>
-                            <TableCell className="text-right font-mono">
-                              {formatCurrency(dcomp.vlr_compensado)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => handleEditDcomp(dcomp)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => handleDeleteDcomp(dcomp)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                        dcompsVigentes.map((dcomp: any) => {
+                          const originalDoc = findOriginalDcomp(dcomp.nr_documento, dcomps);
+                          const isRetificacao = !!dcomp.nr_dcomp_ret;
+
+                          return (
+                            <TableRow key={dcomp.nr_documento}>
+                              <TableCell className="font-medium">
+                                {isRetificacao ? originalDoc : dcomp.nr_documento}
+                              </TableCell>
+                              <TableCell>
+                                {isRetificacao ? (
+                                  <span className="text-orange-600 dark:text-orange-400 font-medium">
+                                    {dcomp.nr_documento}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>{dcomp.mes_ano_exercicio}</TableCell>
+                              <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
+                              <TableCell>{dcomp.imposto}</TableCell>
+                              <TableCell className="text-right font-mono">
+                                {formatCurrency(dcomp.vlr_compensado)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleEditDcomp(dcomp)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleDeleteDcomp(dcomp)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -559,6 +666,48 @@ export function PerDetailModal({
         contribuinteId={contribuinteId}
         preSelectedPer={per?.numero_processo_per}
       />
+
+      {/* Dialog de Ressarcimento */}
+      <AlertDialog open={ressarcimentoOpen} onOpenChange={setRessarcimentoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Novo Ressarcimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Registre o valor efetivamente ressarcido e a data do pagamento para o PER {per.numero_processo_per}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Valor Ressarcido (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={ressarcimentoValor}
+                onChange={(e) => setRessarcimentoValor(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data do Pagamento</Label>
+              <Input
+                type="date"
+                value={ressarcimentoData}
+                onChange={(e) => setRessarcimentoData(e.target.value)}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSaveRessarcimento}
+              disabled={ressarcimentoMutation.isPending}
+            >
+              {ressarcimentoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog de confirmação de exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

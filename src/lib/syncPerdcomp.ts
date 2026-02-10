@@ -9,6 +9,7 @@ interface PerSync {
   dt_solicitada: string;
   tp_credito: string;
   vlr_credito: number;
+  vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
 }
 
