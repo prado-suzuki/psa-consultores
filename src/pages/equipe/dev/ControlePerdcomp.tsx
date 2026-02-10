@@ -630,12 +630,9 @@ export default function ControlePerdcomp() {
               <Plus className="h-4 w-4 mr-2" />
               Novo
             </Button>
-        )}
-        </CardContent>
-      </Card>
-
-      {/* Results Card */}
-      <Card>
+          )}
+        </CardHeader>
+        <CardContent>
           {renderTable()}
         </CardContent>
       </Card>
