@@ -149,6 +149,27 @@ export function PerDetailModal({
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
 
+  // Query para dados atualizados do PER (refetch após mutations)
+  const { data: perAtualizado } = useQuery({
+    queryKey: ['per-detail', per?.numero_processo_per],
+    queryFn: async () => {
+      if (!per?.numero_processo_per) return null;
+      const { data, error } = await supabase
+        .from('per')
+        .select('*, contribuinte(nome_razao_social)')
+        .eq('numero_processo_per', per.numero_processo_per)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!per?.numero_processo_per,
+  });
+
+  // Usar dados atualizados com fallback para prop
+  const perAtual = perAtualizado || per;
+  const vlrRessarcido = (perAtual as any)?.vlr_ressarcido || 0;
+  const perPago = vlrRessarcido > 0;
+
   // Query DCOMPs vinculados ao PER
   const { data: dcomps = [], isLoading: loadingDcomps } = useQuery({
     queryKey: ['per-dcomps', per?.numero_processo_per],
