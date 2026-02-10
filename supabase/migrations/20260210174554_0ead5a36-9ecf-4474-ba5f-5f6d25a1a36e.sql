@@ -1,0 +1,1 @@
+ALTER TABLE public.per ADD COLUMN vlr_ressarcido numeric DEFAULT 0;
