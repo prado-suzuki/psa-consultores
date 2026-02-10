@@ -315,10 +315,9 @@ export default function ControlePerdcomp() {
     let saldo = 0;
 
     for (const item of filteredPerData) {
-      const situacaoInfo = perSituacoesMap[item.numero_processo_per];
       const totalComp = dcompTotalMap[item.numero_processo_per] || 0;
-      const valRessarcido = situacaoInfo?.dt_pagamento ? (item.vlr_credito - totalComp) : 0;
-      const valSaldo = item.vlr_credito - (totalComp + valRessarcido);
+      const valRessarcido = (item as any).vlr_ressarcido || 0;
+      const valSaldo = item.vlr_credito - totalComp - valRessarcido;
       const correction = selicCorrectionMap[item.numero_processo_per];
 
       credito += item.vlr_credito;
@@ -329,7 +328,7 @@ export default function ControlePerdcomp() {
     }
 
     return { credito, corrigido, compensado, ressarcido, saldo };
-  }, [filteredPerData, perSituacoesMap, dcompTotalMap, selicCorrectionMap]);
+  }, [filteredPerData, dcompTotalMap, selicCorrectionMap]);
 
   // Pagination
   const totalPages = Math.ceil(filteredPerData.length / ITEMS_PER_PAGE);
