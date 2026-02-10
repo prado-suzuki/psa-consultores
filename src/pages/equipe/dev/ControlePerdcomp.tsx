@@ -396,11 +396,16 @@ export default function ControlePerdcomp() {
               <TableRow>
                 <TableHead>Nº Processo</TableHead>
                 <TableHead>Situação</TableHead>
+                <TableHead>Última atualização</TableHead>
                 <TableHead>Data Solicitada</TableHead>
                 <TableHead>Exercício</TableHead>
                 <TableHead>Trimestre</TableHead>
                 <TableHead>Tipo Crédito</TableHead>
                 <TableHead className="text-right">Valor Crédito</TableHead>
+                <TableHead className="text-right">Valor Compensado</TableHead>
+                <TableHead className="text-right">Ressarcido</TableHead>
+                <TableHead>Data Pagamento</TableHead>
+                <TableHead className="text-right">Saldo Disponível</TableHead>
                 <TableHead className="text-right">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -413,11 +418,6 @@ export default function ControlePerdcomp() {
                     </TooltipContent>
                   </Tooltip>
                 </TableHead>
-                <TableHead className="text-right">PER Compensado</TableHead>
-                <TableHead className="text-right">Ressarcido</TableHead>
-                <TableHead className="text-right">Saldo Disponível</TableHead>
-                <TableHead>Data Pagamento</TableHead>
-                <TableHead>Última atualização</TableHead>
                 <TableHead className="w-[80px]">Editar</TableHead>
               </TableRow>
             </TableHeader>
@@ -443,11 +443,30 @@ export default function ControlePerdcomp() {
                   >
                     <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
                     <TableCell>{situacaoInfo?.situacao || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}
+                    </TableCell>
                     <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                     <TableCell>{item.exercicio}</TableCell>
                     <TableCell>{item.tri_exercicio}º</TableCell>
                     <TableCell>{item.tp_credito}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
+                    <TableCell className="text-right">
+                      {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={cn(
+                        "font-medium",
+                        saldo > 0 ? "text-green-600 dark:text-green-400" : 
+                        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
+                      )}>
+                        {formatCurrency(saldo)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       {correction ? (
                         <Tooltip>
@@ -465,25 +484,6 @@ export default function ControlePerdcomp() {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
-                    <TableCell className="text-right">
-                      {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={cn(
-                        "font-medium",
-                        saldo > 0 ? "text-green-600 dark:text-green-400" : 
-                        saldo < 0 ? "text-red-600 dark:text-red-400" : ""
-                      )}>
-                        {formatCurrency(saldo)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : '-'}
                     </TableCell>
                     <TableCell>
                       <Button 
