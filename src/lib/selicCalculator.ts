@@ -31,10 +31,26 @@ export function applySelicCorrection(
   dataInicio: string,
   _dataFim: string
 ): { valorCorrigido: number; fator: number; valorAcumulado: number } {
-  const taxa = findTaxaByDate(taxas, dataInicio);
+  // Calcula a data do 361º dia
+  const dtInicio = new Date(dataInicio + 'T00:00:00');
+  const data361 = new Date(dtInicio);
+  data361.setDate(data361.getDate() + 360);
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  // Se ainda não completou 360 dias, sem correção
+  if (data361 > hoje) {
+    return { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
+  }
+
+  // Busca a taxa Selic acumulada a partir do 361º dia (período excedente)
+  const data361Str = data361.toISOString().split('T')[0];
+  const taxa = findTaxaByDate(taxas, data361Str);
   if (!taxa) {
     return { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
   }
+
   return {
     valorCorrigido: valor * taxa.vlr_acumulado_dec,
     fator: taxa.vlr_acumulado_dec,
