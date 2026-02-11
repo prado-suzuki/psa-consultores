@@ -1,95 +1,41 @@
 import type { SelicTaxa } from '@/hooks/useSelicData';
 
 /**
- * Filtra as taxas Selic pelo campo data_atualizacao dentro do intervalo informado.
- * @param taxas - Array completo de taxas Selic
- * @param dataInicio - Data início (YYYY-MM-DD) - baseada na dt_solicitada do PER
- * @param dataFim - Data fim (YYYY-MM-DD) - data de referência (geralmente hoje)
- */
-/**
- * Encontra a taxa Selic cuja data_atualizacao é a mais próxima (<=) da data solicitada do PER.
- * Retorna null se nenhuma taxa for encontrada.
- */
-export function findTaxaByDate(
-  taxas: SelicTaxa[],
-  dataSolicitada: string
-): SelicTaxa | null {
-  // Ordena por data_atualizacao desc para encontrar a mais próxima <= dataSolicitada
-  const candidatas = taxas
-    .filter((t) => t.data_atualizacao <= dataSolicitada)
-    .sort((a, b) => b.data_atualizacao.localeCompare(a.data_atualizacao));
-  return candidatas.length > 0 ? candidatas[0] : null;
-}
-
-/**
  * Aplica a correção monetária Selic sobre um valor.
- * Fórmula: valor_credito * vlr_acumulado_dec (valor já acumulado pela API)
+ * Recebe diretamente o fator acumulado (vlr_acumulado_dec) já retornado pela API.
+ * A verificação de carência (360 dias) deve ser feita ANTES de chamar esta função.
  */
 export function applySelicCorrection(
   valor: number,
-  taxas: SelicTaxa[],
-  dataInicio: string,
-  _dataFim: string
-): { valorCorrigido: number; fator: number; valorAcumulado: number } {
-  // Calcula a data do 361º dia
-  const dtInicio = new Date(dataInicio + 'T00:00:00');
-  const data361 = new Date(dtInicio);
-  data361.setDate(data361.getDate() + 360);
-
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  // Se ainda não completou 360 dias, sem correção
-  if (data361 > hoje) {
-    return { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
-  }
-
-  // Busca a taxa Selic acumulada a partir do 361º dia (período excedente)
-  const data361Str = data361.toISOString().split('T')[0];
-  const taxa = findTaxaByDate(taxas, data361Str);
-  if (!taxa) {
-    return { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
-  }
-
+  vlrAcumuladoDec: number
+): { valorCorrigido: number; fator: number } {
   return {
-    valorCorrigido: valor * taxa.vlr_acumulado_dec,
-    fator: taxa.vlr_acumulado_dec,
-    valorAcumulado: taxa.valor_acumulado,
+    valorCorrigido: valor * vlrAcumuladoDec,
+    fator: vlrAcumuladoDec,
   };
 }
 
 /**
- * Calcula a correção Selic para múltiplos PERs e retorna os valores individuais + total.
+ * Verifica se o PER ainda está no período de carência (360 dias).
+ * @param dtSolicitada - Data solicitada do PER (YYYY-MM-DD)
+ * @returns true se ainda está em carência (data fim > hoje)
  */
-export function calculateBatchCorrection(
-  itens: Array<{ id: string; valor: number; dataInicio: string }>,
-  taxas: SelicTaxa[],
-  dataFim: string
-): {
-  itens: Array<{ id: string; valorOriginal: number; valorCorrigido: number; fator: number; valorAcumulado: number }>;
-  totalOriginal: number;
-  totalCorrigido: number;
-} {
-  let totalOriginal = 0;
-  let totalCorrigido = 0;
+export function isWithinGracePeriod(dtSolicitada: string): boolean {
+  const dt = new Date(dtSolicitada + 'T00:00:00');
+  dt.setDate(dt.getDate() + 360);
 
-  const resultado = itens.map((item) => {
-    const { valorCorrigido, fator, valorAcumulado } = applySelicCorrection(
-      item.valor,
-      taxas,
-      item.dataInicio,
-      dataFim
-    );
-    totalOriginal += item.valor;
-    totalCorrigido += valorCorrigido;
-    return {
-      id: item.id,
-      valorOriginal: item.valor,
-      valorCorrigido,
-      fator,
-      valorAcumulado,
-    };
-  });
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
-  return { itens: resultado, totalOriginal, totalCorrigido };
+  return dt > hoje;
+}
+
+/**
+ * Calcula a data fim para a API Selic (dt_solicitada + 360 dias).
+ * @returns Data no formato YYYY-MM-DD
+ */
+export function getSelicEndDate(dtSolicitada: string): string {
+  const dt = new Date(dtSolicitada + 'T00:00:00');
+  dt.setDate(dt.getDate() + 360);
+  return dt.toISOString().split('T')[0];
 }

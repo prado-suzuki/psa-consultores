@@ -40,7 +40,7 @@ import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
 import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
 import { useSelicData } from '@/hooks/useSelicData';
-import { applySelicCorrection } from '@/lib/selicCalculator';
+import { applySelicCorrection, isWithinGracePeriod, getSelicEndDate } from '@/lib/selicCalculator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -272,16 +272,19 @@ export default function ControlePerdcomp() {
   });
 
   // Determine date range for Selic fetch based on filtered PER data
+  // inicio = hoje, fim = maior (dt_solicitada + 360) entre PERs elegíveis (fora da carência)
   const selicDateRange = useMemo(() => {
     if (filteredPerData.length === 0) return { inicio: null, fim: null };
-    const dates = filteredPerData.map(p => p.dt_solicitada).filter(Boolean).sort();
-    if (dates.length === 0) return { inicio: null, fim: null };
-    // Start 2 months before the earliest dt_solicitada to ensure the API returns
-    // accumulated rates that cover all PER dates (including mid-month ones)
-    const earliest = new Date(dates[0]);
-    earliest.setMonth(earliest.getMonth() - 2);
-    const inicio = format(earliest, 'yyyy-MM-dd');
-    const fim = format(new Date(), 'yyyy-MM-dd');
+
+    // Filtra apenas PERs fora da carência (dt_solicitada + 360 <= hoje)
+    const eligibleEndDates = filteredPerData
+      .filter(p => p.dt_solicitada && !isWithinGracePeriod(p.dt_solicitada))
+      .map(p => getSelicEndDate(p.dt_solicitada));
+
+    if (eligibleEndDates.length === 0) return { inicio: null, fim: null };
+
+    const inicio = format(new Date(), 'yyyy-MM-dd');
+    const fim = eligibleEndDates.sort().pop()!; // maior data fim
     return { inicio, fim };
   }, [filteredPerData]);
 
@@ -293,18 +296,21 @@ export default function ControlePerdcomp() {
 
   // Pre-calculate corrected values for all filtered PERs
   const selicCorrectionMap = useMemo(() => {
-    if (selicTaxas.length === 0) return {};
-    const hoje = format(new Date(), 'yyyy-MM-dd');
-    const map: Record<string, { valorCorrigido: number; fator: number; valorAcumulado: number }> = {};
+    const map: Record<string, { valorCorrigido: number; fator: number }> = {};
     for (const per of filteredPerData) {
-      if (per.dt_solicitada) {
-        map[per.numero_processo_per] = applySelicCorrection(
-          per.vlr_credito,
-          selicTaxas,
-          per.dt_solicitada,
-          hoje
-        );
+      if (!per.dt_solicitada) continue;
+
+      // Se ainda em carência, sem correção
+      if (isWithinGracePeriod(per.dt_solicitada)) {
+        map[per.numero_processo_per] = { valorCorrigido: 0, fator: 0 };
+        continue;
       }
+
+      // Usa a última taxa retornada pela API (já inclui 1% do mês atual)
+      if (selicTaxas.length === 0) continue;
+      const ultimaTaxa = selicTaxas[selicTaxas.length - 1];
+      const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, ultimaTaxa.vlr_acumulado_dec);
+      map[per.numero_processo_per] = { valorCorrigido, fator };
     }
     return map;
   }, [selicTaxas, filteredPerData]);
@@ -324,7 +330,7 @@ export default function ControlePerdcomp() {
       const correction = selicCorrectionMap[item.numero_processo_per];
 
       credito += item.vlr_credito;
-      corrigido += correction?.valorCorrigido || item.vlr_credito;
+      corrigido += correction ? correction.valorCorrigido : 0;
       compensado += totalComp;
       ressarcido += valRessarcido;
       saldo += valSaldo;
@@ -468,16 +474,20 @@ export default function ControlePerdcomp() {
                     </TableCell>
                     <TableCell className="text-right">
                       {correction ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
-                              {formatCurrency(correction.valorCorrigido)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Selic acumulada: {correction.valorAcumulado.toFixed(2)}%</p>
-                          </TooltipContent>
-                        </Tooltip>
+                        correction.fator > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
+                                {formatCurrency(correction.valorCorrigido)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Fator Selic: {correction.fator.toFixed(6)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-muted-foreground">Em carência</span>
+                        )
                       ) : selicLoading ? (
                         <Loader2 className="h-3 w-3 animate-spin ml-auto" />
                       ) : (
