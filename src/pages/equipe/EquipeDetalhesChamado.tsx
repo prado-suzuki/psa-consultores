@@ -317,6 +317,16 @@ export default function EquipeDetalhesChamado() {
         .update({ activity_status: 'respondido' })
         .eq('id', id);
 
+      // Notificar cliente sobre resposta do responsável (fire-and-forget)
+      supabase.functions.invoke('notify-ticket', {
+        body: {
+          event_type: 'ticket_replied',
+          ticket_id: id,
+          actor_name: 'Responsável',
+          message_preview: newMessage.trim().substring(0, 200),
+        }
+      }).catch(console.error);
+
       toast({
         title: 'Mensagem enviada',
         description: 'Sua resposta foi enviada com sucesso.',
@@ -345,6 +355,18 @@ export default function EquipeDetalhesChamado() {
       if (error) throw error;
 
       setTicket(prev => prev ? { ...prev, status: newStatus } : null);
+
+      // Notificar quando status muda para resolvido
+      if (newStatus === 'resolvido') {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_resolved',
+            ticket_id: id,
+            actor_name: 'Responsável',
+          }
+        }).catch(console.error);
+      }
+
       toast({
         title: 'Status atualizado',
         description: `Status alterado para ${statusLabels[newStatus]}.`,
