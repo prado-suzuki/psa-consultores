@@ -34,7 +34,6 @@ const syncCadastrosToDW = (payload: {
 }) => {
   const environment = isProductionEnvironment ? 'production' : 'development';
   
-  // Fire-and-forget - não aguarda resposta
   supabase.functions.invoke('sync-cadastros', {
     body: { ...payload, environment }
   }).then(({ error }) => {
@@ -103,25 +102,10 @@ const GestaoClientes = () => {
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
 
-  // Estados do modal
+  // Estados do modal de detalhes (contribuintes)
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<{ id: string; nome: string } | null>(null);
   const [modalPage, setModalPage] = useState(1);
-
-  // Estados do modal de criar/editar cliente
-  const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
-  const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
-  const [savingCliente, setSavingCliente] = useState(false);
-  const [clienteForm, setClienteForm] = useState({
-    nome: '',
-    telefone: '',
-    setor_cliente: '',
-    fixo: '',
-    ativo: true,
-    municipio: '',
-    uf: '',
-    categoria: '',
-  });
 
   // Estados do modal de criar/editar contribuinte
   const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
@@ -137,8 +121,9 @@ const GestaoClientes = () => {
     simples_nacional: false,
   });
 
-  // Novo modal de cadastro completo
+  // Novo modal de cadastro completo (usado para criar e editar)
   const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
+  const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -173,7 +158,6 @@ const GestaoClientes = () => {
         .not('nome_razao_social', 'is', null)
         .order('nome_razao_social');
       
-      // Filtrar por cliente_id se um cliente específico estiver selecionado
       if (clienteId && clienteId !== '__todos__') {
         query = query.eq('cliente_id', clienteId);
       }
@@ -181,7 +165,6 @@ const GestaoClientes = () => {
       const { data, error } = await query;
       if (error) throw error;
       
-      // Retornar lista única de nomes
       const uniqueContribuintes = [...new Map(data?.map(d => [d.nome_razao_social, d]) || []).values()];
       return uniqueContribuintes;
     },
@@ -192,11 +175,10 @@ const GestaoClientes = () => {
     setNomeRazaoSocial('');
   }, [clienteId]);
 
-  // Query principal - busca clientes (não contribuintes)
+  // Query principal - busca clientes
   const { data: resultados = [], isLoading, refetch } = useQuery({
     queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, categoria, tipoPessoa, cpfCnpj, nomeRazaoSocial],
     queryFn: async () => {
-      // Se houver filtros de contribuinte, primeiro buscar cliente_ids correspondentes
       let filteredClienteIds: string[] | null = null;
       
       if (hasContribuinteFilters) {
@@ -211,19 +193,15 @@ const GestaoClientes = () => {
         const { data: contribData, error: contribError } = await contribuinteQuery;
         if (contribError) throw contribError;
         
-        // Extrair cliente_ids únicos
         filteredClienteIds = [...new Set(contribData?.map(c => c.cliente_id))] as string[];
         
-        // Se não houver contribuintes correspondentes, retornar vazio
         if (filteredClienteIds.length === 0) return [];
       }
 
-      // Buscar clientes
       let clienteQuery = supabase
         .from(clienteTable)
         .select('*');
       
-      // Filtro direto por cliente_id
       if (clienteId && clienteId !== '__todos__') {
         clienteQuery = clienteQuery.eq('id', clienteId);
       }
@@ -232,7 +210,6 @@ const GestaoClientes = () => {
       if (tipo) clienteQuery = clienteQuery.eq('fixo', tipo);
       if (categoria) clienteQuery = clienteQuery.eq('categoria', categoria);
       
-      // Filtrar por cliente_ids (se houver filtros de contribuinte)
       if (filteredClienteIds !== null) {
         clienteQuery = clienteQuery.in('id', filteredClienteIds);
       }
@@ -293,12 +270,10 @@ const GestaoClientes = () => {
   };
 
   const handleClear = () => {
-    // Limpar filtros do cliente
     setClienteId('');
     setStatus('');
     setTipo('');
     setCategoria('');
-    // Limpar filtros do contribuinte
     setTipoPessoa('');
     setCpfCnpj('');
     setNomeRazaoSocial('');
@@ -312,100 +287,11 @@ const GestaoClientes = () => {
     setModalPage(1);
   };
 
-  // Abrir modal de novo cliente
-  const handleNovoCliente = () => {
-    setEditingClienteId(null);
-    setClienteForm({
-      nome: '',
-      telefone: '',
-      setor_cliente: '',
-      fixo: '',
-      ativo: true,
-      municipio: '',
-      uf: '',
-      categoria: '',
-    });
-    setClienteDialogOpen(true);
-  };
-
-  // Abrir modal de editar cliente
+  // Abrir modal de editar cliente (usando o modal completo)
   const handleEditCliente = (e: React.MouseEvent, row: any) => {
     e.stopPropagation();
     setEditingClienteId(row.id);
-    setClienteForm({
-      nome: row.nome || '',
-      telefone: row.telefone || '',
-      setor_cliente: row.setor_cliente || '',
-      fixo: row.fixo || '',
-      ativo: row.ativo ?? true,
-      municipio: row.municipio || '',
-      uf: row.uf || '',
-      categoria: (row as any).categoria || '',
-    });
-    setClienteDialogOpen(true);
-  };
-
-  // Salvar cliente
-  const handleSaveCliente = async () => {
-    if (!clienteForm.nome.trim()) {
-      toast.error('Nome é obrigatório');
-      return;
-    }
-    
-    setSavingCliente(true);
-    try {
-      const payload = {
-        nome: clienteForm.nome.trim(),
-        telefone: clienteForm.telefone.trim() || null,
-        setor_cliente: clienteForm.setor_cliente.trim() || null,
-        fixo: clienteForm.fixo || null,
-        ativo: clienteForm.ativo,
-        municipio: clienteForm.municipio.trim() || null,
-        uf: clienteForm.uf.trim() || null,
-        categoria: clienteForm.categoria || null,
-      };
-      
-      let data: any;
-      if (editingClienteId) {
-        const { data: updated, error } = await supabase.from(clienteTable).update(payload).eq('id', editingClienteId).select().single();
-        if (error) throw error;
-        data = updated;
-        toast.success('Cliente atualizado com sucesso');
-      } else {
-        const { data: inserted, error } = await supabase.from(clienteTable).insert(payload).select().single();
-        if (error) throw error;
-        data = inserted;
-        toast.success('Cliente criado com sucesso');
-      }
-      
-      setClienteDialogOpen(false);
-      setEditingClienteId(null);
-      queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
-      queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
-      
-      // Sync assíncrono com DW (fire-and-forget)
-      if (data) {
-        syncCadastrosToDW({
-          clientes: [{
-            id_cliente: data.id,
-            nome: data.nome,
-            fixo: data.fixo,
-            telefone: data.telefone,
-            setor_cliente: data.setor_cliente,
-            municipio: data.municipio,
-            uf: data.uf,
-            ativo: data.ativo,
-            categoria: (data as any).categoria ?? null,
-            created_at: data.created_at,
-            updated_at: data.updated_at,
-          }]
-        });
-      }
-    } catch (error: any) {
-      toast.error(`Erro ao ${editingClienteId ? 'atualizar' : 'criar'} cliente: ` + error.message);
-    } finally {
-      setSavingCliente(false);
-    }
+    setNovoClienteModalOpen(true);
   };
 
   // Abrir modal de novo contribuinte
@@ -483,7 +369,7 @@ const GestaoClientes = () => {
       queryClient.invalidateQueries({ queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente.id] });
       queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
       
-      // Sync assíncrono com DW (fire-and-forget)
+      // Sync assíncrono com DW
       if (data) {
         syncCadastrosToDW({
           contribuintes: [{
@@ -544,7 +430,7 @@ const GestaoClientes = () => {
                 <Filter className="h-5 w-5 text-teal-600" />
                 <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
               </CardTitle>
-              <Button onClick={() => setNovoClienteModalOpen(true)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              <Button onClick={() => { setEditingClienteId(null); setNovoClienteModalOpen(true); }} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                 <Plus className="h-4 w-4" />
                 Novo Cliente
               </Button>
@@ -629,7 +515,7 @@ const GestaoClientes = () => {
               </div>
             </div>
 
-            {/* Botões - Ambos à direita */}
+            {/* Botões */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t">
               {hasActiveFilters && (
                 <Button onClick={handleClear} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
@@ -896,123 +782,7 @@ const GestaoClientes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Editar Cliente */}
-      <Dialog open={clienteDialogOpen} onOpenChange={setClienteDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-teal-600" />
-              Editar Cliente
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="nome">Nome *</Label>
-              <Input
-                id="nome"
-                value={clienteForm.nome}
-                onChange={(e) => setClienteForm(f => ({ ...f, nome: e.target.value }))}
-                placeholder="Nome do cliente"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={clienteForm.telefone}
-                  onChange={(e) => setClienteForm(f => ({ ...f, telefone: e.target.value }))}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="setor">Setor</Label>
-                <Input
-                  id="setor"
-                  value={clienteForm.setor_cliente}
-                  onChange={(e) => setClienteForm(f => ({ ...f, setor_cliente: e.target.value }))}
-                  placeholder="Setor do cliente"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label>Tipo</Label>
-                <Select value={clienteForm.fixo} onValueChange={(v) => setClienteForm(f => ({ ...f, fixo: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sim">Fixo</SelectItem>
-                    <SelectItem value="Não">Pontual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Categoria</Label>
-                <Select value={clienteForm.categoria} onValueChange={(v) => setClienteForm(f => ({ ...f, categoria: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bronze">Bronze</SelectItem>
-                    <SelectItem value="Prata">Prata</SelectItem>
-                    <SelectItem value="Ouro">Ouro</SelectItem>
-                    <SelectItem value="Diamante">Diamante</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Status</Label>
-                <div className="flex items-center gap-2 h-10">
-                  <Switch
-                    checked={clienteForm.ativo}
-                    onCheckedChange={(checked) => setClienteForm(f => ({ ...f, ativo: checked }))}
-                  />
-                  <span className="text-sm">{clienteForm.ativo ? 'Ativo' : 'Inativo'}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="municipio">Município</Label>
-                <Input
-                  id="municipio"
-                  value={clienteForm.municipio}
-                  onChange={(e) => setClienteForm(f => ({ ...f, municipio: e.target.value }))}
-                  placeholder="Município"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="uf">UF</Label>
-                <Input
-                  id="uf"
-                  value={clienteForm.uf}
-                  onChange={(e) => setClienteForm(f => ({ ...f, uf: e.target.value }))}
-                  placeholder="UF"
-                  maxLength={2}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setClienteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveCliente} disabled={savingCliente} className="bg-teal-600 hover:bg-teal-700">
-              {savingCliente && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Criar Contribuinte */}
+      {/* Modal de Criar/Editar Contribuinte */}
       <Dialog open={contribuinteDialogOpen} onOpenChange={setContribuinteDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -1116,8 +886,15 @@ const GestaoClientes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Cadastro Completo (Novo Cliente) */}
-      <NewClientModal open={novoClienteModalOpen} onOpenChange={setNovoClienteModalOpen} />
+      {/* Modal de Cadastro Completo (Novo + Editar Cliente) */}
+      <NewClientModal
+        open={novoClienteModalOpen}
+        onOpenChange={(v) => {
+          setNovoClienteModalOpen(v);
+          if (!v) setEditingClienteId(null);
+        }}
+        editingClienteId={editingClienteId}
+      />
     </DevLayout>
   );
 };
