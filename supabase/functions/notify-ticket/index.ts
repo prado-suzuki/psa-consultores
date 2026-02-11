@@ -140,10 +140,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── FILTRO DE TESTE: só envia para e-mails da lista de teste ──
-    const filteredEmails = recipientEmails.filter((email) =>
-      TEST_EMAILS.includes(email.toLowerCase())
-    );
+    // ── FASE DE TESTE: sempre envia para os e-mails de teste ──
+    // Inclui TEST_EMAILS como destinatários fixos + qualquer destinatário real que esteja na lista
+    const filteredEmails = [...new Set([
+      ...TEST_EMAILS,
+      ...recipientEmails.filter((email) =>
+        TEST_EMAILS.includes(email.toLowerCase())
+      ),
+    ])];
 
     console.log(`[notify-ticket] Event: ${event_type}, Recipients (filtered): ${filteredEmails.join(", ") || "none"}`);
 
