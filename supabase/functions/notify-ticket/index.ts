@@ -6,11 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── FASE DE TESTES: apenas estes e-mails recebem notificações ──
-const TEST_EMAILS = [
-  "alexandre.silva@psaconsultores.com.br",
-  "alexandre.g.s.silva04@gmail.com",
-];
+// ── FASE DE TESTE: admin fixo ──
+const TEST_ADMIN_EMAIL = "alexandre.silva@psaconsultores.com.br";
 
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 
@@ -22,6 +19,44 @@ const departmentLabels: Record<string, string> = {
   produtor_rural: "Produtor Rural PF",
   outros: "Outros",
 };
+
+interface Recipient {
+  email: string;
+  ticket_url: string;
+}
+
+async function getTicketUrlForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  ticketId: string
+): Promise<string> {
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+
+  const roleSet = new Set((roles || []).map((r: { role: string }) => r.role));
+
+  if (roleSet.has("admin")) {
+    return `${PUBLISHED_URL}/gestao/chamados/${ticketId}`;
+  }
+  if (roleSet.has("team_member")) {
+    return `${PUBLISHED_URL}/equipe/chamados/${ticketId}`;
+  }
+  return `${PUBLISHED_URL}/cliente/chamados/${ticketId}`;
+}
+
+async function getEmailForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .single();
+  return data?.email || null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -67,104 +102,89 @@ Deno.serve(async (req) => {
       );
     }
 
-    const ticketUrl = `${PUBLISHED_URL}/gestao/chamados/${ticket.id}`;
     const ticketDepartment = departmentLabels[ticket.department] || ticket.department || "N/A";
 
-    let recipientEmails: string[] = [];
+    const recipients: Recipient[] = [];
+
+    // ── ADMIN DE TESTE: URL fixa para gestão ──
+    const adminTestUrl = `${PUBLISHED_URL}/gestao/chamados/${ticket.id}`;
 
     if (event_type === "ticket_created") {
-      // Notify managers: fetch users with admin or gestao roles
-      const { data: managerRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["admin"]);
+      // Cliente criou chamado → notificar admin de teste
+      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl });
 
-      if (managerRoles && managerRoles.length > 0) {
-        const managerIds = managerRoles.map((r: { user_id: string }) => r.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("email")
-          .in("id", managerIds);
-
-        recipientEmails = (profiles || [])
-          .map((p: { email: string | null }) => p.email)
-          .filter((e): e is string => !!e);
+    } else if (event_type === "ticket_assigned") {
+      // Gestor atribuiu responsável → notificar cliente + responsável
+      const clientEmail = await getEmailForUser(supabase, ticket.user_id);
+      if (clientEmail) {
+        const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
+        recipients.push({ email: clientEmail, ticket_url: clientUrl });
       }
-    } else if (event_type === "ticket_replied") {
-      // Determine who to notify based on who replied
-      // If actor is "Equipe PSA" → notify the client (ticket.user_id)
-      // If actor is "Cliente" → notify the assigned agent (ticket.assigned_to) or admins
-      if (actor_name === "Equipe PSA") {
-        const { data: clientProfile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", ticket.user_id)
-          .single();
 
-        if (clientProfile?.email) {
-          recipientEmails = [clientProfile.email];
+      if (ticket.assigned_to) {
+        const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
+        if (agentEmail) {
+          const agentUrl = await getTicketUrlForUser(supabase, ticket.assigned_to, ticket.id);
+          recipients.push({ email: agentEmail, ticket_url: agentUrl });
         }
-      } else {
-        // Client replied → notify assigned agent or admins
-        if (ticket.assigned_to) {
-          const { data: agentProfile } = await supabase
-            .from("profiles")
-            .select("email")
-            .eq("id", ticket.assigned_to)
-            .single();
+      }
 
-          if (agentProfile?.email) {
-            recipientEmails = [agentProfile.email];
+    } else if (event_type === "ticket_replied") {
+      // Mensagem enviada → notificar a outra parte + admin de teste
+      if (actor_name === "Equipe PSA" || actor_name === "Responsável") {
+        // Equipe/Responsável respondeu → notificar cliente
+        const clientEmail = await getEmailForUser(supabase, ticket.user_id);
+        if (clientEmail) {
+          const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
+          recipients.push({ email: clientEmail, ticket_url: clientUrl });
+        }
+        // Também notificar admin de teste (se não for o próprio autor)
+        recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl });
+      } else {
+        // Cliente respondeu → notificar responsável + admin de teste
+        if (ticket.assigned_to) {
+          const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
+          if (agentEmail) {
+            const agentUrl = await getTicketUrlForUser(supabase, ticket.assigned_to, ticket.id);
+            recipients.push({ email: agentEmail, ticket_url: agentUrl });
           }
         }
-
-        // Also notify admins
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-
-        if (adminRoles && adminRoles.length > 0) {
-          const adminIds = adminRoles.map((r: { user_id: string }) => r.user_id);
-          const { data: adminProfiles } = await supabase
-            .from("profiles")
-            .select("email")
-            .in("id", adminIds);
-
-          const adminEmails = (adminProfiles || [])
-            .map((p: { email: string | null }) => p.email)
-            .filter((e): e is string => !!e);
-
-          recipientEmails = [...new Set([...recipientEmails, ...adminEmails])];
-        }
+        recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl });
       }
+
+    } else if (event_type === "ticket_resolved") {
+      // Chamado resolvido → notificar cliente + admin de teste
+      const clientEmail = await getEmailForUser(supabase, ticket.user_id);
+      if (clientEmail) {
+        const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
+        recipients.push({ email: clientEmail, ticket_url: clientUrl });
+      }
+      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl });
     }
 
-    // ── FASE DE TESTE: sempre envia para os e-mails de teste ──
-    // Inclui TEST_EMAILS como destinatários fixos + qualquer destinatário real que esteja na lista
-    const filteredEmails = [...new Set([
-      ...TEST_EMAILS,
-      ...recipientEmails.filter((email) =>
-        TEST_EMAILS.includes(email.toLowerCase())
-      ),
-    ])];
+    // Deduplicate by email (keep first occurrence for URL)
+    const uniqueRecipients = Array.from(
+      new Map(recipients.map((r) => [r.email, r])).values()
+    );
 
-    console.log(`[notify-ticket] Event: ${event_type}, Recipients (filtered): ${filteredEmails.join(", ") || "none"}`);
+    console.log(
+      `[notify-ticket] Event: ${event_type}, Recipients: ${uniqueRecipients.map((r) => r.email).join(", ") || "none"}`
+    );
 
-    // Send webhook for each recipient
+    // Send webhook for each recipient with their specific URL
     const results = await Promise.allSettled(
-      filteredEmails.map((email) =>
+      uniqueRecipients.map((recipient) =>
         fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             event_type,
-            recipient_email: email,
+            recipient_email: recipient.email,
             ticket_title: ticket.title,
             ticket_department: ticketDepartment,
             actor_name: actor_name || "Sistema",
             message_preview: message_preview || "",
-            ticket_url: ticketUrl,
+            ticket_url: recipient.ticket_url,
           }),
         })
       )
@@ -174,7 +194,7 @@ Deno.serve(async (req) => {
     const failed = results.filter((r) => r.status === "rejected").length;
 
     return new Response(
-      JSON.stringify({ success: true, sent, failed, total: filteredEmails.length }),
+      JSON.stringify({ success: true, sent, failed, total: uniqueRecipients.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

@@ -248,6 +248,18 @@ export default function GestaoDetalhesChamado() {
       if (error) throw error;
 
       setTicket(prev => prev ? { ...prev, status: newStatus } : null);
+
+      // Notificar quando status muda para resolvido
+      if (newStatus === 'resolvido') {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_resolved',
+            ticket_id: id,
+            actor_name: 'Equipe PSA',
+          }
+        }).catch(console.error);
+      }
+
       toast({
         title: 'Status atualizado',
         description: `Status alterado para ${statusLabels[newStatus]}.`,
