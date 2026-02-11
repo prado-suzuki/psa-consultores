@@ -1,108 +1,143 @@
 
 
-# Reutilizar Modal de Cadastro Completo para Editar Cliente
+# Agente de Notificacao de Chamados
 
-## Resumo
+## Estrategia
 
-Substituir o modal simples de editar cliente pelo mesmo modal completo usado no cadastro ("Cadastro Completo"), permitindo editar todas as 4 secoes (Dados, Contribuintes, Participantes, Contratos) de um cliente existente. O modal antigo de edicao sera removido.
+O workflow n8n ja esta criado e ativo (`PSA - Teste Notificacao Chamado`) com webhook em `https://digitalpsa26.app.n8n.cloud/webhook/psa-ticket-notify`. O workflow recebe um POST com dados do chamado e dispara e-mail via Gmail.
 
-## Alteracoes
+A estrategia e criar uma **Edge Function** (`notify-ticket`) que centraliza a logica de quem notificar e envia o payload para o webhook do n8n. O frontend chama essa Edge Function apos criar ou responder a um chamado. Isso e mais robusto que triggers de banco porque permite controlar exatamente o payload e os destinatarios.
 
-### 1. NewClientModal.tsx - Adicionar modo de edicao
+### Fluxo
 
-- Adicionar prop opcional `editingClienteId?: string | null` na interface `NewClientModalProps`
-- Quando `editingClienteId` estiver presente:
-  - Carregar dados do cliente existente da tabela `cliente`/`cliente_dev` e popular `clientData`
-  - Carregar contribuintes existentes da tabela `contribuinte`/`contribuinte_dev` e popular `entities` (convertendo para `DraftEntity`)
-  - Carregar participantes existentes da tabela `participante`/`participante_dev` e popular `participants` (convertendo para `DraftParticipant`)
-  - Carregar contratos existentes da tabela `contrato` com servicos da tabela `servico` e popular `contracts` (convertendo para `DraftContract`)
-  - Usar `useEffect` para buscar esses dados quando o modal abre com um `editingClienteId`
-- Alterar header do modal: exibir "Editar Cliente" em vez de "Cadastro Completo" quando em modo edicao
-- Alterar `handleSave`:
-  - Se `editingClienteId` existir, fazer `update` no cliente em vez de `insert`
-  - Para contribuintes/participantes/contratos: estrategia de "delete all + re-insert" (deletar os existentes vinculados ao cliente e inserir os novos da lista draft), simplificando a logica de diff
-- Alterar texto do botao: "Salvar Alteracoes" em vez de "Salvar Cliente Completo"
+```text
+[Cliente abre chamado] --> Frontend chama Edge Function notify-ticket
+                              |
+                              +--> Busca gestores (admin/gestao) no banco
+                              +--> Envia POST para webhook n8n com dados
+                              +--> n8n dispara e-mail via Gmail
 
-### 2. GestaoClientes.tsx - Remover modal antigo e usar NewClientModal
-
-- Remover estados do modal antigo de edicao: `clienteDialogOpen`, `editingClienteId` (do cliente), `savingCliente`, `clienteForm`
-- Remover funcao `handleNovoCliente` (nao usada mais separadamente)
-- Remover funcao `handleSaveCliente` (sera feito pelo NewClientModal)
-- Remover o bloco JSX do "Modal de Editar Cliente" (linhas 899-1013)
-- Adicionar estado `editingClienteId` (string | null) para controlar qual cliente esta sendo editado
-- Alterar `handleEditCliente` para setar o `editingClienteId` e abrir o `NewClientModal`
-- Passar `editingClienteId` como prop para o `NewClientModal`
-- Quando `NewClientModal` fechar, limpar `editingClienteId`
-
-## Detalhes Tecnicos
-
-### Carregamento de dados existentes no NewClientModal
-
-```ts
-// Novo useEffect para carregar dados quando editando
-useEffect(() => {
-  if (!open || !editingClienteId) return;
-  
-  const loadData = async () => {
-    // 1. Cliente
-    const { data: cli } = await supabase.from(clienteTable).select('*').eq('id', editingClienteId).single();
-    if (cli) setClientData({ nome: cli.nome, categoria: cli.categoria || 'Bronze', ... });
-    
-    // 2. Contribuintes
-    const { data: contribs } = await supabase.from(contribuinteTable).select('*').eq('cliente_id', editingClienteId);
-    if (contribs) setEntities(contribs.map(c => ({ _id: Date.now() + Math.random(), ...c })));
-    
-    // 3. Participantes  
-    const { data: parts } = await supabase.from(participanteTable).select('*').eq('id_cliente', editingClienteId);
-    if (parts) setParticipants(parts.map(p => ({ _id: Date.now() + Math.random(), ...p })));
-    
-    // 4. Contratos + Servicos
-    const { data: contratos } = await supabase.from('contrato').select('*, servico(*)').eq('id_cliente', editingClienteId);
-    if (contratos) setContracts(contratos.map(c => ({ _id: Date.now() + Math.random(), ...c, services: c.servico?.map(...) })));
-  };
-  loadData();
-}, [open, editingClienteId]);
+[Equipe responde chamado] --> Frontend chama Edge Function notify-ticket
+                              |
+                              +--> Busca e-mail do cliente (user_id do ticket)
+                              +--> Envia POST para webhook n8n com dados
+                              +--> n8n dispara e-mail via Gmail
 ```
 
-### Logica de save no modo edicao
+### Fase de testes
 
-```ts
-// No handleSave, quando editingClienteId existir:
-if (editingClienteId) {
-  // 1. Update cliente
-  await supabase.from(clienteTable).update({...}).eq('id', editingClienteId);
-  
-  // 2. Delete + re-insert contribuintes
-  await supabase.from(contribuinteTable).delete().eq('cliente_id', editingClienteId);
-  if (entities.length > 0) await supabase.from(contribuinteTable).insert([...]);
-  
-  // 3. Delete + re-insert participantes
-  await supabase.from(participanteTable).delete().eq('id_cliente', editingClienteId);
-  if (participants.length > 0) await supabase.from(participanteTable).insert([...]);
-  
-  // 4. Delete servicos dos contratos, delete contratos, re-insert
-  // ...similar pattern
+Para testes iniciais, os e-mails serao enviados APENAS para:
+- `alexandre.silva@psaconsultores.com.br`
+- `alexandre.g.s.silva04@gmail.com`
+
+Isso sera controlado por uma lista fixa na Edge Function, facilmente removivel quando for para producao.
+
+## Alteracoes necessarias
+
+### 1. Criar Edge Function `supabase/functions/notify-ticket/index.ts`
+
+A funcao recebe via POST:
+- `event_type`: `"ticket_created"` ou `"ticket_replied"`
+- `ticket_id`: UUID do chamado
+- `actor_name`: nome de quem realizou a acao
+- `message_preview`: trecho da mensagem (opcional, para respostas)
+
+Logica interna:
+1. Busca dados do ticket (titulo, departamento, user_id)
+2. Determina destinatarios com base no `event_type`:
+   - `ticket_created`: notifica gestores (hardcoded para teste)
+   - `ticket_replied`: busca e-mail do cliente (user_id) ou do agente (assigned_to) conforme quem respondeu
+3. **Filtro de teste**: so envia se o e-mail do destinatario estiver na lista de teste
+4. Envia POST para o webhook n8n com o payload esperado:
+
+```json
+{
+  "event_type": "ticket_created",
+  "recipient_email": "alexandre.silva@psaconsultores.com.br",
+  "ticket_title": "Titulo do chamado",
+  "ticket_department": "ICMS/IPI",
+  "actor_name": "Joao Silva",
+  "message_preview": "",
+  "ticket_url": "https://psa-consultores.lovable.app/gestao/chamados/UUID"
 }
 ```
 
-### Integracao no GestaoClientes
+### 2. Adicionar configuracao em `supabase/config.toml`
 
-```tsx
-const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
-
-const handleEditCliente = (e, row) => {
-  e.stopPropagation();
-  setEditingClienteId(row.id);
-  setNovoClienteModalOpen(true);
-};
-
-<NewClientModal 
-  open={novoClienteModalOpen} 
-  onOpenChange={(v) => {
-    setNovoClienteModalOpen(v);
-    if (!v) setEditingClienteId(null);
-  }}
-  editingClienteId={editingClienteId}
-/>
+```toml
+[functions.notify-ticket]
+verify_jwt = false
 ```
+
+### 3. Adicionar secret `N8N_WEBHOOK_URL`
+
+Valor: `https://digitalpsa26.app.n8n.cloud/webhook/psa-ticket-notify`
+
+### 4. Alterar `src/pages/cliente/NovoChamado.tsx`
+
+Apos o insert do ticket com sucesso (linha 101), chamar a Edge Function:
+
+```ts
+// Disparar notificacao (fire-and-forget)
+supabase.functions.invoke('notify-ticket', {
+  body: {
+    event_type: 'ticket_created',
+    ticket_id: ticketData.id,
+    actor_name: user?.user_metadata?.first_name || 'Cliente',
+  }
+}).catch(console.error);
+```
+
+### 5. Alterar `src/components/gestao/CreateTicketDialog.tsx`
+
+Apos criar o ticket com sucesso (apos upload de anexos), chamar a Edge Function da mesma forma.
+
+### 6. Alterar `src/pages/gestao/GestaoDetalhesChamado.tsx`
+
+Apos enviar mensagem com sucesso (linha 218), chamar a Edge Function:
+
+```ts
+// Notificar cliente sobre resposta
+supabase.functions.invoke('notify-ticket', {
+  body: {
+    event_type: 'ticket_replied',
+    ticket_id: id,
+    actor_name: 'Equipe PSA',
+    message_preview: newMessage.trim().substring(0, 200),
+  }
+}).catch(console.error);
+```
+
+### 7. Alterar `src/pages/cliente/DetalhesChamado.tsx`
+
+Apos enviar mensagem com sucesso (linha 207), chamar a Edge Function:
+
+```ts
+// Notificar agente sobre resposta do cliente
+supabase.functions.invoke('notify-ticket', {
+  body: {
+    event_type: 'ticket_replied',
+    ticket_id: id,
+    actor_name: 'Cliente',
+    message_preview: newMessage.trim().substring(0, 200),
+  }
+}).catch(console.error);
+```
+
+### 8. Criar arquivo de documentacao `docs/notificacoes-chamados.md`
+
+Contem a estrategia, o JSON do workflow n8n (ja existente), e instrucoes para remover o filtro de teste quando for para producao.
+
+## Resumo das alteracoes
+
+| Arquivo | Acao |
+|---|---|
+| `supabase/functions/notify-ticket/index.ts` | Criar (novo) |
+| `supabase/config.toml` | Adicionar config da funcao |
+| `src/pages/cliente/NovoChamado.tsx` | Adicionar chamada fire-and-forget |
+| `src/components/gestao/CreateTicketDialog.tsx` | Adicionar chamada fire-and-forget |
+| `src/pages/gestao/GestaoDetalhesChamado.tsx` | Adicionar chamada fire-and-forget |
+| `src/pages/cliente/DetalhesChamado.tsx` | Adicionar chamada fire-and-forget |
+| `docs/notificacoes-chamados.md` | Criar documentacao |
+| Secret `N8N_WEBHOOK_URL` | Adicionar via ferramenta de secrets |
 
