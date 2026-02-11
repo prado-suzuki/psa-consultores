@@ -1,128 +1,76 @@
 
 
-# Templates de E-mail Diferenciados por Evento e Destinatario
+# Refatorar Calculo Selic - Regras PER/DCOMP Web
 
-## Problema Atual
+## Resumo
 
-Todos os e-mails usam o mesmo template generico ("Nova Resposta no Chamado"), independente do evento ou de quem recebe. Isso confunde o destinatario.
+Reescrever a logica de correcao monetaria Selic para seguir as regras oficiais. A mudanca principal e:
 
-## Solucao
+- **Data inicio da API** = data atual (hoje)
+- **Data fim da API** = dt_solicitada + 360 dias
+- Se a **data fim for maior que hoje**, nao requisita a API e o valor corrigido fica como 0
+- Quando a data fim ja passou, usa o `vlr_acumulado_dec` da ultima taxa retornada pela API como fator de correcao
 
-Gerar o **assunto** e o **corpo HTML** do e-mail diretamente na Edge Function, diferenciando por combinacao de evento + perfil do destinatario. O payload enviado ao n8n passara a incluir dois novos campos: `email_subject` e `email_body_html`. O workflow n8n so precisa usar esses campos no no do Gmail.
+## Alteracoes
 
----
+### 1. `src/lib/selicCalculator.ts`
 
-## Matriz de Templates (8 combinacoes)
+- **Remover** `findTaxaByDate` (nao mais usada)
+- **Simplificar** `applySelicCorrection`:
+  - Nova assinatura: `applySelicCorrection(valor: number, vlrAcumuladoDec: number)`
+  - Apenas multiplica valor pelo fator e retorna
+  - A verificacao de carencia sera feita no componente (antes de chamar a API)
+- **Remover** `calculateBatchCorrection` (logica movida para o componente)
 
-| Evento | Destinatario | Assunto | Titulo do E-mail | Descricao |
-|--------|-------------|---------|-------------------|-----------|
-| `ticket_created` | Gestor | [PSA] Novo Chamado: {titulo} | Novo Chamado Aberto | Um cliente abriu um novo chamado que precisa da sua atencao. |
-| `ticket_assigned` | Cliente | [PSA] Chamado Atribuido: {titulo} | Chamado Atribuido | Seu chamado foi atribuido a um responsavel da nossa equipe. |
-| `ticket_assigned` | Responsavel | [PSA] Novo Chamado para Voce: {titulo} | Novo Chamado Atribuido | Voce recebeu um novo chamado para atendimento. |
-| `ticket_replied` (equipe) | Cliente | [PSA] Resposta no Chamado: {titulo} | Nova Resposta da Equipe | A equipe PSA enviou uma nova mensagem no seu chamado. |
-| `ticket_replied` (cliente) | Responsavel | [PSA] Mensagem do Cliente: {titulo} | Nova Mensagem do Cliente | O cliente enviou uma nova mensagem no chamado. |
-| `ticket_replied` (cliente) | Gestor | [PSA] Mensagem do Cliente: {titulo} | Nova Mensagem do Cliente | O cliente enviou uma nova mensagem em um chamado. |
-| `ticket_resolved` | Cliente | [PSA] Chamado Resolvido: {titulo} | Chamado Resolvido | Seu chamado foi marcado como resolvido pela equipe PSA. |
-| `ticket_resolved` | Gestor | [PSA] Chamado Resolvido: {titulo} | Chamado Finalizado | Um chamado foi marcado como resolvido. |
+### 2. `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
----
+**Refatorar `selicDateRange`:**
+- Calcular para cada PER: `dataFim = dt_solicitada + 360 dias`
+- Filtrar apenas PERs cuja `dataFim <= hoje` (fora da carencia)
+- `inicio` = data atual (hoje)
+- `fim` = a maior `dataFim` entre os PERs elegiveis
+- Se nenhum PER for elegivel, retorna `{ inicio: null, fim: null }` (nao chama API)
 
-## Template HTML Base
+**Refatorar `selicCorrectionMap`:**
+- Para cada PER, calcular `dataFim = dt_solicitada + 360 dias`
+- Se `dataFim > hoje`: sem correcao, valor = 0, fator = 0
+- Se `dataFim <= hoje`: buscar a ultima taxa do array `selicTaxas` e usar `vlr_acumulado_dec` como fator
 
-Todos os e-mails seguirao o layout visual ja existente (header verde PSA, tabela de dados, botao CTA), mas com conteudo diferenciado:
+**Totais:**
+- Manter a mesma logica, usando o novo `selicCorrectionMap`
 
-- **Header**: icone + titulo do evento (ex: "Novo Chamado Aberto" vs "Chamado Resolvido")
-- **Descricao**: texto contextual diferente por evento/destinatario
-- **Tabela de dados**: campos variam por evento
-  - Abertura: Titulo, Departamento, Prioridade
-  - Atribuicao: Titulo, Departamento, Responsavel atribuido
-  - Resposta: Titulo, Departamento, Respondido por, Mensagem (preview)
-  - Resolucao: Titulo, Departamento
-- **Botao CTA**: texto diferente ("Ver Chamado", "Responder", "Ver Detalhes")
-- **Cor do header**: verde PSA para todos (manter identidade visual)
+## Secao Tecnica
 
----
-
-## Alteracoes Necessarias
-
-### 1. Edge Function `notify-ticket/index.ts`
-
-Adicionar:
-- Interface `Recipient` expandida com campo `role` (gestor/responsavel/cliente)
-- Funcao `generateEmailContent(event_type, recipient_role, ticketData)` que retorna `{ subject, body_html }`
-- Funcao `generateEmailHtml(...)` com o template HTML inline
-- Passar `email_subject` e `email_body_html` no payload do webhook
-
-O payload enviado ao n8n ficara:
+### Fluxo de decisao por PER
 
 ```text
-{
-  event_type,
-  recipient_email,
-  ticket_title,
-  ticket_department,
-  actor_name,
-  message_preview,
-  ticket_url,
-  email_subject,      // NOVO
-  email_body_html      // NOVO
-}
+Para cada PER:
+  dataFim = dt_solicitada + 360 dias
+
+  dataFim > hoje?
+    SIM -> valorCorrigido = 0, fator = 0 (carencia, sem API)
+    NAO -> fator = ultimaTaxa.vlr_acumulado_dec
+           valorCorrigido = vlr_credito * fator
 ```
 
-### 2. Workflow n8n
-
-O no Gmail precisa ser ajustado para usar:
-- **Assunto**: `{{ $json.body.email_subject }}`
-- **Corpo**: `{{ $json.body.email_body_html }}`
-
-Isso substitui o template fixo atual. Essa alteracao e feita manualmente no n8n pelo usuario.
-
----
-
-## Detalhes Tecnicos
-
-### Estrutura do HTML gerado
+### Calculo do intervalo da API
 
 ```text
-<div style="max-width:600px; margin:auto; font-family:Arial,sans-serif;">
-  <!-- Header verde com icone e titulo -->
-  <div style="background:#0d9488; color:white; padding:24px; border-radius:8px 8px 0 0;">
-    {emoji} {titulo_evento}
-  </div>
-  
-  <!-- Corpo -->
-  <div style="padding:24px; background:#fff;">
-    <p>{descricao_contextual}</p>
-    
-    <!-- Tabela de dados -->
-    <table style="width:100%; border-collapse:collapse;">
-      <tr><td style="color:#666;">TITULO</td><td>{ticket.title}</td></tr>
-      <tr><td style="color:#666;">DEPARTAMENTO</td><td>{departamento}</td></tr>
-      <!-- campos adicionais variam por evento -->
-    </table>
-    
-    <!-- Botao CTA -->
-    <a href="{ticket_url}" style="display:inline-block; background:#0d9488; color:white; padding:12px 24px; border-radius:6px; text-decoration:none;">
-      {texto_botao} →
-    </a>
-  </div>
-  
-  <!-- Footer -->
-  <div style="padding:16px; text-align:center; color:#999; font-size:12px;">
-    PSA Consultores - Este e-mail foi enviado automaticamente.
-  </div>
-</div>
+PERs elegiveis = filteredPerData.filter(p => dt_solicitada + 360 <= hoje)
+
+Se nenhum elegivel: nao chama API
+
+Senao:
+  inicio = hoje (formato YYYY-MM-DD)
+  fim = max(dt_solicitada + 360) entre elegiveis (formato YYYY-MM-DD)
 ```
 
-### Arquivo modificado
+### Arquivos impactados
+- `src/lib/selicCalculator.ts` - simplificacao
+- `src/pages/equipe/dev/ControlePerdcomp.tsx` - logica de datas e carencia
 
-| Arquivo | Alteracao |
-|---------|----------|
-| `supabase/functions/notify-ticket/index.ts` | Adicionar funcoes de geracao de HTML e assunto diferenciado por evento/role |
-
-### Acao manual do usuario
-
-| Plataforma | Alteracao |
-|-----------|----------|
-| n8n | Ajustar no Gmail para usar `$json.body.email_subject` e `$json.body.email_body_html` |
+### Sem alteracao em
+- Banco de dados
+- Hook `useSelicData`
+- Interface `SelicTaxa`
 
