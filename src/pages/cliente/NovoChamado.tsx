@@ -100,6 +100,17 @@ export default function NovoChamado() {
 
       if (error) throw error;
 
+      // Disparar notificação (fire-and-forget)
+      if (ticketData) {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_created',
+            ticket_id: ticketData.id,
+            actor_name: user?.user_metadata?.first_name || 'Cliente',
+          }
+        }).catch(console.error);
+      }
+
       if (selectedFiles.length > 0 && ticketData) {
         await uploadFiles(ticketData.id);
       }

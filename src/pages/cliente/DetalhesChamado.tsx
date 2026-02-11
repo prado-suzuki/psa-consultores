@@ -206,6 +206,16 @@ export default function DetalhesChamado() {
         })
         .eq('id', id);
 
+      // Notificar agente sobre resposta do cliente (fire-and-forget)
+      supabase.functions.invoke('notify-ticket', {
+        body: {
+          event_type: 'ticket_replied',
+          ticket_id: id,
+          actor_name: 'Cliente',
+          message_preview: newMessage.trim().substring(0, 200),
+        }
+      }).catch(console.error);
+
       toast({
         title: 'Mensagem enviada',
         description: 'Sua mensagem foi enviada com sucesso.',
