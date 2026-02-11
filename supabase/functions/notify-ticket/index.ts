@@ -76,203 +76,8 @@ async function getNameForUser(
 
 // ── Email template generation ──
 
-interface TemplateConfig {
-  emoji: string;
-  title: string;
-  description: string;
-  ctaText: string;
-  extraRows: { label: string; value: string }[];
-}
-
-function getTemplateConfig(
-  eventType: string,
-  recipientRole: RecipientRole,
-  actorName: string,
-  messagePreview: string,
-  assignedName: string
-): TemplateConfig {
-  // ticket_created → gestor
-  if (eventType === "ticket_created") {
-    return {
-      emoji: "📩",
-      title: "Novo Chamado Aberto",
-      description: "Um cliente abriu um novo chamado que precisa da sua atenção.",
-      ctaText: "Ver Chamado",
-      extraRows: [],
-    };
-  }
-
-  // ticket_assigned
-  if (eventType === "ticket_assigned") {
-    if (recipientRole === "cliente") {
-      return {
-        emoji: "👤",
-        title: "Chamado Atribuído",
-        description: "Seu chamado foi atribuído a um responsável da nossa equipe. Em breve você receberá uma resposta.",
-        ctaText: "Ver Chamado",
-        extraRows: assignedName ? [{ label: "RESPONSÁVEL", value: assignedName }] : [],
-      };
-    }
-    // responsavel
-    return {
-      emoji: "🎯",
-      title: "Novo Chamado Atribuído",
-      description: "Você recebeu um novo chamado para atendimento. Confira os detalhes abaixo.",
-      ctaText: "Atender Chamado",
-      extraRows: [],
-    };
-  }
-
-  // ticket_replied
-  if (eventType === "ticket_replied") {
-    if (recipientRole === "cliente") {
-      return {
-        emoji: "💬",
-        title: "Nova Resposta da Equipe",
-        description: "A equipe PSA enviou uma nova mensagem no seu chamado.",
-        ctaText: "Responder",
-        extraRows: [
-          { label: "RESPONDIDO POR", value: actorName || "Equipe PSA" },
-          ...(messagePreview ? [{ label: "MENSAGEM", value: messagePreview }] : []),
-        ],
-      };
-    }
-    if (recipientRole === "responsavel") {
-      return {
-        emoji: "💬",
-        title: "Nova Mensagem do Cliente",
-        description: "O cliente enviou uma nova mensagem no chamado.",
-        ctaText: "Responder",
-        extraRows: [
-          { label: "RESPONDIDO POR", value: actorName || "Cliente" },
-          ...(messagePreview ? [{ label: "MENSAGEM", value: messagePreview }] : []),
-        ],
-      };
-    }
-    // gestor
-    return {
-      emoji: "💬",
-      title: "Nova Mensagem do Cliente",
-      description: "O cliente enviou uma nova mensagem em um chamado.",
-      ctaText: "Ver Detalhes",
-      extraRows: [
-        { label: "RESPONDIDO POR", value: actorName || "Cliente" },
-        ...(messagePreview ? [{ label: "MENSAGEM", value: messagePreview }] : []),
-      ],
-    };
-  }
-
-  // ticket_resolved
-  if (eventType === "ticket_resolved") {
-    if (recipientRole === "cliente") {
-      return {
-        emoji: "✅",
-        title: "Chamado Resolvido",
-        description: "Seu chamado foi marcado como resolvido pela equipe PSA. Caso precise de algo mais, você pode abrir um novo chamado.",
-        ctaText: "Ver Detalhes",
-        extraRows: [],
-      };
-    }
-    // gestor
-    return {
-      emoji: "✅",
-      title: "Chamado Finalizado",
-      description: "Um chamado foi marcado como resolvido.",
-      ctaText: "Ver Detalhes",
-      extraRows: [],
-    };
-  }
-
-  // fallback
-  return {
-    emoji: "📋",
-    title: "Atualização no Chamado",
-    description: "Houve uma atualização em um chamado.",
-    ctaText: "Ver Chamado",
-    extraRows: [],
-  };
-}
-
-function generateEmailSubject(eventType: string, recipientRole: RecipientRole, ticketTitle: string): string {
-  const t = ticketTitle.length > 50 ? ticketTitle.substring(0, 47) + "..." : ticketTitle;
-
-  if (eventType === "ticket_created") return `[PSA] Novo Chamado: ${t}`;
-  if (eventType === "ticket_assigned") {
-    return recipientRole === "cliente"
-      ? `[PSA] Chamado Atribuído: ${t}`
-      : `[PSA] Novo Chamado para Você: ${t}`;
-  }
-  if (eventType === "ticket_replied") {
-    return recipientRole === "cliente"
-      ? `[PSA] Resposta no Chamado: ${t}`
-      : `[PSA] Mensagem do Cliente: ${t}`;
-  }
-  if (eventType === "ticket_resolved") return `[PSA] Chamado Resolvido: ${t}`;
-  return `[PSA] Atualização: ${t}`;
-}
-
-function generateEmailHtml(
-  config: TemplateConfig,
-  ticketTitle: string,
-  ticketDepartment: string,
-  ticketUrl: string
-): string {
-  const dataRows = [
-    { label: "TÍTULO", value: ticketTitle },
-    { label: "DEPARTAMENTO", value: ticketDepartment },
-    ...config.extraRows,
-  ];
-
-  const rowsHtml = dataRows
-    .map(
-      (r) => `
-      <tr>
-        <td style="padding:8px 12px;color:#888;font-size:12px;font-weight:600;text-transform:uppercase;width:140px;vertical-align:top;">${r.label}</td>
-        <td style="padding:8px 12px;color:#333;font-size:14px;">${escapeHtml(r.value)}</td>
-      </tr>`
-    )
-    .join("");
-
-  return `
-<div style="max-width:600px;margin:0 auto;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;background:#f4f4f5;">
-  <!-- Header -->
-  <div style="background:#0d9488;color:#ffffff;padding:28px 24px;border-radius:8px 8px 0 0;text-align:center;">
-    <div style="font-size:32px;margin-bottom:8px;">${config.emoji}</div>
-    <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${config.title}</h1>
-  </div>
-
-  <!-- Body -->
-  <div style="background:#ffffff;padding:28px 24px;">
-    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px 0;">${config.description}</p>
-
-    <!-- Data table -->
-    <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:6px;overflow:hidden;margin-bottom:28px;">
-      ${rowsHtml}
-    </table>
-
-    <!-- CTA -->
-    <div style="text-align:center;">
-      <a href="${ticketUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600;">
-        ${config.ctaText} →
-      </a>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div style="padding:20px 24px;text-align:center;border-radius:0 0 8px 8px;">
-    <p style="margin:0;color:#aaa;font-size:12px;">PSA Consultores — Este e-mail foi enviado automaticamente.</p>
-    <p style="margin:4px 0 0;color:#ccc;font-size:11px;">Você recebeu este e-mail porque está envolvido neste chamado.</p>
-  </div>
-</div>`;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+// Removidas funcoes de geracao de HTML (responsabilidade do n8n)
+// Payload estruturado com ticket_data para n8n gerar o template
 
 // ── Main handler ──
 
@@ -307,7 +112,7 @@ Deno.serve(async (req) => {
 
     const { data: ticket, error: ticketError } = await supabase
       .from("tickets")
-      .select("id, title, department, user_id, assigned_to, priority")
+      .select("id, title, department, user_id, assigned_to, priority, description")
       .eq("id", ticket_id)
       .single();
 
@@ -385,35 +190,39 @@ Deno.serve(async (req) => {
       `[notify-ticket] Event: ${event_type}, Recipients: ${uniqueRecipients.map((r) => `${r.email}(${r.role})`).join(", ") || "none"}`
     );
 
-    // ── Send webhooks with individualized email content ──
+    // ── Send webhooks with individualized payload structure ──
 
     const results = await Promise.allSettled(
       uniqueRecipients.map((recipient) => {
-        const config = getTemplateConfig(
-          event_type,
-          recipient.role,
-          actor_name || "Sistema",
-          message_preview || "",
-          assignedName
-        );
+        // Preparar dados estruturados para n8n
+        const ticketData = {
+          id: ticket.id,
+          title: ticket.title,
+          department: ticketDepartment,
+          priority: ticket.priority ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) : "Normal",
+          description: ticket.description || "",
+          cliente_nome: "",  // será preenchido abaixo
+          user_id: ticket.user_id,
+          link_chamado: recipient.ticket_url,
+          actor_name: actor_name || "Sistema",
+          message_preview: message_preview || "",
+          assigned_to_name: assignedName,
+          recipient_role: recipient.role,
+        };
 
-        const emailSubject = generateEmailSubject(event_type, recipient.role, ticket.title);
-        const emailBodyHtml = generateEmailHtml(config, ticket.title, ticketDepartment, recipient.ticket_url);
+        // Buscar nome do cliente
+        return getNameForUser(supabase, ticket.user_id).then((clientName) => {
+          ticketData.cliente_nome = clientName;
 
-        return fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_type,
-            recipient_email: recipient.email,
-            ticket_title: ticket.title,
-            ticket_department: ticketDepartment,
-            actor_name: actor_name || "Sistema",
-            message_preview: message_preview || "",
-            ticket_url: recipient.ticket_url,
-            email_subject: emailSubject,
-            email_body_html: emailBodyHtml,
-          }),
+          return fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event_type,
+              recipient_email: recipient.email,
+              ticket_data: ticketData,
+            }),
+          });
         });
       })
     );
