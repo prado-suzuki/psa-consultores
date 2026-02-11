@@ -167,6 +167,17 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         }
       }
 
+      // Disparar notificação (fire-and-forget)
+      if (ticket) {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_created',
+            ticket_id: ticket.id,
+            actor_name: 'Gestão PSA',
+          }
+        }).catch(console.error);
+      }
+
       toast({
         title: 'Chamado criado',
         description: 'O chamado foi criado com sucesso.',

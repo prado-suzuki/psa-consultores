@@ -210,6 +210,16 @@ export default function GestaoDetalhesChamado() {
         .update({ activity_status: 'respondido' })
         .eq('id', id);
 
+      // Notificar cliente sobre resposta (fire-and-forget)
+      supabase.functions.invoke('notify-ticket', {
+        body: {
+          event_type: 'ticket_replied',
+          ticket_id: id,
+          actor_name: 'Equipe PSA',
+          message_preview: newMessage.trim().substring(0, 200),
+        }
+      }).catch(console.error);
+
       toast({
         title: 'Mensagem enviada',
         description: 'Sua resposta foi enviada com sucesso.',
