@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
@@ -120,6 +120,13 @@ export default function ControlePerdcomp() {
     },
     enabled: !!clienteId,
   });
+
+  // Auto-selecionar contribuinte quando há apenas um
+  useEffect(() => {
+    if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId]);
 
   // Query for PER data
   const { data: perData = [], isLoading: perLoading } = useQuery({

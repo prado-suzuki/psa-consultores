@@ -175,6 +175,13 @@ const GestaoClientes = () => {
     setNomeRazaoSocial('');
   }, [clienteId]);
 
+  // Auto-selecionar contribuinte quando há apenas um
+  useEffect(() => {
+    if (clienteId && clienteId !== '__todos__' && contribuintes && contribuintes.length === 1 && !nomeRazaoSocial) {
+      setNomeRazaoSocial(contribuintes[0].nome_razao_social);
+    }
+  }, [clienteId, contribuintes, nomeRazaoSocial]);
+
   // Query principal - busca clientes
   const { data: resultados = [], isLoading, refetch } = useQuery({
     queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, categoria, tipoPessoa, cpfCnpj, nomeRazaoSocial],

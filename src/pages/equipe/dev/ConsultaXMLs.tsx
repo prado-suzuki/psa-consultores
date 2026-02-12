@@ -318,6 +318,13 @@ const ConsultaXMLs = () => {
     },
   });
 
+  // Auto-selecionar contribuinte quando há apenas um
+  useEffect(() => {
+    if (selectedCliente && contribuintes && contribuintes.length === 1 && !selectedContribuinte) {
+      setSelectedContribuinte(contribuintes[0].id);
+    }
+  }, [selectedCliente, contribuintes, selectedContribuinte]);
+
   // Buscar NFe
   const {
     data: nfeData,
