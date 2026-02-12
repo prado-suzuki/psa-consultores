@@ -54,9 +54,18 @@ export function useSelicDataPerPer(pers: PerInput[]) {
           const data = await response.json();
           const taxas: SelicTaxa[] = data.taxas || [];
           if (taxas.length > 0) {
+            const fatorAcumulado = taxas.reduce(
+              (acc, t) => acc * (1 + t.vlr_acumulado_dec),
+              1
+            );
+            const lastTaxa = taxas[taxas.length - 1];
+            console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, fator acumulado: ${((fatorAcumulado - 1) * 100).toFixed(4)}%`);
             return {
               key: per.numero_processo_per,
-              taxa: taxas[taxas.length - 1],
+              taxa: {
+                ...lastTaxa,
+                vlr_acumulado_dec: fatorAcumulado - 1,
+              },
             };
           }
           console.warn(`[Selic] Nenhuma taxa retornada para ${per.numero_processo_per}`);

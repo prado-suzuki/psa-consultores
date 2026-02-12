@@ -10,7 +10,7 @@ export function applySelicCorrection(
   vlrAcumuladoDec: number
 ): { valorCorrigido: number; fator: number } {
   return {
-    valorCorrigido: valor * vlrAcumuladoDec,
+    valorCorrigido: valor * (1 + vlrAcumuladoDec),
     fator: vlrAcumuladoDec,
   };
 }
