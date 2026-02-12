@@ -33,25 +33,33 @@ export function useSelicDataPerPer(pers: PerInput[]) {
       const map: Record<string, SelicTaxa> = {};
       const hoje = format(new Date(), 'yyyy-MM-dd');
 
-      // Busca em paralelo para melhor performance
+      console.log(`[Selic] Buscando taxas para ${eligiblePers.length} PERs elegiveis`);
+
       const results = await Promise.allSettled(
         eligiblePers.map(async (per) => {
           const dataFim = getSelicEndDate(per.dt_solicitada);
           const url = getApiUrl(
             `/api/v1/selic?data_inicio=${dataFim}&data_fim=${hoje}`
           );
+          console.log(`[Selic] ${per.numero_processo_per}: ${dataFim} -> ${hoje}`);
+
           const response = await fetchWithAuth(url);
 
-          if (response.ok) {
-            const data = await response.json();
-            const taxas: SelicTaxa[] = data.taxas || [];
-            if (taxas.length > 0) {
-              return {
-                key: per.numero_processo_per,
-                taxa: taxas[taxas.length - 1],
-              };
-            }
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            console.error(`[Selic] Erro ${response.status} para ${per.numero_processo_per}: ${errorText}`);
+            return null;
           }
+
+          const data = await response.json();
+          const taxas: SelicTaxa[] = data.taxas || [];
+          if (taxas.length > 0) {
+            return {
+              key: per.numero_processo_per,
+              taxa: taxas[taxas.length - 1],
+            };
+          }
+          console.warn(`[Selic] Nenhuma taxa retornada para ${per.numero_processo_per}`);
           return null;
         })
       );
@@ -59,9 +67,12 @@ export function useSelicDataPerPer(pers: PerInput[]) {
       for (const result of results) {
         if (result.status === 'fulfilled' && result.value) {
           map[result.value.key] = result.value.taxa;
+        } else if (result.status === 'rejected') {
+          console.error('[Selic] Promise rejeitada:', result.reason);
         }
       }
 
+      console.log(`[Selic] Resultado: ${Object.keys(map).length}/${eligiblePers.length} PERs com taxa`);
       return map;
     },
     enabled: eligiblePers.length > 0,
