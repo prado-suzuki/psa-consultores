@@ -307,12 +307,12 @@ export default function ControlePerdcomp() {
 
   // Pre-calculate corrected values for all filtered PERs
   const selicCorrectionMap = useMemo(() => {
-    const map: Record<string, { valorCorrigido: number; fator: number }> = {};
+    const map: Record<string, { valorCorrigido: number; fator: number; valorAcumulado: number }> = {};
     for (const per of filteredPerData) {
       if (!per.dt_solicitada) continue;
 
       if (isWithinGracePeriod(per.dt_solicitada)) {
-        map[per.numero_processo_per] = { valorCorrigido: 0, fator: 0 };
+        map[per.numero_processo_per] = { valorCorrigido: 0, fator: 0, valorAcumulado: 0 };
         continue;
       }
 
@@ -320,7 +320,7 @@ export default function ControlePerdcomp() {
       if (!taxa) continue;
 
       const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec);
-      map[per.numero_processo_per] = { valorCorrigido, fator };
+      map[per.numero_processo_per] = { valorCorrigido, fator, valorAcumulado: taxa.valor_acumulado };
     }
     return map;
   }, [selicPerMap, filteredPerData]);
@@ -555,7 +555,7 @@ export default function ControlePerdcomp() {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Fator Selic: {correction.fator.toFixed(6)}</p>
+                              <p>Taxa Selic: {correction.valorAcumulado.toFixed(2)}%</p>
                             </TooltipContent>
                           </Tooltip>
                         ) : (
