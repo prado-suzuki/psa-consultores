@@ -30,7 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -77,7 +79,7 @@ export default function ControlePerdcomp() {
   const [contribuinteId, setContribuinteId] = useState<string>('');
   const [exercicioFilter, setExercicioFilter] = useState<string>('');
   const [processoFilter, setProcessoFilter] = useState<string>('');
-  const [situacaoFilter, setSituacaoFilter] = useState<string>('');
+  const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
   
   const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -239,7 +241,7 @@ export default function ControlePerdcomp() {
     setContribuinteId('');
     setExercicioFilter('');
     setProcessoFilter('');
-    setSituacaoFilter('');
+    setSituacaoFilter([]);
     setSearched(false);
     setCurrentPage(1);
     setSortColumn(null);
@@ -268,9 +270,9 @@ export default function ControlePerdcomp() {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
     if (retificadosSet.has(item.numero_processo_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
-    if (situacaoFilter) {
+    if (situacaoFilter.length > 0) {
       const sit = perSituacoesMap[item.numero_processo_per]?.situacao || '';
-      if (sit !== situacaoFilter) return false;
+      if (!situacaoFilter.includes(sit)) return false;
     }
     if (processoFilter) {
       const matchPer = item.numero_processo_per.includes(processoFilter);
@@ -679,17 +681,43 @@ export default function ControlePerdcomp() {
 
             <div className="space-y-2">
               <Label>Situação</Label>
-              <Select value={situacaoFilter || "__none__"} onValueChange={(v) => setSituacaoFilter(v === "__none__" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Todas</SelectItem>
-                  {allSituacoes.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between h-10 font-normal">
+                    <span className="truncate">
+                      {situacaoFilter.length === 0
+                        ? 'Todas'
+                        : situacaoFilter.length === 1
+                          ? situacaoFilter[0]
+                          : `${situacaoFilter.length} selecionadas`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="start">
+                  <div className="space-y-1">
+                    {allSituacoes.map((s) => (
+                      <label key={s} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                        <Checkbox
+                          checked={situacaoFilter.includes(s)}
+                          onCheckedChange={(checked) => {
+                            setSituacaoFilter(prev =>
+                              checked ? [...prev, s] : prev.filter(x => x !== s)
+                            );
+                            setCurrentPage(1);
+                          }}
+                        />
+                        {s}
+                      </label>
+                    ))}
+                    {situacaoFilter.length > 0 && (
+                      <Button variant="ghost" size="sm" className="w-full mt-1" onClick={() => { setSituacaoFilter([]); setCurrentPage(1); }}>
+                        Limpar seleção
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Exercício</Label>
