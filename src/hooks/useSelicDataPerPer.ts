@@ -69,7 +69,7 @@ export function useSelicDataPerPer(pers: PerInput[]) {
       // Indexar taxas por YYYY-MM para lookup rápido
       const taxasByMonth: Record<string, SelicTaxa> = {};
       for (const t of taxas) {
-        const month = t.data.substring(0, 7); // YYYY-MM
+        const month = t.data_atualizacao.substring(0, 7); // YYYY-MM (competência tributária)
         taxasByMonth[month] = t;
       }
 
