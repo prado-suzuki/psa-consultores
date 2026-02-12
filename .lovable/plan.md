@@ -1,71 +1,56 @@
 
-# Correcao do Calculo Acumulado da Selic
+
+# Reverter Calculo Manual - Usar Taxa Acumulada da API Diretamente
 
 ## Problema
 
-O hook `useSelicDataPerPer` pega apenas a **ultima entrada** do array de taxas retornado pela API (`taxas[taxas.length - 1]`), e usa o campo `vlr_acumulado_dec` dessa unica entrada. Esse valor representa a taxa de apenas aquele mes (~1%), nao o fator acumulado do periodo inteiro.
+A API Selic ja retorna o campo `vlr_acumulado_dec` com a taxa acumulada pronta para o periodo especificado (data_inicio ate data_fim), conforme o manual do PER/DCOMP Web. O `reduce` adicionado na ultima correcao esta **compondo taxas ja acumuladas**, gerando um fator incorreto (muito alto).
 
-Para um PER com carencia terminando em outubro 2025, o periodo de correcao vai de outubro 2025 ate fevereiro 2026 (~4 meses). Com Selic de ~1% ao mes, o fator acumulado deveria ser ~3-4%, nao 1%.
+O unico calculo que o frontend faz e determinar o periodo de carencia (dt_solicitada + 360 dias). A API cuida do resto.
 
 ## Correcao
 
-### 1. `src/hooks/useSelicDataPerPer.ts` - Calcular fator acumulado
+### Arquivo: `src/hooks/useSelicDataPerPer.ts`
 
-Em vez de retornar apenas a ultima taxa, calcular o produto acumulado de todas as taxas do periodo:
+Remover o `reduce` e voltar a usar diretamente a ultima taxa retornada pela API:
 
+**De (linhas 56-69):**
 ```typescript
-// Atual (errado): pega so a ultima taxa
-if (taxas.length > 0) {
-  return {
-    key: per.numero_processo_per,
-    taxa: taxas[taxas.length - 1],
-  };
-}
-
-// Corrigido: calcula o fator acumulado multiplicando todas as taxas
 if (taxas.length > 0) {
   const fatorAcumulado = taxas.reduce(
     (acc, t) => acc * (1 + t.vlr_acumulado_dec),
     1
   );
-  // Retorna uma SelicTaxa sintetica com o fator acumulado real
   const lastTaxa = taxas[taxas.length - 1];
+  console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, fator acumulado: ${((fatorAcumulado - 1) * 100).toFixed(4)}%`);
   return {
     key: per.numero_processo_per,
     taxa: {
       ...lastTaxa,
-      vlr_acumulado_dec: fatorAcumulado - 1, // ex: 0.0340 para ~3.4%
+      vlr_acumulado_dec: fatorAcumulado - 1,
     },
   };
 }
 ```
 
-O `fatorAcumulado - 1` garante que o campo `vlr_acumulado_dec` represente a variacao percentual total (ex: 0.034 = 3.4%).
-
-### 2. `src/lib/selicCalculator.ts` - Ajustar formula
-
-A funcao `applySelicCorrection` precisa somar 1 ao fator para obter o valor corrigido total:
-
+**Para:**
 ```typescript
-// Atual:
-valorCorrigido: valor * vlrAcumuladoDec,
-// Corrigido:
-valorCorrigido: valor * (1 + vlrAcumuladoDec),
+if (taxas.length > 0) {
+  const lastTaxa = taxas[taxas.length - 1];
+  console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, taxa acumulada API: ${(lastTaxa.vlr_acumulado_dec * 100).toFixed(4)}%`);
+  return {
+    key: per.numero_processo_per,
+    taxa: lastTaxa,
+  };
+}
 ```
 
-Como o fator agora sera o percentual acumulado real (ex: 0.034), o calculo fica:
-- R$ 59.705,73 * (1 + 0.034) = R$ 61.735,72
+### Arquivo: `src/lib/selicCalculator.ts`
 
-### 3. Adicionar log de debug temporario
-
-Incluir log mostrando o fator acumulado calculado para validacao:
-
-```typescript
-console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, fator acumulado: ${(fatorAcumulado - 1) * 100}%`);
-```
+Manter a correcao `valor * (1 + vlrAcumuladoDec)` pois a API retorna a taxa como decimal (ex: 0.034 = 3.4%), e o valor corrigido e `valor_original * (1 + taxa)`.
 
 ## Resultado Esperado
 
-- PER com carencia terminando em outubro 2025: fator ~3-4% (4 meses de Selic)
-- PER com carencia terminando em janeiro 2026: fator ~1% (1 mes de Selic)
-- Valores corrigidos proporcionais ao periodo fora da carencia
+- A taxa exibida sera exatamente a retornada pela API (ex: ~3.4% para 4 meses)
+- Sem calculo manual de composicao
+- Valor corrigido = valor original * (1 + taxa da API)
