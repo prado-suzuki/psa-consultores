@@ -295,12 +295,14 @@ export default function ControlePerdcomp() {
     },
   });
 
-  // Fetch Selic rates individually per PER (each PER has its own data_fim)
+  // Fetch Selic rates only for open PERs (without dt_pagamento)
   const { data: selicPerMap = {}, isLoading: selicLoading } = useSelicDataPerPer(
-    filteredPerData.filter(p => p.dt_solicitada).map(p => ({
-      numero_processo_per: p.numero_processo_per,
-      dt_solicitada: p.dt_solicitada,
-    }))
+    filteredPerData
+      .filter(p => p.dt_solicitada && !perSituacoesMap[p.numero_processo_per]?.dt_pagamento)
+      .map(p => ({
+        numero_processo_per: p.numero_processo_per,
+        dt_solicitada: p.dt_solicitada,
+      }))
   );
 
   // Pre-calculate corrected values for all filtered PERs

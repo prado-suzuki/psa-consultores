@@ -35,22 +35,22 @@ export function useSelicDataPerPer(pers: PerInput[]) {
       const map: Record<string, SelicTaxa> = {};
       if (eligiblePers.length === 0) return map;
 
-      // 1. Encontrar a data mais antiga (menor getSelicEndDate)
+      // 1. Encontrar a dt_solicitada mais antiga entre os PERs em aberto
       const hoje = format(new Date(), 'yyyy-MM-dd');
-      let oldestDate = hoje;
+      let oldestDtSolicitada = hoje;
       const perEndDates: Record<string, string> = {};
 
       for (const per of eligiblePers) {
         const endDate = getSelicEndDate(per.dt_solicitada);
         perEndDates[per.numero_processo_per] = endDate;
-        if (endDate < oldestDate) {
-          oldestDate = endDate;
+        if (per.dt_solicitada < oldestDtSolicitada) {
+          oldestDtSolicitada = per.dt_solicitada;
         }
       }
 
-      // 2. Uma única chamada cobrindo todo o período
-      const url = getApiUrl(`/api/v1/selic?data_inicio=${oldestDate}&data_fim=${hoje}`);
-      console.log(`[Selic] 1 chamada cobrindo ${oldestDate} ate ${hoje} (${eligiblePers.length} PERs)`);
+      // 2. Uma única chamada: data_inicio = dt_solicitada mais antiga, data_fim = hoje
+      const url = getApiUrl(`/api/v1/selic?data_inicio=${oldestDtSolicitada}&data_fim=${hoje}`);
+      console.log(`[Selic] 1 chamada cobrindo ${oldestDtSolicitada} ate ${hoje} (${eligiblePers.length} PERs)`);
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
