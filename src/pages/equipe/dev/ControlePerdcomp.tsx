@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Pencil, X, Loader2, FileSpreadsheet, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -77,9 +77,12 @@ export default function ControlePerdcomp() {
   const [contribuinteId, setContribuinteId] = useState<string>('');
   const [exercicioFilter, setExercicioFilter] = useState<string>('');
   const [processoFilter, setProcessoFilter] = useState<string>('');
+  const [situacaoFilter, setSituacaoFilter] = useState<string>('');
   
   const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const ITEMS_PER_PAGE = 10;
   
   // Modal states
@@ -236,8 +239,10 @@ export default function ControlePerdcomp() {
     setContribuinteId('');
     setExercicioFilter('');
     setProcessoFilter('');
+    setSituacaoFilter('');
     setSearched(false);
     setCurrentPage(1);
+    setSortColumn(null);
   };
 
   // Create set of rectified processes (processes that appear in nr_proc_ret of another record)
@@ -263,6 +268,10 @@ export default function ControlePerdcomp() {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
     if (retificadosSet.has(item.numero_processo_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
+    if (situacaoFilter) {
+      const sit = perSituacoesMap[item.numero_processo_per]?.situacao || '';
+      if (sit !== situacaoFilter) return false;
+    }
     if (processoFilter) {
       const matchPer = item.numero_processo_per.includes(processoFilter);
       const matchDcomp = dcompData.some(d => d.nr_per_orig === item.numero_processo_per && d.nr_documento.includes(processoFilter));
@@ -270,6 +279,16 @@ export default function ControlePerdcomp() {
     }
     return true;
   });
+
+  // Unique situações for filter dropdown
+  const uniqueSituacoes = useMemo(() => {
+    const set = new Set<string>();
+    for (const key of Object.keys(perSituacoesMap)) {
+      const s = perSituacoesMap[key]?.situacao;
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort();
+  }, [perSituacoesMap]);
 
   // Determine date range for Selic fetch based on filtered PER data
   // inicio = hoje, fim = maior (dt_solicitada + 360) entre PERs elegíveis (fora da carência)
@@ -339,9 +358,53 @@ export default function ControlePerdcomp() {
     return { credito, corrigido, compensado, ressarcido, saldo };
   }, [filteredPerData, dcompTotalMap, selicCorrectionMap]);
 
+  // Sorting
+  const getSortValue = (item: any, col: string) => {
+    const key = item.numero_processo_per;
+    switch (col) {
+      case 'processo': return key;
+      case 'situacao': return perSituacoesMap[key]?.situacao || '';
+      case 'dt_solicitada': return item.dt_solicitada || '';
+      case 'exercicio': return item.exercicio;
+      case 'trimestre': return item.tri_exercicio;
+      case 'vlr_credito': return item.vlr_credito;
+      case 'vlr_compensado': return dcompTotalMap[key] || 0;
+      case 'saldo': return item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0);
+      case 'vlr_corrigido': return selicCorrectionMap[key]?.valorCorrigido || 0;
+      default: return '';
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return filteredPerData;
+    return [...filteredPerData].sort((a, b) => {
+      const aVal = getSortValue(a, sortColumn);
+      const bVal = getSortValue(b, sortColumn);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredPerData, sortColumn, sortDirection, perSituacoesMap, dcompTotalMap, selicCorrectionMap]);
+
+  const handleSort = (col: string) => {
+    if (sortColumn === col) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" /> 
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   // Pagination
-  const totalPages = Math.ceil(filteredPerData.length / ITEMS_PER_PAGE);
-  const paginatedData = filteredPerData.slice(
+  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+  const paginatedData = sortedData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -399,29 +462,48 @@ export default function ControlePerdcomp() {
           <Table className="text-xs min-w-[1400px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">Nº Processo</TableHead>
-                <TableHead className="whitespace-nowrap">Situação</TableHead>
+                <TableHead className="whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('processo')}>
+                  <span className="flex items-center">Nº Processo<SortIcon col="processo" /></span>
+                </TableHead>
+                <TableHead className="whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('situacao')}>
+                  <span className="flex items-center">Situação<SortIcon col="situacao" /></span>
+                </TableHead>
                 <TableHead className="whitespace-nowrap">Últ. atualização</TableHead>
-                <TableHead className="whitespace-nowrap">Dt. Solicitada</TableHead>
-                <TableHead>Exerc.</TableHead>
-                <TableHead>Tri.</TableHead>
+                <TableHead className="whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('dt_solicitada')}>
+                  <span className="flex items-center">Dt. Solicitada<SortIcon col="dt_solicitada" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('exercicio')}>
+                  <span className="flex items-center">Exerc.<SortIcon col="exercicio" /></span>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('trimestre')}>
+                  <span className="flex items-center">Tri.<SortIcon col="trimestre" /></span>
+                </TableHead>
                 <TableHead className="whitespace-nowrap">Tipo Crédito</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Vlr. Crédito</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Vlr. Compensado</TableHead>
+                <TableHead className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('vlr_credito')}>
+                  <span className="flex items-center justify-end">Vlr. Crédito<SortIcon col="vlr_credito" /></span>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('vlr_compensado')}>
+                  <span className="flex items-center justify-end">Vlr. Compensado<SortIcon col="vlr_compensado" /></span>
+                </TableHead>
                 <TableHead className="text-right whitespace-nowrap">Ressarcido</TableHead>
                 <TableHead className="whitespace-nowrap">Dt. Pagamento</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Saldo Disp.</TableHead>
-                <TableHead className="text-right whitespace-nowrap">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help border-b border-dashed border-muted-foreground/50">
-                        Vlr. Corrigido
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Valor do crédito corrigido pela taxa Selic até a data atual</p>
-                    </TooltipContent>
-                  </Tooltip>
+                <TableHead className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('saldo')}>
+                  <span className="flex items-center justify-end">Saldo Disp.<SortIcon col="saldo" /></span>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50" onClick={() => handleSort('vlr_corrigido')}>
+                  <span className="flex items-center justify-end">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help border-b border-dashed border-muted-foreground/50">
+                          Vlr. Corrigido
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Valor do crédito corrigido pela taxa Selic até a data atual</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <SortIcon col="vlr_corrigido" />
+                  </span>
                 </TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -513,7 +595,7 @@ export default function ControlePerdcomp() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredPerData.length)} de {filteredPerData.length} registros
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -563,7 +645,7 @@ export default function ControlePerdcomp() {
           <CardTitle className="text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); setSearched(false); }}>
@@ -592,6 +674,20 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>Situação</Label>
+              <Select value={situacaoFilter || "__none__"} onValueChange={(v) => setSituacaoFilter(v === "__none__" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Todas</SelectItem>
+                  {uniqueSituacoes.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Exercício</Label>
               <Select value={exercicioFilter || "__none__"} onValueChange={(v) => setExercicioFilter(v === "__none__" ? "" : v)}>
