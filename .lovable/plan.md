@@ -1,68 +1,39 @@
 
-
-# Correcao Critica: Calculo Selic por Subtracao + Chamada Unica
+# Corrigir Hook useSelicDataPerPer: Usar data_atualizacao para Competência Tributária
 
 ## Problema
 
-Todos os PERs exibem fator Selic de ~1% porque o hook pega o ultimo registro do array (mes vigente), que e sempre fixado em 1%. A API retorna `vlr_acumulado_dec` como acumulado reverso - meses mais antigos tem valores maiores, e o calculo correto e por **subtracao** entre o mes inicio e o mes fim.
+O hook atual está indexando as taxas Selic pelo campo `data` (linhas 72-74), mas deveria usar `data_atualizacao`, que representa a competência tributária (mês deslocado 2 meses para trás).
 
-Alem disso, o hook faz N chamadas de API (uma por PER), causando problemas de performance.
+Resultado atual: Todos os 20 PERs são ignorados com "sem registro para mês 2025-10" porque:
+- O código procura por `taxasByMonth['2025-10']` usando `data`
+- O registro correto tem `data = '2025-12'` e `data_atualizacao = '2025-10'`
 
-## Solucao
+## Solução
 
-### 1. `src/hooks/useSelicDataPerPer.ts` - Refatorar completamente
+Alterar a indexação na linha 72 para usar `data_atualizacao` em vez de `data`:
 
-**De:** N chamadas de API, cada uma pegando o ultimo registro
-**Para:** 1 unica chamada de API cobrindo o periodo mais antigo ate hoje, depois calculo local por subtracao
-
-```text
-Fluxo novo:
-1. Encontrar a data mais antiga entre todos os PERs elegiveis (menor getSelicEndDate)
-2. Fazer UMA chamada: /api/v1/selic?data_inicio={mais_antiga}&data_fim={hoje}
-3. Para cada PER, encontrar no array o registro do mes correspondente ao fim da carencia
-4. Fator = vlr_acumulado_dec(mes_carencia) - vlr_acumulado_dec(mes_atual)
-5. Retornar mapa com SelicTaxa modificada contendo o fator correto
-```
-
-Logica de calculo:
+**Linha 72 (antes):**
 ```typescript
-// Array de taxas ordenado pela API (mais antigo primeiro)
-// firstTaxa = registro do mes correspondente ao fim da carencia do PER
-// lastTaxa = ultimo registro (mes vigente, sempre ~1%)
-// fator = firstTaxa.vlr_acumulado_dec - lastTaxa.vlr_acumulado_dec
+const month = t.data.substring(0, 7); // YYYY-MM
 ```
 
-Para localizar o registro correto de cada PER no array, comparar o campo `data` (YYYY-MM) com o mes do fim da carencia.
-
-### 2. `src/lib/selicCalculator.ts` - Sem mudancas na formula
-
-A funcao `applySelicCorrection` continua usando `valor * (1 + fator)`. O que muda e o fator que chega nela (agora calculado por subtracao, nao mais o vlr_acumulado_dec direto).
-
-As funcoes `isWithinGracePeriod` e `getSelicEndDate` permanecem iguais.
-
-### 3. `src/pages/equipe/dev/ControlePerdcomp.tsx` - Sem mudancas
-
-O componente consumidor nao precisa mudar. Ele ja usa `selicPerMap[per.numero_processo_per]` e chama `applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec)`. Como o hook retornara o fator correto no campo `vlr_acumulado_dec` da taxa, tudo funciona transparentemente.
-
-## Resultado Esperado
-
-| Antes | Depois |
-|-------|--------|
-| Todos os PERs: fator ~1% | Cada PER com fator proporcional a antiguidade |
-| N chamadas de API | 1 unica chamada |
-| Erro de memoria com muitos PERs | Performance estavel |
-
-Logs esperados:
-```text
-[Selic] 1 chamada cobrindo 2023-05-15 ate 2026-02-12 (45 PERs)
-[Selic] PER-001: 0.1234 - 0.0100 = 0.1134 (11.34%)
-[Selic] PER-002: 0.0856 - 0.0100 = 0.0756 (7.56%)
+**Linha 72 (depois):**
+```typescript
+const month = t.data_atualizacao.substring(0, 7); // YYYY-MM (competência tributária)
 ```
 
-## Detalhes Tecnicos
+## Impacto
 
-- O hook retorna `Record<string, SelicTaxa>` como antes - a interface nao muda
-- O campo `vlr_acumulado_dec` no objeto retornado sera sobrescrito com o fator calculado por subtracao
-- A queryKey muda para `['selic-per-batch', cacheKey]` para invalidar o cache antigo
-- Se um PER nao encontrar registro no array para seu mes de carencia, sera ignorado (sem fator)
+- **Uma linha alterada** no arquivo `src/hooks/useSelicDataPerPer.ts`
+- A lógica de busca passa a usar o campo correto (competência tributária)
+- Todos os PERs com data de fim de carência dentro do período da API serão encontrados corretamente
+- Logs de debug agora mostrarão sucesso: `[Selic] PER-001 (competência 2025-10): encontrado via data_atualizacao`
+
+## Detalhes Técnicos
+
+- O campo `data_atualizacao` está presente na interface `SelicTaxa` (linha 11 de `useSelicData.ts`)
+- A estrutura do resto do algoritmo permanece inalterada
+- O cálculo de fator por subtração continua sendo `firstTaxa.vlr_acumulado_dec - lastTaxa.vlr_acumulado_dec`
+- Resultado esperado: 20/20 PERs com taxa, fator de ~4.43% para competência 10/2025
 
