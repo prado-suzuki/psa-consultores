@@ -42,7 +42,6 @@ interface DraftParticipant {
 interface DraftService {
   _id: number;
   descricao: string;
-  valor: number;
   id_catalog_client: string;
   catalog_name: string;
 }
@@ -113,9 +112,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     data_fim: '', valor_fixo: 0, aliquota_contrato: 0,
   });
   const [draftServices, setDraftServices] = useState<DraftService[]>([]);
-  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
+  const [activeServiceIndex, setActiveServiceIndex] = useState<number | null>(null);
 
-  // Query catalog_clients for service dropdown
+  // Query catalog_clients for team select
   const { data: catalogClients = [] } = useQuery({
     queryKey: ['catalog-clients-for-services'],
     queryFn: async () => {
@@ -126,6 +125,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         .order('name');
       if (error) throw error;
       return data || [];
+    },
+    enabled: open,
+  });
+
+  // Query existing service descriptions for autocomplete
+  const { data: existingServices = [] } = useQuery({
+    queryKey: ['existing-services-autocomplete'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servico')
+        .select('descricao')
+        .not('descricao', 'is', null);
+      if (error) throw error;
+      const unique = [...new Set(data.map((s: any) => s.descricao))].filter(Boolean).sort();
+      return unique as string[];
     },
     enabled: open,
   });
@@ -192,9 +206,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             services: (c.servico || []).map((s: any) => ({
               _id: Date.now() + Math.random(),
               descricao: s.descricao || '',
-              valor: s.valor || 0,
               id_catalog_client: s.id_catalog_client || '',
-              catalog_name: s.descricao || '',
+              catalog_name: catalogClients.find((cc: any) => cc.id === s.id_catalog_client)?.name || '',
             })),
           })));
         }
@@ -226,27 +239,28 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   };
 
   // --- CONTRACT / SERVICE HANDLERS ---
-  const addServiceToDraft = (catalog: { id: string; name: string; description: string | null }) => {
+  const addEmptyService = () => {
     setDraftServices([...draftServices, {
       _id: Date.now() + Math.random(),
-      descricao: catalog.description || catalog.name,
-      valor: 0,
-      id_catalog_client: catalog.id,
-      catalog_name: catalog.name,
+      descricao: '',
+      id_catalog_client: '',
+      catalog_name: '',
     }]);
-    setIsServiceDropdownOpen(false);
   };
 
   const removeServiceFromDraft = (id: number) => {
-    const svc = draftServices.find(s => s._id === id);
-    if (svc) {
-      setDraftContract(prev => ({ ...prev, valor_fixo: prev.valor_fixo - svc.valor }));
-    }
     setDraftServices(draftServices.filter(s => s._id !== id));
   };
 
-  const updateServiceValue = (id: number, newVal: number) => {
-    setDraftServices(draftServices.map(s => s._id === id ? { ...s, valor: newVal } : s));
+  const updateServiceField = (id: number, field: keyof DraftService, value: string) => {
+    setDraftServices(draftServices.map(s => {
+      if (s._id !== id) return s;
+      if (field === 'id_catalog_client') {
+        const cat = catalogClients.find(c => c.id === value);
+        return { ...s, id_catalog_client: value, catalog_name: cat?.name || '' };
+      }
+      return { ...s, [field]: value };
+    }));
   };
 
   const addContract = () => {
@@ -362,7 +376,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           const svcPayload = contract.services.map(s => ({
             id_contrato: newContrato.id_contrato,
             descricao: s.descricao || null,
-            valor: s.valor || null,
+            valor: null,
             id_catalog_client: s.id_catalog_client || null,
           }));
           const { error: svcError } = await (supabase.from('servico') as any).insert(svcPayload);
@@ -681,7 +695,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                                 {cont.services.map(s => (
                                   <div key={s._id} className="flex justify-between text-xs text-muted-foreground">
                                     <span className="truncate max-w-[120px]">{s.descricao}</span>
-                                    <span className="font-mono">{formatCurrency(s.valor)}</span>
+                                    <span className="text-emerald-600 font-medium">{s.catalog_name}</span>
                                   </div>
                                 ))}
                               </div>
@@ -734,54 +748,87 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
                             <Layers size={14} /> Serviços do Contrato
                           </Label>
-                          <div className="relative">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
-                              className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1"
-                            >
-                              <Plus size={12} /> Adicionar Serviço
-                            </Button>
-                            {isServiceDropdownOpen && (
-                              <div className="absolute right-0 bottom-full mb-2 w-72 bg-card border rounded-xl shadow-xl max-h-60 overflow-y-auto z-10">
-                                {catalogClients.map(svc => (
-                                  <button
-                                    key={svc.id}
-                                    onClick={() => addServiceToDraft(svc)}
-                                    className="w-full text-left px-4 py-3 hover:bg-muted border-b last:border-0 flex justify-between group"
-                                  >
-                                    <span className="text-sm text-foreground font-medium group-hover:text-emerald-700">{svc.name}</span>
-                                  </button>
-                                ))}
-                                {catalogClients.length === 0 && (
-                                  <div className="px-4 py-3 text-sm text-muted-foreground">Nenhum catálogo encontrado.</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addEmptyService}
+                            className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1"
+                          >
+                            <Plus size={12} /> Adicionar Serviço
+                          </Button>
                         </div>
 
                         <div className="space-y-2">
                           {draftServices.length === 0 ? (
                             <div className="text-center py-4 text-muted-foreground text-xs italic border border-dashed rounded">
-                              Nenhum serviço selecionado.
+                              Nenhum serviço adicionado. Clique em "Adicionar Serviço".
                             </div>
                           ) : (
-                            draftServices.map(svc => (
-                              <div key={svc._id} className="flex justify-between items-center bg-muted/50 p-2 rounded border">
-                                <span className="text-sm text-foreground">{svc.descricao}</span>
-                                <div className="flex items-center gap-3">
-                                  <Input
-                                    type="number"
-                                    value={svc.valor}
-                                    onChange={e => updateServiceValue(svc._id, Number(e.target.value))}
-                                    className="w-28 h-8 text-sm font-mono font-bold text-emerald-600"
-                                  />
-                                  <button onClick={() => removeServiceFromDraft(svc._id)} className="text-muted-foreground hover:text-red-500"><Trash2 size={14} /></button>
+                            draftServices.map((svc, idx) => {
+                              const filteredSuggestions = svc.descricao.trim()
+                                ? existingServices.filter(s => s.toLowerCase().includes(svc.descricao.toLowerCase()) && s.toLowerCase() !== svc.descricao.toLowerCase())
+                                : [];
+                              return (
+                                <div key={svc._id} className="flex gap-2 items-start">
+                                  {/* Autocomplete input */}
+                                  <div className="relative flex-1">
+                                    <Input
+                                      value={svc.descricao}
+                                      onChange={e => {
+                                        updateServiceField(svc._id, 'descricao', e.target.value);
+                                        setActiveServiceIndex(idx);
+                                      }}
+                                      onFocus={() => setActiveServiceIndex(idx)}
+                                      onBlur={() => setTimeout(() => setActiveServiceIndex(null), 200)}
+                                      placeholder="Digite o nome do serviço..."
+                                      className="text-sm"
+                                    />
+                                    {activeServiceIndex === idx && filteredSuggestions.length > 0 && (
+                                      <div className="absolute left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto z-50">
+                                        {filteredSuggestions.slice(0, 8).map((suggestion, i) => (
+                                          <button
+                                            key={i}
+                                            type="button"
+                                            onMouseDown={e => e.preventDefault()}
+                                            onClick={() => {
+                                              updateServiceField(svc._id, 'descricao', suggestion);
+                                              setActiveServiceIndex(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                                          >
+                                            {suggestion}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Team select */}
+                                  <div className="w-48">
+                                    <Select
+                                      value={svc.id_catalog_client || '__none__'}
+                                      onValueChange={v => updateServiceField(svc._id, 'id_catalog_client', v === '__none__' ? '' : v)}
+                                    >
+                                      <SelectTrigger className="text-sm h-10">
+                                        <SelectValue placeholder="Equipe..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Selecionar equipe</SelectItem>
+                                        {catalogClients.map(cat => (
+                                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  {/* Remove button */}
+                                  <button
+                                    onClick={() => removeServiceFromDraft(svc._id)}
+                                    className="text-muted-foreground hover:text-destructive mt-2.5"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
                                 </div>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       </div>
