@@ -61,6 +61,9 @@ interface NFeRecord {
   nNF: string;
   dhEmi: string | null;
   tpNF: number;
+  contItens: number;
+  vlrTotal: number;
+  tipo_mov: string;
   emit: {
     CNPJ: string;
     xNome: string;
@@ -72,40 +75,6 @@ interface NFeRecord {
     xNome: string;
     IE: string;
     UF: string;
-  };
-  produtos: Array<{
-    nItem: number;
-    cProd: string;
-    xProd: string;
-    NCM: string;
-    CFOP: string;
-    vProd: number;
-    PIS?: {
-      CST: string | null;
-      vBC: number | null;
-      pPIS: number | null;
-      vPIS: number | null;
-      qBCProd: number | null;
-      vAliqProd: number | null;
-      vBC_ST: number | null;
-      pPIS_ST: number | null;
-      vPIS_ST: number | null;
-    };
-    COFINS?: {
-      CST: string | null;
-      vBC: number | null;
-      pCOFINS: number | null;
-      vCOFINS: number | null;
-      qBCProd: number | null;
-      vAliqProd: number | null;
-      vBC_ST: number | null;
-      pCOFINS_ST: number | null;
-      vCOFINS_ST: number | null;
-    };
-  }>;
-  ICMSTot: {
-    vICMS: number;
-    vICMSST: number;
   };
 }
 

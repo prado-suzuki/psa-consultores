@@ -45,47 +45,6 @@ const DEFAULT_DATA_FIM = "2026-01-31";
 const DEFAULT_TIPO_DOCUMENTO = "nfe";
 const DEFAULT_TIPO_MOV = "";
 
-interface NFeProduto {
-  nItem: number;
-  cProd: string;
-  xProd: string;
-  NCM: string;
-  CFOP: string;
-  vProd: number;
-  ICMS: {
-    CST: string;
-    vBC: number;
-    pICMS: number;
-    vICMS: number;
-  };
-  IPI: {
-    vIPI: number;
-    CST: number;
-  };
-  PIS: {
-    CST: string | null;
-    vBC: number | null;
-    pPIS: number | null;
-    vPIS: number | null;
-    qBCProd: number | null;
-    vAliqProd: number | null;
-    vBC_ST: number | null;
-    pPIS_ST: number | null;
-    vPIS_ST: number | null;
-  };
-  COFINS: {
-    CST: string | null;
-    vBC: number | null;
-    pCOFINS: number | null;
-    vCOFINS: number | null;
-    qBCProd: number | null;
-    vAliqProd: number | null;
-    vBC_ST: number | null;
-    pCOFINS_ST: number | null;
-    vCOFINS_ST: number | null;
-  };
-}
-
 interface NFeEmit {
   CNPJ: string;
   xNome: string;
@@ -109,17 +68,11 @@ interface NFeRecord {
   nNF: string;
   dhEmi: string | null;
   tpNF: number;
+  contItens: number;
+  vlrTotal: number;
+  tipo_mov: string;
   emit: NFeEmit;
   dest: NFeDest;
-  produtos: NFeProduto[];
-  ICMSTot: {
-    vICMS: number;
-    vICMSST: number;
-  };
-  infAdic: {
-    infAdFisco: string | null;
-    infCpl: string | null;
-  };
 }
 
 // Interfaces CT-e
@@ -1116,10 +1069,10 @@ const ConsultaXMLs = () => {
                               <TableCell className="font-mono">{record.nNF}</TableCell>
                               <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
                               <TableCell className="text-right font-medium whitespace-nowrap">
-                                {formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))}
+                                {formatCurrency(record.vlrTotal)}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">{record.produtos.length} item(s)</Badge>
+                                <Badge variant="outline">{record.contItens} item(s)</Badge>
                               </TableCell>
                             </TableRow>
                           ))
