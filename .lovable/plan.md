@@ -1,56 +1,48 @@
 
 
-# Reverter Calculo Manual - Usar Taxa Acumulada da API Diretamente
+# Ajustar ConsultaXMLs para novo formato da API NFe
 
-## Problema
+## O que muda
 
-A API Selic ja retorna o campo `vlr_acumulado_dec` com a taxa acumulada pronta para o periodo especificado (data_inicio ate data_fim), conforme o manual do PER/DCOMP Web. O `reduce` adicionado na ultima correcao esta **compondo taxas ja acumuladas**, gerando um fator incorreto (muito alto).
+A API agora retorna os mesmos campos de antes (chave, cUF, natOp, mod, serie, nNF, dhEmi, tpNF, emit com IE, dest com IE/UF), mas substituiu:
+- `produtos[]` por `contItens` (contagem de itens) e `vlrTotal` (valor total da NFe)
+- Removeu `ICMSTot` e `infAdic` (nao eram exibidos na tabela)
 
-O unico calculo que o frontend faz e determinar o periodo de carencia (dt_solicitada + 360 dias). A API cuida do resto.
+Campos novos adicionados: `dEmi`, `tipo_mov`, `id_contribuinte`, `cNF`, `indPag`, `cMunFG`, `dhSaiEnt` (podem ser ignorados por enquanto, sem uso na tabela).
 
-## Correcao
+## Alteracoes
 
-### Arquivo: `src/hooks/useSelicDataPerPer.ts`
+### `src/pages/equipe/dev/ConsultaXMLs.tsx`
 
-Remover o `reduce` e voltar a usar diretamente a ultima taxa retornada pela API:
+1. **Remover interface `NFeProduto`** (linhas 48-87) - nao existe mais no response
 
-**De (linhas 56-69):**
-```typescript
-if (taxas.length > 0) {
-  const fatorAcumulado = taxas.reduce(
-    (acc, t) => acc * (1 + t.vlr_acumulado_dec),
-    1
-  );
-  const lastTaxa = taxas[taxas.length - 1];
-  console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, fator acumulado: ${((fatorAcumulado - 1) * 100).toFixed(4)}%`);
-  return {
-    key: per.numero_processo_per,
-    taxa: {
-      ...lastTaxa,
-      vlr_acumulado_dec: fatorAcumulado - 1,
-    },
-  };
-}
-```
+2. **Atualizar interface `NFeRecord`** (linhas 103-123):
+   - Remover `produtos: NFeProduto[]`
+   - Remover `ICMSTot: { vICMS, vICMSST }`
+   - Remover `infAdic: { infAdFisco, infCpl }`
+   - Adicionar `contItens: number`
+   - Adicionar `vlrTotal: number`
+   - Adicionar `tipo_mov: string` (opcional, pode ser util no futuro)
 
-**Para:**
-```typescript
-if (taxas.length > 0) {
-  const lastTaxa = taxas[taxas.length - 1];
-  console.log(`[Selic] ${per.numero_processo_per}: ${taxas.length} meses, taxa acumulada API: ${(lastTaxa.vlr_acumulado_dec * 100).toFixed(4)}%`);
-  return {
-    key: per.numero_processo_per,
-    taxa: lastTaxa,
-  };
-}
-```
+3. **Atualizar celula de valor na tabela** (linha 1119):
+   - De: `formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))`
+   - Para: `formatCurrency(record.vlrTotal)`
 
-### Arquivo: `src/lib/selicCalculator.ts`
+4. **Atualizar celula de contagem de itens** (linha 1122):
+   - De: `record.produtos.length`
+   - Para: `record.contItens`
 
-Manter a correcao `valor * (1 + vlrAcumuladoDec)` pois a API retorna a taxa como decimal (ex: 0.034 = 3.4%), e o valor corrigido e `valor_original * (1 + taxa)`.
+### `src/components/equipe/dev/ExportDialog.tsx`
 
-## Resultado Esperado
+5. **Atualizar interface `NFeRecord` interna** com as mesmas mudancas (remover `produtos`, `ICMSTot`, `infAdic`, adicionar `contItens`, `vlrTotal`). A exportacao real usa o endpoint CSV da API, entao nao e afetada.
 
-- A taxa exibida sera exatamente a retornada pela API (ex: ~3.4% para 4 meses)
-- Sem calculo manual de composicao
-- Valor corrigido = valor original * (1 + taxa da API)
+## Interfaces Emit e Dest
+
+Permanecem iguais - a API continua retornando `IE` e `UF` em ambas.
+
+## Impacto
+
+- Mudancas minimas: apenas 2 celulas da tabela e limpeza de interfaces/tipos nao utilizados
+- Nenhuma mudanca em filtros, paginacao, busca ou download
+- Exportacao CSV continua funcionando normalmente (endpoint independente)
+
