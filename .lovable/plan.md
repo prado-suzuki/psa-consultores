@@ -1,70 +1,81 @@
 
 
-# Usar vlr_acumulado_dec direto (sem subtracao) e valor_acumulado no hover
+# Padronizar Auto-seleção de Contribuinte em Todas as Ferramentas Dev
 
-## O que muda
+## Análise Atual
 
-O usuario esclareceu que a API ja retorna os valores acumulados prontos para uso no registro localizado via `getSelicEndDate` + `data_atualizacao`. Nao e necessario fazer subtracao entre dois registros.
+Todas as 5 ferramentas da Digital Dev possuem filtro de contribuinte quando um cliente é selecionado:
 
-## Alteracoes
+| Ferramenta | Auto-seleciona? | Padrão |
+|---|---|---|
+| **ConsultaEFD.tsx** | ✅ Sim | Estado: `selectedContribuinte`, usa `contribuintes[0].id` |
+| **ConsultaEFDICMS.tsx** | ✅ Sim | Estado: `selectedContribuinte`, usa `contribuintes[0].id` |
+| **AuditoriaFiscal.tsx** | ✅ Sim | Estado: `selectedContribuinte`, usa `contribuintes[0].id` |
+| **ConsultaXMLs.tsx** | ❌ Não | Estado: `selectedContribuinte`, precisa add useEffect |
+| **ControlePerdcomp.tsx** | ❌ Não | Estado: `contribuinteId` (diferente), precisa add useEffect |
+| **GestaoClientes.tsx** | ❌ Não | Estado: `nomeRazaoSocial` (texto, não ID!), precisa add useEffect |
 
-### 1. `src/hooks/useSelicDataPerPer.ts`
+## Particularidades Por Arquivo
 
-- **Manter** `getSelicEndDate` para calcular o mes de busca
-- **Manter** indexacao por `data_atualizacao`
-- **Remover** a logica de subtracao (linhas 76-77, 90)
-- **Remover** referencia a `lastTaxa`
-- Usar diretamente o `vlr_acumulado_dec` e `valor_acumulado` do registro encontrado, sem modificar
+### ConsultaXMLs.tsx
+- **Estado**: `selectedContribuinte` (string)
+- **Local**: Após linha 95 (após useQuery de contribuintes)
+- **Padrão**: Usar o mesmo useEffect de ConsultaEFD/ConsultaEFDICMS
 
-Antes (linha 90):
+### ControlePerdcomp.tsx
+- **Estado**: `contribuinteId` (não `selectedContribuinte`)
+- **Local**: Após linha 122 (após useQuery de contribuintes)
+- **Padrão**: Adaptar para usar `setContribuinteId` e `clienteId` (não `selectedCliente`)
+
+### GestaoClientes.tsx
+- **Estado**: `nomeRazaoSocial` (nome, NÃO ID!)
+- **Peculiaridade**: Usa o **nome** como valor, não o ID
+- **Local**: Após linha 171 (após useQuery de contribuintes)
+- **Lógica**: Pegar o `nome_razao_social` do único contribuinte e usar como valor do select
+- **Padrão**: `setNomeRazaoSocial(contribuintes[0].nome_razao_social)`
+
+## Implementação
+
+### 1. **src/pages/equipe/dev/ConsultaXMLs.tsx**
+Adicionar `useEffect` após a query de contribuintes (linha ~95):
 ```typescript
-const fator = firstTaxa.vlr_acumulado_dec - lastTaxa.vlr_acumulado_dec;
-map[per.numero_processo_per] = { ...firstTaxa, vlr_acumulado_dec: fator };
+useEffect(() => {
+  if (selectedCliente && contribuintes && contribuintes.length === 1 && !selectedContribuinte) {
+    setSelectedContribuinte(contribuintes[0].id);
+  }
+}, [selectedCliente, contribuintes, selectedContribuinte]);
+```
+Nota: Verificar se `useEffect` está já importado; caso contrário, adicionar ao import de React.
+
+### 2. **src/pages/equipe/dev/ControlePerdcomp.tsx**
+Adicionar `useEffect` após a query de contribuintes (linha ~122):
+```typescript
+useEffect(() => {
+  if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+    setContribuinteId(contribuintes[0].id);
+  }
+}, [clienteId, contribuintes, contribuinteId]);
+```
+Nota: Verificar se `useEffect` está já importado; está na linha 1: `import { useState, useMutation, useQueryClient }` - **falta adicionar useEffect**.
+
+### 3. **src/pages/equipe/dev/GestaoClientes.tsx**
+Adicionar `useEffect` após a query de contribuintes (linha ~171), aproveitando o existing useEffect que limpa o filtro:
+```typescript
+// Mover e expandir o useEffect existente (linhas 174-176)
+useEffect(() => {
+  // Se cliente muda, limpar filtro de contribuinte
+  setNomeRazaoSocial('');
+}, [clienteId]);
+
+// Adicionar novo useEffect para auto-selecionar
+useEffect(() => {
+  if (clienteId && clienteId !== '__todos__' && contribuintes && contribuintes.length === 1 && !nomeRazaoSocial) {
+    setNomeRazaoSocial(contribuintes[0].nome_razao_social);
+  }
+}, [clienteId, contribuintes, nomeRazaoSocial]);
 ```
 
-Depois:
-```typescript
-map[per.numero_processo_per] = firstTaxa; // valor direto da API, sem subtracao
-```
+## Resultado Final
 
-### 2. `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-- Atualizar tipo do `selicCorrectionMap` para incluir `valorAcumulado` (campo `valor_acumulado` da taxa)
-- No `useMemo` (linha 309-326), guardar tambem `taxa.valor_acumulado`
-- No tooltip (linha 557-559), trocar de `correction.fator.toFixed(6)` para exibir `correction.valorAcumulado` formatado como percentual (ex: "Taxa Selic: 4,43%")
-
-Antes:
-```typescript
-const map: Record<string, { valorCorrigido: number; fator: number }> = {};
-// ...
-map[per.numero_processo_per] = { valorCorrigido, fator };
-```
-
-Depois:
-```typescript
-const map: Record<string, { valorCorrigido: number; fator: number; valorAcumulado: number }> = {};
-// ...
-map[per.numero_processo_per] = { valorCorrigido, fator, valorAcumulado: taxa.valor_acumulado };
-```
-
-Tooltip (linha 558):
-```typescript
-// Antes
-<p>Fator Selic: {correction.fator.toFixed(6)}</p>
-// Depois
-<p>Taxa Selic: {correction.valorAcumulado.toFixed(2)}%</p>
-```
-
-### 3. Sem mudancas em `src/lib/selicCalculator.ts`
-
-A funcao `applySelicCorrection` continua recebendo `vlr_acumulado_dec` (agora direto da API) e calculando `valor * (1 + vlr_acumulado_dec)`.
-
-## Resumo
-
-| Item | Antes | Depois |
-|------|-------|--------|
-| Fator usado | Subtracao entre 2 registros | Direto da API (registro localizado) |
-| Hover | Fator decimal (0.044300) | Percentual legivel (4,43%) |
-| getSelicEndDate | Mantido | Mantido |
-| Indexacao data_atualizacao | Mantida | Mantida |
+Todas as 6 ferramentas seguirão o mesmo padrão visual/comportamental: ao selecionar um cliente com apenas um contribuinte, o filtro de contribuinte será preenchido automaticamente, economizando cliques do usuário.
 
