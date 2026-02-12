@@ -280,15 +280,18 @@ export default function ControlePerdcomp() {
     return true;
   });
 
-  // Unique situações for filter dropdown
-  const uniqueSituacoes = useMemo(() => {
-    const set = new Set<string>();
-    for (const key of Object.keys(perSituacoesMap)) {
-      const s = perSituacoesMap[key]?.situacao;
-      if (s) set.add(s);
-    }
-    return Array.from(set).sort();
-  }, [perSituacoesMap]);
+  // Independent query for all distinct situações (loads before search)
+  const { data: allSituacoes = [] } = useQuery({
+    queryKey: ['per-situacoes-distintas'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('per_situacao')
+        .select('situacao')
+        .not('situacao', 'is', null);
+      const set = new Set(data?.map(d => d.situacao));
+      return Array.from(set).sort();
+    },
+  });
 
   // Determine date range for Selic fetch based on filtered PER data
   // inicio = hoje, fim = maior (dt_solicitada + 360) entre PERs elegíveis (fora da carência)
@@ -682,7 +685,7 @@ export default function ControlePerdcomp() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Todas</SelectItem>
-                  {uniqueSituacoes.map((s) => (
+                  {allSituacoes.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
