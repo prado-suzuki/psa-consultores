@@ -1,48 +1,68 @@
 
 
-# Ajustar ConsultaXMLs para novo formato da API NFe
+# Correcao Critica: Calculo Selic por Subtracao + Chamada Unica
 
-## O que muda
+## Problema
 
-A API agora retorna os mesmos campos de antes (chave, cUF, natOp, mod, serie, nNF, dhEmi, tpNF, emit com IE, dest com IE/UF), mas substituiu:
-- `produtos[]` por `contItens` (contagem de itens) e `vlrTotal` (valor total da NFe)
-- Removeu `ICMSTot` e `infAdic` (nao eram exibidos na tabela)
+Todos os PERs exibem fator Selic de ~1% porque o hook pega o ultimo registro do array (mes vigente), que e sempre fixado em 1%. A API retorna `vlr_acumulado_dec` como acumulado reverso - meses mais antigos tem valores maiores, e o calculo correto e por **subtracao** entre o mes inicio e o mes fim.
 
-Campos novos adicionados: `dEmi`, `tipo_mov`, `id_contribuinte`, `cNF`, `indPag`, `cMunFG`, `dhSaiEnt` (podem ser ignorados por enquanto, sem uso na tabela).
+Alem disso, o hook faz N chamadas de API (uma por PER), causando problemas de performance.
 
-## Alteracoes
+## Solucao
 
-### `src/pages/equipe/dev/ConsultaXMLs.tsx`
+### 1. `src/hooks/useSelicDataPerPer.ts` - Refatorar completamente
 
-1. **Remover interface `NFeProduto`** (linhas 48-87) - nao existe mais no response
+**De:** N chamadas de API, cada uma pegando o ultimo registro
+**Para:** 1 unica chamada de API cobrindo o periodo mais antigo ate hoje, depois calculo local por subtracao
 
-2. **Atualizar interface `NFeRecord`** (linhas 103-123):
-   - Remover `produtos: NFeProduto[]`
-   - Remover `ICMSTot: { vICMS, vICMSST }`
-   - Remover `infAdic: { infAdFisco, infCpl }`
-   - Adicionar `contItens: number`
-   - Adicionar `vlrTotal: number`
-   - Adicionar `tipo_mov: string` (opcional, pode ser util no futuro)
+```text
+Fluxo novo:
+1. Encontrar a data mais antiga entre todos os PERs elegiveis (menor getSelicEndDate)
+2. Fazer UMA chamada: /api/v1/selic?data_inicio={mais_antiga}&data_fim={hoje}
+3. Para cada PER, encontrar no array o registro do mes correspondente ao fim da carencia
+4. Fator = vlr_acumulado_dec(mes_carencia) - vlr_acumulado_dec(mes_atual)
+5. Retornar mapa com SelicTaxa modificada contendo o fator correto
+```
 
-3. **Atualizar celula de valor na tabela** (linha 1119):
-   - De: `formatCurrency(record.produtos.reduce((sum, p) => sum + p.vProd, 0))`
-   - Para: `formatCurrency(record.vlrTotal)`
+Logica de calculo:
+```typescript
+// Array de taxas ordenado pela API (mais antigo primeiro)
+// firstTaxa = registro do mes correspondente ao fim da carencia do PER
+// lastTaxa = ultimo registro (mes vigente, sempre ~1%)
+// fator = firstTaxa.vlr_acumulado_dec - lastTaxa.vlr_acumulado_dec
+```
 
-4. **Atualizar celula de contagem de itens** (linha 1122):
-   - De: `record.produtos.length`
-   - Para: `record.contItens`
+Para localizar o registro correto de cada PER no array, comparar o campo `data` (YYYY-MM) com o mes do fim da carencia.
 
-### `src/components/equipe/dev/ExportDialog.tsx`
+### 2. `src/lib/selicCalculator.ts` - Sem mudancas na formula
 
-5. **Atualizar interface `NFeRecord` interna** com as mesmas mudancas (remover `produtos`, `ICMSTot`, `infAdic`, adicionar `contItens`, `vlrTotal`). A exportacao real usa o endpoint CSV da API, entao nao e afetada.
+A funcao `applySelicCorrection` continua usando `valor * (1 + fator)`. O que muda e o fator que chega nela (agora calculado por subtracao, nao mais o vlr_acumulado_dec direto).
 
-## Interfaces Emit e Dest
+As funcoes `isWithinGracePeriod` e `getSelicEndDate` permanecem iguais.
 
-Permanecem iguais - a API continua retornando `IE` e `UF` em ambas.
+### 3. `src/pages/equipe/dev/ControlePerdcomp.tsx` - Sem mudancas
 
-## Impacto
+O componente consumidor nao precisa mudar. Ele ja usa `selicPerMap[per.numero_processo_per]` e chama `applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec)`. Como o hook retornara o fator correto no campo `vlr_acumulado_dec` da taxa, tudo funciona transparentemente.
 
-- Mudancas minimas: apenas 2 celulas da tabela e limpeza de interfaces/tipos nao utilizados
-- Nenhuma mudanca em filtros, paginacao, busca ou download
-- Exportacao CSV continua funcionando normalmente (endpoint independente)
+## Resultado Esperado
+
+| Antes | Depois |
+|-------|--------|
+| Todos os PERs: fator ~1% | Cada PER com fator proporcional a antiguidade |
+| N chamadas de API | 1 unica chamada |
+| Erro de memoria com muitos PERs | Performance estavel |
+
+Logs esperados:
+```text
+[Selic] 1 chamada cobrindo 2023-05-15 ate 2026-02-12 (45 PERs)
+[Selic] PER-001: 0.1234 - 0.0100 = 0.1134 (11.34%)
+[Selic] PER-002: 0.0856 - 0.0100 = 0.0756 (7.56%)
+```
+
+## Detalhes Tecnicos
+
+- O hook retorna `Record<string, SelicTaxa>` como antes - a interface nao muda
+- O campo `vlr_acumulado_dec` no objeto retornado sera sobrescrito com o fator calculado por subtracao
+- A queryKey muda para `['selic-per-batch', cacheKey]` para invalidar o cache antigo
+- Se um PER nao encontrar registro no array para seu mes de carencia, sera ignorado (sem fator)
 
