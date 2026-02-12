@@ -41,8 +41,8 @@ import { ptBR } from 'date-fns/locale';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { DcompFormModal } from '@/components/equipe/dev/perdcomp/DcompFormModal';
 import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
-import { useSelicData } from '@/hooks/useSelicData';
-import { applySelicCorrection, isWithinGracePeriod, getSelicEndDate } from '@/lib/selicCalculator';
+import { useSelicDataPerPer } from '@/hooks/useSelicDataPerPer';
+import { applySelicCorrection, isWithinGracePeriod } from '@/lib/selicCalculator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -295,27 +295,12 @@ export default function ControlePerdcomp() {
     },
   });
 
-  // Determine date range for Selic fetch based on filtered PER data
-  // inicio = hoje, fim = maior (dt_solicitada + 360) entre PERs elegíveis (fora da carência)
-  const selicDateRange = useMemo(() => {
-    if (filteredPerData.length === 0) return { inicio: null, fim: null };
-
-    // Filtra apenas PERs fora da carência (dt_solicitada + 360 <= hoje)
-    const eligibleEndDates = filteredPerData
-      .filter(p => p.dt_solicitada && !isWithinGracePeriod(p.dt_solicitada))
-      .map(p => getSelicEndDate(p.dt_solicitada));
-
-    if (eligibleEndDates.length === 0) return { inicio: null, fim: null };
-
-    const inicio = format(new Date(), 'yyyy-MM-dd');
-    const fim = eligibleEndDates.sort().pop()!; // maior data fim
-    return { inicio, fim };
-  }, [filteredPerData]);
-
-  // Fetch Selic rates for the full range
-  const { data: selicTaxas = [], isLoading: selicLoading } = useSelicData(
-    selicDateRange.inicio,
-    selicDateRange.fim
+  // Fetch Selic rates individually per PER (each PER has its own data_fim)
+  const { data: selicPerMap = {}, isLoading: selicLoading } = useSelicDataPerPer(
+    filteredPerData.filter(p => p.dt_solicitada).map(p => ({
+      numero_processo_per: p.numero_processo_per,
+      dt_solicitada: p.dt_solicitada,
+    }))
   );
 
   // Pre-calculate corrected values for all filtered PERs
@@ -324,20 +309,19 @@ export default function ControlePerdcomp() {
     for (const per of filteredPerData) {
       if (!per.dt_solicitada) continue;
 
-      // Se ainda em carência, sem correção
       if (isWithinGracePeriod(per.dt_solicitada)) {
         map[per.numero_processo_per] = { valorCorrigido: 0, fator: 0 };
         continue;
       }
 
-      // Usa a última taxa retornada pela API (já inclui 1% do mês atual)
-      if (selicTaxas.length === 0) continue;
-      const ultimaTaxa = selicTaxas[selicTaxas.length - 1];
-      const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, ultimaTaxa.vlr_acumulado_dec);
+      const taxa = selicPerMap[per.numero_processo_per];
+      if (!taxa) continue;
+
+      const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec);
       map[per.numero_processo_per] = { valorCorrigido, fator };
     }
     return map;
-  }, [selicTaxas, filteredPerData]);
+  }, [selicPerMap, filteredPerData]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {
