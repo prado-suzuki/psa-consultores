@@ -38,7 +38,7 @@ export function useSelicDataPerPer(pers: PerInput[]) {
         eligiblePers.map(async (per) => {
           const dataFim = getSelicEndDate(per.dt_solicitada);
           const url = getApiUrl(
-            `/api/v1/selic?data_inicio=${hoje}&data_fim=${dataFim}`
+            `/api/v1/selic?data_inicio=${dataFim}&data_fim=${hoje}`
           );
           const response = await fetchWithAuth(url);
 
