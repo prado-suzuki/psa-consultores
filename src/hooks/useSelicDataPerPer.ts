@@ -73,29 +73,22 @@ export function useSelicDataPerPer(pers: PerInput[]) {
         taxasByMonth[month] = t;
       }
 
-      // Último registro = mês vigente (sempre ~1%)
-      const lastTaxa = taxas[taxas.length - 1];
-
-      // 3. Para cada PER, calcular fator por subtração
+      // 3. Para cada PER, localizar taxa direto da API (sem subtração)
       for (const per of eligiblePers) {
         const endDate = perEndDates[per.numero_processo_per];
         const endMonth = endDate.substring(0, 7); // YYYY-MM
-        const firstTaxa = taxasByMonth[endMonth];
+        const taxa = taxasByMonth[endMonth];
 
-        if (!firstTaxa) {
+        if (!taxa) {
           console.warn(`[Selic] ${per.numero_processo_per}: sem registro para mês ${endMonth}, ignorado`);
           continue;
         }
 
-        const fator = firstTaxa.vlr_acumulado_dec - lastTaxa.vlr_acumulado_dec;
         console.log(
-          `[Selic] ${per.numero_processo_per}: ${firstTaxa.vlr_acumulado_dec.toFixed(4)} - ${lastTaxa.vlr_acumulado_dec.toFixed(4)} = ${fator.toFixed(4)} (${(fator * 100).toFixed(2)}%)`
+          `[Selic] ${per.numero_processo_per}: vlr_acumulado_dec=${taxa.vlr_acumulado_dec.toFixed(4)} valor_acumulado=${taxa.valor_acumulado}%`
         );
 
-        map[per.numero_processo_per] = {
-          ...firstTaxa,
-          vlr_acumulado_dec: fator,
-        };
+        map[per.numero_processo_per] = taxa;
       }
 
       console.log(`[Selic] Resultado: ${Object.keys(map).length}/${eligiblePers.length} PERs com taxa`);
