@@ -1,76 +1,63 @@
 
 
-# Refatorar Calculo Selic - Regras PER/DCOMP Web
+# Filtro de Situacao e Ordenacao Dinamica na Tabela PERDCOMP
 
 ## Resumo
 
-Reescrever a logica de correcao monetaria Selic para seguir as regras oficiais. A mudanca principal e:
+Duas melhorias no Controle PERDCOMP:
+1. Novo filtro de "Situacao" no card de filtros, listando as situacoes distintas encontradas nos dados carregados
+2. Ordenacao dinamica em todas as colunas da tabela - clique no cabecalho alterna entre crescente/decrescente, com indicador visual (seta)
 
-- **Data inicio da API** = data atual (hoje)
-- **Data fim da API** = dt_solicitada + 360 dias
-- Se a **data fim for maior que hoje**, nao requisita a API e o valor corrigido fica como 0
-- Quando a data fim ja passou, usa o `vlr_acumulado_dec` da ultima taxa retornada pela API como fator de correcao
+## Alteracoes em `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-## Alteracoes
+### 1. Filtro de Situacao
 
-### 1. `src/lib/selicCalculator.ts`
+- Adicionar state `situacaoFilter` (string, inicialmente vazio)
+- Extrair lista de situacoes unicas a partir de `perSituacoesMap` via `useMemo`
+- Adicionar um novo `Select` no grid de filtros (entre "Exercicio" e "N. Processo") com as opcoes dinamicas
+- Na funcao de filtragem `filteredPerData`, adicionar verificacao: se `situacaoFilter` estiver preenchido, comparar com `perSituacoesMap[item.numero_processo_per]?.situacao`
+- Limpar o filtro no `handleClear`
 
-- **Remover** `findTaxaByDate` (nao mais usada)
-- **Simplificar** `applySelicCorrection`:
-  - Nova assinatura: `applySelicCorrection(valor: number, vlrAcumuladoDec: number)`
-  - Apenas multiplica valor pelo fator e retorna
-  - A verificacao de carencia sera feita no componente (antes de chamar a API)
-- **Remover** `calculateBatchCorrection` (logica movida para o componente)
+### 2. Ordenacao Dinamica da Tabela
 
-### 2. `src/pages/equipe/dev/ControlePerdcomp.tsx`
+- Adicionar state `sortColumn` (string | null) e `sortDirection` ('asc' | 'desc')
+- Definir tipo para colunas ordenaveis com mapeamento para funcao de acesso ao valor (ex: `numero_processo_per`, `situacao`, `dt_solicitada`, `exercicio`, `vlr_credito`, `vlr_compensado`, `saldo`, `vlr_corrigido`)
+- Ao clicar no cabecalho:
+  - Se ja esta ordenando pela mesma coluna, alterna a direcao
+  - Senao, define a nova coluna com direcao ascendente
+- Aplicar `sort()` no array filtrado antes da paginacao
+- Adicionar icone `ArrowUpDown` (lucide) no cabecalho, trocando para `ArrowUp`/`ArrowDown` quando ativo
+- Estilizar cabecalhos ordenaveis com `cursor-pointer` e `hover:bg-muted/50`
 
-**Refatorar `selicDateRange`:**
-- Calcular para cada PER: `dataFim = dt_solicitada + 360 dias`
-- Filtrar apenas PERs cuja `dataFim <= hoje` (fora da carencia)
-- `inicio` = data atual (hoje)
-- `fim` = a maior `dataFim` entre os PERs elegiveis
-- Se nenhum PER for elegivel, retorna `{ inicio: null, fim: null }` (nao chama API)
+### Secao Tecnica
 
-**Refatorar `selicCorrectionMap`:**
-- Para cada PER, calcular `dataFim = dt_solicitada + 360 dias`
-- Se `dataFim > hoje`: sem correcao, valor = 0, fator = 0
-- Se `dataFim <= hoje`: buscar a ultima taxa do array `selicTaxas` e usar `vlr_acumulado_dec` como fator
-
-**Totais:**
-- Manter a mesma logica, usando o novo `selicCorrectionMap`
-
-## Secao Tecnica
-
-### Fluxo de decisao por PER
-
+**Novos states:**
 ```text
-Para cada PER:
-  dataFim = dt_solicitada + 360 dias
-
-  dataFim > hoje?
-    SIM -> valorCorrigido = 0, fator = 0 (carencia, sem API)
-    NAO -> fator = ultimaTaxa.vlr_acumulado_dec
-           valorCorrigido = vlr_credito * fator
+situacaoFilter: string
+sortColumn: string | null
+sortDirection: 'asc' | 'desc'
 ```
 
-### Calculo do intervalo da API
+**Fluxo de ordenacao:**
+- `sortedData = useMemo` que recebe `filteredPerData` e aplica sort baseado em `sortColumn` e `sortDirection`
+- A paginacao usa `sortedData` ao inves de `filteredPerData`
+- Os totais continuam usando `filteredPerData` (sem depender da ordem)
 
-```text
-PERs elegiveis = filteredPerData.filter(p => dt_solicitada + 360 <= hoje)
+**Colunas ordenaveis e seus acessores:**
+- N. Processo -> `item.numero_processo_per` (string)
+- Situacao -> `perSituacoesMap[key]?.situacao` (string)
+- Dt. Solicitada -> `item.dt_solicitada` (date string)
+- Exercicio -> `item.exercicio` (number)
+- Trimestre -> `item.tri_exercicio` (number)
+- Vlr. Credito -> `item.vlr_credito` (number)
+- Vlr. Compensado -> `dcompTotalMap[key]` (number)
+- Saldo -> calculado (number)
+- Vlr. Corrigido -> `selicCorrectionMap[key]?.valorCorrigido` (number)
 
-Se nenhum elegivel: nao chama API
+**Grid de filtros:**
+- Alterar de `md:grid-cols-6` para `md:grid-cols-7` para acomodar o novo filtro
+- Ou manter 6 colunas ajustando o span dos botoes
 
-Senao:
-  inicio = hoje (formato YYYY-MM-DD)
-  fim = max(dt_solicitada + 360) entre elegiveis (formato YYYY-MM-DD)
-```
-
-### Arquivos impactados
-- `src/lib/selicCalculator.ts` - simplificacao
-- `src/pages/equipe/dev/ControlePerdcomp.tsx` - logica de datas e carencia
-
-### Sem alteracao em
-- Banco de dados
-- Hook `useSelicData`
-- Interface `SelicTaxa`
+**Imports adicionais:**
+- `ArrowUp`, `ArrowDown`, `ArrowUpDown` de `lucide-react`
 
