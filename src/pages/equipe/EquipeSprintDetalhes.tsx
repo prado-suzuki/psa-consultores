@@ -114,6 +114,11 @@ export default function EquipeSprintDetalhes() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('all'); // 'all', 'today', 'tomorrow', 'overdue'
 
+  // Filtros de métricas (ano, mês, pessoa)
+  const [filterYear, setFilterYear] = useState<string>("__none__");
+  const [filterMonth, setFilterMonth] = useState<string>("__none__");
+  const [filterMetricsPerson, setFilterMetricsPerson] = useState<string>("__none__");
+
   // Modal de edição
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
@@ -891,9 +896,51 @@ export default function EquipeSprintDetalhes() {
     setFilterResponsible('all');
     setFilterStatus('all');
     setFilterDate('all');
+    setFilterYear("__none__");
+    setFilterMonth("__none__");
+    setFilterMetricsPerson("__none__");
   };
 
-  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all' || filterDate !== 'all';
+  const hasActiveFilters = filterResponsible !== 'all' || filterStatus !== 'all' || filterDate !== 'all' || filterYear !== "__none__" || filterMonth !== "__none__" || filterMetricsPerson !== "__none__";
+
+  // Metrics filter options
+  const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+  const deliverablesWithHours = useMemo(
+    () => deliverables.filter((d) => d.estimated_hours && d.estimated_hours > 0 && d.due_date),
+    [deliverables]
+  );
+
+  const availableYears = useMemo(() => {
+    const years = [...new Set(deliverablesWithHours.map((d) => new Date(d.due_date).getFullYear().toString()))];
+    return years.sort();
+  }, [deliverablesWithHours]);
+
+  const availableMonths = useMemo(() => {
+    const filtered = filterYear !== "__none__"
+      ? deliverablesWithHours.filter((d) => new Date(d.due_date).getFullYear().toString() === filterYear)
+      : deliverablesWithHours;
+    const months = [...new Set(filtered.map((d) => new Date(d.due_date).getMonth().toString()))];
+    return months.sort((a, b) => Number(a) - Number(b));
+  }, [deliverablesWithHours, filterYear]);
+
+  const availableMetricsPeople = useMemo(() => {
+    const ids = [...new Set(deliverablesWithHours.map((d) => d.assigned_to).filter(Boolean))] as string[];
+    const profileMap: Record<string, string> = {};
+    profiles.forEach((p) => { profileMap[p.id] = `${p.first_name} ${p.last_name}`; });
+    return ids.map((id) => ({ id, name: profileMap[id] || "Sem nome" })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [deliverablesWithHours, profiles]);
+
+  const metricsFilteredDeliverables = useMemo(() => {
+    return filteredDeliverables.filter((d) => {
+      if (!d.due_date) return true;
+      const date = new Date(d.due_date);
+      if (filterYear !== "__none__" && date.getFullYear().toString() !== filterYear) return false;
+      if (filterMonth !== "__none__" && date.getMonth().toString() !== filterMonth) return false;
+      if (filterMetricsPerson !== "__none__" && d.assigned_to !== filterMetricsPerson) return false;
+      return true;
+    });
+  }, [filteredDeliverables, filterYear, filterMonth, filterMetricsPerson]);
 
   // Gantt real - dados calculados
   const ganttChartData = useMemo(() => {
@@ -1119,6 +1166,36 @@ export default function EquipeSprintDetalhes() {
               Atrasados ({sprintRisks.overdue.length})
             </Button>
           </div>
+
+          {/* Separador + Filtros de métricas */}
+          <div className="h-6 w-px bg-border mx-1" />
+          <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setFilterMonth("__none__"); }}>
+            <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Ano</SelectItem>
+              {availableYears.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Mês</SelectItem>
+              {availableMonths.map((m) => <SelectItem key={m} value={m}>{MONTH_NAMES[Number(m)]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterMetricsPerson} onValueChange={setFilterMetricsPerson}>
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-white">
+              <SelectValue placeholder="Pessoa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Pessoa</SelectItem>
+              {availableMetricsPeople.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
@@ -1629,7 +1706,7 @@ export default function EquipeSprintDetalhes() {
           {/* Tab Métricas */}
           <TabsContent value="metrics" className="space-y-6">
             <SprintHoursDashboard
-              deliverables={filteredDeliverables}
+              deliverables={metricsFilteredDeliverables}
               profiles={profiles}
             />
 

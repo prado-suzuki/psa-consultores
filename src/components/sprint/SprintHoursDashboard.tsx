@@ -2,10 +2,8 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Clock, TrendingUp, User, AlertCircle, Filter } from "lucide-react";
+import { Clock, TrendingUp, User, AlertCircle } from "lucide-react";
 import { format, getISOWeek, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -39,8 +37,6 @@ const COLORS = [
   "#6366f1",
 ];
 
-const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
 interface SprintHoursDashboardProps {
   deliverables: Deliverable[];
   profiles: Profile[];
@@ -48,9 +44,6 @@ interface SprintHoursDashboardProps {
 
 export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDashboardProps) {
   const [granularity, setGranularity] = useState<Granularity>("week");
-  const [filterYear, setFilterYear] = useState<string>("__none__");
-  const [filterMonth, setFilterMonth] = useState<string>("__none__");
-  const [filterPerson, setFilterPerson] = useState<string>("__none__");
 
   const profileMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -65,44 +58,14 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
     [deliverables]
   );
 
-  // Extract filter options
-  const availableYears = useMemo(() => {
-    const years = [...new Set(withHours.map((d) => parseISO(d.due_date).getFullYear().toString()))];
-    return years.sort();
-  }, [withHours]);
-
-  const availableMonths = useMemo(() => {
-    const filtered = filterYear !== "__none__"
-      ? withHours.filter((d) => parseISO(d.due_date).getFullYear().toString() === filterYear)
-      : withHours;
-    const months = [...new Set(filtered.map((d) => parseISO(d.due_date).getMonth().toString()))];
-    return months.sort((a, b) => Number(a) - Number(b));
-  }, [withHours, filterYear]);
-
-  const availablePeople = useMemo(() => {
-    const ids = [...new Set(withHours.map((d) => d.assigned_to).filter(Boolean))] as string[];
-    return ids.map((id) => ({ id, name: profileMap[id] || "Sem nome" })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [withHours, profileMap]);
-
-  // Apply filters
-  const filteredWithHours = useMemo(() => {
-    return withHours.filter((d) => {
-      const date = parseISO(d.due_date);
-      if (filterYear !== "__none__" && date.getFullYear().toString() !== filterYear) return false;
-      if (filterMonth !== "__none__" && date.getMonth().toString() !== filterMonth) return false;
-      if (filterPerson !== "__none__" && d.assigned_to !== filterPerson) return false;
-      return true;
-    });
-  }, [withHours, filterYear, filterMonth, filterPerson]);
-
   const uniquePeople = useMemo(() => {
-    const ids = [...new Set(filteredWithHours.map((d) => d.assigned_to).filter(Boolean))] as string[];
+    const ids = [...new Set(withHours.map((d) => d.assigned_to).filter(Boolean))] as string[];
     return ids.map((id, i) => ({
       id,
       name: profileMap[id] || "Sem nome",
       color: COLORS[i % COLORS.length],
     }));
-  }, [filteredWithHours, profileMap]);
+  }, [withHours, profileMap]);
 
   const getPeriodKey = (dateStr: string, gran: Granularity): string => {
     const date = parseISO(dateStr);
@@ -126,7 +89,7 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
 
   const chartData = useMemo(() => {
     const grouped: Record<string, { period: string; sortKey: string; [personId: string]: number | string }> = {};
-    filteredWithHours.forEach((d) => {
+    withHours.forEach((d) => {
       const key = getPeriodKey(d.due_date, granularity);
       const sortKey = getSortKey(d.due_date, granularity);
       if (!grouped[key]) grouped[key] = { period: key, sortKey };
@@ -134,72 +97,27 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
       grouped[key][personId] = ((grouped[key][personId] as number) || 0) + (d.estimated_hours || 0);
     });
     return Object.values(grouped).sort((a, b) => (a.sortKey as string).localeCompare(b.sortKey as string));
-  }, [filteredWithHours, granularity]);
+  }, [withHours, granularity]);
 
   const personSummary = useMemo(() => {
     const summary: Record<string, { name: string; hours: number; tasks: number }> = {};
-    filteredWithHours.forEach((d) => {
+    withHours.forEach((d) => {
       const pid = d.assigned_to || "unassigned";
       if (!summary[pid]) summary[pid] = { name: profileMap[pid] || "Não atribuído", hours: 0, tasks: 0 };
       summary[pid].hours += d.estimated_hours || 0;
       summary[pid].tasks += 1;
     });
     return Object.values(summary).sort((a, b) => b.hours - a.hours);
-  }, [filteredWithHours, profileMap]);
+  }, [withHours, profileMap]);
 
   const totalHours = personSummary.reduce((s, p) => s + p.hours, 0);
-  const uniqueDays = new Set(filteredWithHours.map((d) => d.due_date)).size;
+  const uniqueDays = new Set(withHours.map((d) => d.due_date)).size;
   const avgPerDay = uniqueDays > 0 ? (totalHours / uniqueDays).toFixed(1) : "0";
   const topPerson = personSummary[0]?.name || "—";
   const tasksWithoutHours = deliverables.filter((d) => !d.estimated_hours || d.estimated_hours <= 0).length;
 
-  const hasActiveFilters = filterYear !== "__none__" || filterMonth !== "__none__" || filterPerson !== "__none__";
-
-  const clearFilters = () => {
-    setFilterYear("__none__");
-    setFilterMonth("__none__");
-    setFilterPerson("__none__");
-  };
-
   return (
     <div className="space-y-4">
-      {/* Filter Bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setFilterMonth("__none__"); }}>
-          <SelectTrigger className="w-[100px] h-8 text-xs">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Todos</SelectItem>
-            {availableYears.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterMonth} onValueChange={setFilterMonth}>
-          <SelectTrigger className="w-[100px] h-8 text-xs">
-            <SelectValue placeholder="Mês" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Todos</SelectItem>
-            {availableMonths.map((m) => <SelectItem key={m} value={m}>{MONTH_NAMES[Number(m)]}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterPerson} onValueChange={setFilterPerson}>
-          <SelectTrigger className="w-[140px] h-8 text-xs">
-            <SelectValue placeholder="Responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Todos</SelectItem>
-            {availablePeople.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
-            Limpar
-          </Button>
-        )}
-      </div>
-
       {/* KPI Cards */}
       <div className="flex gap-3 overflow-x-auto pb-1">
         <Card className="border-border min-w-[140px] flex-shrink-0">
