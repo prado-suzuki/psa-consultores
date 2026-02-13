@@ -10,7 +10,8 @@ interface CreateTeamMemberRequest {
   password: string;
   first_name: string;
   last_name: string;
-  is_admin: boolean;
+  is_admin?: boolean;
+  roles?: string[];
 }
 
 Deno.serve(async (req) => {
@@ -72,9 +73,9 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, first_name, last_name, is_admin }: CreateTeamMemberRequest = await req.json();
+    const { email, password, first_name, last_name, is_admin, roles }: CreateTeamMemberRequest = await req.json();
 
-    console.log('Creating team member:', { email, first_name, last_name, is_admin });
+    console.log('Creating team member:', { email, first_name, last_name, roles, is_admin });
 
     // Create admin client for user creation
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -115,25 +116,32 @@ Deno.serve(async (req) => {
     const userId = newUser.user.id;
     console.log('User created with ID:', userId);
 
-    // Add team_member role
-    const { error: teamRoleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({ user_id: userId, role: 'team_member' });
-
-    if (teamRoleError) {
-      console.error('Team role error:', teamRoleError);
-    }
-
-    // Add admin role if requested
-    if (is_admin) {
-      const { error: adminRoleError } = await supabaseAdmin
-        .from('user_roles')
-        .insert({ user_id: userId, role: 'admin' });
-
-      if (adminRoleError) {
-        console.error('Admin role error:', adminRoleError);
+    // Determine which roles to assign
+    let rolesToAssign: string[] = [];
+    
+    if (roles && Array.isArray(roles) && roles.length > 0) {
+      // New behavior: use the roles array directly
+      rolesToAssign = roles;
+    } else {
+      // Backward compatibility: default to team_member + admin if is_admin
+      rolesToAssign = ['team_member'];
+      if (is_admin) {
+        rolesToAssign.push('admin');
       }
     }
+
+    // Insert each role
+    for (const role of rolesToAssign) {
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({ user_id: userId, role });
+
+      if (roleError) {
+        console.error(`Error inserting role ${role}:`, roleError);
+      }
+    }
+
+    console.log('Roles assigned:', rolesToAssign);
 
     console.log('Team member created successfully');
 
