@@ -65,7 +65,7 @@
          <Card>
            <CardContent className="py-12 text-center">
              <p className="text-muted-foreground">
-               Nenhuma tarefa para hoje. Aproveite! 🎉
+               Nenhuma tarefa para hoje. Aproveite!
              </p>
            </CardContent>
          </Card>
