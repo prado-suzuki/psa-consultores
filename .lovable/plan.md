@@ -1,73 +1,63 @@
 
 
-## Plano: Editar e Excluir Usuarios no Controle de Acessos
+## Plano: Associar Usuarios a Areas/Ambientes na Criacao e Edicao
 
 ### Problema Atual
-Na aba "Usuarios" do Controle de Acessos, os usuarios existentes aparecem numa lista lateral somente para visualizacao e gestao de permissoes de pagina. Nao ha opcao para **editar dados** (nome, email, papeis) nem para **excluir** usuarios existentes.
+O formulario de criacao de usuario permite definir nome, email, senha e papeis (Admin/Membro/Cliente), mas **nao permite associar o usuario a ambientes/areas** (Gerencial, Chamados, Digital, OSG, Tax). Atualmente, o acesso a areas depende de permissoes individuais por pagina (`user_page_access`), que precisam ser configuradas manualmente uma a uma apos a criacao do usuario.
 
 ### Solucao
-Adicionar funcionalidades de edicao e exclusao diretamente na lista de usuarios, com dialogs de confirmacao.
+Adicionar um campo de **selecao de areas** (multi-select com checkboxes) nos formularios de criacao e edicao de usuario. Ao selecionar uma area, o sistema automaticamente concedera acesso a **todas as paginas daquela area** na tabela `user_page_access`.
 
 ---
 
-### 1. Editar usuario existente
+### 1. Alterar formulario de criacao de usuario
 
-**Novo dialog de edicao** que aparece ao clicar em um botao "Editar" no card do usuario selecionado:
-- Campos editaveis: Nome, Sobrenome, Email
-- Checkboxes de papeis (Admin, Membro da Equipe, Cliente) -- igual ao formulario de criacao
-- Ao salvar:
-  - Atualiza `profiles` (first_name, last_name, email)
-  - Sincroniza `user_roles`: remove roles que foram desmarcados, adiciona os marcados
+Apos a secao "Papeis do usuario", adicionar uma nova secao **"Areas de Acesso"** (visivel apenas quando o papel "Membro da Equipe" estiver marcado):
 
-**Logica de sincronizacao de roles**:
-1. Buscar roles atuais do usuario
-2. Calcular diff (roles a adicionar vs roles a remover)
-3. DELETE dos removidos, INSERT dos adicionados
+- Checkboxes para cada area:
+  - Gerencial (categoria: `board`)
+  - Chamados (categoria: `gestao`)
+  - Digital (categorias: `rotina`, `dev`)
+  - OSG (categoria: `osg`)
+  - Tax (categorias: `projetos`, `fiscal`)
 
-### 2. Excluir usuario
+Novo campo no estado `newUser`:
+```text
+areas: string[]  -- ex: ['digital', 'osg', 'tex']
+```
 
-**Novo botao "Excluir"** no card do usuario selecionado, com dialog de confirmacao:
-- Mensagem clara: "Tem certeza que deseja excluir o usuario X? Esta acao nao pode ser desfeita."
-- Ao confirmar, chama uma **edge function** `delete-team-member` que:
-  - Verifica que o solicitante e admin
-  - Impede auto-exclusao (admin nao pode excluir a si mesmo)
-  - Usa `supabaseAdmin.auth.admin.deleteUser(userId)` para remover o usuario do auth (cascadeia para `user_roles` e `profiles` via FK)
+### 2. Logica de concessao de acesso por area
 
-### 3. UI na lista de usuarios
+Apos criar o usuario com sucesso, para cada area selecionada:
+1. Buscar as `page_permissions` cujas categorias correspondem a area
+2. Inserir registros em `user_page_access` para cada pagina encontrada
 
-Quando um usuario esta **selecionado**, mostrar botoes de acao no header do painel de permissoes:
-- Botao "Editar" (icone Pencil) -- abre dialog de edicao
-- Botao "Excluir" (icone Trash2, vermelho) -- abre dialog de confirmacao
+Mapeamento area -> categorias (mesmo ja usado em `EquipeAuth.tsx`):
+```text
+digital -> ['rotina', 'dev']
+tex     -> ['projetos', 'fiscal']
+osg     -> ['osg']
+board   -> ['board']
+controle_site -> ['gestao']
+```
 
----
+### 3. Alterar formulario de edicao de usuario
 
-### Detalhes Tecnicos
+Adicionar a mesma secao "Areas de Acesso" no dialog de edicao:
+- Carregar as areas atuais do usuario (inferidas a partir dos acessos existentes em `user_page_access`)
+- Ao salvar, sincronizar: revogar acessos de areas desmarcadas, conceder acessos de areas marcadas
+
+### 4. Alteracoes nos arquivos
 
 | Componente | Alteracao |
 |---|---|
-| `src/pages/equipe/EquipeControleAcessos.tsx` | Adicionar estados para edicao/exclusao; dialog de edicao com form; dialog de confirmacao de exclusao; mutations para update profile + sync roles + delete |
-| `supabase/functions/delete-team-member/index.ts` | Nova edge function: verifica admin, impede auto-exclusao, deleta usuario via admin API |
+| `src/pages/equipe/EquipeControleAcessos.tsx` | Adicionar campo `areas` ao `newUser` e `editUser`; secao de checkboxes de areas nos dialogs de criacao e edicao; logica de concessao/revogacao de acessos por area apos salvar |
 
-#### Edge function `delete-team-member`
-- Recebe `{ user_id: string }` no body
-- Valida auth e role admin do solicitante
-- Impede exclusao do proprio usuario
-- Chama `supabaseAdmin.auth.admin.deleteUser(user_id)`
-- Retorna sucesso/erro
-
-#### Mutations no frontend
-
-**Editar**: 2 operacoes em sequencia:
-1. `supabase.from('profiles').update({ first_name, last_name, email }).eq('id', userId)`
-2. Diff de roles: `delete` dos removidos + `insert` dos adicionados em `user_roles`
-
-**Excluir**:
-1. `supabase.functions.invoke('delete-team-member', { body: { user_id } })`
-2. Invalidar queries e limpar selecao
+Nenhuma alteracao no banco de dados e necessaria -- o sistema ja possui as tabelas `page_permissions` e `user_page_access` que suportam essa funcionalidade. A logica sera implementada inteiramente no frontend.
 
 ### Resultado Esperado
-- Admin pode editar nome, email e papeis de qualquer usuario existente
-- Admin pode excluir usuarios (exceto a si mesmo)
-- Dialogs de confirmacao previnem exclusoes acidentais
-- Lista de usuarios atualiza automaticamente apos edicao/exclusao
+- Ao criar um usuario como "Membro da Equipe", o admin pode selecionar quais areas (Digital, Tax, OSG, etc.) o usuario tera acesso
+- O sistema automaticamente concede acesso a todas as paginas daquela area
+- Ao editar, o admin pode adicionar/remover areas de acesso
+- Na tela de login da equipe, o usuario so vera as areas para as quais tem acesso (comportamento ja existente)
 
