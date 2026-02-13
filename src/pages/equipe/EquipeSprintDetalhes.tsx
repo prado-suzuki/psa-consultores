@@ -1138,7 +1138,6 @@ export default function EquipeSprintDetalhes() {
           </div>
         </div>
 
-
         {/* Barra de Filtros */}
         <div className="flex flex-wrap gap-3 items-center">
           <Select value={filterResponsible} onValueChange={setFilterResponsible}>
