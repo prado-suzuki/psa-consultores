@@ -557,6 +557,7 @@ export type Database = {
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
+          porcentagem_psa: number | null
           tp_credito: string
           vlr_compensado: number
         }
@@ -571,6 +572,7 @@ export type Database = {
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
+          porcentagem_psa?: number | null
           tp_credito: string
           vlr_compensado: number
         }
@@ -585,6 +587,7 @@ export type Database = {
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
+          porcentagem_psa?: number | null
           tp_credito?: string
           vlr_compensado?: number
         }
@@ -1373,6 +1376,7 @@ export type Database = {
           id_contribuinte: string
           nr_proc_ret: string | null
           numero_processo_per: string
+          porcentagem_psa: number | null
           tp_credito: string
           tri_exercicio: number
           vlr_credito: number
@@ -1388,6 +1392,7 @@ export type Database = {
           id_contribuinte: string
           nr_proc_ret?: string | null
           numero_processo_per: string
+          porcentagem_psa?: number | null
           tp_credito: string
           tri_exercicio: number
           vlr_credito: number
@@ -1403,6 +1408,7 @@ export type Database = {
           id_contribuinte?: string
           nr_proc_ret?: string | null
           numero_processo_per?: string
+          porcentagem_psa?: number | null
           tp_credito?: string
           tri_exercicio?: number
           vlr_credito?: number

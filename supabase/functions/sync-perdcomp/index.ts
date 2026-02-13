@@ -20,6 +20,7 @@ interface PerRecord {
   tp_credito: string
   vlr_credito: number
   nr_proc_ret?: string | null
+  porcentagem_psa?: number | null
 }
 
 interface PerSituacaoRecord {
@@ -40,6 +41,7 @@ interface DcompRecord {
   tp_credito: string
   vlr_compensado: number
   nr_dcomp_ret?: string | null
+  porcentagem_psa?: number | null
 }
 
 interface SyncPayload {

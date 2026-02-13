@@ -496,6 +496,7 @@ export default function ControlePerdcomp() {
                   </span>
                 </TableHead>
                 <TableHead className="whitespace-nowrap">Tipo Crédito</TableHead>
+                <TableHead className="text-right whitespace-nowrap">% PSA</TableHead>
                 <TableHead
                   className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
                   onClick={() => handleSort("vlr_credito")}
@@ -549,7 +550,7 @@ export default function ControlePerdcomp() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -576,6 +577,9 @@ export default function ControlePerdcomp() {
                       <TableCell>{item.exercicio}</TableCell>
                       <TableCell>{item.tri_exercicio}º</TableCell>
                       <TableCell>{item.tp_credito}</TableCell>
+                      <TableCell className="text-right">
+                        {(item as any).porcentagem_psa != null ? `${(item as any).porcentagem_psa}%` : '-'}
+                      </TableCell>
                       <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
                       <TableCell className="text-right">

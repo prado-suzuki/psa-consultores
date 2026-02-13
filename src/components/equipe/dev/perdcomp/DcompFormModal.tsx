@@ -48,6 +48,7 @@ const dcompSchema = z.object({
   imposto: z.string().min(1, 'Imposto é obrigatório'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
+  porcentagem_psa: z.coerce.number().nullable().optional(),
 });
 
 type DcompFormData = z.infer<typeof dcompSchema>;
@@ -80,6 +81,7 @@ export function DcompFormModal({
       imposto: '',
       vlr_compensado: 0,
       nr_dcomp_ret: null,
+      porcentagem_psa: null,
     },
   });
 
@@ -138,6 +140,7 @@ export function DcompFormModal({
         imposto: editData.imposto,
         vlr_compensado: editData.vlr_compensado,
         nr_dcomp_ret: editData.nr_dcomp_ret || null,
+        porcentagem_psa: editData.porcentagem_psa ?? null,
       });
     } else {
       form.reset({
@@ -148,6 +151,7 @@ export function DcompFormModal({
         imposto: '',
         vlr_compensado: 0,
         nr_dcomp_ret: null,
+        porcentagem_psa: null,
       });
     }
   }, [editData, form, preSelectedPer]);
@@ -163,6 +167,7 @@ export function DcompFormModal({
         tp_credito: data.imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: data.nr_dcomp_ret || null,
+        porcentagem_psa: data.porcentagem_psa ?? null,
       };
       const { error } = await supabase.from('dcomp').insert([record]);
       if (error) throw error;
@@ -192,6 +197,7 @@ export function DcompFormModal({
         tp_credito: data.imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: data.nr_dcomp_ret || null,
+        porcentagem_psa: data.porcentagem_psa ?? null,
       };
       const { error } = await supabase
         .from('dcomp')
@@ -365,6 +371,26 @@ export function DcompFormModal({
                   <FormLabel>Valor Compensado (R$)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="porcentagem_psa"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>% PSA</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 15.00"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
