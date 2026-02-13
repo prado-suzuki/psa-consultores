@@ -1,59 +1,60 @@
 
 
-## Plano: Campo task_code editavel com reordenacao automatica de subtarefas
+## Ajuste: Visao mais visual das atividades no calendario
 
 ### Problema
-Atualmente o campo `task_code` (ex: 7.40, 7.41, 7.42) nao pode ser editado nos modais de criacao e edicao de subtarefas. O usuario quer poder definir/alterar a ordem numerica e que o sistema realoque as demais subtarefas automaticamente.
+Atualmente, cada dia do calendario mostra apenas pequenos pontos (bullets) coloridos para representar as tarefas. Isso nao transmite informacao util -- o usuario nao consegue saber o que sao as atividades sem clicar.
 
 ### Solucao
+Substituir os bullets por mini-cards dentro de cada celula do calendario, mostrando o titulo truncado da tarefa com uma barra lateral colorida indicando o status. Para dias com muitas tarefas, mostrar as 2 primeiras e um indicador "+N mais".
 
-Adicionar o campo `task_code` (chamado "ID / Ordem") nos modais de criacao e edicao, e implementar logica de reordenacao automatica quando o codigo e alterado.
+### Alteracoes no arquivo `src/components/sprint/SprintCalendar.tsx`
 
----
+#### 1. Remover `aspect-square` das celulas
+Trocar `aspect-square` por `min-h-[80px] sm:min-h-[100px]` para permitir que o conteudo textual caiba dentro da celula.
 
-### Alteracoes no arquivo `src/pages/equipe/EquipeSprintDetalhes.tsx`
+#### 2. Substituir os bullets por mini-cards
+Em vez de:
+```
+<div className="w-2 h-2 rounded-full bg-green-500" />
+```
 
-#### 1. Adicionar `task_code` aos estados dos formularios
+Renderizar:
+```
+<div className="flex items-center gap-1 w-full">
+  <div className="w-1 h-4 rounded-full flex-shrink-0 bg-green-500" />
+  <span className="text-[10px] leading-tight truncate">Nome da tarefa</span>
+</div>
+```
 
-- `editForm`: adicionar campo `task_code: string`
-- `createForm`: adicionar campo `task_code: string`
-- `openEditModal`: popular `task_code` com `deliverable.task_code || ''`
-- Reset do `createForm`: limpar `task_code`
+#### 3. Limitar a 2 itens visiveis por dia
+Mostrar no maximo 2 mini-cards por celula. Se houver mais, exibir `+N mais` como texto clicavel abaixo.
 
-#### 2. Auto-sugestao de task_code ao selecionar tarefa pai (criacao)
+#### 4. Ajustar layout interno da celula
+- Conteudo alinhado ao topo com `items-start`
+- Gap entre os mini-cards de `gap-0.5`
+- Overflow hidden para manter tudo contido
 
-Quando o usuario seleciona uma tarefa pai no modal de criacao:
-- Buscar todas as subtarefas existentes daquele pai
-- Encontrar o maior sufixo numerico (ex: se pai tem task_code "7" e subtarefas 7.40-7.48, sugerir 7.49)
-- Pre-preencher o campo `task_code` com o proximo valor
+### Resultado Visual Esperado
 
-#### 3. Campo de input nos modais
+```text
++------------------+
+| 13               |
+| | Deploy API     |
+| | Review PR      |
+| +2 mais          |
++------------------+
+```
 
-Adicionar um campo `Input` com label "ID / Ordem" (ex: "7.45") em ambos os modais:
-- No modal de criacao: apos o campo "Tarefa Pai", visivel apenas quando um pai e selecionado
-- No modal de edicao: apos o campo "Titulo", visivel apenas quando o deliverable tem `parent_id`
-
-#### 4. Reordenacao automatica ao salvar
-
-Quando o `task_code` e alterado (no edit) ou definido (no create):
-- Se o novo `task_code` ja existe entre os irmaos (mesma tarefa pai), deslocar os demais para abrir espaco:
-  - Todas as subtarefas com `task_code` >= ao novo valor tem seu sufixo incrementado em 1
-  - Exemplo: inserir 7.43 entre 7.42 e 7.43 existente faz 7.43 virar 7.44, 7.44 virar 7.45, etc.
-- Atualizar no banco em batch via multiplos updates
-
-#### 5. Salvar task_code no banco
-
-- `saveDeliverable`: incluir `task_code` no objeto `updates`
-- `createDeliverable`: incluir `task_code` no objeto `newDeliverable`
+Cada mini-card tem uma barra lateral fina colorida (verde/amarelo/cinza) indicando o status, seguida do titulo truncado da tarefa em fonte pequena. Muito mais informativo que pontos coloridos.
 
 ### Detalhes Tecnicos
 
 | Item | Detalhe |
 |---|---|
-| Arquivo editado | `src/pages/equipe/EquipeSprintDetalhes.tsx` |
-| Campos novos nos forms | `task_code: string` em editForm e createForm |
-| Logica de sugestao | Calcula proximo sufixo baseado nas subtarefas existentes do pai |
-| Logica de reordenacao | Ao detectar conflito de task_code, incrementa sufixo das subtarefas subsequentes |
-| Atualizacao batch | Usa `Promise.all` com updates individuais por subtarefa afetada |
-| Visibilidade do campo | So aparece quando ha tarefa pai selecionada (subtarefa) |
+| Arquivo editado | `src/components/sprint/SprintCalendar.tsx` |
+| Linhas afetadas | ~98-135 (renderizacao dos dias) |
+| Mudanca principal | Bullets substituidos por mini-cards com barra de status + titulo truncado |
+| Limite por celula | 2 itens visiveis + contador "+N mais" |
+| Altura celula | `min-h-[80px] sm:min-h-[100px]` em vez de `aspect-square` |
 
