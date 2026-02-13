@@ -1,100 +1,73 @@
 
-## Plano: Sistema de Auditoria (Logs) para Tax e OSG
 
-### Objetivo
-Criar uma tabela centralizada de logs de auditoria que registre criacao, edicao e exclusao de projetos, tarefas e subtarefas nas areas Tax e OSG. Adicionar uma pagina "Auditoria" no menu lateral de cada area, com acesso controlado por permissao.
+## Plano: Editar e Excluir Usuarios no Controle de Acessos
 
----
+### Problema Atual
+Na aba "Usuarios" do Controle de Acessos, os usuarios existentes aparecem numa lista lateral somente para visualizacao e gestao de permissoes de pagina. Nao ha opcao para **editar dados** (nome, email, papeis) nem para **excluir** usuarios existentes.
 
-### 1. Nova tabela: `audit_logs`
-
-Tabela centralizada para registrar todas as acoes:
-
-```text
-audit_logs
-- id (uuid, PK)
-- area (text) -- 'tax' ou 'osg'
-- entity_type (text) -- 'project', 'task', 'subtask'
-- entity_id (uuid)
-- entity_name (text) -- nome/titulo do item para exibicao
-- action (text) -- 'created', 'updated', 'deleted'
-- changed_fields (jsonb, nullable) -- para updates: { campo: { old: X, new: Y } }
-- performed_by (uuid, FK -> auth.users)
-- performed_at (timestamptz, default now())
-- details (text, nullable) -- informacao adicional livre
-```
-
-**RLS**: Admins veem tudo. Membros de projeto veem logs dos projetos dos quais participam (`tax_project_members`). Para OSG, membros da equipe com acesso a area veem logs de OSG.
+### Solucao
+Adicionar funcionalidades de edicao e exclusao diretamente na lista de usuarios, com dialogs de confirmacao.
 
 ---
 
-### 2. Registrar logs automaticamente no frontend
+### 1. Editar usuario existente
 
-Nas mutations de criacao, edicao e exclusao em `FiscalProjetosCadastro.tsx` e `FiscalDemandasTarefas.tsx`, inserir um registro na tabela `audit_logs` apos cada operacao bem-sucedida.
+**Novo dialog de edicao** que aparece ao clicar em um botao "Editar" no card do usuario selecionado:
+- Campos editaveis: Nome, Sobrenome, Email
+- Checkboxes de papeis (Admin, Membro da Equipe, Cliente) -- igual ao formulario de criacao
+- Ao salvar:
+  - Atualiza `profiles` (first_name, last_name, email)
+  - Sincroniza `user_roles`: remove roles que foram desmarcados, adiciona os marcados
 
-Exemplo para criacao de projeto:
-```text
-Apos insert de tax_project:
-  -> insert audit_logs { area: 'tax', entity_type: 'project', action: 'created', entity_name: nome_do_projeto, performed_by: user.id }
-```
+**Logica de sincronizacao de roles**:
+1. Buscar roles atuais do usuario
+2. Calcular diff (roles a adicionar vs roles a remover)
+3. DELETE dos removidos, INSERT dos adicionados
 
-Exemplo para edicao de tarefa:
-```text
-Apos update de fiscal_task:
-  -> insert audit_logs { area: 'tax', entity_type: 'task', action: 'updated', entity_name: titulo, changed_fields: { status: { old: 'backlog', new: 'done' } }, performed_by: user.id }
-```
+### 2. Excluir usuario
 
-Um hook utilitario `useAuditLog` sera criado para facilitar a insercao de logs em qualquer componente.
+**Novo botao "Excluir"** no card do usuario selecionado, com dialog de confirmacao:
+- Mensagem clara: "Tem certeza que deseja excluir o usuario X? Esta acao nao pode ser desfeita."
+- Ao confirmar, chama uma **edge function** `delete-team-member` que:
+  - Verifica que o solicitante e admin
+  - Impede auto-exclusao (admin nao pode excluir a si mesmo)
+  - Usa `supabaseAdmin.auth.admin.deleteUser(userId)` para remover o usuario do auth (cascadeia para `user_roles` e `profiles` via FK)
 
----
+### 3. UI na lista de usuarios
 
-### 3. Pagina de Auditoria (Tax)
-
-Nova pagina: `/equipe/tex/auditoria`
-
-**Conteudo**:
-- Tabela com filtros por tipo de entidade (projeto/tarefa/subtarefa), acao (criacao/edicao/exclusao), usuario e periodo
-- Cada linha mostra: data/hora, usuario, acao, entidade, detalhes das alteracoes
-- Para updates, botao de expandir para ver os campos alterados (valor anterior e novo)
-
-**Menu lateral**: Adicionar item "Auditoria" com icone `Shield` no `FiscalSidebar.tsx`, abaixo dos itens existentes.
+Quando um usuario esta **selecionado**, mostrar botoes de acao no header do painel de permissoes:
+- Botao "Editar" (icone Pencil) -- abre dialog de edicao
+- Botao "Excluir" (icone Trash2, vermelho) -- abre dialog de confirmacao
 
 ---
 
-### 4. Pagina de Auditoria (OSG)
-
-Nova pagina: `/equipe/osg/auditoria`
-
-**Conteudo**: Mesma estrutura da pagina Tax, filtrada por `area = 'osg'`.
-
-**Menu lateral**: Adicionar item "Auditoria" no `OsgLayout.tsx` na navegacao lateral.
-
----
-
-### 5. Controle de acesso
-
-- Registrar `/equipe/tex/auditoria` e `/equipe/osg/auditoria` no `protectedPages.ts`
-- Envolver as rotas com `PageAccessGate` em `App.tsx`
-- O administrador podera liberar acesso a pagina de Auditoria para lideres especificos no painel de Controle de Acessos
-
----
-
-### Resumo das Alteracoes
+### Detalhes Tecnicos
 
 | Componente | Alteracao |
 |---|---|
-| Migracao SQL | Criar tabela `audit_logs` com RLS |
-| `src/hooks/useAuditLog.ts` | Hook utilitario para inserir logs |
-| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Inserir logs em create/update/delete |
-| `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx` | Inserir logs em create/update/delete de tarefas |
-| `src/pages/equipe/fiscal/FiscalAuditoria.tsx` | Nova pagina de auditoria Tax |
-| `src/pages/equipe/osg/OsgAuditoria.tsx` | Nova pagina de auditoria OSG |
-| `src/components/equipe/fiscal/FiscalSidebar.tsx` | Adicionar item "Auditoria" no menu |
-| `src/components/equipe/osg/OsgLayout.tsx` | Adicionar item "Auditoria" no menu |
-| `src/config/protectedPages.ts` | Registrar as 2 paginas de auditoria |
-| `src/App.tsx` | Adicionar rotas com PageAccessGate |
+| `src/pages/equipe/EquipeControleAcessos.tsx` | Adicionar estados para edicao/exclusao; dialog de edicao com form; dialog de confirmacao de exclusao; mutations para update profile + sync roles + delete |
+| `supabase/functions/delete-team-member/index.ts` | Nova edge function: verifica admin, impede auto-exclusao, deleta usuario via admin API |
+
+#### Edge function `delete-team-member`
+- Recebe `{ user_id: string }` no body
+- Valida auth e role admin do solicitante
+- Impede exclusao do proprio usuario
+- Chama `supabaseAdmin.auth.admin.deleteUser(user_id)`
+- Retorna sucesso/erro
+
+#### Mutations no frontend
+
+**Editar**: 2 operacoes em sequencia:
+1. `supabase.from('profiles').update({ first_name, last_name, email }).eq('id', userId)`
+2. Diff de roles: `delete` dos removidos + `insert` dos adicionados em `user_roles`
+
+**Excluir**:
+1. `supabase.functions.invoke('delete-team-member', { body: { user_id } })`
+2. Invalidar queries e limpar selecao
 
 ### Resultado Esperado
-- Toda criacao, edicao e exclusao de projetos/tarefas sera registrada automaticamente
-- Lideres com acesso liberado poderao consultar o historico completo de alteracoes
-- Logs mostram quem fez, quando fez e o que mudou (com valores anteriores e novos)
+- Admin pode editar nome, email e papeis de qualquer usuario existente
+- Admin pode excluir usuarios (exceto a si mesmo)
+- Dialogs de confirmacao previnem exclusoes acidentais
+- Lista de usuarios atualiza automaticamente apos edicao/exclusao
+
