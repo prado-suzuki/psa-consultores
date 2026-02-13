@@ -186,4 +186,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+
+  // === GERAL PAGES ===
+  {
+    page_path: '/equipe/chamados',
+    page_name: 'Chamados Equipe',
+    page_description: 'Visualizar e gerenciar chamados atribuídos',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

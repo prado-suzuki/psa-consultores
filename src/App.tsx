@@ -97,8 +97,8 @@ const App = () => (
             
             {/* Equipe Routes */}
             <Route path="/equipe" element={<EquipeAuth />} />
-            <Route path="/equipe/chamados" element={<TeamRoute><EquipeChamados /></TeamRoute>} />
-            <Route path="/equipe/chamados/:id" element={<TeamRoute><EquipeDetalhesChamado /></TeamRoute>} />
+            <Route path="/equipe/chamados" element={<TeamRoute><PageAccessGate pagePath="/equipe/chamados"><EquipeChamados /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/chamados/:id" element={<TeamRoute><PageAccessGate pagePath="/equipe/chamados"><EquipeDetalhesChamado /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dashboard" element={<TeamRoute><EquipeDashboard /></TeamRoute>} />
             <Route path="/equipe/relatorios" element={<TeamRoute><EquipeRelatorios /></TeamRoute>} />
             <Route path="/equipe/kanban" element={<TeamRoute><EquipeKanban /></TeamRoute>} />
