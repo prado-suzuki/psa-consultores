@@ -687,24 +687,58 @@ const FiscalProjetosCadastro = () => {
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                  {availableMembers.map(member => (
-                    <div key={member.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`member-${member.id}`}
-                        checked={formData.member_ids.includes(member.id)}
-                        onCheckedChange={() => handleMemberToggle(member.id)}
-                      />
-                      <label
-                        htmlFor={`member-${member.id}`}
-                        className="text-sm leading-none cursor-pointer"
-                      >
-                        {member.first_name} {member.last_name}
-                      </label>
+                <div className="border rounded-md overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b sticky top-0 z-10">
+                        <tr>
+                          <th className="w-10 px-3 py-2 text-left">
+                            <Checkbox
+                              checked={availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id))}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  const allIds = availableMembers.map(m => m.id);
+                                  setFormData({ ...formData, member_ids: [...new Set([...formData.member_ids, ...allIds])] });
+                                } else {
+                                  const removeIds = new Set(availableMembers.map(m => m.id));
+                                  setFormData({ ...formData, member_ids: formData.member_ids.filter(id => !removeIds.has(id)) });
+                                }
+                              }}
+                            />
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Nome</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {availableMembers.map((member, idx) => (
+                          <tr
+                            key={member.id}
+                            className={`cursor-pointer hover:bg-teal-50/60 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}
+                            onClick={() => handleMemberToggle(member.id)}
+                          >
+                            <td className="px-3 py-1.5">
+                              <Checkbox
+                                checked={formData.member_ids.includes(member.id)}
+                                onCheckedChange={() => handleMemberToggle(member.id)}
+                              />
+                            </td>
+                            <td className="px-3 py-1.5 font-medium text-slate-900">
+                              {member.first_name} {member.last_name}
+                            </td>
+                            <td className="px-3 py-1.5 text-slate-500">{member.email || '—'}</td>
+                          </tr>
+                        ))}
+                        {availableMembers.length === 0 && (
+                          <tr><td colSpan={3} className="px-3 py-3 text-xs text-slate-400 text-center">Nenhum membro disponível</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {formData.member_ids.length > 0 && (
+                    <div className="border-t px-3 py-1.5 text-xs text-slate-500 bg-slate-50">
+                      {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
                     </div>
-                  ))}
-                  {availableMembers.length === 0 && (
-                    <p className="text-xs text-slate-400 col-span-2">Nenhum membro disponível</p>
                   )}
                 </div>
               </div>
