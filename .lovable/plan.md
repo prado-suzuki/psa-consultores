@@ -1,159 +1,64 @@
 
-# Reformular Serviços no Modal de Cadastro de Clientes
 
-## Contexto
+## Plano: Chamados da Equipe com Acesso Controlado
 
-A seção de serviços dentro do contrato (Seção 4 do `NewClientModal`) atualmente usa um dropdown customizado que lista itens de `catalog_clients` e permite adicionar valor monetário a cada serviço. O pedido é substituir essa lógica por:
+### Problema Atual
+1. **Membros da equipe nao conseguem ver os chamados atribuidos a eles** -- a politica de seguranca do banco de dados (RLS) nao possui uma regra de leitura para membros da equipe verem tickets onde `assigned_to = auth.uid()`.
+2. **A pagina `/equipe/chamados` nao esta registrada no controle de acessos**, entao o administrador nao pode liberar/restringir acesso por usuario.
 
-1. **Input com autocomplete** baseado em serviços já cadastrados no sistema
-2. **Múltiplos serviços** com botão "Adicionar Serviço"
-3. **Remover** dropdown antigo, campos de valor e quantidade
-4. **Adicionar** Select de "Equipe Responsável" (dados de `catalog_clients.name`)
-5. **Alinhar layout** da nova estrutura
+### Solucao
 
-## Alterações no `src/components/equipe/dev/NewClientModal.tsx`
+#### 1. Corrigir politica de seguranca no banco de dados
+Adicionar uma politica SELECT na tabela `tickets` para que membros da equipe possam ver os chamados atribuidos a eles:
 
-### 1. Atualizar `DraftService`
-
-Simplificar a interface removendo `valor` e renomeando para refletir a nova estrutura:
-
-```typescript
-interface DraftService {
-  _id: number;
-  descricao: string;          // Nome do serviço (digitado ou selecionado do autocomplete)
-  id_catalog_client: string;  // Equipe responsável (FK para catalog_clients)
-  catalog_name: string;       // Nome da equipe para exibição
-}
+```sql
+CREATE POLICY "Team members can view assigned tickets"
+ON public.tickets FOR SELECT
+USING (
+  has_role(auth.uid(), 'team_member') AND assigned_to = auth.uid()
+);
 ```
 
-### 2. Adicionar query de serviços existentes para autocomplete
+Tambem adicionar uma politica UPDATE para que possam atualizar o status dos chamados atribuidos:
 
-Nova query para buscar descrições únicas da tabela `servico`:
-
-```typescript
-const { data: existingServices = [] } = useQuery({
-  queryKey: ['existing-services-autocomplete'],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('servico')
-      .select('descricao')
-      .not('descricao', 'is', null);
-    if (error) throw error;
-    const unique = [...new Set(data.map(s => s.descricao))].filter(Boolean).sort();
-    return unique as string[];
-  },
-  enabled: open,
-});
+```sql
+CREATE POLICY "Team members can update assigned tickets"
+ON public.tickets FOR UPDATE
+USING (
+  has_role(auth.uid(), 'team_member') AND assigned_to = auth.uid()
+);
 ```
 
-### 3. Adicionar estado para cada linha de serviço em draft
+#### 2. Registrar a pagina no controle de acessos
+Adicionar `/equipe/chamados` no arquivo `src/config/protectedPages.ts` para que o administrador possa gerenciar quem tem acesso:
 
-Novo estado para gerenciar linhas de serviço com campos individuais:
-
-```typescript
-// Substituir draftServices por lógica de campos dinâmicos
-// Cada linha terá: input de descrição (com autocomplete) + select de equipe
-const [serviceInputs, setServiceInputs] = useState<{ text: string; showSuggestions: boolean }[]>([]);
+```text
+page_path: /equipe/chamados
+page_name: Chamados Equipe
+category: geral
+requires_team_member: true
 ```
 
-Porém, para manter simplicidade, vamos usar o array `draftServices` existente com um state auxiliar de "texto sendo digitado" por índice.
+#### 3. Adicionar PageAccessGate na pagina
+Envolver o conteudo de `EquipeChamados` com o componente `PageAccessGate` para verificar a permissao granular do usuario antes de exibir a pagina. Isso sera feito na rota em `App.tsx`:
 
-### 4. Substituir a sub-seção de serviços (linhas 731-787)
-
-**Remover:**
-- Botão dropdown customizado (`isServiceDropdownOpen`)
-- Campo `Input type="number"` de valor
-- Estado `isServiceDropdownOpen`
-- Função `updateServiceValue`
-- Lógica de subtração de valor no `removeServiceFromDraft`
-
-**Novo layout por serviço:**
-
-```
-[ Input texto com autocomplete (Serviço) ] [ Select Equipe Responsável ] [X remover]
+```text
+/equipe/chamados → TeamRoute → PageAccessGate → EquipeChamados
 ```
 
-Com botão "Adicionar Serviço" que insere uma nova linha vazia.
+#### 4. Fazer o mesmo para a pagina de detalhes
+A rota `/equipe/chamados/:id` tambem precisa do `PageAccessGate` para que o usuario consiga acessar os detalhes do chamado.
 
-### 5. Lógica de autocomplete
+### Resumo das Alteracoes
 
-Cada input de serviço terá:
-- Estado local para controlar se as sugestões estão visíveis
-- Filtro por texto digitado contra `existingServices`
-- Ao clicar numa sugestão, preenche o campo
-- Ao digitar texto livre (novo serviço), também funciona
+| Arquivo | Alteracao |
+|---|---|
+| Migracao SQL | 2 novas politicas RLS (SELECT e UPDATE para team_member) |
+| `src/config/protectedPages.ts` | Adicionar entrada para `/equipe/chamados` |
+| `src/App.tsx` | Envolver rotas `/equipe/chamados` e `/equipe/chamados/:id` com `PageAccessGate` |
 
-### 6. Atualizar `addServiceToDraft` e `removeServiceFromDraft`
+### Resultado Esperado
+- Administradores poderao liberar acesso a `/equipe/chamados` para usuarios especificos no painel de Controle de Acessos
+- Usuarios com acesso verao **somente os chamados atribuidos a eles**
+- Usuarios com permissao de gestao (lider) continuam vendo todos os chamados
 
-```typescript
-const addEmptyService = () => {
-  setDraftServices([...draftServices, {
-    _id: Date.now() + Math.random(),
-    descricao: '',
-    id_catalog_client: '',
-    catalog_name: '',
-  }]);
-};
-
-const updateServiceField = (id: number, field: string, value: string) => {
-  setDraftServices(draftServices.map(s => 
-    s._id === id ? { ...s, [field]: value } : s
-  ));
-};
-
-const removeServiceFromDraft = (id: number) => {
-  setDraftServices(draftServices.filter(s => s._id !== id));
-};
-```
-
-### 7. Atualizar save (handleSave)
-
-Na inserção de serviços (linha 362-369), remover campo `valor`:
-
-```typescript
-const svcPayload = contract.services.map(s => ({
-  id_contrato: newContrato.id_contrato,
-  descricao: s.descricao || null,
-  valor: null,  // Campo removido da UI
-  id_catalog_client: s.id_catalog_client || null,
-}));
-```
-
-### 8. Atualizar cards de contrato existentes (linhas 679-688)
-
-Nos cards que mostram contratos adicionados, substituir exibição de valor monetário por nome da equipe responsável:
-
-```typescript
-{cont.services.map(s => (
-  <div key={s._id} className="flex justify-between text-xs text-muted-foreground">
-    <span className="truncate">{s.descricao}</span>
-    <span className="text-emerald-600 font-medium">{s.catalog_name}</span>
-  </div>
-))}
-```
-
-### 9. Limpar estados não mais usados
-
-- Remover `isServiceDropdownOpen` e `setIsServiceDropdownOpen`
-- Remover `updateServiceValue`
-- Simplificar `removeServiceFromDraft` (sem lógica de valor)
-
-## Resumo visual
-
-**Antes:**
-```
-[Dropdown: Adicionar Serviço ▼]
-  Serviço A   [R$ ___] [X]
-  Serviço B   [R$ ___] [X]
-```
-
-**Depois:**
-```
-[Input: Digite o serviço...✎] [Select: Equipe ▼] [X]
-[Input: Digite o serviço...✎] [Select: Equipe ▼] [X]
-[+ Adicionar Serviço]
-```
-
-## Arquivos modificados
-
-- `src/components/equipe/dev/NewClientModal.tsx` (único arquivo)
