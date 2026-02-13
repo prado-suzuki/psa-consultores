@@ -1,56 +1,59 @@
 
 
-## Plano: Adicionar visualizacao de calendario na aba Agenda
+## Plano: Dashboard de Horas por Pessoa na aba Metricas
 
-### Contexto
-A aba "Agenda" na pagina de detalhes da sprint atualmente so exibe `sprint_events` em formato de lista cronologica. O usuario quer uma visualizacao de calendario mensal (igual ao `TaskCalendar` do modulo Tax) mostrando a distribuicao de entregas (`sprint_deliverables`) por data.
+### Objetivo
+Substituir a mensagem "Nenhuma metrica cadastrada" por um dashboard visual que mostra a distribuicao de horas estimadas dos `sprint_deliverables` agrupadas por pessoa, com filtros de granularidade temporal (dia, semana, mes, ano).
 
-### Solucao
-Criar um componente `SprintCalendar` inspirado no `TaskCalendar` existente e integra-lo na aba Agenda, mantendo a listagem de eventos existente abaixo do calendario.
+### Novo componente: `src/components/sprint/SprintHoursDashboard.tsx`
 
----
+Dashboard que:
+- Recebe `deliverables` e `profiles` como props
+- Possui seletor de granularidade: Dia / Semana / Mes / Ano
+- Usa recharts (ja instalado) para exibir um grafico de barras empilhadas (stacked bar chart) onde:
+  - Eixo X = periodo (dia, semana, mes ou ano dependendo do filtro)
+  - Eixo Y = horas estimadas
+  - Cada cor = uma pessoa (assigned_to)
+- Abaixo do grafico, uma tabela resumo por pessoa mostrando: nome, total de horas, quantidade de tarefas, media de horas/tarefa
+- Cards de KPI no topo: Total de Horas, Media por Dia, Pessoa com Mais Horas, Tarefas sem Horas
 
-### Alteracoes
+Logica de agrupamento:
+- **Dia**: agrupa deliverables por `due_date` exato
+- **Semana**: agrupa por numero da semana usando `getISOWeek` do date-fns
+- **Mes**: agrupa por mes/ano
+- **Ano**: agrupa por ano
 
-#### 1. Novo componente: `src/components/sprint/SprintCalendar.tsx`
+### Alteracao: `src/pages/equipe/EquipeSprintDetalhes.tsx`
 
-Componente de calendario mensal que:
-- Recebe a lista de `deliverables` e callbacks para editar
-- Exibe grid de dias do mes com indicadores coloridos por status (pendente=cinza, em progresso=amarelo, concluido=verde)
-- Ao clicar em um dia, abre um `Sheet` lateral listando os entregaveis daquele dia
-- Navegacao entre meses e botao "Hoje"
-- Usa `due_date` dos deliverables para posicionar no calendario
-- Reutiliza date-fns, ptBR locale, e componentes UI existentes (Sheet, ScrollArea, Button, Badge)
+Na aba Metricas (linha ~1605), adicionar o `SprintHoursDashboard` **antes** do conteudo de metricas existente. O dashboard aparece sempre (independente de ter metricas cadastradas), usando os dados dos deliverables.
 
-Estrutura visual:
 ```text
+Tab Metricas
 +----------------------------------------------+
-|  < Fevereiro 2026           [Hoje]  >        |
+| KPI Cards: Total Horas | Media/Dia | ...     |
 +----------------------------------------------+
-| Dom | Seg | Ter | Qua | Qui | Sex | Sab     |
-|     |     |     |     |     |     |          |
-|     |  2  |  3  |  4  |  5  |  6  |  7      |
-|     |     | ooo |     |  o  |     |          |
-|  8  |  9  | 10  | 11  | 12  | 13  | 14      |
-|     | oo  |     |     | ooo+|     |          |
+| [Dia] [Semana] [Mes] [Ano]                   |
+| +------------------------------------------+ |
+| | Grafico barras empilhadas por pessoa     | |
+| | X = periodo, Y = horas, cor = pessoa     | |
+| +------------------------------------------+ |
++----------------------------------------------+
+| Tabela resumo por pessoa                     |
+| Nome | Horas | Tarefas | Media               |
++----------------------------------------------+
+| (metricas manuais existentes abaixo)         |
 +----------------------------------------------+
 ```
-
-#### 2. Alterar `src/pages/equipe/EquipeSprintDetalhes.tsx`
-
-- Importar `SprintCalendar`
-- Na aba "Agenda" (linhas 1536-1587), adicionar o `SprintCalendar` acima da listagem de eventos existente
-- Passar `filteredDeliverables` e `openEditModal` como props
-- Manter a secao de eventos existente abaixo, com um titulo separador "Eventos da Sprint"
 
 ### Detalhes Tecnicos
 
 | Item | Detalhe |
 |---|---|
-| Novo arquivo | `src/components/sprint/SprintCalendar.tsx` |
-| Arquivo editado | `src/pages/equipe/EquipeSprintDetalhes.tsx` (aba Agenda) |
-| Dados exibidos | `deliverables` filtrados, posicionados por `due_date` |
-| Indicadores | Bolinhas coloridas por status: cinza (pending), amarelo (in_progress), verde (completed) |
-| Interacao | Click no dia abre Sheet com lista de entregaveis; click no entregavel abre modal de edicao |
-| Dependencias | Nenhuma nova - usa date-fns, componentes UI existentes |
+| Novo arquivo | `src/components/sprint/SprintHoursDashboard.tsx` |
+| Arquivo editado | `src/pages/equipe/EquipeSprintDetalhes.tsx` (aba Metricas) |
+| Dados usados | `filteredDeliverables` (estimated_hours, due_date, assigned_to) e `profiles` |
+| Grafico | `BarChart` do recharts com barras empilhadas, cores distintas por pessoa |
+| Filtros | Toggle group com 4 opcoes de granularidade temporal |
+| KPIs | Total horas, media por dia, pessoa destaque, tarefas sem hora |
+| Dependencias | Nenhuma nova - usa recharts, date-fns, componentes UI existentes |
 
