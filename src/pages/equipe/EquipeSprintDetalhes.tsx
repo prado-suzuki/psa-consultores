@@ -126,7 +126,8 @@ export default function EquipeSprintDetalhes() {
     estimated_hours: '',
     status: 'pending',
     project_id: '',
-    process_id: ''
+    process_id: '',
+    task_code: ''
   });
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -143,7 +144,8 @@ export default function EquipeSprintDetalhes() {
     estimated_hours: '',
     parent_id: '',
     project_id: '',
-    process_id: ''
+    process_id: '',
+    task_code: ''
   });
   const [creating, setCreating] = useState(false);
 
@@ -277,9 +279,73 @@ export default function EquipeSprintDetalhes() {
       estimated_hours: deliverable.estimated_hours?.toString() || '',
       status: deliverable.status || 'pending',
       project_id: deliverable.project_id || '',
-      process_id: deliverable.process_id || ''
+      process_id: deliverable.process_id || '',
+      task_code: deliverable.task_code || ''
     });
     setEditModalOpen(true);
+  };
+
+  // Helper: reorder siblings when task_code conflicts
+  const reorderSiblings = async (parentId: string, newCode: string, excludeId?: string) => {
+    const siblings = deliverables.filter(d => d.parent_id === parentId && d.id !== excludeId && d.task_code);
+    const parentTask = deliverables.find(d => d.id === parentId);
+    const prefix = parentTask?.task_code ? `${parentTask.task_code}.` : '';
+
+    // Parse suffix from task_code (e.g. "7.43" -> 43)
+    const parseSuffix = (code: string) => {
+      const parts = code.split('.');
+      return parseInt(parts[parts.length - 1], 10);
+    };
+
+    const newSuffix = parseSuffix(newCode);
+    
+    // Find siblings that need to be shifted (same or greater suffix)
+    const toShift = siblings
+      .filter(s => {
+        const suffix = parseSuffix(s.task_code!);
+        return suffix >= newSuffix;
+      })
+      .sort((a, b) => parseSuffix(b.task_code!) - parseSuffix(a.task_code!)); // desc to avoid conflicts
+
+    if (toShift.length === 0) return;
+
+    const updates = toShift.map(s => {
+      const oldSuffix = parseSuffix(s.task_code!);
+      const newTaskCode = `${prefix}${oldSuffix + 1}`;
+      return supabase
+        .from("sprint_deliverables")
+        .update({ task_code: newTaskCode })
+        .eq("id", s.id);
+    });
+
+    await Promise.all(updates);
+
+    // Update local state
+    setDeliverables(prev => prev.map(d => {
+      const match = toShift.find(s => s.id === d.id);
+      if (match) {
+        const oldSuffix = parseSuffix(match.task_code!);
+        return { ...d, task_code: `${prefix}${oldSuffix + 1}` };
+      }
+      return d;
+    }));
+  };
+
+  // Helper: suggest next task_code for a parent
+  const suggestNextTaskCode = (parentId: string) => {
+    const parentTask = deliverables.find(d => d.id === parentId);
+    const prefix = parentTask?.task_code || '';
+    const siblings = deliverables.filter(d => d.parent_id === parentId && d.task_code);
+    
+    if (siblings.length === 0) return prefix ? `${prefix}.1` : '1';
+    
+    const suffixes = siblings.map(s => {
+      const parts = s.task_code!.split('.');
+      return parseInt(parts[parts.length - 1], 10);
+    }).filter(n => !isNaN(n));
+    
+    const maxSuffix = Math.max(...suffixes, 0);
+    return prefix ? `${prefix}.${maxSuffix + 1}` : `${maxSuffix + 1}`;
   };
 
   const saveDeliverable = async () => {
@@ -287,6 +353,11 @@ export default function EquipeSprintDetalhes() {
     
     try {
       setSaving(true);
+
+      // Reorder siblings if task_code changed and deliverable has parent
+      if (editingDeliverable.parent_id && editForm.task_code && editForm.task_code !== (editingDeliverable.task_code || '')) {
+        await reorderSiblings(editingDeliverable.parent_id, editForm.task_code, editingDeliverable.id);
+      }
       
       const updates = {
         title: editForm.title,
@@ -298,7 +369,8 @@ export default function EquipeSprintDetalhes() {
         status: editForm.status,
         completed_at: editForm.status === 'completed' ? new Date().toISOString() : null,
         project_id: editForm.project_id || null,
-        process_id: editForm.process_id || null
+        process_id: editForm.process_id || null,
+        task_code: editForm.task_code || null
       };
 
       const { error } = await supabase
@@ -390,6 +462,11 @@ export default function EquipeSprintDetalhes() {
     try {
       setCreating(true);
 
+      // Reorder siblings if task_code conflicts
+      if (createForm.parent_id && createForm.task_code) {
+        await reorderSiblings(createForm.parent_id, createForm.task_code);
+      }
+
       const newDeliverable = {
         sprint_id: sprint.id,
         title: createForm.title,
@@ -401,7 +478,8 @@ export default function EquipeSprintDetalhes() {
         status: 'pending',
         parent_id: createForm.parent_id || null,
         project_id: createForm.project_id || null,
-        process_id: createForm.process_id || null
+        process_id: createForm.process_id || null,
+        task_code: createForm.task_code || null
       };
 
       const { data, error } = await supabase
@@ -423,7 +501,8 @@ export default function EquipeSprintDetalhes() {
         estimated_hours: '',
         parent_id: '',
         project_id: '',
-        process_id: ''
+        process_id: '',
+        task_code: ''
       });
       toast({ title: "Tarefa criada com sucesso" });
     } catch (error: any) {
@@ -1168,7 +1247,8 @@ export default function EquipeSprintDetalhes() {
                     estimated_hours: '',
                     parent_id: '',
                     project_id: '',
-                    process_id: ''
+                    process_id: '',
+                    task_code: ''
                   });
                   setCreateModalOpen(true);
                 }}
@@ -1958,6 +2038,19 @@ export default function EquipeSprintDetalhes() {
               />
             </div>
 
+            {editingDeliverable?.parent_id && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-code">ID / Ordem</Label>
+                <Input
+                  id="edit-task-code"
+                  value={editForm.task_code}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, task_code: e.target.value }))}
+                  placeholder="Ex: 7.43"
+                />
+                <p className="text-xs text-muted-foreground">Alterar reordena automaticamente as demais subtarefas</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-assigned">Responsável</Label>
@@ -2161,7 +2254,11 @@ export default function EquipeSprintDetalhes() {
               <Label htmlFor="create-parent">Tarefa Pai (opcional)</Label>
               <Select 
                 value={createForm.parent_id || "none"} 
-                onValueChange={(value) => setCreateForm(prev => ({ ...prev, parent_id: value === "none" ? "" : value }))}
+                onValueChange={(value) => {
+                  const newParentId = value === "none" ? "" : value;
+                  const suggested = newParentId ? suggestNextTaskCode(newParentId) : '';
+                  setCreateForm(prev => ({ ...prev, parent_id: newParentId, task_code: suggested }));
+                }}
               >
                 <SelectTrigger id="create-parent">
                   <SelectValue placeholder="Nenhuma (tarefa principal)" />
@@ -2176,6 +2273,19 @@ export default function EquipeSprintDetalhes() {
                 </SelectContent>
               </Select>
             </div>
+
+            {createForm.parent_id && (
+              <div className="space-y-2">
+                <Label htmlFor="create-task-code">ID / Ordem</Label>
+                <Input
+                  id="create-task-code"
+                  value={createForm.task_code}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, task_code: e.target.value }))}
+                  placeholder="Ex: 7.43"
+                />
+                <p className="text-xs text-muted-foreground">Alterar reordena automaticamente as demais subtarefas</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
