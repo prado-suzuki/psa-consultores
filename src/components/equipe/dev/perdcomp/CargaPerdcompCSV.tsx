@@ -197,10 +197,13 @@ export function CargaPerdcompCSV() {
         nr_proc_ret: row.nr_proc_ret?.trim() || null,
       };
 
+      const porcentagemPsa = row.porcentagem_psa ? parseNumber(row.porcentagem_psa) : null;
+
       persToInsert.push({
         ...perData,
         id_contribuinte: selectedContribuinte,
         criado_por: userId,
+        porcentagem_psa: porcentagemPsa,
       });
 
       // Se tem situação, prepara para inserir na tabela per_situacao
@@ -288,9 +291,12 @@ export function CargaPerdcompCSV() {
         vlr_compensado: parseNumber(row.vlr_compensado),
       };
 
+      const porcentagemPsa = row.porcentagem_psa ? parseNumber(row.porcentagem_psa) : null;
+
       dcompsToInsert.push({
         ...dcompData,
         criado_por: userId,
+        porcentagem_psa: porcentagemPsa,
       });
     }
 

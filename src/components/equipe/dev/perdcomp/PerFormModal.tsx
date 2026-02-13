@@ -88,6 +88,7 @@ const perSchema = z.object({
   tp_credito: z.string().min(1, 'Tipo de crédito é obrigatório'),
   vlr_credito: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_proc_ret: z.string().nullable().optional(),
+  porcentagem_psa: z.coerce.number().nullable().optional(),
 });
 
 type PerFormData = z.infer<typeof perSchema>;
@@ -131,6 +132,7 @@ export function PerFormModal({
       tp_credito: '',
       vlr_credito: 0,
       nr_proc_ret: null,
+      porcentagem_psa: null,
     },
   });
 
@@ -182,6 +184,7 @@ export function PerFormModal({
         tp_credito: editData.tp_credito,
         vlr_credito: editData.vlr_credito,
         nr_proc_ret: editData.nr_proc_ret || null,
+        porcentagem_psa: editData.porcentagem_psa ?? null,
       });
       setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_credito || 0));
       // Set tipo declaração based on existing nr_proc_ret
@@ -202,6 +205,7 @@ export function PerFormModal({
         tp_credito: '',
         vlr_credito: 0,
         nr_proc_ret: null,
+        porcentagem_psa: null,
       });
       setCurrencyDisplay('R$ 0,00');
       setTipoDeclaracao('original');
@@ -229,6 +233,7 @@ export function PerFormModal({
         tp_credito: data.tp_credito,
         vlr_credito: data.vlr_credito,
         nr_proc_ret: data.nr_proc_ret || null,
+        porcentagem_psa: data.porcentagem_psa ?? null,
       }]);
       if (perError) throw perError;
 
@@ -294,6 +299,7 @@ export function PerFormModal({
           tp_credito: data.tp_credito,
           vlr_credito: data.vlr_credito,
           nr_proc_ret: data.nr_proc_ret || null,
+          porcentagem_psa: data.porcentagem_psa ?? null,
         })
         .eq('numero_processo_per', editData?.numero_processo_per);
       if (error) throw error;
@@ -606,6 +612,26 @@ export function PerFormModal({
                       value={currencyDisplay}
                       onChange={handleCurrencyChange}
                       placeholder="R$ 0,00"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="porcentagem_psa"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>% PSA</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 15.00"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
                     />
                   </FormControl>
                   <FormMessage />

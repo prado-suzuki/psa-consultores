@@ -11,6 +11,7 @@ interface PerSync {
   vlr_credito: number;
   vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
+  porcentagem_psa?: number | null;
 }
 
 interface PerSituacaoSync {
@@ -31,6 +32,7 @@ interface DcompSync {
   tp_credito: string;
   vlr_compensado: number;
   nr_dcomp_ret?: string | null;
+  porcentagem_psa?: number | null;
 }
 
 interface SyncPerdcompPayload {
