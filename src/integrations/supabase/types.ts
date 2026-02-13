@@ -47,6 +47,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          area: string
+          changed_fields: Json | null
+          details: string | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          id: string
+          performed_at: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          area: string
+          changed_fields?: Json | null
+          details?: string | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          id?: string
+          performed_at?: string
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          area?: string
+          changed_fields?: Json | null
+          details?: string | null
+          entity_id?: string
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          performed_at?: string
+          performed_by?: string
+        }
+        Relationships: []
+      }
       catalog_clients: {
         Row: {
           color: string | null

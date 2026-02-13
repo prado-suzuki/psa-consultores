@@ -65,6 +65,8 @@ import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
 import FiscalDemandasClientes from "./pages/equipe/fiscal/FiscalDemandasClientes";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
+import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
+import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 const queryClient = new QueryClient();
@@ -139,8 +141,12 @@ const App = () => (
             <Route path="/equipe/tex/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
              <Route path="/equipe/tex/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
             
+            {/* Tax Auditoria */}
+            <Route path="/equipe/tex/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/auditoria"><FiscalAuditoria /></PageAccessGate></TeamRoute>} />
+
             {/* OSG Routes */}
             <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/osg/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate></TeamRoute>} />
             
             {/* Board Routes */}
             <Route path="/equipe/board/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate></TeamRoute>} />

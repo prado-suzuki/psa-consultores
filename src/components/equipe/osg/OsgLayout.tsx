@@ -10,8 +10,10 @@ import {
   ChevronRight,
   Menu,
   ArrowLeft,
-  User
+  User,
+  Shield
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface OsgLayoutProps {
   children: React.ReactNode;
@@ -68,9 +70,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
-        {/* Navigation - Empty for now */}
+        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {/* Navigation items will be added here later */}
+          <button
+            onClick={() => navigate('/equipe/osg/auditoria')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              location.pathname === '/equipe/osg/auditoria'
+                ? "bg-orange-100 text-orange-700"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            )}
+          >
+            <Shield className="h-4 w-4" />
+            {!collapsed && <span>Auditoria</span>}
+          </button>
         </nav>
 
         {/* Footer Actions */}

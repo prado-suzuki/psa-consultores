@@ -45,6 +45,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface Project {
   id: string;
@@ -96,6 +97,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 const FiscalProjetosCadastro = () => {
+  const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -215,6 +217,12 @@ const FiscalProjetosCadastro = () => {
         const { error: membersError } = await supabase.from('tax_project_members').insert(members);
         if (membersError) throw membersError;
       }
+
+      // Audit log
+      await logAction({
+        area: 'tax', entity_type: 'project', entity_id: project.id,
+        entity_name: data.name, action: 'created',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
@@ -228,6 +236,15 @@ const FiscalProjetosCadastro = () => {
 
   const updateProject = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
+      // Build changed_fields by comparing with editingProject
+      const changedFields: Record<string, { old: unknown; new: unknown }> = {};
+      if (editingProject) {
+        if (data.name !== editingProject.name) changedFields.name = { old: editingProject.name, new: data.name };
+        if (data.status !== editingProject.status) changedFields.status = { old: editingProject.status, new: data.status };
+        if ((data.area || null) !== (editingProject.area || null)) changedFields.area = { old: editingProject.area, new: data.area };
+        if ((data.description || null) !== (editingProject.description || null)) changedFields.description = { old: editingProject.description, new: data.description };
+      }
+
       const { error } = await supabase
         .from('tax_projects')
         .update({
@@ -263,6 +280,13 @@ const FiscalProjetosCadastro = () => {
         const { error: membersError } = await supabase.from('tax_project_members').insert(members);
         if (membersError) throw membersError;
       }
+
+      // Audit log
+      await logAction({
+        area: 'tax', entity_type: 'project', entity_id: id,
+        entity_name: data.name, action: 'updated',
+        changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
@@ -277,8 +301,16 @@ const FiscalProjetosCadastro = () => {
 
   const deleteProject = useMutation({
     mutationFn: async (id: string) => {
+      // Get project name for audit log before deleting
+      const project = projects.find((p: any) => p.id === id);
       const { error } = await supabase.from('tax_projects').delete().eq('id', id);
       if (error) throw error;
+
+      // Audit log
+      await logAction({
+        area: 'tax', entity_type: 'project', entity_id: id,
+        entity_name: project?.name || 'Projeto excluído', action: 'deleted',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
