@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.dw-query]
 verify_jwt = false
+
+[functions.delete-team-member]
+verify_jwt = false

@@ -40,8 +40,19 @@ import {
   EyeOff,
   UserPlus,
   CheckCircle2,
-  Copy
+  Copy,
+  Pencil,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 interface PagePermission {
@@ -94,6 +105,18 @@ const EquipeControleAcessos = () => {
     email: string;
     password: string;
   } | null>(null);
+
+  // Edit user states
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    roles: [] as string[],
+  });
+
+  // Delete user states
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   // Fetch page permissions
   const { data: pages, isLoading: loadingPages } = useQuery({
@@ -254,6 +277,109 @@ const EquipeControleAcessos = () => {
     setCreatedCredentials(null);
     setNewUser({ first_name: '', last_name: '', email: '', password: '', roles: [] });
     setShowPassword(false);
+  };
+
+  // Edit user mutation
+  const editUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUserId) throw new Error('Nenhum usuário selecionado');
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editUser.first_name,
+          last_name: editUser.last_name,
+          email: editUser.email,
+        })
+        .eq('id', selectedUserId);
+
+      if (profileError) throw profileError;
+
+      // Sync roles - get current roles
+      const { data: currentRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', selectedUserId);
+
+      if (rolesError) throw rolesError;
+
+      const currentRoleNames = currentRoles?.map(r => r.role) || [];
+      const rolesToAdd = editUser.roles.filter(r => !currentRoleNames.includes(r as typeof currentRoleNames[number]));
+      const rolesToRemove = currentRoleNames.filter(r => !editUser.roles.includes(r));
+
+      // Remove roles
+      for (const role of rolesToRemove) {
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', selectedUserId)
+          .eq('role', role as any);
+        if (error) throw error;
+      }
+
+      // Add roles
+      for (const role of rolesToAdd) {
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: selectedUserId, role: role as any });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      setIsEditOpen(false);
+      toast.success('Usuário atualizado com sucesso');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao atualizar usuário');
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUserId) throw new Error('Nenhum usuário selecionado');
+
+      const response = await supabase.functions.invoke('delete-team-member', {
+        body: { user_id: selectedUserId },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      setSelectedUserId(null);
+      setIsDeleteOpen(false);
+      toast.success('Usuário excluído com sucesso');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao excluir usuário');
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (!selectedUser) return;
+    setEditUser({
+      first_name: selectedUser.first_name,
+      last_name: selectedUser.last_name,
+      email: selectedUser.email || '',
+      roles: [...selectedUser.roles],
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser.first_name || !editUser.last_name || !editUser.email) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    editUserMutation.mutate();
   };
 
   const copyToClipboard = (text: string) => {
@@ -796,14 +922,40 @@ const EquipeControleAcessos = () => {
                   {/* User Permissions */}
                   <Card className="lg:col-span-2 bg-white border-slate-200/60 shadow-sm">
                     <CardHeader>
-                      <CardTitle className="text-slate-900 text-sm">
-                        {selectedUser
-                          ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
-                          : 'Selecione um usuário'}
-                      </CardTitle>
-                      <CardDescription className="text-slate-500">
-                        Gerencie as permissões individuais de acesso às páginas
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-slate-900 text-sm">
+                            {selectedUser
+                              ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
+                              : 'Selecione um usuário'}
+                          </CardTitle>
+                          <CardDescription className="text-slate-500">
+                            Gerencie as permissões individuais de acesso às páginas
+                          </CardDescription>
+                        </div>
+                        {selectedUser && selectedUser.id !== user?.id && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleOpenEdit}
+                              className="border-slate-200 text-slate-600 hover:text-teal-600 hover:bg-teal-50"
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsDeleteOpen(true)}
+                              className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {selectedUserId ? (
@@ -879,6 +1031,141 @@ const EquipeControleAcessos = () => {
           </div>
         </main>
       </ScrollArea>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md bg-white border-slate-200">
+          <form onSubmit={handleEditSubmit}>
+            <DialogHeader>
+              <DialogTitle className="text-slate-900">Editar Usuário</DialogTitle>
+              <DialogDescription className="text-slate-500">
+                Altere os dados e papéis do usuário
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_first_name" className="text-slate-700">Nome *</Label>
+                  <Input
+                    id="edit_first_name"
+                    value={editUser.first_name}
+                    onChange={(e) => setEditUser({ ...editUser, first_name: e.target.value })}
+                    className="bg-white border-slate-200 text-slate-900"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_last_name" className="text-slate-700">Sobrenome *</Label>
+                  <Input
+                    id="edit_last_name"
+                    value={editUser.last_name}
+                    onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
+                    className="bg-white border-slate-200 text-slate-900"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_email" className="text-slate-700">Email *</Label>
+                <Input
+                  id="edit_email"
+                  type="email"
+                  value={editUser.email}
+                  onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                  className="bg-white border-slate-200 text-slate-900"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
+                {[
+                  { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
+                  { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
+                  { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
+                ].map((role) => (
+                  <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <Checkbox
+                      id={`edit_role_${role.value}`}
+                      checked={editUser.roles.includes(role.value)}
+                      onCheckedChange={(checked) => {
+                        setEditUser(prev => ({
+                          ...prev,
+                          roles: checked
+                            ? [...prev.roles, role.value]
+                            : prev.roles.filter(r => r !== role.value),
+                        }));
+                      }}
+                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                    />
+                    <div>
+                      <Label htmlFor={`edit_role_${role.value}`} className="text-slate-900 text-sm font-medium cursor-pointer">
+                        {role.label}
+                      </Label>
+                      <p className="text-xs text-slate-500">{role.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+                className="border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={editUserMutation.isPending}
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                {editUserMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent className="bg-white border-slate-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900">Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              Tem certeza que deseja excluir o usuário{' '}
+              <strong className="text-slate-700">
+                {selectedUser?.first_name} {selectedUser?.last_name}
+              </strong>
+              ? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-200 text-slate-600">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteUserMutation.mutate()}
+              disabled={deleteUserMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir Usuário'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
