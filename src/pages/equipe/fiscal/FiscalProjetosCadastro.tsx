@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2 } from 'lucide-react';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Button } from '@/components/ui/button';
@@ -110,6 +110,7 @@ const FiscalProjetosCadastro = () => {
     area: '',
     objective: '',
     categories: [] as string[],
+    member_ids: [] as string[],
   });
 
   // Fetch team members (profiles)
@@ -157,9 +158,34 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
+  // Fetch project members when editing
+  const { data: currentProjectMembers = [] } = useQuery({
+    queryKey: ['tax-project-members', editingProject?.id],
+    queryFn: async () => {
+      if (!editingProject?.id) return [];
+      const { data, error } = await supabase
+        .from('tax_project_members')
+        .select('user_id, role')
+        .eq('project_id', editingProject.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!editingProject?.id,
+  });
+
+  // When editing, load current members into form
+  useEffect(() => {
+    if (editingProject && currentProjectMembers.length > 0) {
+      const memberUserIds = currentProjectMembers
+        .filter(m => m.role === 'member')
+        .map(m => m.user_id);
+      setFormData(prev => ({ ...prev, member_ids: memberUserIds }));
+    }
+  }, [editingProject, currentProjectMembers]);
+
   const createProject = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('tax_projects').insert({
+      const { data: project, error } = await supabase.from('tax_projects').insert({
         name: data.name,
         description: data.description || null,
         status: data.status,
@@ -169,8 +195,26 @@ const FiscalProjetosCadastro = () => {
         area: data.area || null,
         objective: data.objective || null,
         categories: data.categories.length > 0 ? data.categories : null,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      // Insert project members
+      const members: { project_id: string; user_id: string; role: string }[] = [];
+      if (data.responsible_id) {
+        members.push({ project_id: project.id, user_id: data.responsible_id, role: 'responsible' });
+      }
+      if (data.leader_id && data.leader_id !== data.responsible_id) {
+        members.push({ project_id: project.id, user_id: data.leader_id, role: 'leader' });
+      }
+      for (const uid of data.member_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: project.id, user_id: uid, role: 'member' });
+        }
+      }
+      if (members.length > 0) {
+        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        if (membersError) throw membersError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
@@ -199,9 +243,30 @@ const FiscalProjetosCadastro = () => {
         })
         .eq('id', id);
       if (error) throw error;
+
+      // Replace project members: delete all, re-insert
+      await supabase.from('tax_project_members').delete().eq('project_id', id);
+
+      const members: { project_id: string; user_id: string; role: string }[] = [];
+      if (data.responsible_id) {
+        members.push({ project_id: id, user_id: data.responsible_id, role: 'responsible' });
+      }
+      if (data.leader_id && data.leader_id !== data.responsible_id) {
+        members.push({ project_id: id, user_id: data.leader_id, role: 'leader' });
+      }
+      for (const uid of data.member_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: id, user_id: uid, role: 'member' });
+        }
+      }
+      if (members.length > 0) {
+        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        if (membersError) throw membersError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
+      queryClient.invalidateQueries({ queryKey: ['tax-project-members'] });
       toast.success('Projeto atualizado');
       handleCloseModal();
     },
@@ -238,6 +303,7 @@ const FiscalProjetosCadastro = () => {
         area: project.area || '',
         objective: project.objective || '',
         categories: project.categories || [],
+        member_ids: [],
       });
     } else {
       setEditingProject(null);
@@ -251,6 +317,7 @@ const FiscalProjetosCadastro = () => {
         area: '',
         objective: '',
         categories: [],
+        member_ids: [],
       });
     }
     setIsModalOpen(true);
@@ -269,6 +336,7 @@ const FiscalProjetosCadastro = () => {
       area: '',
       objective: '',
       categories: [],
+      member_ids: [],
     });
   };
 
@@ -293,6 +361,15 @@ const FiscalProjetosCadastro = () => {
     }));
   };
 
+  const handleMemberToggle = (memberId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      member_ids: prev.member_ids.includes(memberId)
+        ? prev.member_ids.filter(id => id !== memberId)
+        : [...prev.member_ids, memberId],
+    }));
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -312,6 +389,11 @@ const FiscalProjetosCadastro = () => {
     if (!area) return '-';
     return AREA_OPTIONS.find(a => a.value === area)?.label || area;
   };
+
+  // Filter team members for the members section (exclude responsible & leader)
+  const availableMembers = teamMembers.filter(
+    m => m.id !== formData.responsible_id && m.id !== formData.leader_id
+  );
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -541,6 +623,57 @@ const FiscalProjetosCadastro = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </div>
+
+              {/* Project Members */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Membros do Projeto
+                  </div>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  O Responsável Interno e o Líder são adicionados automaticamente. Selecione os demais membros que terão acesso ao projeto e suas tarefas.
+                </p>
+                {(formData.responsible_id || formData.leader_id) && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.responsible_id && (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <User className="h-3 w-3 mr-1" />
+                        {teamMembers.find(m => m.id === formData.responsible_id)?.first_name}{' '}
+                        {teamMembers.find(m => m.id === formData.responsible_id)?.last_name} (Responsável)
+                      </Badge>
+                    )}
+                    {formData.leader_id && formData.leader_id !== formData.responsible_id && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <User className="h-3 w-3 mr-1" />
+                        {teamMembers.find(m => m.id === formData.leader_id)?.first_name}{' '}
+                        {teamMembers.find(m => m.id === formData.leader_id)?.last_name} (Líder)
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                  {availableMembers.map(member => (
+                    <div key={member.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`member-${member.id}`}
+                        checked={formData.member_ids.includes(member.id)}
+                        onCheckedChange={() => handleMemberToggle(member.id)}
+                      />
+                      <label
+                        htmlFor={`member-${member.id}`}
+                        className="text-sm leading-none cursor-pointer"
+                      >
+                        {member.first_name} {member.last_name}
+                      </label>
+                    </div>
+                  ))}
+                  {availableMembers.length === 0 && (
+                    <p className="text-xs text-slate-400 col-span-2">Nenhum membro disponível</p>
+                  )}
                 </div>
               </div>
 
