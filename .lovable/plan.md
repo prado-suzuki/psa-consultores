@@ -1,59 +1,21 @@
 
 
-## Plano: Dashboard de Horas por Pessoa na aba Metricas
+## Ajuste: Cards KPI compactos com scroll horizontal
 
-### Objetivo
-Substituir a mensagem "Nenhuma metrica cadastrada" por um dashboard visual que mostra a distribuicao de horas estimadas dos `sprint_deliverables` agrupadas por pessoa, com filtros de granularidade temporal (dia, semana, mes, ano).
+### Problema
+Os 4 KPI cards do dashboard de horas ocupam muito espaco vertical (especialmente em telas menores) e nao sao todos visiveis sem rolar a pagina.
 
-### Novo componente: `src/components/sprint/SprintHoursDashboard.tsx`
+### Solucao
+Trocar o grid por um container flex com scroll horizontal (`overflow-x-auto`) e reduzir o padding dos cards para ficarem mais compactos.
 
-Dashboard que:
-- Recebe `deliverables` e `profiles` como props
-- Possui seletor de granularidade: Dia / Semana / Mes / Ano
-- Usa recharts (ja instalado) para exibir um grafico de barras empilhadas (stacked bar chart) onde:
-  - Eixo X = periodo (dia, semana, mes ou ano dependendo do filtro)
-  - Eixo Y = horas estimadas
-  - Cada cor = uma pessoa (assigned_to)
-- Abaixo do grafico, uma tabela resumo por pessoa mostrando: nome, total de horas, quantidade de tarefas, media de horas/tarefa
-- Cards de KPI no topo: Total de Horas, Media por Dia, Pessoa com Mais Horas, Tarefas sem Horas
+### Alteracao unica
 
-Logica de agrupamento:
-- **Dia**: agrupa deliverables por `due_date` exato
-- **Semana**: agrupa por numero da semana usando `getISOWeek` do date-fns
-- **Mes**: agrupa por mes/ano
-- **Ano**: agrupa por ano
+**Arquivo:** `src/components/sprint/SprintHoursDashboard.tsx` (linhas 136-170)
 
-### Alteracao: `src/pages/equipe/EquipeSprintDetalhes.tsx`
+- Substituir `grid grid-cols-2 md:grid-cols-4 gap-3` por `flex gap-3 overflow-x-auto pb-1`
+- Adicionar `min-w-[140px] flex-shrink-0` em cada Card para manter tamanho minimo e evitar colapso
+- Reduzir padding de `p-4` para `p-3`
+- Reduzir fonte do valor de `text-2xl` para `text-xl`
 
-Na aba Metricas (linha ~1605), adicionar o `SprintHoursDashboard` **antes** do conteudo de metricas existente. O dashboard aparece sempre (independente de ter metricas cadastradas), usando os dados dos deliverables.
-
-```text
-Tab Metricas
-+----------------------------------------------+
-| KPI Cards: Total Horas | Media/Dia | ...     |
-+----------------------------------------------+
-| [Dia] [Semana] [Mes] [Ano]                   |
-| +------------------------------------------+ |
-| | Grafico barras empilhadas por pessoa     | |
-| | X = periodo, Y = horas, cor = pessoa     | |
-| +------------------------------------------+ |
-+----------------------------------------------+
-| Tabela resumo por pessoa                     |
-| Nome | Horas | Tarefas | Media               |
-+----------------------------------------------+
-| (metricas manuais existentes abaixo)         |
-+----------------------------------------------+
-```
-
-### Detalhes Tecnicos
-
-| Item | Detalhe |
-|---|---|
-| Novo arquivo | `src/components/sprint/SprintHoursDashboard.tsx` |
-| Arquivo editado | `src/pages/equipe/EquipeSprintDetalhes.tsx` (aba Metricas) |
-| Dados usados | `filteredDeliverables` (estimated_hours, due_date, assigned_to) e `profiles` |
-| Grafico | `BarChart` do recharts com barras empilhadas, cores distintas por pessoa |
-| Filtros | Toggle group com 4 opcoes de granularidade temporal |
-| KPIs | Total horas, media por dia, pessoa destaque, tarefas sem hora |
-| Dependencias | Nenhuma nova - usa recharts, date-fns, componentes UI existentes |
+Resultado: cards em linha unica com scroll lateral quando necessario, mais compactos visualmente.
 
