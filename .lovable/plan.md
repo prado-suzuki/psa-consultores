@@ -1,49 +1,35 @@
 
 
-## Mover filtros de Ano, Mes e Responsavel para a barra de filtros principal
+## Reorganizar: cards de urgencia ao lado do badge "Ativa" e manter somente filtros na barra
 
 ### O que sera feito
-Remover os filtros (Ano, Mes, Responsavel) de dentro do componente `SprintHoursDashboard` e coloca-los na barra de filtros principal da pagina `EquipeSprintDetalhes.tsx`, ao lado dos botoes de urgencia (Hoje, Amanha, Atrasados).
+1. Mover os botoes "Hoje (X)", "Amanha (X)" e "Atrasados (X)" para a linha do header, ao lado do badge "Ativa"
+2. Na barra de filtros, manter somente os Selects (Responsavel, Status, Ano, Mes, Pessoa) e o botao Limpar
 
 ### Alteracoes
 
-#### 1. `src/pages/equipe/EquipeSprintDetalhes.tsx`
+**Arquivo:** `src/pages/equipe/EquipeSprintDetalhes.tsx`
 
-**Novos estados:**
-- `filterYear`, `filterMonth`, `filterMetricsPerson` (todos com valor `"__none__"` como padrao)
+#### 1. Header (linhas 1094-1110)
+Adicionar os 3 botoes de urgencia (Hoje, Amanha, Atrasados) na mesma linha do botao "Voltar" e do badge "Ativa", entre eles:
 
-**Opcoes de filtro derivadas:**
-- Extrair anos e meses unicos dos deliverables com horas estimadas
-- Listar responsaveis unicos
-
-**Na barra de filtros (linhas ~1067-1134):**
-Adicionar 3 Selects apos os botoes de urgencia (Atrasados):
 ```
-[Responsável ▾] [Status ▾] [Hoje] [Amanhã] [Atrasados] | [Ano ▾] [Mês ▾] [Pessoa ▾] [Limpar]
+[← Voltar]    [Hoje (35)] [Amanhã (0)] [Atrasados (16)]    [Ativa]
 ```
 
-**No SprintHoursDashboard:**
-Passar os deliverables ja filtrados por ano/mes/pessoa, em vez de passar os filtros como props.
+#### 2. Barra de filtros (linhas 1113-1211)
+Remover o bloco dos 3 botoes de urgencia (linhas 1139-1168) e o separador (linha 1171). A barra ficara apenas com:
 
-#### 2. `src/components/sprint/SprintHoursDashboard.tsx`
-
-**Remover:**
-- Estados `filterYear`, `filterMonth`, `filterPerson`
-- Memos `availableYears`, `availableMonths`, `availablePeople`
-- Memo `filteredWithHours` (os dados ja virao filtrados via props)
-- Toda a barra de filtros no JSX (Filter icon + 3 Selects + botao Limpar)
-- Imports de `Select`, `Button`, `Filter` que ficarem sem uso
-
-**Ajustar:**
-- Todos os calculos (`chartData`, `personSummary`, KPIs) passam a usar `withHours` diretamente, pois os dados ja chegam filtrados
+```
+[Responsável ▾] [Status ▾] [Ano ▾] [Mês ▾] [Pessoa ▾] [Limpar]  X de Y entregáveis
+```
 
 ### Detalhes Tecnicos
 
 | Item | Detalhe |
 |---|---|
-| Arquivos editados | `EquipeSprintDetalhes.tsx`, `SprintHoursDashboard.tsx` |
-| Logica de filtragem | Movida para o componente pai |
-| Props do dashboard | Sem mudanca na interface (continua recebendo `deliverables` e `profiles`) |
-| Filtros aplicados | Antes de passar ao `SprintHoursDashboard` e tambem ao `filteredDeliverables` existente |
-| Posicao visual | Ao lado dos botoes Hoje/Amanha/Atrasados na barra de filtros |
+| Arquivo | `src/pages/equipe/EquipeSprintDetalhes.tsx` |
+| Linhas do header | ~1094-1110 - adicionar botoes de urgencia |
+| Linhas da barra | ~1139-1171 - remover botoes de urgencia e separador |
+| Funcionalidade | Sem mudanca - os botoes continuam alternando `filterDate` |
 
