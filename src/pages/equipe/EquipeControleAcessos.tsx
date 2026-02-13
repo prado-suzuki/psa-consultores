@@ -83,6 +83,15 @@ interface UserPageAccess {
 
 const INITIAL_VISIBLE_PAGES = 5;
 
+// Area -> categories mapping
+const AREA_CATEGORIES_MAP: Record<string, { label: string; categories: string[] }> = {
+  digital: { label: 'Digital', categories: ['rotina', 'dev'] },
+  tex: { label: 'Tax', categories: ['projetos', 'fiscal'] },
+  osg: { label: 'OSG', categories: ['osg'] },
+  board: { label: 'Gerencial', categories: ['board'] },
+  controle_site: { label: 'Chamados', categories: ['gestao'] },
+};
+
 const EquipeControleAcessos = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -100,6 +109,7 @@ const EquipeControleAcessos = () => {
     email: '',
     password: '',
     roles: [] as string[],
+    areas: [] as string[],
   });
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
@@ -113,6 +123,7 @@ const EquipeControleAcessos = () => {
     last_name: '',
     email: '',
     roles: [] as string[],
+    areas: [] as string[],
   });
 
   // Delete user states
@@ -253,9 +264,32 @@ const EquipeControleAcessos = () => {
 
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Grant area access if team_member and areas selected
+      if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user?.id) {
+        try {
+          const categoriesToGrant = newUser.areas.flatMap(area => AREA_CATEGORIES_MAP[area]?.categories || []);
+          const { data: pagePerms } = await supabase
+            .from('page_permissions')
+            .select('id')
+            .in('category', categoriesToGrant);
+          
+          if (pagePerms && pagePerms.length > 0) {
+            const accessRecords = pagePerms.map(p => ({
+              user_id: data.user.id,
+              page_permission_id: p.id,
+              granted_by: user?.id,
+            }));
+            await supabase.from('user_page_access').insert(accessRecords);
+          }
+        } catch (err) {
+          console.error('Error granting area access:', err);
+        }
+      }
+      
       setCreatedCredentials({ email: newUser.email, password: newUser.password });
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
       toast.success('Usuário criado com sucesso!');
     },
     onError: (error: Error) => {
@@ -275,7 +309,7 @@ const EquipeControleAcessos = () => {
   const handleCloseCreateDialog = () => {
     setIsCreateOpen(false);
     setCreatedCredentials(null);
-    setNewUser({ first_name: '', last_name: '', email: '', password: '', roles: [] });
+    setNewUser({ first_name: '', last_name: '', email: '', password: '', roles: [], areas: [] });
     setShowPassword(false);
   };
 
@@ -325,9 +359,62 @@ const EquipeControleAcessos = () => {
           .insert({ user_id: selectedUserId, role: role as any });
         if (error) throw error;
       }
+
+      // Sync area access
+      if (editUser.roles.includes('team_member')) {
+        const selectedCategories = editUser.areas.flatMap(area => AREA_CATEGORIES_MAP[area]?.categories || []);
+        
+        // Get all page permissions
+        const { data: allPagePerms } = await supabase
+          .from('page_permissions')
+          .select('id, category');
+        
+        if (allPagePerms) {
+          // Pages that should have access (from selected areas)
+          const shouldHaveAccess = new Set(
+            allPagePerms.filter(p => selectedCategories.includes(p.category)).map(p => p.id)
+          );
+          
+          // Pages from all areas (to know which to potentially revoke)
+          const allAreaCategories = Object.values(AREA_CATEGORIES_MAP).flatMap(a => a.categories);
+          const allAreaPageIds = new Set(
+            allPagePerms.filter(p => allAreaCategories.includes(p.category)).map(p => p.id)
+          );
+          
+          // Current access
+          const currentAccessIds = new Set(
+            userAccess?.filter(a => a.user_id === selectedUserId).map(a => a.page_permission_id) || []
+          );
+          
+          // Grant missing
+          const toGrant = [...shouldHaveAccess].filter(id => !currentAccessIds.has(id));
+          if (toGrant.length > 0) {
+            await supabase.from('user_page_access').insert(
+              toGrant.map(pageId => ({
+                user_id: selectedUserId,
+                page_permission_id: pageId,
+                granted_by: user?.id,
+              }))
+            );
+          }
+          
+          // Revoke from deselected areas only
+          const toRevoke = [...allAreaPageIds].filter(id => !shouldHaveAccess.has(id) && currentAccessIds.has(id));
+          if (toRevoke.length > 0) {
+            for (const pageId of toRevoke) {
+              await supabase
+                .from('user_page_access')
+                .delete()
+                .eq('user_id', selectedUserId)
+                .eq('page_permission_id', pageId);
+            }
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
       setIsEditOpen(false);
       toast.success('Usuário atualizado com sucesso');
     },
@@ -363,12 +450,28 @@ const EquipeControleAcessos = () => {
   });
 
   const handleOpenEdit = () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !selectedUserId) return;
+    
+    // Infer current areas from user_page_access
+    const userAccessIds = userAccess?.filter(a => a.user_id === selectedUserId).map(a => a.page_permission_id) || [];
+    const userPageCategories = new Set(
+      pages?.filter(p => userAccessIds.includes(p.id)).map(p => p.category) || []
+    );
+    
+    const inferredAreas: string[] = [];
+    for (const [areaKey, areaDef] of Object.entries(AREA_CATEGORIES_MAP)) {
+      const hasAllCategories = areaDef.categories.every(cat => userPageCategories.has(cat));
+      if (hasAllCategories && areaDef.categories.some(cat => userPageCategories.has(cat))) {
+        inferredAreas.push(areaKey);
+      }
+    }
+    
     setEditUser({
       first_name: selectedUser.first_name,
       last_name: selectedUser.last_name,
       email: selectedUser.email || '',
       roles: [...selectedUser.roles],
+      areas: inferredAreas,
     });
     setIsEditOpen(true);
   };
@@ -836,6 +939,37 @@ const EquipeControleAcessos = () => {
                                 </div>
                               ))}
                             </div>
+                            {newUser.roles.includes('team_member') && (
+                              <div className="space-y-3">
+                                <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
+                                <p className="text-xs text-slate-500">Selecione as áreas que o membro terá acesso</p>
+                                {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
+                                  <div key={key} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
+                                    <Checkbox
+                                      id={`area_${key}`}
+                                      checked={newUser.areas.includes(key)}
+                                      onCheckedChange={(checked) => {
+                                        setNewUser(prev => ({
+                                          ...prev,
+                                          areas: checked
+                                            ? [...prev.areas, key]
+                                            : prev.areas.filter(a => a !== key),
+                                        }));
+                                      }}
+                                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                                    />
+                                    <div>
+                                      <Label htmlFor={`area_${key}`} className="text-slate-900 text-sm font-medium cursor-pointer">
+                                        {area.label}
+                                      </Label>
+                                      <p className="text-xs text-slate-500">
+                                        {area.categories.join(', ')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <DialogFooter className="gap-2">
                             <Button
@@ -1103,6 +1237,37 @@ const EquipeControleAcessos = () => {
                   </div>
                 ))}
               </div>
+              {editUser.roles.includes('team_member') && (
+                <div className="space-y-3">
+                  <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
+                  <p className="text-xs text-slate-500">Selecione as áreas que o membro terá acesso</p>
+                  {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
+                    <div key={key} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
+                      <Checkbox
+                        id={`edit_area_${key}`}
+                        checked={editUser.areas.includes(key)}
+                        onCheckedChange={(checked) => {
+                          setEditUser(prev => ({
+                            ...prev,
+                            areas: checked
+                              ? [...prev.areas, key]
+                              : prev.areas.filter(a => a !== key),
+                          }));
+                        }}
+                        className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                      />
+                      <div>
+                        <Label htmlFor={`edit_area_${key}`} className="text-slate-900 text-sm font-medium cursor-pointer">
+                          {area.label}
+                        </Label>
+                        <p className="text-xs text-slate-500">
+                          {area.categories.join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter className="gap-2">
               <Button
