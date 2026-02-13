@@ -88,7 +88,7 @@ const EquipeControleAcessos = () => {
     last_name: '',
     email: '',
     password: '',
-    is_admin: false,
+    roles: [] as string[],
   });
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
@@ -252,7 +252,7 @@ const EquipeControleAcessos = () => {
   const handleCloseCreateDialog = () => {
     setIsCreateOpen(false);
     setCreatedCredentials(null);
-    setNewUser({ first_name: '', last_name: '', email: '', password: '', is_admin: false });
+    setNewUser({ first_name: '', last_name: '', email: '', password: '', roles: [] });
     setShowPassword(false);
   };
 
@@ -680,18 +680,35 @@ const EquipeControleAcessos = () => {
                                 </button>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="is_admin"
-                                checked={newUser.is_admin}
-                                onCheckedChange={(checked) => 
-                                  setNewUser({ ...newUser, is_admin: checked === true })
-                                }
-                                className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                              />
-                              <Label htmlFor="is_admin" className="text-slate-700 text-sm">
-                                Conceder acesso de administrador
-                              </Label>
+                            <div className="space-y-3">
+                              <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
+                              {[
+                                { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
+                                { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
+                                { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
+                              ].map((role) => (
+                                <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
+                                  <Checkbox
+                                    id={`role_${role.value}`}
+                                    checked={newUser.roles.includes(role.value)}
+                                    onCheckedChange={(checked) => {
+                                      setNewUser(prev => ({
+                                        ...prev,
+                                        roles: checked
+                                          ? [...prev.roles, role.value]
+                                          : prev.roles.filter(r => r !== role.value),
+                                      }));
+                                    }}
+                                    className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                                  />
+                                  <div>
+                                    <Label htmlFor={`role_${role.value}`} className="text-slate-900 text-sm font-medium cursor-pointer">
+                                      {role.label}
+                                    </Label>
+                                    <p className="text-xs text-slate-500">{role.desc}</p>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                           <DialogFooter className="gap-2">
