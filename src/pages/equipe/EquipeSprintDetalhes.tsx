@@ -22,6 +22,7 @@ import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
 import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
+import { SprintCalendar } from "@/components/sprint/SprintCalendar";
 
 interface Sprint {
   id: string;
@@ -1533,7 +1534,22 @@ export default function EquipeSprintDetalhes() {
           </TabsContent>
 
           {/* Tab Agenda */}
-          <TabsContent value="agenda" className="space-y-4">
+          <TabsContent value="agenda" className="space-y-6">
+            {/* Calendário de entregas */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Calendário de Entregas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SprintCalendar
+                  deliverables={filteredDeliverables}
+                  onEdit={openEditModal}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Eventos da Sprint */}
+            <h3 className="font-semibold text-gray-900 text-base">Eventos da Sprint</h3>
             {events.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
