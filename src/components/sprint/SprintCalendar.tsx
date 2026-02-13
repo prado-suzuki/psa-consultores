@@ -104,7 +104,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
               key={day.toISOString()}
               onClick={() => dayDeliverables.length > 0 && setSelectedDate(day)}
               className={cn(
-                "aspect-square p-1 border rounded-lg transition-colors flex flex-col",
+                "min-h-[80px] sm:min-h-[100px] p-1 border rounded-lg transition-colors flex flex-col items-start overflow-hidden",
                 isToday && "border-emerald-500 bg-emerald-50",
                 dayDeliverables.length > 0 && "hover:bg-muted/50 cursor-pointer",
                 dayDeliverables.length === 0 && "cursor-default",
@@ -118,15 +118,15 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                 {format(day, 'd')}
               </span>
               {dayDeliverables.length > 0 && (
-                <div className="flex flex-wrap gap-0.5 mt-1 justify-center">
-                  {dayDeliverables.slice(0, 3).map(d => (
-                    <div
-                      key={d.id}
-                      className={cn("w-2 h-2 rounded-full", statusColors[d.status] || 'bg-slate-400')}
-                    />
+                <div className="flex flex-col gap-0.5 mt-1 w-full">
+                  {dayDeliverables.slice(0, 2).map(d => (
+                    <div key={d.id} className="flex items-center gap-1 w-full">
+                      <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[d.status] || 'bg-slate-400')} />
+                      <span className="text-[10px] leading-tight truncate">{d.title}</span>
+                    </div>
                   ))}
-                  {dayDeliverables.length > 3 && (
-                    <span className="text-xs text-muted-foreground">+{dayDeliverables.length - 3}</span>
+                  {dayDeliverables.length > 2 && (
+                    <span className="text-[10px] text-muted-foreground pl-2">+{dayDeliverables.length - 2} mais</span>
                   )}
                 </div>
               )}
