@@ -1,63 +1,45 @@
 
 
-## Plano: Associar Usuarios a Areas/Ambientes na Criacao e Edicao
+## Plano: Melhorar selecao de Membros do Projeto
 
 ### Problema Atual
-O formulario de criacao de usuario permite definir nome, email, senha e papeis (Admin/Membro/Cliente), mas **nao permite associar o usuario a ambientes/areas** (Gerencial, Chamados, Digital, OSG, Tax). Atualmente, o acesso a areas depende de permissoes individuais por pagina (`user_page_access`), que precisam ser configuradas manualmente uma a uma apos a criacao do usuario.
+A secao "Membros do Projeto" no modal de criacao/edicao de projetos Tax exibe os membros como checkboxes em um grid plano de 2 colunas dentro de uma caixa com scroll. Isso dificulta a visualizacao quando ha muitos membros.
 
 ### Solucao
-Adicionar um campo de **selecao de areas** (multi-select com checkboxes) nos formularios de criacao e edicao de usuario. Ao selecionar uma area, o sistema automaticamente concedera acesso a **todas as paginas daquela area** na tabela `user_page_access`.
+Substituir o grid de checkboxes por uma **tabela compacta com checkboxes** dentro de um container com scroll, mostrando nome completo e email de cada membro. Isso torna a selecao mais organizada e profissional.
 
 ---
 
-### 1. Alterar formulario de criacao de usuario
+### Alteracao no arquivo
 
-Apos a secao "Papeis do usuario", adicionar uma nova secao **"Areas de Acesso"** (visivel apenas quando o papel "Membro da Equipe" estiver marcado):
+**Arquivo:** `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-- Checkboxes para cada area:
-  - Gerencial (categoria: `board`)
-  - Chamados (categoria: `gestao`)
-  - Digital (categorias: `rotina`, `dev`)
-  - OSG (categoria: `osg`)
-  - Tax (categorias: `projetos`, `fiscal`)
+**O que muda (linhas 690-709):**
 
-Novo campo no estado `newUser`:
+Substituir o grid de checkboxes atual por uma tabela com as colunas:
+- Checkbox de selecao (com header para selecionar/deselecionar todos)
+- Nome completo (first_name + last_name)
+- Email
+
+A tabela tera:
+- Header fixo com checkbox "selecionar todos"
+- Linhas com hover highlight
+- Scroll vertical (max-h-48)
+- Contador de membros selecionados abaixo da tabela
+
+### Detalhes Tecnicos
+
+A alteracao e pontual e restrita ao JSX de renderizacao da secao "Membros do Projeto" (linhas 690-709). A logica de toggle (`handleMemberToggle`) ja existe e sera reutilizada. Nenhuma alteracao de estado, mutation ou banco de dados e necessaria.
+
+Estrutura da nova UI:
 ```text
-areas: string[]  -- ex: ['digital', 'osg', 'tex']
++-----------------------------------------+
+| [x] | Nome              | Email         |
++-----------------------------------------+
+| [ ] | Alexandre Silva   | alex@...      |
+| [x] | Carlos Prado      | carlos@...    |
+| [ ] | Gabriel Gama      | gabriel@...   |
++-----------------------------------------+
+  3 membros selecionados
 ```
-
-### 2. Logica de concessao de acesso por area
-
-Apos criar o usuario com sucesso, para cada area selecionada:
-1. Buscar as `page_permissions` cujas categorias correspondem a area
-2. Inserir registros em `user_page_access` para cada pagina encontrada
-
-Mapeamento area -> categorias (mesmo ja usado em `EquipeAuth.tsx`):
-```text
-digital -> ['rotina', 'dev']
-tex     -> ['projetos', 'fiscal']
-osg     -> ['osg']
-board   -> ['board']
-controle_site -> ['gestao']
-```
-
-### 3. Alterar formulario de edicao de usuario
-
-Adicionar a mesma secao "Areas de Acesso" no dialog de edicao:
-- Carregar as areas atuais do usuario (inferidas a partir dos acessos existentes em `user_page_access`)
-- Ao salvar, sincronizar: revogar acessos de areas desmarcadas, conceder acessos de areas marcadas
-
-### 4. Alteracoes nos arquivos
-
-| Componente | Alteracao |
-|---|---|
-| `src/pages/equipe/EquipeControleAcessos.tsx` | Adicionar campo `areas` ao `newUser` e `editUser`; secao de checkboxes de areas nos dialogs de criacao e edicao; logica de concessao/revogacao de acessos por area apos salvar |
-
-Nenhuma alteracao no banco de dados e necessaria -- o sistema ja possui as tabelas `page_permissions` e `user_page_access` que suportam essa funcionalidade. A logica sera implementada inteiramente no frontend.
-
-### Resultado Esperado
-- Ao criar um usuario como "Membro da Equipe", o admin pode selecionar quais areas (Digital, Tax, OSG, etc.) o usuario tera acesso
-- O sistema automaticamente concede acesso a todas as paginas daquela area
-- Ao editar, o admin pode adicionar/remover areas de acesso
-- Na tela de login da equipe, o usuario so vera as areas para as quais tem acesso (comportamento ja existente)
 
