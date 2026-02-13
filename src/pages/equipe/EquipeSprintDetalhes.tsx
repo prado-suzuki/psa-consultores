@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
 import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
 import { SprintCalendar } from "@/components/sprint/SprintCalendar";
+import { SprintHoursDashboard } from "@/components/sprint/SprintHoursDashboard";
 
 interface Sprint {
   id: string;
@@ -1603,14 +1604,13 @@ export default function EquipeSprintDetalhes() {
           </TabsContent>
 
           {/* Tab Métricas */}
-          <TabsContent value="metrics" className="space-y-4">
-            {metrics.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  Nenhuma métrica cadastrada para esta sprint.
-                </CardContent>
-              </Card>
-            ) : (
+          <TabsContent value="metrics" className="space-y-6">
+            <SprintHoursDashboard
+              deliverables={filteredDeliverables}
+              profiles={profiles}
+            />
+
+            {metrics.length === 0 ? null : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {metrics.map((metric) => {
                   const percentage = metric.target_value 
