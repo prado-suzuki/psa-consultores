@@ -1,18 +1,20 @@
  import { useState } from 'react';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
- import { 
-   Calendar, 
-   Clock, 
-   MoreHorizontal, 
-   Edit, 
-   Trash2, 
-   UserPlus,
-   CheckCircle2,
-   Circle,
-   AlertCircle,
-   Repeat
- } from 'lucide-react';
+import { 
+  Calendar, 
+  Clock, 
+  MoreHorizontal, 
+  Edit, 
+  Trash2, 
+  UserPlus,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  Repeat,
+  Plus,
+  ListTree
+} from 'lucide-react';
  import { Card, CardContent } from '@/components/ui/card';
  import { Badge } from '@/components/ui/badge';
  import { Button } from '@/components/ui/button';
@@ -26,14 +28,16 @@
  import { cn } from '@/lib/utils';
  import { FiscalTask } from '@/hooks/useFiscalTasks';
  
- interface TaskCardProps {
-   task: FiscalTask;
-   onEdit: (task: FiscalTask) => void;
-   onDelete: (taskId: string) => void;
-   onReassign: (task: FiscalTask) => void;
-   onStatusChange?: (taskId: string, status: FiscalTask['status']) => void;
-   compact?: boolean;
- }
+interface TaskCardProps {
+  task: FiscalTask;
+  onEdit: (task: FiscalTask) => void;
+  onDelete: (taskId: string) => void;
+  onReassign: (task: FiscalTask) => void;
+  onStatusChange?: (taskId: string, status: FiscalTask['status']) => void;
+  onAddSubtask?: (parentTask: FiscalTask) => void;
+  subtaskCount?: number;
+  compact?: boolean;
+}
  
  const priorityColors = {
    urgent: 'bg-red-100 text-red-700 border-red-200',
@@ -57,14 +61,16 @@
    done: CheckCircle2,
  };
  
- export const TaskCard = ({ 
-   task, 
-   onEdit, 
-   onDelete, 
-   onReassign, 
-   onStatusChange,
-   compact = false 
- }: TaskCardProps) => {
+export const TaskCard = ({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  onReassign, 
+  onStatusChange,
+  onAddSubtask,
+  subtaskCount = 0,
+  compact = false 
+}: TaskCardProps) => {
    const StatusIcon = statusIcons[task.status];
    const isFixedEvent = task.category === 'fixed_event';
  
@@ -136,16 +142,23 @@
                </p>
              )}
  
-             <div className="flex items-center flex-wrap gap-2">
-               <Badge className={cn(priorityColors[task.priority])}>
-                 {priorityLabels[task.priority]}
-               </Badge>
-               
-               {isFixedEvent && (
-                 <Badge variant="outline" className="border-purple-300 text-purple-700">
-                   Evento Fixo
-                 </Badge>
-               )}
+              <div className="flex items-center flex-wrap gap-2">
+                <Badge className={cn(priorityColors[task.priority])}>
+                  {priorityLabels[task.priority]}
+                </Badge>
+                
+                {isFixedEvent && (
+                  <Badge variant="outline" className="border-purple-300 text-purple-700">
+                    Evento Fixo
+                  </Badge>
+                )}
+
+                {subtaskCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <ListTree className="h-3 w-3" />
+                    {subtaskCount} subtarefa{subtaskCount > 1 ? 's' : ''}
+                  </div>
+                )}
  
                {task.due_date && (
                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -177,23 +190,29 @@
                    <MoreHorizontal className="h-4 w-4" />
                  </Button>
                </DropdownMenuTrigger>
-               <DropdownMenuContent align="end">
-                 <DropdownMenuItem onClick={() => onEdit(task)}>
-                   <Edit className="h-4 w-4 mr-2" />
-                   Editar
-                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={() => onReassign(task)}>
-                   <UserPlus className="h-4 w-4 mr-2" />
-                   Reatribuir
-                 </DropdownMenuItem>
-                 <DropdownMenuItem 
-                   onClick={() => onDelete(task.id)}
-                   className="text-red-600"
-                 >
-                   <Trash2 className="h-4 w-4 mr-2" />
-                   Excluir
-                 </DropdownMenuItem>
-               </DropdownMenuContent>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(task)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  {!task.parent_task_id && onAddSubtask && (
+                    <DropdownMenuItem onClick={() => onAddSubtask(task)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Subtarefa
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => onReassign(task)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Reatribuir
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(task.id)}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
              </DropdownMenu>
            </div>
          </div>

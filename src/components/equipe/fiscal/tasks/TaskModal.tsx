@@ -65,21 +65,23 @@ import { supabase } from '@/integrations/supabase/client';
  
  type TaskFormValues = z.infer<typeof taskSchema>;
  
- interface TaskModalProps {
-   open: boolean;
-   onOpenChange: (open: boolean) => void;
-   task?: FiscalTask | null;
-   teamMembers: { id: string; name: string }[];
-   parentTasks?: FiscalTask[];
- }
+interface TaskModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  task?: FiscalTask | null;
+  teamMembers: { id: string; name: string }[];
+  parentTasks?: FiscalTask[];
+  defaultParentId?: string | null;
+}
  
- export const TaskModal = ({ 
-   open, 
-   onOpenChange, 
-   task, 
-   teamMembers,
-   parentTasks = []
- }: TaskModalProps) => {
+export const TaskModal = ({ 
+  open, 
+  onOpenChange, 
+  task, 
+  teamMembers,
+  parentTasks = [],
+  defaultParentId
+}: TaskModalProps) => {
    const createTask = useCreateFiscalTask();
    const updateTask = useUpdateFiscalTask();
    const isEditing = !!task;
@@ -144,17 +146,22 @@ import { supabase } from '@/integrations/supabase/client';
           project_id: task.project_id || undefined,
           client_id: task.client_id || undefined,
        });
-     } else {
-       form.reset({
-         title: '',
-         description: '',
-         status: 'todo',
-         priority: 'medium',
-         is_recurring: false,
-         category: 'task',
-       });
-     }
-   }, [task, form]);
+    } else {
+      // Find parent task to inherit project/client
+      const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
+      form.reset({
+        title: '',
+        description: '',
+        status: 'todo',
+        priority: 'medium',
+        is_recurring: false,
+        category: 'task',
+        parent_task_id: defaultParentId || undefined,
+        project_id: parentTask?.project_id || undefined,
+        client_id: parentTask?.client_id || undefined,
+      });
+    }
+   }, [task, form, defaultParentId, parentTasks]);
  
    const handleAssigneeChange = (userId: string) => {
      const member = teamMembers.find(m => m.id === userId);
@@ -518,33 +525,34 @@ import { supabase } from '@/integrations/supabase/client';
               />
             </div>
 
-             {parentTasks.length > 0 && (
-               <FormField
-                 control={form.control}
-                 name="parent_task_id"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>Tarefa Pai (subtarefa de)</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value}>
-                       <FormControl>
-                         <SelectTrigger>
-                           <SelectValue placeholder="Nenhuma (tarefa principal)" />
-                         </SelectTrigger>
-                       </FormControl>
-                       <SelectContent>
-                         <SelectItem value="">Nenhuma</SelectItem>
-                         {parentTasks.map(pt => (
-                           <SelectItem key={pt.id} value={pt.id}>
-                             {pt.title}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                     </Select>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
-             )}
+            <FormField
+              control={form.control}
+              name="parent_task_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tarefa Pai (subtarefa de)</FormLabel>
+                  <Select 
+                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
+                    value={field.value || '_none'}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Nenhuma (tarefa principal)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhuma</SelectItem>
+                      {parentTasks.map(pt => (
+                        <SelectItem key={pt.id} value={pt.id}>
+                          {pt.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
  
              <div className="flex justify-end gap-3 pt-4">
                <Button 

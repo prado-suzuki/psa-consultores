@@ -57,10 +57,11 @@
      },
    });
  
-   const handleEditTask = (task: FiscalTask) => {
-     setSelectedTask(task);
-     setIsTaskModalOpen(true);
-   };
+  const handleEditTask = (task: FiscalTask) => {
+    setSelectedTask(task);
+    setDefaultParentId(null);
+    setIsTaskModalOpen(true);
+  };
  
    const handleDeleteTask = (taskId: string) => {
      setTaskToDelete(taskId);
@@ -78,10 +79,19 @@
      setIsReassignModalOpen(true);
    };
  
-   const handleNewTask = () => {
-     setSelectedTask(null);
-     setIsTaskModalOpen(true);
-   };
+  const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
+
+  const handleNewTask = () => {
+    setSelectedTask(null);
+    setDefaultParentId(null);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleAddSubtask = (parentTask: FiscalTask) => {
+    setSelectedTask(null);
+    setDefaultParentId(parentTask.id);
+    setIsTaskModalOpen(true);
+  };
  
    const parentTasks = tasks.filter(t => !t.parent_task_id);
  
@@ -139,14 +149,15 @@
                />
              </TabsContent>
  
-             <TabsContent value="table" className="m-0">
-               <TaskTable
-                 tasks={tasks}
-                 onEdit={handleEditTask}
-                 onDelete={handleDeleteTask}
-                 onReassign={handleReassignTask}
-               />
-             </TabsContent>
+              <TabsContent value="table" className="m-0">
+                <TaskTable
+                  tasks={tasks}
+                  onEdit={handleEditTask}
+                  onDelete={handleDeleteTask}
+                  onReassign={handleReassignTask}
+                  onAddSubtask={handleAddSubtask}
+                />
+              </TabsContent>
  
              <TabsContent value="kanban" className="m-0">
                <TaskKanban
@@ -177,13 +188,14 @@
        </div>
  
        {/* Task Modal */}
-       <TaskModal
-         open={isTaskModalOpen}
-         onOpenChange={setIsTaskModalOpen}
-         task={selectedTask}
-         teamMembers={teamMembers}
-         parentTasks={parentTasks}
-       />
+        <TaskModal
+          open={isTaskModalOpen}
+          onOpenChange={setIsTaskModalOpen}
+          task={selectedTask}
+          teamMembers={teamMembers}
+          parentTasks={parentTasks}
+          defaultParentId={defaultParentId}
+        />
  
        {/* Reassign Modal */}
        <ReassignModal

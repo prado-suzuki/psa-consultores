@@ -998,7 +998,7 @@ export type Database = {
             foreignKeyName: "fiscal_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "tax_projects"
             referencedColumns: ["id"]
           },
         ]
