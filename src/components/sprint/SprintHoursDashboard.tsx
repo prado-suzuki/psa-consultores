@@ -133,37 +133,37 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
   return (
     <div className="space-y-4">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-border">
-          <CardContent className="p-4">
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        <Card className="border-border min-w-[140px] flex-shrink-0">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Clock className="h-3.5 w-3.5" /> Total de Horas
             </div>
-            <p className="text-2xl font-bold">{totalHours.toFixed(1)}h</p>
+            <p className="text-xl font-bold">{totalHours.toFixed(1)}h</p>
           </CardContent>
         </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
+        <Card className="border-border min-w-[140px] flex-shrink-0">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <TrendingUp className="h-3.5 w-3.5" /> Média/Dia
             </div>
-            <p className="text-2xl font-bold">{avgPerDay}h</p>
+            <p className="text-xl font-bold">{avgPerDay}h</p>
           </CardContent>
         </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
+        <Card className="border-border min-w-[140px] flex-shrink-0">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <User className="h-3.5 w-3.5" /> Mais Horas
             </div>
             <p className="text-lg font-bold truncate">{topPerson}</p>
           </CardContent>
         </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
+        <Card className="border-border min-w-[140px] flex-shrink-0">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <AlertCircle className="h-3.5 w-3.5" /> Sem Horas
             </div>
-            <p className="text-2xl font-bold">{tasksWithoutHours}</p>
+            <p className="text-xl font-bold">{tasksWithoutHours}</p>
           </CardContent>
         </Card>
       </div>
