@@ -1,49 +1,111 @@
 
-## Plano: Selecao de Papel (Role) ao Criar Usuario
 
-### Problema
-Na tela de Controle de Acessos (`/equipe/acessos`), ao criar um novo usuario, o formulario so permite marcar "administrador" via checkbox. O usuario e sempre criado automaticamente como `team_member`, sem opcao de escolher entre **admin**, **team_member** ou **client**.
+## Plano: Membros de Projeto Tax com Visibilidade Restrita
+
+### Problema Atual
+Hoje, qualquer membro da equipe com role `team_member` pode ver **todos** os projetos Tax e todas as tarefas. O formulario de criacao de projeto permite selecionar apenas 1 Responsavel Interno e 1 Lider, sem opcao de associar multiplos membros. Nao existe mecanismo para restringir a visibilidade dos projetos e tarefas apenas aos membros associados.
 
 ### Solucao
-Substituir o checkbox unico "Conceder acesso de administrador" por um seletor de papeis com checkboxes multiplos, permitindo escolher qualquer combinacao de roles ao criar o usuario.
 
-### Alteracoes
+#### 1. Criar tabela de membros do projeto (`tax_project_members`)
 
-#### 1. Frontend -- `src/pages/equipe/EquipeControleAcessos.tsx`
+Nova tabela de juncao N:N entre `tax_projects` e `profiles`:
 
-**Estado do formulario**: trocar `is_admin: boolean` por `roles: string[]` (ex: `['team_member', 'client']`).
+```text
+tax_project_members
+- id (uuid, PK)
+- project_id (uuid, FK -> tax_projects.id ON DELETE CASCADE)
+- user_id (uuid, FK -> auth.users.id)
+- role (text) -- 'member', 'leader', 'responsible'
+- created_at (timestamptz)
+```
 
-**UI do formulario**: substituir o checkbox unico por 3 opcoes:
-- Administrador (`admin`)
-- Membro da Equipe (`team_member`)
-- Cliente (`client`)
+RLS: membros da equipe podem ver membros dos projetos a que pertencem; admins veem tudo. INSERT/UPDATE/DELETE restrito a admins e lideres do projeto.
 
-Cada opcao com checkbox, icone e label, seguindo o mesmo padrao visual ja usado em `AdminUsuarios.tsx`.
+#### 2. Atualizar politicas RLS de `tax_projects`
 
-**Chamada da edge function**: enviar `roles` em vez de `is_admin` no body da requisicao.
+Substituir a politica SELECT atual por uma que verifica se o usuario e membro do projeto:
 
-#### 2. Backend -- `supabase/functions/create-team-member/index.ts`
+```sql
+-- Admins veem tudo
+CREATE POLICY "Admins can view all tax_projects"
+ON public.tax_projects FOR SELECT
+USING (has_role(auth.uid(), 'admin'));
 
-Atualizar a edge function para aceitar um campo `roles` (array de strings) em vez de `is_admin` (boolean).
+-- Membros so veem projetos associados
+CREATE POLICY "Members can view their tax_projects"
+ON public.tax_projects FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM tax_project_members
+    WHERE project_id = tax_projects.id
+    AND user_id = auth.uid()
+  )
+);
+```
 
-Logica:
-- Se `roles` for enviado, inserir cada role no `user_roles`
-- Se `roles` nao for enviado (compatibilidade), manter comportamento atual (`team_member` + `admin` se `is_admin`)
-- Nao inserir `team_member` automaticamente se nao estiver na lista
+Mesma logica para UPDATE -- so membros do projeto podem editar.
 
-#### 3. Gestao de roles na lista de usuarios
+#### 3. Atualizar politicas RLS de `fiscal_tasks`
 
-Adicionar botoes de adicionar/remover roles diretamente na lista de usuarios do painel, similar ao que ja existe em `AdminUsuarios.tsx`. Ao selecionar um usuario, alem de ver as permissoes de pagina, mostrar os papeis atuais com opcao de alterar.
+Substituir a politica SELECT atual por uma que verifica se o usuario e membro do projeto vinculado:
 
-### Detalhes Tecnicos
+```sql
+-- Admins veem tudo
+CREATE POLICY "Admins can view all fiscal_tasks"
+ON public.fiscal_tasks FOR SELECT
+USING (has_role(auth.uid(), 'admin'));
 
-| Arquivo | Alteracao |
+-- Membros veem tarefas dos seus projetos ou sem projeto
+CREATE POLICY "Members can view their project fiscal_tasks"
+ON public.fiscal_tasks FOR SELECT
+USING (
+  project_id IS NULL
+  OR EXISTS (
+    SELECT 1 FROM tax_project_members
+    WHERE project_id = fiscal_tasks.project_id
+    AND user_id = auth.uid()
+  )
+);
+```
+
+#### 4. Atualizar formulario de criacao/edicao de projeto
+
+No modal de criacao (`FiscalProjetosCadastro.tsx`):
+
+- Adicionar campo **"Membros do Projeto"** com selecao multipla de membros da equipe (checkboxes ou multi-select)
+- Ao criar o projeto, inserir automaticamente os membros selecionados na tabela `tax_project_members`
+- O Responsavel Interno e o Lider Responsavel sao automaticamente adicionados como membros (roles `responsible` e `leader`)
+- Ao editar, exibir os membros atuais e permitir adicionar/remover
+
+Mudancas no `formData`:
+```text
+member_ids: string[]  -- novo campo
+```
+
+Na mutation de criacao, apos inserir o projeto, inserir os membros:
+```text
+1. Insert tax_project
+2. Insert tax_project_members (member_ids + responsible_id + leader_id)
+```
+
+#### 5. Filtrar projetos na listagem
+
+Na query de listagem de projetos, a RLS ja cuidara de filtrar automaticamente -- o usuario so vera os projetos dos quais e membro. Nenhuma mudanca no frontend de listagem e necessaria alem de invalidar queries corretamente.
+
+### Resumo das Alteracoes
+
+| Componente | Alteracao |
 |---|---|
-| `src/pages/equipe/EquipeControleAcessos.tsx` | Trocar `is_admin` por `roles[]` no state; atualizar formulario com 3 checkboxes; atualizar body da mutation |
-| `supabase/functions/create-team-member/index.ts` | Aceitar campo `roles` (array); inserir cada role individualmente; manter retrocompatibilidade com `is_admin` |
+| Migracao SQL | Criar tabela `tax_project_members` com RLS |
+| Migracao SQL | Substituir RLS de `tax_projects` (SELECT/UPDATE baseado em membership) |
+| Migracao SQL | Substituir RLS de `fiscal_tasks` (SELECT/UPDATE baseado em membership do projeto) |
+| `FiscalProjetosCadastro.tsx` | Adicionar multi-select de membros no formulario; salvar membros na tabela de juncao |
+| `useFiscalTasks.ts` | Nenhuma mudanca necessaria (RLS filtra automaticamente) |
 
 ### Resultado Esperado
-- Ao criar usuario, o admin escolhe exatamente quais papeis atribuir
-- Papeis disponiveis: Administrador, Membro da Equipe, Cliente
-- O sistema nao atribui `team_member` automaticamente -- so o que for selecionado
-- Retrocompatibilidade mantida caso o campo `roles` nao seja enviado
+- Ao criar um projeto, o lider seleciona quais membros fazem parte
+- Somente membros associados ao projeto podem ver e editar o projeto e suas tarefas
+- Admins continuam com visibilidade total
+- Membros nao associados nao veem o projeto na listagem
+
