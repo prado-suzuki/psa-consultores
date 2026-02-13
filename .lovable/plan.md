@@ -1,64 +1,49 @@
 
+## Plano: Selecao de Papel (Role) ao Criar Usuario
 
-## Plano: Chamados da Equipe com Acesso Controlado
-
-### Problema Atual
-1. **Membros da equipe nao conseguem ver os chamados atribuidos a eles** -- a politica de seguranca do banco de dados (RLS) nao possui uma regra de leitura para membros da equipe verem tickets onde `assigned_to = auth.uid()`.
-2. **A pagina `/equipe/chamados` nao esta registrada no controle de acessos**, entao o administrador nao pode liberar/restringir acesso por usuario.
+### Problema
+Na tela de Controle de Acessos (`/equipe/acessos`), ao criar um novo usuario, o formulario so permite marcar "administrador" via checkbox. O usuario e sempre criado automaticamente como `team_member`, sem opcao de escolher entre **admin**, **team_member** ou **client**.
 
 ### Solucao
+Substituir o checkbox unico "Conceder acesso de administrador" por um seletor de papeis com checkboxes multiplos, permitindo escolher qualquer combinacao de roles ao criar o usuario.
 
-#### 1. Corrigir politica de seguranca no banco de dados
-Adicionar uma politica SELECT na tabela `tickets` para que membros da equipe possam ver os chamados atribuidos a eles:
+### Alteracoes
 
-```sql
-CREATE POLICY "Team members can view assigned tickets"
-ON public.tickets FOR SELECT
-USING (
-  has_role(auth.uid(), 'team_member') AND assigned_to = auth.uid()
-);
-```
+#### 1. Frontend -- `src/pages/equipe/EquipeControleAcessos.tsx`
 
-Tambem adicionar uma politica UPDATE para que possam atualizar o status dos chamados atribuidos:
+**Estado do formulario**: trocar `is_admin: boolean` por `roles: string[]` (ex: `['team_member', 'client']`).
 
-```sql
-CREATE POLICY "Team members can update assigned tickets"
-ON public.tickets FOR UPDATE
-USING (
-  has_role(auth.uid(), 'team_member') AND assigned_to = auth.uid()
-);
-```
+**UI do formulario**: substituir o checkbox unico por 3 opcoes:
+- Administrador (`admin`)
+- Membro da Equipe (`team_member`)
+- Cliente (`client`)
 
-#### 2. Registrar a pagina no controle de acessos
-Adicionar `/equipe/chamados` no arquivo `src/config/protectedPages.ts` para que o administrador possa gerenciar quem tem acesso:
+Cada opcao com checkbox, icone e label, seguindo o mesmo padrao visual ja usado em `AdminUsuarios.tsx`.
 
-```text
-page_path: /equipe/chamados
-page_name: Chamados Equipe
-category: geral
-requires_team_member: true
-```
+**Chamada da edge function**: enviar `roles` em vez de `is_admin` no body da requisicao.
 
-#### 3. Adicionar PageAccessGate na pagina
-Envolver o conteudo de `EquipeChamados` com o componente `PageAccessGate` para verificar a permissao granular do usuario antes de exibir a pagina. Isso sera feito na rota em `App.tsx`:
+#### 2. Backend -- `supabase/functions/create-team-member/index.ts`
 
-```text
-/equipe/chamados → TeamRoute → PageAccessGate → EquipeChamados
-```
+Atualizar a edge function para aceitar um campo `roles` (array de strings) em vez de `is_admin` (boolean).
 
-#### 4. Fazer o mesmo para a pagina de detalhes
-A rota `/equipe/chamados/:id` tambem precisa do `PageAccessGate` para que o usuario consiga acessar os detalhes do chamado.
+Logica:
+- Se `roles` for enviado, inserir cada role no `user_roles`
+- Se `roles` nao for enviado (compatibilidade), manter comportamento atual (`team_member` + `admin` se `is_admin`)
+- Nao inserir `team_member` automaticamente se nao estiver na lista
 
-### Resumo das Alteracoes
+#### 3. Gestao de roles na lista de usuarios
+
+Adicionar botoes de adicionar/remover roles diretamente na lista de usuarios do painel, similar ao que ja existe em `AdminUsuarios.tsx`. Ao selecionar um usuario, alem de ver as permissoes de pagina, mostrar os papeis atuais com opcao de alterar.
+
+### Detalhes Tecnicos
 
 | Arquivo | Alteracao |
 |---|---|
-| Migracao SQL | 2 novas politicas RLS (SELECT e UPDATE para team_member) |
-| `src/config/protectedPages.ts` | Adicionar entrada para `/equipe/chamados` |
-| `src/App.tsx` | Envolver rotas `/equipe/chamados` e `/equipe/chamados/:id` com `PageAccessGate` |
+| `src/pages/equipe/EquipeControleAcessos.tsx` | Trocar `is_admin` por `roles[]` no state; atualizar formulario com 3 checkboxes; atualizar body da mutation |
+| `supabase/functions/create-team-member/index.ts` | Aceitar campo `roles` (array); inserir cada role individualmente; manter retrocompatibilidade com `is_admin` |
 
 ### Resultado Esperado
-- Administradores poderao liberar acesso a `/equipe/chamados` para usuarios especificos no painel de Controle de Acessos
-- Usuarios com acesso verao **somente os chamados atribuidos a eles**
-- Usuarios com permissao de gestao (lider) continuam vendo todos os chamados
-
+- Ao criar usuario, o admin escolhe exatamente quais papeis atribuir
+- Papeis disponiveis: Administrador, Membro da Equipe, Cliente
+- O sistema nao atribui `team_member` automaticamente -- so o que for selecionado
+- Retrocompatibilidade mantida caso o campo `roles` nao seja enviado
