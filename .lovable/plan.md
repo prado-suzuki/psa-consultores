@@ -1,35 +1,34 @@
 
 
-## Reorganizar: cards de urgencia ao lado do badge "Ativa" e manter somente filtros na barra
+## Adicionar coluna `porcentagem_psa` nas tabelas `per` e `dcomp`
 
 ### O que sera feito
-1. Mover os botoes "Hoje (X)", "Amanha (X)" e "Atrasados (X)" para a linha do header, ao lado do badge "Ativa"
-2. Na barra de filtros, manter somente os Selects (Responsavel, Status, Ano, Mes, Pessoa) e o botao Limpar
 
-### Alteracoes
+Uma migration SQL adicionando a coluna `porcentagem_psa` do tipo `numeric`, nullable, com valor default `NULL`, em ambas as tabelas:
 
-**Arquivo:** `src/pages/equipe/EquipeSprintDetalhes.tsx`
+- `public.per`
+- `public.dcomp`
 
-#### 1. Header (linhas 1094-1110)
-Adicionar os 3 botoes de urgencia (Hoje, Amanha, Atrasados) na mesma linha do botao "Voltar" e do badge "Ativa", entre eles:
+### Migration SQL
 
-```
-[← Voltar]    [Hoje (35)] [Amanhã (0)] [Atrasados (16)]    [Ativa]
-```
-
-#### 2. Barra de filtros (linhas 1113-1211)
-Remover o bloco dos 3 botoes de urgencia (linhas 1139-1168) e o separador (linha 1171). A barra ficara apenas com:
-
-```
-[Responsável ▾] [Status ▾] [Ano ▾] [Mês ▾] [Pessoa ▾] [Limpar]  X de Y entregáveis
+```sql
+ALTER TABLE public.per ADD COLUMN porcentagem_psa numeric;
+ALTER TABLE public.dcomp ADD COLUMN porcentagem_psa numeric;
 ```
 
-### Detalhes Tecnicos
+### Ajustes no codigo
 
-| Item | Detalhe |
-|---|---|
-| Arquivo | `src/pages/equipe/EquipeSprintDetalhes.tsx` |
-| Linhas do header | ~1094-1110 - adicionar botoes de urgencia |
-| Linhas da barra | ~1139-1171 - remover botoes de urgencia e separador |
-| Funcionalidade | Sem mudanca - os botoes continuam alternando `filterDate` |
+Apos a migration, os tipos TypeScript serao regenerados automaticamente. Sera necessario atualizar os seguintes pontos que interagem com essas tabelas para considerar o novo campo:
+
+1. **`CargaPerdcompCSV.tsx`** - Adicionar parsing da coluna `porcentagem_psa` no CSV para PER e DCOMP
+2. **`sync-perdcomp` edge function** - Incluir `porcentagem_psa` nas interfaces `PerRecord` e `DcompRecord`
+3. **`syncPerdcomp.ts`** (lib) - Incluir o campo no payload de sync
+4. **Formularios de PER e DCOMP** (`PerFormModal.tsx`, `DcompFormModal.tsx`) - Adicionar campo de input para porcentagem_psa
+5. **Tabela de exibicao** (`ControlePerdcomp.tsx`) - Exibir a coluna na listagem
+
+### Detalhes tecnicos
+
+- Tipo `numeric` sem precisao fixa, permitindo valores decimais livres
+- Nullable e sem default, para nao impactar registros existentes
+- Nenhuma alteracao em RLS necessaria (as politicas existentes ja cobrem a tabela inteira)
 
