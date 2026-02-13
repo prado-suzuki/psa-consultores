@@ -1062,63 +1062,6 @@ export default function EquipeSprintDetalhes() {
           </Badge>
         </div>
 
-        {/* Card de Riscos */}
-        {(sprintRisks.overdue.length > 0 || sprintRisks.dueToday.length > 0 || sprintRisks.metricsAtRisk.length > 0) && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="py-4">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  <span className="font-medium text-red-700">Atenção!</span>
-                </div>
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {sprintRisks.overdue.length > 0 && (
-                    <span className="text-red-600">
-                      {sprintRisks.overdue.length} atrasado{sprintRisks.overdue.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                  {sprintRisks.dueToday.length > 0 && (
-                    <span className="text-amber-600">
-                      {sprintRisks.dueToday.length} vencendo hoje
-                    </span>
-                  )}
-                  {sprintRisks.dueTomorrow.length > 0 && (
-                    <span className="text-yellow-600">
-                      {sprintRisks.dueTomorrow.length} vencendo amanhã
-                    </span>
-                  )}
-                  {sprintRisks.metricsAtRisk.length > 0 && (
-                    <span className="text-purple-600">
-                      {sprintRisks.metricsAtRisk.length} métrica{sprintRisks.metricsAtRisk.length > 1 ? 's' : ''} em risco
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-auto">
-                  {sprintRisks.overdue.length > 0 && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="border-red-300 text-red-700 hover:bg-red-100"
-                      onClick={() => setFilterDate('overdue')}
-                    >
-                      Ver Atrasados
-                    </Button>
-                  )}
-                  {sprintRisks.dueToday.length > 0 && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                      onClick={() => setFilterDate('today')}
-                    >
-                      Ver Hoje
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Barra de Filtros */}
         <div className="flex flex-wrap gap-3 items-center">
