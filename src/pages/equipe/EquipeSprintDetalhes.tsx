@@ -1096,17 +1096,46 @@ export default function EquipeSprintDetalhes() {
           <Button variant="ghost" size="sm" onClick={() => navigate("/equipe/sprints")}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Button>
-          <Badge 
-            className={
-              sprint.status === 'active' ? 'bg-primary/10 text-primary border-primary/20' :
-              sprint.status === 'completed' ? 'bg-green-100 text-green-700' :
-              'bg-gray-100 text-gray-700'
-            }
-          >
-            {sprint.status === 'active' ? 'Ativa' : 
-             sprint.status === 'completed' ? 'Concluída' : 
-             sprint.status === 'planning' ? 'Planejamento' : sprint.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant={filterDate === 'today' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'today' ? 'all' : 'today')}
+              className={filterDate === 'today' ? '' : 'border-amber-300 text-amber-700 hover:bg-amber-50'}
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Hoje ({sprintRisks.dueToday.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterDate === 'tomorrow' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'tomorrow' ? 'all' : 'tomorrow')}
+              className={filterDate === 'tomorrow' ? '' : 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'}
+            >
+              <CalendarClock className="h-3 w-3 mr-1" />
+              Amanhã ({sprintRisks.dueTomorrow.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterDate === 'overdue' ? 'default' : 'outline'}
+              onClick={() => setFilterDate(filterDate === 'overdue' ? 'all' : 'overdue')}
+              className={filterDate === 'overdue' ? '' : 'border-red-300 text-red-700 hover:bg-red-50'}
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Atrasados ({sprintRisks.overdue.length})
+            </Button>
+            <Badge 
+              className={
+                sprint.status === 'active' ? 'bg-primary/10 text-primary border-primary/20' :
+                sprint.status === 'completed' ? 'bg-green-100 text-green-700' :
+                'bg-gray-100 text-gray-700'
+              }
+            >
+              {sprint.status === 'active' ? 'Ativa' : 
+               sprint.status === 'completed' ? 'Concluída' : 
+               sprint.status === 'planning' ? 'Planejamento' : sprint.status}
+            </Badge>
+          </div>
         </div>
 
 
@@ -1136,39 +1165,7 @@ export default function EquipeSprintDetalhes() {
             </SelectContent>
           </Select>
 
-          {/* Filtros rápidos de urgência */}
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant={filterDate === 'today' ? 'default' : 'outline'}
-              onClick={() => setFilterDate(filterDate === 'today' ? 'all' : 'today')}
-              className={filterDate === 'today' ? '' : 'border-amber-300 text-amber-700 hover:bg-amber-50'}
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              Hoje ({sprintRisks.dueToday.length})
-            </Button>
-            <Button 
-              size="sm" 
-              variant={filterDate === 'tomorrow' ? 'default' : 'outline'}
-              onClick={() => setFilterDate(filterDate === 'tomorrow' ? 'all' : 'tomorrow')}
-              className={filterDate === 'tomorrow' ? '' : 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'}
-            >
-              <CalendarClock className="h-3 w-3 mr-1" />
-              Amanhã ({sprintRisks.dueTomorrow.length})
-            </Button>
-            <Button 
-              size="sm" 
-              variant={filterDate === 'overdue' ? 'default' : 'outline'}
-              onClick={() => setFilterDate(filterDate === 'overdue' ? 'all' : 'overdue')}
-              className={filterDate === 'overdue' ? '' : 'border-red-300 text-red-700 hover:bg-red-50'}
-            >
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Atrasados ({sprintRisks.overdue.length})
-            </Button>
-          </div>
-
-          {/* Separador + Filtros de métricas */}
-          <div className="h-6 w-px bg-border mx-1" />
+          {/* Filtros de métricas */}
           <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setFilterMonth("__none__"); }}>
             <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
               <SelectValue placeholder="Ano" />
