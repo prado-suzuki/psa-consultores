@@ -84,10 +84,10 @@
        let query = supabase
          .from('fiscal_tasks')
         .select(`
-          *,
-          project:projects(id, name),
-          client:cliente(id, nome)
-        `)
+           *,
+           project:tax_projects(id, name),
+           client:cliente(id, nome)
+         `)
          .order('created_at', { ascending: false });
  
        if (filters?.search) {

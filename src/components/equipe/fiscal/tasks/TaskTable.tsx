@@ -1,7 +1,7 @@
  import { useState } from 'react';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
- import { ChevronDown, ChevronRight, MoreHorizontal, Edit, Trash2, UserPlus } from 'lucide-react';
+ import { ChevronDown, ChevronRight, MoreHorizontal, Edit, Trash2, UserPlus, Plus } from 'lucide-react';
  import {
    Table,
    TableBody,
@@ -29,12 +29,13 @@
  import { cn } from '@/lib/utils';
  import { FiscalTask, FiscalTaskStatus, FiscalTaskPriority, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
  
- interface TaskTableProps {
-   tasks: FiscalTask[];
-   onEdit: (task: FiscalTask) => void;
-   onDelete: (taskId: string) => void;
-   onReassign: (task: FiscalTask) => void;
- }
+interface TaskTableProps {
+  tasks: FiscalTask[];
+  onEdit: (task: FiscalTask) => void;
+  onDelete: (taskId: string) => void;
+  onReassign: (task: FiscalTask) => void;
+  onAddSubtask?: (parentTask: FiscalTask) => void;
+}
  
  const priorityColors = {
    urgent: 'bg-red-100 text-red-700',
@@ -65,7 +66,7 @@
    operations: 'Operações',
  };
  
- export const TaskTable = ({ tasks, onEdit, onDelete, onReassign }: TaskTableProps) => {
+ export const TaskTable = ({ tasks, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateFiscalTask();
  
@@ -200,23 +201,29 @@
                    <MoreHorizontal className="h-4 w-4" />
                  </Button>
                </DropdownMenuTrigger>
-               <DropdownMenuContent align="end">
-                 <DropdownMenuItem onClick={() => onEdit(task)}>
-                   <Edit className="h-4 w-4 mr-2" />
-                   Editar
-                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={() => onReassign(task)}>
-                   <UserPlus className="h-4 w-4 mr-2" />
-                   Reatribuir
-                 </DropdownMenuItem>
-                 <DropdownMenuItem 
-                   onClick={() => onDelete(task.id)}
-                   className="text-red-600"
-                 >
-                   <Trash2 className="h-4 w-4 mr-2" />
-                   Excluir
-                 </DropdownMenuItem>
-               </DropdownMenuContent>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(task)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  {!isSubtask && onAddSubtask && (
+                    <DropdownMenuItem onClick={() => onAddSubtask(task)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Subtarefa
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => onReassign(task)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Reatribuir
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(task.id)}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
              </DropdownMenu>
            </TableCell>
          </TableRow>
