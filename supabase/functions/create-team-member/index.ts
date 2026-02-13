@@ -73,9 +73,9 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, first_name, last_name, is_admin, roles }: CreateTeamMemberRequest = await req.json();
+    const { email, password, first_name, last_name, is_admin, roles: requestedRoles }: CreateTeamMemberRequest = await req.json();
 
-    console.log('Creating team member:', { email, first_name, last_name, roles, is_admin });
+    console.log('Creating team member:', { email, first_name, last_name, requestedRoles, is_admin });
 
     // Create admin client for user creation
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -119,9 +119,8 @@ Deno.serve(async (req) => {
     // Determine which roles to assign
     let rolesToAssign: string[] = [];
     
-    if (roles && Array.isArray(roles) && roles.length > 0) {
-      // New behavior: use the roles array directly
-      rolesToAssign = roles;
+    if (requestedRoles && Array.isArray(requestedRoles) && requestedRoles.length > 0) {
+      rolesToAssign = requestedRoles;
     } else {
       // Backward compatibility: default to team_member + admin if is_admin
       rolesToAssign = ['team_member'];
