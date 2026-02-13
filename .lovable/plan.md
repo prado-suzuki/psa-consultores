@@ -1,17 +1,50 @@
 
-## Remover card de alerta "Atenção!" da sprint
+
+## Adicionar filtros de Ano, Mes e Responsavel no painel de metricas
 
 ### O que sera feito
-Remover o card vermelho de riscos que exibe "Atenção! X atrasados Y vencendo hoje" com os botoes "Ver Atrasados" e "Ver Hoje".
+Adicionar uma barra de filtros no topo do componente `SprintHoursDashboard` com tres filtros:
+1. **Ano** - Select com os anos disponiveis nos dados
+2. **Mes** - Select com os meses (Jan-Dez), filtrado pelo ano selecionado
+3. **Responsavel** - Select com os nomes das pessoas atribuidas
 
-### Alteracao
+Os filtros serao aplicados antes de calcular KPIs, grafico e tabela resumo, permitindo analisar recortes especificos dos dados.
 
-**Arquivo:** `src/pages/equipe/EquipeSprintDetalhes.tsx`
+### Alteracoes no arquivo `src/components/sprint/SprintHoursDashboard.tsx`
 
-Remover o bloco inteiro do "Card de Riscos" (linhas 1065-1121), que inclui:
-- O card com fundo vermelho (`bg-red-50`)
-- O icone de alerta e texto "Atenção!"
-- Os contadores de atrasados, vencendo hoje, vencendo amanha e metricas em risco
-- Os botoes "Ver Atrasados" e "Ver Hoje"
+#### 1. Novos estados de filtro
+- `filterYear: string | null` - ano selecionado (null = todos)
+- `filterMonth: string | null` - mes selecionado (null = todos)
+- `filterPerson: string | null` - ID do responsavel (null = todos)
 
-Nenhuma outra alteracao necessaria -- os filtros de data (`filterDate`) continuam funcionando normalmente pela barra de filtros abaixo.
+#### 2. Extrair opcoes disponiveis
+- **Anos**: extrair anos unicos das `due_date` dos deliverables
+- **Meses**: extrair meses unicos do ano selecionado (ou todos se nenhum ano selecionado)
+- **Pessoas**: listar todas as pessoas atribuidas nos deliverables
+
+#### 3. Barra de filtros
+Renderizar acima dos KPI cards uma linha com 3 Selects lado a lado:
+```
+[Ano ▾]  [Mês ▾]  [Responsável ▾]  [Limpar]
+```
+- Cada Select usa o padrao `__none__` para "Todos"
+- Botao "Limpar" reseta todos os filtros
+
+#### 4. Aplicar filtros nos dados
+Criar um `filteredWithHours` que aplica os filtros de ano, mes e pessoa sobre `withHours` antes de alimentar KPIs, grafico e tabela.
+
+#### 5. Imports adicionais
+- Adicionar `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` dos componentes UI
+- Adicionar `Button` para o botao limpar
+- Adicionar `Filter` icon do lucide-react
+
+### Detalhes Tecnicos
+
+| Item | Detalhe |
+|---|---|
+| Arquivo editado | `src/components/sprint/SprintHoursDashboard.tsx` |
+| Novos estados | `filterYear`, `filterMonth`, `filterPerson` |
+| Filtragem | Aplicada no `withHours` antes de calcular `chartData`, `personSummary` e KPIs |
+| Componentes UI | `Select` (Radix), `Button` |
+| Padrao vazio | `__none__` para representar "Todos" nos selects |
+
