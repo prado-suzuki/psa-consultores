@@ -2,6 +2,7 @@
  import { supabase } from '@/integrations/supabase/client';
  import { useAuth } from '@/contexts/AuthContext';
  import { toast } from 'sonner';
+ import { useAuditLog } from '@/hooks/useAuditLog';
  
  export type FiscalTaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
  export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -129,7 +130,8 @@
  export const useCreateFiscalTask = () => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
- 
+   const { logAction } = useAuditLog();
+
    return useMutation({
      mutationFn: async (input: CreateFiscalTaskInput) => {
        const { data, error } = await supabase
@@ -140,8 +142,14 @@
          })
          .select()
          .single();
- 
+
        if (error) throw error;
+
+       await logAction({
+         area: 'tax', entity_type: input.parent_task_id ? 'subtask' : 'task',
+         entity_id: data.id, entity_name: input.title, action: 'created',
+       });
+
        return data;
      },
      onSuccess: () => {
@@ -156,17 +164,41 @@
  
  export const useUpdateFiscalTask = () => {
    const queryClient = useQueryClient();
- 
+   const { logAction } = useAuditLog();
+
    return useMutation({
      mutationFn: async ({ id, ...updates }: Partial<FiscalTask> & { id: string }) => {
+       // Fetch current state for diff
+       const { data: current } = await supabase.from('fiscal_tasks').select('*').eq('id', id).single();
+
        const { data, error } = await supabase
          .from('fiscal_tasks')
          .update(updates)
          .eq('id', id)
          .select()
          .single();
- 
+
        if (error) throw error;
+
+       // Build changed_fields
+       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
+       if (current) {
+         for (const key of Object.keys(updates)) {
+           if (key === 'id') continue;
+           const oldVal = (current as any)[key];
+           const newVal = (updates as any)[key];
+           if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+             changedFields[key] = { old: oldVal, new: newVal };
+           }
+         }
+       }
+
+       await logAction({
+         area: 'tax', entity_type: current?.parent_task_id ? 'subtask' : 'task',
+         entity_id: id, entity_name: data.title, action: 'updated',
+         changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
+       });
+
        return data;
      },
      onSuccess: () => {
@@ -181,15 +213,24 @@
  
  export const useDeleteFiscalTask = () => {
    const queryClient = useQueryClient();
- 
+   const { logAction } = useAuditLog();
+
    return useMutation({
      mutationFn: async (id: string) => {
+       // Get task info for audit log
+       const { data: task } = await supabase.from('fiscal_tasks').select('title, parent_task_id').eq('id', id).single();
+
        const { error } = await supabase
          .from('fiscal_tasks')
          .delete()
          .eq('id', id);
- 
+
        if (error) throw error;
+
+       await logAction({
+         area: 'tax', entity_type: task?.parent_task_id ? 'subtask' : 'task',
+         entity_id: id, entity_name: task?.title || 'Tarefa excluída', action: 'deleted',
+       });
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });

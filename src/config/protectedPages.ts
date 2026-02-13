@@ -196,4 +196,22 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+
+  // === AUDITORIA PAGES ===
+  {
+    page_path: '/equipe/tex/auditoria',
+    page_name: 'Auditoria Tax',
+    page_description: 'Histórico de alterações em projetos e tarefas Tax',
+    category: 'projetos',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/auditoria',
+    page_name: 'Auditoria OSG',
+    page_description: 'Histórico de alterações em projetos e tarefas OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

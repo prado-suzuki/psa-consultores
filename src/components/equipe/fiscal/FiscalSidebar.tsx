@@ -13,7 +13,8 @@ import {
   Calculator,
   FolderKanban,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 import {
   Collapsible,
@@ -65,6 +66,12 @@ const menuItems: MenuItem[] = [
          path: '/equipe/tex/projetos/tarefas'
       }
     ]
+  },
+  {
+    id: 'auditoria',
+    label: 'Auditoria',
+    icon: Shield,
+    path: '/equipe/tex/auditoria'
   }
 ];
 
