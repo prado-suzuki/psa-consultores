@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.notify-ticket]
 verify_jwt = false
+
+[functions.dw-query]
+verify_jwt = false
