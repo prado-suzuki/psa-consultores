@@ -804,7 +804,7 @@ const CalculadoraIbsCbs = () => {
               className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               <Eraser className="h-4 w-4 mr-2" />
-              Limpar Filtros
+              Limpar filtros
             </Button>
             <Button
               onClick={handleSearch}
@@ -812,7 +812,7 @@ const CalculadoraIbsCbs = () => {
               className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <Search className="h-4 w-4 mr-2" />
-              Buscar Itens
+              Buscar produtos
             </Button>
           </div>
         </CardContent>
@@ -868,7 +868,7 @@ const CalculadoraIbsCbs = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{totalItems}</p>
-                <p className="text-xs text-slate-500">Total de Itens</p>
+                <p className="text-xs text-slate-500">Total de produtos</p>
               </div>
             </CardContent>
           </Card>
@@ -893,7 +893,7 @@ const CalculadoraIbsCbs = () => {
             className="gap-2 bg-teal-600 hover:bg-teal-700"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Alterações
+            Salvar alterações
           </Button>
 
           <Button
@@ -918,7 +918,7 @@ const CalculadoraIbsCbs = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-slate-500" />
-              Itens para Classificação
+              Produtos para classificação
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -931,12 +931,12 @@ const CalculadoraIbsCbs = () => {
             ) : itemsError ? (
               <div className="p-6 text-center text-red-600">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                <p>Erro ao carregar itens</p>
+                <p>Erro ao carregar produtos</p>
               </div>
             ) : groupedItems.length === 0 ? (
               <div className="p-6 text-center text-slate-500">
                 <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Nenhum item encontrado para o período selecionado</p>
+                <p>Nenhum produto encontrado para o período selecionado</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -944,7 +944,7 @@ const CalculadoraIbsCbs = () => {
                   <TableHeader>
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
                       <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead>Item</TableHead>
+                      <TableHead>Produto</TableHead>
                       <TableHead className="w-[100px]">NCM</TableHead>
                       <TableHead className="w-[80px]">CFOP</TableHead>
                       <TableHead className="w-[150px]">Tributação</TableHead>
@@ -1020,7 +1020,7 @@ const CalculadoraIbsCbs = () => {
                 {totalItems > ITEMS_PER_PAGE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
                     <p className="text-sm text-slate-500">
-                      Página {currentPage} de {totalPages} ({totalItems} itens)
+                      Página {currentPage} de {totalPages} ({totalItems} produtos)
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -1050,7 +1050,7 @@ const CalculadoraIbsCbs = () => {
             <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
             <h3 className="text-lg font-medium text-slate-700 mb-2">Calculadora de IBS e CBS</h3>
             <p className="text-slate-500 max-w-md mx-auto">
-              Selecione um contribuinte e período para carregar os itens de notas fiscais e iniciar o cálculo e
+              Selecione um contribuinte e período para carregar os produtos de notas fiscais e iniciar o cálculo e
               classificação dos novos impostos IBS e CBS.
             </p>
           </CardContent>

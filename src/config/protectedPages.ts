@@ -64,7 +64,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/gerenciar-dados',
-    page_name: 'Gerenciar Dados',
+    page_name: 'Gerenciar dados',
     page_description: 'Gerenciamento de dados',
     category: 'dev',
     requires_admin: false,
@@ -88,7 +88,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/gestao-clientes',
-    page_name: 'Gestão de Clientes',
+    page_name: 'Gestão de clientes',
     page_description: 'Consulta e filtros de clientes cadastrados',
     category: 'dev',
     requires_admin: false,

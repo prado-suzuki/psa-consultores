@@ -618,7 +618,7 @@ const ConsultaEFDICMS = () => {
               className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               <Eraser className="h-4 w-4 mr-2" />
-              Limpar Filtros
+              Limpar filtros
             </Button>
             <Button 
               onClick={handleSearch} 
@@ -630,7 +630,7 @@ const ConsultaEFDICMS = () => {
               ) : (
                 <Search className="h-4 w-4 mr-2" />
               )}
-              Buscar Arquivos
+              Buscar arquivos
             </Button>
           </div>
         </CardContent>

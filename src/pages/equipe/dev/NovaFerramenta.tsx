@@ -103,7 +103,7 @@ const NovaFerramenta = () => {
 
   return (
     <DevLayout 
-      title="Nova Ferramenta" 
+      title="Nova ferramenta" 
       subtitle="Crie uma nova ferramenta automatizada"
       headerActions={
         <Button variant="outline" onClick={() => navigate('/equipe/dev')}>
@@ -115,7 +115,7 @@ const NovaFerramenta = () => {
       <div className="max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>Informações da Ferramenta</CardTitle>
+            <CardTitle>Informações da ferramenta</CardTitle>
             <CardDescription>
               Preencha os dados básicos da nova ferramenta
             </CardDescription>
@@ -123,7 +123,7 @@ const NovaFerramenta = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome da Ferramenta *</Label>
+                <Label htmlFor="name">Nome da ferramenta *</Label>
                 <Input
                   id="name"
                   value={name}
@@ -179,7 +179,7 @@ const NovaFerramenta = () => {
                 </Button>
                 <Button type="submit" disabled={createTool.isPending}>
                   <Save className="h-4 w-4 mr-2" />
-                  {createTool.isPending ? 'Salvando...' : 'Criar Ferramenta'}
+                  {createTool.isPending ? 'Salvando...' : 'Criar ferramenta'}
                 </Button>
               </div>
             </form>
