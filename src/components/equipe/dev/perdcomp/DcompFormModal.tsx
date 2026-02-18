@@ -382,7 +382,7 @@ export function DcompFormModal({
               name="porcentagem_psa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>% PSA</FormLabel>
+                  <FormLabel>Percentual Aplicado</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
