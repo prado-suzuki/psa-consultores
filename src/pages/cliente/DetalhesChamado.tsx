@@ -357,15 +357,15 @@ export default function DetalhesChamado() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Card className="p-6">
+          <Card className="p-6 overflow-hidden">
             <div className="space-y-4">
               <div className="flex items-start justify-between">
-                <h1 className="text-2xl font-bold text-foreground">{ticket.title}</h1>
+                <h1 className="text-2xl font-bold text-foreground break-all">{ticket.title}</h1>
                 <Badge className={statusColors[ticket.status]}>
                   {statusLabels[ticket.status]}
                 </Badge>
               </div>
-              <p className="text-muted-foreground">{ticket.description}</p>
+              <p className="text-muted-foreground break-all whitespace-pre-wrap">{ticket.description}</p>
               <div className="text-sm text-muted-foreground">
                 Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
               </div>
