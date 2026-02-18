@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TEST_ADMIN_EMAIL = "alexandre.silva@psaconsultores.com.br";
+const GESTOR_EMAIL = "patricia.melo@psaconsultores.com.br";
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 
 const departmentLabels: Record<string, string> = {
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
 
     const ticketDepartment = departmentLabels[ticket.department] || ticket.department || "N/A";
     const recipients: Recipient[] = [];
-    const adminTestUrl = `${PUBLISHED_URL}/gestao/chamados/${ticket.id}`;
+    const gestorUrl = `${PUBLISHED_URL}/gestao/chamados/${ticket.id}`;
 
     // Get assigned agent name for templates
     let assignedName = "";
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     // ── Build recipients by event ──
 
     if (event_type === "ticket_created") {
-      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
+      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
 
     } else if (event_type === "ticket_assigned") {
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
           const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
           recipients.push({ email: clientEmail, ticket_url: clientUrl, role: "cliente" });
         }
-        recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
+        recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
       } else {
         if (ticket.assigned_to) {
           const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
@@ -170,12 +170,12 @@ Deno.serve(async (req) => {
             recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
           }
         }
-        recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
+        recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
       }
 
     } else if (event_type === "ticket_overdue") {
       // Apenas gestor recebe alerta de prazo vencido
-      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
+      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
 
     } else if (event_type === "ticket_resolved") {
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
         recipients.push({ email: clientEmail, ticket_url: clientUrl, role: "cliente" });
       }
-      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
+      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
     }
 
     // Deduplicate by email
