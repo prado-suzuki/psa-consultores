@@ -1,53 +1,49 @@
 
 
-# Substituicao de Endpoints - Calculadora IBS/CBS
+# Correcao dos payloads para endpoints IBS/CBS
 
-## Mapeamento: Endpoints Atuais vs Novos
+## Problema
 
-| # | Arquivo | Endpoint Atual (DIFAL) | Endpoint Novo (IBS/CBS) | Linha |
-|---|---------|----------------------|------------------------|-------|
-| 1 | `IbsCbsAuditModal.tsx` | `POST /api/v1/ncm/regras` | `POST /api/v1/ibs-cbs/regras` | 61 |
-| 2 | `CalculadoraIbsCbs.tsx` | `POST /api/v1/classificacoes/buscar` | `POST /api/v1/ibs-cbs/classificacoes/buscar` | 329 |
-| 3 | `CalculadoraIbsCbs.tsx` | `POST /api/v1/classificacoes/sync` | `POST /api/v1/ibs-cbs/classificacoes/sync` | 575 |
-| 4 | `CalculadoraIbsCbs.tsx` | `POST /api/v1/ncm/calculo-difal/exportar/{id}` | `POST /api/v1/ibs-cbs/calculo-ibs-cbs/exportar/{id}` | 488 |
+Os endpoints IBS/CBS esperam campos com nomes diferentes dos endpoints DIFAL. Os erros 422 mostram exatamente quais campos estao faltando.
 
-O endpoint de listagem de itens agrupados (linha 254) permanece inalterado pois busca dados de NFes do contribuinte, que e compartilhado entre DIFAL e IBS/CBS:
-- `GET /api/v1/query/contribuintes/{id}/nfes/agrupado-item` -- sem alteracao
+## Correcoes
 
-## Alteracoes por arquivo
+### 1. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx` (linha 321-327)
 
-### 1. `src/components/equipe/dev/IbsCbsAuditModal.tsx`
+O endpoint `/api/v1/ibs-cbs/classificacoes/buscar` exige `cod_produto_svc` e `cod_ncm_nbs` como campos obrigatorios (ao inves de `cod_produto` e `cod_ncm` do DIFAL).
 
-Linha 61 - Buscar regras NCM para classificacao no modal:
 ```
-DE:  /api/v1/ncm/regras
-PARA: /api/v1/ibs-cbs/regras
-```
+DE:
+  itens: groupedItemsFromApi.map((item) => ({
+    id_contribuinte: item.id_contribuinte,
+    cod_produto: item.cod_produto,
+    cod_ncm: item.cod_ncm,
+  }))
 
-### 2. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx`
-
-Linha 329 - Buscar classificacoes existentes dos itens:
-```
-DE:  /api/v1/classificacoes/buscar
-PARA: /api/v1/ibs-cbs/classificacoes/buscar
+PARA:
+  itens: groupedItemsFromApi.map((item) => ({
+    id_contribuinte: item.id_contribuinte,
+    cod_produto: item.cod_produto,
+    cod_ncm: item.cod_ncm,
+    cod_produto_svc: item.cod_produto,
+    cod_ncm_nbs: item.cod_ncm,
+  }))
 ```
 
-Linha 488 - Exportar calculo para Excel:
-```
-DE:  /api/v1/ncm/calculo-difal/exportar/{contribuinte_id}
-PARA: /api/v1/ibs-cbs/calculo-ibs-cbs/exportar/{contribuinte_id}
-```
+Como os dados vem de NFes de mercadorias, `cod_produto_svc` recebe o mesmo valor de `cod_produto` e `cod_ncm_nbs` o mesmo de `cod_ncm`. Quando houver servicos, esses campos terao valores distintos.
 
-Linha 575 - Sincronizar decisoes de classificacao:
+### 2. `src/components/equipe/dev/IbsCbsAuditModal.tsx` (linha 64-66)
+
+O endpoint `/api/v1/ibs-cbs/regras` espera `codigos` ao inves de `ncms`.
+
 ```
-DE:  /api/v1/classificacoes/sync
-PARA: /api/v1/ibs-cbs/classificacoes/sync
+DE:  { ncms: [group.cod_ncm], uf: ufDestino }
+PARA: { codigos: [group.cod_ncm], uf: ufDestino }
 ```
 
 ## Resumo
 
-- **4 endpoints** a substituir em **2 arquivos**
-- **1 endpoint** compartilhado que permanece igual (agrupado-item)
-- Nenhuma alteracao de tipos, banco de dados ou logica -- apenas URLs
-- Os arquivos do DIFAL (`AuditoriaFiscal.tsx` e `DifalAuditModal.tsx`) permanecem inalterados
+- 2 arquivos alterados
+- Apenas ajuste de nomes de campos nos payloads
+- Sem alteracao de logica ou UI
 
