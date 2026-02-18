@@ -62,7 +62,7 @@ export const IbsCbsAuditModal = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ncms: [group.cod_ncm],
+          codigos: [group.cod_ncm],
           uf: ufDestino,
         }),
       });
