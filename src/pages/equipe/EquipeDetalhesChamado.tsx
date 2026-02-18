@@ -234,6 +234,16 @@ export default function EquipeDetalhesChamado() {
         description: `${selectedFiles.length} arquivo(s) anexado(s) com sucesso.`,
       });
 
+      // Notificar sobre novo anexo (fire-and-forget)
+      supabase.functions.invoke('notify-ticket', {
+        body: {
+          event_type: 'ticket_replied',
+          ticket_id: id,
+          actor_name: 'Responsável',
+          message_preview: `${selectedFiles.length} arquivo(s) anexado(s)`,
+        }
+      }).catch(console.error);
+
       setSelectedFiles([]);
       fetchAttachments();
     } catch (error) {
