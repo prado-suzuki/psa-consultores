@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { event_type, ticket_id, actor_name, message_preview } = await req.json();
+    const { event_type, ticket_id, actor_name, message_preview, dias_atraso } = await req.json();
 
     if (!event_type || !ticket_id) {
       return new Response(
@@ -148,7 +148,8 @@ Deno.serve(async (req) => {
       if (ticket.assigned_to) {
         const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
         if (agentEmail) {
-          const { url: agentUrl } = await getTicketUrlForUser(supabase, ticket.assigned_to, ticket.id);
+          // Forçar link da área da equipe (não usar getTicketUrlForUser que pode retornar /gestao/)
+          const agentUrl = `${PUBLISHED_URL}/equipe/chamados/${ticket.id}`;
           recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
         }
       }
@@ -171,6 +172,10 @@ Deno.serve(async (req) => {
         }
         recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
       }
+
+    } else if (event_type === "ticket_overdue") {
+      // Apenas gestor recebe alerta de prazo vencido
+      recipients.push({ email: TEST_ADMIN_EMAIL, ticket_url: adminTestUrl, role: "gestor" });
 
     } else if (event_type === "ticket_resolved") {
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
@@ -208,6 +213,7 @@ Deno.serve(async (req) => {
           message_preview: message_preview || "",
           assigned_to_name: assignedName,
           recipient_role: recipient.role,
+          dias_atraso: dias_atraso || 0,
         };
 
         // Buscar nome do cliente

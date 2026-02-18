@@ -261,6 +261,17 @@ export default function EquipeChamados() {
           : 'Atribuição removida',
       });
 
+      // Notificar cliente e responsável sobre atribuição (fire-and-forget)
+      if (agentId) {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_assigned',
+            ticket_id: ticketId,
+            actor_name: `${agent?.first_name} ${agent?.last_name}`,
+          }
+        }).catch(console.error);
+      }
+
       // Invalidate notification cache
       queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
       
