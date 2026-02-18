@@ -1,49 +1,40 @@
 
-
-# Correcao dos payloads para endpoints IBS/CBS
+# Correcao: Permissoes de area nao sao aplicadas ao criar usuario
 
 ## Problema
 
-Os endpoints IBS/CBS esperam campos com nomes diferentes dos endpoints DIFAL. Os erros 422 mostram exatamente quais campos estao faltando.
+Ao criar um usuario com areas de acesso selecionadas (ex: Digital, Tax), as permissoes individuais de pagina nao sao gravadas automaticamente. O usuario precisa configura-las manualmente depois.
 
-## Correcoes
+## Causa raiz
 
-### 1. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx` (linha 321-327)
+A edge function `create-team-member` retorna o ID do usuario no campo `user_id`:
 
-O endpoint `/api/v1/ibs-cbs/classificacoes/buscar` exige `cod_produto_svc` e `cod_ncm_nbs` como campos obrigatorios (ao inves de `cod_produto` e `cod_ncm` do DIFAL).
-
-```
-DE:
-  itens: groupedItemsFromApi.map((item) => ({
-    id_contribuinte: item.id_contribuinte,
-    cod_produto: item.cod_produto,
-    cod_ncm: item.cod_ncm,
-  }))
-
-PARA:
-  itens: groupedItemsFromApi.map((item) => ({
-    id_contribuinte: item.id_contribuinte,
-    cod_produto: item.cod_produto,
-    cod_ncm: item.cod_ncm,
-    cod_produto_svc: item.cod_produto,
-    cod_ncm_nbs: item.cod_ncm,
-  }))
+```json
+{ "success": true, "user_id": "abc-123", "message": "..." }
 ```
 
-Como os dados vem de NFes de mercadorias, `cod_produto_svc` recebe o mesmo valor de `cod_produto` e `cod_ncm_nbs` o mesmo de `cod_ncm`. Quando houver servicos, esses campos terao valores distintos.
+Porem, o codigo em `EquipeControleAcessos.tsx` (linha 269) verifica `data?.user?.id`, que e `undefined`. Por isso, a condicao falha silenciosamente e as permissoes nunca sao inseridas.
 
-### 2. `src/components/equipe/dev/IbsCbsAuditModal.tsx` (linha 64-66)
+## Correcao
 
-O endpoint `/api/v1/ibs-cbs/regras` espera `codigos` ao inves de `ncms`.
+### Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`
+
+Linha 269 - Alterar a condicao e referencia do ID:
 
 ```
-DE:  { ncms: [group.cod_ncm], uf: ufDestino }
-PARA: { codigos: [group.cod_ncm], uf: ufDestino }
+DE:  if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user?.id) {
+PARA: if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user_id) {
+```
+
+Linha 279 - Alterar a referencia ao gravar os registros:
+
+```
+DE:  user_id: data.user.id,
+PARA: user_id: data.user_id,
 ```
 
 ## Resumo
 
-- 2 arquivos alterados
-- Apenas ajuste de nomes de campos nos payloads
-- Sem alteracao de logica ou UI
-
+- 1 arquivo alterado (`EquipeControleAcessos.tsx`)
+- 2 linhas corrigidas (269 e 279)
+- Causa: nome do campo retornado pela edge function (`user_id`) diferente do esperado pelo frontend (`user.id`)
