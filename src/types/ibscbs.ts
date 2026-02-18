@@ -98,6 +98,8 @@ export interface IbsCbsSyncDecisao {
   id_contribuinte: string;
   cod_produto: string;
   cod_ncm: string;
+  cod_produto_svc: string;
+  cod_ncm_nbs: string;
   decisao: IbsCbsTipoDecisao;
   id_icms_st: string | null;
 }

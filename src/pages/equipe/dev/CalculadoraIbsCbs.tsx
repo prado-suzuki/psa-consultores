@@ -562,6 +562,8 @@ const CalculadoraIbsCbs = () => {
               id_contribuinte: item.id_contribuinte,
               cod_produto: item.cod_produto,
               cod_ncm: d.cod_ncm,
+              cod_produto_svc: item.cod_produto,
+              cod_ncm_nbs: d.cod_ncm,
               decisao: d.decisao as IbsCbsTipoDecisao,
               id_icms_st: d.id_icms_st_bq,
             });
