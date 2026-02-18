@@ -89,6 +89,7 @@ export default function GestaoDetalhesChamado() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [agents, setAgents] = useState<Profile[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -96,7 +97,66 @@ export default function GestaoDetalhesChamado() {
       fetchMessages();
       fetchAttachments();
     }
+    fetchAgents();
   }, [id]);
+
+  const fetchAgents = async () => {
+    try {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'team_member']);
+
+      if (roleData && roleData.length > 0) {
+        const userIds = roleData.map(r => r.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        setAgents(profiles || []);
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
+
+  const handleAssign = async (agentId: string) => {
+    const newAssignedTo = agentId === 'none' ? null : agentId;
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({ assigned_to: newAssignedTo })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      const agent = agents.find(a => a.id === agentId);
+      const agentName = agent ? `${agent.first_name} ${agent.last_name}` : null;
+
+      setTicket(prev => prev ? { ...prev, assigned_to: newAssignedTo } : null);
+
+      if (newAssignedTo) {
+        supabase.functions.invoke('notify-ticket', {
+          body: {
+            event_type: 'ticket_assigned',
+            ticket_id: id,
+            actor_name: 'Gestão PSA',
+            assigned_to_name: agentName,
+          }
+        }).catch(console.error);
+      }
+
+      toast({
+        title: 'Responsável atualizado',
+        description: agentName ? `Chamado atribuído para ${agentName}.` : 'Responsável removido.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao atribuir responsável',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const fetchAttachments = async () => {
     try {
@@ -309,7 +369,7 @@ export default function GestaoDetalhesChamado() {
                   Cliente: {ticket.profiles?.first_name} {ticket.profiles?.last_name}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Select value={ticket.status} onValueChange={handleStatusChange}>
                   <SelectTrigger className="w-40 bg-white border-slate-200">
                     <SelectValue />
@@ -319,6 +379,19 @@ export default function GestaoDetalhesChamado() {
                     <SelectItem value="em_andamento">Em Andamento</SelectItem>
                     <SelectItem value="resolvido">Resolvido</SelectItem>
                     <SelectItem value="fechado">Fechado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={ticket.assigned_to || 'none'} onValueChange={handleAssign}>
+                  <SelectTrigger className="w-48 bg-white border-slate-200">
+                    <SelectValue placeholder="Responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não atribuído</SelectItem>
+                    {agents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.first_name} {agent.last_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
