@@ -323,6 +323,8 @@ const CalculadoraIbsCbs = () => {
           id_contribuinte: item.id_contribuinte,
           cod_produto: item.cod_produto,
           cod_ncm: item.cod_ncm,
+          cod_produto_svc: item.cod_produto,
+          cod_ncm_nbs: item.cod_ncm,
         })),
       };
 
