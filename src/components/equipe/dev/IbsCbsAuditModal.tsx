@@ -58,7 +58,7 @@ export const IbsCbsAuditModal = ({
     queryFn: async () => {
       if (!group) return null;
 
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ncm/regras`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ibs-cbs/regras`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

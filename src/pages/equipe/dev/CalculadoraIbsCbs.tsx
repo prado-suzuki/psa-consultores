@@ -326,7 +326,7 @@ const CalculadoraIbsCbs = () => {
         })),
       };
 
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/classificacoes/buscar`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ibs-cbs/classificacoes/buscar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -485,7 +485,7 @@ const CalculadoraIbsCbs = () => {
 
     try {
       const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/${selectedContribuinte}`,
+        `${API_BASE_URL}/api/v1/ibs-cbs/calculo-ibs-cbs/exportar/${selectedContribuinte}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -572,7 +572,7 @@ const CalculadoraIbsCbs = () => {
         decisoes: decisoesPayload,
       };
 
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/classificacoes/sync`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ibs-cbs/classificacoes/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
