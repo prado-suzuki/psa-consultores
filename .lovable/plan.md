@@ -1,138 +1,47 @@
 
-# Corrigir terminologia "Itens" para "Produtos" e capitalização de botoes/labels
+# Adicionar campo de responsavel na pagina de detalhes do chamado (gestao)
 
-## Contexto
+## Problema
 
-Em portugues, botoes e labels de interface seguem a regra de capitalizar apenas a primeira palavra (e nomes proprios), nao todas as palavras. Alem disso, o termo "Itens" deve ser substituido por "Produtos" nos contextos de classificacao fiscal.
+Na pagina `/gestao/chamados/:id` (GestaoDetalhesChamado), nao existe um campo para atribuir/delegar o responsavel pelo chamado. Atualmente so e possivel atribuir responsaveis pela lista geral em `/gestao/chamados`.
 
-## Escopo
+## Solucao
 
-As alteracoes abrangem **apenas** os arquivos dentro de `src/pages/equipe/dev/`, `src/components/equipe/dev/DevLayout.tsx`, e `src/config/protectedPages.ts`. Nao altera paginas fora do modulo dev para evitar efeitos colaterais.
+Adicionar um Select de "Responsavel" ao lado do Select de status no card de detalhes do chamado, permitindo que a gestora delegue o chamado diretamente da pagina de detalhes.
 
----
+## Alteracoes
 
-## Alteracoes por arquivo
+**Arquivo**: `src/pages/gestao/GestaoDetalhesChamado.tsx`
 
-### 1. `src/pages/equipe/dev/AuditoriaFiscal.tsx`
+1. **Adicionar estado para agentes e responsavel**:
+   - Novo estado `agents` com lista de membros da equipe (profiles com role `team_member` ou `admin`)
+   - Fetch dos agentes ao carregar a pagina (mesmo padrao usado em GestaoChamados)
 
-**Itens -> Produtos:**
-- Linha 692: subtitle `"Auditoria e classificação fiscal de itens"` -> `"Auditoria e classificação fiscal de produtos"`
-- Linha 847: `"Buscar Itens"` -> `"Buscar produtos"`
-- Linha 906: `"Total de Itens"` -> `"Total de produtos"`
-- Linha 959: `"Itens para Classificação"` -> `"Produtos para classificação"`
-- Linha 972: `"Erro ao carregar itens"` -> `"Erro ao carregar produtos"`
-- Linha 977: `"Nenhum item encontrado..."` -> `"Nenhum produto encontrado..."`
-- Linha 985: TableHead `"Item"` -> `"Produto"`
-- Linha 1061: `"({totalItems} itens)"` -> `"({totalItems} produtos)"`
-- Linha 1091: `"os itens de notas fiscais"` -> `"os produtos de notas fiscais"`
+2. **Adicionar funcao `handleAssign`**:
+   - Atualiza `assigned_to` no banco
+   - Dispara notificacao `ticket_assigned` via edge function (mesmo padrao de GestaoChamados)
+   - Atualiza o estado local do ticket
+   - Exibe toast de confirmacao
 
-**Capitalizacao:**
-- Linha 839: `"Limpar Filtros"` -> `"Limpar filtros"`
-- Linha 913/924/933: `"Salvar Alterações"` -> `"Salvar alterações"` (comentario e botao)
-- Linha 936/948: `"Exportar Excel"` -> `"Exportar Excel"` (Excel e nome proprio, mantido)
-- Linha 699: `"Filtros de Busca"` (dentro de span uppercase, ja e renderizado em caixa alta pelo CSS -- manter como esta)
+3. **Adicionar Select de responsavel na UI**:
+   - Posicionado ao lado do Select de status, no canto superior direito do card
+   - Label visual "Responsavel" seguido do Select com opcoes:
+     - "Nao atribuido" (valor `none`)
+     - Lista de agentes (nome completo)
+   - Se ja houver um responsavel atribuido, exibir o nome selecionado
 
-### 2. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx`
+### Layout visual resultante
 
-**Itens -> Produtos:**
-- Linha 807: `"Limpar Filtros"` -> `"Limpar filtros"`
-- Linha 815: `"Buscar Itens"` -> `"Buscar produtos"`
-- Linha 871: `"Total de Itens"` -> `"Total de produtos"`
-- Linha 896: `"Salvar Alterações"` -> `"Salvar alterações"`
-- Linha 921: `"Itens para Classificação"` -> `"Produtos para classificação"`
-- Linha 934: `"Erro ao carregar itens"` -> `"Erro ao carregar produtos"`
-- Linha 939: `"Nenhum item encontrado..."` -> `"Nenhum produto encontrado..."`
-- Linha 947: TableHead `"Item"` -> `"Produto"`
-- Linha 1023: `"({totalItems} itens)"` -> `"({totalItems} produtos)"`
-- Linha 1053: `"os itens de notas fiscais"` -> `"os produtos de notas fiscais"`
+```text
++---------------------------------------------+
+| Yo, eai galera                    [Status v] |
+| Cliente: Bernardo Kropiwiec  [Responsavel v] |
+| [Aberto] [Prioridade: Normal] [Dep: PIS/..] |
++---------------------------------------------+
+```
 
-### 3. `src/pages/equipe/dev/ConsultaXMLs.tsx`
+### Detalhes tecnicos
 
-**Capitalizacao:**
-- Linha 881: `"Limpar Filtros"` -> `"Limpar filtros"`
-- Linha 616: `"Exportar Excel"` no texto descritivo -- manter (nome proprio)
-
-### 4. `src/pages/equipe/dev/ConsultaEFD.tsx`
-
-**Capitalizacao:**
-- `"Buscar Arquivos"` -> `"Buscar arquivos"`
-- `"Limpar Filtros"` -> `"Limpar filtros"` (se existir)
-
-### 5. `src/pages/equipe/dev/ConsultaEFDICMS.tsx`
-
-**Capitalizacao:**
-- `"Buscar Arquivos"` -> `"Buscar arquivos"`
-- `"Limpar Filtros"` -> `"Limpar filtros"` (se existir)
-
-### 6. `src/pages/equipe/dev/NovaFerramenta.tsx`
-
-**Capitalizacao:**
-- Linha 106: title `"Nova Ferramenta"` -> `"Nova ferramenta"` (DevLayout title)
-- Linha 118: `"Informações da Ferramenta"` -> `"Informações da ferramenta"`
-- Linha 126: `"Nome da Ferramenta"` -> `"Nome da ferramenta"`
-- Linha 182: `"Criar Ferramenta"` -> `"Criar ferramenta"`
-
-### 7. `src/pages/equipe/dev/DetalheFerramenta.tsx`
-
-**Capitalizacao:**
-- Linha 237: `"Editar Ferramenta"` -> `"Editar ferramenta"`
-- Linha 317: `"Salvar Alterações"` -> `"Salvar alterações"`
-- Linha 196: `"Voltar ao Dashboard"` -> `"Voltar ao dashboard"` (dashboard nao e nome proprio)
-
-### 8. `src/pages/equipe/dev/DevDashboard.tsx`
-
-**Capitalizacao:**
-- Linha 119: `"Nova Ferramenta"` -> `"Nova ferramenta"`
-- Linha 126: `"Total de Ferramentas"` -> `"Total de ferramentas"`
-- Linha 132: `"Ferramentas Ativas"` -> `"Ferramentas ativas"`
-- Linha 138: `"Em Desenvolvimento"` -> `"Em desenvolvimento"`
-- Linha 173: `"Gerenciar Dados"` -> `"Gerenciar dados"`
-- Linha 233: `"Nova Ferramenta"` (texto inline) -> `"Nova ferramenta"`
-
-### 9. `src/pages/equipe/dev/GestaoClientes.tsx`
-
-**Capitalizacao:**
-- Linha 430: title `"Gestão de Clientes"` -> `"Gestão de clientes"`
-- Linha 530: `"Limpar Filtros"` -> `"Limpar filtros"`
-- Linha 442: `"Novo Cliente"` -> `"Novo cliente"`
-
-### 10. `src/pages/equipe/dev/GerenciarDados.tsx`
-
-**Capitalizacao:**
-- Title no DevLayout: `"Gerenciar Dados"` -> `"Gerenciar dados"`
-- `"Selecionar Tabela"` -> `"Selecionar tabela"`
-- `"Importar CSV"` -> `"Importar CSV"` (CSV e sigla, manter)
-- `"Limpar Tabela"` -> `"Limpar tabela"`
-- `"Template CSV"` -> `"Template CSV"` (manter, CSV e sigla)
-- `"Formato CSV"` -> `"Formato CSV"` (manter)
-
-### 11. `src/components/equipe/dev/DevLayout.tsx` (sidebar)
-
-**Capitalizacao dos labels de navegacao:**
-- Linha 41: `'Nova Ferramenta'` -> `'Nova ferramenta'`
-- Linha 42: `'Consulta de XMLs'` -> `'Consulta de XMLs'` (manter, XMLs e sigla)
-- Linha 43: `'EFD Contribuições'` -> manter (nome proprio do SPED)
-- Linha 45: `'DIFAL Inteligente'` -> manter (nome da ferramenta)
-- Linha 46: `'Calculadora IBS/CBS'` -> manter (siglas)
-- Linha 47: `'Controle PERDCOMP'` -> manter (sigla)
-- Linha 48: `'Gestão de Clientes'` -> `'Gestão de clientes'`
-- Linha 49: `'Gerenciar Dados'` -> `'Gerenciar dados'`
-- Linha 88: `'Ambiente de Desenvolvimento'` -> `'Ambiente de desenvolvimento'`
-
-### 12. `src/config/protectedPages.ts`
-
-**Capitalizacao dos page_name:**
-- Linha 67: `'Gerenciar Dados'` -> `'Gerenciar dados'`
-- Linha 91: `'Gestão de Clientes'` -> `'Gestão de clientes'`
-
----
-
-## Regra aplicada
-
-- **Primeira palavra**: maiuscula
-- **Demais palavras**: minuscula, exceto nomes proprios (Excel, DIFAL, PERDCOMP, IBS, CBS, ICMS, XMLs, CSV, EFD, SPED)
-- **"Itens"** substituido por **"produtos"** no contexto de classificacao fiscal (AuditoriaFiscal e CalculadoraIbsCbs)
-
-## Arquivos nao alterados
-
-Paginas fora do modulo dev (EquipeProcessos, EquipeDaily, EquipeControleAcessos, admin, etc.) nao serao alteradas neste escopo para manter o foco e evitar regressoes.
+- Buscar agentes: `SELECT id, first_name, last_name FROM profiles WHERE id IN (SELECT user_id FROM user_roles WHERE role IN ('admin','team_member'))`
+- Reutilizar a mesma logica de `assignAgent` do GestaoChamados, incluindo a chamada `notify-ticket` com `event_type: 'ticket_assigned'`
+- Importar `useQueryClient` do tanstack para invalidar cache de notificacoes apos atribuicao
