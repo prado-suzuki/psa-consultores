@@ -195,49 +195,43 @@ Deno.serve(async (req) => {
       `[notify-ticket] Event: ${event_type}, Recipients: ${uniqueRecipients.map((r) => `${r.email}(${r.role})`).join(", ") || "none"}`
     );
 
-    // ── Send webhooks with individualized payload structure ──
+    // ── Send single consolidated webhook ──
 
-    const results = await Promise.allSettled(
-      uniqueRecipients.map((recipient) => {
-        // Preparar dados estruturados para n8n
-        const ticketData = {
-          id: ticket.id,
-          title: ticket.title,
-          department: ticketDepartment,
-          priority: ticket.priority ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) : "Normal",
-          description: ticket.description || "",
-          cliente_nome: "",  // será preenchido abaixo
-          user_id: ticket.user_id,
-          link_chamado: recipient.ticket_url,
-          actor_name: actor_name || "Sistema",
-          message_preview: message_preview || "",
-          assigned_to_name: assignedName,
-          recipient_role: recipient.role,
-          dias_atraso: dias_atraso || 0,
-        };
+    // Buscar nome e email do cliente uma única vez
+    const [clientName, clientEmail] = await Promise.all([
+      getNameForUser(supabase, ticket.user_id),
+      getEmailForUser(supabase, ticket.user_id),
+    ]);
 
-        // Buscar nome do cliente
-        return getNameForUser(supabase, ticket.user_id).then((clientName) => {
-          ticketData.cliente_nome = clientName;
+    const ticketData = {
+      id: ticket.id,
+      title: ticket.title,
+      department: ticketDepartment,
+      priority: ticket.priority
+        ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)
+        : "Normal",
+      description: ticket.description || "",
+      cliente_nome: clientName,
+      cliente_email: clientEmail || "",
+      user_id: ticket.user_id,
+      actor_name: actor_name || "Sistema",
+      message_preview: message_preview || "",
+      assigned_to_name: assignedName,
+      dias_atraso: dias_atraso || 0,
+    };
 
-          return fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event_type,
-              recipient_email: recipient.email,
-              ticket_data: ticketData,
-            }),
-          });
-        });
-      })
-    );
-
-    const sent = results.filter((r) => r.status === "fulfilled").length;
-    const failed = results.filter((r) => r.status === "rejected").length;
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type,
+        ticket_data: ticketData,
+        recipients: uniqueRecipients,
+      }),
+    });
 
     return new Response(
-      JSON.stringify({ success: true, sent, failed, total: uniqueRecipients.length }),
+      JSON.stringify({ success: response.ok, recipients: uniqueRecipients.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
