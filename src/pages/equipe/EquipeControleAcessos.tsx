@@ -266,7 +266,7 @@ const EquipeControleAcessos = () => {
     },
     onSuccess: async (data) => {
       // Grant area access if team_member and areas selected
-      if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user?.id) {
+      if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user_id) {
         try {
           const categoriesToGrant = newUser.areas.flatMap(area => AREA_CATEGORIES_MAP[area]?.categories || []);
           const { data: pagePerms } = await supabase
@@ -276,7 +276,7 @@ const EquipeControleAcessos = () => {
           
           if (pagePerms && pagePerms.length > 0) {
             const accessRecords = pagePerms.map(p => ({
-              user_id: data.user.id,
+              user_id: data.user_id,
               page_permission_id: p.id,
               granted_by: user?.id,
             }));
