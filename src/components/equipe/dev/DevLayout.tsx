@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
   { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
   { icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' },
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
+  { icon: Calculator, label: 'Calculadora IBS/CBS', path: '/equipe/dev/calculadora-ibs-cbs' },
   { icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' },
   { icon: Users, label: 'Gestão de Clientes', path: '/equipe/dev/gestao-clientes' },
   { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
