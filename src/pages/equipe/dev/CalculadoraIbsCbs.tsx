@@ -565,7 +565,7 @@ const CalculadoraIbsCbs = () => {
               cod_produto_svc: item.cod_produto,
               cod_ncm_nbs: d.cod_ncm,
               decisao: d.decisao as IbsCbsTipoDecisao,
-              id_icms_st: d.id_icms_st_bq,
+              id_regra: d.id_icms_st_bq,
             });
           }
         });

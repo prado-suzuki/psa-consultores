@@ -101,7 +101,7 @@ export interface IbsCbsSyncDecisao {
   cod_produto_svc: string;
   cod_ncm_nbs: string;
   decisao: IbsCbsTipoDecisao;
-  id_icms_st: string | null;
+  id_regra: string | null;
 }
 
 export interface IbsCbsSyncPayload {
