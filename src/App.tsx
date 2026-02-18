@@ -45,6 +45,7 @@ import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import AuditoriaFiscal from "./pages/equipe/dev/AuditoriaFiscal";
 import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
 import GestaoClientes from "./pages/equipe/dev/GestaoClientes";
+import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
@@ -126,6 +127,7 @@ const App = () => (
             <Route path="/equipe/dev/auditoria-fiscal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/auditoria-fiscal"><AuditoriaFiscal /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-perdcomp" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/gestao-clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/calculadora-ibs-cbs" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             <Route path="/equipe/cadastros" element={<AdminRoute><EquipeCadastros /></AdminRoute>} />
             
