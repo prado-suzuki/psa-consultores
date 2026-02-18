@@ -23,7 +23,7 @@ export function usePageAccess(pagePath: string) {
         .from('page_permissions')
         .select('id')
         .eq('page_path', pagePath)
-        .single();
+        .maybeSingle();
 
       if (!page) return true; // Page not registered = free access
 
