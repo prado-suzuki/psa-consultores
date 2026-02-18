@@ -1,145 +1,185 @@
 
 
-# Plano completo: Melhorias no sistema de notificacoes + Upload de anexos pelo cliente
+# Plano cumulativo: Melhorias no sistema de notificacoes + Upload de anexos
 
-Este plano consolida TODAS as tarefas pendentes: as correcoes de notificacao do plano anterior e a nova funcionalidade de upload de anexos na area do cliente.
+Este plano consolida TODAS as tarefas, mostrando o que ja foi implementado e o que resta.
 
 ---
 
-## Tarefa 1 - Corrigir link do analista na notificacao de atribuicao
+## Tarefa 1 - Corrigir link do analista na notificacao de atribuicao -- CONCLUIDA
 
 **Arquivo**: `supabase/functions/notify-ticket/index.ts`
 
-No evento `ticket_assigned`, o link do agente usa `getTicketUrlForUser` que pode retornar `/gestao/chamados/` se o usuario tambem tem role admin. Corrigir para forcar `/equipe/chamados/{id}` diretamente.
-
-**Alteracao** (~linha 148-153): Substituir chamada a `getTicketUrlForUser` por URL fixa `/equipe/chamados/${ticket.id}` para o agente.
+Ja implementado: no evento `ticket_assigned` (linhas 148-155), o link do agente e forcado para `/equipe/chamados/${ticket.id}` diretamente, sem usar `getTicketUrlForUser`.
 
 ---
 
-## Tarefa 2 - Adicionar cliente como destinatario na notificacao de atribuicao
+## Tarefa 2 - Adicionar cliente como destinatario na notificacao de atribuicao -- CONCLUIDA
 
 **Arquivo**: `supabase/functions/notify-ticket/index.ts`
 
-No bloco `ticket_assigned`, o cliente ja recebe notificacao (linhas 142-146). Verificar que esta funcionando corretamente. O cliente recebe link `/cliente/chamados/{id}` com role "cliente" -- isso ja esta implementado. Nenhuma alteracao necessaria neste ponto.
+Ja implementado: no evento `ticket_assigned` (linhas 143-146), o e-mail do cliente e buscado e adicionado como destinatario com role "cliente".
 
 ---
 
-## Tarefa 3 - Disparar notificacao ao atribuir chamado no EquipeChamados
+## Tarefa 3 - Disparar notificacao ao atribuir chamado no EquipeChamados -- CONCLUIDA
 
 **Arquivo**: `src/pages/equipe/EquipeChamados.tsx`
 
-A funcao `assignAgent` (~linha 263-267) nao dispara notificacao. Adicionar chamada fire-and-forget a `notify-ticket` com `event_type: 'ticket_assigned'` apos a atribuicao bem-sucedida.
-
-**Alteracao**: Apos a linha 262 (toast de sucesso), antes do `queryClient.invalidateQueries`, inserir:
-
-```typescript
-if (agentId) {
-  supabase.functions.invoke('notify-ticket', {
-    body: {
-      event_type: 'ticket_assigned',
-      ticket_id: ticketId,
-      actor_name: `${agent?.first_name} ${agent?.last_name}`,
-    }
-  }).catch(console.error);
-}
-```
+Ja implementado: apos atribuicao (linhas 264-273), a chamada fire-and-forget a `notify-ticket` com `event_type: 'ticket_assigned'` ja esta presente.
 
 ---
 
-## Tarefa 4 - Notificar ao adicionar anexos (area da equipe)
+## Tarefa 4 - Notificar ao adicionar anexos (area da equipe) -- CONCLUIDA
 
 **Arquivo**: `src/pages/equipe/EquipeDetalhesChamado.tsx`
 
-Na funcao `uploadFiles` (~linha 232-235), apos o toast de sucesso, adicionar chamada fire-and-forget a `notify-ticket`:
-
-```typescript
-supabase.functions.invoke('notify-ticket', {
-  body: {
-    event_type: 'ticket_replied',
-    ticket_id: id,
-    actor_name: 'Responsavel',
-    message_preview: `${selectedFiles.length} arquivo(s) anexado(s)`,
-  }
-}).catch(console.error);
-```
+Ja implementado: apos upload de anexos (linhas 237-245), a notificacao com `actor_name: 'Responsavel'` e `message_preview` contendo a quantidade de arquivos ja esta presente.
 
 ---
 
-## Tarefa 5 - Adicionar upload de anexos na pagina do cliente
+## Tarefa 5 - Adicionar upload de anexos na pagina do cliente -- CONCLUIDA
 
 **Arquivo**: `src/pages/cliente/DetalhesChamado.tsx`
 
-Replicar a funcionalidade de upload de `EquipeDetalhesChamado.tsx` para a pagina do cliente:
-
-1. **Imports**: Adicionar `useRef` ao import do React, e `Upload`, `X`, `Loader2` ao import do lucide-react.
-
-2. **Estado**: Adicionar:
-   - `selectedFiles` (File[])
-   - `uploading` (boolean)
-   - `fileInputRef` (useRef)
-   - Constantes `ALLOWED_FILE_TYPES` e `MAX_FILE_SIZE` (mesmos valores)
-
-3. **Funcoes**: Copiar `handleFileSelect`, `removeFile` e `uploadFiles` do EquipeDetalhesChamado, adaptando para o contexto do cliente.
-
-4. **Notificacao no upload do cliente**: Na funcao `uploadFiles`, apos sucesso, disparar:
-   ```typescript
-   supabase.functions.invoke('notify-ticket', {
-     body: {
-       event_type: 'ticket_replied',
-       ticket_id: id,
-       actor_name: 'Cliente',
-       message_preview: `${selectedFiles.length} arquivo(s) anexado(s)`,
-     }
-   }).catch(console.error);
-   ```
-
-5. **UI**: Adicionar secao "Adicionar Anexos" apos a listagem de anexos existentes, com input oculto, botao de selecao, lista de arquivos selecionados com remocao, e botao de envio. Mesmo layout do EquipeDetalhesChamado (linhas 475-549).
-
-**RLS**: Ja verificado -- a tabela `ticket_attachments` e o bucket `ticket-attachments` permitem INSERT por usuarios autenticados donos do ticket. Nenhuma migracao necessaria.
+Ja implementado: funcionalidade completa de upload com `handleFileSelect`, `removeFile`, `uploadFiles`, UI com input oculto, botao de selecao, lista de arquivos e notificacao fire-and-forget (linhas 168-210).
 
 ---
 
-## Tarefa 6 - Novo evento ticket_overdue para alerta de prazo vencido
+## Tarefa 6 - Novo evento ticket_overdue para alerta de prazo vencido -- CONCLUIDA
 
 **Arquivo**: `supabase/functions/notify-ticket/index.ts`
 
-Adicionar novo bloco condicional para `event_type === "ticket_overdue"`:
-- Apenas o gestor (TEST_ADMIN_EMAIL) recebe o alerta
-- O payload `ticket_data` incluira campo `dias_atraso`
+Ja implementado: bloco condicional para `ticket_overdue` (linhas 176-178) que notifica apenas o gestor.
 
 ---
 
-## Tarefa 7 - Criar edge function check-ticket-deadlines
+## Tarefa 7 - Criar edge function check-ticket-deadlines -- CONCLUIDA
 
-**Novo arquivo**: `supabase/functions/check-ticket-deadlines/index.ts`
+**Arquivo**: `supabase/functions/check-ticket-deadlines/index.ts`
 
-Logica:
-1. Buscar tickets com status != 'resolvido'/'fechado' e `activity_status` = 'aguardando_resposta'
-2. Calcular prazo: `updated_at + 5 dias < agora`
-3. Para cada ticket vencido, chamar `notify-ticket` com `event_type: 'ticket_overdue'` e `dias_atraso`
-
-Configurar em `supabase/config.toml` com `verify_jwt = false`.
-
-**Agendamento**: Criar um cron job via `pg_cron` para executar diariamente (08:00 UTC) chamando esta edge function. Alternativa: o usuario pode agendar via n8n.
+Ja implementado: busca tickets abertos com `updated_at + 5 dias < agora`, calcula `dias_atraso` e chama `notify-ticket` com `event_type: 'ticket_overdue'`.
 
 ---
 
-## Alteracoes necessarias no n8n (a cargo do usuario)
+## Tarefa 8 - Consolidar webhooks em chamada unica + adicionar cliente_email -- PENDENTE
 
-1. **Novo evento `ticket_overdue`**: Criar handler no workflow n8n com template de alerta contendo: titulo do chamado, cliente, dias de atraso, link. Assunto sugerido: "ALERTA: Chamado com prazo vencido". O campo `dias_atraso` estara em `ticket_data`.
+**Arquivo**: `supabase/functions/notify-ticket/index.ts`
 
-2. **Notificacao de anexo**: Ja usa `event_type: 'ticket_replied'` com `message_preview` contendo "X arquivo(s) anexado(s)". O template atual deve funcionar sem alteracao.
+Esta e a unica tarefa pendente. Duas mudancas combinadas:
+
+### 8a. Adicionar `cliente_email` ao payload
+
+Atualmente o `ticket_data` contem `cliente_nome` e `user_id`, mas nao o e-mail do cliente. Quando o destinatario e o responsavel, o n8n nao tem como saber o e-mail do cliente para enviar copia.
+
+### 8b. Consolidar multiplos fetch em um unico POST
+
+Atualmente a function faz um `Promise.allSettled` com N chamadas `fetch` ao webhook (uma por destinatario). Isso consome N execucoes no n8n. A mudanca envia um unico POST contendo o array completo de destinatarios.
+
+### Detalhes tecnicos
+
+Substituir o bloco de envio (linhas 198-234) por:
+
+```typescript
+// Buscar nome e email do cliente uma unica vez
+const [clientName, clientEmail] = await Promise.all([
+  getNameForUser(supabase, ticket.user_id),
+  getEmailForUser(supabase, ticket.user_id),
+]);
+
+const ticketData = {
+  id: ticket.id,
+  title: ticket.title,
+  department: ticketDepartment,
+  priority: ticket.priority
+    ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)
+    : "Normal",
+  description: ticket.description || "",
+  cliente_nome: clientName,
+  cliente_email: clientEmail || "",
+  user_id: ticket.user_id,
+  actor_name: actor_name || "Sistema",
+  message_preview: message_preview || "",
+  assigned_to_name: assignedName,
+  dias_atraso: dias_atraso || 0,
+};
+
+const response = await fetch(webhookUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    event_type,
+    ticket_data: ticketData,
+    recipients: uniqueRecipients,
+  }),
+});
+
+const success = response.ok;
+```
+
+Ajustar o retorno para refletir envio unico (1 fetch, nao N).
+
+### Novo formato do payload recebido pelo n8n
+
+```json
+{
+  "event_type": "ticket_assigned",
+  "ticket_data": {
+    "id": "uuid",
+    "title": "Titulo do chamado",
+    "department": "ICMS/IPI",
+    "priority": "Normal",
+    "cliente_nome": "Joao Silva",
+    "cliente_email": "joao@empresa.com",
+    "assigned_to_name": "Ana Santos",
+    "actor_name": "Sistema",
+    "message_preview": "",
+    "dias_atraso": 0
+  },
+  "recipients": [
+    {
+      "email": "joao@empresa.com",
+      "role": "cliente",
+      "ticket_url": "https://psa-consultores.lovable.app/cliente/chamados/uuid"
+    },
+    {
+      "email": "ana@psa.com",
+      "role": "responsavel",
+      "ticket_url": "https://psa-consultores.lovable.app/equipe/chamados/uuid"
+    }
+  ]
+}
+```
+
+### Ajuste necessario no n8n (a cargo do usuario)
+
+O workflow precisa ser ajustado para:
+1. Receber `recipients` (array) em vez de `recipient_email` (string)
+2. Usar um no "Loop Over Items" para iterar sobre os destinatarios
+3. Para cada item, usar `recipients[i].email` como destinatario e `recipients[i].ticket_url` como link
+4. O campo `ticket_data.cliente_email` esta disponivel para referenciar o e-mail do cliente em qualquer template
 
 ---
 
-## Resumo de arquivos
+## Tarefa 9 - Atualizar documentacao -- PENDENTE
 
-| # | Arquivo | Tipo | Alteracao |
-|---|---------|------|-----------|
-| 1 | `supabase/functions/notify-ticket/index.ts` | Editar | Forcar link `/equipe/chamados/` para agente + novo evento `ticket_overdue` |
-| 2 | `src/pages/equipe/EquipeChamados.tsx` | Editar | Adicionar `notify-ticket` no `assignAgent` |
-| 3 | `src/pages/equipe/EquipeDetalhesChamado.tsx` | Editar | Notificar ao fazer upload de anexos |
-| 4 | `src/pages/cliente/DetalhesChamado.tsx` | Editar | Adicionar upload de anexos + notificacao |
-| 5 | `supabase/functions/check-ticket-deadlines/index.ts` | Novo | Verificar prazos vencidos |
-| 6 | `supabase/config.toml` | Auto | Adicionar config da nova function |
+**Arquivo**: `docs/notificacoes-chamados.md`
+
+Atualizar o exemplo de payload para refletir o novo formato com `recipients` (array) e `cliente_email` no `ticket_data`. Remover referencia ao antigo `recipient_email`.
+
+---
+
+## Resumo de status
+
+| # | Tarefa | Status |
+|---|--------|--------|
+| 1 | Link do analista forcado para /equipe/ | Concluida |
+| 2 | Cliente como destinatario na atribuicao | Concluida |
+| 3 | Notificacao no assignAgent | Concluida |
+| 4 | Notificacao ao anexar (equipe) | Concluida |
+| 5 | Upload de anexos pelo cliente | Concluida |
+| 6 | Evento ticket_overdue no notify-ticket | Concluida |
+| 7 | Edge function check-ticket-deadlines | Concluida |
+| 8 | Consolidar webhooks + cliente_email | **Pendente** |
+| 9 | Atualizar documentacao | **Pendente** |
 
