@@ -1,40 +1,87 @@
 
-# Correcao: Permissoes de area nao sao aplicadas ao criar usuario
 
-## Problema
+# Correcao dos 3 erros na Calculadora IBS/CBS
 
-Ao criar um usuario com areas de acesso selecionadas (ex: Digital, Tax), as permissoes individuais de pagina nao sao gravadas automaticamente. O usuario precisa configura-las manualmente depois.
+## Erro 1: Sync retornando 422 (Critico)
 
-## Causa raiz
+**Causa**: O endpoint `/api/v1/ibs-cbs/classificacoes/sync` espera os campos `cod_produto_svc` e `cod_ncm_nbs` no payload (mesmo padrao do endpoint `buscar`), mas o frontend envia apenas `cod_produto` e `cod_ncm`.
 
-A edge function `create-team-member` retorna o ID do usuario no campo `user_id`:
+**Correcoes necessarias**:
 
-```json
-{ "success": true, "user_id": "abc-123", "message": "..." }
-```
+### Arquivo: `src/types/ibscbs.ts` (linhas 97-103)
 
-Porem, o codigo em `EquipeControleAcessos.tsx` (linha 269) verifica `data?.user?.id`, que e `undefined`. Por isso, a condicao falha silenciosamente e as permissoes nunca sao inseridas.
-
-## Correcao
-
-### Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`
-
-Linha 269 - Alterar a condicao e referencia do ID:
+Adicionar os campos obrigatorios na interface `IbsCbsSyncDecisao`:
 
 ```
-DE:  if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user?.id) {
-PARA: if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user_id) {
+DE:
+  id_contribuinte: string;
+  cod_produto: string;
+  cod_ncm: string;
+  decisao: IbsCbsTipoDecisao;
+  id_icms_st: string | null;
+
+PARA:
+  id_contribuinte: string;
+  cod_produto: string;
+  cod_ncm: string;
+  cod_produto_svc: string;
+  cod_ncm_nbs: string;
+  decisao: IbsCbsTipoDecisao;
+  id_icms_st: string | null;
 ```
 
-Linha 279 - Alterar a referencia ao gravar os registros:
+### Arquivo: `src/pages/equipe/dev/CalculadoraIbsCbs.tsx` (linhas 561-567)
+
+Incluir os campos no payload de sync:
 
 ```
-DE:  user_id: data.user.id,
-PARA: user_id: data.user_id,
+DE:
+  id_contribuinte: item.id_contribuinte,
+  cod_produto: item.cod_produto,
+  cod_ncm: d.cod_ncm,
+  decisao: d.decisao as IbsCbsTipoDecisao,
+  id_icms_st: d.id_icms_st_bq,
+
+PARA:
+  id_contribuinte: item.id_contribuinte,
+  cod_produto: item.cod_produto,
+  cod_ncm: d.cod_ncm,
+  cod_produto_svc: item.cod_produto,
+  cod_ncm_nbs: d.cod_ncm,
+  decisao: d.decisao as IbsCbsTipoDecisao,
+  id_icms_st: d.id_icms_st_bq,
 ```
+
+---
+
+## Erro 2: Page permissions retornando 406
+
+**Causa**: O hook `usePageAccess` usa `.single()` para buscar a pagina na tabela `page_permissions`. Quando a pagina nao esta cadastrada (0 resultados), o PostgREST retorna 406 porque `.single()` exige exatamente 1 resultado. Deveria usar `.maybeSingle()` que aceita 0 ou 1 resultado.
+
+### Arquivo: `src/hooks/usePageAccess.ts` (linha 26)
+
+```
+DE:  .single();
+PARA: .maybeSingle();
+```
+
+A logica ja trata `page` nulo como acesso livre (linha 28), entao nenhuma outra alteracao e necessaria.
+
+---
+
+## Erro 3: Conexao com api.lovable.dev
+
+Este e um problema de infraestrutura da plataforma Lovable, nao do codigo da aplicacao. Nao requer correcao.
+
+---
 
 ## Resumo
 
-- 1 arquivo alterado (`EquipeControleAcessos.tsx`)
-- 2 linhas corrigidas (269 e 279)
-- Causa: nome do campo retornado pela edge function (`user_id`) diferente do esperado pelo frontend (`user.id`)
+| # | Arquivo | Alteracao |
+|---|---------|-----------|
+| 1 | `ibscbs.ts` | Adicionar `cod_produto_svc` e `cod_ncm_nbs` na interface |
+| 2 | `CalculadoraIbsCbs.tsx` | Adicionar campos no payload do sync |
+| 3 | `usePageAccess.ts` | Trocar `.single()` por `.maybeSingle()` |
+
+3 arquivos, alteracoes minimas e pontuais.
+
