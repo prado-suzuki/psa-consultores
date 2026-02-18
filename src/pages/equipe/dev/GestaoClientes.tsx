@@ -427,7 +427,7 @@ const GestaoClientes = () => {
   };
 
   return (
-    <DevLayout title="Gestão de Clientes" subtitle="Consulta e filtros de clientes">
+    <DevLayout title="Gestão de clientes" subtitle="Consulta e filtros de clientes">
       <div className="space-y-6">
         {/* Card de Filtros */}
         <Card>
@@ -439,7 +439,7 @@ const GestaoClientes = () => {
               </CardTitle>
               <Button onClick={() => { setEditingClienteId(null); setNovoClienteModalOpen(true); }} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                 <Plus className="h-4 w-4" />
-                Novo Cliente
+                Novo cliente
               </Button>
             </div>
           </CardHeader>
@@ -527,7 +527,7 @@ const GestaoClientes = () => {
               {hasActiveFilters && (
                 <Button onClick={handleClear} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
                   <Eraser className="h-4 w-4" />
-                  Limpar Filtros
+                  Limpar filtros
                 </Button>
               )}
               <Button onClick={handleSearch} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">

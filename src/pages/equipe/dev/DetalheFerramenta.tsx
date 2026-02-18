@@ -193,7 +193,7 @@ const DetalheFerramenta = () => {
         <div className="text-center py-12">
           <p className="text-gray-500">Esta ferramenta não existe ou foi removida.</p>
           <Button className="mt-4" onClick={() => navigate('/equipe/dev')}>
-            Voltar ao Dashboard
+            Voltar ao dashboard
           </Button>
         </div>
       </DevLayout>
@@ -234,7 +234,7 @@ const DetalheFerramenta = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              {isEditing ? 'Editar Ferramenta' : 'Informações'}
+              {isEditing ? 'Editar ferramenta' : 'Informações'}
               {!isEditing && (
                 <Badge variant={tool.status === 'active' ? 'default' : 'secondary'}>
                   {getStatusIcon(tool.status || 'development')}
@@ -314,7 +314,7 @@ const DetalheFerramenta = () => {
                   </Button>
                   <Button type="submit" disabled={updateTool.isPending}>
                     <Save className="h-4 w-4 mr-2" />
-                    {updateTool.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                    {updateTool.isPending ? 'Salvando...' : 'Salvar alterações'}
                   </Button>
                 </div>
               </form>

@@ -116,26 +116,26 @@ const DevDashboard = () => {
       headerActions={
         <Button onClick={() => navigate('/equipe/dev/nova-ferramenta')}>
           <Plus className="h-4 w-4 mr-2" />
-          Nova Ferramenta
+          Nova ferramenta
         </Button>
       }
     >
       {/* Stats Cards com MetricCard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard
-          title="Total de Ferramentas"
+          title="Total de ferramentas"
           value={stats.total}
           icon={<Wrench className="h-5 w-5 text-teal-600" />}
           iconColor="bg-teal-100"
         />
         <MetricCard
-          title="Ferramentas Ativas"
+          title="Ferramentas ativas"
           value={stats.active}
           icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
           iconColor="bg-emerald-100"
         />
         <MetricCard
-          title="Em Desenvolvimento"
+          title="Em desenvolvimento"
           value={stats.development}
           icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
           iconColor="bg-amber-100"
@@ -170,7 +170,7 @@ const DevDashboard = () => {
                 <Database className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <CardTitle className="text-base text-slate-700">Gerenciar Dados</CardTitle>
+                <CardTitle className="text-base text-slate-700">Gerenciar dados</CardTitle>
                 <CardDescription className="text-xs text-slate-500">Importe ou limpe tabelas cliente/contribuinte</CardDescription>
               </div>
             </div>
@@ -230,7 +230,7 @@ const DevDashboard = () => {
             <div className="text-center py-12 text-slate-500">
               <Wrench className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p className="text-lg font-medium text-slate-600">Nenhuma ferramenta criada</p>
-              <p className="text-sm text-slate-500">Clique em "Nova Ferramenta" para começar</p>
+              <p className="text-sm text-slate-500">Clique em "Nova ferramenta" para começar</p>
             </div>
           ) : (
             <div className="space-y-3">

@@ -38,15 +38,15 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dev' },
-  { icon: Plus, label: 'Nova Ferramenta', path: '/equipe/dev/nova-ferramenta' },
+  { icon: Plus, label: 'Nova ferramenta', path: '/equipe/dev/nova-ferramenta' },
   { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
   { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
   { icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' },
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
   { icon: Calculator, label: 'Calculadora IBS/CBS', path: '/equipe/dev/calculadora-ibs-cbs' },
   { icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' },
-  { icon: Users, label: 'Gestão de Clientes', path: '/equipe/dev/gestao-clientes' },
-  { icon: Database, label: 'Gerenciar Dados', path: '/equipe/dev/gerenciar-dados' },
+  { icon: Users, label: 'Gestão de clientes', path: '/equipe/dev/gestao-clientes' },
+  { icon: Database, label: 'Gerenciar dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
 export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayoutProps) => {
@@ -85,7 +85,7 @@ export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayou
               </div>
               <div>
                 <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
-                <p className="text-xs text-slate-500">Ambiente de Desenvolvimento</p>
+                <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
               </div>
             </div>
           )}

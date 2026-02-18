@@ -264,7 +264,7 @@ const GerenciarDados = () => {
 
   return (
     <DevLayout 
-      title="Gerenciar Dados" 
+      title="Gerenciar dados" 
       subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
     >
       <div className="space-y-6 max-w-3xl">
@@ -288,7 +288,7 @@ const GerenciarDados = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
-              Selecionar Tabela
+              Selecionar tabela
             </CardTitle>
             <CardDescription>Escolha qual tabela deseja gerenciar</CardDescription>
           </CardHeader>
@@ -382,7 +382,7 @@ const GerenciarDados = () => {
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={loading} className="gap-2">
                     <Trash2 className="h-4 w-4" />
-                    Limpar Tabela
+                    Limpar tabela
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
