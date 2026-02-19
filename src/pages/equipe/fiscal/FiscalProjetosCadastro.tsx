@@ -102,6 +102,8 @@ const FiscalProjetosCadastro = () => {
     name: '',
     description: '',
     status: 'active',
+    start_date: '',
+    end_date: '',
     responsible_id: '',
     leader_id: '',
     external_client_id: '',
@@ -294,6 +296,8 @@ const FiscalProjetosCadastro = () => {
         name: data.name,
         description: data.description || null,
         status: data.status,
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
         responsible_id: data.responsible_id || null,
         leader_id: data.leader_id || null,
         external_client_id: data.external_client_id || null,
@@ -352,6 +356,8 @@ const FiscalProjetosCadastro = () => {
       if (editingProject) {
         if (data.name !== editingProject.name) changedFields.name = { old: editingProject.name, new: data.name };
         if (data.status !== editingProject.status) changedFields.status = { old: editingProject.status, new: data.status };
+        if ((data.start_date || null) !== (editingProject.start_date || null)) changedFields.start_date = { old: editingProject.start_date, new: data.start_date };
+        if ((data.end_date || null) !== (editingProject.end_date || null)) changedFields.end_date = { old: editingProject.end_date, new: data.end_date };
         if ((data.area_id || null) !== (editingProject.area_id || null)) changedFields.area_id = { old: editingProject.area_id, new: data.area_id };
         if ((data.description || null) !== (editingProject.description || null)) changedFields.description = { old: editingProject.description, new: data.description };
       }
@@ -362,6 +368,8 @@ const FiscalProjetosCadastro = () => {
           name: data.name,
           description: data.description || null,
           status: data.status,
+          start_date: data.start_date || null,
+          end_date: data.end_date || null,
           responsible_id: data.responsible_id || null,
           leader_id: data.leader_id || null,
           external_client_id: data.external_client_id || null,
@@ -447,6 +455,8 @@ const FiscalProjetosCadastro = () => {
         name: project.name,
         description: project.description || '',
         status: project.status,
+        start_date: project.start_date || '',
+        end_date: project.end_date || '',
         responsible_id: project.responsible_id || '',
         leader_id: project.leader_id || '',
         external_client_id: project.external_client_id || '',
@@ -459,6 +469,7 @@ const FiscalProjetosCadastro = () => {
       setEditingProject(null);
       setFormData({ 
         name: '', description: '', status: 'active',
+        start_date: '', end_date: '',
         responsible_id: '', leader_id: '', external_client_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
       });
@@ -471,6 +482,7 @@ const FiscalProjetosCadastro = () => {
     setEditingProject(null);
     setFormData({ 
       name: '', description: '', status: 'active',
+      start_date: '', end_date: '',
       responsible_id: '', leader_id: '', external_client_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
     });
@@ -561,19 +573,21 @@ const FiscalProjetosCadastro = () => {
                   <TableHead>Área</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Início</TableHead>
+                  <TableHead>Término</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
                       Nenhum projeto cadastrado
                     </TableCell>
                   </TableRow>
@@ -614,6 +628,12 @@ const FiscalProjetosCadastro = () => {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {project.start_date ? format(new Date(project.start_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {project.end_date ? format(new Date(project.end_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
@@ -675,6 +695,22 @@ const FiscalProjetosCadastro = () => {
                         <SelectItem value="cancelled">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label>Data de Início</Label>
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Data de Término</Label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label>Área</Label>
