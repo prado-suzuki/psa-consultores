@@ -323,7 +323,7 @@ export const IbsCbsAuditModal = ({
                                 {regra.tipo_st}
                               </Badge>
                               <span className="font-bold text-xl text-slate-900 dark:text-white">
-                                {regra.aliquota_st}%
+                                {(27.5 * (1 - (regra.redBC ?? 0))).toFixed(2)}%
                               </span>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
