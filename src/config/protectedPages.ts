@@ -7,7 +7,7 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tex';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -129,6 +129,32 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
+  // === TEX PAGES ===
+  {
+    page_path: '/equipe/tex/dashboard',
+    page_name: 'Tax Dashboard',
+    page_description: 'Painel principal da área Tax',
+    category: 'tex',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tex/projetos/cadastro',
+    page_name: 'Tax Cadastro',
+    page_description: 'Cadastro de projetos da área Tax',
+    category: 'tex',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tex/projetos/tarefas',
+    page_name: 'Tax Tarefas',
+    page_description: 'Tarefas de projetos da área Tax',
+    category: 'tex',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
   // === FISCAL PAGES (dentro de Projetos) ===
   {
     page_path: '/equipe/projetos/fiscal/dashboard',
@@ -202,7 +228,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/tex/auditoria',
     page_name: 'Auditoria Tax',
     page_description: 'Histórico de alterações em projetos e tarefas Tax',
-    category: 'projetos',
+    category: 'tex',
     requires_admin: false,
     requires_team_member: true,
   },
