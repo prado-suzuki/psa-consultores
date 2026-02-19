@@ -77,8 +77,27 @@ const EquipeAuth = () => {
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error('Digite seu email');
+      return;
+    }
+    setForgotLoading(true);
+    await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotLoading(false);
+    toast.success('Se esse email estiver cadastrado, você receberá um link de redefinição.');
+    setShowForgotPassword(false);
+    setForgotEmail('');
+  };
 
   const handleAreaSelect = async (area: string) => {
     setSelectedArea(area);
@@ -240,48 +259,90 @@ const EquipeAuth = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-300">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
-                      required
-                    />
+              {showForgotPassword ? (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <p className="text-sm text-gray-400">
+                    Informe seu email e enviaremos um link para redefinir sua senha.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-300">Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="********"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
-                      required
-                    />
-                  </div>
-                </div>
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={forgotLoading}>
+                    {forgotLoading ? 'Enviando...' : 'Enviar link de redefinição'}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="text-sm text-primary hover:underline w-full text-center"
+                  >
+                    Voltar ao login
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-gray-300">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-gray-300">Senha</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="********"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Verificando...' : 'Entrar'}
-                  {!isLoading && <ChevronRight className="h-4 w-4 ml-2" />}
-                </Button>
-              </form>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Verificando...' : 'Entrar'}
+                      {!isLoading && <ChevronRight className="h-4 w-4 ml-2" />}
+                    </Button>
+                  </form>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-gray-400 hover:text-white hover:underline w-full text-center mt-3"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </>
+              )}
 
               <div className="mt-6 pt-4 border-t border-gray-800 space-y-2">
                 <Button 
