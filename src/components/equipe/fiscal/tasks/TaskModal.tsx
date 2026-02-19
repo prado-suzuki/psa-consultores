@@ -128,6 +128,10 @@ export const TaskModal = ({
 
   const watchedProjectId = form.watch('project_id');
 
+  const filteredParentTasks = watchedProjectId
+    ? parentTasks.filter(t => t.project_id === watchedProjectId)
+    : parentTasks;
+
   // Fetch categories based on the selected project's area
   const { data: categorias = [] } = useQuery({
     queryKey: ['fiscal-task-categorias', watchedProjectId],
@@ -155,6 +159,7 @@ export const TaskModal = ({
   // Clear categoria when project changes
   useEffect(() => {
     form.setValue('categoria_id', undefined);
+    form.setValue('parent_task_id', undefined);
   }, [watchedProjectId, form]);
 
   useEffect(() => {
@@ -610,7 +615,7 @@ export const TaskModal = ({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="_none">Nenhuma</SelectItem>
-                      {parentTasks.map(pt => (
+                      {filteredParentTasks.map(pt => (
                         <SelectItem key={pt.id} value={pt.id}>
                           {pt.title}
                         </SelectItem>
