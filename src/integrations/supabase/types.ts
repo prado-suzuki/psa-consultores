@@ -2706,6 +2706,102 @@ export type Database = {
           },
         ]
       }
+      tax_area_categorias: {
+        Row: {
+          area_id: string
+          categoria_id: string
+          id: string
+        }
+        Insert: {
+          area_id: string
+          categoria_id: string
+          id?: string
+        }
+        Update: {
+          area_id?: string
+          categoria_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_area_categorias_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "tax_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_area_categorias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "tax_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_areas: {
+        Row: {
+          id: string
+          nome: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      tax_categorias: {
+        Row: {
+          id: string
+          nome: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      tax_project_categorias: {
+        Row: {
+          categoria_id: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          categoria_id: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          categoria_id?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_project_categorias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "tax_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_project_categorias_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "tax_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tax_project_members: {
         Row: {
           created_at: string
@@ -2740,8 +2836,7 @@ export type Database = {
       }
       tax_projects: {
         Row: {
-          area: string | null
-          categories: string[] | null
+          area_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -2757,8 +2852,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          area?: string | null
-          categories?: string[] | null
+          area_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -2774,8 +2868,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          area?: string | null
-          categories?: string[] | null
+          area_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -2791,6 +2884,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tax_projects_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "tax_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tax_projects_created_by_fkey"
             columns: ["created_by"]
