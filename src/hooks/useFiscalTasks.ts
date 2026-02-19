@@ -57,6 +57,8 @@ export interface TaskFilters {
   priority?: FiscalTaskPriority[];
   department?: FiscalTaskDepartment[];
   projectId?: string;
+  clientId?: string;
+  contribuinteId?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -121,17 +123,25 @@ export interface TaskFilters {
         query = query.in('department', filters.department);
       }
 
-      if (filters?.projectId) {
-        query = query.eq('project_id', filters.projectId);
-      }
+       if (filters?.projectId) {
+         query = query.eq('project_id', filters.projectId);
+       }
 
-      if (filters?.startDate) {
-         query = query.gte('due_date', filters.startDate);
+       if (filters?.clientId) {
+         query = query.eq('client_id', filters.clientId);
        }
- 
-       if (filters?.endDate) {
-         query = query.lte('due_date', filters.endDate);
+
+       if (filters?.contribuinteId) {
+         query = query.eq('contribuinte_id', filters.contribuinteId);
        }
+
+       if (filters?.startDate) {
+          query = query.gte('due_date', filters.startDate);
+        }
+  
+        if (filters?.endDate) {
+          query = query.lte('due_date', filters.endDate);
+        }
  
        const { data, error } = await query;
        if (error) throw error;
