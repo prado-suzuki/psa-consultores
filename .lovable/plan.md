@@ -1,35 +1,37 @@
 
 
-## Adicionar Data de Inicio e Data de Termino ao cadastro de projetos
+## Filtrar "Tarefa Pai" pelo projeto selecionado
 
-Os campos `start_date` e `end_date` ja existem na tabela `tax_projects` no banco de dados. Basta adicionar os campos de data no formulario e incluir na logica de criacao/atualizacao.
+Atualmente, o campo "Tarefa Pai (subtarefa de)" mostra todas as tarefas de todos os projetos. O objetivo e filtrar para mostrar apenas as tarefas do projeto selecionado.
 
 ---
 
 ### O que muda
 
-**Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`**
+**Arquivo: `src/components/equipe/fiscal/tasks/TaskModal.tsx`**
 
-1. **Estado do formulario (linha ~101):** Adicionar `start_date: ''` e `end_date: ''` ao `formData`
+1. **Filtrar parentTasks pelo projeto selecionado:** Dentro do componente, criar uma lista filtrada `filteredParentTasks` que mostra apenas as tarefas cujo `project_id` corresponde ao `watchedProjectId`. Se nenhum projeto estiver selecionado, a lista fica vazia (ou mostra todas, conforme preferencia).
 
-2. **Formulario modal (apos o campo Status, linha ~678):** Adicionar dois campos de input tipo `date` lado a lado:
-   - "Data de Inicio" (`start_date`)
-   - "Data de Termino" (`end_date`)
+2. **Limpar parent_task_id ao trocar de projeto:** Adicionar logica no `useEffect` que ja limpa `categoria_id` para tambem limpar `parent_task_id` quando o projeto muda, evitando referencia a uma tarefa de outro projeto.
 
-3. **Funcao `handleOpenModal` (linha ~443):** Carregar `start_date` e `end_date` do projeto ao editar
-
-4. **Funcao `handleCloseModal` (linha ~469):** Limpar `start_date` e `end_date`
-
-5. **Mutation `createProject` (linha ~293):** Incluir `start_date` e `end_date` no payload de insert
-
-6. **Mutation `updateProject` (linha ~359):** Incluir `start_date` e `end_date` no payload de update + rastrear mudancas no audit log
-
-7. **Tabela de listagem (linha ~557):** Adicionar colunas "Inicio" e "Termino" na tabela de projetos, exibindo as datas formatadas
+3. **Usar lista filtrada no Select:** Substituir `parentTasks` por `filteredParentTasks` no render do campo "Tarefa Pai".
 
 ---
 
+### Detalhes tecnicos
+
+```text
+// Pseudo-codigo da logica:
+const filteredParentTasks = watchedProjectId
+  ? parentTasks.filter(t => t.project_id === watchedProjectId)
+  : parentTasks;
+
+// No useEffect de watchedProjectId, adicionar:
+form.setValue('parent_task_id', undefined);
+```
+
 ### O que NAO muda
 
-- **Banco de dados:** As colunas `start_date` e `end_date` ja existem na tabela `tax_projects` -- nenhuma migration necessaria
-- **RLS policies:** Nenhuma alteracao
+- Nenhuma alteracao no banco de dados
+- Nenhuma alteracao na pagina `FiscalDemandasTarefas.tsx` -- a filtragem acontece dentro do modal
 
