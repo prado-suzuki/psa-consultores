@@ -161,6 +161,31 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
+  // Fetch user roles for filtering leaders vs team members
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ['user-roles-lider-team'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('role', ['lider', 'team_member']);
+      if (error) throw error;
+      return data as { user_id: string; role: string }[];
+    },
+  });
+
+  // Filtered lists based on roles
+  const lideres = useMemo(() => {
+    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
+    return teamMembers.filter(m => liderIds.includes(m.id));
+  }, [teamMembers, userRoles]);
+
+  const responsaveisInternos = useMemo(() => {
+    const teamMemberIds = userRoles.filter(r => r.role === 'team_member').map(r => r.user_id);
+    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
+    return teamMembers.filter(m => teamMemberIds.includes(m.id) && !liderIds.includes(m.id));
+  }, [teamMembers, userRoles]);
+
   // Fetch external clients
   const { data: externalClients = [] } = useQuery({
     queryKey: ['external-clients-tax'],
@@ -690,7 +715,7 @@ const FiscalProjetosCadastro = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                   <div>
                     <Label>Responsável Interno</Label>
                     <Select
                       value={formData.responsible_id}
@@ -700,7 +725,7 @@ const FiscalProjetosCadastro = () => {
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        {teamMembers.map(member => (
+                        {responsaveisInternos.map(member => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.first_name} {member.last_name}
                           </SelectItem>
@@ -718,7 +743,7 @@ const FiscalProjetosCadastro = () => {
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        {teamMembers.map(member => (
+                        {lideres.map(member => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.first_name} {member.last_name}
                           </SelectItem>
