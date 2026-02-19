@@ -94,7 +94,7 @@ const AdminUsuarios = () => {
   });
 
   const addRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' | 'lider' }) => {
       const { error } = await supabase
         .from('user_roles')
         .insert({ user_id: userId, role });
@@ -114,7 +114,7 @@ const AdminUsuarios = () => {
   });
 
   const removeRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' | 'lider' }) => {
       const { error } = await supabase
         .from('user_roles')
         .delete()
@@ -154,6 +154,8 @@ const AdminUsuarios = () => {
         return <Badge className="bg-red-100 text-red-700">Admin</Badge>;
       case 'team_member':
         return <Badge className="bg-blue-100 text-blue-700">Equipe</Badge>;
+      case 'lider':
+        return <Badge className="bg-amber-100 text-amber-700">Líder</Badge>;
       case 'client':
         return <Badge className="bg-gray-100 text-gray-700">Cliente</Badge>;
       default:
@@ -231,6 +233,7 @@ const AdminUsuarios = () => {
                   {[
                     { id: 'admin', label: 'Administrador', icon: Shield },
                     { id: 'team_member', label: 'Membro da Equipe', icon: UsersIcon },
+                    { id: 'lider', label: 'Líder', icon: Shield },
                     { id: 'client', label: 'Cliente', icon: UsersIcon },
                   ].map((role) => (
                     <div
@@ -342,6 +345,26 @@ const AdminUsuarios = () => {
                             disabled={u.id === user?.id}
                           >
                             - Equipe
+                          </Button>
+                        )}
+                        {!u.roles.includes('lider') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addRole.mutate({ userId: u.id, role: 'lider' })}
+                            disabled={u.id === user?.id}
+                          >
+                            + Líder
+                          </Button>
+                        )}
+                        {u.roles.includes('lider') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeRole.mutate({ userId: u.id, role: 'lider' })}
+                            disabled={u.id === user?.id}
+                          >
+                            - Líder
                           </Button>
                         )}
                         {!u.roles.includes('admin') && (
