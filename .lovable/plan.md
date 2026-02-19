@@ -1,25 +1,40 @@
 
+# Corrigir filtro de categorias nas tarefas
 
-## Ocultar tarefas pai no Kanban quando possuem subtarefas
+## Problema identificado
 
-A tarefa pai (ex: "Analise do balancete") nao precisa aparecer no Kanban se suas subtarefas ja estao desmembradas como cards independentes. A informacao ja esta visivel nos badges dos cards filhos.
+Quando voce cria um projeto e seleciona categorias especificas, essas categorias sao salvas na tabela `tax_project_categorias`. Porem, quando voce cria uma tarefa e seleciona um projeto, o dropdown de categorias busca **todas as categorias da area** (via `tax_area_categorias`) em vez de buscar **apenas as categorias vinculadas ao projeto** (via `tax_project_categorias`).
 
-### Alteracao
+Ou seja, as categorias selecionadas no cadastro do projeto nao estao sendo usadas para filtrar as opcoes nas tarefas.
 
-**Arquivo: `src/components/equipe/fiscal/tasks/TaskKanban.tsx`**
+## Solucao
 
-Na funcao `getTasksByStatus`, adicionar um filtro que exclui tarefas que possuem pelo menos uma subtarefa:
+Alterar a query de categorias no `TaskModal.tsx` para buscar da tabela `tax_project_categorias` em vez de `tax_area_categorias`.
 
+## Detalhes tecnicos
+
+**Arquivo**: `src/components/equipe/fiscal/tasks/TaskModal.tsx` (linhas 165-185)
+
+**Antes** (busca todas as categorias da area):
 ```typescript
-const tasksWithChildren = new Set(tasks.filter(t => t.parent_task_id).map(t => t.parent_task_id));
-
-const getTasksByStatus = (status: FiscalTaskStatus) =>
-  tasks.filter(t => t.status === status && !tasksWithChildren.has(t.id));
+const { data: proj } = await supabase
+  .from('tax_projects')
+  .select('area_id')
+  .eq('id', watchedProjectId)
+  .single();
+if (!proj?.area_id) return [];
+const { data } = await supabase
+  .from('tax_area_categorias')
+  .select('categoria_id, categoria:tax_categorias(id, nome)')
+  .eq('area_id', proj.area_id);
 ```
 
-Isso remove do Kanban apenas as tarefas pai que tem filhos. Tarefas sem subtarefas continuam aparecendo normalmente.
+**Depois** (busca apenas as categorias vinculadas ao projeto):
+```typescript
+const { data } = await supabase
+  .from('tax_project_categorias')
+  .select('categoria_id, categoria:tax_categorias(id, nome)')
+  .eq('project_id', watchedProjectId);
+```
 
-### O que nao muda
-- `TaskCard.tsx` permanece igual (badge de tarefa pai nos cards filhos continua)
-- Nenhuma alteracao no banco ou no hook
-
+Isso elimina a necessidade de buscar o `area_id` do projeto primeiro, simplificando a query e garantindo que apenas as categorias selecionadas no cadastro do projeto aparecam como opcao nas tarefas.
