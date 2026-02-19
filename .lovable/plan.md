@@ -1,32 +1,25 @@
 
-## Posicionamento do campo Contribuinte no formulario de novo projeto
 
-### Ajuste de layout
+## Ocultar tarefas pai no Kanban quando possuem subtarefas
 
-O campo Contribuinte sera adicionado logo abaixo do campo Cliente, ambos ocupando largura completa (`col-span-2`), dentro do grid existente na secao "Cliente e Equipe".
+A tarefa pai (ex: "Analise do balancete") nao precisa aparecer no Kanban se suas subtarefas ja estao desmembradas como cards independentes. A informacao ja esta visivel nos badges dos cards filhos.
 
-### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+### Alteracao
 
-**Posicao no layout (apos linha 755):**
+**Arquivo: `src/components/equipe/fiscal/tasks/TaskKanban.tsx`**
 
-```text
-<div className="col-span-2">        <!-- Cliente (ja existe) -->
-  ...
-</div>
-<div className="col-span-2">        <!-- Contribuinte (novo) -->
-  <Label>Contribuinte</Label>
-  <Select ...>
-    ...
-  </Select>
-</div>
-<div>                                <!-- Responsavel Interno (ja existe) -->
-  ...
-</div>
+Na funcao `getTasksByStatus`, adicionar um filtro que exclui tarefas que possuem pelo menos uma subtarefa:
+
+```typescript
+const tasksWithChildren = new Set(tasks.filter(t => t.parent_task_id).map(t => t.parent_task_id));
+
+const getTasksByStatus = (status: FiscalTaskStatus) =>
+  tasks.filter(t => t.status === status && !tasksWithChildren.has(t.id));
 ```
 
-A ordem final dentro do grid `grid-cols-2` ficara:
-1. Cliente - `col-span-2` (largura completa)
-2. Contribuinte - `col-span-2` (largura completa, abaixo do cliente)
-3. Responsavel Interno e Lider - lado a lado (cada um ocupando 1 coluna)
+Isso remove do Kanban apenas as tarefas pai que tem filhos. Tarefas sem subtarefas continuam aparecendo normalmente.
 
-Este ajuste sera aplicado junto com a implementacao completa do campo Contribuinte (migration, queries, mutations, etc.) conforme o plano aprovado anteriormente.
+### O que nao muda
+- `TaskCard.tsx` permanece igual (badge de tarefa pai nos cards filhos continua)
+- Nenhuma alteracao no banco ou no hook
+
