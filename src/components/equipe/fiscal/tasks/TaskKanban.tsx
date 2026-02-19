@@ -70,8 +70,8 @@
                  {columnTasks.length}
                </span>
              </div>
-             <ScrollArea className="flex-1 p-2">
-               <div className="space-y-2">
+              <ScrollArea className="flex-1 p-1">
+                <div className="space-y-2 p-1">
                  {columnTasks.map(task => (
                        <div
                          key={task.id}
