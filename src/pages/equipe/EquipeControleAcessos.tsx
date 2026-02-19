@@ -86,7 +86,7 @@ const INITIAL_VISIBLE_PAGES = 5;
 // Area -> categories mapping
 const AREA_CATEGORIES_MAP: Record<string, { label: string; categories: string[] }> = {
   digital: { label: 'Digital', categories: ['rotina', 'dev'] },
-  tex: { label: 'Tax', categories: ['tex', 'projetos', 'fiscal'] },
+  tax: { label: 'Tax', categories: ['tax', 'projetos', 'fiscal'] },
   osg: { label: 'OSG', categories: ['osg'] },
   board: { label: 'Gerencial', categories: ['board'] },
   controle_site: { label: 'Chamados', categories: ['gestao'] },
@@ -501,7 +501,7 @@ const EquipeControleAcessos = () => {
       dev: 'Digital Dev',
       gestao: 'Gestão',
       geral: 'Geral',
-      tex: 'Tax',
+      tax: 'Tax',
       projetos: 'Projetos',
       fiscal: 'Fiscal',
       osg: 'OSG',
@@ -517,7 +517,7 @@ const EquipeControleAcessos = () => {
       dev: 'bg-slate-100 text-slate-700 border-slate-200',
       gestao: 'bg-teal-50 text-teal-600 border-teal-100',
       geral: 'bg-slate-50 text-slate-600 border-slate-100',
-      tex: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      tax: 'bg-emerald-100 text-emerald-700 border-emerald-200',
       projetos: 'bg-blue-100 text-blue-700 border-blue-200',
       fiscal: 'bg-amber-100 text-amber-700 border-amber-200',
       osg: 'bg-purple-100 text-purple-700 border-purple-200',

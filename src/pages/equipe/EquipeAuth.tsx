@@ -16,7 +16,7 @@ const areas = [
   { id: 'controle_site', label: 'Chamados' },
   { id: 'digital', label: 'Digital' },
   { id: 'osg', label: 'OSG' },
-  { id: 'tex', label: 'Tax' },
+  { id: 'tax', label: 'Tax' },
 ];
 
 // Verifica se o usuário tem acesso à área específica
