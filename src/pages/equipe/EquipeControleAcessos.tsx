@@ -914,6 +914,7 @@ const EquipeControleAcessos = () => {
                               {[
                                 { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
                                 { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
+                                { value: 'lider', label: 'Líder', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
                                 { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
                               ].map((role) => (
                                 <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
@@ -1038,6 +1039,8 @@ const EquipeControleAcessos = () => {
                                   className={`text-xs ${
                                     role === 'admin'
                                       ? 'border-red-200 text-red-600 bg-red-50'
+                                      : role === 'lider'
+                                      ? 'border-amber-200 text-amber-600 bg-amber-50'
                                       : role === 'team_member'
                                       ? 'border-teal-200 text-teal-600 bg-teal-50'
                                       : 'border-slate-200 text-slate-600 bg-slate-50'
@@ -1212,6 +1215,7 @@ const EquipeControleAcessos = () => {
                 {[
                   { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
                   { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
+                  { value: 'lider', label: 'Líder', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
                   { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
                 ].map((role) => (
                   <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
