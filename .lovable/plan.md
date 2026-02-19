@@ -1,53 +1,69 @@
 
 
-## Adicionar filtro por Projeto na tela de Tarefas Fiscais
+## Adicionar campo Categoria ao formulario de tarefas fiscais
 
-Tres alteracoes pontuais, sem mudanca de RLS ou banco.
+Duas etapas: migration no banco e atualizacao do formulario.
 
 ---
 
-### 1. Hook `src/hooks/useFiscalTasks.ts`
+### Etapa 1 — Migration
 
-- Adicionar `projectId?: string` ao tipo `TaskFilters` (linha 49-57)
-- Adicionar bloco de filtragem apos o filtro de `department` (~linha 113):
-  ```typescript
-  if (filters?.projectId) {
-    query = query.eq('project_id', filters.projectId);
-  }
-  ```
+Adicionar coluna `categoria_id` na tabela `fiscal_tasks`:
 
-### 2. Componente `src/components/equipe/fiscal/tasks/TaskFilters.tsx`
+```sql
+ALTER TABLE public.fiscal_tasks
+ADD COLUMN categoria_id uuid REFERENCES public.tax_categorias(id) ON DELETE SET NULL;
+```
 
-- Receber nova prop `projects: { id: string; name: string }[]`
-- Adicionar um `Select` de Projeto entre o select de Responsavel e o botao Filtros:
-  - Valor "all" = "Todos os projetos"
-  - Lista dos projetos recebidos via prop
-  - Largura `w-52`, icone `FolderKanban`
-- Handler: `onFiltersChange({ ...filters, projectId: value === 'all' ? undefined : value })`
-- Na area de badges ativos, mostrar badge do projeto selecionado com botao X para limpar
+Sem alteracao de RLS (as policies existentes ja cobrem a nova coluna).
 
-### 3. Pagina `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx`
+---
 
-- Nova query com `useQuery` para buscar projetos:
-  ```typescript
-  const { data: projects = [] } = useQuery({
-    queryKey: ['tax-projects-for-filter'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tax_projects')
-        .select('id, name')
-        .order('name');
-      return data || [];
-    },
-  });
-  ```
-- Passar `projects` como prop ao componente `TaskFilters`
+### Etapa 2 — Atualizar `TaskModal.tsx`
 
-### Resumo de arquivos alterados
+**Remover:**
+- Campo `department` do schema Zod, do formulario, do reset e do submit
 
-| Arquivo | Alteracao |
+**Adicionar:**
+- `categoria_id: z.string().optional()` ao schema Zod
+
+**Nova query reativa de categorias:**
+- Observar `project_id` via `form.watch('project_id')`
+- Quando um projeto estiver selecionado, buscar o `area_id` do projeto em `tax_projects`
+- Com o `area_id`, buscar categorias em `tax_area_categorias` com join em `tax_categorias` para trazer `id` e `nome`
+- Quando o projeto mudar, limpar `categoria_id` via `form.setValue('categoria_id', undefined)`
+
+**Nova ordem dos campos no formulario:**
+
+1. Projeto + Cliente (grid 2 colunas — ja existem, mover para o topo)
+2. Categoria (Select condicional — so aparece se projeto selecionado)
+3. Titulo
+4. Descricao
+5. Status + Prioridade (grid 2 colunas)
+6. Responsavel (sem Departamento ao lado — campo removido)
+7. Data de Vencimento + Horario (grid 2 colunas)
+8. Evento Fixo + Recorrente (switches)
+9. Frequencia (condicional)
+10. Tarefa Pai
+
+---
+
+### Etapa 3 — Atualizar `useFiscalTasks.ts`
+
+- Adicionar `categoria_id` ao tipo `CreateFiscalTaskInput`
+- Adicionar `categoria_id` ao tipo `FiscalTask`
+- No select da query, incluir join: `categoria:tax_categorias(id, nome)`
+- Remover `department` do `CreateFiscalTaskInput` (campo removido do formulario)
+
+**Nota:** O campo `department` continuara existindo na tabela e no tipo `FiscalTask` para nao quebrar filtros/visualizacoes existentes que o utilizam. Apenas o formulario deixa de exibi-lo.
+
+---
+
+### Resumo de alteracoes
+
+| Arquivo | O que muda |
 |---------|-----------|
-| `src/hooks/useFiscalTasks.ts` | `projectId` no tipo + `.eq()` na query |
-| `src/components/equipe/fiscal/tasks/TaskFilters.tsx` | Nova prop + Select de projeto + badge ativo |
-| `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx` | Query de `tax_projects` + passar prop |
+| Migration SQL | Nova coluna `categoria_id` em `fiscal_tasks` |
+| `src/hooks/useFiscalTasks.ts` | `categoria_id` nos tipos + join com `tax_categorias` |
+| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Remove campo department, adiciona campo Categoria condicional, reordena campos |
 
