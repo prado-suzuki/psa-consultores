@@ -130,9 +130,6 @@ export const TaskCard = ({
                 </p>
               )}
             </div>
-            <Badge className={cn("text-xs shrink-0", priorityColors[task.priority])}>
-              {priorityLabels[task.priority]}
-            </Badge>
           </div>
 
           {/* Tags */}
@@ -182,6 +179,13 @@ export const TaskCard = ({
             </span>
           </div>
         )}
+
+        {/* Priority badge below parent badge */}
+        <div className="mt-2">
+          <Badge className={cn("text-xs", priorityColors[task.priority])}>
+            {priorityLabels[task.priority]}
+          </Badge>
+        </div>
 
         {/* Subtasks count (non-expandable) */}
         {totalSubtasks > 0 && (
