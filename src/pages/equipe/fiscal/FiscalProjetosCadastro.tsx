@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,7 +67,6 @@ interface Profile {
   id: string;
   first_name: string;
   last_name: string;
-  email: string | null;
 }
 
 interface ExternalClient {
@@ -93,6 +93,7 @@ interface TaxAreaCategoria {
 
 const FiscalProjetosCadastro = () => {
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -148,13 +149,13 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch team members (profiles)
+  // Fetch team members (profiles_safe - accessible to all team members)
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['team-members-profiles'],
+    queryKey: ['team-members-profiles-safe'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email')
+        .from('profiles_safe')
+        .select('id, first_name, last_name')
         .order('first_name');
       if (error) throw error;
       return data as Profile[];
@@ -298,6 +299,7 @@ const FiscalProjetosCadastro = () => {
         external_client_id: data.external_client_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
+        created_by: user?.id || null,
       }).select('id').single();
       if (error) throw error;
 
@@ -822,7 +824,7 @@ const FiscalProjetosCadastro = () => {
                             <td className="px-3 py-1.5 font-medium text-slate-900">
                               {member.first_name} {member.last_name}
                             </td>
-                            <td className="px-3 py-1.5 text-slate-500">{member.email || '—'}</td>
+                            <td className="px-3 py-1.5 text-slate-500">{member.first_name} {member.last_name}</td>
                           </tr>
                         ))}
                         {availableMembers.length === 0 && (
