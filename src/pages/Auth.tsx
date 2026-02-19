@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus, Users, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
 
 const loginSchema = z.object({
@@ -30,6 +32,10 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({
@@ -68,6 +74,22 @@ export default function Auth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error('Digite seu email');
+      return;
+    }
+    setForgotLoading(true);
+    await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotLoading(false);
+    toast.success('Se esse email estiver cadastrado, você receberá um link de redefinição.');
+    setShowForgotPassword(false);
+    setForgotEmail('');
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -131,7 +153,47 @@ export default function Auth() {
             </p>
           </div>
 
-          {isLogin ? (
+          {showForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-6">
+              <div className="text-center">
+                <Mail className="h-10 w-10 text-primary mx-auto mb-3" />
+                <h3 className="text-xl font-semibold text-white">Redefinir Senha</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Informe seu email e enviaremos um link de redefinição
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={forgotLoading}>
+                {forgotLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Enviando...
+                  </span>
+                ) : (
+                  'Enviar link de redefinição'
+                )}
+              </Button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Voltar ao login
+                </button>
+              </div>
+            </form>
+          ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="login-email" className="text-gray-300">Email</Label>
@@ -186,7 +248,14 @@ export default function Auth() {
                 )}
               </Button>
 
-              <div className="text-center">
+              <div className="text-center space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-gray-400 hover:text-white hover:underline block w-full"
+                >
+                  Esqueci minha senha
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsLogin(false)}
