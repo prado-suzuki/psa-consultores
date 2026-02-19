@@ -57,7 +57,7 @@
          return (
            <div
              key={column.status}
-             className="flex-shrink-0 w-72 flex flex-col bg-muted/30 rounded-lg"
+             className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-lg overflow-visible"
              onDragOver={handleDragOver}
              onDrop={(e) => handleDrop(e, column.status)}
            >
