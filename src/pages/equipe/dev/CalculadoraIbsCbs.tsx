@@ -251,7 +251,7 @@ const CalculadoraIbsCbs = () => {
         throw new Error("Contribuinte não selecionado");
       }
 
-      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}&tipo_analise=ibs_cbs`;
 
       if (statusFilter === "validated") {
         url += "&valid=true";
