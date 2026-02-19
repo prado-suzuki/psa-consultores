@@ -1,41 +1,53 @@
 
 
-## Bug Fix: `notify-ticket` edge function - missing client in `ticket_assigned` recipients
+## Adicionar filtro por Projeto na tela de Tarefas Fiscais
 
-### Root Cause
+Tres alteracoes pontuais, sem mudanca de RLS ou banco.
 
-The deduplication at line ~165 of the edge function uses only `email` as the Map key:
+---
 
-```javascript
-const uniqueRecipients = Array.from(
-  new Map(recipients.map((r) => [r.email, r])).values()
-);
-```
+### 1. Hook `src/hooks/useFiscalTasks.ts`
 
-When the same person is both the ticket creator (`user_id`) and the assigned agent (`assigned_to`), or when they share the same email, the Map overwrites the "cliente" entry with the "responsavel" entry. Result: only 1 recipient with role "responsavel".
+- Adicionar `projectId?: string` ao tipo `TaskFilters` (linha 49-57)
+- Adicionar bloco de filtragem apos o filtro de `department` (~linha 113):
+  ```typescript
+  if (filters?.projectId) {
+    query = query.eq('project_id', filters.projectId);
+  }
+  ```
 
-This was confirmed by testing: ticket `21450a98` has `user_id == assigned_to`, and the function returned `recipients: 1`.
+### 2. Componente `src/components/equipe/fiscal/tasks/TaskFilters.tsx`
 
-### Fix
+- Receber nova prop `projects: { id: string; name: string }[]`
+- Adicionar um `Select` de Projeto entre o select de Responsavel e o botao Filtros:
+  - Valor "all" = "Todos os projetos"
+  - Lista dos projetos recebidos via prop
+  - Largura `w-52`, icone `FolderKanban`
+- Handler: `onFiltersChange({ ...filters, projectId: value === 'all' ? undefined : value })`
+- Na area de badges ativos, mostrar badge do projeto selecionado com botao X para limpar
 
-**File**: `supabase/functions/notify-ticket/index.ts`
+### 3. Pagina `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx`
 
-1. **Change the dedup key** from `email` to `email|role` so that the same person can appear as both "cliente" and "responsavel" when needed:
+- Nova query com `useQuery` para buscar projetos:
+  ```typescript
+  const { data: projects = [] } = useQuery({
+    queryKey: ['tax-projects-for-filter'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_projects')
+        .select('id, name')
+        .order('name');
+      return data || [];
+    },
+  });
+  ```
+- Passar `projects` como prop ao componente `TaskFilters`
 
-```javascript
-const uniqueRecipients = Array.from(
-  new Map(recipients.map((r) => [`${r.email}|${r.role}`, r])).values()
-);
-```
+### Resumo de arquivos alterados
 
-This ensures the n8n workflow can always find both `recipients.find(r => r.role === 'cliente')` and `recipients.find(r => r.role === 'responsavel')`.
-
-### Other Events Review
-
-- **ticket_created**: Only gestor -- correct.
-- **ticket_replied**: Client + gestor or agent + gestor depending on who replies -- correct.
-- **ticket_overdue**: Only gestor -- correct.
-- **ticket_resolved**: Client + gestor -- correct.
-
-No issues found in other events. The fix is a single-line change.
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/hooks/useFiscalTasks.ts` | `projectId` no tipo + `.eq()` na query |
+| `src/components/equipe/fiscal/tasks/TaskFilters.tsx` | Nova prop + Select de projeto + badge ativo |
+| `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx` | Query de `tax_projects` + passar prop |
 
