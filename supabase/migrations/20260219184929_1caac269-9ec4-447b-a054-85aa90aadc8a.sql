@@ -1,0 +1,2 @@
+ALTER TABLE public.tax_projects ADD COLUMN contribuinte_id uuid REFERENCES public.contribuinte(id) ON DELETE SET NULL;
+ALTER TABLE public.fiscal_tasks ADD COLUMN contribuinte_id uuid REFERENCES public.contribuinte(id) ON DELETE SET NULL;

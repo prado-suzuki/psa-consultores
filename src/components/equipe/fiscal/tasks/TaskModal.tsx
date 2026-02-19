@@ -61,6 +61,7 @@ const taskSchema = z.object({
   project_id: z.string().optional(),
   client_id: z.string().optional(),
   categoria_id: z.string().optional(),
+  contribuinte_id: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -114,6 +115,7 @@ export const TaskModal = ({
     enabled: open,
   });
 
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -127,6 +129,27 @@ export const TaskModal = ({
   });
 
   const watchedProjectId = form.watch('project_id');
+  const watchedClientId = form.watch('client_id');
+
+  // Fetch contribuintes filtered by selected client
+  const { data: contribuintesTask = [] } = useQuery({
+    queryKey: ['contribuintes-for-task', watchedClientId],
+    queryFn: async () => {
+      if (!watchedClientId) return [];
+      const { data } = await supabase
+        .from('contribuinte')
+        .select('id, nome_razao_social, cpf_cnpj')
+        .eq('cliente_id', watchedClientId)
+        .order('nome_razao_social');
+      return data || [];
+    },
+    enabled: open && !!watchedClientId,
+  });
+
+  // Clear contribuinte when client changes
+  useEffect(() => {
+    form.setValue('contribuinte_id', undefined);
+  }, [watchedClientId, form]);
 
   const filteredParentTasks = watchedProjectId
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
@@ -180,6 +203,7 @@ export const TaskModal = ({
         project_id: task.project_id || undefined,
         client_id: task.client_id || undefined,
         categoria_id: task.categoria_id || undefined,
+        contribuinte_id: task.contribuinte_id || undefined,
       });
     } else {
       const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
@@ -221,6 +245,7 @@ export const TaskModal = ({
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
       categoria_id: values.categoria_id || undefined,
+      contribuinte_id: values.contribuinte_id || undefined,
     };
 
     try {
@@ -304,6 +329,38 @@ export const TaskModal = ({
                 )}
               />
             </div>
+
+            {/* Contribuinte (filtered by client) */}
+            {watchedClientId && (
+              <FormField
+                control={form.control}
+                name="contribuinte_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contribuinte</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+                      value={field.value || '_none'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o contribuinte" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {contribuintesTask.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* 2. Categoria (condicional) */}
             {watchedProjectId && (

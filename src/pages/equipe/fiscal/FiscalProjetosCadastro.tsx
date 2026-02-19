@@ -107,6 +107,7 @@ const FiscalProjetosCadastro = () => {
     responsible_id: '',
     leader_id: '',
     external_client_id: '',
+    contribuinte_id: '',
     area_id: '',
     objective: '',
     category_ids: [] as string[],
@@ -203,6 +204,22 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
+  // Fetch contribuintes filtered by selected client
+  const { data: contribuintes = [] } = useQuery({
+    queryKey: ['contribuintes-for-project', formData.external_client_id],
+    queryFn: async () => {
+      if (!formData.external_client_id) return [];
+      const { data, error } = await supabase
+        .from('contribuinte')
+        .select('id, nome_razao_social, cpf_cnpj')
+        .eq('cliente_id', formData.external_client_id)
+        .order('nome_razao_social');
+      if (error) throw error;
+      return data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
+    },
+    enabled: !!formData.external_client_id,
+  });
+
   // Fetch projects with area join
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['fiscal-projects-tax-area'],
@@ -214,7 +231,8 @@ const FiscalProjetosCadastro = () => {
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
           external_client:cliente!tax_projects_external_client_id_fkey(id, nome),
-          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
+          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome),
+          contribuinte:contribuinte!tax_projects_contribuinte_id_fkey(id, nome_razao_social)
         `)
         .order('name');
       if (error) throw error;
@@ -301,6 +319,7 @@ const FiscalProjetosCadastro = () => {
         responsible_id: data.responsible_id || null,
         leader_id: data.leader_id || null,
         external_client_id: data.external_client_id || null,
+        contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
         created_by: user?.id || null,
@@ -373,6 +392,7 @@ const FiscalProjetosCadastro = () => {
           responsible_id: data.responsible_id || null,
           leader_id: data.leader_id || null,
           external_client_id: data.external_client_id || null,
+          contribuinte_id: data.contribuinte_id || null,
           area_id: data.area_id || null,
           objective: data.objective || null,
         })
@@ -460,6 +480,7 @@ const FiscalProjetosCadastro = () => {
         responsible_id: project.responsible_id || '',
         leader_id: project.leader_id || '',
         external_client_id: project.external_client_id || '',
+        contribuinte_id: project.contribuinte_id || '',
         area_id: project.area_id || '',
         objective: project.objective || '',
         category_ids: [],
@@ -470,7 +491,7 @@ const FiscalProjetosCadastro = () => {
       setFormData({ 
         name: '', description: '', status: 'active',
         start_date: '', end_date: '',
-        responsible_id: '', leader_id: '', external_client_id: '',
+        responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
       });
     }
@@ -483,7 +504,7 @@ const FiscalProjetosCadastro = () => {
     setFormData({ 
       name: '', description: '', status: 'active',
       start_date: '', end_date: '',
-      responsible_id: '', leader_id: '', external_client_id: '',
+      responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
     });
   };
@@ -570,6 +591,7 @@ const FiscalProjetosCadastro = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Contribuinte</TableHead>
                   <TableHead>Área</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Status</TableHead>
@@ -581,13 +603,13 @@ const FiscalProjetosCadastro = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">
                       Nenhum projeto cadastrado
                     </TableCell>
                   </TableRow>
@@ -608,6 +630,13 @@ const FiscalProjetosCadastro = () => {
                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
                             <span className="text-sm">{project.external_client.nome}</span>
                           </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {project.contribuinte ? (
+                          <span className="text-sm">{project.contribuinte.nome_razao_social}</span>
                         ) : (
                           <span className="text-slate-400">-</span>
                         )}
@@ -739,7 +768,7 @@ const FiscalProjetosCadastro = () => {
                     <Label>Cliente</Label>
                     <Select
                       value={formData.external_client_id}
-                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value })}
+                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value, contribuinte_id: '' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o cliente" />
@@ -748,6 +777,25 @@ const FiscalProjetosCadastro = () => {
                         {externalClients.map(client => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.nome} {client.setor_cliente && `(${client.setor_cliente})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Contribuinte</Label>
+                    <Select
+                      value={formData.contribuinte_id}
+                      onValueChange={(value) => setFormData({ ...formData, contribuinte_id: value })}
+                      disabled={!formData.external_client_id}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={formData.external_client_id ? "Selecione o contribuinte" : "Selecione um cliente primeiro"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contribuintes.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
