@@ -9,6 +9,7 @@ import { AdminRoute } from "@/components/auth/AdminRoute";
 import { TeamRoute } from "@/components/auth/TeamRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import ClienteDashboard from "./pages/cliente/ClienteDashboard";
 import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/novidades" element={<Novidades />} />
             <Route path="/ajuda" element={<Ajuda />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Cliente Routes */}
             <Route path="/cliente" element={<ProtectedRoute><ClienteDashboard /></ProtectedRoute>} />
