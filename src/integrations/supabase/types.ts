@@ -3457,7 +3457,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "client" | "team_member"
+      app_role: "admin" | "client" | "team_member" | "lider"
       fiscal_recurrence_type: "daily" | "weekly" | "monthly" | "yearly"
       fiscal_task_category: "task" | "fixed_event"
       fiscal_task_department:
@@ -3630,7 +3630,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "client", "team_member"],
+      app_role: ["admin", "client", "team_member", "lider"],
       fiscal_recurrence_type: ["daily", "weekly", "monthly", "yearly"],
       fiscal_task_category: ["task", "fixed_event"],
       fiscal_task_department: [
