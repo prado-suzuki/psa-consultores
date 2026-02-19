@@ -46,15 +46,16 @@
    created_at: string;
  }
  
- export interface TaskFilters {
-   search?: string;
-   assignedTo?: string | 'mine' | 'all';
-   status?: FiscalTaskStatus[];
-   priority?: FiscalTaskPriority[];
-   department?: FiscalTaskDepartment[];
-   startDate?: string;
-   endDate?: string;
- }
+export interface TaskFilters {
+  search?: string;
+  assignedTo?: string | 'mine' | 'all';
+  status?: FiscalTaskStatus[];
+  priority?: FiscalTaskPriority[];
+  department?: FiscalTaskDepartment[];
+  projectId?: string;
+  startDate?: string;
+  endDate?: string;
+}
  
  export interface CreateFiscalTaskInput {
    title: string;
@@ -108,11 +109,15 @@
          query = query.in('priority', filters.priority);
        }
  
-       if (filters?.department && filters.department.length > 0) {
-         query = query.in('department', filters.department);
-       }
- 
-       if (filters?.startDate) {
+      if (filters?.department && filters.department.length > 0) {
+        query = query.in('department', filters.department);
+      }
+
+      if (filters?.projectId) {
+        query = query.eq('project_id', filters.projectId);
+      }
+
+      if (filters?.startDate) {
          query = query.gte('due_date', filters.startDate);
        }
  
