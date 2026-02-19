@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -14,8 +13,7 @@ import {
   Repeat,
   Plus,
   ListTree,
-  ChevronDown,
-  ChevronUp,
+  ArrowUp,
   Building2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,8 +36,7 @@ interface TaskCardProps {
   onReassign: (task: FiscalTask) => void;
   onStatusChange?: (taskId: string, status: FiscalTask['status']) => void;
   onAddSubtask?: (parentTask: FiscalTask) => void;
-  subtasks?: FiscalTask[];
-  subtaskCount?: number;
+  allTasks?: FiscalTask[];
   compact?: boolean;
 }
 
@@ -91,16 +88,19 @@ export const TaskCard = ({
   onReassign, 
   onStatusChange,
   onAddSubtask,
-  subtasks = [],
-  subtaskCount = 0,
+  allTasks = [],
   compact = false 
 }: TaskCardProps) => {
-  const [showSubtasks, setShowSubtasks] = useState(false);
   const StatusIcon = statusIcons[task.status];
   const isFixedEvent = task.category === 'fixed_event';
 
+  const subtasks = allTasks.filter(t => t.parent_task_id === task.id);
   const totalSubtasks = subtasks.length;
   const doneSubtasks = subtasks.filter(s => s.status === 'done').length;
+
+  const parentTask = task.parent_task_id
+    ? allTasks.find(t => t.id === task.parent_task_id)
+    : null;
 
   const getInitials = (name: string | null) => {
     if (!name) return '?';
@@ -173,41 +173,21 @@ export const TaskCard = ({
           )}
         </div>
 
-        {/* Subtasks count - clickable to expand */}
+        {/* Parent task badge for subtasks */}
+        {parentTask && (
+          <div className="mt-2 flex items-center gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground flex items-center gap-0.5 truncate max-w-full">
+              <ArrowUp className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">{parentTask.title}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Subtasks count (non-expandable) */}
         {totalSubtasks > 0 && (
-          <div className="mt-2 border-t pt-2">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSubtasks(!showSubtasks);
-              }}
-            >
-              <ListTree className="h-3 w-3" />
-              <span>{doneSubtasks}/{totalSubtasks} subtarefa{totalSubtasks > 1 ? 's' : ''}</span>
-              {showSubtasks ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
-            </button>
-            {showSubtasks && (
-              <ul className="mt-1.5 space-y-1 pl-1">
-                {subtasks.map(st => (
-                  <li
-                    key={st.id}
-                    className={cn(
-                      "text-xs flex items-center gap-1.5",
-                      st.status === 'done' ? "line-through text-muted-foreground" : "text-foreground"
-                    )}
-                  >
-                    {st.status === 'done' ? (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                    ) : (
-                      <Circle className="h-3 w-3 text-muted-foreground shrink-0" />
-                    )}
-                    <span className="truncate">{st.title}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="mt-2 border-t pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ListTree className="h-3 w-3" />
+            <span>{doneSubtasks}/{totalSubtasks} subtarefa{totalSubtasks > 1 ? 's' : ''}</span>
           </div>
         )}
       </div>
@@ -251,23 +231,9 @@ export const TaskCard = ({
               )}
 
               {totalSubtasks > 0 && (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSubtasks(!showSubtasks);
-                  }}
-                >
-                  <ListTree className="h-3 w-3" />
-                  {doneSubtasks}/{totalSubtasks} subtarefa{totalSubtasks > 1 ? 's' : ''}
-                </button>
-              )}
-
-              {subtaskCount > 0 && totalSubtasks === 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <ListTree className="h-3 w-3" />
-                  {subtaskCount} subtarefa{subtaskCount > 1 ? 's' : ''}
+                  {doneSubtasks}/{totalSubtasks} subtarefa{totalSubtasks > 1 ? 's' : ''}
                 </div>
               )}
 
@@ -309,27 +275,13 @@ export const TaskCard = ({
               </div>
             )}
 
-            {/* Expanded subtasks list */}
-            {showSubtasks && totalSubtasks > 0 && (
-              <div className="mt-3 border-t pt-2">
-                <ul className="space-y-1">
-                  {subtasks.map(st => (
-                    <li
-                      key={st.id}
-                      className={cn(
-                        "text-sm flex items-center gap-2",
-                        st.status === 'done' ? "line-through text-muted-foreground" : "text-foreground"
-                      )}
-                    >
-                      {st.status === 'done' ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      )}
-                      <span className="truncate">{st.title}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Parent task badge for subtasks */}
+            {parentTask && (
+              <div className="mt-2 flex items-center gap-1">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground flex items-center gap-1 truncate max-w-full">
+                  <ArrowUp className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{parentTask.title}</span>
+                </span>
               </div>
             )}
           </div>
