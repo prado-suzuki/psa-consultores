@@ -43,19 +43,30 @@
    const { data: tasks = [], isLoading } = useFiscalTasks(filters);
    const deleteTask = useDeleteFiscalTask();
  
-   const { data: teamMembers = [] } = useQuery({
-     queryKey: ['team-members-for-tasks'],
-     queryFn: async () => {
-       const { data } = await supabase
-         .from('profiles')
-         .select('id, first_name, last_name')
-         .order('first_name');
-       return (data || []).map(p => ({
-         id: p.id,
-         name: `${p.first_name} ${p.last_name}`,
-       }));
-     },
-   });
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team-members-for-tasks'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .order('first_name');
+      return (data || []).map(p => ({
+        id: p.id,
+        name: `${p.first_name} ${p.last_name}`,
+      }));
+    },
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['tax-projects-for-filter'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_projects')
+        .select('id, name')
+        .order('name');
+      return data || [];
+    },
+  });
  
   const handleEditTask = (task: FiscalTask) => {
     setSelectedTask(task);
@@ -100,11 +111,12 @@
        <div className="space-y-6">
          {/* Header with filters and new button */}
          <div className="flex items-start justify-between gap-4">
-           <TaskFilters
-             filters={filters}
-             onFiltersChange={setFilters}
-             teamMembers={teamMembers}
-           />
+          <TaskFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              teamMembers={teamMembers}
+              projects={projects}
+            />
            <Button onClick={handleNewTask} className="shrink-0">
              <Plus className="h-4 w-4 mr-2" />
              Nova Tarefa

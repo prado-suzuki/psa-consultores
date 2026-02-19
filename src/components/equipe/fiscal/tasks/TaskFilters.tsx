@@ -1,5 +1,5 @@
  import { useState } from 'react';
- import { Search, Filter, X, User } from 'lucide-react';
+ import { Search, Filter, X, User, FolderKanban } from 'lucide-react';
  import { Input } from '@/components/ui/input';
  import { Button } from '@/components/ui/button';
  import { Badge } from '@/components/ui/badge';
@@ -27,11 +27,12 @@
    FiscalTaskDepartment
  } from '@/hooks/useFiscalTasks';
  
- interface TaskFiltersProps {
-   filters: TaskFiltersType;
-   onFiltersChange: (filters: TaskFiltersType) => void;
-   teamMembers: { id: string; name: string }[];
- }
+interface TaskFiltersProps {
+  filters: TaskFiltersType;
+  onFiltersChange: (filters: TaskFiltersType) => void;
+  teamMembers: { id: string; name: string }[];
+  projects?: { id: string; name: string }[];
+}
  
  const statusOptions: { value: FiscalTaskStatus; label: string }[] = [
    { value: 'backlog', label: 'Backlog' },
@@ -55,7 +56,7 @@
    { value: 'operations', label: 'Operações' },
  ];
  
- export const TaskFilters = ({ filters, onFiltersChange, teamMembers }: TaskFiltersProps) => {
+ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
    const [showAdvanced, setShowAdvanced] = useState(false);
  
    const handleSearchChange = (value: string) => {
@@ -105,12 +106,17 @@
      }
    };
  
-   const activeFiltersCount = 
-     (filters.status?.length || 0) + 
-     (filters.priority?.length || 0) + 
-     (filters.department?.length || 0) +
-     (filters.startDate ? 1 : 0) +
-     (filters.endDate ? 1 : 0);
+    const handleProjectChange = (value: string) => {
+      onFiltersChange({ ...filters, projectId: value === 'all' ? undefined : value });
+    };
+
+    const activeFiltersCount = 
+      (filters.status?.length || 0) + 
+      (filters.priority?.length || 0) + 
+      (filters.department?.length || 0) +
+      (filters.projectId ? 1 : 0) +
+      (filters.startDate ? 1 : 0) +
+      (filters.endDate ? 1 : 0);
  
    return (
      <div className="space-y-3">
@@ -142,9 +148,27 @@
                </SelectItem>
              ))}
            </SelectContent>
-         </Select>
- 
-         <Popover open={showAdvanced} onOpenChange={setShowAdvanced}>
+          </Select>
+
+          <Select
+            value={filters.projectId || 'all'}
+            onValueChange={handleProjectChange}
+          >
+            <SelectTrigger className="w-52">
+              <FolderKanban className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os projetos</SelectItem>
+              {projects.map(project => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Popover open={showAdvanced} onOpenChange={setShowAdvanced}>
            <PopoverTrigger asChild>
              <Button variant="outline" className="gap-2">
                <Filter className="h-4 w-4" />
@@ -217,7 +241,7 @@
        </div>
  
        {/* Active filters badges */}
-       {(filters.status?.length || filters.priority?.length || filters.department?.length) && (
+       {(filters.status?.length || filters.priority?.length || filters.department?.length || filters.projectId) && (
          <div className="flex flex-wrap gap-2">
            {filters.status?.map(status => (
              <Badge key={status} variant="secondary" className="gap-1">
@@ -237,16 +261,25 @@
                />
              </Badge>
            ))}
-           {filters.department?.map(dept => (
-             <Badge key={dept} variant="secondary" className="gap-1">
-               {departmentOptions.find(o => o.value === dept)?.label}
-               <X 
-                 className="h-3 w-3 cursor-pointer" 
-                 onClick={() => removeFilter('department', dept)} 
-               />
-             </Badge>
-           ))}
-         </div>
+            {filters.department?.map(dept => (
+              <Badge key={dept} variant="secondary" className="gap-1">
+                {departmentOptions.find(o => o.value === dept)?.label}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter('department', dept)} 
+                />
+              </Badge>
+            ))}
+            {filters.projectId && (
+              <Badge variant="secondary" className="gap-1">
+                {projects.find(p => p.id === filters.projectId)?.name || 'Projeto'}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter('projectId')} 
+                />
+              </Badge>
+            )}
+          </div>
        )}
      </div>
    );
