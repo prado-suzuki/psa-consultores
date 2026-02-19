@@ -1,61 +1,39 @@
 
 
-## Adicionar campo Categoria ao formulario de tarefas fiscais
+## Adicionar role "Lider" ao cadastro de usuarios
 
-Duas etapas: migration no banco e atualizacao do formulario.
-
----
-
-### Etapa 1 — Migration
-
-Adicionar coluna `categoria_id` na tabela `fiscal_tasks`:
-
-```sql
-ALTER TABLE public.fiscal_tasks
-ADD COLUMN categoria_id uuid REFERENCES public.tax_categorias(id) ON DELETE SET NULL;
-```
-
-Sem alteracao de RLS (as policies existentes ja cobrem a nova coluna).
+Adicionar a opcao "Lider" nos formularios de criacao e edicao de usuarios na pagina de Controle de Acessos (`/equipe/acessos`) e na pagina de Admin Usuarios.
 
 ---
 
-### Etapa 2 — Atualizar `TaskModal.tsx`
+### O que muda
 
-**Remover:**
-- Campo `department` do schema Zod, do formulario, do reset e do submit
+**Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`**
 
-**Adicionar:**
-- `categoria_id: z.string().optional()` ao schema Zod
+1. **Formulario de criacao (linha ~914):** Adicionar item `lider` ao array de roles:
+   - `{ value: 'lider', label: 'Lider', desc: 'Acesso a todos os projetos e tarefas de todas as areas' }`
+   - Posicionar entre "Membro da Equipe" e "Cliente"
 
-**Nova query reativa de categorias:**
-- Observar `project_id` via `form.watch('project_id')`
-- Quando um projeto estiver selecionado, buscar o `area_id` do projeto em `tax_projects`
-- Com o `area_id`, buscar categorias em `tax_area_categorias` com join em `tax_categorias` para trazer `id` e `nome`
-- Quando o projeto mudar, limpar `categoria_id` via `form.setValue('categoria_id', undefined)`
+2. **Formulario de edicao (linha ~1212):** Mesmo ajuste — adicionar `lider` ao array de roles
 
-**Nova ordem dos campos no formulario:**
+3. **Badge na lista de usuarios (linha ~1034):** Adicionar condicao de cor para `lider`:
+   - `border-amber-200 text-amber-600 bg-amber-50` (cor diferenciada para facil identificacao)
 
-1. Projeto + Cliente (grid 2 colunas — ja existem, mover para o topo)
-2. Categoria (Select condicional — so aparece se projeto selecionado)
-3. Titulo
-4. Descricao
-5. Status + Prioridade (grid 2 colunas)
-6. Responsavel (sem Departamento ao lado — campo removido)
-7. Data de Vencimento + Horario (grid 2 colunas)
-8. Evento Fixo + Recorrente (switches)
-9. Frequencia (condicional)
-10. Tarefa Pai
+**Arquivo: `src/pages/administracao/AdminUsuarios.tsx`**
+
+4. **Formulario de criacao (linha ~207):** Adicionar `lider` ao array de roles com icone e descricao
+
+5. **Funcao `getRoleBadge` (linha ~148):** Adicionar case para `lider` com Badge amarelo/amber
+
+6. **Botoes de acao na tabela (linha ~259):** Adicionar botoes "+ Lider" / "- Lider" para gerenciar a role diretamente
 
 ---
 
-### Etapa 3 — Atualizar `useFiscalTasks.ts`
+### O que NAO muda
 
-- Adicionar `categoria_id` ao tipo `CreateFiscalTaskInput`
-- Adicionar `categoria_id` ao tipo `FiscalTask`
-- No select da query, incluir join: `categoria:tax_categorias(id, nome)`
-- Remover `department` do `CreateFiscalTaskInput` (campo removido do formulario)
-
-**Nota:** O campo `department` continuara existindo na tabela e no tipo `FiscalTask` para nao quebrar filtros/visualizacoes existentes que o utilizam. Apenas o formulario deixa de exibi-lo.
+- **Banco de dados:** A role `lider` ja existe no enum `app_role` — nenhuma migration necessaria
+- **Edge function `create-team-member`:** Ja aceita qualquer role via array `roles` — nenhuma alteracao necessaria
+- **Logica de permissoes:** A diferenciacao de acesso (lider ve tudo vs team_member ve so seus projetos) sera implementada em etapa futura nos componentes de listagem de projetos/tarefas
 
 ---
 
@@ -63,7 +41,6 @@ Sem alteracao de RLS (as policies existentes ja cobrem a nova coluna).
 
 | Arquivo | O que muda |
 |---------|-----------|
-| Migration SQL | Nova coluna `categoria_id` em `fiscal_tasks` |
-| `src/hooks/useFiscalTasks.ts` | `categoria_id` nos tipos + join com `tax_categorias` |
-| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Remove campo department, adiciona campo Categoria condicional, reordena campos |
+| `src/pages/equipe/EquipeControleAcessos.tsx` | Adiciona "Lider" nos forms de criar/editar + badge na lista |
+| `src/pages/administracao/AdminUsuarios.tsx` | Adiciona "Lider" no form de criar + badge + botoes de acao |
 
