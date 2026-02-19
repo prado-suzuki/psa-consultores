@@ -903,6 +903,7 @@ export type Database = {
           categoria_id: string | null
           category: Database["public"]["Enums"]["fiscal_task_category"]
           client_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           created_by: string | null
           department:
@@ -931,6 +932,7 @@ export type Database = {
           categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
           department?:
@@ -959,6 +961,7 @@ export type Database = {
           categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
           department?:
@@ -1008,6 +1011,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_tasks_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
             referencedColumns: ["id"]
           },
           {
@@ -2850,6 +2860,7 @@ export type Database = {
       tax_projects: {
         Row: {
           area_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -2866,6 +2877,7 @@ export type Database = {
         }
         Insert: {
           area_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -2882,6 +2894,7 @@ export type Database = {
         }
         Update: {
           area_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -2902,6 +2915,13 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "tax_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_projects_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
             referencedColumns: ["id"]
           },
           {

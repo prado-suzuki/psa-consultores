@@ -30,12 +30,14 @@ export interface FiscalTask {
   project_id: string | null;
   client_id: string | null;
   categoria_id: string | null;
+  contribuinte_id: string | null;
    created_at: string;
    updated_at: string;
   // Joined data
   project?: { id: string; name: string } | null;
   client?: { id: string; nome: string } | null;
   categoria?: { id: string; nome: string } | null;
+  contribuinte?: { id: string; nome_razao_social: string } | null;
  }
  
  export interface FiscalTaskComment {
@@ -77,6 +79,7 @@ export interface TaskFilters {
   project_id?: string;
   client_id?: string;
   categoria_id?: string;
+  contribuinte_id?: string;
  }
  
  export const useFiscalTasks = (filters?: TaskFilters) => {
@@ -91,7 +94,8 @@ export interface TaskFilters {
            *,
            project:tax_projects(id, name),
            client:cliente(id, nome),
-           categoria:tax_categorias(id, nome)
+           categoria:tax_categorias(id, nome),
+           contribuinte:contribuinte(id, nome_razao_social)
          `)
          .order('created_at', { ascending: false });
  
