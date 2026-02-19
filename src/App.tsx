@@ -142,8 +142,8 @@ const App = () => (
             
             {/* Tex (Fiscal) Routes */}
             <Route path="/equipe/tex/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/tex/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
-             <Route path="/equipe/tex/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tex/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
+             <Route path="/equipe/tex/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
             
             {/* Tax Auditoria */}
             <Route path="/equipe/tex/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/auditoria"><FiscalAuditoria /></PageAccessGate></TeamRoute>} />
