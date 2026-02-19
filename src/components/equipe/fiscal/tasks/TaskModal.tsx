@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -62,6 +63,7 @@ const taskSchema = z.object({
   client_id: z.string().optional(),
   categoria_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -116,6 +118,8 @@ export const TaskModal = ({
   });
 
 
+  const [tagInput, setTagInput] = useState('');
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -125,6 +129,7 @@ export const TaskModal = ({
       priority: 'medium',
       is_recurring: false,
       category: 'task',
+      tags: [],
     },
   });
 
@@ -204,6 +209,7 @@ export const TaskModal = ({
         client_id: task.client_id || undefined,
         categoria_id: task.categoria_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
+        tags: task.tags || [],
       });
     } else {
       const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
@@ -218,6 +224,7 @@ export const TaskModal = ({
         project_id: parentTask?.project_id || undefined,
         client_id: parentTask?.client_id || undefined,
         categoria_id: undefined,
+        tags: [],
       });
     }
   }, [task, form, defaultParentId, parentTasks]);
@@ -246,6 +253,7 @@ export const TaskModal = ({
       client_id: values.client_id || undefined,
       categoria_id: values.categoria_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
+      tags: values.tags && values.tags.length > 0 ? values.tags : undefined,
     };
 
     try {
@@ -681,6 +689,62 @@ export const TaskModal = ({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* 11. Tags */}
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => {
+                const currentTags = field.value || [];
+                const addTag = () => {
+                  const trimmed = tagInput.trim();
+                  if (trimmed && !currentTags.includes(trimmed)) {
+                    field.onChange([...currentTags, trimmed]);
+                  }
+                  setTagInput('');
+                };
+                const removeTag = (tag: string) => {
+                  field.onChange(currentTags.filter(t => t !== tag));
+                };
+                return (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Digite e pressione Enter..."
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addTag();
+                            }
+                          }}
+                        />
+                        <Button type="button" variant="outline" size="sm" onClick={addTag}>
+                          Adicionar
+                        </Button>
+                      </div>
+                      {currentTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {currentTags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="gap-1 text-xs">
+                              {tag}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() => removeTag(tag)}
+                              />
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <div className="flex justify-end gap-3 pt-4">

@@ -70,26 +70,30 @@
              </div>
              <ScrollArea className="flex-1 p-2">
                <div className="space-y-2">
-                 {columnTasks.map(task => (
-                   <div
-                     key={task.id}
-                     draggable
-                     onDragStart={(e) => handleDragStart(e, task)}
-                     onDragEnd={handleDragEnd}
-                     className={cn(
-                       "cursor-grab active:cursor-grabbing",
-                       draggedTask?.id === task.id && "opacity-50"
-                     )}
-                   >
-                     <TaskCard
-                       task={task}
-                       onEdit={onEdit}
-                       onDelete={onDelete}
-                       onReassign={onReassign}
-                       compact
-                     />
-                   </div>
-                 ))}
+                  {columnTasks.map(task => {
+                    const taskSubtasks = tasks.filter(t => t.parent_task_id === task.id);
+                    return (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "cursor-grab active:cursor-grabbing",
+                          draggedTask?.id === task.id && "opacity-50"
+                        )}
+                      >
+                        <TaskCard
+                          task={task}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onReassign={onReassign}
+                          subtasks={taskSubtasks}
+                          compact
+                        />
+                      </div>
+                    );
+                  })}
                  {columnTasks.length === 0 && (
                    <div className="text-center py-8 text-muted-foreground text-sm">
                      Arraste tarefas aqui
