@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2 } from 'lucide-react';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Button } from '@/components/ui/button';
@@ -58,9 +58,8 @@ interface Project {
   responsible_id: string | null;
   leader_id: string | null;
   external_client_id: string | null;
-  area: string | null;
+  area_id: string | null;
   objective: string | null;
-  categories: string[] | null;
 }
 
 interface Profile {
@@ -76,25 +75,21 @@ interface ExternalClient {
   setor_cliente: string | null;
 }
 
-const AREA_OPTIONS = [
-  { value: 'tributario', label: 'Tributário' },
-  { value: 'contabil', label: 'Contábil' },
-  { value: 'previdenciario', label: 'Previdenciário' },
-  { value: 'societario', label: 'Societário' },
-  { value: 'consultivo', label: 'Consultivo' },
-  { value: 'outro', label: 'Outro' },
-];
+interface TaxArea {
+  id: string;
+  nome: string;
+}
 
-const CATEGORY_OPTIONS = [
-  'Recuperação de Crédito',
-  'Planejamento Tributário',
-  'Compliance Fiscal',
-  'Auditoria',
-  'Consultoria',
-  'Due Diligence',
-  'Contencioso',
-  'Revisão de Obrigações',
-];
+interface TaxCategoria {
+  id: string;
+  nome: string;
+}
+
+interface TaxAreaCategoria {
+  id: string;
+  area_id: string;
+  categoria_id: string;
+}
 
 const FiscalProjetosCadastro = () => {
   const { logAction } = useAuditLog();
@@ -109,10 +104,48 @@ const FiscalProjetosCadastro = () => {
     responsible_id: '',
     leader_id: '',
     external_client_id: '',
-    area: '',
+    area_id: '',
     objective: '',
-    categories: [] as string[],
+    category_ids: [] as string[],
     member_ids: [] as string[],
+  });
+
+  // Fetch tax_areas
+  const { data: taxAreas = [] } = useQuery({
+    queryKey: ['tax-areas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tax_areas')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return data as TaxArea[];
+    },
+  });
+
+  // Fetch tax_categorias
+  const { data: taxCategorias = [] } = useQuery({
+    queryKey: ['tax-categorias'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tax_categorias')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return data as TaxCategoria[];
+    },
+  });
+
+  // Fetch tax_area_categorias (links)
+  const { data: areaCategoryLinks = [] } = useQuery({
+    queryKey: ['tax-area-categorias'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tax_area_categorias')
+        .select('id, area_id, categoria_id');
+      if (error) throw error;
+      return data as TaxAreaCategoria[];
+    },
   });
 
   // Fetch team members (profiles)
@@ -142,7 +175,7 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch projects for Tax area
+  // Fetch projects with area join
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['fiscal-projects-tax-area'],
     queryFn: async () => {
@@ -152,7 +185,8 @@ const FiscalProjetosCadastro = () => {
           *,
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          external_client:cliente!tax_projects_external_client_id_fkey(id, nome)
+          external_client:cliente!tax_projects_external_client_id_fkey(id, nome),
+          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
         `)
         .order('name');
       if (error) throw error;
@@ -175,6 +209,41 @@ const FiscalProjetosCadastro = () => {
     enabled: !!editingProject?.id,
   });
 
+  // Fetch project categories when editing
+  const { data: currentProjectCategories = [] } = useQuery({
+    queryKey: ['tax-project-categorias', editingProject?.id],
+    queryFn: async () => {
+      if (!editingProject?.id) return [];
+      const { data, error } = await supabase
+        .from('tax_project_categorias')
+        .select('categoria_id')
+        .eq('project_id', editingProject.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!editingProject?.id,
+  });
+
+  // Track previous area_id to detect user-driven changes
+  const [prevAreaId, setPrevAreaId] = useState('');
+
+  // Filter categories by selected area
+  const filteredCategories = useMemo(() => {
+    if (!formData.area_id) return [];
+    const validCategoryIds = areaCategoryLinks
+      .filter(link => link.area_id === formData.area_id)
+      .map(link => link.categoria_id);
+    return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
+  }, [formData.area_id, taxCategorias, areaCategoryLinks]);
+
+  // Clear category_ids only when area changes by user action (not on initial edit load)
+  useEffect(() => {
+    if (prevAreaId && formData.area_id && prevAreaId !== formData.area_id) {
+      setFormData(prev => ({ ...prev, category_ids: [] }));
+    }
+    setPrevAreaId(formData.area_id);
+  }, [formData.area_id]);
+
   // When editing, load current members into form
   useEffect(() => {
     if (editingProject && currentProjectMembers.length > 0) {
@@ -185,6 +254,14 @@ const FiscalProjetosCadastro = () => {
     }
   }, [editingProject, currentProjectMembers]);
 
+  // When editing, load current categories into form
+  useEffect(() => {
+    if (editingProject && currentProjectCategories.length > 0) {
+      const catIds = currentProjectCategories.map(c => c.categoria_id);
+      setFormData(prev => ({ ...prev, category_ids: catIds }));
+    }
+  }, [editingProject, currentProjectCategories]);
+
   const createProject = useMutation({
     mutationFn: async (data: typeof formData) => {
       const { data: project, error } = await supabase.from('tax_projects').insert({
@@ -194,11 +271,20 @@ const FiscalProjetosCadastro = () => {
         responsible_id: data.responsible_id || null,
         leader_id: data.leader_id || null,
         external_client_id: data.external_client_id || null,
-        area: data.area || null,
+        area_id: data.area_id || null,
         objective: data.objective || null,
-        categories: data.categories.length > 0 ? data.categories : null,
       }).select('id').single();
       if (error) throw error;
+
+      // Insert project categories
+      if (data.category_ids.length > 0) {
+        const categoryRows = data.category_ids.map(catId => ({
+          project_id: project.id,
+          categoria_id: catId,
+        }));
+        const { error: catError } = await supabase.from('tax_project_categorias').insert(categoryRows);
+        if (catError) throw catError;
+      }
 
       // Insert project members
       const members: { project_id: string; user_id: string; role: string }[] = [];
@@ -218,7 +304,6 @@ const FiscalProjetosCadastro = () => {
         if (membersError) throw membersError;
       }
 
-      // Audit log
       await logAction({
         area: 'tax', entity_type: 'project', entity_id: project.id,
         entity_name: data.name, action: 'created',
@@ -236,12 +321,11 @@ const FiscalProjetosCadastro = () => {
 
   const updateProject = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
-      // Build changed_fields by comparing with editingProject
       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
       if (editingProject) {
         if (data.name !== editingProject.name) changedFields.name = { old: editingProject.name, new: data.name };
         if (data.status !== editingProject.status) changedFields.status = { old: editingProject.status, new: data.status };
-        if ((data.area || null) !== (editingProject.area || null)) changedFields.area = { old: editingProject.area, new: data.area };
+        if ((data.area_id || null) !== (editingProject.area_id || null)) changedFields.area_id = { old: editingProject.area_id, new: data.area_id };
         if ((data.description || null) !== (editingProject.description || null)) changedFields.description = { old: editingProject.description, new: data.description };
       }
 
@@ -254,16 +338,25 @@ const FiscalProjetosCadastro = () => {
           responsible_id: data.responsible_id || null,
           leader_id: data.leader_id || null,
           external_client_id: data.external_client_id || null,
-          area: data.area || null,
+          area_id: data.area_id || null,
           objective: data.objective || null,
-          categories: data.categories.length > 0 ? data.categories : null,
         })
         .eq('id', id);
       if (error) throw error;
 
+      // Replace project categories: delete all, re-insert
+      await supabase.from('tax_project_categorias').delete().eq('project_id', id);
+      if (data.category_ids.length > 0) {
+        const categoryRows = data.category_ids.map(catId => ({
+          project_id: id,
+          categoria_id: catId,
+        }));
+        const { error: catError } = await supabase.from('tax_project_categorias').insert(categoryRows);
+        if (catError) throw catError;
+      }
+
       // Replace project members: delete all, re-insert
       await supabase.from('tax_project_members').delete().eq('project_id', id);
-
       const members: { project_id: string; user_id: string; role: string }[] = [];
       if (data.responsible_id) {
         members.push({ project_id: id, user_id: data.responsible_id, role: 'responsible' });
@@ -281,7 +374,6 @@ const FiscalProjetosCadastro = () => {
         if (membersError) throw membersError;
       }
 
-      // Audit log
       await logAction({
         area: 'tax', entity_type: 'project', entity_id: id,
         entity_name: data.name, action: 'updated',
@@ -291,6 +383,7 @@ const FiscalProjetosCadastro = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
       queryClient.invalidateQueries({ queryKey: ['tax-project-members'] });
+      queryClient.invalidateQueries({ queryKey: ['tax-project-categorias'] });
       toast.success('Projeto atualizado');
       handleCloseModal();
     },
@@ -301,12 +394,10 @@ const FiscalProjetosCadastro = () => {
 
   const deleteProject = useMutation({
     mutationFn: async (id: string) => {
-      // Get project name for audit log before deleting
       const project = projects.find((p: any) => p.id === id);
       const { error } = await supabase.from('tax_projects').delete().eq('id', id);
       if (error) throw error;
 
-      // Audit log
       await logAction({
         area: 'tax', entity_type: 'project', entity_id: id,
         entity_name: project?.name || 'Projeto excluído', action: 'deleted',
@@ -322,7 +413,7 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  const handleOpenModal = (project?: Project) => {
+  const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
       setFormData({
@@ -332,24 +423,17 @@ const FiscalProjetosCadastro = () => {
         responsible_id: project.responsible_id || '',
         leader_id: project.leader_id || '',
         external_client_id: project.external_client_id || '',
-        area: project.area || '',
+        area_id: project.area_id || '',
         objective: project.objective || '',
-        categories: project.categories || [],
+        category_ids: [],
         member_ids: [],
       });
     } else {
       setEditingProject(null);
       setFormData({ 
-        name: '', 
-        description: '', 
-        status: 'active',
-        responsible_id: '',
-        leader_id: '',
-        external_client_id: '',
-        area: '',
-        objective: '',
-        categories: [],
-        member_ids: [],
+        name: '', description: '', status: 'active',
+        responsible_id: '', leader_id: '', external_client_id: '',
+        area_id: '', objective: '', category_ids: [], member_ids: [],
       });
     }
     setIsModalOpen(true);
@@ -359,16 +443,9 @@ const FiscalProjetosCadastro = () => {
     setIsModalOpen(false);
     setEditingProject(null);
     setFormData({ 
-      name: '', 
-      description: '', 
-      status: 'active',
-      responsible_id: '',
-      leader_id: '',
-      external_client_id: '',
-      area: '',
-      objective: '',
-      categories: [],
-      member_ids: [],
+      name: '', description: '', status: 'active',
+      responsible_id: '', leader_id: '', external_client_id: '',
+      area_id: '', objective: '', category_ids: [], member_ids: [],
     });
   };
 
@@ -384,12 +461,12 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
-  const handleCategoryToggle = (category: string) => {
+  const handleCategoryToggle = (categoryId: string) => {
     setFormData(prev => ({
       ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category],
+      category_ids: prev.category_ids.includes(categoryId)
+        ? prev.category_ids.filter(c => c !== categoryId)
+        : [...prev.category_ids, categoryId],
     }));
   };
 
@@ -417,12 +494,11 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
-  const getAreaLabel = (area: string | null) => {
-    if (!area) return '-';
-    return AREA_OPTIONS.find(a => a.value === area)?.label || area;
+  const getAreaLabel = (project: any) => {
+    if (project.area_ref) return project.area_ref.nome;
+    return '-';
   };
 
-  // Filter team members for the members section (exclude responsible & leader)
   const availableMembers = teamMembers.filter(
     m => m.id !== formData.responsible_id && m.id !== formData.leader_id
   );
@@ -496,7 +572,7 @@ const FiscalProjetosCadastro = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{getAreaLabel(project.area)}</span>
+                        <span className="text-sm">{getAreaLabel(project)}</span>
                       </TableCell>
                       <TableCell>
                         {project.responsible ? (
@@ -513,16 +589,11 @@ const FiscalProjetosCadastro = () => {
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenModal(project)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant="ghost" size="icon"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => setDeleteProjectId(project.id)}
                           >
@@ -581,15 +652,15 @@ const FiscalProjetosCadastro = () => {
                   <div>
                     <Label>Área</Label>
                     <Select
-                      value={formData.area}
-                      onValueChange={(value) => setFormData({ ...formData, area: value })}
+                      value={formData.area_id}
+                      onValueChange={(value) => setFormData({ ...formData, area_id: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a área" />
                       </SelectTrigger>
                       <SelectContent>
-                        {AREA_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        {taxAreas.map(area => (
+                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -769,23 +840,29 @@ const FiscalProjetosCadastro = () => {
               {/* Categories */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {CATEGORY_OPTIONS.map(category => (
-                    <div key={category} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={category}
-                        checked={formData.categories.includes(category)}
-                        onCheckedChange={() => handleCategoryToggle(category)}
-                      />
-                      <label
-                        htmlFor={category}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {category}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                {!formData.area_id ? (
+                  <p className="text-sm text-slate-400">Selecione uma área para ver as categorias disponíveis.</p>
+                ) : filteredCategories.length === 0 ? (
+                  <p className="text-sm text-slate-400">Nenhuma categoria vinculada a esta área.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {filteredCategories.map(category => (
+                      <div key={category.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={category.id}
+                          checked={formData.category_ids.includes(category.id)}
+                          onCheckedChange={() => handleCategoryToggle(category.id)}
+                        />
+                        <label
+                          htmlFor={category.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {category.nome}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </ScrollArea>
