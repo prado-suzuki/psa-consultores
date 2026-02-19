@@ -27,8 +27,21 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    // Check if URL hash contains recovery token (fallback)
+    const hash = window.location.hash;
+    if (hash && (hash.includes('type=recovery') || hash.includes('type=magiclink'))) {
+      setIsRecovery(true);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
+    });
+
+    // Also check current session as fallback
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         setIsRecovery(true);
       }
     });
