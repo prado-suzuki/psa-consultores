@@ -331,36 +331,35 @@ export const TaskModal = ({
             </div>
 
             {/* Contribuinte (filtered by client) */}
-            {watchedClientId && (
-              <FormField
-                control={form.control}
-                name="contribuinte_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contribuinte</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                      value={field.value || '_none'}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o contribuinte" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="_none">Nenhum</SelectItem>
-                        {contribuintesTask.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="contribuinte_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contribuinte</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+                    value={field.value || '_none'}
+                    disabled={!watchedClientId}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={watchedClientId ? "Selecione o contribuinte" : "Selecione um cliente primeiro"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {contribuintesTask.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* 2. Categoria (condicional) */}
             {watchedProjectId && (
