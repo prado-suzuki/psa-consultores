@@ -1,37 +1,32 @@
 
+## Posicionamento do campo Contribuinte no formulario de novo projeto
 
-## Filtrar "Tarefa Pai" pelo projeto selecionado
+### Ajuste de layout
 
-Atualmente, o campo "Tarefa Pai (subtarefa de)" mostra todas as tarefas de todos os projetos. O objetivo e filtrar para mostrar apenas as tarefas do projeto selecionado.
+O campo Contribuinte sera adicionado logo abaixo do campo Cliente, ambos ocupando largura completa (`col-span-2`), dentro do grid existente na secao "Cliente e Equipe".
 
----
+### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-### O que muda
-
-**Arquivo: `src/components/equipe/fiscal/tasks/TaskModal.tsx`**
-
-1. **Filtrar parentTasks pelo projeto selecionado:** Dentro do componente, criar uma lista filtrada `filteredParentTasks` que mostra apenas as tarefas cujo `project_id` corresponde ao `watchedProjectId`. Se nenhum projeto estiver selecionado, a lista fica vazia (ou mostra todas, conforme preferencia).
-
-2. **Limpar parent_task_id ao trocar de projeto:** Adicionar logica no `useEffect` que ja limpa `categoria_id` para tambem limpar `parent_task_id` quando o projeto muda, evitando referencia a uma tarefa de outro projeto.
-
-3. **Usar lista filtrada no Select:** Substituir `parentTasks` por `filteredParentTasks` no render do campo "Tarefa Pai".
-
----
-
-### Detalhes tecnicos
+**Posicao no layout (apos linha 755):**
 
 ```text
-// Pseudo-codigo da logica:
-const filteredParentTasks = watchedProjectId
-  ? parentTasks.filter(t => t.project_id === watchedProjectId)
-  : parentTasks;
-
-// No useEffect de watchedProjectId, adicionar:
-form.setValue('parent_task_id', undefined);
+<div className="col-span-2">        <!-- Cliente (ja existe) -->
+  ...
+</div>
+<div className="col-span-2">        <!-- Contribuinte (novo) -->
+  <Label>Contribuinte</Label>
+  <Select ...>
+    ...
+  </Select>
+</div>
+<div>                                <!-- Responsavel Interno (ja existe) -->
+  ...
+</div>
 ```
 
-### O que NAO muda
+A ordem final dentro do grid `grid-cols-2` ficara:
+1. Cliente - `col-span-2` (largura completa)
+2. Contribuinte - `col-span-2` (largura completa, abaixo do cliente)
+3. Responsavel Interno e Lider - lado a lado (cada um ocupando 1 coluna)
 
-- Nenhuma alteracao no banco de dados
-- Nenhuma alteracao na pagina `FiscalDemandasTarefas.tsx` -- a filtragem acontece dentro do modal
-
+Este ajuste sera aplicado junto com a implementacao completa do campo Contribuinte (migration, queries, mutations, etc.) conforme o plano aprovado anteriormente.
