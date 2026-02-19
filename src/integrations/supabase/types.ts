@@ -900,6 +900,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           assigned_to_name: string | null
+          categoria_id: string | null
           category: Database["public"]["Enums"]["fiscal_task_category"]
           client_id: string | null
           created_at: string | null
@@ -926,6 +927,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           assigned_to_name?: string | null
+          categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
           created_at?: string | null
@@ -952,6 +954,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           assigned_to_name?: string | null
+          categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
           created_at?: string | null
@@ -988,6 +991,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_tasks_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "tax_categorias"
             referencedColumns: ["id"]
           },
           {
