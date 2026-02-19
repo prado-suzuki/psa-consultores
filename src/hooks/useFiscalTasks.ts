@@ -66,8 +66,9 @@ export interface TaskFilters {
    priority?: FiscalTaskPriority;
    assigned_to?: string;
    assigned_to_name?: string;
-   due_date?: string;
-   due_time?: string;
+    due_date?: string;
+    due_time?: string;
+    start_date?: string;
    is_recurring?: boolean;
    recurrence_type?: FiscalRecurrenceType;
    category?: FiscalTaskCategory;

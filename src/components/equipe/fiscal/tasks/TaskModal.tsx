@@ -52,8 +52,8 @@ const taskSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   assigned_to: z.string().optional(),
   assigned_to_name: z.string().optional(),
+  start_date: z.date().optional(),
   due_date: z.date().optional(),
-  due_time: z.string().optional(),
   is_recurring: z.boolean(),
   recurrence_type: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
   category: z.enum(['task', 'fixed_event']),
@@ -166,8 +166,8 @@ export const TaskModal = ({
         priority: task.priority,
         assigned_to: task.assigned_to || undefined,
         assigned_to_name: task.assigned_to_name || undefined,
+        start_date: (task as any).start_date ? new Date((task as any).start_date) : undefined,
         due_date: task.due_date ? new Date(task.due_date) : undefined,
-        due_time: task.due_time || undefined,
         is_recurring: task.is_recurring,
         recurrence_type: task.recurrence_type || undefined,
         category: task.category,
@@ -208,7 +208,7 @@ export const TaskModal = ({
       assigned_to: values.assigned_to,
       assigned_to_name: values.assigned_to_name,
       due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
-      due_time: values.due_time,
+      start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
       is_recurring: values.is_recurring,
       recurrence_type: values.recurrence_type,
       category: values.category,
@@ -445,8 +445,48 @@ export const TaskModal = ({
               )}
             />
 
-            {/* 7. Data + Horário */}
+            {/* 7. Data de Início + Data de Vencimento */}
             <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Início</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Selecione</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="due_date"
@@ -478,23 +518,10 @@ export const TaskModal = ({
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="due_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horário</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
