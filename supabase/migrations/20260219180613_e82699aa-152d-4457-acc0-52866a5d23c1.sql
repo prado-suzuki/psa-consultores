@@ -1,0 +1,1 @@
+ALTER TABLE public.fiscal_tasks ADD COLUMN start_date date;

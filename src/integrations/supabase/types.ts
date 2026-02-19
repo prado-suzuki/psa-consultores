@@ -919,6 +919,7 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          start_date: string | null
           status: Database["public"]["Enums"]["fiscal_task_status"]
           tags: string[] | null
           title: string
@@ -946,6 +947,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
           title: string
@@ -973,6 +975,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
           title?: string
