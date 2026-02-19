@@ -23,8 +23,10 @@
    const [draggedTask, setDraggedTask] = useState<FiscalTask | null>(null);
    const updateTask = useUpdateFiscalTask();
  
-const getTasksByStatus = (status: FiscalTaskStatus) => 
-    tasks.filter(t => t.status === status);
+  const tasksWithChildren = new Set(tasks.filter(t => t.parent_task_id).map(t => t.parent_task_id));
+
+  const getTasksByStatus = (status: FiscalTaskStatus) => 
+    tasks.filter(t => t.status === status && !tasksWithChildren.has(t.id));
  
    const handleDragStart = (e: React.DragEvent, task: FiscalTask) => {
      setDraggedTask(task);
