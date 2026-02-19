@@ -11,13 +11,14 @@
    onReassign: (task: FiscalTask) => void;
  }
  
- const columns: { status: FiscalTaskStatus; label: string; color: string }[] = [
-   { status: 'backlog', label: 'Backlog', color: 'bg-slate-100' },
-   { status: 'todo', label: 'A Fazer', color: 'bg-blue-100' },
-   { status: 'in_progress', label: 'Em Progresso', color: 'bg-amber-100' },
-   { status: 'review', label: 'Revisão', color: 'bg-purple-100' },
-   { status: 'done', label: 'Concluído', color: 'bg-emerald-100' },
- ];
+const columns: { status: FiscalTaskStatus; label: string; color: string }[] = [
+  { status: 'backlog', label: 'Backlog', color: 'bg-slate-100' },
+  { status: 'waiting_client', label: 'Pendente Cliente', color: 'bg-orange-100' },
+  { status: 'todo', label: 'A Fazer', color: 'bg-blue-100' },
+  { status: 'in_progress', label: 'Em Progresso', color: 'bg-amber-100' },
+  { status: 'review', label: 'Revisão', color: 'bg-purple-100' },
+  { status: 'done', label: 'Concluído', color: 'bg-emerald-100' },
+];
  
  export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanProps) => {
    const [draggedTask, setDraggedTask] = useState<FiscalTask | null>(null);

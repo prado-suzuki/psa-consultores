@@ -56,6 +56,7 @@ const priorityLabels = {
 
 const statusIcons = {
   backlog: Circle,
+  waiting_client: Clock,
   todo: Circle,
   in_progress: AlertCircle,
   review: Clock,

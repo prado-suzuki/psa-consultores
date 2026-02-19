@@ -51,13 +51,14 @@ interface TaskTableProps {
    low: 'Baixa',
  };
  
- const statusLabels = {
-   backlog: 'Backlog',
-   todo: 'A Fazer',
-   in_progress: 'Em Progresso',
-   review: 'Revisão',
-   done: 'Concluído',
- };
+const statusLabels = {
+  backlog: 'Backlog',
+  waiting_client: 'Pendente Cliente',
+  todo: 'A Fazer',
+  in_progress: 'Em Progresso',
+  review: 'Revisão',
+  done: 'Concluído',
+};
  
  const departmentLabels: Record<string, string> = {
    commercial: 'Comercial',

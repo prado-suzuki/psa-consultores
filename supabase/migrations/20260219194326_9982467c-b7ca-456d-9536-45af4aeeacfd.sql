@@ -1,0 +1,1 @@
+ALTER TYPE fiscal_task_status ADD VALUE 'waiting_client' AFTER 'backlog';

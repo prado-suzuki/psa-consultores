@@ -4,7 +4,7 @@
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
  
- export type FiscalTaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+ export type FiscalTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
  export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
  export type FiscalTaskCategory = 'task' | 'fixed_event';
  export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';

@@ -35,6 +35,7 @@ interface TaskFiltersProps {
 
 const statusOptions: { value: FiscalTaskStatus; label: string }[] = [
   { value: 'backlog', label: 'Backlog' },
+  { value: 'waiting_client', label: 'Pendente Cliente' },
   { value: 'todo', label: 'A Fazer' },
   { value: 'in_progress', label: 'Em Progresso' },
   { value: 'review', label: 'Revisão' },
