@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
 
     // Deduplicate by email
     const uniqueRecipients = Array.from(
-      new Map(recipients.map((r) => [r.email, r])).values()
+      new Map(recipients.map((r) => [`${r.email}|${r.role}`, r])).values()
     );
 
     console.log(
