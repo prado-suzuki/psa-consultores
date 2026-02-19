@@ -10,7 +10,7 @@
  export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
  export type FiscalTaskDepartment = 'commercial' | 'financial' | 'administrative' | 'operations';
  
- export interface FiscalTask {
+export interface FiscalTask {
    id: string;
    title: string;
    description: string | null;
@@ -29,11 +29,13 @@
    parent_task_id: string | null;
   project_id: string | null;
   client_id: string | null;
+  categoria_id: string | null;
    created_at: string;
    updated_at: string;
   // Joined data
   project?: { id: string; name: string } | null;
   client?: { id: string; nome: string } | null;
+  categoria?: { id: string; nome: string } | null;
  }
  
  export interface FiscalTaskComment {
@@ -70,10 +72,10 @@ export interface TaskFilters {
    recurrence_type?: FiscalRecurrenceType;
    category?: FiscalTaskCategory;
    tags?: string[];
-   department?: FiscalTaskDepartment;
    parent_task_id?: string;
   project_id?: string;
   client_id?: string;
+  categoria_id?: string;
  }
  
  export const useFiscalTasks = (filters?: TaskFilters) => {
@@ -87,7 +89,8 @@ export interface TaskFilters {
         .select(`
            *,
            project:tax_projects(id, name),
-           client:cliente(id, nome)
+           client:cliente(id, nome),
+           categoria:tax_categorias(id, nome)
          `)
          .order('created_at', { ascending: false });
  
