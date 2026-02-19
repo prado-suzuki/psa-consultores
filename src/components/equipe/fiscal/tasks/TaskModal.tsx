@@ -49,7 +49,7 @@ import { supabase } from '@/integrations/supabase/client';
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   description: z.string().optional(),
-  status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done']),
+  status: z.enum(['backlog', 'waiting_client', 'todo', 'in_progress', 'review', 'done']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   assigned_to: z.string().optional(),
   assigned_to_name: z.string().optional(),
@@ -449,6 +449,7 @@ export const TaskModal = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="backlog">Backlog</SelectItem>
+                        <SelectItem value="waiting_client">Pendente Cliente</SelectItem>
                         <SelectItem value="todo">A Fazer</SelectItem>
                         <SelectItem value="in_progress">Em Progresso</SelectItem>
                         <SelectItem value="review">Revisão</SelectItem>

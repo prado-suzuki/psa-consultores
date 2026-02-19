@@ -3499,7 +3499,13 @@ export type Database = {
         | "administrative"
         | "operations"
       fiscal_task_priority: "low" | "medium" | "high" | "urgent"
-      fiscal_task_status: "backlog" | "todo" | "in_progress" | "review" | "done"
+      fiscal_task_status:
+        | "backlog"
+        | "waiting_client"
+        | "todo"
+        | "in_progress"
+        | "review"
+        | "done"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "backlog" | "to_do" | "in_progress" | "review" | "done"
       work_cluster: "database" | "frontend" | "management"
@@ -3673,7 +3679,14 @@ export const Constants = {
         "operations",
       ],
       fiscal_task_priority: ["low", "medium", "high", "urgent"],
-      fiscal_task_status: ["backlog", "todo", "in_progress", "review", "done"],
+      fiscal_task_status: [
+        "backlog",
+        "waiting_client",
+        "todo",
+        "in_progress",
+        "review",
+        "done",
+      ],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["backlog", "to_do", "in_progress", "review", "done"],
       work_cluster: ["database", "frontend", "management"],
