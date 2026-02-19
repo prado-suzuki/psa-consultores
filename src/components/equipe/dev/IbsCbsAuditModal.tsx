@@ -329,9 +329,9 @@ export const IbsCbsAuditModal = ({
                             <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                               {regra.base_legal}
                             </p>
-                            {regra.percentual_reducao && (
+                            {regra.redBC != null && (
                               <p className="text-sm text-slate-500 mt-1">
-                                Redução: <span className="font-medium">{regra.percentual_reducao}%</span>
+                                Redução: <span className="font-medium">{(regra.redBC * 100).toFixed(2)}%</span>
                               </p>
                             )}
                           </div>

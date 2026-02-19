@@ -52,6 +52,7 @@ export interface IbsCbsRegraICMSST {
   tipo_st: string;
   aliquota_st: number;
   percentual_reducao: number | null;
+  redBC: number | null;
   base_legal: string;
   convenio: string | null;
   anexo: string | null;
