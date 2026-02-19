@@ -160,23 +160,15 @@ export const TaskModal = ({
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
     : parentTasks;
 
-  // Fetch categories based on the selected project's area
+  // Fetch categories linked to the selected project
   const { data: categorias = [] } = useQuery({
     queryKey: ['fiscal-task-categorias', watchedProjectId],
     queryFn: async () => {
       if (!watchedProjectId) return [];
-      // Get project's area_id
-      const { data: proj } = await supabase
-        .from('tax_projects')
-        .select('area_id')
-        .eq('id', watchedProjectId)
-        .single();
-      if (!proj?.area_id) return [];
-      // Get categories linked to that area
       const { data } = await supabase
-        .from('tax_area_categorias')
+        .from('tax_project_categorias')
         .select('categoria_id, categoria:tax_categorias(id, nome)')
-        .eq('area_id', proj.area_id);
+        .eq('project_id', watchedProjectId);
       return (data || [])
         .map((r: any) => r.categoria)
         .filter(Boolean) as { id: string; nome: string }[];
