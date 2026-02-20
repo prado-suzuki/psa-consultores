@@ -30,10 +30,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react';
-import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
+import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow, addDays, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
-import { isTodayBrazil } from '@/lib/dateUtils';
+import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
 import * as XLSX from 'xlsx';
 
 interface Profile {
@@ -54,10 +54,21 @@ interface Ticket {
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
+  deadline: string | null;
   profiles?: Profile;
   agent?: Profile;
   attachment_count?: number;
 }
+
+const deadlineOptions: Record<string, string> = {
+  'none': 'Sem prazo',
+  '1': '1 dia',
+  '3': '3 dias',
+  '5': '5 dias',
+  '7': '7 dias',
+  '10': '10 dias',
+  '15': '15 dias',
+};
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'department' | 'created_by' | 'updated_at' | 'activity_status' | null;
@@ -195,6 +206,7 @@ export default function GestaoChamados() {
         updated_at: ticket.updated_at || '',
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
+        deadline: (ticket as any).deadline || null,
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0
@@ -349,6 +361,30 @@ export default function GestaoChamados() {
     }
   };
 
+  const setDeadline = async (ticketId: string, createdAt: string, days: string) => {
+    try {
+      const deadline = days === 'none' ? null : format(addDays(new Date(createdAt), parseInt(days)), 'yyyy-MM-dd');
+      const { error } = await supabase
+        .from('tickets')
+        .update({ deadline } as any)
+        .eq('id', ticketId);
+
+      if (error) throw error;
+
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, deadline } : t));
+      toast({ title: 'Prazo atualizado' });
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar prazo', variant: 'destructive' });
+    }
+  };
+
+  const getDeadlineSelectValue = (ticket: Ticket): string => {
+    if (!ticket.deadline) return 'none';
+    const days = differenceInCalendarDays(parseDate(ticket.deadline), new Date(ticket.created_at));
+    const validOptions = ['1', '3', '5', '7', '10', '15'];
+    return validOptions.includes(String(days)) ? String(days) : 'none';
+  };
+
   // Selection handlers
   const toggleSelectAll = () => {
     if (selectedTickets.length === filteredAndSortedTickets.length) {
@@ -375,6 +411,7 @@ export default function GestaoChamados() {
       'Departamento': departmentLabels[ticket.department] || ticket.department,
       'Cliente': `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.trim(),
       'Responsável': ticket.agent ? `${ticket.agent.first_name} ${ticket.agent.last_name}` : 'Não atribuído',
+      'Prazo': ticket.deadline ? format(parseDate(ticket.deadline), 'dd/MM/yyyy') : '',
       'Criado em': format(new Date(ticket.created_at), 'dd/MM/yyyy HH:mm'),
       'Atualizado em': format(new Date(ticket.updated_at), 'dd/MM/yyyy HH:mm'),
     }));
@@ -643,6 +680,7 @@ export default function GestaoChamados() {
                     </div>
                   </TableHead>
                   <TableHead>Responsável</TableHead>
+                  <TableHead>Prazo</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('updated_at')}>
                     <div className="flex items-center">
                       Atualização {getSortIcon('updated_at')}
@@ -696,6 +734,40 @@ export default function GestaoChamados() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Select
+                          value={getDeadlineSelectValue(ticket)}
+                          onValueChange={(v) => setDeadline(ticket.id, ticket.created_at, v)}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                            <SelectValue placeholder="Prazo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(deadlineOptions).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {ticket.deadline && (() => {
+                          const deadlineDate = parseDate(ticket.deadline);
+                          const isPast = isPastBrazil(deadlineDate);
+                          const isToday = isTodayBrazil(deadlineDate);
+                          const isTomorrow = isTomorrowBrazil(deadlineDate);
+                          const colorClass = isPast
+                            ? 'text-red-600 font-semibold'
+                            : (isToday || isTomorrow)
+                              ? 'text-amber-600 font-medium'
+                              : 'text-green-600';
+                          return (
+                            <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
+                              {isPast && <AlertTriangle className="h-3 w-3" />}
+                              {format(deadlineDate, 'dd/MM')}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </TableCell>
                     <TableCell className="text-slate-500 text-sm">
                       {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}

@@ -3070,6 +3070,7 @@ export type Database = {
           activity_status: string | null
           assigned_to: string | null
           created_at: string | null
+          deadline: string | null
           department: string | null
           description: string
           id: string
@@ -3083,6 +3084,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           created_at?: string | null
+          deadline?: string | null
           department?: string | null
           description: string
           id?: string
@@ -3096,6 +3098,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           created_at?: string | null
+          deadline?: string | null
           department?: string | null
           description?: string
           id?: string
