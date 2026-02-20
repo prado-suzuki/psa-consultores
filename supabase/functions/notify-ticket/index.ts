@@ -148,8 +148,7 @@ Deno.serve(async (req) => {
       if (ticket.assigned_to) {
         const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
         if (agentEmail) {
-          // Forçar link da área da equipe (não usar getTicketUrlForUser que pode retornar /gestao/)
-          const agentUrl = `${PUBLISHED_URL}/equipe/chamados/${ticket.id}`;
+          const agentUrl = "https://psaconsultores.com.br/equipe";
           recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
         }
       }
@@ -164,7 +163,7 @@ Deno.serve(async (req) => {
       if (ticket.assigned_to) {
         const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
         if (agentEmail) {
-          const agentUrl = `${PUBLISHED_URL}/equipe/chamados/${ticket.id}`;
+          const agentUrl = "https://psaconsultores.com.br/equipe";
           recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
         }
       }
