@@ -1,40 +1,80 @@
 
-# Corrigir filtro de categorias nas tarefas
+## Problema Raiz
 
-## Problema identificado
+A edge function `notify-ticket` tem dois bugs interligados para o evento `ticket_replied`:
 
-Quando voce cria um projeto e seleciona categorias especificas, essas categorias sao salvas na tabela `tax_project_categorias`. Porem, quando voce cria uma tarefa e seleciona um projeto, o dropdown de categorias busca **todas as categorias da area** (via `tax_area_categorias`) em vez de buscar **apenas as categorias vinculadas ao projeto** (via `tax_project_categorias`).
+**Bug 1 — `replier_role` ausente no payload:**
+O objeto `ticket_data` enviado ao n8n não inclui a propriedade `replier_role`. O n8n usa esse campo para saber quem respondeu e decidir para quem enviar o e-mail. Sem ele, o n8n assume fallback "cliente respondeu" e procura o destinatário com `role: "responsavel"`.
 
-Ou seja, as categorias selecionadas no cadastro do projeto nao estao sendo usadas para filtrar as opcoes nas tarefas.
+**Bug 2 — `recipients` incompleto:**
+A lógica atual monta a lista de destinatários de forma condicional: se o responsável respondeu → manda só para cliente+gestor; se o cliente respondeu → manda só para responsável+gestor. O problema é que o n8n espera receber **todos os possíveis destinatários** no array e filtra por conta própria usando `replier_role`. Com a lógica atual, sempre falta um dos lados.
 
-## Solucao
+---
 
-Alterar a query de categorias no `TaskModal.tsx` para buscar da tabela `tax_project_categorias` em vez de `tax_area_categorias`.
+## Mapeamento atual de `actor_name` por origem
 
-## Detalhes tecnicos
+| Quem responde | Página | `actor_name` enviado |
+|---|---|---|
+| Cliente envia mensagem | `DetalhesChamado.tsx` | `"Cliente"` |
+| Cliente envia anexo | `DetalhesChamado.tsx` | `"Cliente"` |
+| Responsável envia mensagem | `EquipeDetalhesChamado.tsx` | `"Responsável"` |
+| Responsável envia anexo | `EquipeDetalhesChamado.tsx` | `"Responsável"` |
+| Gestora envia mensagem | `GestaoDetalhesChamado.tsx` | `"Equipe PSA"` |
 
-**Arquivo**: `src/components/equipe/fiscal/tasks/TaskModal.tsx` (linhas 165-185)
+---
 
-**Antes** (busca todas as categorias da area):
-```typescript
-const { data: proj } = await supabase
-  .from('tax_projects')
-  .select('area_id')
-  .eq('id', watchedProjectId)
-  .single();
-if (!proj?.area_id) return [];
-const { data } = await supabase
-  .from('tax_area_categorias')
-  .select('categoria_id, categoria:tax_categorias(id, nome)')
-  .eq('area_id', proj.area_id);
+## Correções planejadas — apenas `supabase/functions/notify-ticket/index.ts`
+
+### Correção 1: Adicionar `replier_role` ao `ticket_data`
+
+Derivar o `replier_role` a partir do `actor_name` recebido:
+
+```
+actor_name === "Cliente"  →  replier_role = "cliente"
+actor_name === "Responsável" ou "Equipe PSA"  →  replier_role = "responsavel"
 ```
 
-**Depois** (busca apenas as categorias vinculadas ao projeto):
-```typescript
-const { data } = await supabase
-  .from('tax_project_categorias')
-  .select('categoria_id, categoria:tax_categorias(id, nome)')
-  .eq('project_id', watchedProjectId);
+Incluir esse campo no objeto `ticketData` antes de enviar ao webhook.
+
+### Correção 2: Reconstruir `recipients` para `ticket_replied` — estratégia "manda todos, n8n filtra"
+
+No bloco `ticket_replied`, sempre montar o array com **todos os envolvidos**: cliente + responsável (se houver) + gestor. O n8n usa `replier_role` + `recipients[].role` para decidir quem receberá o e-mail de fato.
+
+```
+Novo recipients para ticket_replied:
+  - { email: clientEmail, role: "cliente", ticket_url: /cliente/... }
+  - { email: agentEmail,  role: "responsavel", ticket_url: /equipe/... }  (se assigned_to existir)
+  - { email: GESTOR_EMAIL, role: "gestor", ticket_url: /gestao/... }
 ```
 
-Isso elimina a necessidade de buscar o `area_id` do projeto primeiro, simplificando a query e garantindo que apenas as categorias selecionadas no cadastro do projeto aparecam como opcao nas tarefas.
+---
+
+## Arquivo alterado
+
+- `supabase/functions/notify-ticket/index.ts` — único arquivo modificado
+
+## Nenhuma alteração no frontend
+
+Os arquivos `DetalhesChamado.tsx`, `EquipeDetalhesChamado.tsx` e `GestaoDetalhesChamado.tsx` **não precisam de mudança** — eles já enviam o `actor_name` correto. A correção é inteiramente na edge function.
+
+---
+
+## Exemplo do payload pós-correção para `ticket_replied` (cliente respondeu)
+
+```json
+{
+  "event_type": "ticket_replied",
+  "ticket_data": {
+    "actor_name": "Cliente",
+    "replier_role": "cliente",
+    ...
+  },
+  "recipients": [
+    { "email": "cliente@empresa.com", "role": "cliente", "ticket_url": "..." },
+    { "email": "ana@psa.com",         "role": "responsavel", "ticket_url": "..." },
+    { "email": "patricia@psa.com",    "role": "gestor",      "ticket_url": "..." }
+  ]
+}
+```
+
+O n8n vê `replier_role = "cliente"`, procura `role = "responsavel"` na lista — que agora **sempre está lá** — e envia o e-mail corretamente.
