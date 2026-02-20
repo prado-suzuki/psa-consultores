@@ -1,84 +1,97 @@
 
-## Remover SLA de inatividade e usar o campo `deadline` para acionar notificações de vencimento
+## Ajuste Fino no Cron Job: Regras de Vencimento e Activity Status
 
-### Situação atual
+### Contexto
 
-Existem dois mecanismos de prazo independentes e conflitantes:
-
-1. **Campo `deadline`** (tabela `tickets`): data definida manualmente pela gestora na listagem de chamados, com opções de 1 a 15 dias. Exibido visualmente com cores na UI.
-2. **Cron job `check-ticket-deadlines-daily`** (roda 11:00 UTC): filtra tickets com `updated_at >= 5 dias atrás` e dispara `ticket_overdue` para o gestor — **não lê o campo `deadline`**.
-
-O objetivo é eliminar a lógica de inatividade e usar exclusivamente o campo `deadline` para disparar o webhook.
+A edge function `check-ticket-deadlines` já foi reescrita para usar o campo `deadline`. Agora precisamos refinar as duas regras de filtragem antes de considerar a implementação completa.
 
 ---
 
-### O que muda
+### Regras de Negócio Consolidadas
 
-#### 1. Edge Function `check-ticket-deadlines` (reescrita)
+As três condições que um ticket precisa satisfazer simultaneamente para gerar um alerta:
 
-A lógica de filtragem muda de:
-```
-now - updated_at >= 5 dias
-```
-para:
-```
-deadline <= hoje  AND  status NOT IN ('resolvido', 'fechado')
+```text
+1. deadline < hoje          (vencido de verdade — não inclui o dia do prazo)
+2. status IN ('aberto', 'em_andamento')   (chamado ainda ativo)
+3. activity_status != 'respondido'        (a "bola" está com a equipe, não com o cliente)
 ```
 
-- Buscar tickets com `deadline` preenchido, vencido ou igual a hoje, e status ainda aberto
-- Para cada ticket, calcular `dias_atraso = hoje - deadline` (pode ser 0 se vence hoje)
-- Chamar `notify-ticket` com `event_type: "ticket_overdue"` e `dias_atraso` correto
-- Tickets **sem `deadline`** definido são ignorados (sem prazo = sem alerta automático)
+---
 
-Nova query Supabase dentro da edge function:
+### O Que Muda na Edge Function
+
+#### Ajuste 1 — Vencimento estrito (`<` em vez de `<=`)
+
+Hoje a query usa `.lte("deadline", today)` (menor ou igual), o que inclui o dia do prazo no alerta. O alerta deve ser de "SLA Vencido", portanto só deve disparar quando o prazo **já passou**.
+
+A correção é calcular `yesterday` (ontem) e usar `.lte("deadline", yesterday)`, que é equivalente a `deadline < today` na granularidade de datas:
+
 ```typescript
-const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
+const yesterdayStr = yesterday.toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+// .lte("deadline", yesterdayStr)  →  equivale a  deadline < today
+```
+
+> Por que usar `yesterday` com `.lte` em vez de `deadline < today`? O cliente Supabase JS não tem operador `.lt` para datas — os filtros disponíveis são `.lte` (menor ou igual) e `.lt` (menor que). Na verdade o SDK possui `.lt()`, então podemos usar diretamente `.lt("deadline", todayStr)`. Usaremos `.lt` para clareza.
+
+#### Ajuste 2 — Ignorar tickets onde a equipe já respondeu
+
+Adicionar o filtro `.neq("activity_status", "respondido")` para excluir da seleção todos os tickets onde a equipe já deu retorno e a "bola" está com o cliente aguardando resposta dele.
+
+#### Ajuste 3 — Filtrar apenas status ativos explicitamente
+
+Substituir o filtro negativo `.not("status", "in", '("resolvido","fechado")')` por um filtro positivo explícito nos dois status ativos, tornando a lógica mais clara e à prova de novos status que possam ser criados no futuro:
+
+```typescript
+.in("status", ["aberto", "em_andamento"])
+```
+
+---
+
+### Query Resultante
+
+```typescript
+const todayStr = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
 const { data: tickets } = await supabase
   .from("tickets")
   .select("id, title, deadline, user_id, assigned_to")
-  .not("status", "in", '("resolvido","fechado")')
-  .not("deadline", "is", null)
-  .lte("deadline", today)
+  .in("status", ["aberto", "em_andamento"])          // apenas chamados ativos
+  .neq("activity_status", "respondido")               // equipe ainda precisa agir
+  .not("deadline", "is", null)                        // tem prazo definido
+  .lt("deadline", todayStr)                           // prazo JÁ PASSOU (< hoje)
   .order("deadline", { ascending: true });
 ```
 
-O `dias_atraso` passa a ser calculado com base na diferença entre `hoje` e `ticket.deadline` (em vez de `today - updated_at`).
+---
 
-#### 2. Cron job (sem mudança de horário ou frequência)
+### Comportamento Resultante
 
-O job `check-ticket-deadlines-daily` continua rodando às **11:00 UTC todos os dias**. Nenhuma alteração no agendamento — só a edge function muda.
-
-#### 3. `notify-ticket` (sem alteração)
-
-A edge function `notify-ticket` já recebe `dias_atraso` e já trata `ticket_overdue` enviando apenas para o gestor. Nenhuma mudança necessária.
+| Cenário | Notificado? | Motivo |
+|---|---|---|
+| Deadline = ontem, status aberto, aguardando resposta | Sim | Todas as condições satisfeitas |
+| Deadline = hoje, status aberto, aguardando resposta | Não | Prazo é hoje, não venceu ainda (`< hoje` falha) |
+| Deadline = ontem, status resolvido | Não | Status não é ativo |
+| Deadline = ontem, status aberto, activity_status respondido | Não | Equipe já retornou, bola com o cliente |
+| Ticket sem deadline | Nunca | Campo nulo é ignorado |
 
 ---
 
-### O que NÃO muda
-
-| Item | Status |
-|---|---|
-| Campo `deadline` no banco | Já existe, sem alteração |
-| UI de definição de prazo em `GestaoChamados.tsx` | Sem alteração |
-| Indicadores visuais de cor na listagem | Sem alteração |
-| `notify-ticket` edge function | Sem alteração |
-| Cron job schedule (11:00 UTC diário) | Sem alteração |
-| Comportamento para tickets sem `deadline` | Ignorados (correto — sem prazo, sem alerta) |
-
----
-
-### Arquivo a editar
+### Arquivo a Editar
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/check-ticket-deadlines/index.ts` | Reescrever lógica de filtragem para usar `deadline <= hoje` |
+| `supabase/functions/check-ticket-deadlines/index.ts` | Substituir `.lte("deadline", today)` por `.lt("deadline", todayStr)`, trocar `.not("status", "in", ...)` por `.in("status", [...])`, e adicionar `.neq("activity_status", "respondido")` |
 
 ---
 
-### Comportamento resultante
+### O Que Não Muda
 
-- Ticket com `deadline = 2026-02-20` → notificado no dia 20/02 às 11:00 UTC (vence hoje, `dias_atraso = 0`)
-- Ticket com `deadline = 2026-02-18` → notificado às 11:00 UTC a partir do dia 18 em diante (`dias_atraso >= 1`)
-- Ticket sem `deadline` → nunca notificado pelo cron
-- Ticket `resolvido` ou `fechado` → nunca notificado
+- Cron job schedule (11:00 UTC diário) — sem alteração
+- Edge function `notify-ticket` — sem alteração
+- Campo `deadline` no banco e na UI — sem alteração
+- Cálculo de `dias_atraso` baseado em `deadline` — permanece igual
