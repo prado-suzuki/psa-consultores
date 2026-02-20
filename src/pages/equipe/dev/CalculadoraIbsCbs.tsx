@@ -35,6 +35,7 @@ import {
   IbsCbsSyncPayload,
   IbsCbsSyncDecisao,
   IbsCbsTipoDecisao,
+  IbsCbsPendingDecision,
 } from "@/types/ibscbs";
 import {
   Search,
@@ -111,8 +112,8 @@ const CalculadoraIbsCbs = () => {
   const [pendingDecisionsCount, setPendingDecisionsCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Estado local para rastrear decisões feitas na sessão atual
-  const [localDecisions, setLocalDecisions] = useState<Set<string>>(new Set());
+  // Estado local para rastrear decisões feitas na sessão atual (em memória)
+  const [pendingDecisions, setPendingDecisions] = useState<Map<string, IbsCbsPendingDecision>>(new Map());
 
   // Estatísticas globais
   const [globalStats, setGlobalStats] = useState<{
@@ -348,7 +349,7 @@ const CalculadoraIbsCbs = () => {
     return groupedItemsFromApi.map((group) => {
       const classifChave = `${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`;
       const classificacao = classificacoes?.[classifChave];
-      const isLocallyDecided = localDecisions.has(classifChave);
+      const isLocallyDecided = pendingDecisions.has(classifChave);
 
       return {
         ...group,
@@ -356,7 +357,7 @@ const CalculadoraIbsCbs = () => {
         classificacao,
       };
     });
-  }, [groupedItemsFromApi, classificacoes, localDecisions]);
+  }, [groupedItemsFromApi, classificacoes, pendingDecisions]);
 
   // Handler para criar ou atualizar sessão e disparar busca
   const handleSearch = async () => {
@@ -452,6 +453,7 @@ const CalculadoraIbsCbs = () => {
     setSearchTriggered(false);
     setActiveSessaoId(null);
     setPendingDecisionsCount(0);
+    setPendingDecisions(new Map());
     setStatusFilter("all");
     setGlobalStats(null);
   };
@@ -534,45 +536,25 @@ const CalculadoraIbsCbs = () => {
     }
   };
 
-  // Handler para sincronizar decisões com o banco principal
+  // Handler para sincronizar decisões pendentes (em memória) com o banco principal
   const handleSaveChanges = async () => {
-    if (!activeSessaoId || pendingDecisionsCount === 0) return;
+    if (pendingDecisions.size === 0) return;
 
     setIsSaving(true);
 
     try {
-      const { data: decisoes, error: fetchError } = await supabase
-        .from("difal_decisao")
-        .select("*")
-        .eq("sessao_id", activeSessaoId);
-
-      if (fetchError) throw fetchError;
-
-      const decisoesPayload: IbsCbsSyncDecisao[] = [];
-
-      (decisoes || []).forEach((d) => {
-        const matchingItems = groupedItems.filter((item) => item.cod_ncm === d.cod_ncm);
-        const processedKeys = new Set<string>();
-
-        matchingItems.forEach((item) => {
-          const key = `${item.id_contribuinte}|${item.cod_produto}|${item.cod_ncm}`;
-          if (!processedKeys.has(key)) {
-            processedKeys.add(key);
-            decisoesPayload.push({
-              id_contribuinte: item.id_contribuinte,
-              cod_produto: item.cod_produto,
-              cod_ncm: d.cod_ncm,
-              cod_produto_svc: item.cod_produto,
-              cod_ncm_nbs: d.cod_ncm,
-              decisao: d.decisao as IbsCbsTipoDecisao,
-              id_regra: d.id_icms_st_bq,
-            });
-          }
-        });
-      });
+      const decisoesPayload: IbsCbsSyncDecisao[] = Array.from(pendingDecisions.values()).map((d) => ({
+        id_contribuinte: d.id_contribuinte,
+        cod_produto: d.cod_produto,
+        cod_ncm: d.cod_ncm,
+        cod_produto_svc: d.cod_produto,
+        cod_ncm_nbs: d.cod_ncm,
+        decisao: d.decisao,
+        id_regra: d.id_regra,
+      }));
 
       const payload: IbsCbsSyncPayload = {
-        sessao_id: activeSessaoId,
+        sessao_id: activeSessaoId || undefined,
         decisoes: decisoesPayload,
       };
 
@@ -586,26 +568,30 @@ const CalculadoraIbsCbs = () => {
         throw new Error("Erro ao sincronizar classificações");
       }
 
-      await supabase
-        .from("difal_sessao")
-        .update({
-          status: "FINALIZADO",
-          sincronizado_em: new Date().toISOString(),
-        })
-        .eq("id", activeSessaoId);
+      // Marcar sessão como finalizada se existir
+      if (activeSessaoId) {
+        await supabase
+          .from("difal_sessao")
+          .update({
+            status: "FINALIZADO",
+            sincronizado_em: new Date().toISOString(),
+          })
+          .eq("id", activeSessaoId);
 
-      await supabase.from("difal_decisao").delete().eq("sessao_id", activeSessaoId);
+        setActiveSessaoId(null);
+      }
 
-      setActiveSessaoId(null);
+      // Limpar estado da sessão
+      const savedCount = pendingDecisions.size;
+      setPendingDecisions(new Map());
       setPendingDecisionsCount(0);
-      setLocalDecisions(new Set());
 
       queryClient.invalidateQueries({ queryKey: ["ibscbs-classificacoes"] });
       queryClient.invalidateQueries({ queryKey: ["ibscbs-grouped-items"] });
 
       toast({
         title: "Alterações salvas",
-        description: `${decisoes?.length || 0} decisão(ões) sincronizada(s). Os dados foram recarregados.`,
+        description: `${savedCount} decisão(ões) sincronizada(s). Os dados foram recarregados.`,
       });
     } catch (error) {
       toast({
@@ -623,13 +609,14 @@ const CalculadoraIbsCbs = () => {
     setModalOpen(true);
   };
 
-  const handleDecisionSaved = (group: IbsCbsGroupedItem) => {
-    setPendingDecisionsCount((prev) => prev + 1);
-    setLocalDecisions((prev) => {
-      const newSet = new Set(prev);
-      newSet.add(`${group.id_contribuinte}|${group.cod_produto}|${group.cod_ncm}`);
-      return newSet;
+  const handleDecisionSaved = (decision: IbsCbsPendingDecision) => {
+    setPendingDecisions((prev) => {
+      const newMap = new Map(prev);
+      const key = `${decision.id_contribuinte}|${decision.cod_produto}|${decision.cod_ncm}`;
+      newMap.set(key, decision);
+      return newMap;
     });
+    setPendingDecisionsCount((prev) => prev + 1);
   };
 
   const formatCurrency = (value: number | null) => {
@@ -1063,7 +1050,6 @@ const CalculadoraIbsCbs = () => {
         onOpenChange={setModalOpen}
         group={selectedGroup}
         ufDestino="MT"
-        sessaoId={activeSessaoId}
         onDecisionSaved={handleDecisionSaved}
       />
     </DevLayout>
