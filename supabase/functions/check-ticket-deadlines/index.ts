@@ -6,8 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SLA_DAYS = 5;
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,12 +16,16 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Buscar tickets abertos/em andamento que não foram resolvidos
+    const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+    // Buscar tickets com deadline preenchido, vencido ou igual a hoje, e status ainda aberto
     const { data: tickets, error } = await supabase
       .from("tickets")
-      .select("id, title, updated_at, user_id, assigned_to")
+      .select("id, title, deadline, user_id, assigned_to")
       .not("status", "in", '("resolvido","fechado")')
-      .order("updated_at", { ascending: true });
+      .not("deadline", "is", null)
+      .lte("deadline", today)
+      .order("deadline", { ascending: true });
 
     if (error) {
       console.error("[check-ticket-deadlines] Error fetching tickets:", error);
@@ -33,24 +35,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const now = new Date();
-    const overdueTickets = (tickets || []).filter((t) => {
-      const updatedAt = new Date(t.updated_at);
-      const diffMs = now.getTime() - updatedAt.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      return diffDays >= SLA_DAYS;
-    });
-
     console.log(
-      `[check-ticket-deadlines] Found ${overdueTickets.length} overdue ticket(s) out of ${tickets?.length || 0} open tickets`
+      `[check-ticket-deadlines] Found ${tickets?.length || 0} overdue ticket(s) (deadline <= ${today})`
     );
 
-    // Para cada ticket vencido, chamar notify-ticket com evento ticket_overdue
+    // Para cada ticket vencido, calcular dias_atraso e chamar notify-ticket
     const results = await Promise.allSettled(
-      overdueTickets.map((ticket) => {
-        const updatedAt = new Date(ticket.updated_at);
-        const diffMs = now.getTime() - updatedAt.getTime();
+      (tickets || []).map((ticket) => {
+        const deadlineDate = new Date(ticket.deadline + "T00:00:00Z");
+        const todayDate = new Date(today + "T00:00:00Z");
+        const diffMs = todayDate.getTime() - deadlineDate.getTime();
         const diasAtraso = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        console.log(
+          `[check-ticket-deadlines] Ticket ${ticket.id} - deadline: ${ticket.deadline}, dias_atraso: ${diasAtraso}`
+        );
 
         return fetch(`${supabaseUrl}/functions/v1/notify-ticket`, {
           method: "POST",
@@ -74,7 +73,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        overdue_count: overdueTickets.length,
+        checked_date: today,
+        overdue_count: tickets?.length || 0,
         sent,
         failed,
       }),
