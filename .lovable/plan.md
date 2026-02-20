@@ -1,80 +1,65 @@
 
-## Problema Raiz
 
-A edge function `notify-ticket` tem dois bugs interligados para o evento `ticket_replied`:
+## Adicionar campo "Prazo" na listagem de chamados
 
-**Bug 1 — `replier_role` ausente no payload:**
-O objeto `ticket_data` enviado ao n8n não inclui a propriedade `replier_role`. O n8n usa esse campo para saber quem respondeu e decidir para quem enviar o e-mail. Sem ele, o n8n assume fallback "cliente respondeu" e procura o destinatário com `role: "responsavel"`.
+### 1. Migracao no banco de dados
 
-**Bug 2 — `recipients` incompleto:**
-A lógica atual monta a lista de destinatários de forma condicional: se o responsável respondeu → manda só para cliente+gestor; se o cliente respondeu → manda só para responsável+gestor. O problema é que o n8n espera receber **todos os possíveis destinatários** no array e filtra por conta própria usando `replier_role`. Com a lógica atual, sempre falta um dos lados.
+Adicionar coluna `deadline` (tipo `date`, nullable) na tabela `tickets`:
 
----
-
-## Mapeamento atual de `actor_name` por origem
-
-| Quem responde | Página | `actor_name` enviado |
-|---|---|---|
-| Cliente envia mensagem | `DetalhesChamado.tsx` | `"Cliente"` |
-| Cliente envia anexo | `DetalhesChamado.tsx` | `"Cliente"` |
-| Responsável envia mensagem | `EquipeDetalhesChamado.tsx` | `"Responsável"` |
-| Responsável envia anexo | `EquipeDetalhesChamado.tsx` | `"Responsável"` |
-| Gestora envia mensagem | `GestaoDetalhesChamado.tsx` | `"Equipe PSA"` |
-
----
-
-## Correções planejadas — apenas `supabase/functions/notify-ticket/index.ts`
-
-### Correção 1: Adicionar `replier_role` ao `ticket_data`
-
-Derivar o `replier_role` a partir do `actor_name` recebido:
-
-```
-actor_name === "Cliente"  →  replier_role = "cliente"
-actor_name === "Responsável" ou "Equipe PSA"  →  replier_role = "responsavel"
+```sql
+ALTER TABLE public.tickets ADD COLUMN deadline date;
 ```
 
-Incluir esse campo no objeto `ticketData` antes de enviar ao webhook.
+Nenhuma alteracao em RLS -- as policies existentes ja cobrem UPDATE e SELECT.
 
-### Correção 2: Reconstruir `recipients` para `ticket_replied` — estratégia "manda todos, n8n filtra"
+### 2. Alteracoes em `src/pages/gestao/GestaoChamados.tsx`
 
-No bloco `ticket_replied`, sempre montar o array com **todos os envolvidos**: cliente + responsável (se houver) + gestor. O n8n usa `replier_role` + `recipients[].role` para decidir quem receberá o e-mail de fato.
+**Interface Ticket** (linha 46): adicionar `deadline: string | null`.
 
-```
-Novo recipients para ticket_replied:
-  - { email: clientEmail, role: "cliente", ticket_url: /cliente/... }
-  - { email: agentEmail,  role: "responsavel", ticket_url: /equipe/... }  (se assigned_to existir)
-  - { email: GESTOR_EMAIL, role: "gestor", ticket_url: /gestao/... }
-```
+**fetchTickets** (linha 149): adicionar `deadline` ao select. Na montagem do `enrichedTickets`, incluir `deadline: ticket.deadline || null`.
 
----
+**Nova funcao `setDeadline`**: recebe `ticketId`, `createdAt` e `days`. Calcula `deadline = addDays(new Date(createdAt), days)` e salva via `supabase.from('tickets').update({ deadline }).eq('id', ticketId)`. Se `days` for `'none'`, salva `null`.
 
-## Arquivo alterado
+**Importar** `addDays` de `date-fns` (ja importado parcialmente).
 
-- `supabase/functions/notify-ticket/index.ts` — único arquivo modificado
+**Coluna na tabela**: Adicionar `<TableHead>Prazo</TableHead>` entre "Responsavel" (linha 645) e "Atualizacao" (linha 646).
 
-## Nenhuma alteração no frontend
+**Celula na tabela**: Renderizar um `Select` inline com as opcoes:
 
-Os arquivos `DetalhesChamado.tsx`, `EquipeDetalhesChamado.tsx` e `GestaoDetalhesChamado.tsx` **não precisam de mudança** — eles já enviam o `actor_name` correto. A correção é inteiramente na edge function.
-
----
-
-## Exemplo do payload pós-correção para `ticket_replied` (cliente respondeu)
-
-```json
-{
-  "event_type": "ticket_replied",
-  "ticket_data": {
-    "actor_name": "Cliente",
-    "replier_role": "cliente",
-    ...
-  },
-  "recipients": [
-    { "email": "cliente@empresa.com", "role": "cliente", "ticket_url": "..." },
-    { "email": "ana@psa.com",         "role": "responsavel", "ticket_url": "..." },
-    { "email": "patricia@psa.com",    "role": "gestor",      "ticket_url": "..." }
-  ]
-}
+```text
+Sem prazo  (valor: "none")
+1 dia      (valor: "1")
+3 dias     (valor: "3")
+5 dias     (valor: "5")
+7 dias     (valor: "7")
+10 dias    (valor: "10")
+15 dias    (valor: "15")
 ```
 
-O n8n vê `replier_role = "cliente"`, procura `role = "responsavel"` na lista — que agora **sempre está lá** — e envia o e-mail corretamente.
+- Valor controlado: derivado do deadline atual comparado com created_at (para mostrar a opcao correta se ja definido).
+- Ao selecionar, chama `setDeadline(ticket.id, ticket.created_at, days)`.
+- Abaixo do Select, exibir a data formatada (ex: "25/02") se houver deadline.
+
+**Indicador visual de vencimento**:
+- Se `deadline < hoje` -- texto vermelho + icone AlertTriangle
+- Se `deadline === hoje` ou `deadline === amanha` -- texto amarelo/amber
+- Se `deadline` futuro -- texto verde
+- Sem deadline -- nada exibido
+
+Usa funcoes `isPastBrazil`, `isTodayBrazil`, `isTomorrowBrazil` de `@/lib/dateUtils` (ja existem).
+
+**Exportacao Excel**: Adicionar coluna "Prazo" ao export com a data formatada.
+
+### 3. O que NAO muda
+
+- `GestaoDetalhesChamado.tsx` -- sem alteracao
+- RLS -- policies existentes ja cobrem
+- Frontend de cliente/equipe -- sem impacto
+
+### Resumo de arquivos
+
+| Arquivo | Acao |
+|---|---|
+| Migracao SQL | `ALTER TABLE tickets ADD COLUMN deadline date` |
+| `src/pages/gestao/GestaoChamados.tsx` | Interface, fetch, coluna, Select inline, indicadores visuais, export |
+
