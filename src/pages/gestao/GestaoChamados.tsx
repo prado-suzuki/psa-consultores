@@ -763,7 +763,7 @@ export default function GestaoChamados() {
                           return (
                             <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
                               {isPast && <AlertTriangle className="h-3 w-3" />}
-                              {format(deadlineDate, 'dd/MM')}
+                              {format(deadlineDate, "dd/MM/yyyy (EEE)", { locale: ptBR })}
                             </div>
                           );
                         })()}
