@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { supabase } from '@/integrations/supabase/client';
+
 import { API_BASE_URL } from '@/config/api';
 import { cn } from '@/lib/utils';
 import {
@@ -15,6 +15,7 @@ import {
   IbsCbsNCMRegrasResponse,
   IbsCbsRegraICMSST,
   IbsCbsTipoDecisao,
+  IbsCbsPendingDecision,
 } from '@/types/ibscbs';
 import {
   CheckCircle2,
@@ -30,8 +31,7 @@ interface IbsCbsAuditModalProps {
   onOpenChange: (open: boolean) => void;
   group: IbsCbsGroupedItem | null;
   ufDestino: string;
-  sessaoId: string | null;
-  onDecisionSaved: (group: IbsCbsGroupedItem) => void;
+  onDecisionSaved: (decision: IbsCbsPendingDecision) => void;
 }
 
 export const IbsCbsAuditModal = ({
@@ -39,7 +39,6 @@ export const IbsCbsAuditModal = ({
   onOpenChange,
   group,
   ufDestino,
-  sessaoId,
   onDecisionSaved,
 }: IbsCbsAuditModalProps) => {
   const { toast } = useToast();
@@ -76,16 +75,9 @@ export const IbsCbsAuditModal = ({
     enabled: open && !!group && !!ufDestino,
   });
 
-  // Salvar decisão em difal_decisao (Supabase) - temporariamente usando mesma tabela
+  // Salvar decisão em memória (via callback)
   const handleSaveDecision = async (decisao: IbsCbsTipoDecisao, regraId: string | null = null) => {
-    if (!group || !sessaoId) {
-      toast({
-        title: 'Sessão não iniciada',
-        description: 'É necessário iniciar uma busca antes de classificar.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (!group) return;
 
     if (decisao === 'REGRA_SELECIONADA' && !regraId) {
       toast({
@@ -96,41 +88,24 @@ export const IbsCbsAuditModal = ({
       return;
     }
 
-    setIsSaving(true);
+    const decision: IbsCbsPendingDecision = {
+      groupKey: group.groupKey,
+      id_contribuinte: group.id_contribuinte,
+      cod_produto: group.cod_produto,
+      cod_ncm: group.cod_ncm,
+      decisao,
+      id_regra: regraId,
+    };
 
-    try {
-      const { error } = await supabase
-        .from('difal_decisao')
-        .upsert({
-          sessao_id: sessaoId,
-          cod_ncm: group.cod_ncm,
-          decisao: decisao,
-          id_icms_st_bq: regraId,
-          decidido_em: new Date().toISOString(),
-        }, {
-          onConflict: 'sessao_id,cod_ncm',
-        });
+    onDecisionSaved(decision);
 
-      if (error) throw error;
+    toast({
+      title: 'Decisão registrada',
+      description: 'Clique em "Salvar Alterações" para enviar ao banco principal.',
+      duration: 500,
+    });
 
-      toast({
-        title: 'Decisão registrada',
-        description: 'Clique em "Salvar Alterações" para enviar ao banco principal.',
-        duration: 500,
-      });
-
-      onDecisionSaved(group);
-      queryClient.invalidateQueries({ queryKey: ['ibscbs-classificacoes'] });
-      onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: 'Erro ao salvar decisão',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    onOpenChange(false);
   };
 
   const regrasNCM = regrasData?.[group?.cod_ncm || ''];

@@ -123,3 +123,13 @@ export interface IbsCbsNCMRegrasPayload {
   ncms: string[];
   uf: string;
 }
+
+// Decisão pendente armazenada em memória (antes de sincronizar)
+export interface IbsCbsPendingDecision {
+  groupKey: string;
+  id_contribuinte: string;
+  cod_produto: string;
+  cod_ncm: string;
+  decisao: IbsCbsTipoDecisao;
+  id_regra: string | null;
+}
