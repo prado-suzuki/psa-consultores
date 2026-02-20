@@ -155,23 +155,20 @@ Deno.serve(async (req) => {
       }
 
     } else if (event_type === "ticket_replied") {
-      if (actor_name === "Equipe PSA" || actor_name === "Responsável") {
-        const clientEmail = await getEmailForUser(supabase, ticket.user_id);
-        if (clientEmail) {
-          const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
-          recipients.push({ email: clientEmail, ticket_url: clientUrl, role: "cliente" });
-        }
-        recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
-      } else {
-        if (ticket.assigned_to) {
-          const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
-          if (agentEmail) {
-            const { url: agentUrl } = await getTicketUrlForUser(supabase, ticket.assigned_to, ticket.id);
-            recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
-          }
-        }
-        recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+      // Always include all parties — n8n filters by replier_role
+      const clientEmail = await getEmailForUser(supabase, ticket.user_id);
+      if (clientEmail) {
+        const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
+        recipients.push({ email: clientEmail, ticket_url: clientUrl, role: "cliente" });
       }
+      if (ticket.assigned_to) {
+        const agentEmail = await getEmailForUser(supabase, ticket.assigned_to);
+        if (agentEmail) {
+          const agentUrl = `${PUBLISHED_URL}/equipe/chamados/${ticket.id}`;
+          recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
+        }
+      }
+      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
 
     } else if (event_type === "ticket_overdue") {
       // Apenas gestor recebe alerta de prazo vencido
@@ -215,6 +212,7 @@ Deno.serve(async (req) => {
       cliente_email: clientEmail || "",
       user_id: ticket.user_id,
       actor_name: actor_name || "Sistema",
+      replier_role: actor_name === "Cliente" ? "cliente" : "responsavel",
       message_preview: message_preview || "",
       assigned_to_name: assignedName,
       dias_atraso: dias_atraso || 0,
