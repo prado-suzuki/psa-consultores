@@ -16,15 +16,16 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const todayStr = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
-    // Buscar tickets com deadline preenchido, vencido ou igual a hoje, e status ainda aberto
+    // Buscar tickets vencidos (deadline < hoje), com status ativo e aguardando resposta da equipe
     const { data: tickets, error } = await supabase
       .from("tickets")
       .select("id, title, deadline, user_id, assigned_to")
-      .not("status", "in", '("resolvido","fechado")')
-      .not("deadline", "is", null)
-      .lte("deadline", today)
+      .in("status", ["aberto", "em_andamento"])          // apenas chamados ativos
+      .neq("activity_status", "respondido")               // equipe ainda precisa agir
+      .not("deadline", "is", null)                        // tem prazo definido
+      .lt("deadline", todayStr)                           // prazo JÁ PASSOU (< hoje)
       .order("deadline", { ascending: true });
 
     if (error) {
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[check-ticket-deadlines] Found ${tickets?.length || 0} overdue ticket(s) (deadline <= ${today})`
+      `[check-ticket-deadlines] Found ${tickets?.length || 0} overdue ticket(s) (deadline < ${todayStr})`
     );
 
     // Para cada ticket vencido, calcular dias_atraso e chamar notify-ticket
