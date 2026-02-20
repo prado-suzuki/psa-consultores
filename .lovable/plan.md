@@ -1,65 +1,84 @@
 
+## Remover SLA de inatividade e usar o campo `deadline` para acionar notificações de vencimento
 
-## Adicionar campo "Prazo" na listagem de chamados
+### Situação atual
 
-### 1. Migracao no banco de dados
+Existem dois mecanismos de prazo independentes e conflitantes:
 
-Adicionar coluna `deadline` (tipo `date`, nullable) na tabela `tickets`:
+1. **Campo `deadline`** (tabela `tickets`): data definida manualmente pela gestora na listagem de chamados, com opções de 1 a 15 dias. Exibido visualmente com cores na UI.
+2. **Cron job `check-ticket-deadlines-daily`** (roda 11:00 UTC): filtra tickets com `updated_at >= 5 dias atrás` e dispara `ticket_overdue` para o gestor — **não lê o campo `deadline`**.
 
-```sql
-ALTER TABLE public.tickets ADD COLUMN deadline date;
+O objetivo é eliminar a lógica de inatividade e usar exclusivamente o campo `deadline` para disparar o webhook.
+
+---
+
+### O que muda
+
+#### 1. Edge Function `check-ticket-deadlines` (reescrita)
+
+A lógica de filtragem muda de:
+```
+now - updated_at >= 5 dias
+```
+para:
+```
+deadline <= hoje  AND  status NOT IN ('resolvido', 'fechado')
 ```
 
-Nenhuma alteracao em RLS -- as policies existentes ja cobrem UPDATE e SELECT.
+- Buscar tickets com `deadline` preenchido, vencido ou igual a hoje, e status ainda aberto
+- Para cada ticket, calcular `dias_atraso = hoje - deadline` (pode ser 0 se vence hoje)
+- Chamar `notify-ticket` com `event_type: "ticket_overdue"` e `dias_atraso` correto
+- Tickets **sem `deadline`** definido são ignorados (sem prazo = sem alerta automático)
 
-### 2. Alteracoes em `src/pages/gestao/GestaoChamados.tsx`
+Nova query Supabase dentro da edge function:
+```typescript
+const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-**Interface Ticket** (linha 46): adicionar `deadline: string | null`.
-
-**fetchTickets** (linha 149): adicionar `deadline` ao select. Na montagem do `enrichedTickets`, incluir `deadline: ticket.deadline || null`.
-
-**Nova funcao `setDeadline`**: recebe `ticketId`, `createdAt` e `days`. Calcula `deadline = addDays(new Date(createdAt), days)` e salva via `supabase.from('tickets').update({ deadline }).eq('id', ticketId)`. Se `days` for `'none'`, salva `null`.
-
-**Importar** `addDays` de `date-fns` (ja importado parcialmente).
-
-**Coluna na tabela**: Adicionar `<TableHead>Prazo</TableHead>` entre "Responsavel" (linha 645) e "Atualizacao" (linha 646).
-
-**Celula na tabela**: Renderizar um `Select` inline com as opcoes:
-
-```text
-Sem prazo  (valor: "none")
-1 dia      (valor: "1")
-3 dias     (valor: "3")
-5 dias     (valor: "5")
-7 dias     (valor: "7")
-10 dias    (valor: "10")
-15 dias    (valor: "15")
+const { data: tickets } = await supabase
+  .from("tickets")
+  .select("id, title, deadline, user_id, assigned_to")
+  .not("status", "in", '("resolvido","fechado")')
+  .not("deadline", "is", null)
+  .lte("deadline", today)
+  .order("deadline", { ascending: true });
 ```
 
-- Valor controlado: derivado do deadline atual comparado com created_at (para mostrar a opcao correta se ja definido).
-- Ao selecionar, chama `setDeadline(ticket.id, ticket.created_at, days)`.
-- Abaixo do Select, exibir a data formatada (ex: "25/02") se houver deadline.
+O `dias_atraso` passa a ser calculado com base na diferença entre `hoje` e `ticket.deadline` (em vez de `today - updated_at`).
 
-**Indicador visual de vencimento**:
-- Se `deadline < hoje` -- texto vermelho + icone AlertTriangle
-- Se `deadline === hoje` ou `deadline === amanha` -- texto amarelo/amber
-- Se `deadline` futuro -- texto verde
-- Sem deadline -- nada exibido
+#### 2. Cron job (sem mudança de horário ou frequência)
 
-Usa funcoes `isPastBrazil`, `isTodayBrazil`, `isTomorrowBrazil` de `@/lib/dateUtils` (ja existem).
+O job `check-ticket-deadlines-daily` continua rodando às **11:00 UTC todos os dias**. Nenhuma alteração no agendamento — só a edge function muda.
 
-**Exportacao Excel**: Adicionar coluna "Prazo" ao export com a data formatada.
+#### 3. `notify-ticket` (sem alteração)
 
-### 3. O que NAO muda
+A edge function `notify-ticket` já recebe `dias_atraso` e já trata `ticket_overdue` enviando apenas para o gestor. Nenhuma mudança necessária.
 
-- `GestaoDetalhesChamado.tsx` -- sem alteracao
-- RLS -- policies existentes ja cobrem
-- Frontend de cliente/equipe -- sem impacto
+---
 
-### Resumo de arquivos
+### O que NÃO muda
 
-| Arquivo | Acao |
+| Item | Status |
 |---|---|
-| Migracao SQL | `ALTER TABLE tickets ADD COLUMN deadline date` |
-| `src/pages/gestao/GestaoChamados.tsx` | Interface, fetch, coluna, Select inline, indicadores visuais, export |
+| Campo `deadline` no banco | Já existe, sem alteração |
+| UI de definição de prazo em `GestaoChamados.tsx` | Sem alteração |
+| Indicadores visuais de cor na listagem | Sem alteração |
+| `notify-ticket` edge function | Sem alteração |
+| Cron job schedule (11:00 UTC diário) | Sem alteração |
+| Comportamento para tickets sem `deadline` | Ignorados (correto — sem prazo, sem alerta) |
 
+---
+
+### Arquivo a editar
+
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/check-ticket-deadlines/index.ts` | Reescrever lógica de filtragem para usar `deadline <= hoje` |
+
+---
+
+### Comportamento resultante
+
+- Ticket com `deadline = 2026-02-20` → notificado no dia 20/02 às 11:00 UTC (vence hoje, `dias_atraso = 0`)
+- Ticket com `deadline = 2026-02-18` → notificado às 11:00 UTC a partir do dia 18 em diante (`dias_atraso >= 1`)
+- Ticket sem `deadline` → nunca notificado pelo cron
+- Ticket `resolvido` ou `fechado` → nunca notificado
