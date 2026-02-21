@@ -5,16 +5,14 @@ export type IbsCbsTipoDecisao = 'REGRA_SELECIONADA' | 'SEM_ST' | 'ISENTO' | 'NAO
 
 // Item da resposta da API agrupada
 export interface IbsCbsApiGroupedItem {
-  cProd: string;
+  cProd: number;
   xProd: string;
   NCM: string;
-  CFOP: string;
-  CST: string | null;
   tot_itens: number;
   tot_nfes: number;
   vlr_total: number;
-  aliq_prod: number | null;
-  pRedBC: number | null;
+  redBC: number | null;
+  is_valid: number;
 }
 
 // Resposta paginada da API agrupada
@@ -35,13 +33,10 @@ export interface IbsCbsGroupedItem {
   cod_produto: string;
   cod_ncm: string;
   id_contribuinte: string;
-  cfop: string;
-  cst_icms: string | null;
-  aliq_icms: number | null;
-  pRedBC: number | null;
   count: number;
   totalValue: number;
   nfesCount: number;
+  redBC: number | null;
   status: 'validado' | 'pendente';
   classificacao?: IbsCbsClassificacaoExistente | null;
 }
