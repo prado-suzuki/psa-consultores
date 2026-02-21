@@ -181,41 +181,9 @@ export const IbsCbsAuditModal = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">CFOP</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.cfop}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{ufDestino}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <span className="text-xs text-slate-500 uppercase font-medium">
-                      Tributação
-                    </span>
-                    <div className="flex gap-6 mt-2 flex-wrap">
-                      <div>
-                        <span className="text-xs text-slate-400">CST ICMS:</span>
-                        <span className="ml-2 font-mono text-sm font-medium">
-                          {group.cst_icms || '—'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-slate-400">Alíquota:</span>
-                        <span className="ml-2 font-mono text-sm font-medium">
-                          {group.aliq_icms !== null ? `${group.aliq_icms}%` : '—'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-slate-400">Red BC:</span>
-                        <span className="ml-2 font-mono text-sm font-medium">
-                          {group.pRedBC !== null && group.pRedBC !== undefined ? `${group.pRedBC}%` : '—'}
-                        </span>
-                      </div>
-                    </div>
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
+                    <p className="text-slate-700 dark:text-slate-300 mt-1">{ufDestino}</p>
                   </div>
 
                   {/* Resumo do Grupo */}

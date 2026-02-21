@@ -56,7 +56,7 @@ import {
 const CLIENTES_PERMITIDOS_NOMES = ["Barralcool", "COPRODIA"];
 
 // Limite de itens por página
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 100;
 
 // Datas padrão: primeiro e último dia do mês atual
 const getDefaultDates = () => {
@@ -252,13 +252,7 @@ const CalculadoraIbsCbs = () => {
         throw new Error("Contribuinte não selecionado");
       }
 
-      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Saída&page=${currentPage}&page_size=${ITEMS_PER_PAGE}&tipo_analise=ibs_cbs`;
-
-      if (statusFilter === "validated") {
-        url += "&valid=true";
-      } else if (statusFilter === "pending") {
-        url += "&valid=false";
-      }
+      const url = `${API_BASE_URL}/api/v1/ibs-cbs/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Saida&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
@@ -297,17 +291,14 @@ const CalculadoraIbsCbs = () => {
       (item: IbsCbsApiGroupedItem): IbsCbsGroupedItem => ({
         groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
         xProd: item.xProd,
-        cod_produto: item.cProd,
+        cod_produto: String(item.cProd),
         cod_ncm: item.NCM,
         id_contribuinte: selectedContribuinte,
-        cfop: item.CFOP,
-        cst_icms: item.CST,
-        aliq_icms: item.aliq_prod,
-        pRedBC: item.pRedBC ?? null,
         count: item.tot_itens,
         totalValue: item.vlr_total,
         nfesCount: item.tot_nfes,
-        status: "pendente",
+        redBC: item.redBC,
+        status: item.is_valid === 1 ? "validado" : "pendente",
         classificacao: null,
       }),
     );
@@ -353,7 +344,7 @@ const CalculadoraIbsCbs = () => {
 
       return {
         ...group,
-        status: isLocallyDecided || classificacao ? ("validado" as const) : ("pendente" as const),
+        status: isLocallyDecided || classificacao || group.status === "validado" ? ("validado" as const) : ("pendente" as const),
         classificacao,
       };
     });
@@ -933,8 +924,6 @@ const CalculadoraIbsCbs = () => {
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead className="w-[100px]">NCM</TableHead>
-                      <TableHead className="w-[80px]">CFOP</TableHead>
-                      <TableHead className="w-[150px]">Tributação</TableHead>
                       <TableHead className="w-[120px]">MVA/ST</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -968,21 +957,6 @@ const CalculadoraIbsCbs = () => {
                         </TableCell>
                         <TableCell>
                           <span className="font-mono text-sm">{group.cod_ncm}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{group.cfop}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <span className="text-slate-600">CST:</span>{" "}
-                            <span className="font-mono">{group.cst_icms || "—"}</span>
-                            {group.aliq_icms && (
-                              <>
-                                <span className="text-slate-400 mx-1">|</span>
-                                <span className="font-mono">{group.aliq_icms}%</span>
-                              </>
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell>
                           {group.classificacao ? (
