@@ -1,97 +1,124 @@
+## Migrar endpoint de itens agrupados para o novo `/api/v1/ibs-cbs/`
 
-## Ajuste Fino no Cron Job: Regras de Vencimento e Activity Status
+### Resumo
 
-### Contexto
-
-A edge function `check-ticket-deadlines` já foi reescrita para usar o campo `deadline`. Agora precisamos refinar as duas regras de filtragem antes de considerar a implementação completa.
-
----
-
-### Regras de Negócio Consolidadas
-
-As três condições que um ticket precisa satisfazer simultaneamente para gerar um alerta:
-
-```text
-1. deadline < hoje          (vencido de verdade — não inclui o dia do prazo)
-2. status IN ('aberto', 'em_andamento')   (chamado ainda ativo)
-3. activity_status != 'respondido'        (a "bola" está com a equipe, não com o cliente)
-```
+O endpoint de listagem de itens agrupados foi movido para uma rota dedicada ao IBS/CBS. Precisamos atualizar a URL, os parametros de query, os tipos TypeScript e a logica de mapeamento para refletir a nova resposta simplificada.
 
 ---
 
-### O Que Muda na Edge Function
+### Mudancas no endpoint
 
-#### Ajuste 1 — Vencimento estrito (`<` em vez de `<=`)
 
-Hoje a query usa `.lte("deadline", today)` (menor ou igual), o que inclui o dia do prazo no alerta. O alerta deve ser de "SLA Vencido", portanto só deve disparar quando o prazo **já passou**.
+| Aspecto                         | Antes                                                 | Depois                                    |
+| ------------------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| URL                             | `/api/v1/query/contribuintes/{id}/nfes/agrupado-item` | `/api/v1/ibs-cbs/{id}/nfes/agrupado-item` |
+| Query param `tipo_analise`      | `ibs_cbs` (obrigatorio)                               | Removido                                  |
+| Query param `tipo_mov`          | `Saida` (com acento: `Saída`)                         | `Saida` (sem acento)                      |
+| Query param `page_size` default | 25                                                    | 25                                        |
+| Query params de filtro `valid`  | `true`/`false`                                        | Não existe mais                           |
 
-A correção é calcular `yesterday` (ontem) e usar `.lte("deadline", yesterday)`, que é equivalente a `deadline < today` na granularidade de datas:
+
+### Campos removidos da resposta
+
+Os seguintes campos nao sao mais retornados pelo novo endpoint e serao removidos dos tipos e da UI:
+
+- `CFOP`
+- `CST`
+- `aliq_prod`
+- `pRedBC`
+
+### Campo adicionado
+
+- `is_valid` (number: 0 ou 1) -- indica se o item ja foi validado
+- `redBC` (float) -- percentual de redução da aliquota de IBS CBS
+
+### Campo alterado
+
+- `cProd` agora e retornado como `number` (antes era `string`)
+
+---
+
+### Arquivos a editar
+
+#### 1. `src/types/ibscbs.ts`
+
+- Remover campos `CFOP`, `CST`, `aliq_prod`, `pRedBC` de `IbsCbsApiGroupedItem`
+- Adicionar campo `is_valid: number`
+- Alterar tipo de `cProd` para `number`
+- Remover campos `cfop`, `cst_icms`, `aliq_icms`, `pRedBC` de `IbsCbsGroupedItem`
+
+#### 2. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx`
+
+- Alterar URL da query de itens agrupados (linha ~255) para o novo endpoint
+- Remover `&tipo_analise=ibs_cbs` da URL
+- Alterar `tipo_mov=Saída` para `tipo_mov=Saida`
+- Alterar `ITEMS_PER_PAGE` de 25 para 100
+- Atualizar o mapeamento de `IbsCbsApiGroupedItem` para `IbsCbsGroupedItem` (remover campos inexistentes)
+- Usar `is_valid` da resposta para determinar status (`validado`/`pendente`) em vez de depender apenas das classificacoes
+- Remover colunas CFOP, CST ICMS, Aliquota e Red BC da tabela na UI (se exibidas)
+
+#### 3. `src/components/equipe/dev/IbsCbsAuditModal.tsx`
+
+- Remover exibicao dos campos `cfop`, `cst_icms`, `aliq_icms`, `pRedBC` no painel lateral de "Dados do Produto"
+- Remover a secao "Tributacao" que mostra CST ICMS, Aliquota e Red BC
+
+---
+
+### Detalhes tecnicos
+
+**Nova URL construida:**
 
 ```typescript
-const today = new Date();
-const yesterday = new Date(today);
-yesterday.setDate(today.getDate() - 1);
-const yesterdayStr = yesterday.toISOString().split("T")[0]; // "YYYY-MM-DD"
-
-// .lte("deadline", yesterdayStr)  →  equivale a  deadline < today
+const url = `${API_BASE_URL}/api/v1/ibs-cbs/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Saida&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 ```
 
-> Por que usar `yesterday` com `.lte` em vez de `deadline < today`? O cliente Supabase JS não tem operador `.lt` para datas — os filtros disponíveis são `.lte` (menor ou igual) e `.lt` (menor que). Na verdade o SDK possui `.lt()`, então podemos usar diretamente `.lt("deadline", todayStr)`. Usaremos `.lt` para clareza.
-
-#### Ajuste 2 — Ignorar tickets onde a equipe já respondeu
-
-Adicionar o filtro `.neq("activity_status", "respondido")` para excluir da seleção todos os tickets onde a equipe já deu retorno e a "bola" está com o cliente aguardando resposta dele.
-
-#### Ajuste 3 — Filtrar apenas status ativos explicitamente
-
-Substituir o filtro negativo `.not("status", "in", '("resolvido","fechado")')` por um filtro positivo explícito nos dois status ativos, tornando a lógica mais clara e à prova de novos status que possam ser criados no futuro:
+**Novo mapeamento de item:**
 
 ```typescript
-.in("status", ["aberto", "em_andamento"])
+(item: IbsCbsApiGroupedItem): IbsCbsGroupedItem => ({
+  groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
+  xProd: item.xProd,
+  cod_produto: String(item.cProd),
+  cod_ncm: item.NCM,
+  id_contribuinte: selectedContribuinte,
+  count: item.tot_itens,
+  totalValue: item.vlr_total,
+  nfesCount: item.tot_nfes,
+  redBC: item.redBC,
+  status: item.is_valid === 1 ? "validado" : "pendente",
+  classificacao: null,
+})
 ```
 
----
-
-### Query Resultante
+`**IbsCbsApiGroupedItem` atualizado:**
 
 ```typescript
-const todayStr = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
-
-const { data: tickets } = await supabase
-  .from("tickets")
-  .select("id, title, deadline, user_id, assigned_to")
-  .in("status", ["aberto", "em_andamento"])          // apenas chamados ativos
-  .neq("activity_status", "respondido")               // equipe ainda precisa agir
-  .not("deadline", "is", null)                        // tem prazo definido
-  .lt("deadline", todayStr)                           // prazo JÁ PASSOU (< hoje)
-  .order("deadline", { ascending: true });
+export interface IbsCbsApiGroupedItem {
+  cProd: number;
+  xProd: string;
+  NCM: string;
+  tot_itens: number;
+  tot_nfes: number;
+  vlr_total: number;
+  redBC: number | null;
+  is_valid: number;
+}
 ```
 
----
+`**IbsCbsGroupedItem` atualizado:**
 
-### Comportamento Resultante
-
-| Cenário | Notificado? | Motivo |
-|---|---|---|
-| Deadline = ontem, status aberto, aguardando resposta | Sim | Todas as condições satisfeitas |
-| Deadline = hoje, status aberto, aguardando resposta | Não | Prazo é hoje, não venceu ainda (`< hoje` falha) |
-| Deadline = ontem, status resolvido | Não | Status não é ativo |
-| Deadline = ontem, status aberto, activity_status respondido | Não | Equipe já retornou, bola com o cliente |
-| Ticket sem deadline | Nunca | Campo nulo é ignorado |
-
----
-
-### Arquivo a Editar
-
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/check-ticket-deadlines/index.ts` | Substituir `.lte("deadline", today)` por `.lt("deadline", todayStr)`, trocar `.not("status", "in", ...)` por `.in("status", [...])`, e adicionar `.neq("activity_status", "respondido")` |
-
----
-
-### O Que Não Muda
-
-- Cron job schedule (11:00 UTC diário) — sem alteração
-- Edge function `notify-ticket` — sem alteração
-- Campo `deadline` no banco e na UI — sem alteração
-- Cálculo de `dias_atraso` baseado em `deadline` — permanece igual
+```typescript
+export interface IbsCbsGroupedItem {
+  groupKey: string;
+  xProd: string;
+  cod_produto: string;
+  cod_ncm: string;
+  id_contribuinte: string;
+  count: number;
+  totalValue: number;
+  nfesCount: number;
+  redBC: number | null;
+  status: 'validado' | 'pendente';
+  classificacao?: IbsCbsClassificacaoExistente | null;
+}
+```
