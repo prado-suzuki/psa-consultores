@@ -384,6 +384,53 @@ export type Database = {
           },
         ]
       }
+      contrato_dev: {
+        Row: {
+          aliquota_contrato: number | null
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          id_cliente: string
+          id_contrato: string
+          numero_contrato: string | null
+          tipo_contrato: string | null
+          updated_at: string | null
+          valor_fixo: number | null
+        }
+        Insert: {
+          aliquota_contrato?: number | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id_cliente: string
+          id_contrato?: string
+          numero_contrato?: string | null
+          tipo_contrato?: string | null
+          updated_at?: string | null
+          valor_fixo?: number | null
+        }
+        Update: {
+          aliquota_contrato?: number | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id_cliente?: string
+          id_contrato?: string
+          numero_contrato?: string | null
+          tipo_contrato?: string | null
+          updated_at?: string | null
+          valor_fixo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_dev_id_cliente_fkey"
+            columns: ["id_cliente"]
+            isOneToOne: false
+            referencedRelation: "cliente_dev"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contribuinte: {
         Row: {
           cliente_id: string
@@ -2322,6 +2369,44 @@ export type Database = {
             columns: ["id_contrato"]
             isOneToOne: false
             referencedRelation: "contrato"
+            referencedColumns: ["id_contrato"]
+          },
+        ]
+      }
+      servico_dev: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id_catalog_client: string | null
+          id_contrato: string
+          id_servico: string
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id_catalog_client?: string | null
+          id_contrato: string
+          id_servico?: string
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id_catalog_client?: string | null
+          id_contrato?: string
+          id_servico?: string
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servico_dev_id_contrato_fkey"
+            columns: ["id_contrato"]
+            isOneToOne: false
+            referencedRelation: "contrato_dev"
             referencedColumns: ["id_contrato"]
           },
         ]
