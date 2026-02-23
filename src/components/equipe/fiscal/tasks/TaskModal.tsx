@@ -95,7 +95,7 @@ export const TaskModal = ({
     queryFn: async () => {
       const { data } = await supabase
         .from('tax_projects')
-        .select('id, name')
+        .select('id, name, external_client_id')
         .eq('status', 'active')
         .order('name');
       return data || [];
@@ -176,11 +176,16 @@ export const TaskModal = ({
     enabled: open && !!watchedProjectId,
   });
 
-  // Clear categoria when project changes
+  // When project changes: clear dependent fields and auto-set client
   useEffect(() => {
     form.setValue('categoria_id', undefined);
     form.setValue('parent_task_id', undefined);
-  }, [watchedProjectId, form]);
+    // Auto-fill client from the selected project
+    const selectedProject = projects.find(p => p.id === watchedProjectId);
+    if (selectedProject?.external_client_id) {
+      form.setValue('client_id', selectedProject.external_client_id);
+    }
+  }, [watchedProjectId, form, projects]);
 
   useEffect(() => {
     if (task) {
