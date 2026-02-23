@@ -342,9 +342,14 @@ const CalculadoraIbsCbs = () => {
       const classificacao = classificacoes?.[classifChave];
       const isLocallyDecided = pendingDecisions.has(classifChave);
 
+      // Trust is_valid from API; only override to "validado" if user just decided locally
+      const status: "validado" | "pendente" = isLocallyDecided
+        ? "validado"
+        : group.status;
+
       return {
         ...group,
-        status: isLocallyDecided || classificacao || group.status === "validado" ? ("validado" as const) : ("pendente" as const),
+        status,
         classificacao,
       };
     });
