@@ -246,7 +246,7 @@ const CalculadoraIbsCbs = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ["ibscbs-grouped-items", selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
+    queryKey: ["ibscbs-grouped-items", selectedContribuinte, dataInicio, dataFim, currentPage],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error("Contribuinte não selecionado");
@@ -354,6 +354,13 @@ const CalculadoraIbsCbs = () => {
       };
     });
   }, [groupedItemsFromApi, classificacoes, pendingDecisions]);
+
+  // Filtrar itens pelo status selecionado
+  const filteredItems = useMemo(() => {
+    if (statusFilter === "all") return groupedItems;
+    if (statusFilter === "validated") return groupedItems.filter(i => i.status === "validado");
+    return groupedItems.filter(i => i.status === "pendente");
+  }, [groupedItems, statusFilter]);
 
   // Handler para criar ou atualizar sessão e disparar busca
   const handleSearch = async () => {
@@ -859,7 +866,7 @@ const CalculadoraIbsCbs = () => {
       )}
 
       {/* Botões de Ação: Salvar + Exportar */}
-      {searchTriggered && groupedItems.length > 0 && (
+      {searchTriggered && filteredItems.length > 0 && (
         <div className="flex justify-end gap-2 mb-4">
           {pendingDecisionsCount > 0 && (
             <Badge variant="destructive" className="flex items-center gap-1 h-9 px-3">
@@ -916,7 +923,7 @@ const CalculadoraIbsCbs = () => {
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                 <p>Erro ao carregar produtos</p>
               </div>
-            ) : groupedItems.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="p-6 text-center text-slate-500">
                 <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhum produto encontrado para o período selecionado</p>
@@ -933,7 +940,7 @@ const CalculadoraIbsCbs = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {groupedItems.map((group) => (
+                    {filteredItems.map((group) => (
                       <TableRow
                         key={group.groupKey}
                         className={`
