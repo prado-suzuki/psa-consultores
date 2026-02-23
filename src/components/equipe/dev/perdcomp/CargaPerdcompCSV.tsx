@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getTableName } from '@/config/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -57,12 +58,12 @@ export function CargaPerdcompCSV() {
     queryKey: ['contribuintes-for-perdcomp'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('contribuinte')
+        .from(getTableName('contribuinte') as any)
         .select('id, nome_razao_social, cpf_cnpj')
         .order('nome_razao_social');
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
     }
   });
 
