@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
+const contratoTable = isProductionEnvironment ? 'contrato' : 'contrato_dev';
+const servicoTable = isProductionEnvironment ? 'servico' : 'servico_dev';
 
 // Types for draft items
 interface DraftEntity {
@@ -193,9 +195,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         }
 
         // 4. Contratos + Servicos
-        const { data: contratos } = await supabase.from('contrato').select('*, servico(*)').eq('id_cliente', editingClienteId);
-        if (contratos) {
-          setContracts(contratos.map((c: any) => ({
+        const { data: contratos } = await (supabase.from(contratoTable) as any).select('*').eq('id_cliente', editingClienteId);
+        // Fetch services for each contract separately
+        const contratosWithServices = [];
+        for (const c of (contratos || [])) {
+          const { data: servicos } = await (supabase.from(servicoTable) as any).select('*').eq('id_contrato', c.id_contrato);
+          contratosWithServices.push({ ...c, servico: servicos || [] });
+        }
+        if (contratosWithServices.length > 0) {
+          setContracts(contratosWithServices.map((c: any) => ({
             _id: Date.now() + Math.random(),
             tipo_contrato: c.tipo_contrato || 'Mensal',
             numero_contrato: c.numero_contrato || '',
@@ -305,11 +313,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         await supabase.from(contribuinteTable).delete().eq('cliente_id', clienteId);
 
         // Delete servicos + contratos
-        const { data: existingContratos } = await supabase.from('contrato').select('id_contrato').eq('id_cliente', clienteId);
+        const { data: existingContratos } = await (supabase.from(contratoTable) as any).select('id_contrato').eq('id_cliente', clienteId);
         if (existingContratos && existingContratos.length > 0) {
-          const contratoIds = existingContratos.map(c => c.id_contrato);
-          await (supabase.from('servico') as any).delete().in('id_contrato', contratoIds);
-          await supabase.from('contrato').delete().eq('id_cliente', clienteId);
+          const contratoIds = existingContratos.map((c: any) => c.id_contrato);
+          await (supabase.from(servicoTable) as any).delete().in('id_contrato', contratoIds);
+          await (supabase.from(contratoTable) as any).delete().eq('id_cliente', clienteId);
         }
 
         // Delete + re-insert participantes
@@ -357,8 +365,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
       // 4. Insert contratos + serviços
       for (const contract of contracts) {
-        const { data: newContrato, error: contratoError } = await supabase
-          .from('contrato')
+        const { data: newContrato, error: contratoError } = await (supabase
+          .from(contratoTable) as any)
           .insert({
             id_cliente: clienteId,
             tipo_contrato: contract.tipo_contrato || null,
@@ -379,7 +387,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             valor: null,
             id_catalog_client: s.id_catalog_client || null,
           }));
-          const { error: svcError } = await (supabase.from('servico') as any).insert(svcPayload);
+          const { error: svcError } = await (supabase.from(servicoTable) as any).insert(svcPayload);
           if (svcError) throw svcError;
         }
       }
