@@ -227,6 +227,11 @@ export const TaskModal = ({
   }, [task, form, defaultParentId, parentTasks]);
 
   const handleAssigneeChange = (userId: string) => {
+    if (userId === '_none') {
+      form.setValue('assigned_to', undefined);
+      form.setValue('assigned_to_name', undefined);
+      return;
+    }
     const member = teamMembers.find(m => m.id === userId);
     form.setValue('assigned_to', userId);
     form.setValue('assigned_to_name', member?.name || '');
@@ -492,7 +497,7 @@ export const TaskModal = ({
                   <FormLabel>Responsável</FormLabel>
                   <Select 
                     onValueChange={handleAssigneeChange} 
-                    value={field.value}
+                    value={field.value || '_none'}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -500,6 +505,7 @@ export const TaskModal = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
                       {teamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
