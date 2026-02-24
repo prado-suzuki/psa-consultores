@@ -1,42 +1,41 @@
 
 
-# Renomear rotas de /equipe/tex/ para /equipe/tax/
+# Corrigir inserção de logs de auditoria por membros da equipe
 
-## Resumo
+## Problema
 
-Corrigir os caminhos de URL da area Tax, substituindo `/equipe/tex/` por `/equipe/tax/` em todos os arquivos do frontend e nos registros do banco de dados.
+Você é admin e consegue ver os logs de auditoria, porém só aparecem os seus próprios registros. Isso acontece porque a tabela `audit_logs` só tem política de INSERT para admins. Quando outros usuários (team_member, lider) criam ou editam projetos/tarefas, a inserção do log é bloqueada silenciosamente pelo RLS.
 
-## Arquivos a alterar
+## Causa raiz
 
-### 1. src/App.tsx
-Atualizar as 4 rotas:
-- `/equipe/tex/dashboard` -> `/equipe/tax/dashboard`
-- `/equipe/tex/projetos/cadastro` -> `/equipe/tax/projetos/cadastro`
-- `/equipe/tex/projetos/tarefas` -> `/equipe/tax/projetos/tarefas`
-- `/equipe/tex/auditoria` -> `/equipe/tax/auditoria`
+A tabela `audit_logs` possui apenas:
+- **ALL para admins** -- permite tudo
+- **SELECT para members** -- permite apenas leitura
 
-### 2. src/components/equipe/fiscal/FiscalSidebar.tsx
-Atualizar os 4 caminhos no array `menuItems`.
+Falta uma política de **INSERT** para `team_member` e `lider`.
 
-### 3. src/config/protectedPages.ts
-Atualizar os 4 `page_path` de `/equipe/tex/` para `/equipe/tax/`.
+## Solução
 
-### 4. src/pages/equipe/EquipeAuth.tsx
-Atualizar o redirecionamento `tax: '/equipe/tex/dashboard'` para `tax: '/equipe/tax/dashboard'`.
-
-### 5. Banco de dados (page_permissions)
-Atualizar os registros existentes na tabela `page_permissions`:
+Criar uma única política RLS de INSERT:
 
 ```text
-UPDATE page_permissions SET page_path = '/equipe/tax/dashboard' WHERE page_path = '/equipe/tex/dashboard';
-UPDATE page_permissions SET page_path = '/equipe/tax/projetos/cadastro' WHERE page_path = '/equipe/tex/projetos/cadastro';
-UPDATE page_permissions SET page_path = '/equipe/tax/projetos/tarefas' WHERE page_path = '/equipe/tex/projetos/tarefas';
-UPDATE page_permissions SET page_path = '/equipe/tax/auditoria' WHERE page_path = '/equipe/tex/auditoria';
+CREATE POLICY "Members can insert audit_logs"
+  ON public.audit_logs
+  FOR INSERT
+  WITH CHECK (
+    performed_by = auth.uid()
+    AND (
+      has_role(auth.uid(), 'team_member'::app_role)
+      OR has_role(auth.uid(), 'lider'::app_role)
+    )
+  );
 ```
+
+A restrição `performed_by = auth.uid()` garante que ninguém pode criar logs em nome de outro usuário.
 
 ## Impacto
 
-- 4 arquivos frontend alterados (substituicao direta de texto)
-- 4 registros no banco atualizados
-- Nenhuma logica de negocio alterada, apenas correcao de nomenclatura nas URLs
+- Uma única migração SQL no banco de dados
+- Nenhuma alteração de código frontend (o hook `useAuditLog` já funciona corretamente)
+- A partir da aplicação da política, todas as ações de membros da equipe passarão a ser registradas na auditoria
 
