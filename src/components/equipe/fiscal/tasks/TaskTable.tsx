@@ -131,11 +131,13 @@ const statusLabels = Object.fromEntries(
                 value={task.status}
                 onValueChange={(value) => handleStatusChange(task.id, value as FiscalTaskStatus)}
               >
-                <SelectTrigger className={cn(
-                  "h-8 w-36 font-medium",
-                  statusColors[task.status].combined
-                )}>
-                  <SelectValue />
+                <SelectTrigger className="h-8 w-36">
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded text-xs font-medium",
+                    statusColors[task.status].combined
+                  )}>
+                    {statusLabels[task.status]}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(statusLabels).map(([value, label]) => (

@@ -212,7 +212,7 @@ export const TaskCard = ({
             <div className="flex items-center gap-2 mb-2">
               <StatusIcon className={cn(
                 "h-4 w-4",
-                statusColors[task.status].text
+                task.status === 'done' ? 'text-emerald-500' : 'text-muted-foreground'
               )} />
               <h4 className="font-medium truncate">{task.title}</h4>
               {task.is_recurring && (
