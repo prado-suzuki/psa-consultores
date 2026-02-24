@@ -1,5 +1,6 @@
- import { useState } from 'react';
- import { format } from 'date-fns';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
  import { ChevronDown, ChevronRight, MoreHorizontal, Edit, Trash2, UserPlus, Plus } from 'lucide-react';
  import {
@@ -182,7 +183,7 @@ const statusLabels = {
            <TableCell>
              {task.due_date ? (
                <span className="text-sm">
-                 {format(new Date(task.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                 {format(parseDate(task.due_date), 'dd/MM/yyyy', { locale: ptBR })}
                </span>
              ) : (
                <span className="text-muted-foreground">-</span>

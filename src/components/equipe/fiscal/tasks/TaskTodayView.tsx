@@ -1,4 +1,5 @@
- import { format, isToday } from 'date-fns';
+import { format, isToday } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
  import { CheckCircle2, Circle, AlertCircle } from 'lucide-react';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +33,7 @@
    const updateTask = useUpdateFiscalTask();
  
    const todayTasks = tasks
-     .filter(task => task.due_date && isToday(new Date(task.due_date)))
+     .filter(task => task.due_date && isToday(parseDate(task.due_date)))
      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
  
    const pendingTasks = todayTasks.filter(t => t.status !== 'done');

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { parseDate } from '@/lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -270,7 +271,7 @@ export function WorkPackageSheet({ workPackageId, onClose, onEdit }: WorkPackage
                 </span>
                 <span className="text-sm font-medium text-slate-900">
                   {workPackage.start_date
-                    ? format(new Date(workPackage.start_date), 'dd/MM/yyyy', { locale: ptBR })
+                    ? format(parseDate(workPackage.start_date), 'dd/MM/yyyy', { locale: ptBR })
                     : '-'}
                 </span>
               </div>
@@ -281,7 +282,7 @@ export function WorkPackageSheet({ workPackageId, onClose, onEdit }: WorkPackage
                 </span>
                 <span className="text-sm font-medium text-slate-900">
                   {workPackage.due_date
-                    ? format(new Date(workPackage.due_date), 'dd/MM/yyyy', { locale: ptBR })
+                    ? format(parseDate(workPackage.due_date), 'dd/MM/yyyy', { locale: ptBR })
                     : '-'}
                 </span>
               </div>

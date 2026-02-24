@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { parseDate } from '@/lib/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkPackages } from '@/hooks/useWorkPackages';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export function FiscalWorkPackages() {
     if (activeFilter === 'atrasados') {
       const today = new Date();
       data = data.filter(wp => 
-        wp.due_date && new Date(wp.due_date) < today && wp.status !== 'concluido'
+        wp.due_date && parseDate(wp.due_date) < today && wp.status !== 'concluido'
       );
     }
 
@@ -343,7 +344,7 @@ export function FiscalWorkPackages() {
                   </TableCell>
                   <TableCell className="text-sm text-slate-600">
                     {wp.due_date
-                      ? format(new Date(wp.due_date), 'dd/MM/yyyy', { locale: ptBR })
+                      ? format(parseDate(wp.due_date), 'dd/MM/yyyy', { locale: ptBR })
                       : '-'}
                   </TableCell>
                 </TableRow>
