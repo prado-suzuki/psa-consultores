@@ -197,6 +197,7 @@ const EquipeProcessos = () => {
    const [allProjects, setAllProjects] = useState<Project[]>([]);
    const [newProjectLink, setNewProjectLink] = useState({ project_id: '', impact_type: 'principal' });
    const [isAddingProjectLink, setIsAddingProjectLink] = useState(false);
+   const [taskCount, setTaskCount] = useState<number>(0);
 
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -402,7 +403,7 @@ const EquipeProcessos = () => {
   const fetchProcessDetails = async (processId: string) => {
     setLoadingDetails(true);
     try {
-      const [stagesRes, projectsRes] = await Promise.all([
+      const [stagesRes, projectsRes, taskCountRes] = await Promise.all([
         supabase
           .from('process_stages')
           .select('*')
@@ -414,6 +415,10 @@ const EquipeProcessos = () => {
             *,
             projects:project_id (id, name)
           `)
+          .eq('process_id', processId),
+        supabase
+          .from('sprint_deliverables')
+          .select('id', { count: 'exact', head: true })
           .eq('process_id', processId)
       ]);
 
@@ -422,6 +427,7 @@ const EquipeProcessos = () => {
 
       setProcessStages(stagesRes.data || []);
       setProjectProcesses(projectsRes.data || []);
+      setTaskCount(taskCountRes.count || 0);
     } catch (error) {
       console.error('Error fetching process details:', error);
       toast({
@@ -957,7 +963,7 @@ const EquipeProcessos = () => {
       )}
 
       {/* Process Detail Dialog */}
-      <Dialog open={!!selectedProcess} onOpenChange={(open) => { if (!open) { setSelectedProcess(null); setIsEditing(false); } }}>
+      <Dialog open={!!selectedProcess} onOpenChange={(open) => { if (!open) { setSelectedProcess(null); setIsEditing(false); setTaskCount(0); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1041,6 +1047,14 @@ const EquipeProcessos = () => {
                       <div>
                         <label className="text-sm font-medium text-gray-500">Impacto Financeiro</label>
                         <p className="text-gray-900">{selectedProcess.financial_impact || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Tarefas Vinculadas</label>
+                        <div className="mt-1">
+                          <Badge variant={taskCount > 0 ? "default" : "secondary"}>
+                            {taskCount} tarefa{taskCount !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                     {selectedProcess.description && (
