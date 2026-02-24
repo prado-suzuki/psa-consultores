@@ -12,6 +12,40 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── Authentication: accept service_role JWT or DW_SYNC_TOKEN API key ──
+    const authHeader = req.headers.get("Authorization");
+    const apiKey = req.headers.get("x-api-key");
+
+    let authorized = false;
+
+    // Option 1: API key (for external cron callers)
+    const syncToken = Deno.env.get("DW_SYNC_TOKEN");
+    if (apiKey && syncToken && apiKey === syncToken) {
+      authorized = true;
+    }
+
+    // Option 2: Service role JWT (for server-to-server calls)
+    if (!authorized && authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data, error } = await tempClient.auth.getClaims(token);
+      if (!error && data?.claims?.role === "service_role") {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) {
+      console.error("[check-ticket-deadlines] Unauthorized access attempt");
+      return new Response(
+        JSON.stringify({ error: "Não autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -22,10 +56,10 @@ Deno.serve(async (req) => {
     const { data: tickets, error } = await supabase
       .from("tickets")
       .select("id, title, deadline, user_id, assigned_to")
-      .in("status", ["aberto", "em_andamento"])          // apenas chamados ativos
-      .neq("activity_status", "respondido")               // equipe ainda precisa agir
-      .not("deadline", "is", null)                        // tem prazo definido
-      .lt("deadline", todayStr)                           // prazo JÁ PASSOU (< hoje)
+      .in("status", ["aberto", "em_andamento"])
+      .neq("activity_status", "respondido")
+      .not("deadline", "is", null)
+      .lt("deadline", todayStr)
       .order("deadline", { ascending: true });
 
     if (error) {
@@ -44,7 +78,7 @@ Deno.serve(async (req) => {
     const results = await Promise.allSettled(
       (tickets || []).map((ticket) => {
         const deadlineDate = new Date(ticket.deadline + "T00:00:00Z");
-        const todayDate = new Date(today + "T00:00:00Z");
+        const todayDate = new Date(todayStr + "T00:00:00Z");
         const diffMs = todayDate.getTime() - deadlineDate.getTime();
         const diasAtraso = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -74,7 +108,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        checked_date: today,
+        checked_date: todayStr,
         overdue_count: tickets?.length || 0,
         sent,
         failed,

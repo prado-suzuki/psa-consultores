@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.delete-team-member]
 verify_jwt = false
+
+[functions.check-ticket-deadlines]
+verify_jwt = false
