@@ -1,28 +1,19 @@
 
 
-# Corrigir bug de data registrada um dia antes
+# Adicionar filtro de usuario na tabela de auditoria
 
-## Problema
+## Resumo
 
-Ao selecionar uma data no calendario de tarefas fiscais, a data e salva corretamente (usando `format(date, 'yyyy-MM-dd')` que usa componentes locais). Porem, ao **reabrir** uma tarefa para edicao, a data e parseada com `new Date("2025-03-15")`, que o JavaScript interpreta como meia-noite UTC. No fuso horario do Brasil (UTC-3), isso vira 21h do dia **anterior**, causando a impressao de que a data foi registrada errada.
-
-O mesmo problema ocorre em `start_date`.
-
-## Solucao
-
-Usar a funcao `parseDate` que ja existe em `src/lib/dateUtils.ts` para parsear as strings de data de forma segura, evitando a conversao UTC.
+Adicionar um quarto filtro (Select de usuario) na barra de filtros do componente `AuditLogTable`, ao lado dos filtros existentes de busca, entidade e acao.
 
 ## Mudancas
 
-### Arquivo: `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+### Arquivo: `src/components/equipe/audit/AuditLogTable.tsx`
 
-1. Importar `parseDate` de `@/lib/dateUtils`
-2. Linha 199: trocar `new Date((task as any).start_date)` por `parseDate((task as any).start_date)`
-3. Linha 200: trocar `new Date(task.due_date)` por `parseDate(task.due_date)`
+1. Adicionar estado `userFilter` com valor inicial `'all'`
+2. Usar o `profilesMap` (ja carregado) para popular as opcoes do Select
+3. Adicionar um novo `Select` na barra de filtros com placeholder "Usuario" e as opcoes vindas de `profilesMap`
+4. No filtro de `filteredLogs`, alem do filtro de busca por nome, aplicar tambem o filtro `log.performed_by === userFilter` quando nao for `'all'`
 
-Isso garante que a string `"2025-03-15"` seja parseada como 15 de marco no horario local, sem deslocamento de fuso.
+A ordem dos filtros ficara: Busca por nome | Entidade | Acao | Usuario
 
-## Resultado esperado
-
-- A data selecionada no calendario sera exibida e salva corretamente, sem deslocar um dia para tras
-- Nenhuma mudanca visual ou de comportamento alem da correcao do bug
