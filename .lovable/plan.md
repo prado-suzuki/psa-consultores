@@ -1,44 +1,28 @@
 
 
-# Mover Cadastros para dentro de Acessos como sub-aba
+# Corrigir bug de data registrada um dia antes
 
-## O que sera feito
+## Problema
 
-A pagina separada de "Cadastros" (`/equipe/cadastros`) sera incorporada como uma terceira aba dentro da pagina de "Controle de Acessos" (`/equipe/acessos`), ao lado das abas "Paginas" e "Usuarios". A rota e o arquivo separados serao removidos.
+Ao selecionar uma data no calendario de tarefas fiscais, a data e salva corretamente (usando `format(date, 'yyyy-MM-dd')` que usa componentes locais). Porem, ao **reabrir** uma tarefa para edicao, a data e parseada com `new Date("2025-03-15")`, que o JavaScript interpreta como meia-noite UTC. No fuso horario do Brasil (UTC-3), isso vira 21h do dia **anterior**, causando a impressao de que a data foi registrada errada.
+
+O mesmo problema ocorre em `start_date`.
+
+## Solucao
+
+Usar a funcao `parseDate` que ja existe em `src/lib/dateUtils.ts` para parsear as strings de data de forma segura, evitando a conversao UTC.
 
 ## Mudancas
 
-### 1. Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`
+### Arquivo: `src/components/equipe/fiscal/tasks/TaskModal.tsx`
 
-- Importar os icones adicionais usados em Cadastros (`Building2`, `FolderKanban`, `Workflow`)
-- Adicionar estados para a logica de cadastros (areas, stats, dialogOpen, editingArea, formData, colorPresets)
-- Adicionar funcoes de fetch e CRUD (`fetchCadastros`, `handleSaveCadastro`, `handleToggleActive`, `handleDeleteCadastro`)
-- Adicionar uma terceira aba "Cadastros" no TabsList existente (linha ~661), com icone `Building2`
-- Adicionar o `TabsContent value="cadastros"` contendo a tabela de areas internas, visao geral e dialog de criacao/edicao (mesmo conteudo que hoje esta em `EquipeCadastros.tsx`)
+1. Importar `parseDate` de `@/lib/dateUtils`
+2. Linha 199: trocar `new Date((task as any).start_date)` por `parseDate((task as any).start_date)`
+3. Linha 200: trocar `new Date(task.due_date)` por `parseDate(task.due_date)`
 
-A estrutura de abas ficara:
-
-```
-Paginas | Usuarios | Cadastros
-```
-
-### 2. Arquivo: `src/App.tsx`
-
-- Remover o import de `EquipeCadastros`
-- Remover a rota `/equipe/cadastros`
-
-### 3. Arquivo: `src/pages/equipe/EquipeCadastros.tsx`
-
-- Sera removido (ou mantido vazio) ja que todo o conteudo foi migrado para EquipeControleAcessos
-
-### 4. Sidebar (se houver referencia)
-
-- Remover qualquer link para `/equipe/cadastros` na navegacao do DigitalAreaSelector ou EquipeLayout, caso exista
+Isso garante que a string `"2025-03-15"` seja parseada como 15 de marco no horario local, sem deslocamento de fuso.
 
 ## Resultado esperado
 
-- Ao acessar `/equipe/acessos`, o admin vera 3 abas: Paginas, Usuarios e Cadastros
-- A aba Cadastros tera exatamente a mesma funcionalidade atual (CRUD de areas internas com cores, lideres e status)
-- A rota `/equipe/cadastros` deixa de existir
-- Tudo centralizado em um unico ponto de gestao administrativa
-
+- A data selecionada no calendario sera exibida e salva corretamente, sem deslocar um dia para tras
+- Nenhuma mudanca visual ou de comportamento alem da correcao do bug
