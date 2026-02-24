@@ -27,8 +27,9 @@ import { parseDate } from '@/lib/dateUtils';
    DropdownMenuItem,
    DropdownMenuTrigger,
  } from '@/components/ui/dropdown-menu';
- import { cn } from '@/lib/utils';
- import { FiscalTask, FiscalTaskStatus, FiscalTaskPriority, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
+import { cn } from '@/lib/utils';
+import { FiscalTask, FiscalTaskStatus, FiscalTaskPriority, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
+import { statusColors } from '@/lib/taskStatusColors';
  
 interface TaskTableProps {
   tasks: FiscalTask[];
@@ -52,14 +53,9 @@ interface TaskTableProps {
    low: 'Baixa',
  };
  
-const statusLabels = {
-  backlog: 'Backlog',
-  waiting_client: 'Pendente Cliente',
-  todo: 'A Fazer',
-  in_progress: 'Em Progresso',
-  review: 'Revisão',
-  done: 'Concluído',
-};
+const statusLabels = Object.fromEntries(
+  Object.entries(statusColors).map(([k, v]) => [k, v.label])
+) as Record<FiscalTaskStatus, string>;
  
  
  export const TaskTable = ({ tasks, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
@@ -130,21 +126,28 @@ const statusLabels = {
                )}
              </div>
            </TableCell>
-           <TableCell>
-             <Select
-               value={task.status}
-               onValueChange={(value) => handleStatusChange(task.id, value as FiscalTaskStatus)}
-             >
-               <SelectTrigger className="h-8 w-32">
-                 <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-                 {Object.entries(statusLabels).map(([value, label]) => (
-                   <SelectItem key={value} value={value}>{label}</SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-           </TableCell>
+            <TableCell>
+              <Select
+                value={task.status}
+                onValueChange={(value) => handleStatusChange(task.id, value as FiscalTaskStatus)}
+              >
+                <SelectTrigger className={cn(
+                  "h-8 w-36 font-medium",
+                  statusColors[task.status].combined
+                )}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(statusLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", statusColors[value as FiscalTaskStatus].combined)}>
+                        {label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </TableCell>
            <TableCell>
              <Select
                value={task.priority}

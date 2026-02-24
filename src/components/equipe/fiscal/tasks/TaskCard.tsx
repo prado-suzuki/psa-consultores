@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { FiscalTask } from '@/hooks/useFiscalTasks';
+import { statusColors } from '@/lib/taskStatusColors';
 
 interface TaskCardProps {
   task: FiscalTask;
@@ -211,7 +212,7 @@ export const TaskCard = ({
             <div className="flex items-center gap-2 mb-2">
               <StatusIcon className={cn(
                 "h-4 w-4",
-                task.status === 'done' ? 'text-emerald-500' : 'text-muted-foreground'
+                statusColors[task.status].text
               )} />
               <h4 className="font-medium truncate">{task.title}</h4>
               {task.is_recurring && (
