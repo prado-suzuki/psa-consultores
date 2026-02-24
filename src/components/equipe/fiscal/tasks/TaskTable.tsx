@@ -61,12 +61,6 @@ const statusLabels = {
   done: 'Concluído',
 };
  
- const departmentLabels: Record<string, string> = {
-   commercial: 'Comercial',
-   financial: 'Financeiro',
-   administrative: 'Administrativo',
-   operations: 'Operações',
- };
  
  export const TaskTable = ({ tasks, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -190,13 +184,6 @@ const statusLabels = {
              )}
            </TableCell>
            <TableCell>
-             {task.department ? (
-               <span className="text-sm">{departmentLabels[task.department]}</span>
-             ) : (
-               <span className="text-muted-foreground">-</span>
-             )}
-           </TableCell>
-           <TableCell>
              <DropdownMenu>
                <DropdownMenuTrigger asChild>
                  <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -244,14 +231,14 @@ const statusLabels = {
              <TableHead className="w-[120px]">Prioridade</TableHead>
              <TableHead className="w-[180px]">Responsável</TableHead>
              <TableHead className="w-[120px]">Data de Vencimento</TableHead>
-             <TableHead className="w-[140px]">Departamento</TableHead>
+             
              <TableHead className="w-[60px]"></TableHead>
            </TableRow>
          </TableHeader>
          <TableBody>
            {parentTasks.length === 0 ? (
              <TableRow>
-               <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                  Nenhuma tarefa encontrada
                </TableCell>
              </TableRow>

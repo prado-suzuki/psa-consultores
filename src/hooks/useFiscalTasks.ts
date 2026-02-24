@@ -4,11 +4,10 @@
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
  
- export type FiscalTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
- export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
- export type FiscalTaskCategory = 'task' | 'fixed_event';
- export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
- export type FiscalTaskDepartment = 'commercial' | 'financial' | 'administrative' | 'operations';
+export type FiscalTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
+export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type FiscalTaskCategory = 'task' | 'fixed_event';
+export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
  
 export interface FiscalTask {
    id: string;
@@ -25,7 +24,7 @@ export interface FiscalTask {
    recurrence_type: FiscalRecurrenceType | null;
    category: FiscalTaskCategory;
    tags: string[];
-   department: FiscalTaskDepartment | null;
+   
    parent_task_id: string | null;
   project_id: string | null;
   client_id: string | null;
@@ -55,7 +54,6 @@ export interface TaskFilters {
   assignedTo?: string | 'mine' | 'all';
   status?: FiscalTaskStatus[];
   priority?: FiscalTaskPriority[];
-  department?: FiscalTaskDepartment[];
   projectId?: string;
   clientId?: string;
   contribuinteId?: string;
@@ -119,9 +117,6 @@ export interface TaskFilters {
          query = query.in('priority', filters.priority);
        }
  
-      if (filters?.department && filters.department.length > 0) {
-        query = query.in('department', filters.department);
-      }
 
        if (filters?.projectId) {
          query = query.eq('project_id', filters.projectId);
