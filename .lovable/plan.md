@@ -1,41 +1,26 @@
 
 
-# Corrigir inserção de logs de auditoria por membros da equipe
+# Renomear "Líder" para "Líder Responsável" no Controle de Acessos
 
-## Problema
+## Objetivo
 
-Você é admin e consegue ver os logs de auditoria, porém só aparecem os seus próprios registros. Isso acontece porque a tabela `audit_logs` só tem política de INSERT para admins. Quando outros usuários (team_member, lider) criam ou editam projetos/tarefas, a inserção do log é bloqueada silenciosamente pelo RLS.
+Padronizar o nome da role "Líder" para "Líder Responsável" em toda a tela de Controle de Acessos (`/equipe/acessos`), mantendo consistência com o campo "Líder Responsável" usado nos formulários de projetos em `/equipe/tax/projetos/cadastro`.
 
-## Causa raiz
+## Alteracoes
 
-A tabela `audit_logs` possui apenas:
-- **ALL para admins** -- permite tudo
-- **SELECT para members** -- permite apenas leitura
+Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`
 
-Falta uma política de **INSERT** para `team_member` e `lider`.
+1. **Formulario de criacao de usuario** (linha 1072) -- alterar label de `'Líder'` para `'Líder Responsável'`
+2. **Formulario de edicao de usuario** (linha 1540) -- mesma alteracao
+3. **Badge na lista de usuarios** (linha 1204) -- atualmente exibe o valor bruto da role (`lider`). Adicionar mapeamento para exibir `Líder Responsável` em vez do texto cru.
 
-## Solução
+### Detalhes tecnicos
 
-Criar uma única política RLS de INSERT:
+- Nas duas listas de roles (create e edit), trocar `label: 'Líder'` por `label: 'Líder Responsável'`
+- Na renderizacao do badge (linha ~1204), substituir `{role}` por um mapeamento:
+  - `admin` -> `Admin`
+  - `team_member` -> `Equipe`
+  - `lider` -> `Líder Responsável`
+  - `client` -> `Cliente`
 
-```text
-CREATE POLICY "Members can insert audit_logs"
-  ON public.audit_logs
-  FOR INSERT
-  WITH CHECK (
-    performed_by = auth.uid()
-    AND (
-      has_role(auth.uid(), 'team_member'::app_role)
-      OR has_role(auth.uid(), 'lider'::app_role)
-    )
-  );
-```
-
-A restrição `performed_by = auth.uid()` garante que ninguém pode criar logs em nome de outro usuário.
-
-## Impacto
-
-- Uma única migração SQL no banco de dados
-- Nenhuma alteração de código frontend (o hook `useAuditLog` já funciona corretamente)
-- A partir da aplicação da política, todas as ações de membros da equipe passarão a ser registradas na auditoria
-
+Nenhuma alteracao de banco de dados e necessaria -- o valor armazenado continua sendo `lider`.
