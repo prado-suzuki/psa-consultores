@@ -44,6 +44,14 @@ interface SprintImpact {
   improvementsCount: number;
 }
 
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+};
+
 const EquipeSprints = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -134,8 +142,10 @@ const EquipeSprints = () => {
 
       // Fetch hours for each sprint
       if (sprintsData && sprintsData.length > 0) {
-        await fetchSprintHours(sprintsData);
-        await fetchSprintImpacts(sprintsData);
+        await Promise.all([
+          fetchSprintHours(sprintsData).catch(err => console.error('Hours error:', err)),
+          fetchSprintImpacts(sprintsData).catch(err => console.error('Impacts error:', err))
+        ]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -162,11 +172,17 @@ const EquipeSprints = () => {
         profileMap[p.id] = `${p.first_name} ${p.last_name}`.trim() || 'Sem nome';
       });
 
-      // Fetch deliverables for all sprints
-      const { data: deliverables } = await supabase
-        .from('sprint_deliverables')
-        .select('sprint_id, assigned_to, estimated_hours')
-        .in('sprint_id', sprintsList.map(s => s.id));
+      // Fetch deliverables for all sprints (chunked to avoid URL limit)
+      const sprintIds = sprintsList.map(s => s.id);
+      const sprintChunks = chunkArray(sprintIds, 50);
+      const deliverables: { sprint_id: string; assigned_to: string | null; estimated_hours: number | null }[] = [];
+      for (const chunk of sprintChunks) {
+        const { data } = await supabase
+          .from('sprint_deliverables')
+          .select('sprint_id, assigned_to, estimated_hours')
+          .in('sprint_id', chunk);
+        if (data) deliverables.push(...data);
+      }
 
       const hoursMap: Record<string, Record<string, number>> = {};
 
@@ -202,13 +218,19 @@ const EquipeSprints = () => {
 
   const fetchSprintImpacts = async (sprintsList: Sprint[]) => {
     try {
-      // Buscar deliverables de todas as sprints
-      const { data: deliverables } = await supabase
-        .from('sprint_deliverables')
-        .select('id, sprint_id')
-        .in('sprint_id', sprintsList.map(s => s.id));
+      // Buscar deliverables de todas as sprints (chunked)
+      const sprintIds = sprintsList.map(s => s.id);
+      const sprintChunks = chunkArray(sprintIds, 50);
+      const deliverables: { id: string; sprint_id: string }[] = [];
+      for (const chunk of sprintChunks) {
+        const { data } = await supabase
+          .from('sprint_deliverables')
+          .select('id, sprint_id')
+          .in('sprint_id', chunk);
+        if (data) deliverables.push(...data);
+      }
 
-      if (!deliverables || deliverables.length === 0) {
+      if (deliverables.length === 0) {
         return;
       }
 
@@ -218,14 +240,19 @@ const EquipeSprints = () => {
         deliverableToSprintMap[d.id] = d.sprint_id;
       });
 
-      // Buscar melhorias completadas vinculadas a esses deliverables
-      const { data: improvements } = await supabase
-        .from('process_improvements')
-        .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
-        .eq('evaluation_status', 'completed')
-        .in('sprint_deliverable_id', deliverableIds);
+      // Buscar melhorias completadas vinculadas a esses deliverables (chunked)
+      const idChunks = chunkArray(deliverableIds, 50);
+      const improvements: { sprint_deliverable_id: string | null; cost_saved_monthly: number | null; time_saved_hours: number | null }[] = [];
+      for (const chunk of idChunks) {
+        const { data } = await supabase
+          .from('process_improvements')
+          .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
+          .eq('evaluation_status', 'completed')
+          .in('sprint_deliverable_id', chunk);
+        if (data) improvements.push(...data);
+      }
 
-      if (!improvements || improvements.length === 0) {
+      if (improvements.length === 0) {
         return;
       }
 
