@@ -242,7 +242,7 @@ const statusLabels = {
              <TableHead className="w-[140px]">Status</TableHead>
              <TableHead className="w-[120px]">Prioridade</TableHead>
              <TableHead className="w-[180px]">Responsável</TableHead>
-             <TableHead className="w-[120px]">Data</TableHead>
+             <TableHead className="w-[120px]">Data de Entrega</TableHead>
              <TableHead className="w-[140px]">Departamento</TableHead>
              <TableHead className="w-[60px]"></TableHead>
            </TableRow>
