@@ -6,23 +6,24 @@ import { parseDate } from '@/lib/dateUtils';
  import { Button } from '@/components/ui/button';
  import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
  import { ScrollArea } from '@/components/ui/scroll-area';
- import { cn } from '@/lib/utils';
- import { FiscalTask } from '@/hooks/useFiscalTasks';
- import { TaskCard } from './TaskCard';
- 
- interface TaskCalendarProps {
-   tasks: FiscalTask[];
-   onEdit: (task: FiscalTask) => void;
-   onDelete: (taskId: string) => void;
-   onReassign: (task: FiscalTask) => void;
- }
- 
- const priorityColors = {
-   urgent: 'bg-red-500',
-   high: 'bg-amber-500',
-   medium: 'bg-blue-500',
-   low: 'bg-slate-400',
- };
+import { cn } from '@/lib/utils';
+import { FiscalTask } from '@/hooks/useFiscalTasks';
+import { statusColors } from '@/lib/taskStatusColors';
+import { TaskCard } from './TaskCard';
+
+interface TaskCalendarProps {
+  tasks: FiscalTask[];
+  onEdit: (task: FiscalTask) => void;
+  onDelete: (taskId: string) => void;
+  onReassign: (task: FiscalTask) => void;
+}
+
+const priorityColors = {
+  urgent: 'bg-red-500',
+  high: 'bg-amber-500',
+  medium: 'bg-blue-500',
+  low: 'bg-slate-400',
+};
  
  export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalendarProps) => {
    const [currentMonth, setCurrentMonth] = useState(new Date());
