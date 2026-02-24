@@ -277,27 +277,51 @@ export interface TaskFilters {
        comment: string;
        currentUserName: string;
      }) => {
-       const { error: updateError } = await supabase
-         .from('fiscal_tasks')
-         .update({
-           assigned_to: newAssigneeId,
-           assigned_to_name: newAssigneeName,
-         })
-         .eq('id', taskId);
- 
-       if (updateError) throw updateError;
- 
-       const { error: commentError } = await supabase
-         .from('fiscal_task_comments')
-         .insert({
-           task_id: taskId,
-           user_id: user?.id,
-           user_name: currentUserName,
-           comment: `Tarefa reatribuída para ${newAssigneeName}. Motivo: ${comment}`,
-           is_system: true,
-         });
- 
-       if (commentError) throw commentError;
+        // Fetch current task to get old assignee and title
+        const { data: currentTask } = await supabase
+          .from('fiscal_tasks')
+          .select('title, assigned_to, assigned_to_name, parent_task_id')
+          .eq('id', taskId)
+          .single();
+
+        const { error: updateError } = await supabase
+          .from('fiscal_tasks')
+          .update({
+            assigned_to: newAssigneeId,
+            assigned_to_name: newAssigneeName,
+          })
+          .eq('id', taskId);
+
+        if (updateError) throw updateError;
+
+        const { error: commentError } = await supabase
+          .from('fiscal_task_comments')
+          .insert({
+            task_id: taskId,
+            user_id: user?.id,
+            user_name: currentUserName,
+            comment: `Tarefa reatribuída para ${newAssigneeName}. Motivo: ${comment}`,
+            is_system: true,
+          });
+
+        if (commentError) throw commentError;
+
+        // Audit log for reassignment
+        if (user?.id && currentTask) {
+          await supabase.from('audit_logs').insert({
+            area: 'tax',
+            entity_type: currentTask.parent_task_id ? 'subtask' : 'task',
+            entity_id: taskId,
+            entity_name: currentTask.title || 'Tarefa',
+            action: 'updated',
+            changed_fields: {
+              assigned_to: { old: currentTask.assigned_to, new: newAssigneeId },
+              assigned_to_name: { old: currentTask.assigned_to_name, new: newAssigneeName },
+            },
+            performed_by: user.id,
+            details: `Reatribuído para ${newAssigneeName}. Motivo: ${comment}`,
+          });
+        }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
