@@ -1,124 +1,52 @@
-## Migrar endpoint de itens agrupados para o novo `/api/v1/ibs-cbs/`
-
-### Resumo
-
-O endpoint de listagem de itens agrupados foi movido para uma rota dedicada ao IBS/CBS. Precisamos atualizar a URL, os parametros de query, os tipos TypeScript e a logica de mapeamento para refletir a nova resposta simplificada.
-
----
-
-### Mudancas no endpoint
 
 
-| Aspecto                         | Antes                                                 | Depois                                    |
-| ------------------------------- | ----------------------------------------------------- | ----------------------------------------- |
-| URL                             | `/api/v1/query/contribuintes/{id}/nfes/agrupado-item` | `/api/v1/ibs-cbs/{id}/nfes/agrupado-item` |
-| Query param `tipo_analise`      | `ibs_cbs` (obrigatorio)                               | Removido                                  |
-| Query param `tipo_mov`          | `Saida` (com acento: `Saída`)                         | `Saida` (sem acento)                      |
-| Query param `page_size` default | 25                                                    | 25                                        |
-| Query params de filtro `valid`  | `true`/`false`                                        | Não existe mais                           |
+# Correcao: Heranca automatica de projeto/processo nas subtarefas
 
+## Problema identificado
+Analisando o banco de dados, existem **327 subtarefas** no total. Destas:
+- **92 subtarefas** estao sem `project_id` mas a tarefa pai tem
+- **65 subtarefas** estao sem `process_id` mas a tarefa pai tem
 
-### Campos removidos da resposta
+Isso impede o calculo correto de ROI por projeto/processo.
 
-Os seguintes campos nao sao mais retornados pelo novo endpoint e serao removidos dos tipos e da UI:
+## Solucao em 2 partes
 
-- `CFOP`
-- `CST`
-- `aliq_prod`
-- `pRedBC`
+### Parte 1: Corrigir dados historicos (migracao SQL)
 
-### Campo adicionado
+Executar um UPDATE que propaga `project_id` e `process_id` do pai para todos os filhos que estejam sem esses campos:
 
-- `is_valid` (number: 0 ou 1) -- indica se o item ja foi validado
-- `redBC` (float) -- percentual de redução da aliquota de IBS CBS
-
-### Campo alterado
-
-- `cProd` agora e retornado como `number` (antes era `string`)
-
----
-
-### Arquivos a editar
-
-#### 1. `src/types/ibscbs.ts`
-
-- Remover campos `CFOP`, `CST`, `aliq_prod`, `pRedBC` de `IbsCbsApiGroupedItem`
-- Adicionar campo `is_valid: number`
-- Alterar tipo de `cProd` para `number`
-- Remover campos `cfop`, `cst_icms`, `aliq_icms`, `pRedBC` de `IbsCbsGroupedItem`
-
-#### 2. `src/pages/equipe/dev/CalculadoraIbsCbs.tsx`
-
-- Alterar URL da query de itens agrupados (linha ~255) para o novo endpoint
-- Remover `&tipo_analise=ibs_cbs` da URL
-- Alterar `tipo_mov=Saída` para `tipo_mov=Saida`
-- Alterar `ITEMS_PER_PAGE` de 25 para 100
-- Atualizar o mapeamento de `IbsCbsApiGroupedItem` para `IbsCbsGroupedItem` (remover campos inexistentes)
-- Usar `is_valid` da resposta para determinar status (`validado`/`pendente`) em vez de depender apenas das classificacoes
-- Remover colunas CFOP, CST ICMS, Aliquota e Red BC da tabela na UI (se exibidas)
-
-#### 3. `src/components/equipe/dev/IbsCbsAuditModal.tsx`
-
-- Remover exibicao dos campos `cfop`, `cst_icms`, `aliq_icms`, `pRedBC` no painel lateral de "Dados do Produto"
-- Remover a secao "Tributacao" que mostra CST ICMS, Aliquota e Red BC
-
----
-
-### Detalhes tecnicos
-
-**Nova URL construida:**
-
-```typescript
-const url = `${API_BASE_URL}/api/v1/ibs-cbs/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Saida&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+```sql
+UPDATE sprint_deliverables child
+SET 
+  project_id = COALESCE(child.project_id, parent.project_id),
+  process_id = COALESCE(child.process_id, parent.process_id)
+FROM sprint_deliverables parent
+WHERE child.parent_id = parent.id
+  AND (
+    (child.project_id IS NULL AND parent.project_id IS NOT NULL)
+    OR
+    (child.process_id IS NULL AND parent.process_id IS NOT NULL)
+  );
 ```
 
-**Novo mapeamento de item:**
+Isso corrige as 92 + 65 subtarefas de uma vez, sem alterar subtarefas que ja tenham valores proprios.
 
-```typescript
-(item: IbsCbsApiGroupedItem): IbsCbsGroupedItem => ({
-  groupKey: `${item.xProd}|${item.cProd}|${item.NCM}`,
-  xProd: item.xProd,
-  cod_produto: String(item.cProd),
-  cod_ncm: item.NCM,
-  id_contribuinte: selectedContribuinte,
-  count: item.tot_itens,
-  totalValue: item.vlr_total,
-  nfesCount: item.tot_nfes,
-  redBC: item.redBC,
-  status: item.is_valid === 1 ? "validado" : "pendente",
-  classificacao: null,
-})
-```
+### Parte 2: Prevenir o problema em novas criacoes (3 pontos no codigo)
 
-`**IbsCbsApiGroupedItem` atualizado:**
+**Arquivo: `src/pages/equipe/EquipeSprintDetalhes.tsx`**
 
-```typescript
-export interface IbsCbsApiGroupedItem {
-  cProd: number;
-  xProd: string;
-  NCM: string;
-  tot_itens: number;
-  tot_nfes: number;
-  vlr_total: number;
-  redBC: number | null;
-  is_valid: number;
-}
-```
+1. **Formulario manual de criacao (linha ~2276)**: Ao selecionar tarefa pai, preencher automaticamente `project_id` e `process_id` do pai:
+   - Buscar o registro pai em `deliverables`
+   - Setar `project_id` e `process_id` no estado do formulario
 
-`**IbsCbsGroupedItem` atualizado:**
+2. **Importacao Excel simplificada (linha ~599-610)**: Ao montar o objeto de cada subtask, incluir `project_id` e `process_id` herdados do `parentData` recem-inserido.
 
-```typescript
-export interface IbsCbsGroupedItem {
-  groupKey: string;
-  xProd: string;
-  cod_produto: string;
-  cod_ncm: string;
-  id_contribuinte: string;
-  count: number;
-  totalValue: number;
-  nfesCount: number;
-  redBC: number | null;
-  status: 'validado' | 'pendente';
-  classificacao?: IbsCbsClassificacaoExistente | null;
-}
-```
+**Arquivo: `src/lib/excelImporter.ts`**
+
+3. **Importacao Excel avancada (funcao `convertToDeliverables`)**: Quando a subtarefa nao tem projeto/processo proprio, usar como fallback os valores do `parentDeliverable` ja montado no mesmo grupo.
+
+## Resultado esperado
+- Todas as 92+65 subtarefas historicas serao corrigidas imediatamente
+- Novas subtarefas criadas (manual ou importacao) herdam automaticamente do pai
+- O calculo de ROI por projeto/processo ficara coerente
+
