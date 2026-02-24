@@ -62,7 +62,7 @@ const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): 
 const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
   const areaRoutes: Record<string, string> = {
     digital: '/equipe/digital',
-    tax: '/equipe/tex/dashboard',
+    tax: '/equipe/tax/dashboard',
     osg: '/equipe/osg/dashboard',
     controle_site: '/gestao',
     board: '/equipe/board/dashboard',
