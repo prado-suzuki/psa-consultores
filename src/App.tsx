@@ -25,7 +25,7 @@ import EquipeDashboard from "./pages/equipe/EquipeDashboard";
 import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
 import EquipeSprints from "./pages/equipe/EquipeSprints";
-import EquipeCadastros from "./pages/equipe/EquipeCadastros";
+
 import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
 import EquipeRotinas from "./pages/equipe/EquipeRotinas";
@@ -133,7 +133,7 @@ const App = () => (
             <Route path="/equipe/dev/gestao-clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/calculadora-ibs-cbs" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
-            <Route path="/equipe/cadastros" element={<AdminRoute><EquipeCadastros /></AdminRoute>} />
+            
             
             {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
             <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
