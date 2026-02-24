@@ -26,6 +26,41 @@ interface Recipient {
   role: RecipientRole;
 }
 
+// ── Auth helper ──
+
+async function validateCaller(req: Request): Promise<{ authorized: boolean; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { authorized: false, error: "No authorization header" };
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return { authorized: false, error: "Invalid token" };
+  }
+
+  // Accept service_role (server-to-server calls from check-ticket-deadlines)
+  if (data.claims.role === "service_role") {
+    return { authorized: true };
+  }
+
+  // For user tokens, verify they are authenticated (any logged-in user can trigger notifications)
+  const userId = data.claims.sub as string;
+  if (!userId) {
+    return { authorized: false, error: "No user ID in token" };
+  }
+
+  return { authorized: true };
+}
+
 // ── Helper functions ──
 
 async function getTicketUrlForUser(
@@ -74,11 +109,6 @@ async function getNameForUser(
   return `${data.first_name} ${data.last_name}`.trim() || "Usuário";
 }
 
-// ── Email template generation ──
-
-// Removidas funcoes de geracao de HTML (responsabilidade do n8n)
-// Payload estruturado com ticket_data para n8n gerar o template
-
 // ── Main handler ──
 
 Deno.serve(async (req) => {
@@ -87,6 +117,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── Authentication check ──
+    const authResult = await validateCaller(req);
+    if (!authResult.authorized) {
+      console.error("[notify-ticket] Auth failed:", authResult.error);
+      return new Response(
+        JSON.stringify({ error: "Não autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { event_type, ticket_id, actor_name, message_preview, dias_atraso } = await req.json();
 
     if (!event_type || !ticket_id) {
@@ -154,7 +194,6 @@ Deno.serve(async (req) => {
       }
 
     } else if (event_type === "ticket_replied") {
-      // Always include all parties — n8n filters by replier_role
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
       if (clientEmail) {
         const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
@@ -170,7 +209,6 @@ Deno.serve(async (req) => {
       recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
 
     } else if (event_type === "ticket_overdue") {
-      // Apenas gestor recebe alerta de prazo vencido
       recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
 
     } else if (event_type === "ticket_resolved") {
@@ -193,7 +231,6 @@ Deno.serve(async (req) => {
 
     // ── Send single consolidated webhook ──
 
-    // Buscar nome e email do cliente uma única vez
     const [clientName, clientEmail] = await Promise.all([
       getNameForUser(supabase, ticket.user_id),
       getEmailForUser(supabase, ticket.user_id),
