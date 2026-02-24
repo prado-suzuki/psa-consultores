@@ -1,87 +1,33 @@
 
-# Correcao: Pagina de Sprints travada no carregamento
 
-## Problema raiz
+# Exibir quantidade de tarefas associadas ao processo no card de detalhes
 
-A funcao `fetchSprintImpacts` em `EquipeSprints.tsx` (linhas 203-255) busca **todos** os IDs de deliverables de **todas** as sprints e passa em uma unica chamada `.in('sprint_deliverable_id', deliverableIds)`. Com 400+ UUIDs (cada um com 36 caracteres), a URL da requisicao GET excede o limite do PostgREST (~8KB), fazendo a requisicao travar silenciosamente sem erro. O `setLoading(false)` nunca e chamado porque a promise nunca resolve.
+## O que sera feito
+Ao abrir os detalhes de um processo (clicando em "Ver Detalhes"), o sistema buscara quantas tarefas (da tabela `sprint_deliverables`) estao vinculadas a esse processo e exibira essa informacao na aba "Informacoes".
 
-## Solucao
+## Mudancas
 
-### Arquivo: `src/pages/equipe/EquipeSprints.tsx`
+### Arquivo: `src/pages/equipe/EquipeProcessos.tsx`
 
-**Mudanca 1 - Dividir consulta `.in()` em lotes (chunking):**
+1. **Novo estado**: Adicionar `const [taskCount, setTaskCount] = useState<number>(0);` para armazenar a contagem.
 
-Criar uma funcao auxiliar que divide arrays grandes em lotes de no maximo 50 IDs e faz as consultas em paralelo:
+2. **Buscar contagem em `fetchProcessDetails`** (linha ~402): Adicionar uma terceira query em paralelo no `Promise.all`:
+   ```typescript
+   supabase
+     .from('sprint_deliverables')
+     .select('id', { count: 'exact', head: true })
+     .eq('process_id', processId)
+   ```
+   E setar `setTaskCount(taskCountRes.count || 0)`.
 
-```typescript
-const chunkArray = <T,>(arr: T[], size: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-};
-```
+3. **Exibir no card de detalhes** (aba "Informacoes", linha ~1018): Adicionar um novo campo no grid de informacoes, abaixo dos existentes:
+   ```
+   Tarefas Vinculadas: 12
+   ```
+   Com um Badge mostrando o numero, similar ao padrao ja usado nos outros campos.
 
-**Mudanca 2 - Aplicar chunking em `fetchSprintImpacts` (linhas 222-226):**
-
-Em vez de uma unica chamada `.in()` com todos os IDs, dividir em lotes:
-
-```typescript
-const chunks = chunkArray(deliverableIds, 50);
-const allImprovements = [];
-for (const chunk of chunks) {
-  const { data } = await supabase
-    .from('process_improvements')
-    .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
-    .eq('evaluation_status', 'completed')
-    .in('sprint_deliverable_id', chunk);
-  if (data) allImprovements.push(...data);
-}
-```
-
-**Mudanca 3 - Aplicar chunking em `fetchSprintHours` (linhas 166-169):**
-
-A mesma logica para a query de deliverables por sprint (tambem usa `.in()`):
-
-```typescript
-const sprintIds = sprintsList.map(s => s.id);
-const chunks = chunkArray(sprintIds, 50);
-const allDeliverables = [];
-for (const chunk of chunks) {
-  const { data } = await supabase
-    .from('sprint_deliverables')
-    .select('sprint_id, assigned_to, estimated_hours')
-    .in('sprint_id', chunk);
-  if (data) allDeliverables.push(...data);
-}
-```
-
-**Mudanca 4 - Adicionar try/catch robusto no `fetchData`:**
-
-Garantir que `setLoading(false)` sempre execute, mesmo que uma sub-funcao falhe:
-
-```typescript
-const fetchData = async () => {
-  try {
-    // ... existing code ...
-    if (sprintsData && sprintsData.length > 0) {
-      await Promise.all([
-        fetchSprintHours(sprintsData).catch(err => console.error('Hours error:', err)),
-        fetchSprintImpacts(sprintsData).catch(err => console.error('Impacts error:', err))
-      ]);
-    }
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-```
+4. **Resetar ao fechar**: Setar `setTaskCount(0)` quando o dialog fecha (no `onOpenChange`).
 
 ## Resultado esperado
-
-- A pagina de sprints carrega normalmente mesmo com centenas de deliverables
-- Consultas sao feitas em lotes de 50 IDs, respeitando limites de URL
-- Erros em sub-consultas nao bloqueiam o carregamento da pagina
-- As funcoes `fetchSprintHours` e `fetchSprintImpacts` executam em paralelo (mais rapido)
+- Ao abrir os detalhes de qualquer processo, aparecera "Tarefas Vinculadas" com a contagem exata de tarefas da sprint associadas a ele
+- Isso permite avaliar rapidamente a relevancia e a carga de trabalho de cada processo
