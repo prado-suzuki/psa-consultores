@@ -142,13 +142,13 @@ const App = () => (
             <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
             <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
             
-            {/* Tex (Fiscal) Routes */}
-            <Route path="/equipe/tex/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/tex/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
-             <Route path="/equipe/tex/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
+            {/* Tax (Fiscal) Routes */}
+            <Route path="/equipe/tax/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tax/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
+             <Route path="/equipe/tax/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
             
             {/* Tax Auditoria */}
-            <Route path="/equipe/tex/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/tex/auditoria"><FiscalAuditoria /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tax/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate></TeamRoute>} />
 
             {/* OSG Routes */}
             <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />

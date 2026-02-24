@@ -46,7 +46,7 @@ const menuItems: MenuItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/equipe/tex/dashboard'
+    path: '/equipe/tax/dashboard'
   },
   {
     id: 'projetos',
@@ -57,13 +57,13 @@ const menuItems: MenuItem[] = [
         id: 'cadastro-projetos',
         label: 'Cadastro',
         icon: FolderKanban,
-        path: '/equipe/tex/projetos/cadastro'
+        path: '/equipe/tax/projetos/cadastro'
        },
        {
          id: 'tarefas',
          label: 'Tarefas',
          icon: ListTodo,
-         path: '/equipe/tex/projetos/tarefas'
+         path: '/equipe/tax/projetos/tarefas'
       }
     ]
   },
@@ -71,7 +71,7 @@ const menuItems: MenuItem[] = [
     id: 'auditoria',
     label: 'Auditoria',
     icon: Shield,
-    path: '/equipe/tex/auditoria'
+    path: '/equipe/tax/auditoria'
   }
 ];
 

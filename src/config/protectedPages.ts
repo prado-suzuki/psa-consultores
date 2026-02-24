@@ -131,7 +131,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
 
   // === TEX PAGES ===
   {
-    page_path: '/equipe/tex/dashboard',
+    page_path: '/equipe/tax/dashboard',
     page_name: 'Tax Dashboard',
     page_description: 'Painel principal da área Tax',
     category: 'tax',
@@ -139,7 +139,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/tex/projetos/cadastro',
+    page_path: '/equipe/tax/projetos/cadastro',
     page_name: 'Tax Cadastro',
     page_description: 'Cadastro de projetos da área Tax',
     category: 'tax',
@@ -147,7 +147,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/tex/projetos/tarefas',
+    page_path: '/equipe/tax/projetos/tarefas',
     page_name: 'Tax Tarefas',
     page_description: 'Tarefas de projetos da área Tax',
     category: 'tax',
@@ -225,7 +225,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
 
   // === AUDITORIA PAGES ===
   {
-    page_path: '/equipe/tex/auditoria',
+    page_path: '/equipe/tax/auditoria',
     page_name: 'Auditoria Tax',
     page_description: 'Histórico de alterações em projetos e tarefas Tax',
     category: 'tax',
