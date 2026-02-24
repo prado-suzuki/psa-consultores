@@ -1,33 +1,53 @@
 
 
-# Exibir quantidade de tarefas associadas ao processo no card de detalhes
+# Mover aba "Rotina" para uma pagina propria abaixo de "Daily" na sidebar
 
 ## O que sera feito
-Ao abrir os detalhes de um processo (clicando em "Ver Detalhes"), o sistema buscara quantas tarefas (da tabela `sprint_deliverables`) estao vinculadas a esse processo e exibira essa informacao na aba "Informacoes".
+
+A aba "Rotina" que atualmente fica dentro do Dashboard (como uma tab ao lado de Sprint e Impacto) sera extraida para uma pagina independente, acessivel pela sidebar logo abaixo de "Daily".
 
 ## Mudancas
 
-### Arquivo: `src/pages/equipe/EquipeProcessos.tsx`
+### 1. Criar nova pagina `src/pages/equipe/EquipeRotinas.tsx`
 
-1. **Novo estado**: Adicionar `const [taskCount, setTaskCount] = useState<number>(0);` para armazenar a contagem.
+Pagina dedicada contendo toda a logica da aba "Rotina" que hoje esta em `EquipeDashboard.tsx`:
+- Listagem de rotinas do usuario
+- Dialog para criar nova rotina
+- Busca de team_members e routines do banco
+- Usa `EquipeLayout` com titulo "Rotinas"
 
-2. **Buscar contagem em `fetchProcessDetails`** (linha ~402): Adicionar uma terceira query em paralelo no `Promise.all`:
-   ```typescript
-   supabase
-     .from('sprint_deliverables')
-     .select('id', { count: 'exact', head: true })
-     .eq('process_id', processId)
-   ```
-   E setar `setTaskCount(taskCountRes.count || 0)`.
+### 2. Atualizar sidebar (`src/components/equipe/EquipeLayout.tsx`)
 
-3. **Exibir no card de detalhes** (aba "Informacoes", linha ~1018): Adicionar um novo campo no grid de informacoes, abaixo dos existentes:
-   ```
-   Tarefas Vinculadas: 12
-   ```
-   Com um Badge mostrando o numero, similar ao padrao ja usado nos outros campos.
+Adicionar item "Rotinas" no menu, dentro do grupo "Projetos", abaixo de "Daily":
 
-4. **Resetar ao fechar**: Setar `setTaskCount(0)` quando o dialog fecha (no `onOpenChange`).
+```
+Projetos
+  - Processos
+  - Kanban
+  - Sprints
+  - Backlog
+  - Daily
+  - Rotinas   <-- novo
+```
+
+Usar icone `RefreshCw` (ja importado no projeto) para representar rotinas.
+
+### 3. Registrar rota no `src/App.tsx`
+
+Adicionar:
+```
+<Route path="/equipe/rotinas" element={<TeamRoute><EquipeRotinas /></TeamRoute>} />
+```
+
+### 4. Limpar `src/pages/equipe/EquipeDashboard.tsx`
+
+- Remover a aba "Rotina" do `TabsList` e o `TabsContent value="rotina"` inteiro
+- Remover estados e funcoes relacionados (`isRoutineDialogOpen`, `newRoutine`, `handleCreateRoutine`, `myRoutines`, `getFrequencyLabel`, `getStatusLabel`)
+- O Dashboard ficara apenas com as abas "Sprint" e "Impacto Digital"
 
 ## Resultado esperado
-- Ao abrir os detalhes de qualquer processo, aparecera "Tarefas Vinculadas" com a contagem exata de tarefas da sprint associadas a ele
-- Isso permite avaliar rapidamente a relevancia e a carga de trabalho de cada processo
+
+- "Rotinas" aparece como item proprio na sidebar, abaixo de "Daily"
+- Dashboard fica mais limpo, com foco em Sprint e Impacto
+- Toda a funcionalidade de rotinas continua funcionando na nova pagina dedicada
+
