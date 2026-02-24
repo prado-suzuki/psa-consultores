@@ -184,6 +184,13 @@ const statusLabels = {
              )}
            </TableCell>
            <TableCell>
+             {task.project?.name ? (
+               <span className="text-sm">{task.project.name}</span>
+             ) : (
+               <span className="text-muted-foreground">-</span>
+             )}
+           </TableCell>
+           <TableCell>
              <DropdownMenu>
                <DropdownMenuTrigger asChild>
                  <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -230,15 +237,15 @@ const statusLabels = {
              <TableHead className="w-[140px]">Status</TableHead>
              <TableHead className="w-[120px]">Prioridade</TableHead>
              <TableHead className="w-[180px]">Responsável</TableHead>
-             <TableHead className="w-[120px]">Data de Vencimento</TableHead>
-             
-             <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[120px]">Data de Vencimento</TableHead>
+              <TableHead className="w-[160px]">Projeto</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
            </TableRow>
          </TableHeader>
          <TableBody>
            {parentTasks.length === 0 ? (
              <TableRow>
-               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+               <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                  Nenhuma tarefa encontrada
                </TableCell>
              </TableRow>
