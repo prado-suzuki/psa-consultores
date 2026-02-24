@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDate } from '@/lib/dateUtils';
 import { 
   Calendar, 
   Clock, 
@@ -127,7 +128,7 @@ export const TaskCard = ({
               <p className="font-medium text-sm truncate">{task.title}</p>
               {task.due_date && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {format(new Date(task.due_date), 'dd/MM', { locale: ptBR })}
+                  {format(parseDate(task.due_date), 'dd/MM', { locale: ptBR })}
                 </p>
               )}
             </div>
@@ -245,7 +246,7 @@ export const TaskCard = ({
               {task.due_date && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  {format(new Date(task.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  {format(parseDate(task.due_date), 'dd/MM/yyyy', { locale: ptBR })}
                   {task.due_time && (
                     <>
                       <Clock className="h-3 w-3 ml-1" />

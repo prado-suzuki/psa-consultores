@@ -1,5 +1,6 @@
- import { useState, useMemo } from 'react';
- import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
  import { ChevronLeft, ChevronRight } from 'lucide-react';
  import { Button } from '@/components/ui/button';
@@ -34,9 +35,9 @@
    }, [currentMonth]);
  
    const getTasksForDate = (date: Date) => {
-     return tasks.filter(task => 
-       task.due_date && isSameDay(new Date(task.due_date), date)
-     );
+      return tasks.filter(task => 
+        task.due_date && isSameDay(parseDate(task.due_date), date)
+      );
    };
  
    const selectedDateTasks = selectedDate ? getTasksForDate(selectedDate) : [];

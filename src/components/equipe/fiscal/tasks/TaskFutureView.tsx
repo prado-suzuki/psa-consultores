@@ -1,5 +1,6 @@
  import { useMemo } from 'react';
  import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, addMonths, startOfMonth, endOfMonth, isAfter } from 'date-fns';
+ import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@
    const futureTasks = useMemo(() => {
      return tasks.filter(task => 
        task.due_date && 
-       isAfter(new Date(task.due_date), today) &&
+       isAfter(parseDate(task.due_date), today) &&
        task.status !== 'done'
      );
    }, [tasks, today]);
@@ -35,7 +36,7 @@
        const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 0 });
        
        const weekTasks = futureTasks.filter(task => 
-         task.due_date && isWithinInterval(new Date(task.due_date), { start: weekStart, end: weekEnd })
+         task.due_date && isWithinInterval(parseDate(task.due_date), { start: weekStart, end: weekEnd })
        );
  
        if (i === 0) {
