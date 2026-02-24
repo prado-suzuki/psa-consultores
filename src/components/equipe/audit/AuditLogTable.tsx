@@ -3,10 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronDown, ChevronRight, Search, Filter } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -17,6 +16,7 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
 
 interface AuditLogTableProps {
   area: 'tax' | 'osg';
@@ -47,12 +47,99 @@ const ENTITY_LABELS: Record<string, string> = {
   subtask: 'Subtarefa',
 };
 
+// ── Lookup hooks ─────────────────────────────────────────────
+function useLookupMaps(): LookupMaps {
+  const buildMap = (data: { id: string; label: string }[] | null) => {
+    const map: Record<string, string> = {};
+    data?.forEach(d => { map[d.id] = d.label; });
+    return map;
+  };
+
+  const { data: profiles = {} } = useQuery({
+    queryKey: ['audit-lookup-profiles'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles' as any)
+        .select('id, first_name, last_name');
+      const map: Record<string, string> = {};
+      (data as any[])?.forEach(p => {
+        map[p.id] = `${p.first_name} ${p.last_name}`.trim();
+      });
+      return map;
+    },
+  });
+
+  const { data: projects = {} } = useQuery({
+    queryKey: ['audit-lookup-projects'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_projects')
+        .select('id, name');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.name })) ?? null);
+    },
+  });
+
+  const { data: areas = {} } = useQuery({
+    queryKey: ['audit-lookup-areas'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_areas')
+        .select('id, nome');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
+    },
+  });
+
+  const { data: clients = {} } = useQuery({
+    queryKey: ['audit-lookup-clients'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cliente')
+        .select('id, nome');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
+    },
+  });
+
+  const { data: contribuintes = {} } = useQuery({
+    queryKey: ['audit-lookup-contribuintes'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('contribuinte')
+        .select('id, nome_razao_social');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
+    },
+  });
+
+  const { data: categorias = {} } = useQuery({
+    queryKey: ['audit-lookup-categorias'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_categorias' as any)
+        .select('id, nome');
+      return buildMap((data as any[])?.map(d => ({ id: d.id, label: d.nome })) ?? null);
+    },
+  });
+
+  const { data: tasks = {} } = useQuery({
+    queryKey: ['audit-lookup-tasks'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('fiscal_tasks')
+        .select('id, title');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.title })) ?? null);
+    },
+  });
+
+  return { profiles, projects, areas, clients, contribuintes, categorias, tasks };
+}
+
 export const AuditLogTable = ({ area }: AuditLogTableProps) => {
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [userFilter, setUserFilter] = useState<string>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const lookups = useLookupMaps();
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit-logs', area, entityFilter, actionFilter],
@@ -69,16 +156,6 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
       const { data, error } = await query;
       if (error) throw error;
       return data as AuditLog[];
-    },
-  });
-
-  const { data: profilesMap = {} } = useQuery({
-    queryKey: ['profiles-map-audit'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('id, first_name, last_name');
-      const map: Record<string, string> = {};
-      data?.forEach(p => { map[p.id] = `${p.first_name} ${p.last_name}`; });
-      return map;
     },
   });
 
@@ -138,12 +215,12 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
         <Select value={userFilter} onValueChange={setUserFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue>
-              {userFilter === 'all' ? 'Filtrar por usuário' : profilesMap[userFilter] || 'Desconhecido'}
+              {userFilter === 'all' ? 'Filtrar por usuário' : lookups.profiles[userFilter] || 'Desconhecido'}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            {Object.entries(profilesMap).map(([id, name]) => (
+            {Object.entries(lookups.profiles).map(([id, name]) => (
               <SelectItem key={id} value={id}>{name}</SelectItem>
             ))}
           </SelectContent>
@@ -179,17 +256,23 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                 </TableRow>
               ) : (
                 filteredLogs.map(log => {
+                  const hasDetails = log.details && log.details.trim().length > 0;
                   const hasChanges = log.action === 'updated' && log.changed_fields && Object.keys(log.changed_fields).length > 0;
+                  const isExpandable = hasChanges || hasDetails;
                   const isExpanded = expandedRows.has(log.id);
                   const actionInfo = ACTION_LABELS[log.action] || { label: log.action, color: '' };
 
+                  const formattedChanges = hasChanges
+                    ? formatChangedFields(log.changed_fields!, lookups)
+                    : [];
+
                   return (
-                    <Collapsible key={log.id} open={isExpanded} onOpenChange={() => hasChanges && toggleRow(log.id)} asChild>
+                    <Collapsible key={log.id} open={isExpanded} onOpenChange={() => isExpandable && toggleRow(log.id)} asChild>
                       <>
-                        <CollapsibleTrigger asChild disabled={!hasChanges}>
-                          <TableRow className={hasChanges ? 'cursor-pointer hover:bg-slate-50' : ''}>
+                        <CollapsibleTrigger asChild disabled={!isExpandable}>
+                          <TableRow className={isExpandable ? 'cursor-pointer hover:bg-slate-50' : ''}>
                             <TableCell className="px-2">
-                              {hasChanges && (
+                              {isExpandable && (
                                 isExpanded
                                   ? <ChevronDown className="h-4 w-4 text-slate-400" />
                                   : <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -199,7 +282,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                               {format(new Date(log.performed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {profilesMap[log.performed_by] || 'Desconhecido'}
+                              {lookups.profiles[log.performed_by] || 'Desconhecido'}
                             </TableCell>
                             <TableCell>
                               <Badge className={actionInfo.color}>{actionInfo.label}</Badge>
@@ -212,20 +295,36 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                             </TableCell>
                           </TableRow>
                         </CollapsibleTrigger>
-                        {hasChanges && (
+                        {isExpandable && (
                           <CollapsibleContent asChild>
                             <TableRow className="bg-slate-50/50">
                               <TableCell colSpan={6} className="p-4">
                                 <div className="text-xs space-y-1">
-                                  <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
-                                  {Object.entries(log.changed_fields!).map(([field, vals]) => (
-                                    <div key={field} className="flex gap-2 items-baseline">
-                                      <span className="font-medium text-slate-600 min-w-[120px]">{field}:</span>
-                                      <span className="text-red-600 line-through">{String(vals.old ?? '(vazio)')}</span>
-                                      <span className="text-slate-400">→</span>
-                                      <span className="text-emerald-600">{String(vals.new ?? '(vazio)')}</span>
-                                    </div>
-                                  ))}
+                                  {/* Details (e.g. reassignment reason) */}
+                                  {hasDetails && (
+                                    <p className="text-slate-600 italic mb-2">{log.details}</p>
+                                  )}
+
+                                  {/* Changed fields */}
+                                  {formattedChanges.length > 0 && (
+                                    <>
+                                      <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
+                                      {formattedChanges.map((change, idx) => (
+                                        <div key={idx} className="flex gap-2 items-baseline">
+                                          <span className="font-medium text-slate-600 min-w-[140px]">
+                                            {change.label}:
+                                          </span>
+                                          <span className="text-red-600 line-through">
+                                            {change.oldValue}
+                                          </span>
+                                          <span className="text-slate-400">→</span>
+                                          <span className="text-emerald-600">
+                                            {change.newValue}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
