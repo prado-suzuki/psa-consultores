@@ -1,53 +1,44 @@
 
 
-# Mover aba "Rotina" para uma pagina propria abaixo de "Daily" na sidebar
+# Mover Cadastros para dentro de Acessos como sub-aba
 
 ## O que sera feito
 
-A aba "Rotina" que atualmente fica dentro do Dashboard (como uma tab ao lado de Sprint e Impacto) sera extraida para uma pagina independente, acessivel pela sidebar logo abaixo de "Daily".
+A pagina separada de "Cadastros" (`/equipe/cadastros`) sera incorporada como uma terceira aba dentro da pagina de "Controle de Acessos" (`/equipe/acessos`), ao lado das abas "Paginas" e "Usuarios". A rota e o arquivo separados serao removidos.
 
 ## Mudancas
 
-### 1. Criar nova pagina `src/pages/equipe/EquipeRotinas.tsx`
+### 1. Arquivo: `src/pages/equipe/EquipeControleAcessos.tsx`
 
-Pagina dedicada contendo toda a logica da aba "Rotina" que hoje esta em `EquipeDashboard.tsx`:
-- Listagem de rotinas do usuario
-- Dialog para criar nova rotina
-- Busca de team_members e routines do banco
-- Usa `EquipeLayout` com titulo "Rotinas"
+- Importar os icones adicionais usados em Cadastros (`Building2`, `FolderKanban`, `Workflow`)
+- Adicionar estados para a logica de cadastros (areas, stats, dialogOpen, editingArea, formData, colorPresets)
+- Adicionar funcoes de fetch e CRUD (`fetchCadastros`, `handleSaveCadastro`, `handleToggleActive`, `handleDeleteCadastro`)
+- Adicionar uma terceira aba "Cadastros" no TabsList existente (linha ~661), com icone `Building2`
+- Adicionar o `TabsContent value="cadastros"` contendo a tabela de areas internas, visao geral e dialog de criacao/edicao (mesmo conteudo que hoje esta em `EquipeCadastros.tsx`)
 
-### 2. Atualizar sidebar (`src/components/equipe/EquipeLayout.tsx`)
-
-Adicionar item "Rotinas" no menu, dentro do grupo "Projetos", abaixo de "Daily":
+A estrutura de abas ficara:
 
 ```
-Projetos
-  - Processos
-  - Kanban
-  - Sprints
-  - Backlog
-  - Daily
-  - Rotinas   <-- novo
+Paginas | Usuarios | Cadastros
 ```
 
-Usar icone `RefreshCw` (ja importado no projeto) para representar rotinas.
+### 2. Arquivo: `src/App.tsx`
 
-### 3. Registrar rota no `src/App.tsx`
+- Remover o import de `EquipeCadastros`
+- Remover a rota `/equipe/cadastros`
 
-Adicionar:
-```
-<Route path="/equipe/rotinas" element={<TeamRoute><EquipeRotinas /></TeamRoute>} />
-```
+### 3. Arquivo: `src/pages/equipe/EquipeCadastros.tsx`
 
-### 4. Limpar `src/pages/equipe/EquipeDashboard.tsx`
+- Sera removido (ou mantido vazio) ja que todo o conteudo foi migrado para EquipeControleAcessos
 
-- Remover a aba "Rotina" do `TabsList` e o `TabsContent value="rotina"` inteiro
-- Remover estados e funcoes relacionados (`isRoutineDialogOpen`, `newRoutine`, `handleCreateRoutine`, `myRoutines`, `getFrequencyLabel`, `getStatusLabel`)
-- O Dashboard ficara apenas com as abas "Sprint" e "Impacto Digital"
+### 4. Sidebar (se houver referencia)
+
+- Remover qualquer link para `/equipe/cadastros` na navegacao do DigitalAreaSelector ou EquipeLayout, caso exista
 
 ## Resultado esperado
 
-- "Rotinas" aparece como item proprio na sidebar, abaixo de "Daily"
-- Dashboard fica mais limpo, com foco em Sprint e Impacto
-- Toda a funcionalidade de rotinas continua funcionando na nova pagina dedicada
+- Ao acessar `/equipe/acessos`, o admin vera 3 abas: Paginas, Usuarios e Cadastros
+- A aba Cadastros tera exatamente a mesma funcionalidade atual (CRUD de areas internas com cores, lideres e status)
+- A rota `/equipe/cadastros` deixa de existir
+- Tudo centralizado em um unico ponto de gestao administrativa
 
