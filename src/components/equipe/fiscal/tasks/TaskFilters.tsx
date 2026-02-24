@@ -21,7 +21,6 @@ import {
   TaskFilters as TaskFiltersType,
   FiscalTaskStatus,
   FiscalTaskPriority,
-  FiscalTaskDepartment
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,12 +48,6 @@ const priorityOptions: { value: FiscalTaskPriority; label: string }[] = [
   { value: 'low', label: 'Baixa' },
 ];
 
-const departmentOptions: { value: FiscalTaskDepartment; label: string }[] = [
-  { value: 'commercial', label: 'Comercial' },
-  { value: 'financial', label: 'Financeiro' },
-  { value: 'administrative', label: 'Administrativo' },
-  { value: 'operations', label: 'Operações' },
-];
 
 export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -128,21 +121,12 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
     onFiltersChange({ ...filters, priority: updated.length > 0 ? updated : undefined });
   };
 
-  const toggleDepartmentFilter = (department: FiscalTaskDepartment) => {
-    const current = filters.department || [];
-    const updated = current.includes(department)
-      ? current.filter(d => d !== department)
-      : [...current, department];
-    onFiltersChange({ ...filters, department: updated.length > 0 ? updated : undefined });
-  };
 
   const removeFilter = (type: keyof TaskFiltersType, value?: string) => {
     if (type === 'status' && value) {
       toggleStatusFilter(value as FiscalTaskStatus);
     } else if (type === 'priority' && value) {
       togglePriorityFilter(value as FiscalTaskPriority);
-    } else if (type === 'department' && value) {
-      toggleDepartmentFilter(value as FiscalTaskDepartment);
     } else if (type === 'clientId') {
       onFiltersChange({ ...filters, clientId: undefined, contribuinteId: undefined });
     } else {
@@ -153,7 +137,6 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   const activeFiltersCount = 
     (filters.status?.length || 0) + 
     (filters.priority?.length || 0) + 
-    (filters.department?.length || 0) +
     (filters.projectId ? 1 : 0) +
     (filters.clientId ? 1 : 0) +
     (filters.contribuinteId ? 1 : 0) +
@@ -297,30 +280,13 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
                 </div>
               </div>
 
-              <div>
-                <Label className="text-sm font-medium">Departamento</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {departmentOptions.map(option => (
-                    <div key={option.value} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`dept-${option.value}`}
-                        checked={filters.department?.includes(option.value)}
-                        onCheckedChange={() => toggleDepartmentFilter(option.value)}
-                      />
-                      <Label htmlFor={`dept-${option.value}`} className="text-sm">
-                        {option.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </PopoverContent>
         </Popover>
       </div>
 
       {/* Active filters badges */}
-      {(filters.status?.length || filters.priority?.length || filters.department?.length || filters.projectId || filters.clientId || filters.contribuinteId) && (
+      {(filters.status?.length || filters.priority?.length || filters.projectId || filters.clientId || filters.contribuinteId) && (
         <div className="flex flex-wrap gap-2">
           {filters.status?.map(status => (
             <Badge key={status} variant="secondary" className="gap-1">
@@ -337,15 +303,6 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
               <X 
                 className="h-3 w-3 cursor-pointer" 
                 onClick={() => removeFilter('priority', priority)} 
-              />
-            </Badge>
-          ))}
-          {filters.department?.map(dept => (
-            <Badge key={dept} variant="secondary" className="gap-1">
-              {departmentOptions.find(o => o.value === dept)?.label}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => removeFilter('department', dept)} 
               />
             </Badge>
           ))}
