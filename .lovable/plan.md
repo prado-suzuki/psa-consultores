@@ -1,52 +1,87 @@
 
+# Correcao: Pagina de Sprints travada no carregamento
 
-# Correcao: Heranca automatica de projeto/processo nas subtarefas
+## Problema raiz
 
-## Problema identificado
-Analisando o banco de dados, existem **327 subtarefas** no total. Destas:
-- **92 subtarefas** estao sem `project_id` mas a tarefa pai tem
-- **65 subtarefas** estao sem `process_id` mas a tarefa pai tem
+A funcao `fetchSprintImpacts` em `EquipeSprints.tsx` (linhas 203-255) busca **todos** os IDs de deliverables de **todas** as sprints e passa em uma unica chamada `.in('sprint_deliverable_id', deliverableIds)`. Com 400+ UUIDs (cada um com 36 caracteres), a URL da requisicao GET excede o limite do PostgREST (~8KB), fazendo a requisicao travar silenciosamente sem erro. O `setLoading(false)` nunca e chamado porque a promise nunca resolve.
 
-Isso impede o calculo correto de ROI por projeto/processo.
+## Solucao
 
-## Solucao em 2 partes
+### Arquivo: `src/pages/equipe/EquipeSprints.tsx`
 
-### Parte 1: Corrigir dados historicos (migracao SQL)
+**Mudanca 1 - Dividir consulta `.in()` em lotes (chunking):**
 
-Executar um UPDATE que propaga `project_id` e `process_id` do pai para todos os filhos que estejam sem esses campos:
+Criar uma funcao auxiliar que divide arrays grandes em lotes de no maximo 50 IDs e faz as consultas em paralelo:
 
-```sql
-UPDATE sprint_deliverables child
-SET 
-  project_id = COALESCE(child.project_id, parent.project_id),
-  process_id = COALESCE(child.process_id, parent.process_id)
-FROM sprint_deliverables parent
-WHERE child.parent_id = parent.id
-  AND (
-    (child.project_id IS NULL AND parent.project_id IS NOT NULL)
-    OR
-    (child.process_id IS NULL AND parent.process_id IS NOT NULL)
-  );
+```typescript
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+};
 ```
 
-Isso corrige as 92 + 65 subtarefas de uma vez, sem alterar subtarefas que ja tenham valores proprios.
+**Mudanca 2 - Aplicar chunking em `fetchSprintImpacts` (linhas 222-226):**
 
-### Parte 2: Prevenir o problema em novas criacoes (3 pontos no codigo)
+Em vez de uma unica chamada `.in()` com todos os IDs, dividir em lotes:
 
-**Arquivo: `src/pages/equipe/EquipeSprintDetalhes.tsx`**
+```typescript
+const chunks = chunkArray(deliverableIds, 50);
+const allImprovements = [];
+for (const chunk of chunks) {
+  const { data } = await supabase
+    .from('process_improvements')
+    .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
+    .eq('evaluation_status', 'completed')
+    .in('sprint_deliverable_id', chunk);
+  if (data) allImprovements.push(...data);
+}
+```
 
-1. **Formulario manual de criacao (linha ~2276)**: Ao selecionar tarefa pai, preencher automaticamente `project_id` e `process_id` do pai:
-   - Buscar o registro pai em `deliverables`
-   - Setar `project_id` e `process_id` no estado do formulario
+**Mudanca 3 - Aplicar chunking em `fetchSprintHours` (linhas 166-169):**
 
-2. **Importacao Excel simplificada (linha ~599-610)**: Ao montar o objeto de cada subtask, incluir `project_id` e `process_id` herdados do `parentData` recem-inserido.
+A mesma logica para a query de deliverables por sprint (tambem usa `.in()`):
 
-**Arquivo: `src/lib/excelImporter.ts`**
+```typescript
+const sprintIds = sprintsList.map(s => s.id);
+const chunks = chunkArray(sprintIds, 50);
+const allDeliverables = [];
+for (const chunk of chunks) {
+  const { data } = await supabase
+    .from('sprint_deliverables')
+    .select('sprint_id, assigned_to, estimated_hours')
+    .in('sprint_id', chunk);
+  if (data) allDeliverables.push(...data);
+}
+```
 
-3. **Importacao Excel avancada (funcao `convertToDeliverables`)**: Quando a subtarefa nao tem projeto/processo proprio, usar como fallback os valores do `parentDeliverable` ja montado no mesmo grupo.
+**Mudanca 4 - Adicionar try/catch robusto no `fetchData`:**
+
+Garantir que `setLoading(false)` sempre execute, mesmo que uma sub-funcao falhe:
+
+```typescript
+const fetchData = async () => {
+  try {
+    // ... existing code ...
+    if (sprintsData && sprintsData.length > 0) {
+      await Promise.all([
+        fetchSprintHours(sprintsData).catch(err => console.error('Hours error:', err)),
+        fetchSprintImpacts(sprintsData).catch(err => console.error('Impacts error:', err))
+      ]);
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+```
 
 ## Resultado esperado
-- Todas as 92+65 subtarefas historicas serao corrigidas imediatamente
-- Novas subtarefas criadas (manual ou importacao) herdam automaticamente do pai
-- O calculo de ROI por projeto/processo ficara coerente
 
+- A pagina de sprints carrega normalmente mesmo com centenas de deliverables
+- Consultas sao feitas em lotes de 50 IDs, respeitando limites de URL
+- Erros em sub-consultas nao bloqueiam o carregamento da pagina
+- As funcoes `fetchSprintHours` e `fetchSprintImpacts` executam em paralelo (mais rapido)
