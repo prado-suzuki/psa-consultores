@@ -42,6 +42,9 @@ import {
   CheckCircle2,
   Copy,
   Pencil,
+  Building2,
+  FolderKanban,
+  Workflow,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -79,6 +82,22 @@ interface UserPageAccess {
   user_id: string;
   page_permission_id: string;
   granted_at: string;
+}
+
+interface AreaInterna {
+  id: string;
+  name: string;
+  responsible: string | null;
+  description: string | null;
+  color: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface CadastroStats {
+  clients: number;
+  projects: number;
+  processes: number;
 }
 
 const INITIAL_VISIBLE_PAGES = 5;
@@ -128,6 +147,24 @@ const EquipeControleAcessos = () => {
 
   // Delete user states
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // Cadastros states
+  const [cadastroAreas, setCadastroAreas] = useState<AreaInterna[]>([]);
+  const [cadastroStats, setCadastroStats] = useState<CadastroStats>({ clients: 0, projects: 0, processes: 0 });
+  const [cadastroLoading, setCadastroLoading] = useState(false);
+  const [cadastroDialogOpen, setCadastroDialogOpen] = useState(false);
+  const [editingArea, setEditingArea] = useState<AreaInterna | null>(null);
+  const [cadastroForm, setCadastroForm] = useState({
+    name: '',
+    responsible: '',
+    description: '',
+    color: '#3B82F6',
+  });
+
+  const colorPresets = [
+    '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
+    '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6',
+  ];
 
   // Fetch page permissions
   const { data: pages, isLoading: loadingPages } = useQuery({
@@ -495,6 +532,104 @@ const EquipeControleAcessos = () => {
     navigate('/');
   };
 
+  // Cadastros functions
+  const fetchCadastros = async () => {
+    try {
+      setCadastroLoading(true);
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('catalog_clients')
+        .select('*')
+        .order('name');
+      if (clientsError) throw clientsError;
+      setCadastroAreas(clientsData || []);
+
+      const [projectsRes, processesRes] = await Promise.all([
+        supabase.from('projects').select('id', { count: 'exact', head: true }),
+        supabase.from('processes').select('id', { count: 'exact', head: true }),
+      ]);
+      setCadastroStats({
+        clients: clientsData?.length || 0,
+        projects: projectsRes.count || 0,
+        processes: processesRes.count || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching cadastros:', error);
+      toast.error('Erro ao carregar cadastros');
+    } finally {
+      setCadastroLoading(false);
+    }
+  };
+
+  const openCadastroCreate = () => {
+    setEditingArea(null);
+    setCadastroForm({ name: '', responsible: '', description: '', color: '#3B82F6' });
+    setCadastroDialogOpen(true);
+  };
+
+  const openCadastroEdit = (area: AreaInterna) => {
+    setEditingArea(area);
+    setCadastroForm({
+      name: area.name,
+      responsible: area.responsible || '',
+      description: area.description || '',
+      color: area.color || '#3B82F6',
+    });
+    setCadastroDialogOpen(true);
+  };
+
+  const handleSaveCadastro = async () => {
+    if (!cadastroForm.name.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+    try {
+      const payload = {
+        name: cadastroForm.name.trim(),
+        responsible: cadastroForm.responsible.trim() || null,
+        description: cadastroForm.description.trim() || null,
+        color: cadastroForm.color,
+      };
+      if (editingArea) {
+        const { error } = await supabase.from('catalog_clients').update(payload).eq('id', editingArea.id);
+        if (error) throw error;
+        toast.success('Área atualizada');
+      } else {
+        const { error } = await supabase.from('catalog_clients').insert(payload);
+        if (error) throw error;
+        toast.success('Área criada');
+      }
+      setCadastroDialogOpen(false);
+      fetchCadastros();
+    } catch (error: any) {
+      if (error.code === '23505') toast.error('Já existe uma área com esse nome');
+      else toast.error('Erro ao salvar');
+    }
+  };
+
+  const handleToggleCadastroActive = async (area: AreaInterna) => {
+    try {
+      const { error } = await supabase.from('catalog_clients').update({ is_active: !area.is_active }).eq('id', area.id);
+      if (error) throw error;
+      toast.success(area.is_active ? 'Área desativada' : 'Área ativada');
+      fetchCadastros();
+    } catch {
+      toast.error('Erro ao alterar status');
+    }
+  };
+
+  const handleDeleteCadastro = async (area: AreaInterna) => {
+    if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
+    try {
+      const { error } = await supabase.from('catalog_clients').delete().eq('id', area.id);
+      if (error) throw error;
+      toast.success('Área excluída');
+      fetchCadastros();
+    } catch (error: any) {
+      if (error.code === '23503') toast.error('Não é possível excluir: existem projetos ou processos vinculados');
+      else toast.error('Erro ao excluir');
+    }
+  };
+
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       rotina: 'Digital Rotina',
@@ -657,6 +792,14 @@ const EquipeControleAcessos = () => {
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Usuários
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="cadastros" 
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Cadastros
                 </TabsTrigger>
               </TabsList>
 
@@ -1176,7 +1319,174 @@ const EquipeControleAcessos = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* Cadastros Tab */}
+              <TabsContent value="cadastros" className="space-y-4">
+                <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+                  <div>
+                    <h3 className="text-base font-medium text-slate-900">Áreas Internas</h3>
+                    <p className="text-sm text-slate-500">Cadastre as áreas internas da PSA e seus líderes responsáveis.</p>
+                  </div>
+                  <Button onClick={openCadastroCreate} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+                    <Plus className="h-4 w-4" />
+                    Nova Área
+                  </Button>
+                </div>
+
+                {/* Stats */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card className="bg-white border-slate-200/60 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-600">Áreas Internas</CardTitle>
+                      <div className="p-2 rounded-full bg-teal-100"><Building2 className="h-4 w-4 text-teal-600" /></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-slate-900">{cadastroStats.clients}</div>
+                      <p className="text-sm text-slate-500">Cadastrados no sistema</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white border-slate-200/60 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-600">Projetos</CardTitle>
+                      <div className="p-2 rounded-full bg-teal-100"><FolderKanban className="h-4 w-4 text-teal-600" /></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-slate-900">{cadastroStats.projects}</div>
+                      <p className="text-sm text-slate-500">Total de projetos</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white border-slate-200/60 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-600">Processos</CardTitle>
+                      <div className="p-2 rounded-full bg-teal-100"><Workflow className="h-4 w-4 text-teal-600" /></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-slate-900">{cadastroStats.processes}</div>
+                      <p className="text-sm text-slate-500">Total de processos</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Areas Table */}
+                <Card className="bg-white border-slate-200/60 shadow-sm">
+                  <CardContent className="p-0">
+                    {cadastroLoading ? (
+                      <div className="p-8 text-center text-slate-500">
+                        <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-teal-600" />
+                        Carregando...
+                      </div>
+                    ) : cadastroAreas.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500">Nenhuma área cadastrada</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-slate-200 hover:bg-transparent">
+                            <TableHead className="text-slate-600 bg-slate-50">Cor</TableHead>
+                            <TableHead className="text-slate-600 bg-slate-50">Área</TableHead>
+                            <TableHead className="text-slate-600 bg-slate-50">Líder</TableHead>
+                            <TableHead className="text-slate-600 bg-slate-50">Status</TableHead>
+                            <TableHead className="text-slate-600 bg-slate-50 text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cadastroAreas.map((area) => (
+                            <TableRow key={area.id} className="border-slate-200 hover:bg-slate-50">
+                              <TableCell>
+                                <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: area.color }} />
+                              </TableCell>
+                              <TableCell className="font-medium text-slate-900">{area.name}</TableCell>
+                              <TableCell className="text-slate-600">{area.responsible || '-'}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={area.is_active ? 'default' : 'secondary'}
+                                  className="cursor-pointer"
+                                  onClick={() => handleToggleCadastroActive(area)}
+                                >
+                                  {area.is_active ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="icon" onClick={() => openCadastroEdit(area)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteCadastro(area)} className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Areas by Status */}
+                <Card className="bg-white border-slate-200/60 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base text-slate-900">Áreas por Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
+                        <span className="text-sm text-slate-600">Ativas: {cadastroAreas.filter(a => a.is_active).length}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-gray-400" />
+                        <span className="text-sm text-slate-600">Inativas: {cadastroAreas.filter(a => !a.is_active).length}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
+
+      {/* Cadastro Dialog */}
+      <Dialog open={cadastroDialogOpen} onOpenChange={setCadastroDialogOpen}>
+        <DialogContent className="bg-white border-slate-200">
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">{editingArea ? 'Editar Área' : 'Nova Área'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cadastro-name">Nome da Área *</Label>
+              <Input id="cadastro-name" value={cadastroForm.name} onChange={(e) => setCadastroForm({ ...cadastroForm, name: e.target.value })} placeholder="Ex: Fiscal, Consultoria, Digital..." />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cadastro-responsible">Líder da Área</Label>
+              <Input id="cadastro-responsible" value={cadastroForm.responsible} onChange={(e) => setCadastroForm({ ...cadastroForm, responsible: e.target.value })} placeholder="Ex: Ricardo, Felipe..." />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cadastro-description">Descrição</Label>
+              <Input id="cadastro-description" value={cadastroForm.description} onChange={(e) => setCadastroForm({ ...cadastroForm, description: e.target.value })} placeholder="Descrição opcional" />
+            </div>
+            <div className="space-y-2">
+              <Label>Cor</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-2">
+                  {colorPresets.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${cadastroForm.color === color ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setCadastroForm({ ...cadastroForm, color })}
+                    />
+                  ))}
+                </div>
+                <Input type="color" value={cadastroForm.color} onChange={(e) => setCadastroForm({ ...cadastroForm, color: e.target.value })} className="w-12 h-8 p-0 border-0" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-slate-200 text-slate-600">Cancelar</Button>
+            <Button onClick={handleSaveCadastro} className="bg-teal-600 hover:bg-teal-700 text-white">{editingArea ? 'Salvar' : 'Criar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
           </div>
         </main>
       </ScrollArea>

@@ -194,22 +194,6 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             )
           ))}
           
-          {/* Admin-only: Cadastros */}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/equipe/cadastros')
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
-              }`}
-              onClick={() => navigate('/equipe/cadastros')}
-              title={collapsed ? 'Cadastros' : undefined}
-            >
-              <Settings className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-              {!collapsed && 'Cadastros'}
-            </Button>
-          )}
         </nav>
 
         {/* Footer Actions */}
