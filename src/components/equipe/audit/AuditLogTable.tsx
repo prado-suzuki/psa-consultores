@@ -51,6 +51,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [userFilter, setUserFilter] = useState<string>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const { data: logs = [], isLoading } = useQuery({
@@ -81,9 +82,11 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
     },
   });
 
-  const filteredLogs = logs.filter(log =>
-    !search || log.entity_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredLogs = logs.filter(log => {
+    if (search && !log.entity_name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (userFilter !== 'all' && log.performed_by !== userFilter) return false;
+    return true;
+  });
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
@@ -126,6 +129,17 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
             <SelectItem value="created">Criação</SelectItem>
             <SelectItem value="updated">Edição</SelectItem>
             <SelectItem value="deleted">Exclusão</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={userFilter} onValueChange={setUserFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Usuário" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {Object.entries(profilesMap).map(([id, name]) => (
+              <SelectItem key={id} value={id}>{name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
