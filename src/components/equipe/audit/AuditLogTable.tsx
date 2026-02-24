@@ -111,7 +111,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
         </div>
         <Select value={entityFilter} onValueChange={setEntityFilter}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Entidade" />
+            <SelectValue placeholder="Filtrar por tipo" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
@@ -122,7 +122,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
         </Select>
         <Select value={actionFilter} onValueChange={setActionFilter}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Ação" />
+            <SelectValue placeholder="Filtrar por ação" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
@@ -133,7 +133,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
         </Select>
         <Select value={userFilter} onValueChange={setUserFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Usuário" />
+            <SelectValue placeholder="Filtrar por usuário" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
