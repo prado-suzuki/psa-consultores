@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
 import { CalendarIcon, X } from 'lucide-react';
 import {
   Dialog,
@@ -196,8 +197,8 @@ export const TaskModal = ({
         priority: task.priority,
         assigned_to: task.assigned_to || undefined,
         assigned_to_name: task.assigned_to_name || undefined,
-        start_date: (task as any).start_date ? new Date((task as any).start_date) : undefined,
-        due_date: task.due_date ? new Date(task.due_date) : undefined,
+        start_date: (task as any).start_date ? parseDate((task as any).start_date) : undefined,
+        due_date: task.due_date ? parseDate(task.due_date) : undefined,
         is_recurring: task.is_recurring,
         recurrence_type: task.recurrence_type || undefined,
         category: task.category,
