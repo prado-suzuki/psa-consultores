@@ -24,7 +24,8 @@ import {
   Layers,
   Settings,
    User,
-   FileBarChart
+   FileBarChart,
+   RefreshCw
 } from 'lucide-react';
 
 interface EquipeLayoutProps {
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
       { icon: Layers, label: 'Backlog', path: '/equipe/backlog' },
       { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
+      { icon: RefreshCw, label: 'Rotinas', path: '/equipe/rotinas' },
     ]
   },
   // { icon: Library, label: 'Biblioteca', path: '/equipe/biblioteca' }, // Temporariamente oculto

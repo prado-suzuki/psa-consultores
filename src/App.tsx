@@ -28,6 +28,7 @@ import EquipeSprints from "./pages/equipe/EquipeSprints";
 import EquipeCadastros from "./pages/equipe/EquipeCadastros";
 import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
+import EquipeRotinas from "./pages/equipe/EquipeRotinas";
 import EquipeTarefas from "./pages/equipe/EquipeTarefas";
 import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 // import EquipeDemandas from "./pages/equipe/EquipeDemandas"; // OCULTO
@@ -110,6 +111,7 @@ const App = () => (
             <Route path="/equipe/sprints" element={<TeamRoute><EquipeSprints /></TeamRoute>} />
             <Route path="/equipe/sprints/:id" element={<TeamRoute><EquipeSprintDetalhes /></TeamRoute>} />
             <Route path="/equipe/daily" element={<TeamRoute><EquipeDaily /></TeamRoute>} />
+            <Route path="/equipe/rotinas" element={<TeamRoute><EquipeRotinas /></TeamRoute>} />
             <Route path="/equipe/tarefas" element={<TeamRoute><EquipeTarefas /></TeamRoute>} />
             <Route path="/equipe/tarefas/nova" element={<TeamRoute><EquipeNovaTarefa /></TeamRoute>} />
             {/* <Route path="/equipe/demandas" element={<TeamRoute><EquipeDemandas /></TeamRoute>} /> OCULTO */}
