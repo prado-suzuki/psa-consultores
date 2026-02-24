@@ -1069,7 +1069,7 @@ const EquipeControleAcessos = () => {
                               {[
                                 { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
                                 { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
-                                { value: 'lider', label: 'Líder', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
+{ value: 'lider', label: 'Líder Responsável', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
                                 { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
                               ].map((role) => (
                                 <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
@@ -1201,7 +1201,7 @@ const EquipeControleAcessos = () => {
                                       : 'border-slate-200 text-slate-600 bg-slate-50'
                                   }`}
                                 >
-                                  {role}
+                                  {{ admin: 'Admin', team_member: 'Equipe', lider: 'Líder Responsável', client: 'Cliente' }[role] || role}
                                 </Badge>
                               ))}
                             </div>
@@ -1537,7 +1537,7 @@ const EquipeControleAcessos = () => {
                 {[
                   { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
                   { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
-                  { value: 'lider', label: 'Líder', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
+                  { value: 'lider', label: 'Líder Responsável', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
                   { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
                 ].map((role) => (
                   <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
