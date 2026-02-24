@@ -110,8 +110,10 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
           />
         </div>
         <Select value={entityFilter} onValueChange={setEntityFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Filtrar por tipo" />
+          <SelectTrigger className="w-[180px]">
+            <SelectValue>
+              {entityFilter === 'all' ? 'Filtrar por tipo' : ENTITY_LABELS[entityFilter] || entityFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
@@ -121,8 +123,10 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
           </SelectContent>
         </Select>
         <Select value={actionFilter} onValueChange={setActionFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Filtrar por ação" />
+          <SelectTrigger className="w-[180px]">
+            <SelectValue>
+              {actionFilter === 'all' ? 'Filtrar por ação' : ACTION_LABELS[actionFilter]?.label || actionFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
@@ -132,8 +136,10 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
           </SelectContent>
         </Select>
         <Select value={userFilter} onValueChange={setUserFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por usuário" />
+          <SelectTrigger className="w-[200px]">
+            <SelectValue>
+              {userFilter === 'all' ? 'Filtrar por usuário' : profilesMap[userFilter] || 'Desconhecido'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
