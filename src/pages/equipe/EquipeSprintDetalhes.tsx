@@ -606,7 +606,9 @@ export default function EquipeSprintDetalhes() {
             estimated_hours: subtask.estimatedHours || null,
             status: 'pending',
             parent_id: parentData.id,
-            task_code: subtask.taskCode || null
+            task_code: subtask.taskCode || null,
+            project_id: parentData.project_id || null,
+            process_id: parentData.process_id || null
           };
         });
 
@@ -2273,7 +2275,14 @@ export default function EquipeSprintDetalhes() {
                 onValueChange={(value) => {
                   const newParentId = value === "none" ? "" : value;
                   const suggested = newParentId ? suggestNextTaskCode(newParentId) : '';
-                  setCreateForm(prev => ({ ...prev, parent_id: newParentId, task_code: suggested }));
+                  const parentTask = deliverables.find(d => d.id === newParentId);
+                  setCreateForm(prev => ({
+                    ...prev,
+                    parent_id: newParentId,
+                    task_code: suggested,
+                    project_id: parentTask?.project_id || prev.project_id || '',
+                    process_id: parentTask?.process_id || prev.process_id || '',
+                  }));
                 }}
               >
                 <SelectTrigger id="create-parent">

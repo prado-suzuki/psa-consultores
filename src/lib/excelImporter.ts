@@ -355,8 +355,8 @@ export function convertToDeliverables(
         status: 'pending',
         parent_id: null, // Will be set after parent insert
         task_code: subtask.taskCode || null,
-        project_id: projectMapping[subtask.projectName] || project?.id || null,
-        process_id: processMapping[subtask.processName] || process?.id || null
+        project_id: projectMapping[subtask.projectName] || project?.id || parentDeliverable.project_id || null,
+        process_id: processMapping[subtask.processName] || process?.id || parentDeliverable.process_id || null
       };
       
       deliverables.push(subtaskDeliverable);
