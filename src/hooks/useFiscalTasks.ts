@@ -203,10 +203,6 @@ export interface TaskFilters {
 
         if (error) throw error;
 
-        if (!data) {
-          throw new Error('Não foi possível atualizar a tarefa. Verifique se você tem permissão de acesso.');
-        }
-
         // Build changed_fields
         const changedFields: Record<string, { old: unknown; new: unknown }> = {};
         if (current) {
@@ -220,11 +216,16 @@ export interface TaskFilters {
           }
         }
 
+        const entityName = data?.title || current?.title || 'Tarefa';
+        const isSubtask = !!(data?.parent_task_id || current?.parent_task_id);
+
         await logAction({
-          area: 'tax', entity_type: current?.parent_task_id ? 'subtask' : 'task',
-          entity_id: id, entity_name: data.title || current?.title || 'Tarefa', action: 'updated',
+          area: 'tax', entity_type: isSubtask ? 'subtask' : 'task',
+          entity_id: id, entity_name: entityName, action: 'updated',
           changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
         });
+
+        return data || current;
 
         return data;
      },
