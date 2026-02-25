@@ -36,16 +36,23 @@ export function useDraftPersistence<T extends Record<string, any>>(
   enabled: boolean,
 ) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a serialized snapshot to avoid re-firing when object reference changes
+  // but content stays the same (e.g. form.watch() returns new object every render).
+  const lastSerializedRef = useRef<string>('');
 
-  // Save with debounce
+  // Save with debounce — only when serialized content actually changed
   useEffect(() => {
     if (!enabled) return;
+
+    const serialized = serialize(values);
+    if (serialized === lastSerializedRef.current) return;
 
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(() => {
+      lastSerializedRef.current = serialized;
       try {
-        sessionStorage.setItem(key, serialize(values));
+        sessionStorage.setItem(key, serialized);
       } catch {
         // quota exceeded – silently ignore
       }
@@ -67,6 +74,7 @@ export function useDraftPersistence<T extends Record<string, any>>(
   }, [key]);
 
   const clear = useCallback(() => {
+    lastSerializedRef.current = '';
     try {
       sessionStorage.removeItem(key);
     } catch {
