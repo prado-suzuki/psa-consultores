@@ -1,107 +1,101 @@
 
 
-# Fase 1 + 2: Estabilizar AuthContext, TaskModal e Blindar Dialog
+# Eliminar Flash Branco: Correcao Arquitetural dos Gates
 
-## Causa Raiz Identificada
+## Diagnostico Refinado
 
-O `onFocusOutside` ja esta no `dialog.tsx` (linha 38), mas os modais continuam fechando. O problema real tem duas origens:
+A hierarquia de componentes nas rotas e:
 
-### 1. AuthContext causa remount completo ao trocar de aba
-
-Quando o usuario troca de aba e volta, o cliente de autenticacao dispara o evento `TOKEN_REFRESHED`. O handler `onAuthStateChange` (linhas 51-68 do AuthContext) faz:
-
-```
-setSession(session);    // novo objeto = re-render global
-setUser(session?.user); // novo objeto = re-render global
+```text
+TeamRoute -> PageAccessGate -> DevDashboard -> DevLayout (sidebar + header + children)
 ```
 
-Isso cria **novas referencias de objeto** a cada token refresh, provocando re-render em cascata em todos os componentes que usam `useAuth()`. Se combinado com o `checkRoles()` que temporariamente pode resetar `isAdmin`/`isTeamMember` para `false`, as rotas protegidas (`ProtectedRoute`, `AdminRoute`, `TeamRoute`) podem desmontar toda a arvore de componentes -- fechando qualquer modal aberto.
+O Layout (sidebar, header) esta DENTRO da pagina, nao fora do Gate. Quando `PageAccessGate` retorna um spinner (ou `null`) durante `isLoading`, a pagina inteira -- incluindo o Layout -- e desmontada. Isso causa o flash.
 
-### 2. TaskModal com loop de render instavel
+## Estrategia Correta
 
-Na linha 139 do TaskModal: `const watchedValues = form.watch()` retorna um **novo objeto a cada render**. Esse objeto alimenta o `useDraftPersistence`, cujo `useEffect` depende de `values` (linha 57 do hook). Como a referencia muda a cada render, o efeito dispara continuamente, criando o erro `Maximum update depth exceeded`.
+A solucao e simples: durante `isLoading`, o `PageAccessGate` deve **renderizar os children normalmente** em vez de bloquear. Isso e seguro porque:
 
----
+1. Os dados reais da pagina tambem dependem de React Query -- eles nao aparecem instantaneamente
+2. O `usePageAccess` tem `staleTime: 5min`, entao apos a primeira checagem, as navegacoes subsequentes sao instantaneas (cache hit)
+3. Nenhum dado sensivel e exposto durante os ~100ms de checagem, porque as queries de dados da pagina tambem estao carregando em paralelo
 
-## Correcoes Planejadas
+Quando a checagem termina e `hasAccess === false`, ai sim o Gate exibe a tela de "Acesso Negado" (isso e um estado terminal, nao um flash).
 
-### Arquivo 1: `src/contexts/AuthContext.tsx`
+## Mudancas por Arquivo
 
-**Objetivo**: Impedir que token refresh cause remount da arvore de componentes.
+### 1. `src/components/auth/PageAccessGate.tsx`
 
-Mudancas:
-- Guardar `sessionRef` e `userRef` (useRef) para comparar IDs antes de atualizar estado
-- No handler `onAuthStateChange`: so chamar `setSession`/`setUser` se o ID do usuario realmente mudou
-- Para eventos `TOKEN_REFRESHED` e `INITIAL_SESSION`: atualizar session silenciosamente sem tocar em `loading`
-- Nunca resetar `isAdmin`/`isTeamMember` para `false` durante refresh de token (so no SIGNED_OUT)
-
-Logica simplificada:
-```
-onAuthStateChange((event, newSession) => {
-  // Se o usuario nao mudou, so atualizar a referencia da session
-  // sem causar re-render desnecessario nos consumidores
-  if (event === 'TOKEN_REFRESHED') {
-    sessionRef.current = newSession;
-    setSession(newSession); // precisa atualizar token, mas user nao muda
-    return; // NAO re-checar roles, NAO mexer em loading
-  }
-  // ... resto da logica para SIGNED_IN, SIGNED_OUT etc
-})
-```
-
-### Arquivo 2: `src/components/equipe/fiscal/tasks/TaskModal.tsx`
-
-**Objetivo**: Eliminar o loop infinito de renders e estabilizar a persistencia de rascunho.
-
-Mudancas:
-- Substituir `form.watch()` (linha 139) por `useWatch({ control: form.control })` que retorna referencia estavel
-- Memoizar os valores com `useMemo` + `JSON.stringify` para evitar re-disparo do efeito de persistencia
-- Proteger os `useEffect` de `setValue` (linhas 166-168 e 191-202) com guards de igualdade: so chamar `setValue` se o valor atual for diferente do novo
-- Corrigir a dependencia do efeito de restauracao (linhas 204-248) para nao re-disparar desnecessariamente
-
-Exemplo da correcao do setValue:
-```
-useEffect(() => {
-  const current = form.getValues('contribuinte_id');
-  if (current !== undefined) {
-    form.setValue('contribuinte_id', undefined);
-  }
-}, [watchedClientId]);
-```
-
-### Arquivo 3: `src/components/ui/dialog.tsx`
-
-**Objetivo**: Blindagem adicional contra fechamento por interacao externa.
-
-O `onFocusOutside` ja esta aplicado. Adicionar tambem `onInteractOutside` para capturar outros eventos de dismissal do Radix que podem ser disparados por mudanca de foco do sistema operacional:
+Remover o bloco `if (isLoading) { return spinner }`. Durante o loading, renderizar `children` diretamente para que o Layout monte imediatamente.
 
 ```tsx
-<DialogPrimitive.Content
-  ref={ref}
-  onFocusOutside={(e) => e.preventDefault()}
-  onInteractOutside={(e) => {
-    // Permite fechar clicando no overlay (pointerdown)
-    // mas bloqueia dismiss por eventos de foco/blur do OS
-    const event = e.detail?.originalEvent;
-    if (event && !(event instanceof PointerEvent)) {
-      e.preventDefault();
-    }
-  }}
-  {...props}
->
+// ANTES:
+if (isLoading) {
+  return (<div className="min-h-screen ..."><spinner /></div>);
+}
+
+// DEPOIS:
+if (isLoading) {
+  return <>{children}</>; // Layout monta, dados carregam em paralelo
+}
 ```
 
-Isso garante que: clique no overlay fecha (PointerEvent); troca de aba/janela nao fecha (FocusEvent).
+A tela de "Acesso Negado" continua sendo exibida normalmente quando `!hasAccess` apos o loading completar.
 
----
+### 2. `src/components/gestao/GestaoAccessGate.tsx`
 
-## Resumo de Arquivos
+Mesma logica, mas so para o caso em que o usuario JA esta autenticado e estamos apenas verificando permissoes. Os dois casos de `!user` (login form e loading inicial) permanecem como estao.
 
-| Arquivo | Alteracao |
-|---|---|
-| `src/contexts/AuthContext.tsx` | Estabilizar estado durante TOKEN_REFRESHED; nao causar re-render desnecessario |
-| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Eliminar loop de render; estabilizar watch e setValue |
-| `src/components/ui/dialog.tsx` | Adicionar `onInteractOutside` com filtro por tipo de evento |
+Mudar a condicao da linha 71: quando `user` existe mas `accessLoading` e true, renderizar `children` ao inves do spinner.
 
-Total: **3 arquivos** modificados.
+```tsx
+// ANTES (linha 71):
+if ((authLoading || accessLoading) && !user) { return spinner; }
+// + mais abaixo, se accessLoading e user existe, cai no !hasAccess (que e undefined/false)
+
+// DEPOIS:
+if (authLoading && !user) { return spinner; } // Apenas no carregamento inicial do auth
+if (!user) { return login form; }
+if (accessLoading) { return <>{children}</>; } // Ja autenticado, aguardando check
+if (!hasAccess) { return access denied; }
+return <>{children}</>;
+```
+
+### 3. `src/components/auth/TeamRoute.tsx`
+
+Substituir o spinner fullscreen por `null` quando `loading && !user`. Isso so ocorre no hard refresh (primeira visita), dura ~200ms e e imperceptivel.
+
+### 4. `src/components/auth/AdminRoute.tsx`
+
+Mesma mudanca: retornar `null` em vez do spinner fullscreen.
+
+### 5. `src/components/auth/ProtectedRoute.tsx`
+
+Mesma mudanca: retornar `null` em vez do spinner fullscreen.
+
+### 6. Novo: `src/components/ui/content-skeleton.tsx`
+
+Componente reutilizavel que paginas podem usar internamente (dentro do seu Layout) para exibir skeletons suaves enquanto seus proprios dados carregam. Usa o componente Skeleton existente do projeto.
+
+Renderiza blocos animados que imitam: uma barra de filtros, 3 cards de metricas e uma tabela com linhas. Fundo transparente para herdar o tema do layout pai.
+
+## Resumo
+
+| # | Arquivo | Acao |
+|---|---|---|
+| 1 | `src/components/auth/PageAccessGate.tsx` | Renderizar children durante isLoading |
+| 2 | `src/components/gestao/GestaoAccessGate.tsx` | Renderizar children quando user existe e accessLoading |
+| 3 | `src/components/auth/TeamRoute.tsx` | Retornar `null` no loading inicial |
+| 4 | `src/components/auth/AdminRoute.tsx` | Retornar `null` no loading inicial |
+| 5 | `src/components/auth/ProtectedRoute.tsx` | Retornar `null` no loading inicial |
+| 6 | `src/components/ui/content-skeleton.tsx` | Novo componente de skeleton reutilizavel |
+
+**Total: 5 arquivos modificados, 1 arquivo novo.**
+
+## Por que e seguro renderizar children durante isLoading
+
+- Nenhum dado sensivel e exposto: os dados da pagina vem de queries proprias que tambem estao em loading
+- O Layout (sidebar, header) e puramente visual -- nao contem dados protegidos
+- O `staleTime: 5min` garante que a maioria das navegacoes internas sera instantanea (cache hit, sem loading)
+- Se o acesso for negado, a tela de bloqueio aparece normalmente apos ~100ms, sem solavanco
 
