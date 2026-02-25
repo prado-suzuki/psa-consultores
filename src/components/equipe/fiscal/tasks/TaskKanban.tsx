@@ -149,6 +149,9 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
                             <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
                               {task.title}
                             </h4>
+                            {task.project?.name && (
+                              <span className="text-xs text-blue-600 mb-1 block truncate">{task.project.name}</span>
+                            )}
                             <div className="flex items-center justify-between text-xs text-gray-500">
                               <span>{task.assigned_to_name || 'Não atribuído'}</span>
                               <span>{formatDueDate(task.due_date)}</span>
