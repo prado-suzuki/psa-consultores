@@ -1,110 +1,84 @@
 
 
-## Correcao Global: Perda de Estado ao Retornar ao Navegador
+# Plano: Corrigir Modais Fechando Sozinhos + Salvaguarda de Dados
 
-### Diagnostico
+## Diagnostico
 
-A causa raiz esta em dois pontos:
+### Problema 1 - Causa Raiz Identificada
 
-1. **AuthContext (linha 56)**: O `onAuthStateChange` dispara `setLoading(true)` em TODOS os eventos de auth, incluindo `TOKEN_REFRESHED` que ocorre automaticamente ao voltar para a aba. Isso faz `loading = true`, que causa a desmontagem completa da arvore de componentes em todos os route guards.
+O componente `DialogContent` do Radix UI utiliza internamente o `DismissableLayer`, que dispara o evento `onFocusOutside` sempre que o foco sai do dialog -- incluindo quando o usuario troca de aba no navegador. Por padrao, esse evento causa o fechamento do modal.
 
-2. **QueryClient sem configuracao**: O `new QueryClient()` na linha 75 do App.tsx usa os defaults do React Query (`staleTime: 0`, `refetchOnWindowFocus: true`), causando refetches desnecessarios que combinados com spinners locais amplificam o problema.
+O arquivo `src/components/ui/dialog.tsx` (usado por **todos** os modais da aplicacao) NAO possui nenhum tratamento para `onFocusOutside`. Isso significa que qualquer troca de aba/janela fecha o modal.
 
-### Alteracoes
+### Problema 2 - Situacao Atual
 
-#### 1. `src/App.tsx` - Configurar QueryClient com defaults seguros
+Ja existe o hook `useDraftPersistence` em `src/hooks/useDraftPersistence.ts` que salva dados no `sessionStorage` com debounce de 500ms. Porem, ele so e utilizado em **1 modal**: o `TaskModal.tsx` (fiscal tasks). Os outros 4 modais com formularios (`WorkPackageForm`, `PerFormModal`, `DcompFormModal`, `SituacaoFormModal`) e os modais com estado manual (`CreateTicketDialog`, `NewClientModal`, `CreateProcessModal`) nao possuem nenhuma salvaguarda.
 
-Substituir `const queryClient = new QueryClient()` por uma configuracao com:
-- `staleTime: 1 * 60 * 1000` (1 minuto) -- evita refetches imediatos
-- `refetchOnWindowFocus: false` -- desativa o refetch automatico ao voltar para a aba (os dados serao atualizados por invalidacao explicita ou ao navegar)
+---
 
-```typescript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1 * 60 * 1000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+## Solucao Proposta
+
+### Parte 1: Correcao Global dos Modais (1 arquivo)
+
+**Arquivo:** `src/components/ui/dialog.tsx`
+
+Adicionar `onFocusOutside={(e) => e.preventDefault()}` no componente `DialogContent`. Como todos os modais da aplicacao importam deste arquivo, a correcao sera automaticamente aplicada em todos os lugares.
+
+```tsx
+<DialogPrimitive.Content
+  ref={ref}
+  onFocusOutside={(e) => e.preventDefault()}
+  className={cn(...)}
+  {...props}  // permite override individual se necessario
+>
 ```
 
-#### 2. `src/contexts/AuthContext.tsx` - Nao mostrar loading em refresh de token
+Isso impede o fechamento por perda de foco, mantendo o comportamento normal de fechar por: clique no X, clique no overlay, tecla Escape, ou acao programatica.
 
-Alterar o `onAuthStateChange` para distinguir entre eventos que realmente precisam de loading (SIGNED_IN, SIGNED_OUT) e eventos silenciosos (TOKEN_REFRESHED, INITIAL_SESSION). A mudanca principal:
+### Parte 2: Salvaguarda de Dados nos Formularios (5 arquivos)
 
-```typescript
-supabase.auth.onAuthStateChange((event, session) => {
-  setSession(session);
-  setUser(session?.user ?? null);
+Integrar o hook `useDraftPersistence` nos modais de formulario que ainda nao o utilizam. Cada modal recebera:
 
-  if (session?.user) {
-    // Apenas SIGNED_IN precisa mostrar loading (troca de usuario)
-    if (event === 'SIGNED_IN') {
-      setLoading(true);
-      void checkRoles(session.user.id).finally(() => setLoading(false));
-    } else {
-      // TOKEN_REFRESHED, INITIAL_SESSION: atualiza roles silenciosamente
-      void checkRoles(session.user.id);
-    }
-  } else {
-    setIsAdmin(false);
-    setIsTeamMember(false);
-    if (event === 'SIGNED_OUT') {
-      setLoading(false);
-    }
+1. **`WorkPackageForm.tsx`** - chave: `'wp-form-draft'`
+2. **`PerFormModal.tsx`** - chave: `'per-form-draft'`
+3. **`DcompFormModal.tsx`** - chave: `'dcomp-form-draft'`
+4. **`SituacaoFormModal.tsx`** - chave: `'situacao-form-draft'`
+5. **`CreateTicketDialog.tsx`** - chave: `'ticket-form-draft'`
+
+O padrao de integracao sera identico ao ja existente no `TaskModal.tsx`:
+
+```tsx
+const watchedValues = form.watch();
+const draftEnabled = open && !isEditing;
+const { restore, clear } = useDraftPersistence('chave-draft', watchedValues, draftEnabled);
+
+// Restaurar ao abrir (novo)
+useEffect(() => {
+  if (open && !isEditing) {
+    const saved = restore();
+    if (saved) form.reset(saved);
   }
-});
+}, [open]);
+
+// Limpar ao submeter com sucesso ou cancelar
+onSuccess: () => { clear(); onOpenChange(false); }
+onCancel: () => { clear(); onOpenChange(false); }
 ```
 
-#### 3. Route Guards - Substituir spinner escuro por renderizacao transparente
+Para o `CreateTicketDialog` que usa `useState` ao inves de `react-hook-form`, sera feita uma adaptacao equivalente construindo o objeto de valores manualmente.
 
-Alterar os 4 componentes de guarda para que, quando `loading` for true mas ja houver um `user` em memoria, renderizem `children` normalmente em vez de desmontar tudo:
+---
 
-**`src/components/auth/TeamRoute.tsx`**:
-```typescript
-export const TeamRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isTeamMember, isAdmin, loading } = useAuth();
+## Resumo de Arquivos Alterados
 
-  // Carregamento inicial (nenhum usuario em memoria ainda)
-  if (loading && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/equipe" replace />;
-  if (!isTeamMember && !isAdmin) return <Navigate to="/" replace />;
-
-  return <>{children}</>;
-};
-```
-
-Mesma logica para **`ProtectedRoute.tsx`** e **`AdminRoute.tsx`**: so mostrar spinner se `loading && !user`.
-
-**`src/components/auth/PageAccessGate.tsx`**: Nenhuma mudanca necessaria -- ja usa React Query com `staleTime: 5min` e so depende de `authLoading`, que agora nao sera mais settado true em token refresh.
-
-#### 4. `src/components/gestao/GestaoAccessGate.tsx` - Mesma correcao
-
-Verificar e aplicar a mesma logica: so mostrar spinner se `loading && !user`.
-
-### Resultado
-
-- Voltar para a aba do navegador nao causa mais nenhum flash/piscar
-- Modais, abas selecionadas, formularios preenchidos -- tudo preservado
-- Dados continuam sendo atualizados via invalidacao explicita nas mutations
-- O spinner escuro so aparece no carregamento inicial real (primeira visita, sem usuario em cache)
-
-### Arquivos modificados
-
-| Arquivo | Mudanca |
+| Arquivo | Alteracao |
 |---|---|
-| `src/App.tsx` | QueryClient com staleTime e refetchOnWindowFocus: false |
-| `src/contexts/AuthContext.tsx` | onAuthStateChange nao seta loading em TOKEN_REFRESHED |
-| `src/components/auth/TeamRoute.tsx` | Spinner so se loading && !user |
-| `src/components/auth/ProtectedRoute.tsx` | Spinner so se loading && !user |
-| `src/components/auth/AdminRoute.tsx` | Spinner so se loading && !user |
-| `src/components/gestao/GestaoAccessGate.tsx` | Mesma correcao do spinner |
+| `src/components/ui/dialog.tsx` | Adicionar `onFocusOutside` no `DialogContent` |
+| `src/components/projetos/WorkPackageForm.tsx` | Integrar `useDraftPersistence` |
+| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Integrar `useDraftPersistence` |
+| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Integrar `useDraftPersistence` |
+| `src/components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | Integrar `useDraftPersistence` |
+| `src/components/gestao/CreateTicketDialog.tsx` | Integrar `useDraftPersistence` |
+
+Total: **6 arquivos** modificados, **0 arquivos** novos.
 
