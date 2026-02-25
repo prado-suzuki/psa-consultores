@@ -1,74 +1,64 @@
 
 
-## Refatoracao da aba "OS - Ordem de Servico"
+## Persistencia de rascunho e correcao de perda de dados - TaskModal
 
-Substituir todo o conteudo atual da aba "contratos" (linhas 774-940) por um formulario novo alinhado ao JSON fornecido. A estrutura de contratos/servicos existente sera removida.
+### Problema
+Quando o usuario alterna de aba no navegador enquanto edita/cria uma tarefa, o `react-query` faz refetch ao retornar (comportamento padrao `refetchOnWindowFocus`). Isso muda as referencias de `parentTasks` e `task`, disparando o `useEffect` (linha 194) que executa `form.reset()`, apagando todo o conteudo digitado.
 
-### Arquivo: `src/components/equipe/dev/NewClientModal.tsx`
+### Solucao em duas camadas
 
-### 1. Atualizar interface `DraftContract` (linhas 55-64)
+#### 1. Corrigir dependencias do useEffect (causa raiz)
 
-Substituir a interface atual por:
+**Arquivo:** `src/components/equipe/fiscal/tasks/TaskModal.tsx` (linha 231)
 
-```text
-interface DraftContract {
-  _id: number;
-  ordem_servico: string;        // texto livre
-  data_emissao: string;         // date input
-  nome_projeto: string;         // texto livre
-  descricao_projeto: string;    // textarea
-  data_inicio_projeto: string;  // date input
-  data_fim_projeto: string;     // date input
-  valor_projeto: number;        // numero decimal
-  valor_reembolso_km: number;   // numero decimal
-  valor_reembolso_refeicao: number; // numero decimal
-  gestor_responsavel: string;   // texto livre
-}
+Alterar as dependencias do useEffect principal de:
+```
+[task, form, defaultParentId, parentTasks]
+```
+Para:
+```
+[task?.id, form, defaultParentId]
 ```
 
-### 2. Remover interface `DraftService` e logica associada (linhas 48-53)
+O `parentTasks` continua sendo acessado dentro do corpo do useEffect para buscar dados do parent, mas nao sera dependencia do array -- evitando re-execucoes quando o react-query atualiza as referencias em background.
 
-A interface `DraftService` e toda a logica de `draftServices`, `addEmptyService`, `removeServiceFromDraft`, `updateServiceField`, `activeServiceIndex`, `existingServices`, `catalogClients` serao removidas ou deixarao de ser usadas nesta aba.
+#### 2. Criar hook de persistencia de rascunho (camada extra de seguranca)
 
-### 3. Atualizar estado inicial de `draftContract`
+**Novo arquivo:** `src/hooks/useDraftPersistence.ts`
 
-Substituir os valores iniciais para refletir a nova interface:
+Hook generico que:
+- Recebe uma chave de sessionStorage, os valores atuais do form e um flag `enabled`
+- Salva automaticamente em `sessionStorage` com debounce de 500ms
+- Serializa/deserializa objetos Date corretamente (usando marcador `__date__`)
+- Expoe metodos `restore()` e `clear()`
 
-```text
-{
-  tipo_contrato: '',  // removido
-  numero_contrato: '', // removido
-  ...novos campos com valores vazios/zero
-}
-```
+#### 3. Integrar o hook no TaskModal
 
-### 4. Atualizar `resetAndClose` e `loadData`
+**Arquivo:** `src/components/equipe/fiscal/tasks/TaskModal.tsx`
 
-Limpar/carregar os novos campos da OS.
+- Importar `useDraftPersistence`
+- Instanciar com chave `fiscal-task-draft`, passando `form.watch()` e habilitando apenas quando o modal esta aberto e NAO e edicao (`open && !isEditing`)
+- No useEffect de reset (quando `!task`): antes de fazer `form.reset` com valores vazios, tentar `restore()` e, se houver rascunho salvo, aplicar via `form.reset(rascunho)`
+- Ao salvar com sucesso (`onSubmit`): chamar `clear()`
+- Ao fechar o modal (botao Cancelar e `onOpenChange(false)` no submit): chamar `clear()`
 
-### 5. Substituir conteudo da TabsContent "contratos" (linhas 774-940)
+### Fluxo do usuario
 
-Novo layout do formulario em grid de 12 colunas:
+1. Usuario abre modal de nova tarefa e comeca a preencher
+2. A cada 500ms, os dados sao salvos em sessionStorage
+3. Se alternar de aba e voltar, o useEffect NAO dispara reset (dependencias estaveis)
+4. Se por qualquer motivo o modal fechar inesperadamente e reabrir, o rascunho e restaurado automaticamente
+5. Ao salvar ou cancelar intencionalmente, o rascunho e limpo
 
-- **Linha 1**: Ordem de Servico (4col) | Data Emissao (4col) | Gestor Responsavel (4col)
-- **Linha 2**: Nome do Projeto (6col) | Valor do Projeto R$ (3col) | (espaco)
-- **Linha 3**: Descricao do Projeto (12col, textarea)
-- **Linha 4**: Data Inicio (3col) | Data Fim (3col) | Reembolso por km R$ (3col) | Reembolso refeicao R$ (3col)
-- **Botao**: "Adicionar OS a Lista"
+### Arquivos alterados
 
-Os cards de OS ja adicionadas exibirao: numero da OS, nome do projeto, gestor, valor e datas.
-
-### 6. Atualizar `addContract`
-
-Validar que `ordem_servico` e `nome_projeto` sao obrigatorios antes de adicionar.
-
-### 7. Payload de save (`clientPayload`)
-
-Adaptar o mapeamento de `contracts` para enviar os novos campos ao inves dos antigos. Se as colunas ainda nao existirem no banco, os campos novos ficam apenas no estado local (como feito com equipe_responsavel/regiao).
+| Arquivo | Tipo | Alteracao |
+|---|---|---|
+| `src/hooks/useDraftPersistence.ts` | Novo | Hook generico de persistencia em sessionStorage |
+| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Edicao | Corrigir dependencias do useEffect + integrar hook de rascunho |
 
 ### O que NAO muda
-
-- Nenhuma migration de banco de dados
-- Demais abas (Dados do Cliente, Contribuintes, Participantes) permanecem iguais
-- Navegacao entre abas permanece igual
+- Nenhuma alteracao no banco de dados
+- Nenhuma alteracao em outros componentes ou hooks
+- Comportamento de edicao de tarefas existentes permanece igual (rascunho so ativo para criacao)
 
