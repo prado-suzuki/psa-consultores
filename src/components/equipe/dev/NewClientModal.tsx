@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { isProductionEnvironment } from '@/config/api';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -112,6 +114,7 @@ interface NewClientModalProps {
 }
 
 export default function NewClientModal({ open, onOpenChange, editingClienteId }: NewClientModalProps) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
@@ -199,6 +202,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
   });
 
+  // Draft persistence for new client mode
+  const draftValues = useMemo(() => ({
+    clientData, entities, participants, contracts,
+  }), [clientData, entities, participants, contracts]);
+  const draftEnabled = open && !isEditing;
+  const { restore: restoreDraft, clear: clearDraft } = useDraftPersistence(
+    'newclient-form-draft', draftValues, draftEnabled, user?.id,
+  );
+
   // Load existing data when editing
   useEffect(() => {
     if (!open || !editingClienteId) return;
@@ -265,6 +277,18 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     };
     loadData();
   }, [open, editingClienteId]);
+
+  // Restore draft for new client mode
+  useEffect(() => {
+    if (!open || isEditing) return;
+    const saved = restoreDraft();
+    if (saved) {
+      if (saved.clientData) setClientData(saved.clientData);
+      if (saved.entities) setEntities(saved.entities);
+      if (saved.participants) setParticipants(saved.participants);
+      if (saved.contracts) setContracts(saved.contracts);
+    }
+  }, [open, isEditing]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -472,6 +496,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
     });
     setActiveTab('cliente');
+    clearDraft();
     onOpenChange(false);
   };
 
@@ -483,6 +508,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           "[&>button]:hidden"
         )}
       >
+        <DialogTitle className="sr-only">
+          {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Formulário de cadastro de cliente com contribuintes, participantes e contratos
+        </DialogDescription>
         {/* Header */}
         <div className="px-8 py-5 border-b flex justify-between items-center bg-muted/50 shrink-0">
           <div>

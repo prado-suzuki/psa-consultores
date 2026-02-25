@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -238,6 +239,7 @@ export function WorkPackageForm({
           <DialogTitle>
             {initialData ? 'Editar Pacote de Trabalho' : 'Novo Pacote de Trabalho'}
           </DialogTitle>
+          <DialogDescription className="sr-only">Formulário de pacote de trabalho</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

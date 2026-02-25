@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -312,6 +313,7 @@ export const TaskModal = ({
           <DialogTitle>
             {isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}
           </DialogTitle>
+          <DialogDescription className="sr-only">Formulário de tarefa fiscal</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

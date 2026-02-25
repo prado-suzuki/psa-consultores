@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -154,6 +154,8 @@ export const DifalAuditModal = ({
           "[&>button]:hidden"
         )}
       >
+        <DialogTitle className="sr-only">Classificar Item DIFAL</DialogTitle>
+        <DialogDescription className="sr-only">Modal de classificação de item fiscal DIFAL/ICMS-ST</DialogDescription>
         {/* Header */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, BarChart3, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -126,6 +126,8 @@ export function EFDAnalysisModal({
           "[&>button]:hidden"
         )}
       >
+        <DialogTitle className="sr-only">Análise EFD</DialogTitle>
+        <DialogDescription className="sr-only">Visualização detalhada de registros SPED EFD</DialogDescription>
         {/* Header */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">

@@ -4,6 +4,7 @@
    DialogContent,
    DialogHeader,
    DialogTitle,
+   DialogDescription,
    DialogFooter,
  } from '@/components/ui/dialog';
  import { Button } from '@/components/ui/button';
@@ -70,7 +71,8 @@
      <Dialog open={open} onOpenChange={onOpenChange}>
        <DialogContent className="max-w-md">
          <DialogHeader>
-           <DialogTitle>Reatribuir Tarefa</DialogTitle>
+            <DialogTitle>Reatribuir Tarefa</DialogTitle>
+            <DialogDescription className="sr-only">Reatribuir tarefa a outro membro da equipe</DialogDescription>
          </DialogHeader>
  
          <div className="space-y-4">
