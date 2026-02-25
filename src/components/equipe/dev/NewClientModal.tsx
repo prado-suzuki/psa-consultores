@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
@@ -21,7 +21,38 @@ const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
 const contratoTable = isProductionEnvironment ? 'contrato' : 'contrato_dev';
-// const servicoTable = isProductionEnvironment ? 'servico' : 'servico_dev';
+
+const PRODUTO_SEGMENTO_OPTIONS = [
+  { value: 'ASO', label: 'ASO - Auditoria Pessoa Jurídica' },
+  { value: 'AFI', label: 'AFI - Auditoria Pessoa Física' },
+  { value: 'PFT', label: 'PFT - Consultoria Profitto' },
+  { value: 'PTN', label: 'PTN - Consultoria Protenun' },
+  { value: 'DHU', label: 'DHU - Consultoria em Recursos Humanos' },
+  { value: 'FMB', label: 'FMB - Consultoria Family Business' },
+  { value: 'OS1', label: 'OS1 - Sucessão Familiar - 1.0 (jurídico)' },
+  { value: 'OSG', label: 'OSG - Sucessão Familiar - 2.0 (jurídico + governança)' },
+  { value: 'SOC', label: 'SOC - Consultoria em Organização Societária' },
+  { value: 'OUT', label: 'OUT - Receitas com Parceiros' },
+  { value: 'PTR', label: 'PTR - Planejamento Tributário' },
+  { value: 'REA', label: 'REA - Reduções de Encargos na Venda de Ativos' },
+  { value: 'ACF', label: 'ACF - Assessoramento Contábil e Fiscal' },
+  { value: 'RRT', label: 'RRT - Recuperação e Ressarcimento Tributário Administrativo' },
+  { value: 'DTB', label: 'DTB - Defesas Tributárias Federais, Estaduais e Previdenciárias' },
+  { value: 'EDP', label: 'EDP - Emissão de Pareceres' },
+  { value: 'RTJ', label: 'RTJ - Recuperação Tributária Jurídica' },
+  { value: 'RSC', label: 'RSC - Reestruturação Societária' },
+  { value: 'IPC', label: 'IPC - Implantação de Programa de COMPLIANCE' },
+  { value: 'CDI', label: 'CDI - Implantação de Canal de Denúncia e Investigação nas Empresas' },
+  { value: 'AIV', label: 'AIV - Ação de Inventário' },
+  { value: 'APV', label: 'APV - Antecipação de Provas' },
+  { value: 'AGP', label: 'AGP - Ações de Grande Porte' },
+  { value: 'JCM', label: 'JCM - Consultoria Jurídica Civil Mensal' },
+  { value: 'ACO', label: 'ACO - Ações Coletivas' },
+  { value: 'ADJ', label: 'ADJ - Administração Judicial' },
+  { value: 'CJP', label: 'CJP - Consultoria Jurídica Pontual' },
+  { value: 'DIV', label: 'DIV - Diversos' },
+  { value: '__outro__', label: 'Outro (personalizado)' },
+];
 
 // Types for draft items
 interface DraftEntity {
@@ -29,6 +60,7 @@ interface DraftEntity {
   tipo_pessoa: string;
   cpf_cnpj: string;
   nome_razao_social: string;
+  possui_inscricao_estadual: boolean;
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
@@ -99,6 +131,35 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
   const isEditing = !!editingClienteId;
 
+  // Queries for lider dropdown
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ['user-roles-lider'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'lider');
+      return data || [];
+    }
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles-all'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name');
+      return data || [];
+    }
+  });
+
+  const lideres = useMemo(() => {
+    const liderIds = new Set(userRoles.map((r: any) => r.user_id));
+    return profiles
+      .filter((p: any) => liderIds.has(p.id))
+      .map((p: any) => ({ id: p.id, nome: `${p.first_name || ''} ${p.last_name || ''}`.trim() }));
+  }, [userRoles, profiles]);
+
   // Section 1 - Client data
   const [clientData, setClientData] = useState({
     nome: '',
@@ -109,6 +170,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     municipio: '',
     uf: '',
     setor_cliente: '',
+    tipo_produto_segmento: '',
+    tipo_produto_segmento_custom: '',
     equipe_responsavel: '',
     regiao: '',
   });
@@ -116,7 +179,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   // Section 2 - Contribuintes
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
-    tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '',
+    tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
+    possui_inscricao_estadual: false, inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: false,
     logradouro: '', bairro: '', municipio: '', uf: '',
   });
@@ -142,7 +206,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     const loadData = async () => {
       setLoadingEdit(true);
       try {
-        // 1. Cliente
         const { data: cli } = await supabase.from(clienteTable).select('*').eq('id', editingClienteId).maybeSingle();
         if (cli) {
           setClientData({
@@ -154,12 +217,13 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             municipio: cli.municipio || '',
             uf: cli.uf || '',
             setor_cliente: cli.setor_cliente || '',
+            tipo_produto_segmento: '',
+            tipo_produto_segmento_custom: '',
             equipe_responsavel: (cli as any).equipe_responsavel || '',
             regiao: (cli as any).regiao || '',
           });
         }
 
-        // 2. Contribuintes
         const { data: contribs } = await supabase.from(contribuinteTable).select('*').eq('cliente_id', editingClienteId);
         if (contribs) {
           setEntities(contribs.map(c => ({
@@ -167,6 +231,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             tipo_pessoa: c.tipo_pessoa || 'PJ',
             cpf_cnpj: c.cpf_cnpj || '',
             nome_razao_social: c.nome_razao_social || '',
+            possui_inscricao_estadual: !!(c.inscricao_estadual),
             inscricao_estadual: c.inscricao_estadual || '',
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
@@ -178,7 +243,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           })));
         }
 
-        // 3. Participantes
         const { data: parts } = await (supabase.from(participanteTable) as any).select('*').eq('id_cliente', editingClienteId);
         if (parts) {
           setParticipants(parts.map((p: any) => ({
@@ -191,8 +255,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           })));
         }
 
-        // 4. Contratos (OS) - campos novos ainda não existem no banco, mantém estado local vazio
-        // Quando as colunas forem criadas no banco, carregar aqui
         setContracts([]);
       } catch (err: any) {
         console.error('Erro ao carregar dados do cliente:', err);
@@ -209,14 +271,52 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
   // --- ENTITY HANDLERS ---
   const addEntity = () => {
-    if (!draftEntity.nome_razao_social) { toast.error('Razão Social é obrigatória'); return; }
+    if (!draftEntity.nome_razao_social?.trim()) { toast.error('Razão Social é obrigatória'); return; }
+    
+    const cpfCnpjDigits = (draftEntity.cpf_cnpj || '').replace(/\D/g, '');
+    if (!cpfCnpjDigits) { toast.error('CPF/CNPJ é obrigatório'); return; }
+    if (cpfCnpjDigits.length !== 11 && cpfCnpjDigits.length !== 14) {
+      toast.error('CPF deve ter 11 dígitos ou CNPJ 14 dígitos'); return;
+    }
+
+    if (!draftEntity.logradouro?.trim()) { toast.error('Logradouro é obrigatório'); return; }
+    if (!draftEntity.bairro?.trim()) { toast.error('Bairro é obrigatório'); return; }
+    if (!draftEntity.municipio?.trim()) { toast.error('Município é obrigatório'); return; }
+    if (!draftEntity.uf?.trim() || (draftEntity.uf?.trim().length !== 2)) { toast.error('UF deve ter 2 caracteres'); return; }
+
+    if (draftEntity.tipo_pessoa === 'PJ') {
+      if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
+      if (!draftEntity.setor?.trim()) { toast.error('Setor é obrigatório para PJ'); return; }
+    }
+
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
-    setDraftEntity({ tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '', cod_cnae: '', setor: 'Indústria', simples_nacional: false, logradouro: '', bairro: '', municipio: '', uf: '' });
+    setDraftEntity({
+      tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
+      possui_inscricao_estadual: false, inscricao_estadual: '',
+      cod_cnae: '', setor: 'Indústria', simples_nacional: false,
+      logradouro: '', bairro: '', municipio: '', uf: '',
+    });
   };
 
   // --- PARTICIPANT HANDLERS ---
   const addParticipant = () => {
-    if (!draftParticipant.nome) { toast.error('Nome é obrigatório'); return; }
+    if (!draftParticipant.nome.trim()) { toast.error('Nome é obrigatório'); return; }
+    if (!draftParticipant.cargo.trim()) { toast.error('Cargo é obrigatório'); return; }
+
+    if (draftParticipant.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(draftParticipant.email.trim())) { toast.error('Formato de e-mail inválido'); return; }
+    }
+
+    if (draftParticipant.telefone.trim()) {
+      const telDigits = draftParticipant.telefone.replace(/\D/g, '');
+      if (telDigits.length < 10) { toast.error('Telefone deve ter no mínimo 10 dígitos'); return; }
+    }
+
+    if (draftParticipant.observacoes.trim() && draftParticipant.observacoes.trim().length < 20) {
+      toast.error('Observações deve ter no mínimo 20 caracteres'); return;
+    }
+
     setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
     setDraftParticipant({ nome: '', cargo: '', email: '', telefone: '', observacoes: '' });
   };
@@ -225,6 +325,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const addContract = () => {
     if (!draftContract.ordem_servico.trim()) { toast.error('Número da OS é obrigatório'); return; }
     if (!draftContract.nome_projeto.trim()) { toast.error('Nome do Projeto é obrigatório'); return; }
+    if (!draftContract.data_emissao) { toast.error('Data de Emissão é obrigatória'); return; }
+    if (!draftContract.data_inicio_projeto) { toast.error('Data de Início é obrigatória'); return; }
+    if (!draftContract.gestor_responsavel) { toast.error('Gestor Responsável é obrigatório'); return; }
+    if (draftContract.valor_projeto <= 0) { toast.error('Valor do Projeto deve ser maior que zero'); return; }
+
+    if (draftContract.descricao_projeto.trim() && draftContract.descricao_projeto.trim().length < 20) {
+      toast.error('Descrição do Projeto deve ter no mínimo 20 caracteres'); return;
+    }
+
     setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
     setDraftContract({
       ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
@@ -236,6 +345,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   // --- FINAL SAVE ---
   const handleSave = async () => {
     if (!clientData.nome.trim()) { toast.error('Nome do cliente é obrigatório'); return; }
+
+    if (clientData.telefone.trim()) {
+      const telDigits = clientData.telefone.replace(/\D/g, '');
+      if (telDigits.length < 10) { toast.error('Telefone do cliente deve ter no mínimo 10 dígitos'); return; }
+    }
+    if (!clientData.municipio.trim()) { toast.error('Município do cliente é obrigatório'); return; }
+    if (!clientData.uf.trim()) { toast.error('UF do cliente é obrigatória'); return; }
+    if (!clientData.setor_cliente) { toast.error('Área do negócio é obrigatória'); return; }
+    if (!clientData.tipo_produto_segmento) { toast.error('Tipo de produto/segmento é obrigatório'); return; }
+    if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
+      toast.error('Informe o nome do produto/segmento personalizado'); return;
+    }
+    if (!clientData.equipe_responsavel) { toast.error('Equipe responsável é obrigatória'); return; }
+    if (!clientData.regiao) { toast.error('Região é obrigatória'); return; }
+
     setSaving(true);
     try {
       const clientPayload = {
@@ -253,7 +377,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
       let clienteResult: any;
 
       if (isEditing) {
-        // UPDATE existing client
         const { data: updated, error } = await supabase
           .from(clienteTable)
           .update(clientPayload)
@@ -264,19 +387,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         clienteId = editingClienteId!;
         clienteResult = updated;
 
-        // Delete + re-insert contribuintes
         await supabase.from(contribuinteTable).delete().eq('cliente_id', clienteId);
 
-        // OS - limpeza de contratos antigos (mantido para compatibilidade)
         const { data: existingContratos } = await (supabase.from(contratoTable) as any).select('id_contrato').eq('id_cliente', clienteId);
         if (existingContratos && existingContratos.length > 0) {
           await (supabase.from(contratoTable) as any).delete().eq('id_cliente', clienteId);
         }
 
-        // Delete + re-insert participantes
         await (supabase.from(participanteTable) as any).delete().eq('id_cliente', clienteId);
       } else {
-        // INSERT new client
         const { data: newCliente, error: clienteError } = await supabase
           .from(clienteTable)
           .insert(clientPayload)
@@ -287,7 +406,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         clienteResult = newCliente;
       }
 
-      // 2. Insert contribuintes
       if (entities.length > 0) {
         const contribPayload = entities.map(e => ({
           cliente_id: clienteId,
@@ -303,7 +421,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         if (contribError) throw contribError;
       }
 
-      // 3. Insert participantes
       if (participants.length > 0) {
         const partPayload = participants.map(p => ({
           id_cliente: clienteId,
@@ -316,11 +433,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         if (partError) throw partError;
       }
 
-      // 4. OS - campos novos ainda não existem no banco, dados ficam apenas no estado local
-      // Quando as colunas forem criadas, inserir aqui
       console.log('[OS] Dados locais (não salvos no banco):', contracts);
 
-      // 5. Sync DW
       syncCadastrosToDW({
         clientes: [{
           id_cliente: clienteResult.id,
@@ -337,7 +451,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         }]
       });
 
-      // 6. Cleanup
       queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
       queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
       queryClient.invalidateQueries({ queryKey: ['contribuintes-modal'] });
@@ -352,7 +465,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   };
 
   const resetAndClose = () => {
-    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '', equipe_responsavel: '', regiao: '' });
+    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '', tipo_produto_segmento: '', tipo_produto_segmento_custom: '', equipe_responsavel: '', regiao: '' });
     setEntities([]);
     setParticipants([]);
     setContracts([]);
@@ -441,7 +554,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </Select>
                       </div>
                       <div className="col-span-6 md:col-span-3">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio</Label>
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
                         <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
@@ -465,6 +578,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
+                        <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} placeholder="(00) 00000-0000" />
+                      </div>
+                      <div className="col-span-6 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
+                        <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
+                      </div>
+                      <div className="col-span-6 md:col-span-1">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
+                        <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-3">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo Relacionamento</Label>
                         <div className="flex bg-muted p-1 rounded-lg">
                           <button
@@ -479,8 +605,31 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           >Pontual</button>
                         </div>
                       </div>
+
+                      {/* Tipo de produto/segmento */}
+                      <div className="col-span-12 md:col-span-5">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
+                        <Select value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {clientData.tipo_produto_segmento === '__outro__' && (
+                          <Input
+                            className="mt-2"
+                            value={clientData.tipo_produto_segmento_custom}
+                            onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
+                            placeholder="Nome do novo produto/segmento"
+                          />
+                        )}
+                      </div>
+
                       <div className="col-span-12 md:col-span-4">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável</Label>
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável *</Label>
                         <Select value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
@@ -503,7 +652,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </Select>
                       </div>
                       <div className="col-span-12 md:col-span-5">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região</Label>
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
                         <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
@@ -565,25 +714,36 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             </Select>
                           </div>
                           <div className="col-span-8 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ *</Label>
                             <Input value={draftEntity.cpf_cnpj || ''} onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })} placeholder="000.000.000-00" className="font-mono" />
                           </div>
                           <div className="col-span-12 md:col-span-7">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
                             <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
                           </div>
+
+                          {/* Inscrição Estadual condicional */}
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Insc. Estadual</Label>
-                            <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Isento" />
+                            <div className="flex items-center gap-2 mb-2">
+                              <Checkbox
+                                checked={draftEntity.possui_inscricao_estadual || false}
+                                onCheckedChange={c => setDraftEntity({ ...draftEntity, possui_inscricao_estadual: !!c, inscricao_estadual: !c ? '' : draftEntity.inscricao_estadual })}
+                              />
+                              <Label className="text-xs font-bold uppercase text-muted-foreground">Possui Insc. Estadual?</Label>
+                            </div>
+                            {draftEntity.possui_inscricao_estadual && (
+                              <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" />
+                            )}
                           </div>
+
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <>
                               <div className="col-span-6 md:col-span-3">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE *</Label>
                                 <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
                               </div>
                               <div className="col-span-6 md:col-span-3">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor</Label>
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor *</Label>
                                 <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>
                                   <SelectContent>
@@ -606,19 +766,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             </>
                           )}
                           <div className="col-span-12 md:col-span-5">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro *</Label>
                             <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro *</Label>
                             <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
                             <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-1">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
                             <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
                           </div>
                           <div className="col-span-12 flex justify-end mt-2">
@@ -664,7 +824,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo *</Label>
                             <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
@@ -680,7 +840,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Textarea
                               value={draftParticipant.observacoes}
                               onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
-                              placeholder="Observações sobre o participante..."
+                              placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
                               className="min-h-[60px]"
                             />
                           </div>
@@ -713,7 +873,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                                 <span className="text-xs text-muted-foreground">{cont.gestor_responsavel || '—'}</span>
                               </div>
                               <div className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</div>
-                              <div className="font-bold text-lg text-emerald-700 mt-1">{formatCurrency(cont.valor_projeto)}</div>
+                              <div className="font-bold text-lg text-foreground mt-1">{formatCurrency(cont.valor_projeto)}</div>
                               <div className="flex gap-3 text-[11px] text-muted-foreground mt-2">
                                 {cont.data_inicio_projeto && <span>Início: {cont.data_inicio_projeto}</span>}
                                 {cont.data_fim_projeto && <span>Fim: {cont.data_fim_projeto}</span>}
@@ -734,12 +894,20 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="OS-001" />
                           </div>
                           <div className="col-span-6 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data de Emissão</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data de Emissão *</Label>
                             <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável</Label>
-                            <Input value={draftContract.gestor_responsavel} onChange={e => setDraftContract({ ...draftContract, gestor_responsavel: e.target.value })} />
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
+                            <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
+                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {lideres.map(l => (
+                                  <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           {/* Linha 2 */}
@@ -748,24 +916,24 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Valor do Projeto (R$)</Label>
-                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
+                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
                           </div>
 
                           {/* Linha 3 */}
                           <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição do Projeto</Label>
-                            <textarea
+                            <Textarea
                               value={draftContract.descricao_projeto}
                               onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
-                              rows={3}
-                              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              placeholder="Mín. 20 caracteres se preenchido..."
+                              className="min-h-[80px]"
                             />
                           </div>
 
                           {/* Linha 4 */}
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
                             <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
@@ -773,12 +941,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Reembolso por km (R$)</Label>
-                            <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso por km (R$)</Label>
+                            <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Reembolso refeição (R$)</Label>
-                            <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
+                            <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} />
                           </div>
                         </div>
 
