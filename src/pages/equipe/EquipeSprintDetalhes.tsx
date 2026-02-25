@@ -2031,7 +2031,15 @@ export default function EquipeSprintDetalhes() {
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Editar Entregável</DialogTitle>
+           <DialogTitle>Editar Entregável</DialogTitle>
+            {editingDeliverable?.parent_id && (() => {
+              const parent = deliverables.find(d => d.id === editingDeliverable.parent_id);
+              return parent ? (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Subtarefa de: <span className="font-medium text-foreground">{parent.task_code ? `${parent.task_code} — ` : ''}{parent.title}</span>
+                </p>
+              ) : null;
+            })()}
           </DialogHeader>
           
           <div className="space-y-4 py-4">
