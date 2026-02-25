@@ -1,5 +1,5 @@
  import { useState } from 'react';
- import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange } from 'lucide-react';
+ import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart } from 'lucide-react';
  import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
  import { Button } from '@/components/ui/button';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +15,8 @@
  import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
  import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
  import { TaskTable } from '@/components/equipe/fiscal/tasks/TaskTable';
- import { TaskKanban } from '@/components/equipe/fiscal/tasks/TaskKanban';
+import { TaskKanban } from '@/components/equipe/fiscal/tasks/TaskKanban';
+import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
  import { TaskTodayView } from '@/components/equipe/fiscal/tasks/TaskTodayView';
  import { TaskFutureView } from '@/components/equipe/fiscal/tasks/TaskFutureView';
  import { TaskModal } from '@/components/equipe/fiscal/tasks/TaskModal';
@@ -137,19 +138,23 @@
                <Table2 className="h-4 w-4" />
                Tabela
              </TabsTrigger>
-             <TabsTrigger value="kanban" className="gap-2">
-               <Trello className="h-4 w-4" />
-               Kanban
-             </TabsTrigger>
-             <TabsTrigger value="today" className="gap-2">
-               <Sun className="h-4 w-4" />
-               Hoje
-             </TabsTrigger>
-             <TabsTrigger value="future" className="gap-2">
-               <CalendarRange className="h-4 w-4" />
-               Futuras
-             </TabsTrigger>
-           </TabsList>
+              <TabsTrigger value="kanban" className="gap-2">
+                <Trello className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+              <TabsTrigger value="gantt" className="gap-2">
+                <GanttChart className="h-4 w-4" />
+                Gantt
+              </TabsTrigger>
+              <TabsTrigger value="today" className="gap-2">
+                <Sun className="h-4 w-4" />
+                Hoje
+              </TabsTrigger>
+              <TabsTrigger value="future" className="gap-2">
+                <CalendarRange className="h-4 w-4" />
+                Futuras
+              </TabsTrigger>
+            </TabsList>
  
            <div className="mt-4">
              <TabsContent value="calendar" className="m-0">
@@ -178,7 +183,14 @@
                  onDelete={handleDeleteTask}
                  onReassign={handleReassignTask}
                />
-             </TabsContent>
+              </TabsContent>
+
+              <TabsContent value="gantt" className="m-0">
+                <TaskGantt
+                  tasks={tasks}
+                  onEdit={handleEditTask}
+                />
+              </TabsContent>
  
              <TabsContent value="today" className="m-0">
                <TaskTodayView
