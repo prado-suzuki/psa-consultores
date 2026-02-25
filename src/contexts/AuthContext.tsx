@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -24,6 +24,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isTeamMember, setIsTeamMember] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Refs to compare identity before triggering state updates
+  const userIdRef = useRef<string | null>(null);
+  const rolesCheckedRef = useRef(false);
+
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -33,9 +37,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setSession(session);
         setUser(session?.user ?? null);
+        userIdRef.current = session?.user?.id ?? null;
 
         if (session?.user) {
           await checkRoles(session.user.id);
+          rolesCheckedRef.current = true;
         } else {
           setIsAdmin(false);
           setIsTeamMember(false);
@@ -48,22 +54,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const newUserId = newSession?.user?.id ?? null;
 
-      if (session?.user) {
-        if (event === 'SIGNED_IN') {
+      if (event === 'TOKEN_REFRESHED') {
+        // Token refreshed (e.g. tab refocus) — update session ref silently.
+        // Do NOT re-check roles, do NOT touch loading, do NOT update user state.
+        // This prevents the entire component tree from remounting.
+        setSession(newSession);
+        return;
+      }
+
+      if (event === 'SIGNED_IN') {
+        // Only do a full state update if the user actually changed
+        const userChanged = newUserId !== userIdRef.current;
+        userIdRef.current = newUserId;
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user && (userChanged || !rolesCheckedRef.current)) {
           setLoading(true);
-          void checkRoles(session.user.id).finally(() => setLoading(false));
-        } else {
-          void checkRoles(session.user.id);
+          void checkRoles(newSession.user.id).finally(() => {
+            rolesCheckedRef.current = true;
+            setLoading(false);
+          });
         }
-      } else {
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        userIdRef.current = null;
+        rolesCheckedRef.current = false;
+        setSession(null);
+        setUser(null);
         setIsAdmin(false);
         setIsTeamMember(false);
-        if (event === 'SIGNED_OUT') {
-          setLoading(false);
+        setLoading(false);
+        return;
+      }
+
+      // For any other event (INITIAL_SESSION, USER_UPDATED, etc.)
+      // update session but avoid unnecessary user state changes
+      setSession(newSession);
+      if (newUserId !== userIdRef.current) {
+        userIdRef.current = newUserId;
+        setUser(newSession?.user ?? null);
+        if (newSession?.user) {
+          void checkRoles(newSession.user.id);
         }
       }
     });

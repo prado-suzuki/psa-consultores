@@ -162,9 +162,12 @@ export const TaskModal = ({
     enabled: open && !!watchedClientId,
   });
 
-  // Clear contribuinte when client changes
+  // Clear contribuinte when client changes (only if it has a value)
   useEffect(() => {
-    form.setValue('contribuinte_id', undefined);
+    const current = form.getValues('contribuinte_id');
+    if (current !== undefined) {
+      form.setValue('contribuinte_id', undefined);
+    }
   }, [watchedClientId, form]);
 
   const filteredParentTasks = watchedProjectId
@@ -187,17 +190,22 @@ export const TaskModal = ({
     enabled: open && !!watchedProjectId,
   });
 
-  // When project changes: clear dependent fields and auto-set client
+  // When project changes: clear dependent fields and auto-set client (with guards)
   useEffect(() => {
-    form.setValue('categoria_id', undefined);
+    if (form.getValues('categoria_id') !== undefined) {
+      form.setValue('categoria_id', undefined);
+    }
     // Only clear parent_task_id if we're NOT creating a subtask via defaultParentId
-    if (!defaultParentId) {
+    if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
     // Auto-fill client from the selected project
     const selectedProject = projects.find(p => p.id === watchedProjectId);
     if (selectedProject?.external_client_id) {
-      form.setValue('client_id', selectedProject.external_client_id);
+      const currentClient = form.getValues('client_id');
+      if (currentClient !== selectedProject.external_client_id) {
+        form.setValue('client_id', selectedProject.external_client_id);
+      }
     }
   }, [watchedProjectId, form, projects, defaultParentId]);
 
