@@ -201,28 +201,32 @@ export interface TaskFilters {
           .select()
           .maybeSingle();
 
-       if (error) throw error;
+        if (error) throw error;
 
-       // Build changed_fields
-       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
-       if (current) {
-         for (const key of Object.keys(updates)) {
-           if (key === 'id') continue;
-           const oldVal = (current as any)[key];
-           const newVal = (updates as any)[key];
-           if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-             changedFields[key] = { old: oldVal, new: newVal };
-           }
-         }
-       }
+        if (!data) {
+          throw new Error('Não foi possível atualizar a tarefa. Verifique se você tem permissão de acesso.');
+        }
 
-       await logAction({
-         area: 'tax', entity_type: current?.parent_task_id ? 'subtask' : 'task',
-         entity_id: id, entity_name: data.title, action: 'updated',
-         changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
-       });
+        // Build changed_fields
+        const changedFields: Record<string, { old: unknown; new: unknown }> = {};
+        if (current) {
+          for (const key of Object.keys(updates)) {
+            if (key === 'id') continue;
+            const oldVal = (current as any)[key];
+            const newVal = (updates as any)[key];
+            if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+              changedFields[key] = { old: oldVal, new: newVal };
+            }
+          }
+        }
 
-       return data;
+        await logAction({
+          area: 'tax', entity_type: current?.parent_task_id ? 'subtask' : 'task',
+          entity_id: id, entity_name: data.title || current?.title || 'Tarefa', action: 'updated',
+          changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
+        });
+
+        return data;
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
