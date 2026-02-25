@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -88,10 +89,22 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
     financial_impact: ''
   });
 
+  // Draft persistence
+  const draftValues = useMemo(() => ({ form, teamMembers }), [form, teamMembers]);
+  const { restore: restoreDraft, clear: clearDraft } = useDraftPersistence(
+    'process-form-draft', draftValues, open, user?.id,
+  );
+
   useEffect(() => {
     if (open) {
       fetchJobRoles();
       fetchCatalogClients();
+      // Restore draft
+      const saved = restoreDraft();
+      if (saved) {
+        if (saved.form) setForm(saved.form);
+        if (saved.teamMembers) setTeamMembers(saved.teamMembers);
+      }
     }
   }, [open]);
 
@@ -236,7 +249,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
         financial_impact: ''
       });
       setTeamMembers([]);
-      
+      clearDraft();
       onCreated?.();
       onClose();
     } catch (error: any) {
@@ -254,10 +267,11 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
   const monthlyCost = calculateMonthlyCost();
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { clearDraft(); onClose(); } }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Processo</DialogTitle>
+          <DialogDescription className="sr-only">Formulário de criação de processo</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -466,7 +480,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { clearDraft(); onClose(); }}>Cancelar</Button>
           <Button onClick={handleSave} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Criar Processo

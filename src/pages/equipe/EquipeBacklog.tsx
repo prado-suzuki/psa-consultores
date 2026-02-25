@@ -3,7 +3,7 @@ import { EquipeLayout } from "@/components/equipe/EquipeLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -424,6 +424,7 @@ export default function EquipeBacklog() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Editar Item' : 'Novo Item do Backlog'}</DialogTitle>
+            <DialogDescription className="sr-only">Formulário de item do backlog</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -487,6 +488,7 @@ export default function EquipeBacklog() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mover para Sprint</DialogTitle>
+            <DialogDescription className="sr-only">Mover item do backlog para uma sprint</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {movingItem && (
