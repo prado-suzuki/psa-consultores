@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -85,6 +86,10 @@ export function DcompFormModal({
     },
   });
 
+  const watchedValues = form.watch();
+  const draftEnabled = open && !isEditing;
+  const { restore, clear } = useDraftPersistence('dcomp-form-draft', watchedValues, draftEnabled);
+
   // Query para buscar DCOMPs existentes do mesmo PER (para retificação)
   const { data: dcompsExistentes = [] } = useQuery({
     queryKey: ['dcomps-existentes', preSelectedPer],
@@ -142,19 +147,24 @@ export function DcompFormModal({
         nr_dcomp_ret: editData.nr_dcomp_ret || null,
         porcentagem_psa: editData.porcentagem_psa ?? null,
       });
-    } else {
-      form.reset({
-        nr_documento: '',
-        nr_per_orig: preSelectedPer || '',
-        mes_ano_exercicio: '',
-        dt_envio: new Date().toISOString().split('T')[0],
-        imposto: '',
-        vlr_compensado: 0,
-        nr_dcomp_ret: null,
-        porcentagem_psa: null,
-      });
+    } else if (open) {
+      const saved = restore();
+      if (saved) {
+        form.reset(saved);
+      } else {
+        form.reset({
+          nr_documento: '',
+          nr_per_orig: preSelectedPer || '',
+          mes_ano_exercicio: '',
+          dt_envio: new Date().toISOString().split('T')[0],
+          imposto: '',
+          vlr_compensado: 0,
+          nr_dcomp_ret: null,
+          porcentagem_psa: null,
+        });
+      }
     }
-  }, [editData, form, preSelectedPer]);
+  }, [editData, form, preSelectedPer, open]);
 
   const createMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
@@ -178,6 +188,7 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
       toast.success('DCOMP criado com sucesso!');
+      clear();
       onOpenChange(false);
 
       syncPerdcompToDW({ dcomp: [record] });
@@ -211,6 +222,7 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
       toast.success('DCOMP atualizado com sucesso!');
+      clear();
       onOpenChange(false);
 
       syncPerdcompToDW({ dcomp: [record] });
@@ -398,7 +410,7 @@ export function DcompFormModal({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>

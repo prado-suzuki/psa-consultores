@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -99,6 +100,11 @@ export function WorkPackageForm({
     },
   });
 
+  const isEditing = !!initialData;
+  const watchedValues = form.watch();
+  const draftEnabled = open && !isEditing;
+  const { restore, clear } = useDraftPersistence('wp-form-draft', watchedValues, draftEnabled);
+
   // Load team members
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members-select'],
@@ -172,26 +178,31 @@ export function WorkPackageForm({
         start_date: initialData.start_date ? new Date(initialData.start_date) : undefined,
         due_date: initialData.due_date ? new Date(initialData.due_date) : undefined,
       });
-    } else {
-      form.reset({
-        title: '',
-        description: '',
-        type: 'tarefa',
-        status: 'novo',
-        priority: 'normal',
-        area: 'fiscal',
-        stage: '__none__',
-        assigned_to: '__none__',
-        responsible: '__none__',
-        client_id: '__none__',
-        project_id: '__none__',
-        parent_id: '__none__',
-        estimated_hours: '',
-        start_date: undefined,
-        due_date: undefined,
-      });
+    } else if (open) {
+      const saved = restore();
+      if (saved) {
+        form.reset(saved);
+      } else {
+        form.reset({
+          title: '',
+          description: '',
+          type: 'tarefa',
+          status: 'novo',
+          priority: 'normal',
+          area: 'fiscal',
+          stage: '__none__',
+          assigned_to: '__none__',
+          responsible: '__none__',
+          client_id: '__none__',
+          project_id: '__none__',
+          parent_id: '__none__',
+          estimated_hours: '',
+          start_date: undefined,
+          due_date: undefined,
+        });
+      }
     }
-  }, [initialData, form]);
+  }, [initialData, form, open]);
 
   // Helper to convert __none__ to null
   const toNullable = (value: string) => value === '__none__' ? null : value;
@@ -214,6 +225,7 @@ export function WorkPackageForm({
       start_date: data.start_date ? format(data.start_date, 'yyyy-MM-dd') : null,
       due_date: data.due_date ? format(data.due_date, 'yyyy-MM-dd') : null,
     };
+    clear();
     onSubmit(submitData);
   };
 
@@ -636,7 +648,7 @@ export function WorkPackageForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => { clear(); onOpenChange(false); }}
               >
                 Cancelar
               </Button>

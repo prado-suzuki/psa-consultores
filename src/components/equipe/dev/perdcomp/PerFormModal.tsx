@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -136,6 +137,10 @@ export function PerFormModal({
     },
   });
 
+  const watchedValues = form.watch();
+  const draftEnabled = open && !isEditing;
+  const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled);
+
   // Fetch contribuintes based on clienteId
   const { data: contribuintes = [] } = useQuery({
     queryKey: ['contribuintes', clienteId],
@@ -187,7 +192,6 @@ export function PerFormModal({
         porcentagem_psa: editData.porcentagem_psa ?? null,
       });
       setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_credito || 0));
-      // Set tipo declaração based on existing nr_proc_ret
       if (editData.nr_proc_ret) {
         setTipoDeclaracao('retificadora');
         setSelectedPerRetificado(editData.nr_proc_ret);
@@ -195,23 +199,29 @@ export function PerFormModal({
         setTipoDeclaracao('original');
         setSelectedPerRetificado(null);
       }
-    } else {
-      form.reset({
-        numero_processo_per: '',
-        id_contribuinte: contribuinteId || '',
-        exercicio: new Date().getFullYear(),
-        tri_exercicio: 1,
-        dt_solicitada: new Date().toISOString().split('T')[0],
-        tp_credito: '',
-        vlr_credito: 0,
-        nr_proc_ret: null,
-        porcentagem_psa: null,
-      });
-      setCurrencyDisplay('R$ 0,00');
+    } else if (open) {
+      const saved = restore();
+      if (saved) {
+        form.reset(saved);
+        setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_credito || 0));
+      } else {
+        form.reset({
+          numero_processo_per: '',
+          id_contribuinte: contribuinteId || '',
+          exercicio: new Date().getFullYear(),
+          tri_exercicio: 1,
+          dt_solicitada: new Date().toISOString().split('T')[0],
+          tp_credito: '',
+          vlr_credito: 0,
+          nr_proc_ret: null,
+          porcentagem_psa: null,
+        });
+        setCurrencyDisplay('R$ 0,00');
+      }
       setTipoDeclaracao('original');
       setSelectedPerRetificado(null);
     }
-  }, [editData, contribuinteId, form]);
+  }, [editData, contribuinteId, form, open]);
 
   // Reset retificado selection when tipo changes
   useEffect(() => {
@@ -263,6 +273,7 @@ export function PerFormModal({
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('PER criado com sucesso!');
+      clear();
       onOpenChange(false);
 
       // Sync fire-and-forget
@@ -308,6 +319,7 @@ export function PerFormModal({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       toast.success('PER atualizado com sucesso!');
+      clear();
       onOpenChange(false);
 
       syncPerdcompToDW({
@@ -640,7 +652,7 @@ export function PerFormModal({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button 

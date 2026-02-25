@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,9 +61,15 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     user_id: '',
   });
 
+  const { restore, clear } = useDraftPersistence('ticket-form-draft', formData, open);
+
   useEffect(() => {
     if (open) {
       fetchClients();
+      const saved = restore();
+      if (saved) {
+        setFormData(saved as typeof formData);
+      }
     }
   }, [open]);
 
@@ -192,6 +199,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         user_id: '',
       });
       setSelectedFiles([]);
+      clear();
       onSuccess();
       onOpenChange(false);
     } catch (error) {
@@ -343,7 +351,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => { clear(); onOpenChange(false); }}
             className="border-slate-200 text-slate-600"
           >
             Cancelar
