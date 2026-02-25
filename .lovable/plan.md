@@ -1,64 +1,58 @@
 
 
-## Persistencia de rascunho e correcao de perda de dados - TaskModal
+## Ajustes no NewClientModal - Contribuintes e Participantes
 
-### Problema
-Quando o usuario alterna de aba no navegador enquanto edita/cria uma tarefa, o `react-query` faz refetch ao retornar (comportamento padrao `refetchOnWindowFocus`). Isso muda as referencias de `parentTasks` e `task`, disparando o `useEffect` (linha 194) que executa `form.reset()`, apagando todo o conteudo digitado.
+### Arquivo: `src/components/equipe/dev/NewClientModal.tsx`
 
-### Solucao em duas camadas
+### 1. Aba Participantes - Adicionar campo "Observacoes"
 
-#### 1. Corrigir dependencias do useEffect (causa raiz)
+- Adicionar `observacoes: string` na interface `DraftParticipant` (linha 40-46)
+- Adicionar `observacoes: ''` no estado inicial `draftParticipant` (linha 123-125)
+- Adicionar campo Textarea "Observacoes" no formulario de novo participante (apos telefone, col-span-12)
+- Exibir observacoes no card do participante ja adicionado (truncado)
+- Atualizar `resetAndClose` e `addParticipant` para incluir o novo campo
+- Importar `Textarea` de `@/components/ui/textarea`
 
-**Arquivo:** `src/components/equipe/fiscal/tasks/TaskModal.tsx` (linha 231)
+### 2. Aba Contribuintes - Adicionar campos de endereco
 
-Alterar as dependencias do useEffect principal de:
-```
-[task, form, defaultParentId, parentTasks]
-```
-Para:
-```
-[task?.id, form, defaultParentId]
-```
+- Adicionar `logradouro: string` e `bairro: string` na interface `DraftEntity` (linha 26-38)
+- Adicionar os campos no estado inicial `draftEntity` (linha 115-119)
+- Adicionar inputs no formulario: Logradouro (col-span-5), Bairro (col-span-3), Municipio (col-span-3 - ja existe), UF (col-span-1 - ja existe)
+- Atualizar `addEntity` reset e `loadData` para incluir os novos campos
 
-O `parentTasks` continua sendo acessado dentro do corpo do useEffect para buscar dados do parent, mas nao sera dependencia do array -- evitando re-execucoes quando o react-query atualiza as referencias em background.
+### 3. Aba Contribuintes - Filtro condicional PF/PJ
 
-#### 2. Criar hook de persistencia de rascunho (camada extra de seguranca)
+Quando o tipo de pessoa for **PF**, ocultar os seguintes campos:
+- CNAE
+- Setor
+- Simples Nacional (Optante)
 
-**Novo arquivo:** `src/hooks/useDraftPersistence.ts`
+Esses campos so aparecerao quando `draftEntity.tipo_pessoa === 'PJ'`.
 
-Hook generico que:
-- Recebe uma chave de sessionStorage, os valores atuais do form e um flag `enabled`
-- Salva automaticamente em `sessionStorage` com debounce de 500ms
-- Serializa/deserializa objetos Date corretamente (usando marcador `__date__`)
-- Expoe metodos `restore()` e `clear()`
+Implementacao: envolver os 3 campos (linhas 572-596) em um bloco condicional `{draftEntity.tipo_pessoa === 'PJ' && (...)}`.
 
-#### 3. Integrar o hook no TaskModal
+Nos cards de contribuintes ja adicionados, ocultar o badge de setor e simples quando `tipo_pessoa === 'PF'`.
 
-**Arquivo:** `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+### 4. Aba Contribuintes - Remover campo Telefone
 
-- Importar `useDraftPersistence`
-- Instanciar com chave `fiscal-task-draft`, passando `form.watch()` e habilitando apenas quando o modal esta aberto e NAO e edicao (`open && !isEditing`)
-- No useEffect de reset (quando `!task`): antes de fazer `form.reset` com valores vazios, tentar `restore()` e, se houver rascunho salvo, aplicar via `form.reset(rascunho)`
-- Ao salvar com sucesso (`onSubmit`): chamar `clear()`
-- Ao fechar o modal (botao Cancelar e `onOpenChange(false)` no submit): chamar `clear()`
+- Remover o campo "Telefone" do formulario de contribuinte (linhas 597-600)
+- Remover `telefone` da interface `DraftEntity`, do estado inicial e do reset em `addEntity`
+- Nao afeta o payload de save (telefone nao era enviado ao banco)
 
-### Fluxo do usuario
+### Resumo das alteracoes
 
-1. Usuario abre modal de nova tarefa e comeca a preencher
-2. A cada 500ms, os dados sao salvos em sessionStorage
-3. Se alternar de aba e voltar, o useEffect NAO dispara reset (dependencias estaveis)
-4. Se por qualquer motivo o modal fechar inesperadamente e reabrir, o rascunho e restaurado automaticamente
-5. Ao salvar ou cancelar intencionalmente, o rascunho e limpo
-
-### Arquivos alterados
-
-| Arquivo | Tipo | Alteracao |
-|---|---|---|
-| `src/hooks/useDraftPersistence.ts` | Novo | Hook generico de persistencia em sessionStorage |
-| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Edicao | Corrigir dependencias do useEffect + integrar hook de rascunho |
+| Local | Alteracao |
+|---|---|
+| Interface `DraftParticipant` | + `observacoes: string` |
+| Interface `DraftEntity` | + `logradouro: string`, `bairro: string`; - `telefone: string` |
+| Formulario Participantes | + campo Textarea "Observacoes" |
+| Formulario Contribuintes | + Logradouro, Bairro; - Telefone; campos CNAE/Setor/Simples ocultos quando PF |
+| Cards de contribuintes | Ocultar badge setor/simples quando PF |
+| `addEntity` / `addParticipant` / `resetAndClose` / `loadData` | Ajustar para novos campos |
 
 ### O que NAO muda
+
 - Nenhuma alteracao no banco de dados
-- Nenhuma alteracao em outros componentes ou hooks
-- Comportamento de edicao de tarefas existentes permanece igual (rascunho so ativo para criacao)
+- Demais abas (Dados do Cliente, OS) permanecem iguais
+- Payload de save permanece compativel (campos novos de endereco ficam apenas no estado local ate criacao das colunas)
 
