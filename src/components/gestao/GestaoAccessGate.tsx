@@ -68,7 +68,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   };
 
   // Show loading while auth is being checked
-  if (authLoading || accessLoading) {
+  if ((authLoading || accessLoading) && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

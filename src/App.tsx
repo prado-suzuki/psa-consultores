@@ -72,7 +72,14 @@ import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

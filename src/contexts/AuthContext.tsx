@@ -48,19 +48,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setLoading(true);
-        void checkRoles(session.user.id).finally(() => {
-          setLoading(false);
-        });
+        if (event === 'SIGNED_IN') {
+          setLoading(true);
+          void checkRoles(session.user.id).finally(() => setLoading(false));
+        } else {
+          void checkRoles(session.user.id);
+        }
       } else {
         setIsAdmin(false);
         setIsTeamMember(false);
-        setLoading(false);
+        if (event === 'SIGNED_OUT') {
+          setLoading(false);
+        }
       }
     });
 
