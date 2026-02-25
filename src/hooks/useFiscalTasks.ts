@@ -26,6 +26,7 @@ export interface FiscalTask {
    tags: string[];
    
    parent_task_id: string | null;
+  start_date: string | null;
   project_id: string | null;
   client_id: string | null;
   categoria_id: string | null;
