@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, Trash2, Building2, Loader2, Layers, CheckCircle2, Pencil } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Plus, X, Trash2, Building2, Loader2, Layers, CheckCircle2, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -80,6 +81,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
+
+  const tabOrder: typeof activeTab[] = ['cliente', 'contribuintes', 'participantes', 'contratos'];
+  const currentTabIndex = tabOrder.indexOf(activeTab);
+  const isLastTab = currentTabIndex === tabOrder.length - 1;
+  const isFirstTab = currentTabIndex === 0;
+
+  const handleNext = () => {
+    if (!isLastTab) setActiveTab(tabOrder[currentTabIndex + 1]);
+  };
+  const handleBack = () => {
+    if (!isFirstTab) setActiveTab(tabOrder[currentTabIndex - 1]);
+  };
 
   const isEditing = !!editingClienteId;
 
@@ -429,6 +443,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     setParticipants([]);
     setContracts([]);
     setDraftServices([]);
+    setActiveTab('cliente');
     onOpenChange(false);
   };
 
@@ -449,7 +464,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
               ) : (
                 <Plus className="text-teal-600" size={28} />
               )}
-              {isEditing ? 'Editar Cliente' : 'Cadastro Completo'}
+              {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
             </h2>
             <p className="text-sm text-muted-foreground">
               {isEditing
@@ -468,398 +483,416 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           </div>
         ) : (
           <>
-            {/* Scrollable Body */}
-            <ScrollArea className="flex-1">
-              <div className="p-6 md:p-10 space-y-8">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-6 pt-4 shrink-0">
+                <TabsList className="w-full grid grid-cols-4">
+                  <TabsTrigger value="cliente">Dados do Cliente/Grupo</TabsTrigger>
+                  <TabsTrigger value="contribuintes">Contribuintes</TabsTrigger>
+                  <TabsTrigger value="participantes">Participantes</TabsTrigger>
+                  <TabsTrigger value="contratos">OS - Ordem de Serviço</TabsTrigger>
+                </TabsList>
+              </div>
 
-                {/* === SECTION 1: DADOS DO CLIENTE === */}
-                <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold border border-blue-200">1</div>
-                    <h3 className="text-lg font-bold text-foreground">Dados do Cliente</h3>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-5">
-                    <div className="col-span-12 md:col-span-6">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
-                      <Input
-                        autoFocus
-                        value={clientData.nome}
-                        onChange={e => setClientData({ ...clientData, nome: e.target.value })}
-                        placeholder="Ex: Grupo Empresarial Silva"
-                        className="text-base font-bold"
-                      />
+              <ScrollArea className="flex-1">
+                <TabsContent value="cliente" className="mt-0 p-6 md:p-10">
+                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="col-span-6 md:col-span-3">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
-                      <Select value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Bronze">Bronze</SelectItem>
-                          <SelectItem value="Prata">Prata</SelectItem>
-                          <SelectItem value="Ouro">Ouro</SelectItem>
-                          <SelectItem value="Diamante">Diamante</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-6 md:col-span-3">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
-                      <div className="flex items-center gap-2 h-10">
-                        <Switch checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
-                        <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-5">
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
+                        <Input
+                          autoFocus
+                          value={clientData.nome}
+                          onChange={e => setClientData({ ...clientData, nome: e.target.value })}
+                          placeholder="Ex: Grupo Empresarial Silva"
+                          className="text-base font-bold"
+                        />
                       </div>
-                    </div>
-
-                    <div className="col-span-12 md:col-span-3">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo Relacionamento</Label>
-                      <div className="flex bg-muted p-1 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
-                          className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
-                        >Fixo</button>
-                        <button
-                          type="button"
-                          onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
-                          className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
-                        >Pontual</button>
+                      <div className="col-span-6 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
+                        <Select value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Bronze">Bronze</SelectItem>
+                            <SelectItem value="Prata">Prata</SelectItem>
+                            <SelectItem value="Ouro">Ouro</SelectItem>
+                            <SelectItem value="Diamante">Diamante</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
-                    <div className="col-span-12 md:col-span-3">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                      <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} />
-                    </div>
-                    <div className="col-span-8 md:col-span-4">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
-                      <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
-                      <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
-                    </div>
-                  </div>
-                </section>
-
-                {/* === SECTION 2: CONTRIBUINTES === */}
-                <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold border border-purple-200">2</div>
-                    <h3 className="text-lg font-bold text-foreground">Contribuintes ({entities.length})</h3>
-                  </div>
-                  <div className="p-6">
-                    {entities.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        {entities.map(ent => (
-                          <div key={ent._id} className="bg-purple-50 border border-purple-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                            <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-purple-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Trash2 size={14} />
-                            </button>
-                            <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
-                            <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-purple-700">{ent.setor}</span>
-                              {ent.simples_nacional && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Simples</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="bg-muted/50 rounded-lg border p-5">
-                      <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                        <Plus size={16} /> Novo Contribuinte
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="col-span-4 md:col-span-2">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                          <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="PJ">PJ</SelectItem>
-                              <SelectItem value="PF">PF</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-8 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
-                          <Input value={draftEntity.cpf_cnpj || ''} onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })} placeholder="000.000.000-00" className="font-mono" />
-                        </div>
-                        <div className="col-span-12 md:col-span-7">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
-                          <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Insc. Estadual</Label>
-                          <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Isento" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
-                          <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor</Label>
-                          <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Indústria">Indústria</SelectItem>
-                              <SelectItem value="Agronegócio">Agronegócio</SelectItem>
-                              <SelectItem value="Transportes">Transportes</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
-                          <div className="flex items-center gap-2 h-10">
-                            <Checkbox
-                              checked={draftEntity.simples_nacional || false}
-                              onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
-                            />
-                            <span className="text-sm">Optante</span>
-                          </div>
-                        </div>
-                        <div className="col-span-12 flex justify-end mt-2">
-                          <Button onClick={addEntity} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
-                            <Plus size={16} /> Adicionar à Lista
-                          </Button>
+                      <div className="col-span-6 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
+                        <div className="flex items-center gap-2 h-10">
+                          <Switch checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
+                          <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </section>
 
-                {/* === SECTION 3: PARTICIPANTES === */}
-                <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold border border-amber-200">3</div>
-                    <h3 className="text-lg font-bold text-foreground">Participantes ({participants.length})</h3>
-                  </div>
-                  <div className="p-6">
-                    {participants.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        {participants.map(part => (
-                          <div key={part._id} className="bg-amber-50 border border-amber-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                            <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-amber-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Trash2 size={14} />
-                            </button>
-                            <div className="font-bold text-foreground">{part.nome}</div>
-                            <div className="text-sm text-muted-foreground">{part.cargo}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="bg-muted/50 rounded-lg border p-5">
-                      <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                        <Plus size={16} /> Novo Participante
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="col-span-12 md:col-span-4">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
-                          <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
-                          <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
-                          <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
-                        </div>
-                        <div className="col-span-6 md:col-span-2">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                          <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
-                        </div>
-                        <div className="col-span-12 flex justify-end mt-2">
-                          <Button onClick={addParticipant} className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
-                            <Plus size={16} /> Adicionar à Lista
-                          </Button>
+                      <div className="col-span-12 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo Relacionamento</Label>
+                        <div className="flex bg-muted p-1 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Fixo</button>
+                          <button
+                            type="button"
+                            onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Pontual</button>
                         </div>
                       </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
+                        <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} />
+                      </div>
+                      <div className="col-span-8 md:col-span-4">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
+                        <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
+                      </div>
+                      <div className="col-span-4 md:col-span-2">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
+                        <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
+                      </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                </TabsContent>
 
-                {/* === SECTION 4: CONTRATOS === */}
-                <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold border border-emerald-200">4</div>
-                    <h3 className="text-lg font-bold text-foreground">Contratos ({contracts.length})</h3>
-                  </div>
-                  <div className="p-6">
-                    {contracts.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                        {contracts.map(cont => (
-                          <div key={cont._id} className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                            <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-emerald-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Trash2 size={14} />
-                            </button>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${cont.tipo_contrato === 'Mensal' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{cont.tipo_contrato}</span>
-                              <span className="font-mono text-xs text-muted-foreground">{cont.numero_contrato || 'S/N'}</span>
-                            </div>
-                            <div className="font-bold text-lg text-emerald-700">{formatCurrency(cont.valor_fixo)}</div>
-                            {cont.services.length > 0 && (
-                              <div className="pt-2 border-t border-emerald-100 space-y-1 mt-2">
-                                {cont.services.map(s => (
-                                  <div key={s._id} className="flex justify-between text-xs text-muted-foreground">
-                                    <span className="truncate max-w-[120px]">{s.descricao}</span>
-                                    <span className="text-emerald-600 font-medium">{s.catalog_name}</span>
-                                  </div>
-                                ))}
+                <TabsContent value="contribuintes" className="mt-0 p-6 md:p-10">
+                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-foreground">Contribuintes ({entities.length})</h3>
+                    </div>
+                    <div className="p-6">
+                      {entities.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                          {entities.map(ent => (
+                            <div key={ent._id} className="bg-purple-50 border border-purple-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-purple-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
+                              <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-purple-700">{ent.setor}</span>
+                                {ent.simples_nacional && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Simples</span>}
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="bg-muted/50 rounded-lg border p-5">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
+                          <Plus size={16} /> Novo Contribuinte
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                          <div className="col-span-4 md:col-span-2">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
+                            <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PJ">PJ</SelectItem>
+                                <SelectItem value="PF">PF</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-8 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
+                            <Input value={draftEntity.cpf_cnpj || ''} onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })} placeholder="000.000.000-00" className="font-mono" />
+                          </div>
+                          <div className="col-span-12 md:col-span-7">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
+                            <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Insc. Estadual</Label>
+                            <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Isento" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
+                            <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor</Label>
+                            <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Indústria">Indústria</SelectItem>
+                                <SelectItem value="Agronegócio">Agronegócio</SelectItem>
+                                <SelectItem value="Transportes">Transportes</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
+                            <div className="flex items-center gap-2 h-10">
+                              <Checkbox
+                                checked={draftEntity.simples_nacional || false}
+                                onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
+                              />
+                              <span className="text-sm">Optante</span>
+                            </div>
+                          </div>
+                          <div className="col-span-12 flex justify-end mt-2">
+                            <Button onClick={addEntity} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
+                              <Plus size={16} /> Adicionar à Lista
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </TabsContent>
+
+                <TabsContent value="participantes" className="mt-0 p-6 md:p-10">
+                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-foreground">Participantes ({participants.length})</h3>
+                    </div>
+                    <div className="p-6">
+                      {participants.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                          {participants.map(part => (
+                            <div key={part._id} className="bg-amber-50 border border-amber-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-amber-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="font-bold text-foreground">{part.nome}</div>
+                              <div className="text-sm text-muted-foreground">{part.cargo}</div>
+                              <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="bg-muted/50 rounded-lg border p-5">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
+                          <Plus size={16} /> Novo Participante
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                          <div className="col-span-12 md:col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
+                            <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
+                            <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
+                            <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-2">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
+                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
+                          </div>
+                          <div className="col-span-12 flex justify-end mt-2">
+                            <Button onClick={addParticipant} className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
+                              <Plus size={16} /> Adicionar à Lista
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </TabsContent>
+
+                <TabsContent value="contratos" className="mt-0 p-6 md:p-10">
+                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
+                    </div>
+                    <div className="p-6">
+                      {contracts.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                          {contracts.map(cont => (
+                            <div key={cont._id} className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-emerald-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${cont.tipo_contrato === 'Mensal' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{cont.tipo_contrato}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{cont.numero_contrato || 'S/N'}</span>
+                              </div>
+                              <div className="font-bold text-lg text-emerald-700">{formatCurrency(cont.valor_fixo)}</div>
+                              {cont.services.length > 0 && (
+                                <div className="pt-2 border-t border-emerald-100 space-y-1 mt-2">
+                                  {cont.services.map(s => (
+                                    <div key={s._id} className="flex justify-between text-xs text-muted-foreground">
+                                      <span className="truncate max-w-[120px]">{s.descricao}</span>
+                                      <span className="text-emerald-600 font-medium">{s.catalog_name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="bg-muted/50 rounded-lg border p-5">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
+                          <Plus size={16} /> Novo Contrato
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
+                            <Select value={draftContract.tipo_contrato} onValueChange={v => setDraftContract({ ...draftContract, tipo_contrato: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Mensal">Mensal (Fixo)</SelectItem>
+                                <SelectItem value="Pontual">Pontual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número (ID)</Label>
+                            <Input value={draftContract.numero_contrato} onChange={e => setDraftContract({ ...draftContract, numero_contrato: e.target.value })} placeholder="2024.001" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Início</Label>
+                            <Input type="date" value={draftContract.data_inicio} onChange={e => setDraftContract({ ...draftContract, data_inicio: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Fim</Label>
+                            <Input type="date" value={draftContract.data_fim} onChange={e => setDraftContract({ ...draftContract, data_fim: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Valor (R$)</Label>
+                            <Input type="number" value={draftContract.valor_fixo} onChange={e => setDraftContract({ ...draftContract, valor_fixo: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Alíquota (%)</Label>
+                            <Input type="number" value={draftContract.aliquota_contrato} onChange={e => setDraftContract({ ...draftContract, aliquota_contrato: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                          </div>
+                        </div>
+
+                        {/* Services sub-section */}
+                        <div className="bg-card border rounded-lg p-4">
+                          <div className="flex justify-between items-center mb-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                              <Layers size={14} /> Serviços do Contrato
+                            </Label>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={addEmptyService}
+                              className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1"
+                            >
+                              <Plus size={12} /> Adicionar Serviço
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {draftServices.length === 0 ? (
+                              <div className="text-center py-4 text-muted-foreground text-xs italic border border-dashed rounded">
+                                Nenhum serviço adicionado. Clique em "Adicionar Serviço".
+                              </div>
+                            ) : (
+                              draftServices.map((svc, idx) => {
+                                const filteredSuggestions = svc.descricao.trim()
+                                  ? existingServices.filter(s => s.toLowerCase().includes(svc.descricao.toLowerCase()) && s.toLowerCase() !== svc.descricao.toLowerCase())
+                                  : [];
+                                return (
+                                  <div key={svc._id} className="flex gap-2 items-start">
+                                    <div className="relative flex-1">
+                                      <Input
+                                        value={svc.descricao}
+                                        onChange={e => {
+                                          updateServiceField(svc._id, 'descricao', e.target.value);
+                                          setActiveServiceIndex(idx);
+                                        }}
+                                        onFocus={() => setActiveServiceIndex(idx)}
+                                        onBlur={() => setTimeout(() => setActiveServiceIndex(null), 200)}
+                                        placeholder="Digite o nome do serviço..."
+                                        className="text-sm"
+                                      />
+                                      {activeServiceIndex === idx && filteredSuggestions.length > 0 && (
+                                        <div className="absolute left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto z-50">
+                                          {filteredSuggestions.slice(0, 8).map((suggestion, i) => (
+                                            <button
+                                              key={i}
+                                              type="button"
+                                              onMouseDown={e => e.preventDefault()}
+                                              onClick={() => {
+                                                updateServiceField(svc._id, 'descricao', suggestion);
+                                                setActiveServiceIndex(null);
+                                              }}
+                                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                                            >
+                                              {suggestion}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="w-48">
+                                      <Select
+                                        value={svc.id_catalog_client || '__none__'}
+                                        onValueChange={v => updateServiceField(svc._id, 'id_catalog_client', v === '__none__' ? '' : v)}
+                                      >
+                                        <SelectTrigger className="text-sm h-10">
+                                          <SelectValue placeholder="Equipe..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__none__">Selecionar equipe</SelectItem>
+                                          {catalogClients.map(cat => (
+                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <button
+                                      onClick={() => removeServiceFromDraft(svc._id)}
+                                      className="text-muted-foreground hover:text-destructive mt-2.5"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                );
+                              })
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
 
-                    <div className="bg-muted/50 rounded-lg border p-5">
-                      <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                        <Plus size={16} /> Novo Contrato
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                          <Select value={draftContract.tipo_contrato} onValueChange={v => setDraftContract({ ...draftContract, tipo_contrato: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Mensal">Mensal (Fixo)</SelectItem>
-                              <SelectItem value="Pontual">Pontual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número (ID)</Label>
-                          <Input value={draftContract.numero_contrato} onChange={e => setDraftContract({ ...draftContract, numero_contrato: e.target.value })} placeholder="2024.001" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Início</Label>
-                          <Input type="date" value={draftContract.data_inicio} onChange={e => setDraftContract({ ...draftContract, data_inicio: e.target.value })} />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Fim</Label>
-                          <Input type="date" value={draftContract.data_fim} onChange={e => setDraftContract({ ...draftContract, data_fim: e.target.value })} />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Valor (R$)</Label>
-                          <Input type="number" value={draftContract.valor_fixo} onChange={e => setDraftContract({ ...draftContract, valor_fixo: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
-                        </div>
-                        <div className="col-span-6 md:col-span-3">
-                          <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Alíquota (%)</Label>
-                          <Input type="number" value={draftContract.aliquota_contrato} onChange={e => setDraftContract({ ...draftContract, aliquota_contrato: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
-                        </div>
-                      </div>
-
-                      {/* Services sub-section */}
-                      <div className="bg-card border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                            <Layers size={14} /> Serviços do Contrato
-                          </Label>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={addEmptyService}
-                            className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1"
-                          >
-                            <Plus size={12} /> Adicionar Serviço
+                        <div className="flex justify-end mt-4 pt-2 border-t">
+                          <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                            <Plus size={16} /> Adicionar Contrato à Lista
                           </Button>
                         </div>
-
-                        <div className="space-y-2">
-                          {draftServices.length === 0 ? (
-                            <div className="text-center py-4 text-muted-foreground text-xs italic border border-dashed rounded">
-                              Nenhum serviço adicionado. Clique em "Adicionar Serviço".
-                            </div>
-                          ) : (
-                            draftServices.map((svc, idx) => {
-                              const filteredSuggestions = svc.descricao.trim()
-                                ? existingServices.filter(s => s.toLowerCase().includes(svc.descricao.toLowerCase()) && s.toLowerCase() !== svc.descricao.toLowerCase())
-                                : [];
-                              return (
-                                <div key={svc._id} className="flex gap-2 items-start">
-                                  {/* Autocomplete input */}
-                                  <div className="relative flex-1">
-                                    <Input
-                                      value={svc.descricao}
-                                      onChange={e => {
-                                        updateServiceField(svc._id, 'descricao', e.target.value);
-                                        setActiveServiceIndex(idx);
-                                      }}
-                                      onFocus={() => setActiveServiceIndex(idx)}
-                                      onBlur={() => setTimeout(() => setActiveServiceIndex(null), 200)}
-                                      placeholder="Digite o nome do serviço..."
-                                      className="text-sm"
-                                    />
-                                    {activeServiceIndex === idx && filteredSuggestions.length > 0 && (
-                                      <div className="absolute left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto z-50">
-                                        {filteredSuggestions.slice(0, 8).map((suggestion, i) => (
-                                          <button
-                                            key={i}
-                                            type="button"
-                                            onMouseDown={e => e.preventDefault()}
-                                            onClick={() => {
-                                              updateServiceField(svc._id, 'descricao', suggestion);
-                                              setActiveServiceIndex(null);
-                                            }}
-                                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
-                                          >
-                                            {suggestion}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                  {/* Team select */}
-                                  <div className="w-48">
-                                    <Select
-                                      value={svc.id_catalog_client || '__none__'}
-                                      onValueChange={v => updateServiceField(svc._id, 'id_catalog_client', v === '__none__' ? '' : v)}
-                                    >
-                                      <SelectTrigger className="text-sm h-10">
-                                        <SelectValue placeholder="Equipe..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="__none__">Selecionar equipe</SelectItem>
-                                        {catalogClients.map(cat => (
-                                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  {/* Remove button */}
-                                  <button
-                                    onClick={() => removeServiceFromDraft(svc._id)}
-                                    className="text-muted-foreground hover:text-destructive mt-2.5"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end mt-4 pt-2 border-t">
-                        <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                          <Plus size={16} /> Adicionar Contrato à Lista
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                </section>
-
-              </div>
-            </ScrollArea>
+                  </section>
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
 
             {/* Footer */}
-            <div className="p-6 border-t bg-card flex justify-end shrink-0 gap-3">
-              <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                {isEditing ? 'Salvar Alterações' : 'Salvar Cliente Completo'}
-              </Button>
+            <div className="p-6 border-t bg-card flex justify-between shrink-0">
+              <div>
+                {!isFirstTab && (
+                  <Button variant="outline" onClick={handleBack} className="gap-2">
+                    <ChevronLeft size={16} /> Voltar
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
+                {isLastTab ? (
+                  <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                    {isEditing ? 'Salvar Alterações' : 'Salvar Cliente'}
+                  </Button>
+                ) : (
+                  <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                    Avançar <ChevronRight size={16} />
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
