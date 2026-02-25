@@ -349,12 +349,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const handleSave = async () => {
     if (!clientData.nome.trim()) { toast.error('Nome do cliente é obrigatório'); return; }
 
-    if (clientData.telefone.trim()) {
-      const telDigits = clientData.telefone.replace(/\D/g, '');
-      if (telDigits.length < 10) { toast.error('Telefone do cliente deve ter no mínimo 10 dígitos'); return; }
-    }
-    if (!clientData.municipio.trim()) { toast.error('Município do cliente é obrigatório'); return; }
-    if (!clientData.uf.trim()) { toast.error('UF do cliente é obrigatória'); return; }
     if (!clientData.setor_cliente) { toast.error('Área do negócio é obrigatória'); return; }
     if (!clientData.tipo_produto_segmento) { toast.error('Tipo de produto/segmento é obrigatório'); return; }
     if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
@@ -564,6 +558,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       </div>
                       <div className="col-span-12">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de relacionamento</Label>
+                        <div className="flex bg-muted p-1 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Fixo</button>
+                          <button
+                            type="button"
+                            onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Pontual</button>
+                        </div>
+                      </div>
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
                         <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -578,33 +587,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div className="col-span-12">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                        <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} placeholder="(00) 00000-0000" />
-                      </div>
-                      <div className="col-span-9">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
-                        <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
-                      </div>
-                      <div className="col-span-3">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
-                        <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
-                      </div>
-                      <div className="col-span-12">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo Relacionamento</Label>
-                        <div className="flex bg-muted p-1 rounded-lg">
-                          <button
-                            type="button"
-                            onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
-                          >Fixo</button>
-                          <button
-                            type="button"
-                            onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
-                          >Pontual</button>
-                        </div>
                       </div>
                       <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
