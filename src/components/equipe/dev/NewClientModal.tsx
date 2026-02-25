@@ -107,6 +107,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     municipio: '',
     uf: '',
     setor_cliente: '',
+    equipe_responsavel: '',
+    regiao: '',
   });
 
   // Section 2 - Contribuintes
@@ -180,6 +182,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             municipio: cli.municipio || '',
             uf: cli.uf || '',
             setor_cliente: cli.setor_cliente || '',
+            equipe_responsavel: (cli as any).equipe_responsavel || '',
+            regiao: (cli as any).regiao || '',
           });
         }
 
@@ -441,7 +445,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   };
 
   const resetAndClose = () => {
-    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '' });
+    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '', equipe_responsavel: '', regiao: '' });
     setEntities([]);
     setParticipants([]);
     setContracts([]);
@@ -526,12 +530,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </Select>
                       </div>
                       <div className="col-span-6 md:col-span-3">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio</Label>
                         <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="REV">REV - Revendas de insumos</SelectItem>
+                            <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
                             <SelectItem value="INS">INS - Instituições do agro</SelectItem>
                             <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
                             <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
@@ -564,6 +568,46 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           >Pontual</button>
                         </div>
                       </div>
+                      <div className="col-span-12 md:col-span-4">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável</Label>
+                        <Select value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="Administracao Executiva">Administração Executiva</SelectItem>
+                            <SelectItem value="Administracao Judicial - PSA Adm Judicial">Administração Judicial - PSA Adm Judicial</SelectItem>
+                            <SelectItem value="Administrativo">Administrativo</SelectItem>
+                            <SelectItem value="Auditoria - PSA Auditores">Auditoria - PSA Auditores</SelectItem>
+                            <SelectItem value="Auditoria - PSA Norte">Auditoria - PSA Norte</SelectItem>
+                            <SelectItem value="CCR - Prado Advogados">CCR - Prado Advogados</SelectItem>
+                            <SelectItem value="Comercial">Comercial</SelectItem>
+                            <SelectItem value="Compliance - Prado Advogados">Compliance - Prado Advogados</SelectItem>
+                            <SelectItem value="Comunicacao">Comunicação</SelectItem>
+                            <SelectItem value="Consultoria Fiscal - PSA Consultores">Consultoria Fiscal - PSA Consultores</SelectItem>
+                            <SelectItem value="Consultoria Tributaria - Prado Advogados">Consultoria Tributária - Prado Advogados</SelectItem>
+                            <SelectItem value="Legal - Prado Advogados">Legal - Prado Advogados</SelectItem>
+                            <SelectItem value="OSG - Protenun">OSG - Protenun</SelectItem>
+                            <SelectItem value="Outsourcing - Profitto">Outsourcing - Profitto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-12 md:col-span-5">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região</Label>
+                        <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
+                            <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
+                            <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
+                            <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
+                            <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
+                            <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
+                            <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="col-span-12 md:col-span-3">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                         <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} />
