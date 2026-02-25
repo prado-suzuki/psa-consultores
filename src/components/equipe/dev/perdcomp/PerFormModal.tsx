@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -109,6 +110,7 @@ export function PerFormModal({
   clienteId,
   contribuinteId,
 }: PerFormModalProps) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
   
@@ -139,7 +141,7 @@ export function PerFormModal({
 
   const watchedValues = form.watch();
   const draftEnabled = open && !isEditing;
-  const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled);
+  const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled, user?.id);
 
   // Fetch contribuintes based on clienteId
   const { data: contribuintes = [] } = useQuery({
@@ -364,7 +366,7 @@ export function PerFormModal({
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar PER' : 'Novo PER'}</DialogTitle>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ const priorityLabels: Record<string, string> = {
 };
 
 export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTicketDialogProps) {
+  const { user } = useAuth();
   const [clients, setClients] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
@@ -61,7 +63,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     user_id: '',
   });
 
-  const { restore, clear } = useDraftPersistence('ticket-form-draft', formData, open);
+  const { restore, clear } = useDraftPersistence('ticket-form-draft', formData, open, user?.id);
 
   useEffect(() => {
     if (open) {
@@ -215,7 +217,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="sm:max-w-[500px] bg-white">
         <DialogHeader>
           <DialogTitle className="text-slate-900">Novo Chamado</DialogTitle>

@@ -34,7 +34,9 @@ export function useDraftPersistence<T extends Record<string, any>>(
   key: string,
   values: T,
   enabled: boolean,
+  userId?: string,
 ) {
+  const storageKey = userId ? `draft_${key}_${userId}` : `draft_${key}`;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a serialized snapshot to avoid re-firing when object reference changes
   // but content stays the same (e.g. form.watch() returns new object every render).
@@ -52,7 +54,7 @@ export function useDraftPersistence<T extends Record<string, any>>(
     timerRef.current = setTimeout(() => {
       lastSerializedRef.current = serialized;
       try {
-        sessionStorage.setItem(key, serialized);
+        sessionStorage.setItem(storageKey, serialized);
       } catch {
         // quota exceeded – silently ignore
       }
@@ -61,26 +63,26 @@ export function useDraftPersistence<T extends Record<string, any>>(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [key, values, enabled]);
+  }, [storageKey, values, enabled]);
 
   const restore = useCallback((): T | null => {
     try {
-      const raw = sessionStorage.getItem(key);
+      const raw = sessionStorage.getItem(storageKey);
       if (!raw) return null;
       return deserialize(raw) as T | null;
     } catch {
       return null;
     }
-  }, [key]);
+  }, [storageKey]);
 
   const clear = useCallback(() => {
     lastSerializedRef.current = '';
     try {
-      sessionStorage.removeItem(key);
+      sessionStorage.removeItem(storageKey);
     } catch {
       // ignore
     }
-  }, [key]);
+  }, [storageKey]);
 
   return { restore, clear };
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -80,6 +81,7 @@ export function WorkPackageForm({
   initialData,
   isLoading,
 }: WorkPackageFormProps) {
+  const { user } = useAuth();
   const form = useForm<FormData>({
     defaultValues: {
       title: '',
@@ -103,7 +105,7 @@ export function WorkPackageForm({
   const isEditing = !!initialData;
   const watchedValues = form.watch();
   const draftEnabled = open && !isEditing;
-  const { restore, clear } = useDraftPersistence('wp-form-draft', watchedValues, draftEnabled);
+  const { restore, clear } = useDraftPersistence('wp-form-draft', watchedValues, draftEnabled, user?.id);
 
   // Load team members
   const { data: teamMembers = [] } = useQuery({
@@ -230,7 +232,7 @@ export function WorkPackageForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>

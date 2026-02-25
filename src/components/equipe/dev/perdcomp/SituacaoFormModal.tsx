@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +66,7 @@ export function SituacaoFormModal({
   editData,
   contribuinteId,
 }: SituacaoFormModalProps) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
 
@@ -79,7 +81,7 @@ export function SituacaoFormModal({
 
   const watchedValues = form.watch();
   const draftEnabled = open && !isEditing;
-  const { restore, clear } = useDraftPersistence('situacao-form-draft', watchedValues, draftEnabled);
+  const { restore, clear } = useDraftPersistence('situacao-form-draft', watchedValues, draftEnabled, user?.id);
 
   // Fetch PERs for selection
   const { data: pers = [] } = useQuery({
@@ -195,7 +197,7 @@ export function SituacaoFormModal({
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Situação' : 'Nova Situação'}</DialogTitle>
