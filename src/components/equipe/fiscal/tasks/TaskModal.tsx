@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { CalendarIcon, X } from 'lucide-react';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import {
   Dialog,
   DialogContent,
@@ -134,6 +135,15 @@ export const TaskModal = ({
     },
   });
 
+  // Draft persistence – only active for new tasks (not editing)
+  const watchedValues = form.watch();
+  const draftEnabled = open && !isEditing;
+  const { restore: restoreDraft, clear: clearDraft } = useDraftPersistence(
+    'fiscal-task-draft',
+    watchedValues,
+    draftEnabled,
+  );
+
   const watchedProjectId = form.watch('project_id');
   const watchedClientId = form.watch('client_id');
 
@@ -213,22 +223,29 @@ export const TaskModal = ({
         tags: task.tags || [],
       });
     } else {
-      const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
-      form.reset({
-        title: '',
-        description: '',
-        status: 'todo',
-        priority: 'medium',
-        is_recurring: false,
-        category: 'task',
-        parent_task_id: defaultParentId || undefined,
-        project_id: parentTask?.project_id || undefined,
-        client_id: parentTask?.client_id || undefined,
-        categoria_id: undefined,
-        tags: [],
-      });
+      // Try to restore draft first
+      const draft = restoreDraft();
+      if (draft && draft.title) {
+        form.reset(draft);
+      } else {
+        const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
+        form.reset({
+          title: '',
+          description: '',
+          status: 'todo',
+          priority: 'medium',
+          is_recurring: false,
+          category: 'task',
+          parent_task_id: defaultParentId || undefined,
+          project_id: parentTask?.project_id || undefined,
+          client_id: parentTask?.client_id || undefined,
+          categoria_id: undefined,
+          tags: [],
+        });
+      }
     }
-  }, [task, form, defaultParentId, parentTasks]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id, defaultParentId]);
 
   const handleAssigneeChange = (userId: string) => {
     if (userId === '_none') {
@@ -268,6 +285,7 @@ export const TaskModal = ({
       } else {
         await createTask.mutateAsync(input);
       }
+      clearDraft();
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving task:', error);
@@ -277,7 +295,7 @@ export const TaskModal = ({
   const isRecurring = form.watch('is_recurring');
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clearDraft(); onOpenChange(v); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
