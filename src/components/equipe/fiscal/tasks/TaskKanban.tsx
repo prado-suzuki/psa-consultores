@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronRight, ChevronDown, Calendar, User } from 'lucide-react';
+import { ChevronRight, ChevronDown, Building2 } from 'lucide-react';
 import { FiscalTask, FiscalTaskStatus, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
-import { TaskCard } from './TaskCard';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { statusList } from '@/lib/taskStatusColors';
@@ -33,7 +34,6 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const updateTask = useUpdateFiscalTask();
 
-  // Build hierarchy
   const subtasksByParent: Record<string, FiscalTask[]> = {};
   tasks.filter(t => t.parent_task_id).forEach(t => {
     if (t.parent_task_id) {
@@ -55,8 +55,8 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
       }));
   };
 
-  const toggleTaskExpanded = (taskId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const toggleTaskExpanded = (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setExpandedTasks(prev => {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId);
@@ -89,8 +89,11 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
     setDraggedTask(null);
   };
 
-  const handleDragEnd = () => {
-    setDraggedTask(null);
+  const handleDragEnd = () => setDraggedTask(null);
+
+  const formatDueDate = (date: string | null) => {
+    if (!date) return '';
+    return format(new Date(date + 'T00:00:00'), 'dd/MM', { locale: ptBR });
   };
 
   return (
@@ -115,80 +118,97 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
             </div>
 
             <ScrollArea className="flex-1 p-1">
-              <div className="space-y-2 p-1">
+              <div className="space-y-3 p-1">
                 {columnTasks.map(task => (
                   <div key={task.id}>
-                    <div className="flex items-start gap-1">
-                      {task.subtaskCount > 0 ? (
-                        <button
-                          onClick={(e) => toggleTaskExpanded(task.id, e)}
-                          className="mt-3 p-0.5 hover:bg-muted rounded flex-shrink-0"
-                        >
-                          {expandedTasks.has(task.id) ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="w-5 flex-shrink-0" />
+                    <Card
+                      className={cn(
+                        "bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow",
+                        draggedTask?.id === task.id && "opacity-50"
                       )}
-                      <div
-                        className={cn(
-                          "flex-1 min-w-0 cursor-grab active:cursor-grabbing",
-                          draggedTask?.id === task.id && "opacity-50"
-                        )}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, task)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <TaskCard
-                          task={task}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                          onReassign={onReassign}
-                          allTasks={tasks}
-                          compact
-                        />
-                      </div>
-                    </div>
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => onEdit(task)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-start gap-2">
+                          {task.subtaskCount > 0 && (
+                            <button
+                              onClick={(e) => toggleTaskExpanded(task.id, e)}
+                              className="mt-0.5 p-0.5 hover:bg-gray-100 rounded flex-shrink-0"
+                            >
+                              {expandedTasks.has(task.id) ? (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-gray-500" />
+                              )}
+                            </button>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
+                              {task.title}
+                            </h4>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>{task.assigned_to_name || 'Não atribuído'}</span>
+                              <span>{formatDueDate(task.due_date)}</span>
+                            </div>
+                            {(task as any).contribuinte?.nome_razao_social && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+                                <Building2 className="h-3 w-3" />
+                                <span className="truncate">{(task as any).contribuinte.nome_razao_social}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-end mt-2">
+                              {task.subtaskCount > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                    "text-xs",
+                                    task.completedSubtasks === task.subtaskCount && task.subtaskCount > 0
+                                      ? "bg-green-100 text-green-700"
+                                      : ""
+                                  )}
+                                >
+                                  {task.completedSubtasks}/{task.subtaskCount} subtarefas
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
                     {expandedTasks.has(task.id) && task.subtasks.length > 0 && (
-                      <div className="ml-4 mt-1 space-y-1 border-l-2 border-muted-foreground/20 pl-3">
+                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-3">
                         {task.subtasks.map(subtask => (
                           <div
                             key={subtask.id}
-                            className="flex items-start gap-2 p-2 bg-white rounded border text-xs hover:bg-muted/40 cursor-pointer transition-colors"
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50",
+                              subtask.status === 'done' && "opacity-60"
+                            )}
                             onClick={() => onEdit(subtask)}
                           >
                             <Checkbox
                               checked={subtask.status === 'done'}
                               onCheckedChange={() => {}}
                               onClick={(e) => toggleSubtaskComplete(subtask, e as unknown as React.MouseEvent)}
-                              className="flex-shrink-0 mt-0.5"
+                              className="flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0">
                               <span className={cn(
-                                "block truncate font-medium",
-                                subtask.status === 'done' && "line-through text-muted-foreground"
+                                "text-gray-700",
+                                subtask.status === 'done' && "line-through"
                               )}>
                                 {subtask.title}
                               </span>
-                              <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                                {subtask.assigned_to_name && (
-                                  <span className="flex items-center gap-1">
-                                    <User className="h-3 w-3" />
-                                    {subtask.assigned_to_name}
-                                  </span>
-                                )}
-                                {subtask.due_date && (
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {format(new Date(subtask.due_date + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
-                                  </span>
-                                )}
-                              </div>
                             </div>
+                            {subtask.due_date && (
+                              <span className="text-xs text-gray-400 flex-shrink-0">
+                                {formatDueDate(subtask.due_date)}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
