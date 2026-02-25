@@ -1,71 +1,74 @@
 
 
-## Adicionar campos "Equipe responsavel" e "Regiao" no modal de cadastro (somente UI)
+## Refatoracao da aba "OS - Ordem de Servico"
 
-Objetivo: adicionar os 3 campos do CSV no formulario, sem alterar banco de dados. Os novos campos ficam apenas no estado local do componente por enquanto, para validacao da estrutura visual.
+Substituir todo o conteudo atual da aba "contratos" (linhas 774-940) por um formulario novo alinhado ao JSON fornecido. A estrutura de contratos/servicos existente sera removida.
 
-### Arquivo alterado: `src/components/equipe/dev/NewClientModal.tsx`
+### Arquivo: `src/components/equipe/dev/NewClientModal.tsx`
 
-#### 1. Estado `clientData` (linha ~101)
-Adicionar dois campos ao estado local:
-- `equipe_responsavel: ''`
-- `regiao: ''`
+### 1. Atualizar interface `DraftContract` (linhas 55-64)
 
-Atualizar tambem o `resetAndClose` (linha ~444) para limpar esses campos.
-Atualizar o `loadData` para carregar esses campos se existirem no registro (com fallback para string vazia).
+Substituir a interface atual por:
 
-**Nota:** como as colunas ainda nao existem no banco, o save (`clientPayload`) NAO incluira esses campos. Eles serao apenas visuais.
+```text
+interface DraftContract {
+  _id: number;
+  ordem_servico: string;        // texto livre
+  data_emissao: string;         // date input
+  nome_projeto: string;         // texto livre
+  descricao_projeto: string;    // textarea
+  data_inicio_projeto: string;  // date input
+  data_fim_projeto: string;     // date input
+  valor_projeto: number;        // numero decimal
+  valor_reembolso_km: number;   // numero decimal
+  valor_reembolso_refeicao: number; // numero decimal
+  gestor_responsavel: string;   // texto livre
+}
+```
 
-#### 2. Renomear label "Tipo" para "Area do negocio" (linha 529)
-Trocar o texto do Label de `Tipo` para `Area do negocio`.
+### 2. Remover interface `DraftService` e logica associada (linhas 48-53)
 
-#### 3. Corrigir descricoes do campo "Area do negocio" (linhas 534-540)
-Alinhar com o CSV:
-- `REV - Revendas de insumos, maquinas e cerealistas` (estava incompleto)
-- `INS - Instituicoes do agro` (ok)
-- `COO - Cooperativas agropecuarias` (ok)
-- `AGR - Producao agropecuaria` (ok)
-- `IND - Agroindustria` (ok)
-- `INF - Infraestrutura e concessoes` (ok)
-- `DIV - Outros diversos` (ok)
+A interface `DraftService` e toda a logica de `draftServices`, `addEmptyService`, `removeServiceFromDraft`, `updateServiceField`, `activeServiceIndex`, `existingServices`, `catalogClients` serao removidas ou deixarao de ser usadas nesta aba.
 
-#### 4. Adicionar Select "Equipe responsavel" (novo campo no grid)
-Select com 14 opcoes:
-- Administracao Executiva
-- Administracao Judicial - PSA Adm Judicial
-- Administrativo
-- Auditoria - PSA Auditores
-- Auditoria - PSA Norte
-- CCR - Prado Advogados
-- Comercial
-- Compliance - Prado Advogados
-- Comunicacao
-- **Consultoria Fiscal - PSA Consultores** (corrigido de "Prado Consultores")
-- Consultoria Tributaria - Prado Advogados
-- Legal - Prado Advogados
-- OSG - Protenun
-- Outsourcing - Profitto
+### 3. Atualizar estado inicial de `draftContract`
 
-#### 5. Adicionar Select "Regiao" (novo campo no grid)
-Select com 7 opcoes, usando codigo como valor e descricao completa como label:
-- BRA - Bahia, Goias, Distrito Federal
-- 3NO - BR-163 Norte
-- 3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS
-- PAR - Chapadao do Parecis, regiao sucroalcooleira, Rondonia
-- CBA - Baixada Cuiabana
-- RAO - Sul do MS, Parana, SC, Cerrado Mineiro, Sao Paulo
-- MPT - Mapito, BR-010, Para
+Substituir os valores iniciais para refletir a nova interface:
 
-#### 6. Layout do grid
-Os dois novos Selects serao inseridos na segunda linha do grid (abaixo de Nome/Categoria/Area/Status), ocupando o espaco atual de Telefone e Municipio/UF, reorganizando para:
-- Linha 1: Nome (4col) | Categoria (2col) | Area do negocio (3col) | Status (3col)
-- Linha 2: Tipo Relacionamento (3col) | Equipe responsavel (4col) | Regiao (5col)
-- Linha 3: Telefone (3col) | Municipio (4col) | UF (2col)
+```text
+{
+  tipo_contrato: '',  // removido
+  numero_contrato: '', // removido
+  ...novos campos com valores vazios/zero
+}
+```
+
+### 4. Atualizar `resetAndClose` e `loadData`
+
+Limpar/carregar os novos campos da OS.
+
+### 5. Substituir conteudo da TabsContent "contratos" (linhas 774-940)
+
+Novo layout do formulario em grid de 12 colunas:
+
+- **Linha 1**: Ordem de Servico (4col) | Data Emissao (4col) | Gestor Responsavel (4col)
+- **Linha 2**: Nome do Projeto (6col) | Valor do Projeto R$ (3col) | (espaco)
+- **Linha 3**: Descricao do Projeto (12col, textarea)
+- **Linha 4**: Data Inicio (3col) | Data Fim (3col) | Reembolso por km R$ (3col) | Reembolso refeicao R$ (3col)
+- **Botao**: "Adicionar OS a Lista"
+
+Os cards de OS ja adicionadas exibirao: numero da OS, nome do projeto, gestor, valor e datas.
+
+### 6. Atualizar `addContract`
+
+Validar que `ordem_servico` e `nome_projeto` sao obrigatorios antes de adicionar.
+
+### 7. Payload de save (`clientPayload`)
+
+Adaptar o mapeamento de `contracts` para enviar os novos campos ao inves dos antigos. Se as colunas ainda nao existirem no banco, os campos novos ficam apenas no estado local (como feito com equipe_responsavel/regiao).
 
 ### O que NAO muda
+
 - Nenhuma migration de banco de dados
-- Nenhuma alteracao em RLS
-- O `clientPayload` no save NAO inclui os novos campos (serao adicionados apos validacao)
-- `FiscalClients.tsx` -- sem alteracao por enquanto
-- `syncCadastrosToDW` -- sem alteracao por enquanto
+- Demais abas (Dados do Cliente, Contribuintes, Participantes) permanecem iguais
+- Navegacao entre abas permanece igual
 
