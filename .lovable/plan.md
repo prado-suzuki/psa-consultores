@@ -1,121 +1,89 @@
 
 
-## Ajustes no NewClientModal - Validacoes, campos e lider dropdown
+## Redesign UX do NewClientModal - Layout vertical, limpeza visual e ajuste Inscrição Estadual
 
-### Arquivo: `src/components/equipe/dev/NewClientModal.tsx`
+### 1. Inscrição Estadual: Sim / Isento (obrigatório)
 
-### 1. Remover coloracao verde dos campos de valores (R$)
+Substituir o Checkbox "Possui Insc. Estadual?" por um **Select obrigatório** com duas opções:
+- **Sim** - exibe o campo de input para digitar o número
+- **Isento** - oculta o campo de input e limpa o valor
 
-Nos campos "Valor do Projeto", "Reembolso por km" e "Reembolso refeicao" (linhas 751-782):
-- Remover `text-emerald-600` das Labels
-- Remover `border-emerald-200 text-emerald-800 font-bold` dos Inputs
-- Usar estilo padrao como os demais campos
+O campo `possui_inscricao_estadual: boolean` será substituído por `situacao_inscricao_estadual: string` (valores: `'sim'` | `'isento'` | `''`). A validação em `addEntity` exigirá que este campo esteja preenchido, e quando `'sim'`, o número da inscrição será obrigatório.
 
-### 2. Campo "Inscricao Estadual" condicional
+### 2. Remover cores divergentes dos botões "Adicionar à Lista"
 
-- Adicionar `possui_inscricao_estadual: boolean` no estado `draftEntity` (default `false`)
-- Substituir o campo direto de Inscricao Estadual por uma pergunta com Checkbox: "Cliente possui inscricao estadual?"
-- Somente ao marcar "Sim", o campo de input da inscricao aparece
+Atualmente cada aba tem um botão com cor própria:
+- Contribuintes: `bg-purple-600` (linha 785)
+- Participantes: `bg-amber-500` (linha 848)
+- OS: `bg-emerald-600` (linha 954)
 
-### 3. Validacao de formato no CPF/CNPJ
+Todos serão padronizados para o estilo padrão do sistema (sem classe de cor explícita, usando o `variant="default"` que já usa teal/primary).
 
-O campo CPF/CNPJ ja aceita ambos. Adicionar mascara/validacao:
-- CPF: 11 digitos
-- CNPJ: 14 digitos
-- Validar ao clicar "Adicionar a Lista"
+### 3. Remover ícones de "+" dos títulos e botões
 
-### 4. Gestor Responsavel como dropdown de lideres
+- Remover `<Plus size={16} />` dos títulos "Novo Contribuinte" (linha 703), "Novo Participante" (linha 819), "Nova OS" (linha 888)
+- Remover `<Plus size={16} />` dos botões "Adicionar à Lista" (linhas 786, 849, 955)
+- Manter o ícone `<Plus>` ou `<Pencil>` apenas no header principal do modal (linha 497)
 
-Buscar usuarios com role `lider` da tabela `user_roles` + `profiles` (mesmo padrao de `FiscalProjetosCadastro.tsx`):
-- Query `user_roles` com role `lider`
-- Query `profiles` para obter nomes
-- Substituir Input por Select dropdown na aba OS
+### 4. Layout vertical em todas as abas
 
-### 5. Novo campo "Tipo de produto/segmento" na aba Cliente
+Mudar a orientação dos formulários de grid horizontal (`grid-cols-12`) para **layout vertical empilhado**. Cada campo ocupará a largura total (`col-span-12`) ou será agrupado em pares quando fizer sentido semântico (ex: Município + UF, Data Início + Data Fim).
 
-Adicionar antes de "Equipe responsavel" (linha 482):
-- Select dropdown com as opcoes fornecidas (ASO, AFI, PFT, PTN, etc.)
-- Adicionar campo `tipo_produto_segmento: string` no `clientData`
-- Incluir opcao "Outro" que habilita um Input de texto livre para adicionar um novo produto
+**Aba Cliente:**
+- Nome do Cliente: largura total
+- Categoria + Status: lado a lado (6+6)
+- Área do negócio: largura total
+- Telefone: largura total
+- Município + UF: lado a lado (9+3)
+- Tipo Relacionamento: largura total
+- Tipo de produto/segmento: largura total
+- Equipe responsável: largura total
+- Região: largura total
 
-### 6. Validacoes completas ao adicionar itens
+**Aba Contribuintes:**
+- Tipo + CPF/CNPJ: lado a lado (3+9)
+- Razão Social: largura total
+- Situação Insc. Estadual + Nº Inscrição: lado a lado (6+6)
+- CNAE + Setor + Simples Nacional (PJ): lado a lado (4+4+4)
+- Logradouro: largura total
+- Bairro + Município + UF: lado a lado (4+5+3)
 
-**Contribuinte (addEntity):**
-- `nome_razao_social` obrigatorio (ja existe)
-- `cpf_cnpj` obrigatorio e formato valido (11 ou 14 digitos)
-- `cod_cnae` obrigatorio quando PJ (formato XXXX-X/XX)
-- `municipio` obrigatorio
-- `uf` obrigatorio (2 caracteres)
-- `logradouro` obrigatorio
-- `bairro` obrigatorio
-- `setor` obrigatorio quando PJ
+**Aba Participantes:**
+- Nome + Cargo: lado a lado (6+6)
+- Email + Telefone: lado a lado (6+6)
+- Observações: largura total
 
-**Participante (addParticipant):**
-- `nome` obrigatorio (ja existe)
-- `email` formato valido (regex basico)
-- `telefone` formato valido (minimo 10 digitos)
-- `observacoes` minimo 20 caracteres quando preenchido
-- `cargo` obrigatorio
+**Aba OS:**
+- Ordem de Serviço + Data de Emissão: lado a lado (6+6)
+- Gestor Responsável: largura total
+- Nome do Projeto: largura total
+- Descrição do Projeto: largura total
+- Data Início + Data Fim: lado a lado (6+6)
+- Valor do Projeto: largura total
+- Reembolso km + Reembolso refeição: lado a lado (6+6)
 
-**OS (addContract):**
-- `ordem_servico` obrigatorio (ja existe)
-- `nome_projeto` obrigatorio (ja existe)
-- `descricao_projeto` minimo 20 caracteres quando preenchido
-- `data_emissao` obrigatoria
-- `data_inicio_projeto` obrigatoria
-- `gestor_responsavel` obrigatorio
-- `valor_projeto` maior que zero
+### 5. Cards de itens já adicionados
 
-**Cliente (handleSave):**
-- `nome` obrigatorio (ja existe)
-- `telefone` formato valido
-- `municipio` obrigatorio
-- `uf` obrigatorio
-- `setor_cliente` obrigatorio
-- `tipo_produto_segmento` obrigatorio
-- `equipe_responsavel` obrigatorio
-- `regiao` obrigatoria
+Manter os cards existentes (contribuintes, participantes, OS) mas remover as cores específicas (purple-50, amber-50, emerald-50) e padronizar com `bg-muted/30 border` neutro.
 
-### 7. Queries adicionais necessarias
+### Resumo técnico de alterações
 
-Adicionar `useQuery` para buscar lideres (mesmo padrao de FiscalProjetosCadastro):
+| Local | O que muda |
+|---|---|
+| Interface `DraftEntity` | `possui_inscricao_estadual: boolean` vira `situacao_inscricao_estadual: string` |
+| Estado `draftEntity` | Default `situacao_inscricao_estadual: ''` |
+| `addEntity` | Validação: `situacao_inscricao_estadual` obrigatório; se `'sim'`, `inscricao_estadual` obrigatório |
+| `loadData` | Mapear: se tinha `inscricao_estadual` preenchido, `situacao_inscricao_estadual: 'sim'`, senão `'isento'` |
+| Formulário Contribuintes | Select "Situação Insc. Estadual" com Sim/Isento; Input condicional |
+| Todos os formulários | Grid classes mudam de `md:col-span-N` para layout mais vertical |
+| Botões "Adicionar" | Remover cores custom, usar variant default |
+| Títulos de seção | Remover ícone `<Plus>` |
+| Cards de itens | Cores neutras em vez de purple/amber/emerald |
 
-```text
-const { data: userRoles = [] } = useQuery({
-  queryKey: ['user-roles-lider'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('user_id, role')
-      .eq('role', 'lider');
-    return data || [];
-  }
-});
+### O que NÃO muda
 
-const { data: profiles = [] } = useQuery({
-  queryKey: ['profiles-all'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name');
-    return data || [];
-  }
-});
-```
-
-Derivar lista de lideres filtrando profiles pelos user_ids com role lider.
-
-### Resumo de alteracoes no estado
-
-| Campo | Local | Tipo |
-|---|---|---|
-| `tipo_produto_segmento` | clientData | string |
-| `tipo_produto_segmento_custom` | clientData | string (quando "Outro") |
-| `possui_inscricao_estadual` | draftEntity | boolean |
-
-### O que NAO muda
-
-- Nenhuma migration de banco de dados
-- Demais logicas de save permanecem iguais
-- Campos novos de layout que nao existem no banco continuam apenas no estado local
+- Nenhuma alteração no banco de dados
+- Lógica de save, validações existentes, queries de líderes
+- Footer com navegação entre abas
+- Header do modal
 
