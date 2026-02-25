@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, Layers, CheckCircle2, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -20,7 +20,7 @@ const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
 const contratoTable = isProductionEnvironment ? 'contrato' : 'contrato_dev';
-const servicoTable = isProductionEnvironment ? 'servico' : 'servico_dev';
+// const servicoTable = isProductionEnvironment ? 'servico' : 'servico_dev';
 
 // Types for draft items
 interface DraftEntity {
@@ -45,22 +45,18 @@ interface DraftParticipant {
   telefone: string;
 }
 
-interface DraftService {
-  _id: number;
-  descricao: string;
-  id_catalog_client: string;
-  catalog_name: string;
-}
-
 interface DraftContract {
   _id: number;
-  tipo_contrato: string;
-  numero_contrato: string;
-  data_inicio: string;
-  data_fim: string;
-  valor_fixo: number;
-  aliquota_contrato: number;
-  services: DraftService[];
+  ordem_servico: string;
+  data_emissao: string;
+  nome_projeto: string;
+  descricao_projeto: string;
+  data_inicio_projeto: string;
+  data_fim_projeto: string;
+  valor_projeto: number;
+  valor_reembolso_km: number;
+  valor_reembolso_refeicao: number;
+  gestor_responsavel: string;
 }
 
 // Helper para sincronizar com DW
@@ -128,43 +124,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     nome: '', cargo: '', email: '', telefone: '',
   });
 
-  // Section 4 - Contratos
+  // Section 4 - OS (Ordem de Serviço)
   const [contracts, setContracts] = useState<DraftContract[]>([]);
   const [draftContract, setDraftContract] = useState({
-    tipo_contrato: 'Mensal', numero_contrato: '', data_inicio: new Date().toISOString().split('T')[0],
-    data_fim: '', valor_fixo: 0, aliquota_contrato: 0,
-  });
-  const [draftServices, setDraftServices] = useState<DraftService[]>([]);
-  const [activeServiceIndex, setActiveServiceIndex] = useState<number | null>(null);
-
-  // Query catalog_clients for team select
-  const { data: catalogClients = [] } = useQuery({
-    queryKey: ['catalog-clients-for-services'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('catalog_clients')
-        .select('id, name, description')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  // Query existing service descriptions for autocomplete
-  const { data: existingServices = [] } = useQuery({
-    queryKey: ['existing-services-autocomplete'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('servico')
-        .select('descricao')
-        .not('descricao', 'is', null);
-      if (error) throw error;
-      const unique = [...new Set(data.map((s: any) => s.descricao))].filter(Boolean).sort();
-      return unique as string[];
-    },
-    enabled: open,
+    ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
+    data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
+    valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
   });
 
   // Load existing data when editing
@@ -221,31 +186,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           })));
         }
 
-        // 4. Contratos + Servicos
-        const { data: contratos } = await (supabase.from(contratoTable) as any).select('*').eq('id_cliente', editingClienteId);
-        // Fetch services for each contract separately
-        const contratosWithServices = [];
-        for (const c of (contratos || [])) {
-          const { data: servicos } = await (supabase.from(servicoTable) as any).select('*').eq('id_contrato', c.id_contrato);
-          contratosWithServices.push({ ...c, servico: servicos || [] });
-        }
-        if (contratosWithServices.length > 0) {
-          setContracts(contratosWithServices.map((c: any) => ({
-            _id: Date.now() + Math.random(),
-            tipo_contrato: c.tipo_contrato || 'Mensal',
-            numero_contrato: c.numero_contrato || '',
-            data_inicio: c.data_inicio || '',
-            data_fim: c.data_fim || '',
-            valor_fixo: c.valor_fixo || 0,
-            aliquota_contrato: c.aliquota_contrato || 0,
-            services: (c.servico || []).map((s: any) => ({
-              _id: Date.now() + Math.random(),
-              descricao: s.descricao || '',
-              id_catalog_client: s.id_catalog_client || '',
-              catalog_name: catalogClients.find((cc: any) => cc.id === s.id_catalog_client)?.name || '',
-            })),
-          })));
-        }
+        // 4. Contratos (OS) - campos novos ainda não existem no banco, mantém estado local vazio
+        // Quando as colunas forem criadas no banco, carregar aqui
+        setContracts([]);
       } catch (err: any) {
         console.error('Erro ao carregar dados do cliente:', err);
         toast.error('Erro ao carregar dados do cliente');
@@ -273,37 +216,16 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     setDraftParticipant({ nome: '', cargo: '', email: '', telefone: '' });
   };
 
-  // --- CONTRACT / SERVICE HANDLERS ---
-  const addEmptyService = () => {
-    setDraftServices([...draftServices, {
-      _id: Date.now() + Math.random(),
-      descricao: '',
-      id_catalog_client: '',
-      catalog_name: '',
-    }]);
-  };
-
-  const removeServiceFromDraft = (id: number) => {
-    setDraftServices(draftServices.filter(s => s._id !== id));
-  };
-
-  const updateServiceField = (id: number, field: keyof DraftService, value: string) => {
-    setDraftServices(draftServices.map(s => {
-      if (s._id !== id) return s;
-      if (field === 'id_catalog_client') {
-        const cat = catalogClients.find(c => c.id === value);
-        return { ...s, id_catalog_client: value, catalog_name: cat?.name || '' };
-      }
-      return { ...s, [field]: value };
-    }));
-  };
-
+  // --- OS HANDLERS ---
   const addContract = () => {
-    setContracts([...contracts, {
-      ...draftContract, _id: Date.now() + Math.random(), services: [...draftServices],
-    } as DraftContract]);
-    setDraftContract({ tipo_contrato: 'Mensal', numero_contrato: '', data_inicio: new Date().toISOString().split('T')[0], data_fim: '', valor_fixo: 0, aliquota_contrato: 0 });
-    setDraftServices([]);
+    if (!draftContract.ordem_servico.trim()) { toast.error('Número da OS é obrigatório'); return; }
+    if (!draftContract.nome_projeto.trim()) { toast.error('Nome do Projeto é obrigatório'); return; }
+    setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
+    setDraftContract({
+      ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
+      data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
+      valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
+    });
   };
 
   // --- FINAL SAVE ---
@@ -340,11 +262,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         // Delete + re-insert contribuintes
         await supabase.from(contribuinteTable).delete().eq('cliente_id', clienteId);
 
-        // Delete servicos + contratos
+        // OS - limpeza de contratos antigos (mantido para compatibilidade)
         const { data: existingContratos } = await (supabase.from(contratoTable) as any).select('id_contrato').eq('id_cliente', clienteId);
         if (existingContratos && existingContratos.length > 0) {
-          const contratoIds = existingContratos.map((c: any) => c.id_contrato);
-          await (supabase.from(servicoTable) as any).delete().in('id_contrato', contratoIds);
           await (supabase.from(contratoTable) as any).delete().eq('id_cliente', clienteId);
         }
 
@@ -391,34 +311,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         if (partError) throw partError;
       }
 
-      // 4. Insert contratos + serviços
-      for (const contract of contracts) {
-        const { data: newContrato, error: contratoError } = await (supabase
-          .from(contratoTable) as any)
-          .insert({
-            id_cliente: clienteId,
-            tipo_contrato: contract.tipo_contrato || null,
-            numero_contrato: contract.numero_contrato || null,
-            data_inicio: contract.data_inicio || null,
-            data_fim: contract.data_fim || null,
-            valor_fixo: contract.valor_fixo || null,
-            aliquota_contrato: contract.aliquota_contrato || null,
-          })
-          .select()
-          .single();
-        if (contratoError) throw contratoError;
-
-        if (contract.services.length > 0) {
-          const svcPayload = contract.services.map(s => ({
-            id_contrato: newContrato.id_contrato,
-            descricao: s.descricao || null,
-            valor: null,
-            id_catalog_client: s.id_catalog_client || null,
-          }));
-          const { error: svcError } = await (supabase.from(servicoTable) as any).insert(svcPayload);
-          if (svcError) throw svcError;
-        }
-      }
+      // 4. OS - campos novos ainda não existem no banco, dados ficam apenas no estado local
+      // Quando as colunas forem criadas, inserir aqui
+      console.log('[OS] Dados locais (não salvos no banco):', contracts);
 
       // 5. Sync DW
       syncCadastrosToDW({
@@ -456,7 +351,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     setEntities([]);
     setParticipants([]);
     setContracts([]);
-    setDraftServices([]);
+    setDraftContract({
+      ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
+      data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
+      valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
+    });
     setActiveTab('cliente');
     onOpenChange(false);
   };
@@ -784,21 +683,16 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-emerald-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
                               </button>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${cont.tipo_contrato === 'Mensal' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{cont.tipo_contrato}</span>
-                                <span className="font-mono text-xs text-muted-foreground">{cont.numero_contrato || 'S/N'}</span>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">OS {cont.ordem_servico}</span>
+                                <span className="text-xs text-muted-foreground">{cont.gestor_responsavel || '—'}</span>
                               </div>
-                              <div className="font-bold text-lg text-emerald-700">{formatCurrency(cont.valor_fixo)}</div>
-                              {cont.services.length > 0 && (
-                                <div className="pt-2 border-t border-emerald-100 space-y-1 mt-2">
-                                  {cont.services.map(s => (
-                                    <div key={s._id} className="flex justify-between text-xs text-muted-foreground">
-                                      <span className="truncate max-w-[120px]">{s.descricao}</span>
-                                      <span className="text-emerald-600 font-medium">{s.catalog_name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                              <div className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</div>
+                              <div className="font-bold text-lg text-emerald-700 mt-1">{formatCurrency(cont.valor_projeto)}</div>
+                              <div className="flex gap-3 text-[11px] text-muted-foreground mt-2">
+                                {cont.data_inicio_projeto && <span>Início: {cont.data_inicio_projeto}</span>}
+                                {cont.data_fim_projeto && <span>Fim: {cont.data_fim_projeto}</span>}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -806,132 +700,66 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
                       <div className="bg-muted/50 rounded-lg border p-5">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                          <Plus size={16} /> Novo Contrato
+                          <Plus size={16} /> Nova OS
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                            <Select value={draftContract.tipo_contrato} onValueChange={v => setDraftContract({ ...draftContract, tipo_contrato: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Mensal">Mensal (Fixo)</SelectItem>
-                                <SelectItem value="Pontual">Pontual</SelectItem>
-                              </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-12 gap-4">
+                          {/* Linha 1 */}
+                          <div className="col-span-12 md:col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Ordem de Serviço *</Label>
+                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="OS-001" />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número (ID)</Label>
-                            <Input value={draftContract.numero_contrato} onChange={e => setDraftContract({ ...draftContract, numero_contrato: e.target.value })} placeholder="2024.001" />
+                          <div className="col-span-6 md:col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data de Emissão</Label>
+                            <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Início</Label>
-                            <Input type="date" value={draftContract.data_inicio} onChange={e => setDraftContract({ ...draftContract, data_inicio: e.target.value })} />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Fim</Label>
-                            <Input type="date" value={draftContract.data_fim} onChange={e => setDraftContract({ ...draftContract, data_fim: e.target.value })} />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Valor (R$)</Label>
-                            <Input type="number" value={draftContract.valor_fixo} onChange={e => setDraftContract({ ...draftContract, valor_fixo: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Alíquota (%)</Label>
-                            <Input type="number" value={draftContract.aliquota_contrato} onChange={e => setDraftContract({ ...draftContract, aliquota_contrato: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
-                          </div>
-                        </div>
-
-                        {/* Services sub-section */}
-                        <div className="bg-card border rounded-lg p-4">
-                          <div className="flex justify-between items-center mb-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                              <Layers size={14} /> Serviços do Contrato
-                            </Label>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={addEmptyService}
-                              className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1"
-                            >
-                              <Plus size={12} /> Adicionar Serviço
-                            </Button>
+                          <div className="col-span-6 md:col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável</Label>
+                            <Input value={draftContract.gestor_responsavel} onChange={e => setDraftContract({ ...draftContract, gestor_responsavel: e.target.value })} />
                           </div>
 
-                          <div className="space-y-2">
-                            {draftServices.length === 0 ? (
-                              <div className="text-center py-4 text-muted-foreground text-xs italic border border-dashed rounded">
-                                Nenhum serviço adicionado. Clique em "Adicionar Serviço".
-                              </div>
-                            ) : (
-                              draftServices.map((svc, idx) => {
-                                const filteredSuggestions = svc.descricao.trim()
-                                  ? existingServices.filter(s => s.toLowerCase().includes(svc.descricao.toLowerCase()) && s.toLowerCase() !== svc.descricao.toLowerCase())
-                                  : [];
-                                return (
-                                  <div key={svc._id} className="flex gap-2 items-start">
-                                    <div className="relative flex-1">
-                                      <Input
-                                        value={svc.descricao}
-                                        onChange={e => {
-                                          updateServiceField(svc._id, 'descricao', e.target.value);
-                                          setActiveServiceIndex(idx);
-                                        }}
-                                        onFocus={() => setActiveServiceIndex(idx)}
-                                        onBlur={() => setTimeout(() => setActiveServiceIndex(null), 200)}
-                                        placeholder="Digite o nome do serviço..."
-                                        className="text-sm"
-                                      />
-                                      {activeServiceIndex === idx && filteredSuggestions.length > 0 && (
-                                        <div className="absolute left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto z-50">
-                                          {filteredSuggestions.slice(0, 8).map((suggestion, i) => (
-                                            <button
-                                              key={i}
-                                              type="button"
-                                              onMouseDown={e => e.preventDefault()}
-                                              onClick={() => {
-                                                updateServiceField(svc._id, 'descricao', suggestion);
-                                                setActiveServiceIndex(null);
-                                              }}
-                                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
-                                            >
-                                              {suggestion}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="w-48">
-                                      <Select
-                                        value={svc.id_catalog_client || '__none__'}
-                                        onValueChange={v => updateServiceField(svc._id, 'id_catalog_client', v === '__none__' ? '' : v)}
-                                      >
-                                        <SelectTrigger className="text-sm h-10">
-                                          <SelectValue placeholder="Equipe..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="__none__">Selecionar equipe</SelectItem>
-                                          {catalogClients.map(cat => (
-                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    <button
-                                      onClick={() => removeServiceFromDraft(svc._id)}
-                                      className="text-muted-foreground hover:text-destructive mt-2.5"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                );
-                              })
-                            )}
+                          {/* Linha 2 */}
+                          <div className="col-span-12 md:col-span-6">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
+                            <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Valor do Projeto (R$)</Label>
+                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                          </div>
+
+                          {/* Linha 3 */}
+                          <div className="col-span-12">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição do Projeto</Label>
+                            <textarea
+                              value={draftContract.descricao_projeto}
+                              onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
+                              rows={3}
+                              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            />
+                          </div>
+
+                          {/* Linha 4 */}
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início</Label>
+                            <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
+                            <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Reembolso por km (R$)</Label>
+                            <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-emerald-600 mb-1 block">Reembolso refeição (R$)</Label>
+                            <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="border-emerald-200 text-emerald-800 font-bold" />
                           </div>
                         </div>
 
                         <div className="flex justify-end mt-4 pt-2 border-t">
                           <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                            <Plus size={16} /> Adicionar Contrato à Lista
+                            <Plus size={16} /> Adicionar OS à Lista
                           </Button>
                         </div>
                       </div>
