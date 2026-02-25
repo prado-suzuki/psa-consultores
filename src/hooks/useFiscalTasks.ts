@@ -194,12 +194,12 @@ export interface TaskFilters {
        // Fetch current state for diff
        const { data: current } = await supabase.from('fiscal_tasks').select('*').eq('id', id).single();
 
-       const { data, error } = await supabase
-         .from('fiscal_tasks')
-         .update(updates)
-         .eq('id', id)
-         .select()
-         .single();
+        const { data, error } = await supabase
+          .from('fiscal_tasks')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .maybeSingle();
 
        if (error) throw error;
 
