@@ -1,59 +1,28 @@
 
 
-## Reformulacao do Modal de Cadastro de Cliente com Abas
+## Plano: Atualizar TaskCalendar para ficar igual ao SprintCalendar
 
-### Objetivo
-Transformar o modal `NewClientModal.tsx` de um formulario em scroll unico para um formulario com **abas horizontais** (tabs) no topo, com navegacao sequencial via botao "Avancar" e "Salvar" apenas na ultima aba.
+### Arquivo: `src/components/equipe/fiscal/tasks/TaskCalendar.tsx`
 
-### Alteracoes no arquivo `src/components/equipe/dev/NewClientModal.tsx`
+**Todas as alterações em um único arquivo:**
 
-**1. Header**
-- Trocar o titulo "Cadastro Completo" por **"Cadastrar Cliente"** (manter "Editar Cliente" quando `isEditing`)
+1. **Imports**: Adicionar `getTodayBrazil` de `@/lib/dateUtils`, remover `isSameMonth` (não usado para dias fora do mês).
 
-**2. Sistema de Abas**
-- Adicionar estado `activeTab` (valores: `"cliente"`, `"contribuintes"`, `"participantes"`, `"contratos"`)
-- Usar o componente `Tabs` / `TabsList` / `TabsTrigger` / `TabsContent` do Radix (ja disponivel em `src/components/ui/tabs.tsx`)
-- Abas horizontais logo abaixo do header, dentro do modal
+2. **Remover `priorityColors`** — substituído por `statusColors` já importado.
 
-**3. Nomes das Abas**
-| Aba | Label |
-|-----|-------|
-| 1 | Dados do Cliente/Grupo |
-| 2 | Contribuintes |
-| 3 | Participantes |
-| 4 | OS - Ordem de Servico |
+3. **Adicionar legenda de status no header** — ao lado dos botões de navegação, mostrar os 6 status com dot colorido (`bgSolid`) + label, visível apenas em `sm:flex`.
 
-**4. Navegacao (Footer)**
-- Abas 1, 2 e 3: mostrar botao **"Avancar"** (avanca para a proxima aba) + "Cancelar"
-- Aba 4 (ultima): mostrar botao **"Salvar"** (chama `handleSave`) + "Cancelar"
-- Opcionalmente, botao "Voltar" nas abas 2, 3 e 4
+4. **Cells dos dias**: Trocar `aspect-square` por `min-h-[80px] sm:min-h-[100px]`, layout `flex flex-col items-start overflow-hidden`.
 
-**5. Conteudo de cada aba**
-- Cada `TabsContent` contera exatamente a mesma `<section>` que ja existe hoje, removendo apenas o wrapper de numbered circle (o numero ja fica implicito na aba ativa)
-- Nenhuma alteracao nos campos, inputs ou logica de dados
+5. **Conteúdo das cells**: Substituir dots de prioridade por barras verticais coloridas (por status via `statusColors[task.status]?.bgSolid`) + título truncado, limitando a 2 tarefas + "+N mais".
 
-### Detalhes Tecnicos
+6. **Click condicional**: Só abrir Sheet quando `dayTasks.length > 0`.
 
-- Importar `Tabs, TabsList, TabsTrigger, TabsContent` de `@/components/ui/tabs`
-- Substituir o `ScrollArea` com as 4 sections por um componente `Tabs` controlado (`value={activeTab}` / `onValueChange={setActiveTab}`)
-- O footer tera logica condicional:
+7. **Usar `getTodayBrazil()`** em vez de `new Date()` para `isToday`.
 
-```text
-if activeTab === "contratos" (ultima aba):
-  [Voltar] [Cancelar] [Salvar Cliente]
-else:
-  [Voltar?] [Cancelar] [Avancar ->]
-```
+8. **Remover `isSameMonth`** do import e da lógica (só renderiza dias do mês atual via `eachDayOfInterval`).
 
-- A funcao "Avancar" simplesmente muda o `activeTab` para o proximo valor na sequencia
-- Reset do `activeTab` para `"cliente"` no `resetAndClose`
+O `statusColors` em `taskStatusColors.ts` já cobre todos os 6 status usados (`backlog`, `waiting_client`, `todo`, `in_progress`, `review`, `done`). Nenhuma alteração necessária nesse arquivo.
 
-### Arquivo alterado
-- `src/components/equipe/dev/NewClientModal.tsx`
-
-### O que NAO muda
-- Nenhuma tabela ou migracao de banco
-- Nenhuma logica de save/insert/update
-- Nenhum campo de formulario adicionado ou removido
-- Apenas layout e navegacao visual
+O Sheet lateral continuará usando `TaskCard` sem alterações.
 
