@@ -67,8 +67,8 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
     setIsLoading(false);
   };
 
-  // Show loading while auth is being checked
-  if ((authLoading || accessLoading) && !user) {
+  // Show loading only during initial auth check (no user yet)
+  if (authLoading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -170,6 +170,11 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
         </div>
       </div>
     );
+  }
+
+  // User authenticated, access still loading — render children to keep layout mounted
+  if (accessLoading) {
+    return <>{children}</>;
   }
 
   // If authenticated but no access, show access denied
