@@ -25,34 +25,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+    const initializeAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Check roles when session changes
+
         if (session?.user) {
-          setTimeout(() => {
-            checkRoles(session.user.id);
-          }, 0);
+          await checkRoles(session.user.id);
         } else {
           setIsAdmin(false);
           setIsTeamMember(false);
         }
+      } finally {
+        setLoading(false);
       }
-    );
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        checkRoles(session.user.id);
+        setLoading(true);
+        void checkRoles(session.user.id).finally(() => {
+          setLoading(false);
+        });
+      } else {
+        setIsAdmin(false);
+        setIsTeamMember(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
+
+    void initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -63,15 +75,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
-      
+
       if (!error && data) {
         const roles = data.map(r => r.role);
         setIsAdmin(roles.includes('admin'));
         setIsTeamMember(roles.includes('team_member'));
-      } else {
-        setIsAdmin(false);
-        setIsTeamMember(false);
+        return;
       }
+
+      setIsAdmin(false);
+      setIsTeamMember(false);
     } catch (error) {
       console.error('Error checking roles:', error);
       setIsAdmin(false);
