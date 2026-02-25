@@ -1,89 +1,110 @@
 
 
-## Redesign UX do NewClientModal - Layout vertical, limpeza visual e ajuste Inscrição Estadual
+## Correcao Global: Perda de Estado ao Retornar ao Navegador
 
-### 1. Inscrição Estadual: Sim / Isento (obrigatório)
+### Diagnostico
 
-Substituir o Checkbox "Possui Insc. Estadual?" por um **Select obrigatório** com duas opções:
-- **Sim** - exibe o campo de input para digitar o número
-- **Isento** - oculta o campo de input e limpa o valor
+A causa raiz esta em dois pontos:
 
-O campo `possui_inscricao_estadual: boolean` será substituído por `situacao_inscricao_estadual: string` (valores: `'sim'` | `'isento'` | `''`). A validação em `addEntity` exigirá que este campo esteja preenchido, e quando `'sim'`, o número da inscrição será obrigatório.
+1. **AuthContext (linha 56)**: O `onAuthStateChange` dispara `setLoading(true)` em TODOS os eventos de auth, incluindo `TOKEN_REFRESHED` que ocorre automaticamente ao voltar para a aba. Isso faz `loading = true`, que causa a desmontagem completa da arvore de componentes em todos os route guards.
 
-### 2. Remover cores divergentes dos botões "Adicionar à Lista"
+2. **QueryClient sem configuracao**: O `new QueryClient()` na linha 75 do App.tsx usa os defaults do React Query (`staleTime: 0`, `refetchOnWindowFocus: true`), causando refetches desnecessarios que combinados com spinners locais amplificam o problema.
 
-Atualmente cada aba tem um botão com cor própria:
-- Contribuintes: `bg-purple-600` (linha 785)
-- Participantes: `bg-amber-500` (linha 848)
-- OS: `bg-emerald-600` (linha 954)
+### Alteracoes
 
-Todos serão padronizados para o estilo padrão do sistema (sem classe de cor explícita, usando o `variant="default"` que já usa teal/primary).
+#### 1. `src/App.tsx` - Configurar QueryClient com defaults seguros
 
-### 3. Remover ícones de "+" dos títulos e botões
+Substituir `const queryClient = new QueryClient()` por uma configuracao com:
+- `staleTime: 1 * 60 * 1000` (1 minuto) -- evita refetches imediatos
+- `refetchOnWindowFocus: false` -- desativa o refetch automatico ao voltar para a aba (os dados serao atualizados por invalidacao explicita ou ao navegar)
 
-- Remover `<Plus size={16} />` dos títulos "Novo Contribuinte" (linha 703), "Novo Participante" (linha 819), "Nova OS" (linha 888)
-- Remover `<Plus size={16} />` dos botões "Adicionar à Lista" (linhas 786, 849, 955)
-- Manter o ícone `<Plus>` ou `<Pencil>` apenas no header principal do modal (linha 497)
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+```
 
-### 4. Layout vertical em todas as abas
+#### 2. `src/contexts/AuthContext.tsx` - Nao mostrar loading em refresh de token
 
-Mudar a orientação dos formulários de grid horizontal (`grid-cols-12`) para **layout vertical empilhado**. Cada campo ocupará a largura total (`col-span-12`) ou será agrupado em pares quando fizer sentido semântico (ex: Município + UF, Data Início + Data Fim).
+Alterar o `onAuthStateChange` para distinguir entre eventos que realmente precisam de loading (SIGNED_IN, SIGNED_OUT) e eventos silenciosos (TOKEN_REFRESHED, INITIAL_SESSION). A mudanca principal:
 
-**Aba Cliente:**
-- Nome do Cliente: largura total
-- Categoria + Status: lado a lado (6+6)
-- Área do negócio: largura total
-- Telefone: largura total
-- Município + UF: lado a lado (9+3)
-- Tipo Relacionamento: largura total
-- Tipo de produto/segmento: largura total
-- Equipe responsável: largura total
-- Região: largura total
+```typescript
+supabase.auth.onAuthStateChange((event, session) => {
+  setSession(session);
+  setUser(session?.user ?? null);
 
-**Aba Contribuintes:**
-- Tipo + CPF/CNPJ: lado a lado (3+9)
-- Razão Social: largura total
-- Situação Insc. Estadual + Nº Inscrição: lado a lado (6+6)
-- CNAE + Setor + Simples Nacional (PJ): lado a lado (4+4+4)
-- Logradouro: largura total
-- Bairro + Município + UF: lado a lado (4+5+3)
+  if (session?.user) {
+    // Apenas SIGNED_IN precisa mostrar loading (troca de usuario)
+    if (event === 'SIGNED_IN') {
+      setLoading(true);
+      void checkRoles(session.user.id).finally(() => setLoading(false));
+    } else {
+      // TOKEN_REFRESHED, INITIAL_SESSION: atualiza roles silenciosamente
+      void checkRoles(session.user.id);
+    }
+  } else {
+    setIsAdmin(false);
+    setIsTeamMember(false);
+    if (event === 'SIGNED_OUT') {
+      setLoading(false);
+    }
+  }
+});
+```
 
-**Aba Participantes:**
-- Nome + Cargo: lado a lado (6+6)
-- Email + Telefone: lado a lado (6+6)
-- Observações: largura total
+#### 3. Route Guards - Substituir spinner escuro por renderizacao transparente
 
-**Aba OS:**
-- Ordem de Serviço + Data de Emissão: lado a lado (6+6)
-- Gestor Responsável: largura total
-- Nome do Projeto: largura total
-- Descrição do Projeto: largura total
-- Data Início + Data Fim: lado a lado (6+6)
-- Valor do Projeto: largura total
-- Reembolso km + Reembolso refeição: lado a lado (6+6)
+Alterar os 4 componentes de guarda para que, quando `loading` for true mas ja houver um `user` em memoria, renderizem `children` normalmente em vez de desmontar tudo:
 
-### 5. Cards de itens já adicionados
+**`src/components/auth/TeamRoute.tsx`**:
+```typescript
+export const TeamRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isTeamMember, isAdmin, loading } = useAuth();
 
-Manter os cards existentes (contribuintes, participantes, OS) mas remover as cores específicas (purple-50, amber-50, emerald-50) e padronizar com `bg-muted/30 border` neutro.
+  // Carregamento inicial (nenhum usuario em memoria ainda)
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-### Resumo técnico de alterações
+  if (!user) return <Navigate to="/equipe" replace />;
+  if (!isTeamMember && !isAdmin) return <Navigate to="/" replace />;
 
-| Local | O que muda |
+  return <>{children}</>;
+};
+```
+
+Mesma logica para **`ProtectedRoute.tsx`** e **`AdminRoute.tsx`**: so mostrar spinner se `loading && !user`.
+
+**`src/components/auth/PageAccessGate.tsx`**: Nenhuma mudanca necessaria -- ja usa React Query com `staleTime: 5min` e so depende de `authLoading`, que agora nao sera mais settado true em token refresh.
+
+#### 4. `src/components/gestao/GestaoAccessGate.tsx` - Mesma correcao
+
+Verificar e aplicar a mesma logica: so mostrar spinner se `loading && !user`.
+
+### Resultado
+
+- Voltar para a aba do navegador nao causa mais nenhum flash/piscar
+- Modais, abas selecionadas, formularios preenchidos -- tudo preservado
+- Dados continuam sendo atualizados via invalidacao explicita nas mutations
+- O spinner escuro so aparece no carregamento inicial real (primeira visita, sem usuario em cache)
+
+### Arquivos modificados
+
+| Arquivo | Mudanca |
 |---|---|
-| Interface `DraftEntity` | `possui_inscricao_estadual: boolean` vira `situacao_inscricao_estadual: string` |
-| Estado `draftEntity` | Default `situacao_inscricao_estadual: ''` |
-| `addEntity` | Validação: `situacao_inscricao_estadual` obrigatório; se `'sim'`, `inscricao_estadual` obrigatório |
-| `loadData` | Mapear: se tinha `inscricao_estadual` preenchido, `situacao_inscricao_estadual: 'sim'`, senão `'isento'` |
-| Formulário Contribuintes | Select "Situação Insc. Estadual" com Sim/Isento; Input condicional |
-| Todos os formulários | Grid classes mudam de `md:col-span-N` para layout mais vertical |
-| Botões "Adicionar" | Remover cores custom, usar variant default |
-| Títulos de seção | Remover ícone `<Plus>` |
-| Cards de itens | Cores neutras em vez de purple/amber/emerald |
-
-### O que NÃO muda
-
-- Nenhuma alteração no banco de dados
-- Lógica de save, validações existentes, queries de líderes
-- Footer com navegação entre abas
-- Header do modal
+| `src/App.tsx` | QueryClient com staleTime e refetchOnWindowFocus: false |
+| `src/contexts/AuthContext.tsx` | onAuthStateChange nao seta loading em TOKEN_REFRESHED |
+| `src/components/auth/TeamRoute.tsx` | Spinner so se loading && !user |
+| `src/components/auth/ProtectedRoute.tsx` | Spinner so se loading && !user |
+| `src/components/auth/AdminRoute.tsx` | Spinner so se loading && !user |
+| `src/components/gestao/GestaoAccessGate.tsx` | Mesma correcao do spinner |
 
