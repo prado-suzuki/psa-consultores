@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
@@ -228,7 +228,7 @@ const statusLabels = Object.fromEntries(
              </DropdownMenu>
            </TableCell>
          </TableRow>
-         {hasSubtasks && isExpanded && subtasks.map(subtask => renderTaskRow(subtask, true))}
+         {hasSubtasks && isExpanded && subtasks.map(subtask => <Fragment key={subtask.id}>{renderTaskRow(subtask, true)}</Fragment>)}
        </>
      );
    };
@@ -255,7 +255,7 @@ const statusLabels = Object.fromEntries(
                </TableCell>
              </TableRow>
            ) : (
-             parentTasks.map(task => renderTaskRow(task))
+             parentTasks.map(task => <Fragment key={task.id}>{renderTaskRow(task)}</Fragment>)
            )}
          </TableBody>
        </Table>

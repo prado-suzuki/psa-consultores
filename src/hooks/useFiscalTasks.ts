@@ -139,9 +139,13 @@ export interface TaskFilters {
           query = query.lte('due_date', filters.endDate);
         }
  
-       const { data, error } = await query;
-       if (error) throw error;
-       return data as FiscalTask[];
+        const { data, error } = await query;
+        if (error) throw error;
+        // Guard against self-referencing parent_task_id
+        return (data || []).map(t => ({
+          ...t,
+          parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
+        })) as FiscalTask[];
      },
    });
  };
