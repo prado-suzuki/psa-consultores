@@ -63,7 +63,7 @@ const taskSchema = z.object({
   recurrence_type: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
   category: z.enum(['task', 'fixed_event']),
   parent_task_id: z.string().optional(),
-  project_id: z.string().optional(),
+  project_id: z.string().min(1, 'Projeto é obrigatório'),
   client_id: z.string().optional(),
   categoria_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
@@ -228,7 +228,7 @@ export const TaskModal = ({
         recurrence_type: task.recurrence_type || undefined,
         category: task.category,
         parent_task_id: task.parent_task_id || undefined,
-        project_id: task.project_id || undefined,
+        project_id: task.project_id || '',
         client_id: task.client_id || undefined,
         categoria_id: task.categoria_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
@@ -249,7 +249,7 @@ export const TaskModal = ({
           is_recurring: false,
           category: 'task',
           parent_task_id: defaultParentId || undefined,
-          project_id: parentTask?.project_id || undefined,
+          project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
           categoria_id: undefined,
           tags: [],
@@ -325,9 +325,9 @@ export const TaskModal = ({
                 name="project_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Projeto</FormLabel>
+                    <FormLabel>Projeto <span className="text-destructive">*</span></FormLabel>
                     <Select 
-                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
+                      onValueChange={(v) => field.onChange(v === '_none' ? '' : v)} 
                       value={field.value || '_none'}
                     >
                       <FormControl>
