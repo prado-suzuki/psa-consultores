@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { CalendarIcon, X } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -87,6 +88,7 @@ export const TaskModal = ({
   parentTasks = [],
   defaultParentId
 }: TaskModalProps) => {
+  const { user } = useAuth();
   const createTask = useCreateFiscalTask();
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
@@ -142,6 +144,7 @@ export const TaskModal = ({
     'fiscal-task-draft',
     watchedValues,
     draftEnabled,
+    user?.id,
   );
 
   const watchedProjectId = form.watch('project_id');

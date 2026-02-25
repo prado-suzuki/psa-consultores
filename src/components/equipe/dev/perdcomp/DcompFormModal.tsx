@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -69,6 +70,7 @@ export function DcompFormModal({
   contribuinteId,
   preSelectedPer,
 }: DcompFormModalProps) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
 
@@ -88,7 +90,7 @@ export function DcompFormModal({
 
   const watchedValues = form.watch();
   const draftEnabled = open && !isEditing;
-  const { restore, clear } = useDraftPersistence('dcomp-form-draft', watchedValues, draftEnabled);
+  const { restore, clear } = useDraftPersistence('dcomp-form-draft', watchedValues, draftEnabled, user?.id);
 
   // Query para buscar DCOMPs existentes do mesmo PER (para retificação)
   const { data: dcompsExistentes = [] } = useQuery({
@@ -243,7 +245,7 @@ export function DcompFormModal({
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar DCOMP' : 'Novo DCOMP'}</DialogTitle>
