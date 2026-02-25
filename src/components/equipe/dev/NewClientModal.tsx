@@ -60,7 +60,7 @@ interface DraftEntity {
   tipo_pessoa: string;
   cpf_cnpj: string;
   nome_razao_social: string;
-  possui_inscricao_estadual: boolean;
+  situacao_inscricao_estadual: string; // 'sim' | 'isento' | ''
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
@@ -180,7 +180,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
     tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
-    possui_inscricao_estadual: false, inscricao_estadual: '',
+    situacao_inscricao_estadual: '', inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: false,
     logradouro: '', bairro: '', municipio: '', uf: '',
   });
@@ -231,7 +231,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             tipo_pessoa: c.tipo_pessoa || 'PJ',
             cpf_cnpj: c.cpf_cnpj || '',
             nome_razao_social: c.nome_razao_social || '',
-            possui_inscricao_estadual: !!(c.inscricao_estadual),
+            situacao_inscricao_estadual: c.inscricao_estadual ? 'sim' : 'isento',
             inscricao_estadual: c.inscricao_estadual || '',
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
@@ -284,6 +284,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     if (!draftEntity.municipio?.trim()) { toast.error('Município é obrigatório'); return; }
     if (!draftEntity.uf?.trim() || (draftEntity.uf?.trim().length !== 2)) { toast.error('UF deve ter 2 caracteres'); return; }
 
+    if (!draftEntity.situacao_inscricao_estadual) { toast.error('Informe a situação da inscrição estadual'); return; }
+    if (draftEntity.situacao_inscricao_estadual === 'sim' && !draftEntity.inscricao_estadual?.trim()) { toast.error('Informe o número da inscrição estadual'); return; }
+
     if (draftEntity.tipo_pessoa === 'PJ') {
       if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
       if (!draftEntity.setor?.trim()) { toast.error('Setor é obrigatório para PJ'); return; }
@@ -292,7 +295,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
       tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
-      possui_inscricao_estadual: false, inscricao_estadual: '',
+      situacao_inscricao_estadual: '', inscricao_estadual: '',
       cod_cnae: '', setor: 'Indústria', simples_nacional: false,
       logradouro: '', bairro: '', municipio: '', uf: '',
     });
@@ -530,8 +533,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                     <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
                       <h3 className="text-lg font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-5">
-                      <div className="col-span-12 md:col-span-4">
+                    <div className="p-6 grid grid-cols-12 gap-5">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
                         <Input
                           autoFocus
@@ -541,7 +544,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           className="text-base font-bold"
                         />
                       </div>
-                      <div className="col-span-6 md:col-span-2">
+                      <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
                         <Select value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -553,7 +556,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6 md:col-span-3">
+                      <div className="col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
+                        <div className="flex items-center gap-2 h-10">
+                          <Switch checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
+                          <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
                         <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -569,28 +579,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6 md:col-span-3">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
-                        <div className="flex items-center gap-2 h-10">
-                          <Switch checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
-                          <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
-                        </div>
-                      </div>
-
-                      <div className="col-span-12 md:col-span-3">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                         <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} placeholder="(00) 00000-0000" />
                       </div>
-                      <div className="col-span-6 md:col-span-3">
+                      <div className="col-span-9">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
                         <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
                       </div>
-                      <div className="col-span-6 md:col-span-1">
+                      <div className="col-span-3">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
                         <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
                       </div>
-
-                      <div className="col-span-12 md:col-span-3">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo Relacionamento</Label>
                         <div className="flex bg-muted p-1 rounded-lg">
                           <button
@@ -605,9 +606,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           >Pontual</button>
                         </div>
                       </div>
-
-                      {/* Tipo de produto/segmento */}
-                      <div className="col-span-12 md:col-span-5">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
                         <Select value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -627,8 +626,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           />
                         )}
                       </div>
-
-                      <div className="col-span-12 md:col-span-4">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável *</Label>
                         <Select value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -651,7 +649,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12 md:col-span-5">
+                      <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
                         <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -667,7 +665,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-
                     </div>
                   </section>
                 </TabsContent>
@@ -681,16 +678,16 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       {entities.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                           {entities.map(ent => (
-                            <div key={ent._id} className="bg-purple-50 border border-purple-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-purple-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div key={ent._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
                               </button>
                               <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
                               <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
                               {ent.tipo_pessoa === 'PJ' && (
                                 <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-purple-700">{ent.setor}</span>
-                                  {ent.simples_nacional && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Simples</span>}
+                                  <span className="text-[10px] bg-card px-2 py-0.5 rounded border font-bold text-foreground">{ent.setor}</span>
+                                  {ent.simples_nacional && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
                                 </div>
                               )}
                             </div>
@@ -699,11 +696,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       )}
 
                       <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                          <Plus size={16} /> Novo Contribuinte
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                          Novo Contribuinte
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                          <div className="col-span-4 md:col-span-2">
+                        <div className="grid grid-cols-12 gap-4">
+                          <div className="col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
                             <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -713,36 +710,43 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-8 md:col-span-3">
+                          <div className="col-span-9">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ *</Label>
                             <Input value={draftEntity.cpf_cnpj || ''} onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })} placeholder="000.000.000-00" className="font-mono" />
                           </div>
-                          <div className="col-span-12 md:col-span-7">
+                          <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
                             <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
                           </div>
 
-                          {/* Inscrição Estadual condicional */}
-                          <div className="col-span-6 md:col-span-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Checkbox
-                                checked={draftEntity.possui_inscricao_estadual || false}
-                                onCheckedChange={c => setDraftEntity({ ...draftEntity, possui_inscricao_estadual: !!c, inscricao_estadual: !c ? '' : draftEntity.inscricao_estadual })}
-                              />
-                              <Label className="text-xs font-bold uppercase text-muted-foreground">Possui Insc. Estadual?</Label>
-                            </div>
-                            {draftEntity.possui_inscricao_estadual && (
-                              <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" />
+                          {/* Situação Inscrição Estadual */}
+                          <div className="col-span-6">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
+                            <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
+                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                <SelectItem value="sim">Sim</SelectItem>
+                                <SelectItem value="isento">Isento</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6">
+                            {draftEntity.situacao_inscricao_estadual === 'sim' && (
+                              <>
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº Inscrição Estadual *</Label>
+                                <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" />
+                              </>
                             )}
                           </div>
 
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <>
-                              <div className="col-span-6 md:col-span-3">
+                              <div className="col-span-4">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE *</Label>
                                 <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
                               </div>
-                              <div className="col-span-6 md:col-span-3">
+                              <div className="col-span-4">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor *</Label>
                                 <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -753,7 +757,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="col-span-6 md:col-span-3">
+                              <div className="col-span-4">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
                                 <div className="flex items-center gap-2 h-10">
                                   <Checkbox
@@ -765,25 +769,25 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               </div>
                             </>
                           )}
-                          <div className="col-span-12 md:col-span-5">
+                          <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro *</Label>
                             <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro *</Label>
                             <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-5">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
                             <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-1">
+                          <div className="col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
                             <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
                           </div>
                           <div className="col-span-12 flex justify-end mt-2">
-                            <Button onClick={addEntity} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
-                              <Plus size={16} /> Adicionar à Lista
+                            <Button onClick={addEntity} className="gap-2">
+                              Adicionar à Lista
                             </Button>
                           </div>
                         </div>
@@ -801,37 +805,37 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       {participants.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                           {participants.map(part => (
-                            <div key={part._id} className="bg-amber-50 border border-amber-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-amber-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div key={part._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
                               </button>
                               <div className="font-bold text-foreground">{part.nome}</div>
                               <div className="text-sm text-muted-foreground">{part.cargo}</div>
                               <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
-                              {part.observacoes && <div className="text-xs text-muted-foreground mt-1 truncate" title={part.observacoes}>📝 {part.observacoes}</div>}
+                              {part.observacoes && <div className="text-xs text-muted-foreground mt-1 truncate" title={part.observacoes}>{part.observacoes}</div>}
                             </div>
                           ))}
                         </div>
                       )}
 
                       <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                          <Plus size={16} /> Novo Participante
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                          Novo Participante
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                          <div className="col-span-12 md:col-span-4">
+                        <div className="grid grid-cols-12 gap-4">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
                             <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo *</Label>
                             <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
                             <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-2">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                             <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
                           </div>
@@ -845,8 +849,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             />
                           </div>
                           <div className="col-span-12 flex justify-end mt-2">
-                            <Button onClick={addParticipant} className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
-                              <Plus size={16} /> Adicionar à Lista
+                            <Button onClick={addParticipant} className="gap-2">
+                              Adicionar à Lista
                             </Button>
                           </div>
                         </div>
@@ -864,12 +868,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       {contracts.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                           {contracts.map(cont => (
-                            <div key={cont._id} className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-emerald-300 hover:text-red-500 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div key={cont._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
+                              <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
                               </button>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">OS {cont.ordem_servico}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
                                 <span className="text-xs text-muted-foreground">{cont.gestor_responsavel || '—'}</span>
                               </div>
                               <div className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</div>
@@ -884,20 +888,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       )}
 
                       <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-                          <Plus size={16} /> Nova OS
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                          Nova OS
                         </h4>
                         <div className="grid grid-cols-12 gap-4">
-                          {/* Linha 1 */}
-                          <div className="col-span-12 md:col-span-4">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Ordem de Serviço *</Label>
                             <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="OS-001" />
                           </div>
-                          <div className="col-span-6 md:col-span-4">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data de Emissão *</Label>
                             <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-4">
+                          <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
                             <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -909,18 +912,10 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               </SelectContent>
                             </Select>
                           </div>
-
-                          {/* Linha 2 */}
-                          <div className="col-span-12 md:col-span-6">
+                          <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
                             <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
-                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
-                          </div>
-
-                          {/* Linha 3 */}
                           <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição do Projeto</Label>
                             <Textarea
@@ -930,29 +925,31 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               className="min-h-[80px]"
                             />
                           </div>
-
-                          {/* Linha 4 */}
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
                             <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
                             <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-12">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
+                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
+                          </div>
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso por km (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} />
                           </div>
                         </div>
 
                         <div className="flex justify-end mt-4 pt-2 border-t">
-                          <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                            <Plus size={16} /> Adicionar OS à Lista
+                          <Button onClick={addContract} className="gap-2">
+                            Adicionar OS à Lista
                           </Button>
                         </div>
                       </div>
