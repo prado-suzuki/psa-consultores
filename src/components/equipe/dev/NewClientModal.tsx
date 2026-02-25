@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
@@ -32,7 +33,8 @@ interface DraftEntity {
   cod_cnae: string;
   setor: string;
   simples_nacional: boolean;
-  telefone: string;
+  logradouro: string;
+  bairro: string;
   municipio: string;
   uf: string;
 }
@@ -43,6 +45,7 @@ interface DraftParticipant {
   cargo: string;
   email: string;
   telefone: string;
+  observacoes: string;
 }
 
 interface DraftContract {
@@ -115,13 +118,13 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
     tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: false,
-    telefone: '', municipio: '', uf: '',
+    logradouro: '', bairro: '', municipio: '', uf: '',
   });
 
   // Section 3 - Participantes
   const [participants, setParticipants] = useState<DraftParticipant[]>([]);
   const [draftParticipant, setDraftParticipant] = useState({
-    nome: '', cargo: '', email: '', telefone: '',
+    nome: '', cargo: '', email: '', telefone: '', observacoes: '',
   });
 
   // Section 4 - OS (Ordem de Serviço)
@@ -168,7 +171,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
             simples_nacional: c.simples_nacional ?? false,
-            telefone: '',
+            logradouro: '',
+            bairro: '',
             municipio: '',
             uf: '',
           })));
@@ -183,6 +187,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             cargo: p.cargo || '',
             email: p.email || '',
             telefone: p.telefone || '',
+            observacoes: (p as any).observacoes || '',
           })));
         }
 
@@ -206,14 +211,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const addEntity = () => {
     if (!draftEntity.nome_razao_social) { toast.error('Razão Social é obrigatória'); return; }
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
-    setDraftEntity({ tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '', cod_cnae: '', setor: 'Indústria', simples_nacional: false, telefone: '', municipio: '', uf: '' });
+    setDraftEntity({ tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '', cod_cnae: '', setor: 'Indústria', simples_nacional: false, logradouro: '', bairro: '', municipio: '', uf: '' });
   };
 
   // --- PARTICIPANT HANDLERS ---
   const addParticipant = () => {
     if (!draftParticipant.nome) { toast.error('Nome é obrigatório'); return; }
     setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
-    setDraftParticipant({ nome: '', cargo: '', email: '', telefone: '' });
+    setDraftParticipant({ nome: '', cargo: '', email: '', telefone: '', observacoes: '' });
   };
 
   // --- OS HANDLERS ---
@@ -533,10 +538,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               </button>
                               <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
                               <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-purple-700">{ent.setor}</span>
-                                {ent.simples_nacional && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Simples</span>}
-                              </div>
+                              {ent.tipo_pessoa === 'PJ' && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-purple-700">{ent.setor}</span>
+                                  {ent.simples_nacional && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Simples</span>}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -569,40 +576,48 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Insc. Estadual</Label>
                             <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Isento" />
                           </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
-                            <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
+                          {draftEntity.tipo_pessoa === 'PJ' && (
+                            <>
+                              <div className="col-span-6 md:col-span-3">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
+                                <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
+                              </div>
+                              <div className="col-span-6 md:col-span-3">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor</Label>
+                                <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Indústria">Indústria</SelectItem>
+                                    <SelectItem value="Agronegócio">Agronegócio</SelectItem>
+                                    <SelectItem value="Transportes">Transportes</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-6 md:col-span-3">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
+                                <div className="flex items-center gap-2 h-10">
+                                  <Checkbox
+                                    checked={draftEntity.simples_nacional || false}
+                                    onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
+                                  />
+                                  <span className="text-sm">Optante</span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          <div className="col-span-12 md:col-span-5">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro</Label>
+                            <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor</Label>
-                            <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Indústria">Indústria</SelectItem>
-                                <SelectItem value="Agronegócio">Agronegócio</SelectItem>
-                                <SelectItem value="Transportes">Transportes</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro</Label>
+                            <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
-                            <div className="flex items-center gap-2 h-10">
-                              <Checkbox
-                                checked={draftEntity.simples_nacional || false}
-                                onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
-                              />
-                              <span className="text-sm">Optante</span>
-                            </div>
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                            <Input value={draftEntity.telefone || ''} onChange={e => setDraftEntity({ ...draftEntity, telefone: e.target.value })} />
-                          </div>
-                          <div className="col-span-6 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
                             <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
                           </div>
-                          <div className="col-span-6 md:col-span-2">
+                          <div className="col-span-6 md:col-span-1">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
                             <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
                           </div>
@@ -633,6 +648,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               <div className="font-bold text-foreground">{part.nome}</div>
                               <div className="text-sm text-muted-foreground">{part.cargo}</div>
                               <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
+                              {part.observacoes && <div className="text-xs text-muted-foreground mt-1 truncate" title={part.observacoes}>📝 {part.observacoes}</div>}
                             </div>
                           ))}
                         </div>
@@ -658,6 +674,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           <div className="col-span-6 md:col-span-2">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                             <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
+                          </div>
+                          <div className="col-span-12">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
+                            <Textarea
+                              value={draftParticipant.observacoes}
+                              onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
+                              placeholder="Observações sobre o participante..."
+                              className="min-h-[60px]"
+                            />
                           </div>
                           <div className="col-span-12 flex justify-end mt-2">
                             <Button onClick={addParticipant} className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
