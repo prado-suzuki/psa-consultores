@@ -180,13 +180,16 @@ export const TaskModal = ({
   // When project changes: clear dependent fields and auto-set client
   useEffect(() => {
     form.setValue('categoria_id', undefined);
-    form.setValue('parent_task_id', undefined);
+    // Only clear parent_task_id if we're NOT creating a subtask via defaultParentId
+    if (!defaultParentId) {
+      form.setValue('parent_task_id', undefined);
+    }
     // Auto-fill client from the selected project
     const selectedProject = projects.find(p => p.id === watchedProjectId);
     if (selectedProject?.external_client_id) {
       form.setValue('client_id', selectedProject.external_client_id);
     }
-  }, [watchedProjectId, form, projects]);
+  }, [watchedProjectId, form, projects, defaultParentId]);
 
   useEffect(() => {
     if (task) {
