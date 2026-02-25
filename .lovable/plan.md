@@ -1,84 +1,107 @@
 
 
-# Plano: Corrigir Modais Fechando Sozinhos + Salvaguarda de Dados
+# Fase 1 + 2: Estabilizar AuthContext, TaskModal e Blindar Dialog
 
-## Diagnostico
+## Causa Raiz Identificada
 
-### Problema 1 - Causa Raiz Identificada
+O `onFocusOutside` ja esta no `dialog.tsx` (linha 38), mas os modais continuam fechando. O problema real tem duas origens:
 
-O componente `DialogContent` do Radix UI utiliza internamente o `DismissableLayer`, que dispara o evento `onFocusOutside` sempre que o foco sai do dialog -- incluindo quando o usuario troca de aba no navegador. Por padrao, esse evento causa o fechamento do modal.
+### 1. AuthContext causa remount completo ao trocar de aba
 
-O arquivo `src/components/ui/dialog.tsx` (usado por **todos** os modais da aplicacao) NAO possui nenhum tratamento para `onFocusOutside`. Isso significa que qualquer troca de aba/janela fecha o modal.
+Quando o usuario troca de aba e volta, o cliente de autenticacao dispara o evento `TOKEN_REFRESHED`. O handler `onAuthStateChange` (linhas 51-68 do AuthContext) faz:
 
-### Problema 2 - Situacao Atual
+```
+setSession(session);    // novo objeto = re-render global
+setUser(session?.user); // novo objeto = re-render global
+```
 
-Ja existe o hook `useDraftPersistence` em `src/hooks/useDraftPersistence.ts` que salva dados no `sessionStorage` com debounce de 500ms. Porem, ele so e utilizado em **1 modal**: o `TaskModal.tsx` (fiscal tasks). Os outros 4 modais com formularios (`WorkPackageForm`, `PerFormModal`, `DcompFormModal`, `SituacaoFormModal`) e os modais com estado manual (`CreateTicketDialog`, `NewClientModal`, `CreateProcessModal`) nao possuem nenhuma salvaguarda.
+Isso cria **novas referencias de objeto** a cada token refresh, provocando re-render em cascata em todos os componentes que usam `useAuth()`. Se combinado com o `checkRoles()` que temporariamente pode resetar `isAdmin`/`isTeamMember` para `false`, as rotas protegidas (`ProtectedRoute`, `AdminRoute`, `TeamRoute`) podem desmontar toda a arvore de componentes -- fechando qualquer modal aberto.
+
+### 2. TaskModal com loop de render instavel
+
+Na linha 139 do TaskModal: `const watchedValues = form.watch()` retorna um **novo objeto a cada render**. Esse objeto alimenta o `useDraftPersistence`, cujo `useEffect` depende de `values` (linha 57 do hook). Como a referencia muda a cada render, o efeito dispara continuamente, criando o erro `Maximum update depth exceeded`.
 
 ---
 
-## Solucao Proposta
+## Correcoes Planejadas
 
-### Parte 1: Correcao Global dos Modais (1 arquivo)
+### Arquivo 1: `src/contexts/AuthContext.tsx`
 
-**Arquivo:** `src/components/ui/dialog.tsx`
+**Objetivo**: Impedir que token refresh cause remount da arvore de componentes.
 
-Adicionar `onFocusOutside={(e) => e.preventDefault()}` no componente `DialogContent`. Como todos os modais da aplicacao importam deste arquivo, a correcao sera automaticamente aplicada em todos os lugares.
+Mudancas:
+- Guardar `sessionRef` e `userRef` (useRef) para comparar IDs antes de atualizar estado
+- No handler `onAuthStateChange`: so chamar `setSession`/`setUser` se o ID do usuario realmente mudou
+- Para eventos `TOKEN_REFRESHED` e `INITIAL_SESSION`: atualizar session silenciosamente sem tocar em `loading`
+- Nunca resetar `isAdmin`/`isTeamMember` para `false` durante refresh de token (so no SIGNED_OUT)
+
+Logica simplificada:
+```
+onAuthStateChange((event, newSession) => {
+  // Se o usuario nao mudou, so atualizar a referencia da session
+  // sem causar re-render desnecessario nos consumidores
+  if (event === 'TOKEN_REFRESHED') {
+    sessionRef.current = newSession;
+    setSession(newSession); // precisa atualizar token, mas user nao muda
+    return; // NAO re-checar roles, NAO mexer em loading
+  }
+  // ... resto da logica para SIGNED_IN, SIGNED_OUT etc
+})
+```
+
+### Arquivo 2: `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+
+**Objetivo**: Eliminar o loop infinito de renders e estabilizar a persistencia de rascunho.
+
+Mudancas:
+- Substituir `form.watch()` (linha 139) por `useWatch({ control: form.control })` que retorna referencia estavel
+- Memoizar os valores com `useMemo` + `JSON.stringify` para evitar re-disparo do efeito de persistencia
+- Proteger os `useEffect` de `setValue` (linhas 166-168 e 191-202) com guards de igualdade: so chamar `setValue` se o valor atual for diferente do novo
+- Corrigir a dependencia do efeito de restauracao (linhas 204-248) para nao re-disparar desnecessariamente
+
+Exemplo da correcao do setValue:
+```
+useEffect(() => {
+  const current = form.getValues('contribuinte_id');
+  if (current !== undefined) {
+    form.setValue('contribuinte_id', undefined);
+  }
+}, [watchedClientId]);
+```
+
+### Arquivo 3: `src/components/ui/dialog.tsx`
+
+**Objetivo**: Blindagem adicional contra fechamento por interacao externa.
+
+O `onFocusOutside` ja esta aplicado. Adicionar tambem `onInteractOutside` para capturar outros eventos de dismissal do Radix que podem ser disparados por mudanca de foco do sistema operacional:
 
 ```tsx
 <DialogPrimitive.Content
   ref={ref}
   onFocusOutside={(e) => e.preventDefault()}
-  className={cn(...)}
-  {...props}  // permite override individual se necessario
+  onInteractOutside={(e) => {
+    // Permite fechar clicando no overlay (pointerdown)
+    // mas bloqueia dismiss por eventos de foco/blur do OS
+    const event = e.detail?.originalEvent;
+    if (event && !(event instanceof PointerEvent)) {
+      e.preventDefault();
+    }
+  }}
+  {...props}
 >
 ```
 
-Isso impede o fechamento por perda de foco, mantendo o comportamento normal de fechar por: clique no X, clique no overlay, tecla Escape, ou acao programatica.
-
-### Parte 2: Salvaguarda de Dados nos Formularios (5 arquivos)
-
-Integrar o hook `useDraftPersistence` nos modais de formulario que ainda nao o utilizam. Cada modal recebera:
-
-1. **`WorkPackageForm.tsx`** - chave: `'wp-form-draft'`
-2. **`PerFormModal.tsx`** - chave: `'per-form-draft'`
-3. **`DcompFormModal.tsx`** - chave: `'dcomp-form-draft'`
-4. **`SituacaoFormModal.tsx`** - chave: `'situacao-form-draft'`
-5. **`CreateTicketDialog.tsx`** - chave: `'ticket-form-draft'`
-
-O padrao de integracao sera identico ao ja existente no `TaskModal.tsx`:
-
-```tsx
-const watchedValues = form.watch();
-const draftEnabled = open && !isEditing;
-const { restore, clear } = useDraftPersistence('chave-draft', watchedValues, draftEnabled);
-
-// Restaurar ao abrir (novo)
-useEffect(() => {
-  if (open && !isEditing) {
-    const saved = restore();
-    if (saved) form.reset(saved);
-  }
-}, [open]);
-
-// Limpar ao submeter com sucesso ou cancelar
-onSuccess: () => { clear(); onOpenChange(false); }
-onCancel: () => { clear(); onOpenChange(false); }
-```
-
-Para o `CreateTicketDialog` que usa `useState` ao inves de `react-hook-form`, sera feita uma adaptacao equivalente construindo o objeto de valores manualmente.
+Isso garante que: clique no overlay fecha (PointerEvent); troca de aba/janela nao fecha (FocusEvent).
 
 ---
 
-## Resumo de Arquivos Alterados
+## Resumo de Arquivos
 
 | Arquivo | Alteracao |
 |---|---|
-| `src/components/ui/dialog.tsx` | Adicionar `onFocusOutside` no `DialogContent` |
-| `src/components/projetos/WorkPackageForm.tsx` | Integrar `useDraftPersistence` |
-| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Integrar `useDraftPersistence` |
-| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Integrar `useDraftPersistence` |
-| `src/components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | Integrar `useDraftPersistence` |
-| `src/components/gestao/CreateTicketDialog.tsx` | Integrar `useDraftPersistence` |
+| `src/contexts/AuthContext.tsx` | Estabilizar estado durante TOKEN_REFRESHED; nao causar re-render desnecessario |
+| `src/components/equipe/fiscal/tasks/TaskModal.tsx` | Eliminar loop de render; estabilizar watch e setValue |
+| `src/components/ui/dialog.tsx` | Adicionar `onInteractOutside` com filtro por tipo de evento |
 
-Total: **6 arquivos** modificados, **0 arquivos** novos.
+Total: **3 arquivos** modificados.
 
