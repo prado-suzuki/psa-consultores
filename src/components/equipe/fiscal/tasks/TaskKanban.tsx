@@ -118,35 +118,39 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
               <div className="space-y-2 p-1">
                 {columnTasks.map(task => (
                   <div key={task.id}>
-                    <div
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        "cursor-grab active:cursor-grabbing relative",
-                        draggedTask?.id === task.id && "opacity-50"
-                      )}
-                    >
-                      {task.subtaskCount > 0 && (
+                    <div className="flex items-start gap-1">
+                      {task.subtaskCount > 0 ? (
                         <button
                           onClick={(e) => toggleTaskExpanded(task.id, e)}
-                          className="absolute top-3 left-2 z-10 p-0.5 hover:bg-muted rounded"
+                          className="mt-3 p-0.5 hover:bg-muted rounded flex-shrink-0"
                         >
                           {expandedTasks.has(task.id) ? (
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
                         </button>
+                      ) : (
+                        <div className="w-5 flex-shrink-0" />
                       )}
-                      <TaskCard
-                        task={task}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onReassign={onReassign}
-                        allTasks={tasks}
-                        compact
-                      />
+                      <div
+                        className={cn(
+                          "flex-1 min-w-0 cursor-grab active:cursor-grabbing",
+                          draggedTask?.id === task.id && "opacity-50"
+                        )}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <TaskCard
+                          task={task}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onReassign={onReassign}
+                          allTasks={tasks}
+                          compact
+                        />
+                      </div>
                     </div>
 
                     {expandedTasks.has(task.id) && task.subtasks.length > 0 && (
