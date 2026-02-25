@@ -2299,18 +2299,18 @@ export default function EquipeSprintDetalhes() {
               </Select>
             </div>
 
-            {createForm.parent_id && (
-              <div className="space-y-2">
-                <Label htmlFor="create-task-code">ID / Ordem</Label>
-                <Input
-                  id="create-task-code"
-                  value={createForm.task_code}
-                  onChange={(e) => setCreateForm(prev => ({ ...prev, task_code: e.target.value }))}
-                  placeholder="Ex: 7.43"
-                />
+            <div className="space-y-2">
+              <Label htmlFor="create-task-code">ID / Ordem</Label>
+              <Input
+                id="create-task-code"
+                value={createForm.task_code}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, task_code: e.target.value }))}
+                placeholder="Ex: 7.43"
+              />
+              {createForm.parent_id && (
                 <p className="text-xs text-muted-foreground">Alterar reordena automaticamente as demais subtarefas</p>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
