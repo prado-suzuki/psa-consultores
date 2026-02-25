@@ -106,6 +106,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     telefone: '',
     municipio: '',
     uf: '',
+    setor_cliente: '',
   });
 
   // Section 2 - Contribuintes
@@ -178,6 +179,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             telefone: cli.telefone || '',
             municipio: cli.municipio || '',
             uf: cli.uf || '',
+            setor_cliente: cli.setor_cliente || '',
           });
         }
 
@@ -306,6 +308,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         telefone: clientData.telefone.trim() || null,
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
+        setor_cliente: clientData.setor_cliente || null,
       };
 
       let clienteId: string;
@@ -438,7 +441,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   };
 
   const resetAndClose = () => {
-    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '' });
+    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '' });
     setEntities([]);
     setParticipants([]);
     setContracts([]);
@@ -500,7 +503,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       <h3 className="text-lg font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-5">
-                      <div className="col-span-12 md:col-span-6">
+                      <div className="col-span-12 md:col-span-4">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
                         <Input
                           autoFocus
@@ -510,7 +513,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           className="text-base font-bold"
                         />
                       </div>
-                      <div className="col-span-6 md:col-span-3">
+                      <div className="col-span-6 md:col-span-2">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
                         <Select value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -519,6 +522,22 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <SelectItem value="Prata">Prata</SelectItem>
                             <SelectItem value="Ouro">Ouro</SelectItem>
                             <SelectItem value="Diamante">Diamante</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-6 md:col-span-3">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
+                        <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="REV">REV - Revendas de insumos</SelectItem>
+                            <SelectItem value="INS">INS - Instituições do agro</SelectItem>
+                            <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
+                            <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
+                            <SelectItem value="IND">IND - Agroindústria</SelectItem>
+                            <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
+                            <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
