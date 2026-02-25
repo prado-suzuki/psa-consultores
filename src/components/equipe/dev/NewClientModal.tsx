@@ -32,6 +32,9 @@ interface DraftEntity {
   cod_cnae: string;
   setor: string;
   simples_nacional: boolean;
+  telefone: string;
+  municipio: string;
+  uf: string;
 }
 
 interface DraftParticipant {
@@ -116,6 +119,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
     tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: false,
+    telefone: '', municipio: '', uf: '',
   });
 
   // Section 3 - Participantes
@@ -199,6 +203,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
             simples_nacional: c.simples_nacional ?? false,
+            telefone: '',
+            municipio: '',
+            uf: '',
           })));
         }
 
@@ -256,7 +263,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const addEntity = () => {
     if (!draftEntity.nome_razao_social) { toast.error('Razão Social é obrigatória'); return; }
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
-    setDraftEntity({ tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '', cod_cnae: '', setor: 'Indústria', simples_nacional: false });
+    setDraftEntity({ tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', inscricao_estadual: '', cod_cnae: '', setor: 'Indústria', simples_nacional: false, telefone: '', municipio: '', uf: '' });
   };
 
   // --- PARTICIPANT HANDLERS ---
@@ -608,18 +615,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </Select>
                       </div>
 
-                      <div className="col-span-12 md:col-span-3">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                        <Input value={clientData.telefone} onChange={e => setClientData({ ...clientData, telefone: e.target.value })} />
-                      </div>
-                      <div className="col-span-8 md:col-span-4">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
-                        <Input value={clientData.municipio} onChange={e => setClientData({ ...clientData, municipio: e.target.value })} />
-                      </div>
-                      <div className="col-span-4 md:col-span-2">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
-                        <Input value={clientData.uf} onChange={e => setClientData({ ...clientData, uf: e.target.value })} maxLength={2} />
-                      </div>
                     </div>
                   </section>
                 </TabsContent>
@@ -699,6 +694,18 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               />
                               <span className="text-sm">Optante</span>
                             </div>
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
+                            <Input value={draftEntity.telefone || ''} onChange={e => setDraftEntity({ ...draftEntity, telefone: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
+                            <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
+                          </div>
+                          <div className="col-span-6 md:col-span-2">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
+                            <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
                           </div>
                           <div className="col-span-12 flex justify-end mt-2">
                             <Button onClick={addEntity} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
