@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -76,6 +77,10 @@ export function SituacaoFormModal({
     },
   });
 
+  const watchedValues = form.watch();
+  const draftEnabled = open && !isEditing;
+  const { restore, clear } = useDraftPersistence('situacao-form-draft', watchedValues, draftEnabled);
+
   // Fetch PERs for selection
   const { data: pers = [] } = useQuery({
     queryKey: ['pers-for-situacao', contribuinteId],
@@ -102,14 +107,19 @@ export function SituacaoFormModal({
         situacao: editData.situacao,
         dt_pagamento: editData.dt_pagamento || '',
       });
-    } else {
-      form.reset({
-        nr_proc_per: '',
-        situacao: '',
-        dt_pagamento: '',
-      });
+    } else if (open) {
+      const saved = restore();
+      if (saved) {
+        form.reset(saved);
+      } else {
+        form.reset({
+          nr_proc_per: '',
+          situacao: '',
+          dt_pagamento: '',
+        });
+      }
     }
-  }, [editData, form]);
+  }, [editData, form, open]);
 
   const createMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
@@ -127,6 +137,7 @@ export function SituacaoFormModal({
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
       toast.success('Situação registrada com sucesso!');
+      clear();
       onOpenChange(false);
 
       if (result) {
@@ -161,6 +172,7 @@ export function SituacaoFormModal({
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
       toast.success('Situação atualizada com sucesso!');
+      clear();
       onOpenChange(false);
 
       if (result) {
@@ -255,7 +267,7 @@ export function SituacaoFormModal({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>
