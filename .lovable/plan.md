@@ -1,59 +1,49 @@
 
 
-# Corrigir Chevron de Subtarefas no Kanban Fiscal
+# Tornar campo Projeto obrigatório no TaskModal fiscal
 
-## Problema
+## Mudanças em `src/components/equipe/fiscal/tasks/TaskModal.tsx`
 
-O botão chevron para expandir subtarefas usa `position: absolute` dentro do mesmo `div` do `TaskCard`, ficando escondido atrás do card renderizado.
-
-## Solução
-
-Reestruturar o wrapper de cada tarefa pai no `TaskKanban.tsx` (linhas 106-136): mover o chevron para FORA do div draggable, criando um layout flex horizontal onde o chevron fica à esquerda e o TaskCard ocupa o espaço restante.
-
-## Arquivo: `src/components/equipe/fiscal/tasks/TaskKanban.tsx`
-
-Substituir o bloco atual (linhas 106-136) por:
-
+### 1. Schema zod (linha 66)
 ```tsx
-{columnTasks.map(task => (
-  <div key={task.id}>
-    <div className="flex items-start gap-1">
-      {task.subtaskCount > 0 ? (
-        <button
-          onClick={(e) => toggleTaskExpanded(task.id, e)}
-          className="mt-3 p-0.5 hover:bg-gray-100 rounded flex-shrink-0"
-        >
-          {expandedTasks.has(task.id) ? (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-gray-500" />
-          )}
-        </button>
-      ) : (
-        <div className="w-5 flex-shrink-0" />
-      )}
-      <div
-        className={cn(
-          "flex-1 min-w-0 cursor-grab active:cursor-grabbing",
-          draggedTask?.id === task.id && "opacity-50"
-        )}
-        draggable
-        onDragStart={(e) => handleDragStart(e, task)}
-        onDragEnd={handleDragEnd}
-      >
-        <TaskCard
-          task={task}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onReassign={onReassign}
-          allTasks={tasks}
-          compact
-        />
-      </div>
-    </div>
+// DE:
+project_id: z.string().optional(),
+// PARA:
+project_id: z.string().min(1, 'Projeto é obrigatório'),
 ```
 
-O restante do componente (subtarefas expandidas, empty state) permanece inalterado.
+### 2. Select onChange — trocar undefined por string vazia (linha 330)
+```tsx
+// DE:
+onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+// PARA:
+onValueChange={(v) => field.onChange(v === '_none' ? '' : v)}
+```
 
-**1 arquivo modificado.**
+### 3. Default values nos form.reset — garantir `project_id: ''` em vez de `undefined`
+
+No reset de nova tarefa (linha ~252):
+```tsx
+project_id: parentTask?.project_id || '',
+```
+
+No reset ao editar (linha ~231):
+```tsx
+project_id: task.project_id || '',
+```
+
+No draft restore (mantém o valor do draft, que já será string).
+
+### 4. Label com asterisco (linha 328)
+```tsx
+// DE:
+<FormLabel>Projeto</FormLabel>
+// PARA:
+<FormLabel>Projeto <span className="text-red-500">*</span></FormLabel>
+```
+
+### 5. FormMessage já existe (linha 345)
+O `<FormMessage />` já está no JSX abaixo do Select de Projeto — a mensagem de erro do zod será exibida automaticamente.
+
+**Total: 4 pontos de edição no mesmo arquivo.**
 
