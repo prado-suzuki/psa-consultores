@@ -1003,12 +1003,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                   </section>
                 </TabsContent>
 
-                <TabsContent value="contribuintes" className="mt-0 p-4 md:p-6">
+                <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-base font-bold text-foreground">Contribuintes ({entities.length})</h3>
+                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-sm font-bold text-foreground">Contribuintes ({entities.length})</h3>
                     </div>
-                    <div className="p-4">
+                    <div className="px-4 py-3">
                       {entities.length > 0 && (
                         <div className="space-y-3 mb-4">
                           {entities.map(ent => {
@@ -1081,91 +1081,110 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 {/* Inline edit mode */}
                                 {isExpanded && isEditingThis && ed && (
                                   <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-12 md:col-span-3">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                                        <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}>
-                                          <SelectTrigger><SelectValue /></SelectTrigger>
-                                          <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="col-span-12 md:col-span-9">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
-                                        <div className="relative">
-                                          <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ') })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8" />
-                                          {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                                    <div className="flex flex-col gap-2.5">
+                                      {/* Tipo + CPF/CNPJ */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
+                                          <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}>
+                                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                            <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ</Label>
+                                          <div className="relative flex-1">
+                                            <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ') })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8 h-8" />
+                                            {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                                          </div>
                                         </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
-                                        <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium" />
+                                      {/* Razão Social + Nome Fantasia */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Razão Social *</Label>
+                                          <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="flex-1 font-medium h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
+                                          <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} disabled={ed.tipo_pessoa === 'PF'} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
-                                        <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} disabled={ed.tipo_pessoa === 'PF'} />
+                                      {/* IE */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual</Label>
+                                          <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
+                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          {ed.situacao_inscricao_estadual === 'sim' && (
+                                            <>
+                                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE</Label>
+                                              <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} className="flex-1 h-8" />
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual</Label>
-                                        <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
-                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        {ed.situacao_inscricao_estadual === 'sim' && (
-                                          <>
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº IE</Label>
-                                            <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} />
-                                          </>
-                                        )}
-                                      </div>
+                                      {/* CNAE + Simples */}
                                       {ed.tipo_pessoa === 'PJ' && (
-                                        <>
-                                          <div className="col-span-12 md:col-span-6">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
-                                            <Input value={ed.cod_cnae || ''} onChange={e => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} />
+                                        <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                            <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CNAE</Label>
+                                            <Input value={ed.cod_cnae || ''} onChange={e => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} className="flex-1 h-8" />
                                           </div>
-                                          <div className="col-span-12 md:col-span-6">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
-                                            <div className="flex items-center gap-2 h-10">
+                                          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                            <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional</Label>
+                                            <div className="flex items-center gap-2 h-8">
                                               <Checkbox checked={ed.simples_nacional || false} onCheckedChange={c => setEditingEntityData({ ...ed, simples_nacional: !!c })} />
                                               <span className="text-sm">Optante</span>
                                             </div>
                                           </div>
-                                        </>
+                                        </div>
                                       )}
-                                      <div className="col-span-12 md:col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
-                                        <div className="relative">
-                                          <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
-                                          {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                                      {/* CEP + Logradouro */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                                          <div className="relative flex-1">
+                                            <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8 h-8" />
+                                            {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                                          </div>
+                                        </div>
+                                        <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro</Label>
+                                          <Input value={ed.logradouro || ''} onChange={e => setEditingEntityData({ ...ed, logradouro: e.target.value })} className="flex-1 h-8" />
                                         </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-8">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro</Label>
-                                        <Input value={ed.logradouro || ''} onChange={e => setEditingEntityData({ ...ed, logradouro: e.target.value })} />
+                                      {/* Número + Complemento */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
+                                          <Input value={ed.numero || ''} onChange={e => setEditingEntityData({ ...ed, numero: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
+                                          <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-3">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
-                                        <Input value={ed.numero || ''} onChange={e => setEditingEntityData({ ...ed, numero: e.target.value })} />
+                                      {/* Bairro + Município + UF */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Bairro</Label>
+                                          <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Município</Label>
+                                          <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="md:w-28 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-10 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
+                                          <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-9">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
-                                        <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro</Label>
-                                        <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-5">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
-                                        <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-3">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
-                                        <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} />
-                                      </div>
-                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
@@ -1204,74 +1223,80 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             </Button>
                           )}
                         </div>
-                        <div className="grid grid-cols-12 gap-3">
+                        <div className="flex flex-col gap-2.5">
                           {/* 1. Tipo + CPF/CNPJ */}
-                          <div className="col-span-12 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                            <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="PJ">PJ</SelectItem>
-                                <SelectItem value="PF">PF</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-12 md:col-span-9">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ *</Label>
-                            <div className="relative">
-                              <Input
-                                value={draftEntity.cpf_cnpj || ''}
-                                onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ') })}
-                                onBlur={e => handleCnpjBlur(e.target.value)}
-                                placeholder={draftEntity.tipo_pessoa === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
-                                className="font-mono pr-8"
-                              />
-                              {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
+                              <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}>
+                                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="PJ">PJ</SelectItem>
+                                  <SelectItem value="PF">PF</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ *</Label>
+                              <div className="relative flex-1">
+                                <Input
+                                  value={draftEntity.cpf_cnpj || ''}
+                                  onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ') })}
+                                  onBlur={e => handleCnpjBlur(e.target.value)}
+                                  placeholder={draftEntity.tipo_pessoa === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+                                  className="font-mono pr-8 h-8"
+                                />
+                                {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                              </div>
                             </div>
                           </div>
 
                           {/* 2. Razão Social + Nome Fantasia */}
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
-                            <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
-                            <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" disabled={draftEntity.tipo_pessoa === 'PF'} />
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Razão Social *</Label>
+                              <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="flex-1 font-medium h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
+                              <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" disabled={draftEntity.tipo_pessoa === 'PF'} className="flex-1 h-8" />
+                            </div>
                           </div>
 
                           {/* 3. Inscrição Estadual */}
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
-                            <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
-                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                <SelectItem value="sim">Sim</SelectItem>
-                                <SelectItem value="isento">Isento</SelectItem>
-                                <SelectItem value="nao">Não</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            {draftEntity.situacao_inscricao_estadual === 'sim' && (
-                              <>
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº Inscrição Estadual *</Label>
-                                <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" />
-                              </>
-                            )}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual *</Label>
+                              <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
+                                <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  <SelectItem value="sim">Sim</SelectItem>
+                                  <SelectItem value="isento">Isento</SelectItem>
+                                  <SelectItem value="nao">Não</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              {draftEntity.situacao_inscricao_estadual === 'sim' && (
+                                <>
+                                  <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE *</Label>
+                                  <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" className="flex-1 h-8" />
+                                </>
+                              )}
+                            </div>
                           </div>
 
                           {/* 4. CNAE + Simples */}
                           {draftEntity.tipo_pessoa === 'PJ' && (
-                            <>
-                              <div className="col-span-12 md:col-span-6">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE *</Label>
-                                <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
+                            <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                              <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CNAE *</Label>
+                                <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" className="flex-1 h-8" />
                               </div>
-                              <div className="col-span-12 md:col-span-6">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
-                                <div className="flex items-center gap-2 h-10">
+                              <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional</Label>
+                                <div className="flex items-center gap-2 h-8">
                                   <Checkbox
                                     checked={draftEntity.simples_nacional || false}
                                     onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
@@ -1279,52 +1304,58 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                   <span className="text-sm">Optante</span>
                                 </div>
                               </div>
-                            </>
+                            </div>
                           )}
 
-                          {/* 5. CEP */}
-                          <div className="col-span-12 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
-                            <div className="relative">
-                              <Input
-                                value={draftEntity.cep || ''}
-                                onChange={e => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })}
-                                onBlur={e => handleCepBlur(e.target.value)}
-                                placeholder="00000-000"
-                                className="font-mono pr-8"
-                              />
-                              {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                          {/* 5. CEP + Logradouro */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                              <div className="relative flex-1">
+                                <Input
+                                  value={draftEntity.cep || ''}
+                                  onChange={e => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })}
+                                  onBlur={e => handleCepBlur(e.target.value)}
+                                  placeholder="00000-000"
+                                  className="font-mono pr-8 h-8"
+                                />
+                                {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                              </div>
+                            </div>
+                            <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro *</Label>
+                              <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." className="flex-1 h-8" />
                             </div>
                           </div>
 
-                          {/* 6. Logradouro + Número + Complemento */}
-                          <div className="col-span-12 md:col-span-8">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro *</Label>
-                            <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
-                          </div>
-                          <div className="col-span-12 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
-                            <Input value={draftEntity.numero || ''} onChange={e => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" />
-                          </div>
-                          <div className="col-span-12 md:col-span-9">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
-                            <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." />
+                          {/* 6. Número + Complemento */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
+                              <Input value={draftEntity.numero || ''} onChange={e => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-[2] flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
+                              <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." className="flex-1 h-8" />
+                            </div>
                           </div>
 
                           {/* 7. Bairro + Município + UF */}
-                          <div className="col-span-12 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro *</Label>
-                            <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
+                              <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
+                              <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="flex-1 h-8" />
+                            </div>
+                            <div className="md:w-28 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-10 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
+                              <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="flex-1 h-8" />
+                            </div>
                           </div>
-                          <div className="col-span-12 md:col-span-5">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
-                            <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-3">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
-                            <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
-                          </div>
-                          <div className="col-span-12 flex justify-end mt-2">
+                          <div className="flex justify-end mt-2">
                             <Button onClick={addEntity} className="gap-2">
                               Adicionar à Lista
                             </Button>
@@ -1336,12 +1367,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                   </section>
                 </TabsContent>
 
-                <TabsContent value="participantes" className="mt-0 p-4 md:p-6">
+                <TabsContent value="participantes" className="mt-0 p-3 md:p-4">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-base font-bold text-foreground">Participantes ({participants.length})</h3>
+                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-sm font-bold text-foreground">Participantes ({participants.length})</h3>
                     </div>
-                    <div className="p-4">
+                    <div className="px-4 py-3">
                       {participants.length > 0 && (
                         <div className="space-y-3 mb-4">
                           {participants.map(part => {
@@ -1403,47 +1434,57 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                                 {isExpanded && isEditingThis && ep && (
                                   <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome *</Label>
-                                        <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
-                                        <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
-                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
-                                        <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
-                                        <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
-                                        <div className="flex items-center gap-2 h-10">
-                                          <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
-                                          <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                                    <div className="flex flex-col gap-2.5">
+                                      {/* Nome + Tipo */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nome *</Label>
+                                          <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Tipo *</Label>
+                                          <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
+                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">Selecione...</SelectItem>
+                                              {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
                                         </div>
                                       </div>
-                                      <div className="col-span-12">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
-                                        <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="min-h-[60px]" />
+                                      {/* Cargo + Email */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Cargo</Label>
+                                          <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Email *</Label>
+                                          <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                      {/* Telefone + Acesso */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
+                                          <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
+                                          <div className="flex items-center gap-2 h-8">
+                                            <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
+                                            <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {/* Observações */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                                        <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Observações</Label>
+                                        <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="flex-1 min-h-[60px]" />
+                                      </div>
+                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
@@ -1475,52 +1516,62 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Participante
                         </h4>
-                        <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
-                            <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
-                            <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
-                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
-                            <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
-                            <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
-                            <div className="flex items-center gap-2 h-10">
-                              <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
-                              <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                        <div className="flex flex-col gap-2.5">
+                          {/* Nome + Tipo */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nome *</Label>
+                              <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="flex-1 font-medium h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Tipo *</Label>
+                              <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
+                                <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
-                          <div className="col-span-12">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
+                          {/* Cargo + Email */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Cargo</Label>
+                              <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Email *</Label>
+                              <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} className="flex-1 h-8" />
+                            </div>
+                          </div>
+                          {/* Telefone + Acesso */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
+                              <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
+                              <div className="flex items-center gap-2 h-8">
+                                <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
+                                <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Observações */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                            <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Observações</Label>
                             <Textarea
                               value={draftParticipant.observacoes}
                               onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
                               placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
-                              className="min-h-[60px]"
+                              className="flex-1 min-h-[60px]"
                             />
                           </div>
-                          <div className="col-span-12 flex justify-end mt-2">
+                          <div className="flex justify-end mt-2">
                             <Button onClick={addParticipant} className="gap-2">
                               Adicionar à Lista
                             </Button>
@@ -1532,12 +1583,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                   </section>
                 </TabsContent>
 
-                <TabsContent value="contratos" className="mt-0 p-4 md:p-6">
+                <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-base font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
+                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-sm font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
                     </div>
-                    <div className="p-4">
+                    <div className="px-4 py-3">
                       {contracts.length > 0 && (
                         <div className="space-y-3 mb-6">
                           {contracts.map(cont => {
@@ -1602,57 +1653,72 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                                 {isExpanded && isEditingThis && ec && (
                                   <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">OS *</Label>
-                                        <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} />
+                                    <div className="flex flex-col gap-2.5">
+                                      {/* OS + Data Emissão */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">OS *</Label>
+                                          <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
+                                          <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
-                                        <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} />
+                                      {/* Gestor + Projeto */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Gestor *</Label>
+                                          <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
+                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">Selecione...</SelectItem>
+                                              {lideres.map(l => (
+                                                <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Projeto *</Label>
+                                          <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
-                                        <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
-                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {lideres.map(l => (
-                                              <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                      {/* Descrição */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                                        <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Descrição</Label>
+                                        <div className="flex-1">
+                                          <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
+                                          <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
-                                        <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} />
+                                      {/* Data Início + Data Fim */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
+                                          <Input type="date" value={ec.data_inicio_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_inicio_projeto: e.target.value })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
+                                          <Input type="date" value={ec.data_fim_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_fim_projeto: e.target.value })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição</Label>
-                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
-                                        <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
+                                      {/* Valor + Reembolsos */}
+                                      <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
+                                          <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. km</Label>
+                                          <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} className="flex-1 h-8" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                          <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. refeição</Label>
+                                          <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} className="flex-1 h-8" />
+                                        </div>
                                       </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
-                                        <Input type="date" value={ec.data_inicio_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_inicio_projeto: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
-                                        <Input type="date" value={ec.data_fim_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_fim_projeto: e.target.value })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor (R$) *</Label>
-                                        <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso km (R$)</Label>
-                                        <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} />
-                                      </div>
-                                      <div className="col-span-12 md:col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
-                                        <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} />
-                                      </div>
-                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
@@ -1682,61 +1748,76 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                       {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
-                        <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número da OS *</Label>
-                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" />
+                        <div className="flex flex-col gap-2.5">
+                          {/* OS + Data Emissão */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Nº OS *</Label>
+                              <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
+                              <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} className="flex-1 h-8" />
+                            </div>
                           </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
-                            <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
+                          {/* Gestor + Projeto */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Gestor *</Label>
+                              <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
+                                <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {lideres.map(l => (
+                                    <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Projeto *</Label>
+                              <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} className="flex-1 h-8" />
+                            </div>
                           </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
-                            <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
-                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {lideres.map(l => (
-                                  <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          {/* Descrição */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                            <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Descrição</Label>
+                            <div className="flex-1">
+                              <Textarea
+                                value={draftContract.descricao_projeto}
+                                onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
+                                placeholder="Mín. 20 caracteres se preenchido..."
+                                className="min-h-[60px]"
+                                maxLength={500}
+                              />
+                              <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
+                            </div>
                           </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
-                            <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
+                          {/* Data Início + Data Fim */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
+                              <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
+                              <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} className="flex-1 h-8" />
+                            </div>
                           </div>
-                          <div className="col-span-12">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição do Projeto</Label>
-                            <Textarea
-                              value={draftContract.descricao_projeto}
-                              onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
-                              placeholder="Mín. 20 caracteres se preenchido..."
-                              className="min-h-[80px]"
-                              maxLength={500}
-                            />
-                            <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
-                            <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
-                            <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
-                            <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso por km (R$)</Label>
-                            <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} />
-                          </div>
-                          <div className="col-span-12 md:col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
-                            <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} />
+                          {/* Valor + Reembolsos */}
+                          <div className="flex flex-col md:flex-row md:items-start gap-2.5">
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
+                              <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. km</Label>
+                              <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="flex-1 h-8" />
+                            </div>
+                            <div className="flex-1 flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                              <Label className="w-full md:w-36 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. refeição</Label>
+                              <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="flex-1 h-8" />
+                            </div>
                           </div>
                         </div>
 
