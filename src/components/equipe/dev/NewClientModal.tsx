@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { isProductionEnvironment } from '@/config/api';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -909,9 +910,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); startEditEntity(ent); }}>
                                         <Pencil size={12} /> Editar
                                       </Button>
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setEntities(entities.filter(x => x._id !== ent._id)); setExpandedEntityId(null); }}>
-                                        <Trash2 size={12} /> Remover
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                                            <Trash2 size={12} /> Remover
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
+                                            <AlertDialogDescription>Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setEntities(entities.filter(x => x._id !== ent._id)); setExpandedEntityId(null); }}>Remover</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                                       <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
@@ -1021,7 +1036,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
-                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}><Save size={14} /> Salvar</Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                              <AlertDialogDescription>Deseja salvar as alterações feitas neste contribuinte?</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}>Salvar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
                                       </div>
                                     </div>
                                   </div>
@@ -1200,9 +1229,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditParticipant(part)}>
                                         <Pencil size={12} /> Editar
                                       </Button>
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setParticipants(participants.filter(p => p._id !== part._id)); setExpandedParticipantId(null); }}>
-                                        <Trash2 size={12} /> Remover
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                                            <Trash2 size={12} /> Remover
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Remover participante</AlertDialogTitle>
+                                            <AlertDialogDescription>Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setParticipants(participants.filter(p => p._id !== part._id)); setExpandedParticipantId(null); }}>Remover</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                       <FieldPair label="Nome" value={part.nome} />
@@ -1239,7 +1282,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
-                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}><Save size={14} /> Salvar</Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                              <AlertDialogDescription>Deseja salvar as alterações feitas neste participante?</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Salvar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
                                       </div>
                                     </div>
                                   </div>
@@ -1328,9 +1385,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}>
                                         <Pencil size={12} /> Editar
                                       </Button>
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setContracts(contracts.filter(c => c._id !== cont._id)); setExpandedContractId(null); }}>
-                                        <Trash2 size={12} /> Remover
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                                            <Trash2 size={12} /> Remover
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Remover OS</AlertDialogTitle>
+                                            <AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico} - {cont.nome_projeto}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setContracts(contracts.filter(c => c._id !== cont._id)); setExpandedContractId(null); }}>Remover</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                                       <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
@@ -1398,7 +1469,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
-                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}><Save size={14} /> Salvar</Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                              <AlertDialogDescription>Deseja salvar as alterações feitas nesta OS?</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Salvar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
                                       </div>
                                     </div>
                                   </div>
