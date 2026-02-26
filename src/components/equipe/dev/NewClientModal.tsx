@@ -855,27 +855,31 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
               </div>
 
               <ScrollArea className="flex-1">
-                <TabsContent value="cliente" className="mt-0 p-4 md:p-6">
+                <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-base font-bold text-foreground">Dados do Cliente/Grupo</h3>
+                    <div className="px-4 py-2 bg-muted/50 border-b">
+                      <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="p-4 grid grid-cols-12 gap-4">
-                      <div className="col-span-12">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
+                    <div className="px-4 py-3 flex flex-col gap-2.5">
+
+                      {/* 1. Nome */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome do Cliente / Grupo *</Label>
                         <Input
                           autoFocus={!isReadOnly}
                           disabled={isReadOnly}
                           value={clientData.nome}
                           onChange={e => setClientData({ ...clientData, nome: e.target.value })}
                           placeholder="Ex: Grupo Empresarial Silva"
-                          className="text-base font-bold"
+                          className="flex-1 h-8"
                         />
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
+
+                      {/* 2. Categoria */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Categoria</Label>
                         <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-8"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Bronze">Bronze</SelectItem>
                             <SelectItem value="Prata">Prata</SelectItem>
@@ -884,34 +888,40 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
-                        <div className="flex items-center gap-2 h-10">
+
+                      {/* 3. Status */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Status</Label>
+                        <div className="flex items-center gap-2">
                           <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
-                          <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+                          <span className="text-xs font-medium">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de relacionamento</Label>
-                        <div className="flex bg-muted p-1 rounded-lg">
+
+                      {/* 4. Tipo de Relacionamento */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de relacionamento</Label>
+                        <div className="flex border rounded-md overflow-hidden">
                           <button
                             type="button"
                             disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
+                            className={`px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === 'Sim' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
                           >Fixo</button>
                           <button
                             type="button"
                             disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
+                            className={`px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === 'Não' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
                           >Pontual</button>
                         </div>
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
+
+                      {/* 5. Área do Negócio */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Área do negócio *</Label>
                         <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
                             <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
@@ -924,31 +934,39 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
-                        <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+
+                      {/* 6. Tipo de produto/segmento */}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de produto/segmento *</Label>
+                          <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
+                            <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                         {clientData.tipo_produto_segmento === '__outro__' && (
+                          <div className="md:ml-[12.75rem] md:pl-3">
                             <Input
                               disabled={isReadOnly}
-                              className="mt-2"
-                            value={clientData.tipo_produto_segmento_custom}
-                            onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
-                            placeholder="Nome do novo produto/segmento"
-                          />
+                              className="h-8"
+                              value={clientData.tipo_produto_segmento_custom}
+                              onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
+                              placeholder="Nome do novo produto/segmento"
+                            />
+                          </div>
                         )}
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
+
+                      {/* 7. Região */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Região *</Label>
                         <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
                             <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
@@ -961,10 +979,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12 md:col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Empresa / Faturamento *</Label>
+
+                      {/* 8. Empresa / Faturamento */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Empresa / Faturamento *</Label>
                         <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
                             <SelectItem value="PRADO ADVOGADOS">PRADO ADVOGADOS</SelectItem>
@@ -978,6 +998,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
+
                     </div>
                   </section>
                 </TabsContent>
