@@ -1,85 +1,83 @@
 
 
-# Correcoes de Layout, Limpeza de Codigo e Responsividade
+# Refatoracao da Aba "Dados do Cliente/Grupo" para High-Density UI
 
-## Resumo
-Corrigir 4 problemas de UI/UX identificados na validacao de layout: grid quebrado nos filtros, estados ociosos no codigo, feedback visual no botao de busca, e responsividade mobile no modal.
+## Objetivo
+Eliminar scroll vertical convertendo o layout de grid 12-colunas para uma Property List de alta densidade, onde cada campo ocupa uma unica linha horizontal com label fixa + controle flexivel.
 
----
+## Estrutura de uma linha-padrao
 
-## 1. Corrigir Grid dos Filtros (GestaoClientes.tsx)
+Cada campo seguira este padrao de classes Tailwind:
 
-A soma atual das colunas no desktop e 3+5+2+2+2 = 14 (excede 12). Redistribuir para somar exatamente 12:
+```text
+<div className="flex flex-row items-center gap-3">
+  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Label</Label>
+  <div className="flex-1">
+    <Input className="h-8" />   (ou Select, Switch, ToggleGroup)
+  </div>
+</div>
+```
 
-- Cliente: `md:col-span-3` (mantido)
-- Contribuinte: `md:col-span-3` (era 5)
-- Status: `md:col-span-2` (mantido)
-- Tipo: `md:col-span-2` (mantido)
-- Categoria: `md:col-span-2` (mantido)
+- Label: `w-48 shrink-0 text-xs font-semibold` -- largura fixa, nao quebra linha
+- Controle: `flex-1` com altura `h-8`
+- Linha: `flex items-center gap-3`
 
-Total: 3+3+2+2+2 = 12
+## Alteracoes detalhadas
 
----
+### Container principal (linha 863)
+- **De:** `<div className="p-4 grid grid-cols-12 gap-4">`
+- **Para:** `<div className="px-4 py-3 flex flex-col gap-2">`
 
-## 2. Remover Estados Ociosos (GestaoClientes.tsx)
+### Header do card (linha 860)
+- Reduzir padding: `px-4 py-2` (era `py-2.5`)
 
-Remover completamente:
-- Declaracoes: `const [tipoPessoa, setTipoPessoa]` e `const [cpfCnpj, setCpfCnpj]`
-- Referencias em `hasActiveFilters`: remover `|| tipoPessoa || cpfCnpj`
-- Referencia em `hasContribuinteFilters`: remover `|| tipoPessoa || cpfCnpj` (ficara apenas `nomeRazaoSocial`)
-- Na queryKey da query principal: remover `tipoPessoa, cpfCnpj`
-- Na query de contribuinte dentro da query principal: remover as linhas `if (tipoPessoa)` e `if (cpfCnpj)`
-- No `handleClear`: remover `setTipoPessoa('')` e `setCpfCnpj('')`
+### TabsContent (linha 858)
+- Reduzir padding: `p-3 md:p-4` (era `p-4 md:p-6`)
 
----
+### Campo 1 -- Nome do Cliente/Grupo (linha 864-874)
+- Remover `col-span-12`, converter para linha flex
+- Input: adicionar `h-8`, remover `text-base font-bold`
+- Label inline (nao mais block)
 
-## 3. Feedback Visual no Botao Buscar (GestaoClientes.tsx)
+### Campo 2 -- Categoria (linhas 875-886)
+- Remover wrapper `col-span-12 md:col-span-6`, converter para linha flex
+- SelectTrigger: adicionar `h-8`
 
-- Importar `Loader2` do lucide-react
-- No botao "Buscar": adicionar `disabled={isLoading}` e trocar o icone condicionalmente:
-  - Se `isLoading`: mostrar `<Loader2 className="h-4 w-4 animate-spin" />` no lugar do `<Search />`
-  - Texto muda para "Buscando..." durante o loading
+### Campo 3 -- Status (linhas 887-893)
+- Converter para linha flex: Label w-48 + Switch inline
+- Remover div intermediario `h-10`
 
----
+### Campo 4 -- Tipo de Relacionamento (linhas 894-910)
+- Remover wrapper `col-span-12 md:col-span-6`
+- Converter o seletor Fixo/Pontual de botoes com `bg-muted p-1 rounded-lg` para um `ToggleGroup` do Radix (ja disponivel no projeto) com variante `outline`, tamanho `sm`
+- Fica na mesma linha que a label
 
-## 4. Responsividade Mobile no Modal (NewClientModal.tsx)
+### Campo 5 -- Area do Negocio (linhas 911-926)
+- Linha flex com SelectTrigger `h-8`
 
-Aplicar abordagem mobile-first em todos os grids internos das 4 abas. A regra: todo `col-span-X` fixo (onde X < 12) deve virar `col-span-12 md:col-span-X`.
+### Campo 6 -- Tipo de Produto/Segmento (linhas 927-947)
+- Linha flex com SelectTrigger `h-8`
+- Campo condicional "Outro": renderizado como sub-linha com `ml-48 pl-3` para manter recuo da label, Input `h-8`
 
-### Aba Cliente (linhas 863-981)
-Campos que usam `col-span-6` passam para `col-span-12 md:col-span-6`.
+### Campo 7 -- Regiao (linhas 948-963)
+- Linha flex com SelectTrigger `h-8`
 
-### Aba Contribuintes -- Inline edit (linhas 1063-1165)
-- `col-span-3` vira `col-span-12 md:col-span-3`
-- `col-span-9` vira `col-span-12 md:col-span-9`
-- `col-span-6` vira `col-span-12 md:col-span-6`
-- `col-span-4` vira `col-span-12 md:col-span-4`
-- `col-span-8` vira `col-span-12 md:col-span-8`
-- `col-span-5` vira `col-span-12 md:col-span-5`
+### Campo 8 -- Empresa/Faturamento (linhas 964-980)
+- Linha flex com SelectTrigger `h-8`
 
-### Aba Contribuintes -- Draft (linhas 1186-1311)
-Mesma logica: todos os `col-span-X` (onde X < 12) recebem `col-span-12` como default mobile.
+## Viabilidade
 
-### Aba Participantes -- Inline edit (linhas 1385-1443)
-`col-span-6` vira `col-span-12 md:col-span-6`.
+Sao 8 campos (9 com o condicional "Outro"). Com linhas de ~36px (h-8 + gap-2), o total vertical e aproximadamente 8 x 36 = 288px, mais header (~40px) e paddings (~24px) = **~352px**. O modal tem altura util de ~500-550px, entao todos os campos cabem confortavelmente sem scroll.
 
-### Aba Participantes -- Draft (linhas 1457-1506)
-`col-span-6` vira `col-span-12 md:col-span-6`.
+## Responsividade mobile
 
-### Aba Contratos -- Inline edit (linhas 1584-1651)
-- `col-span-6` vira `col-span-12 md:col-span-6`
-- `col-span-4` vira `col-span-12 md:col-span-4`
+No mobile, as linhas flex mudam para empilhamento vertical:
+- Cada linha recebe `flex-col md:flex-row`
+- Labels perdem `w-48` no mobile: `w-full md:w-48`
 
-### Aba Contratos -- Draft (linhas 1664-1725)
-- `col-span-6` vira `col-span-12 md:col-span-6`
-- `col-span-4` vira `col-span-12 md:col-span-4`
+## Arquivo alterado
 
----
-
-## Resumo de alteracoes
-
-| Arquivo | O que muda |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `GestaoClientes.tsx` | Grid 12 cols corrigido, estados ociosos removidos, botao Buscar com loading |
-| `NewClientModal.tsx` | Todos os col-span internos adaptados para mobile-first |
+| `src/components/equipe/dev/NewClientModal.tsx` | Linhas 858-982: refatoracao completa da aba Cliente para layout Property List |
 
