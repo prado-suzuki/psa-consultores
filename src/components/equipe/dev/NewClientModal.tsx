@@ -1811,13 +1811,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </div>
                                         </div>
                                       </div>
-                                      {/* Valor */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
-                                        <div className="flex-1">
-                                          <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} className="h-8 max-w-[200px]" />
-                                        </div>
-                                      </div>
                                       {/* Reembolsos (lado a lado) */}
                                       <div className="flex flex-row items-center gap-6">
                                         <div className="flex flex-row items-center gap-4 flex-1">
@@ -1831,6 +1824,13 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           <div className="flex-1">
                                             <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
                                           </div>
+                                        </div>
+                                      </div>
+                                      {/* Valor */}
+                                      <div className="flex flex-row items-center gap-4">
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
+                                        <div className="flex-1">
+                                          <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} className="h-8" />
                                         </div>
                                       </div>
                                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
@@ -1959,13 +1959,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </div>
                             </div>
                           </div>
-                          {/* Valor */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
-                            <div className="flex-1">
-                              <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="h-8 max-w-[200px]" />
-                            </div>
-                          </div>
                           {/* Reembolsos (lado a lado) */}
                           <div className="flex flex-row items-center gap-6">
                             <div className="flex flex-row items-center gap-4 flex-1">
@@ -1979,6 +1972,13 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               <div className="flex-1">
                                 <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
                               </div>
+                            </div>
+                          </div>
+                          {/* Valor */}
+                          <div className="flex flex-row items-center gap-4">
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
+                            <div className="flex-1">
+                              <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="h-8" />
                             </div>
                           </div>
                         </div>
