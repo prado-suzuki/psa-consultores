@@ -114,6 +114,38 @@ interface DraftContract {
   gestor_responsavel: string;
 }
 
+// --- Mask utilities ---
+const formatCpfCnpj = (value: string, tipo: string): string => {
+  const digits = value.replace(/\D/g, '');
+  if (tipo === 'PF') {
+    const d = digits.slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  }
+  const d = digits.slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+};
+
+const formatCep = (value: string): string => {
+  const d = value.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+};
+
+const formatPhone = (value: string): string => {
+  const d = value.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
   const environment = isProductionEnvironment ? 'production' : 'development';
@@ -270,6 +302,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       initialSnapshotRef.current = null;
     }
   }, [open, loadingEdit]);
+
+  // Beforeunload protection
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
 
   // Draft persistence for new client mode
   const draftValues = useMemo(() => ({
@@ -1023,7 +1063,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     <div className="grid grid-cols-12 gap-3">
                                       <div className="col-span-3">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                                        <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v })}>
+                                        <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}>
                                           <SelectTrigger><SelectValue /></SelectTrigger>
                                           <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
                                         </Select>
@@ -1031,7 +1071,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <div className="col-span-9">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
                                         <div className="relative">
-                                          <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: e.target.value })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8" />
+                                          <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ') })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8" />
                                           {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                                         </div>
                                       </div>
@@ -1076,7 +1116,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <div className="col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
                                         <div className="relative">
-                                          <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: e.target.value })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
+                                          <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
                                           {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                                         </div>
                                       </div>
@@ -1147,7 +1187,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           {/* 1. Tipo + CPF/CNPJ */}
                           <div className="col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
-                            <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
+                            <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="PJ">PJ</SelectItem>
@@ -1160,7 +1200,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <div className="relative">
                               <Input
                                 value={draftEntity.cpf_cnpj || ''}
-                                onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })}
+                                onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ') })}
                                 onBlur={e => handleCnpjBlur(e.target.value)}
                                 placeholder={draftEntity.tipo_pessoa === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
                                 className="font-mono pr-8"
@@ -1227,7 +1267,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <div className="relative">
                               <Input
                                 value={draftEntity.cep || ''}
-                                onChange={e => setDraftEntity({ ...draftEntity, cep: e.target.value })}
+                                onChange={e => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })}
                                 onBlur={e => handleCepBlur(e.target.value)}
                                 placeholder="00000-000"
                                 className="font-mono pr-8"
@@ -1369,7 +1409,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: e.target.value })} />
+                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} />
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
@@ -1441,7 +1481,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </div>
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
-                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
+                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} />
                           </div>
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
@@ -1568,7 +1608,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-12">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição</Label>
-                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" />
+                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
+                                        <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
@@ -1652,7 +1693,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
                               placeholder="Mín. 20 caracteres se preenchido..."
                               className="min-h-[80px]"
+                              maxLength={500}
                             />
+                            <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
                           </div>
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
