@@ -1,103 +1,103 @@
 
 
-# Primeiro Acesso: Troca Obrigatoria de Senha com Barreira Global
+# Refatoracao do NewClientModal -- Novas Regras de Negocio e UX
 
-## Objetivo
-Garantir que usuarios criados pelo admin com senha provisoria sejam **obrigados** a trocar a senha antes de acessar qualquer parte do sistema -- mesmo que fechem a aba e voltem depois.
+## Visao Geral
+Refatorar o componente `NewClientModal.tsx` em 4 frentes: Aba Cliente, Aba Contribuintes, Aba Participantes e Fluxo de UX com prevencao de perda de dados.
 
-## Como funciona (visao geral)
+---
 
-1. Quando o admin cria um usuario, o sistema marca esse usuario com uma flag `must_change_password: true`.
-2. Em **toda navegacao autenticada**, o sistema verifica essa flag. Se estiver ativa, o usuario e redirecionado para a tela de "Definir Nova Senha".
-3. Nao ha como escapar: fechar a aba, recarregar a pagina ou acessar outra URL sempre traz o usuario de volta para a troca de senha.
-4. Apos trocar a senha, a flag e removida e o usuario pode acessar o sistema normalmente.
+## 1. Aba "Dados do Cliente/Grupo" -- Campo empresa_faturamento
 
-## Detalhes Tecnicos
+**Alteracoes:**
+- No `clientData` state (linha 194): substituir `equipe_responsavel` por `empresa_faturamento` (string, default vazio).
+- No `resetAndClose` (linha 667): atualizar o reset para usar `empresa_faturamento` em vez de `equipe_responsavel`.
+- No `handleSave` validacao (linha 559): trocar `equipe_responsavel` por `empresa_faturamento` com mensagem "Empresa / Faturamento e obrigatoria".
+- No JSX (linhas 848-870): substituir label "Equipe responsavel" por "Empresa / Faturamento *" e trocar os SelectItems para as 8 opcoes:
+  - PRADO ADVOGADOS, PRADO CONSULTORES, PRADO SUZUKI, PROFITTO, PROTENUN, PSA ADM JUDICIAL, PSA AUDITORES, PSA NORTE
+- No `loadData` (linha 262): mapear `empresa_faturamento` em vez de `equipe_responsavel`.
 
-### 1. Edge Function `create-team-member/index.ts`
-Adicionar `must_change_password: true` no `user_metadata` ao chamar `admin.createUser()`:
-```text
-user_metadata: {
-  first_name,
-  last_name,
-  must_change_password: true   // <-- novo
-}
-```
+---
 
-### 2. AuthContext -- barreira global (ponto central da solucao)
-Adicionar um novo campo `mustChangePassword` ao contexto de autenticacao (`src/contexts/AuthContext.tsx`):
-- Derivado de `user?.user_metadata?.must_change_password === true`.
-- Atualizado sempre que `user` muda (login, restauracao de sessao, refresh).
-- Exposto via `useAuth()` para uso em qualquer componente.
+## 2. Aba "Contribuintes"
 
-### 3. Componentes de rota protegida -- redirecionamento automatico
-Modificar os 3 guards existentes para incluir a verificacao:
+### 2a. Label Razao Social
+- Nas linhas 1097 e 969 (draft e inline edit): trocar label de "Razao Social *" para "Razao Social / Nome Completo *".
+- Na view expandida (linha 934): trocar label "Razao Social" para "Razao Social / Nome Completo".
 
-- **`ProtectedRoute.tsx`**: Se `mustChangePassword` for `true`, redireciona para `/primeiro-acesso` em vez de renderizar o conteudo.
-- **`TeamRoute.tsx`**: Mesma logica.
-- **`AdminRoute.tsx`**: Mesma logica.
-- **`GestaoAccessGate.tsx`**: Mesma logica.
+### 2b. Nome Fantasia bloqueado para PF
+- Draft (linha 1102): adicionar `disabled={draftEntity.tipo_pessoa === 'PF'}`.
+- Inline edit (linha 974): adicionar `disabled={ed.tipo_pessoa === 'PF'}`.
 
-Isso cobre **todas** as rotas autenticadas do sistema. Nao importa como o usuario chega (login, sessao restaurada, link direto) -- o guard sempre verificara a flag antes de permitir acesso.
+### 2c. Inscricao Estadual -- opcao "Nao" + bloqueio para PF
+- Draft (linhas 1108-1115): adicionar `<SelectItem value="nao">Nao</SelectItem>` e adicionar `disabled={draftEntity.tipo_pessoa === 'PF'}` no Select.
+- Inline edit (linhas 978-981): mesmo tratamento.
+- Ao selecionar "nao", limpar o campo inscricao_estadual (mesma logica do "isento").
 
-### 4. Nova pagina `/primeiro-acesso` (`src/pages/PrimeiroAcesso.tsx`)
-Tela dedicada e isolada para troca obrigatoria de senha:
-- Formulario com "Nova senha" + "Confirmar senha" (minimo 8 caracteres).
-- Sem navegacao para outras areas do sistema (sem header, sem sidebar, sem links).
-- Ao submeter:
-  1. Chama `supabase.auth.updateUser({ password, data: { must_change_password: false } })`.
-  2. Faz `signOut()` e redireciona para a tela de login.
-  3. Exibe mensagem de sucesso orientando o usuario a logar com a nova senha.
-- Se o usuario nao tiver a flag ativa (acesso direto por URL), redireciona para a area principal.
+### 2d. CEP obrigatorio
+- Label do CEP (linha 1148): adicionar asterisco "CEP *".
+- Validacao `addEntity` (antes da linha 392): adicionar `if (!draftEntity.cep?.trim()) { toast.error('CEP e obrigatorio'); return; }`.
+- Validacao `saveEditEntity`: adicionar mesma verificacao no inline edit.
+- Label do CEP no inline edit (linha 1007): adicionar asterisco.
 
-### 5. Rota no `App.tsx`
-Adicionar a rota publica (requer sessao mas nao passa pelo guard):
-```text
-<Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
-```
+### 2e. Botao "Copiar endereco do primeiro contribuinte"
+- No bloco "Novo Contribuinte" (apos o titulo na linha 1068, antes dos campos de endereco), adicionar um botao `variant="ghost"` visivel apenas quando `entities.length > 0`.
+- Ao clicar: verificar se `entities[0].cep` existe. Se nao, toast de aviso. Se sim, copiar cep, logradouro, numero, complemento, bairro, municipio, uf para `draftEntity`.
 
-### 6. Login pages -- redirecionamento imediato (complementar)
-Adicionar verificacao apos login bem-sucedido em:
-- **`EquipeAuth.tsx`**: Apos `signIn` com sucesso, verificar `session.user.user_metadata.must_change_password`. Se `true`, navegar para `/primeiro-acesso`.
-- **`Auth.tsx`**: Mesma verificacao no `useEffect` que redireciona apos login.
+---
 
-Isso garante que o usuario va direto para a troca de senha sem piscar na tela principal.
+## 3. Aba "Participantes"
 
-### Resumo dos arquivos alterados
+### 3a. Interface DraftParticipant
+- Adicionar `tipo_participante: string` e `acesso_chamados: boolean` a interface `DraftParticipant` (linha 81).
+- Atualizar o `draftParticipant` state inicial (linha 221) com `tipo_participante: ''` e `acesso_chamados: false`.
 
-| Arquivo | Tipo | O que muda |
-|---------|------|------------|
-| `supabase/functions/create-team-member/index.ts` | Edicao | Adiciona flag `must_change_password` no metadata |
-| `src/contexts/AuthContext.tsx` | Edicao | Expoe `mustChangePassword` no contexto |
-| `src/components/auth/ProtectedRoute.tsx` | Edicao | Redireciona para `/primeiro-acesso` se flag ativa |
-| `src/components/auth/TeamRoute.tsx` | Edicao | Idem |
-| `src/components/auth/AdminRoute.tsx` | Edicao | Idem |
-| `src/components/gestao/GestaoAccessGate.tsx` | Edicao | Idem |
-| `src/pages/PrimeiroAcesso.tsx` | **Novo** | Tela de troca obrigatoria de senha |
-| `src/App.tsx` | Edicao | Adiciona rota `/primeiro-acesso` |
-| `src/pages/equipe/EquipeAuth.tsx` | Edicao | Redireciona imediato apos login |
-| `src/pages/Auth.tsx` | Edicao | Redireciona imediato apos login |
+### 3b. Campo "Tipo de Participante *"
+- No JSX do draft (antes do campo Cargo, linha 1320): adicionar Select com opcoes: Socio/Proprietario, Contador, Advogado, Procurador, Representante Legal, Diretor/Gestor, Consultor Externo, Outros.
+- Validacao `addParticipant` (linha 416): adicionar verificacao de tipo_participante obrigatorio.
+- Cargo passa a ser opcional (remover asterisco da label e remover validacao de cargo obrigatorio na linha 418).
 
-### Fluxo de seguranca
+### 3c. Email obrigatorio
+- Label (linha 1325): adicionar asterisco "Email *".
+- Validacao `addParticipant` (linhas 420-423): tornar email obrigatorio (verificar preenchimento antes de validar formato).
 
-```text
-Usuario faz login com senha provisoria
-        |
-        v
-  Login OK --> user_metadata.must_change_password == true?
-        |                          |
-       Nao                        Sim
-        |                          |
-        v                          v
-  Acessa o sistema       Redireciona para /primeiro-acesso
-                                   |
-                          (fecha a aba e volta)
-                                   |
-                                   v
-                          Sessao restaurada --> ProtectedRoute/TeamRoute/AdminRoute
-                                   |
-                                   v
-                          must_change_password == true?
-                                   |
-                                  Sim --> /primeiro-acesso (sem escapatoria)
-```
+### 3d. Switch "Acesso a Chamados"
+- No JSX do draft (abaixo do campo Telefone): adicionar Switch com label "Acesso a Chamados", default false.
+- No inline edit: adicionar os mesmos campos (tipo_participante, acesso_chamados).
+- Na view expandida: exibir tipo_participante e acesso_chamados.
+
+---
+
+## 4. Fluxo de UX -- Prevencao de Perda de Dados
+
+### 4a. onInteractOutside
+- No `DialogContent` (linha 684): adicionar `onInteractOutside={(e) => e.preventDefault()}`.
+
+### 4b. Estado hasUnsavedChanges
+- Criar um estado `hasUnsavedChanges` derivado da comparacao entre os dados atuais e os dados iniciais (snapshot ao abrir o modal).
+- Armazenar um snapshot dos dados iniciais (`initialSnapshot`) via useRef ao carregar o modal.
+- Comparar `clientData`, `entities`, `participants`, `contracts` com o snapshot para determinar se houve alteracao.
+
+### 4c. AlertDialog de confirmacao ao fechar
+- Criar estado `showExitConfirm` (boolean).
+- Interceptar: botao X (linha 719), botao Cancelar (linha 1589), e `onOpenChange` do Dialog (linha 683).
+- Se `hasUnsavedChanges === true`, mostrar AlertDialog com mensagem "Voce tem dados nao salvos. Deseja sair sem salvar?" com botoes "Sair" e "Continuar Editando".
+- "Sair" chama `resetAndClose()`. "Continuar Editando" fecha apenas o alerta.
+
+---
+
+## Resumo de alteracoes
+
+| Area | O que muda |
+|------|-----------|
+| Interface `DraftParticipant` | Adiciona `tipo_participante` e `acesso_chamados` |
+| State `clientData` | `equipe_responsavel` vira `empresa_faturamento` |
+| State `draftParticipant` | Adiciona campos novos |
+| Validacoes | CEP obrigatorio, email obrigatorio, tipo_participante obrigatorio, empresa_faturamento obrigatoria |
+| JSX Aba Cliente | Novo Select com 8 empresas |
+| JSX Aba Contribuintes | Labels atualizadas, campos disabled para PF, opcao "Nao" na IE, botao copiar endereco |
+| JSX Aba Participantes | Select tipo_participante, Switch acesso_chamados, email obrigatorio |
+| Dialog wrapper | onInteractOutside, AlertDialog de confirmacao |
+
+Arquivo unico alterado: `src/components/equipe/dev/NewClientModal.tsx`
+
