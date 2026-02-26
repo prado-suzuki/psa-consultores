@@ -1,70 +1,85 @@
 
 
-# Melhorias de UX e Mascaras no NewClientModal (com correcao de edge case)
+# Correcoes de Layout, Limpeza de Codigo e Responsividade
 
 ## Resumo
-Adicionar 4 blocos de melhorias ao componente: protecao contra refresh do navegador, funcoes de mascara para formatacao automatica, aplicacao dessas mascaras nos inputs + limite de caracteres, e correcao do edge case ao trocar tipo de pessoa.
+Corrigir 4 problemas de UI/UX identificados na validacao de layout: grid quebrado nos filtros, estados ociosos no codigo, feedback visual no botao de busca, e responsividade mobile no modal.
 
-## Detalhes Tecnicos
+---
 
-### 1. Protecao contra Refresh / Fechamento da Aba
+## 1. Corrigir Grid dos Filtros (GestaoClientes.tsx)
 
-Adicionar um `useEffect` que observa `hasUnsavedChanges`:
-- Se `true`, registra `window.addEventListener('beforeunload', handler)`.
-- O handler: `e.preventDefault(); e.returnValue = '';`.
-- Cleanup remove o listener.
+A soma atual das colunas no desktop e 3+5+2+2+2 = 14 (excede 12). Redistribuir para somar exatamente 12:
 
-### 2. Funcoes de Mascara (utilitarias puras)
+- Cliente: `md:col-span-3` (mantido)
+- Contribuinte: `md:col-span-3` (era 5)
+- Status: `md:col-span-2` (mantido)
+- Tipo: `md:col-span-2` (mantido)
+- Categoria: `md:col-span-2` (mantido)
 
-Criar 3 funcoes no topo do arquivo (antes do componente, apos as constantes):
+Total: 3+3+2+2+2 = 12
 
-- **`formatCpfCnpj(value, tipo)`**: Remove nao-digitos. Se PF, limita 11 digitos e aplica `000.000.000-00`. Se PJ, limita 14 digitos e aplica `00.000.000/0000-00`.
-- **`formatCep(value)`**: Remove nao-digitos, limita 8, aplica `00000-000`.
-- **`formatPhone(value)`**: Remove nao-digitos, limita 11, aplica `(00) 0000-0000` (10 digitos) ou `(00) 00000-0000` (11 digitos).
+---
 
-### 3. Aplicacao das Mascaras e Limites nos Inputs
+## 2. Remover Estados Ociosos (GestaoClientes.tsx)
 
-**Aba Contribuintes -- CPF/CNPJ:**
-- Draft: trocar onChange para usar `formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ')`.
-- Inline edit: trocar onChange para usar `formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ')`.
+Remover completamente:
+- Declaracoes: `const [tipoPessoa, setTipoPessoa]` e `const [cpfCnpj, setCpfCnpj]`
+- Referencias em `hasActiveFilters`: remover `|| tipoPessoa || cpfCnpj`
+- Referencia em `hasContribuinteFilters`: remover `|| tipoPessoa || cpfCnpj` (ficara apenas `nomeRazaoSocial`)
+- Na queryKey da query principal: remover `tipoPessoa, cpfCnpj`
+- Na query de contribuinte dentro da query principal: remover as linhas `if (tipoPessoa)` e `if (cpfCnpj)`
+- No `handleClear`: remover `setTipoPessoa('')` e `setCpfCnpj('')`
 
-**Aba Contribuintes -- CEP:**
-- Draft: trocar onChange para usar `formatCep(e.target.value)`.
-- Inline edit: trocar onChange para usar `formatCep(e.target.value)`.
+---
 
-**Aba Participantes -- Telefone:**
-- Draft: trocar onChange para usar `formatPhone(e.target.value)`.
-- Inline edit: mesma mascara.
+## 3. Feedback Visual no Botao Buscar (GestaoClientes.tsx)
 
-**Aba Contratos -- Descricao do Projeto:**
-- Draft Textarea: adicionar `maxLength={500}` e contador de caracteres abaixo (`X/500`).
-- Inline edit Textarea: adicionar `maxLength={500}` e contador abaixo.
+- Importar `Loader2` do lucide-react
+- No botao "Buscar": adicionar `disabled={isLoading}` e trocar o icone condicionalmente:
+  - Se `isLoading`: mostrar `<Loader2 className="h-4 w-4 animate-spin" />` no lugar do `<Search />`
+  - Texto muda para "Buscando..." durante o loading
 
-### 4. Correcao do Edge Case: Troca de Tipo de Pessoa (PJ <-> PF)
+---
 
-Ao trocar o Select de "Tipo" (PJ/PF), o campo CPF/CNPJ deve ser limpo para evitar que numeros residuais quebrem a mascara do novo tipo.
+## 4. Responsividade Mobile no Modal (NewClientModal.tsx)
 
-**Draft (linha ~1150):** Alterar o `onValueChange` do Select de tipo_pessoa para:
-```text
-onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}
-```
+Aplicar abordagem mobile-first em todos os grids internos das 4 abas. A regra: todo `col-span-X` fixo (onde X < 12) deve virar `col-span-12 md:col-span-X`.
 
-**Inline edit (linha ~1026):** Alterar o `onValueChange` para:
-```text
-onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}
-```
+### Aba Cliente (linhas 863-981)
+Campos que usam `col-span-6` passam para `col-span-12 md:col-span-6`.
 
-### Resumo de alteracoes
+### Aba Contribuintes -- Inline edit (linhas 1063-1165)
+- `col-span-3` vira `col-span-12 md:col-span-3`
+- `col-span-9` vira `col-span-12 md:col-span-9`
+- `col-span-6` vira `col-span-12 md:col-span-6`
+- `col-span-4` vira `col-span-12 md:col-span-4`
+- `col-span-8` vira `col-span-12 md:col-span-8`
+- `col-span-5` vira `col-span-12 md:col-span-5`
 
-| Local | O que muda |
-|-------|-----------|
-| Topo do arquivo | 3 funcoes utilitarias: `formatCpfCnpj`, `formatCep`, `formatPhone` |
-| useEffect | Listener `beforeunload` baseado em `hasUnsavedChanges` |
-| Input CPF/CNPJ (draft + inline) | onChange com mascara |
-| Input CEP (draft + inline) | onChange com mascara |
-| Input Telefone participante (draft + inline) | onChange com mascara |
-| Select tipo_pessoa (draft + inline) | Limpa cpf_cnpj ao trocar tipo |
-| Textarea Descricao OS (draft + inline) | `maxLength={500}` + contador |
+### Aba Contribuintes -- Draft (linhas 1186-1311)
+Mesma logica: todos os `col-span-X` (onde X < 12) recebem `col-span-12` como default mobile.
 
-Arquivo unico alterado: `src/components/equipe/dev/NewClientModal.tsx`
+### Aba Participantes -- Inline edit (linhas 1385-1443)
+`col-span-6` vira `col-span-12 md:col-span-6`.
+
+### Aba Participantes -- Draft (linhas 1457-1506)
+`col-span-6` vira `col-span-12 md:col-span-6`.
+
+### Aba Contratos -- Inline edit (linhas 1584-1651)
+- `col-span-6` vira `col-span-12 md:col-span-6`
+- `col-span-4` vira `col-span-12 md:col-span-4`
+
+### Aba Contratos -- Draft (linhas 1664-1725)
+- `col-span-6` vira `col-span-12 md:col-span-6`
+- `col-span-4` vira `col-span-12 md:col-span-4`
+
+---
+
+## Resumo de alteracoes
+
+| Arquivo | O que muda |
+|---------|-----------|
+| `GestaoClientes.tsx` | Grid 12 cols corrigido, estados ociosos removidos, botao Buscar com loading |
+| `NewClientModal.tsx` | Todos os col-span internos adaptados para mobile-first |
 
