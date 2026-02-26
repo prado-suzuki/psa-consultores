@@ -72,6 +72,17 @@ const TIPO_PARTICIPANTE_OPTIONS = [
   'Outros',
 ];
 
+const EMPRESA_FATURAMENTO_OPTIONS = [
+  'PRADO ADVOGADOS',
+  'PSA CONSULTORES',
+  'PRADO SUZUKI',
+  'PROFITTO',
+  'PROTENUN',
+  'PSA ADM JUDICIAL',
+  'PSA AUDITORES',
+  'PSA NORTE',
+];
+
 // Types for draft items
 interface DraftEntity {
   _id: number;
@@ -83,7 +94,7 @@ interface DraftEntity {
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
-  simples_nacional: boolean;
+  simples_nacional: string; // '' | 'optante' | 'nao_optante'
   cep: string;
   logradouro: string;
   numero: string;
@@ -150,6 +161,65 @@ const formatPhone = (value: string): string => {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 };
 
+// --- Currency mask utilities ---
+const formatBRLInput = (value: number): string => {
+  if (value === 0) return '0,00';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const parseBRLInput = (formatted: string): number => {
+  const clean = formatted.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+};
+
+const handleCurrencyChange = (raw: string): string => {
+  // Remove everything except digits and comma
+  let clean = raw.replace(/[^\d,]/g, '');
+  // Allow only one comma
+  const parts = clean.split(',');
+  if (parts.length > 2) clean = parts[0] + ',' + parts.slice(1).join('');
+  // Limit decimal to 2 digits
+  if (parts.length === 2 && parts[1].length > 2) {
+    clean = parts[0] + ',' + parts[1].slice(0, 2);
+  }
+  // Add thousand separators to integer part
+  const intPart = clean.split(',')[0];
+  const decPart = clean.split(',')[1];
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return decPart !== undefined ? `${formatted},${decPart}` : formatted;
+};
+
+// --- Date mask utilities ---
+const formatDateMask = (value: string): string => {
+  const d = value.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+};
+
+const parseDateMask = (masked: string): string | null => {
+  const d = masked.replace(/\D/g, '');
+  if (d.length !== 8) return null;
+  const day = parseInt(d.slice(0, 2));
+  const month = parseInt(d.slice(2, 4));
+  const year = parseInt(d.slice(4, 8));
+  if (year < 2000 || year > 2060) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+const isoToMasked = (iso: string): string => {
+  if (!iso) return '';
+  try {
+    const date = parseDate(iso);
+    return format(date, 'dd/MM/yyyy');
+  } catch {
+    return '';
+  }
+};
+
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
   const environment = isProductionEnvironment ? 'production' : 'development';
@@ -159,6 +229,96 @@ const syncCadastrosToDW = (payload: any) => {
     if (error) console.error('[sync-cadastros] Erro:', error.message);
     else console.log('[sync-cadastros] Sync iniciado');
   }).catch(err => console.error('[sync-cadastros] Erro:', err));
+};
+
+// --- Date field component ---
+const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChange: (iso: string) => void; label?: string }) => {
+  const [textValue, setTextValue] = useState(isoToMasked(value));
+
+  useEffect(() => {
+    setTextValue(isoToMasked(value));
+  }, [value]);
+
+  const handleTextChange = (raw: string) => {
+    const masked = formatDateMask(raw);
+    setTextValue(masked);
+    const parsed = parseDateMask(masked);
+    if (parsed) onChange(parsed);
+  };
+
+  const handleTextBlur = () => {
+    if (textValue && textValue.replace(/\D/g, '').length === 8) {
+      const parsed = parseDateMask(textValue);
+      if (!parsed) {
+        toast.error('Data inválida');
+        setTextValue(isoToMasked(value));
+      }
+    } else if (textValue && textValue.replace(/\D/g, '').length > 0) {
+      setTextValue(isoToMasked(value));
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1 max-w-[220px]">
+      <Input
+        value={textValue}
+        onChange={e => handleTextChange(e.target.value)}
+        onBlur={handleTextBlur}
+        placeholder="DD/MM/AAAA"
+        className="h-8 font-mono text-sm"
+        maxLength={10}
+      />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+            <CalendarIcon className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+          <Calendar
+            mode="single"
+            selected={value ? parseDate(value) : undefined}
+            onSelect={(date) => {
+              if (date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                onChange(`${y}-${m}-${d}`);
+              }
+            }}
+            disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060}
+            initialFocus
+            className="p-3 pointer-events-auto"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
+// --- Currency field component ---
+const CurrencyField = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => {
+  const [display, setDisplay] = useState(formatBRLInput(value));
+
+  useEffect(() => {
+    setDisplay(formatBRLInput(value));
+  }, [value]);
+
+  const handleChange = (raw: string) => {
+    const formatted = handleCurrencyChange(raw);
+    setDisplay(formatted);
+    const num = parseBRLInput(formatted);
+    onChange(num);
+  };
+
+  return (
+    <Input
+      value={display}
+      onChange={e => handleChange(e.target.value)}
+      className={cn("h-8", className)}
+      inputMode="decimal"
+    />
+  );
 };
 
 interface NewClientModalProps {
@@ -252,7 +412,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     setor_cliente: '',
     tipo_produto_segmento: '',
     tipo_produto_segmento_custom: '',
-    empresa_faturamento: '',
+    empresa_faturamento: [] as string[],
     regiao: '',
   };
 
@@ -264,7 +424,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
     tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
     situacao_inscricao_estadual: '', inscricao_estadual: '',
-    cod_cnae: '', setor: 'Indústria', simples_nacional: false,
+    cod_cnae: '', setor: 'Indústria', simples_nacional: '',
     cep: '', logradouro: '', numero: '', complemento: '',
     bairro: '', municipio: '', uf: '',
   });
@@ -296,7 +456,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   // Capture initial snapshot once loading completes
   useEffect(() => {
     if (open && !loadingEdit) {
-      // Small delay to let restored/loaded data settle
       const t = setTimeout(() => {
         initialSnapshotRef.current = JSON.stringify({ clientData, entities, participants, contracts });
       }, 100);
@@ -333,6 +492,10 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       try {
         const { data: cli } = await supabase.from(clienteTable).select('*').eq('id', editingClienteId).maybeSingle();
         if (cli) {
+          const rawEmpresa = (cli as any).empresa_faturamento || '';
+          const empresaArr = typeof rawEmpresa === 'string' && rawEmpresa
+            ? rawEmpresa.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [];
           setClientData({
             nome: cli.nome || '',
             categoria: (cli as any).categoria || 'Bronze',
@@ -344,7 +507,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
             setor_cliente: cli.setor_cliente || '',
             tipo_produto_segmento: '',
             tipo_produto_segmento_custom: '',
-            empresa_faturamento: (cli as any).empresa_faturamento || '',
+            empresa_faturamento: empresaArr,
             regiao: (cli as any).regiao || '',
           });
         }
@@ -361,7 +524,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
             inscricao_estadual: c.inscricao_estadual || '',
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
-            simples_nacional: c.simples_nacional ?? false,
+            simples_nacional: c.simples_nacional === true ? 'optante' : c.simples_nacional === false ? 'nao_optante' : '',
             cep: '',
             logradouro: '',
             numero: '',
@@ -409,7 +572,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     }
   }, [open, isEditing]);
 
-  const formatCurrency = (value: number) =>
+  const formatCurrencyDisplay = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   // --- ENTITY HANDLERS ---
@@ -487,13 +650,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
     if (draftEntity.tipo_pessoa === 'PJ') {
       if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
+      if (!draftEntity.simples_nacional) { toast.error('Informe a situação do Simples Nacional'); return; }
     }
 
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
       tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
       situacao_inscricao_estadual: '', inscricao_estadual: '',
-      cod_cnae: '', setor: 'Indústria', simples_nacional: false,
+      cod_cnae: '', setor: 'Indústria', simples_nacional: '',
       cep: '', logradouro: '', numero: '', complemento: '',
       bairro: '', municipio: '', uf: '',
     });
@@ -529,6 +693,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (!draftContract.data_inicio_projeto) { toast.error('Data de Início é obrigatória'); return; }
     if (!draftContract.gestor_responsavel) { toast.error('Gestor Responsável é obrigatório'); return; }
     if (draftContract.valor_projeto <= 0) { toast.error('Valor do Projeto deve ser maior que zero'); return; }
+    if (draftContract.valor_reembolso_km === undefined || draftContract.valor_reembolso_km === null) { toast.error('Reembolso por km é obrigatório (pode ser 0)'); return; }
+    if (draftContract.valor_reembolso_refeicao === undefined || draftContract.valor_reembolso_refeicao === null) { toast.error('Reembolso refeição é obrigatório (pode ser 0)'); return; }
 
     if (draftContract.descricao_projeto.trim() && draftContract.descricao_projeto.trim().length < 20) {
       toast.error('Descrição do Projeto deve ter no mínimo 20 caracteres'); return;
@@ -655,6 +821,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     toast.success('Endereço copiado do primeiro contribuinte');
   };
 
+  // --- Multi-select helpers ---
+  const toggleEmpresaFaturamento = (emp: string) => {
+    setClientData(prev => {
+      const arr = prev.empresa_faturamento;
+      return {
+        ...prev,
+        empresa_faturamento: arr.includes(emp) ? arr.filter(e => e !== emp) : [...arr, emp],
+      };
+    });
+  };
+
   // --- FINAL SAVE ---
   const handleSave = async () => {
     if (!clientData.nome.trim()) { toast.error('Nome do cliente é obrigatório'); return; }
@@ -664,7 +841,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
       toast.error('Informe o nome do produto/segmento personalizado'); return;
     }
-    if (!clientData.empresa_faturamento) { toast.error('Empresa / Faturamento é obrigatória'); return; }
+    if (clientData.empresa_faturamento.length === 0) { toast.error('Empresa / Faturamento é obrigatória'); return; }
     if (!clientData.regiao) { toast.error('Região é obrigatória'); return; }
 
     setSaving(true);
@@ -722,7 +899,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
           inscricao_estadual: e.inscricao_estadual || null,
           cod_cnae: e.cod_cnae || null,
           setor: e.setor || null,
-          simples_nacional: e.simples_nacional,
+          simples_nacional: e.simples_nacional === 'optante' ? true : e.simples_nacional === 'nao_optante' ? false : null,
         }));
         const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
         if (contribError) throw contribError;
@@ -984,23 +1161,52 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         </Select>
                       </div>
 
-                      {/* 8. Empresa / Faturamento */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Empresa / Faturamento *</Label>
-                        <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
-                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="PRADO ADVOGADOS">PRADO ADVOGADOS</SelectItem>
-                            <SelectItem value="PRADO CONSULTORES">PRADO CONSULTORES</SelectItem>
-                            <SelectItem value="PRADO SUZUKI">PRADO SUZUKI</SelectItem>
-                            <SelectItem value="PROFITTO">PROFITTO</SelectItem>
-                            <SelectItem value="PROTENUN">PROTENUN</SelectItem>
-                            <SelectItem value="PSA ADM JUDICIAL">PSA ADM JUDICIAL</SelectItem>
-                            <SelectItem value="PSA AUDITORES">PSA AUDITORES</SelectItem>
-                            <SelectItem value="PSA NORTE">PSA NORTE</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      {/* 8. Empresa / Faturamento (Multi-select) */}
+                      <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Empresa / Faturamento *</Label>
+                        <div className="flex-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                disabled={isReadOnly}
+                                className={cn(
+                                  "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
+                                  clientData.empresa_faturamento.length === 0 && "text-muted-foreground"
+                                )}
+                              >
+                                {clientData.empresa_faturamento.length > 0 ? (
+                                  clientData.empresa_faturamento.map(emp => (
+                                    <Badge key={emp} variant="secondary" className="text-xs gap-1">
+                                      {emp}
+                                      {!isReadOnly && (
+                                        <X
+                                          className="h-3 w-3 cursor-pointer"
+                                          onClick={(e) => { e.stopPropagation(); toggleEmpresaFaturamento(emp); }}
+                                        />
+                                      )}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  "Selecione..."
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="start">
+                              <div className="flex flex-col gap-1">
+                                {EMPRESA_FATURAMENTO_OPTIONS.map(emp => (
+                                  <label key={emp} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                                    <Checkbox
+                                      checked={clientData.empresa_faturamento.includes(emp)}
+                                      onCheckedChange={() => toggleEmpresaFaturamento(emp)}
+                                    />
+                                    {emp}
+                                  </label>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
 
                     </div>
@@ -1032,7 +1238,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     <div className="text-xs text-muted-foreground font-mono mt-0.5">{ent.cpf_cnpj || '-'}</div>
                                   </div>
                                   <div className="flex items-center gap-2 ml-2">
-                                    {ent.simples_nacional && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
+                                    {ent.simples_nacional === 'optante' && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
                                     <Badge variant="outline" className="text-[10px]">{ent.tipo_pessoa}</Badge>
                                     <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
                                   </div>
@@ -1067,10 +1273,10 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
                                       <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
                                       <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
-                                      <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
+                                      {ent.tipo_pessoa !== 'PF' && <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />}
                                       <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : ent.situacao_inscricao_estadual === 'nao' ? 'Não' : (ent.inscricao_estadual || '—')} />
                                       {ent.tipo_pessoa === 'PJ' && <FieldPair label="CNAE" value={ent.cod_cnae} />}
-                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional ? 'Sim' : 'Não'} />}
+                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional === 'optante' ? 'Optante' : ent.simples_nacional === 'nao_optante' ? 'Não Optante' : '—'} />}
                                       <FieldPair label="CEP" value={ent.cep} />
                                       <FieldPair label="Logradouro" value={ent.logradouro} />
                                       <FieldPair label="Número" value={ent.numero} />
@@ -1113,13 +1319,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium h-8" />
                                         </div>
                                       </div>
-                                      {/* Nome Fantasia */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} disabled={ed.tipo_pessoa === 'PF'} className="h-8" />
+                                      {/* Nome Fantasia - hidden for PF */}
+                                      {ed.tipo_pessoa !== 'PF' && (
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
+                                          <div className="flex-1">
+                                            <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} className="h-8" />
+                                          </div>
                                         </div>
-                                      </div>
+                                      )}
                                       {/* Inscrição Estadual */}
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual</Label>
@@ -1135,7 +1343,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <div className="flex flex-row items-center gap-4">
                                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE</Label>
                                           <div className="flex-1">
-                                            <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} className="h-8" />
+                                            <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} maxLength={15} className="h-8" />
                                           </div>
                                         </div>
                                       )}
@@ -1148,15 +1356,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </div>
                                         </div>
                                       )}
-                                      {/* Simples Nacional */}
+                                      {/* Simples Nacional - Select */}
                                       {ed.tipo_pessoa === 'PJ' && (
                                         <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional</Label>
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
                                           <div className="flex-1">
-                                            <div className="flex items-center gap-2 h-8">
-                                              <Checkbox checked={ed.simples_nacional || false} onCheckedChange={c => setEditingEntityData({ ...ed, simples_nacional: !!c })} />
-                                              <span className="text-sm">Optante</span>
-                                            </div>
+                                            <Select value={ed.simples_nacional || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, simples_nacional: v === '__none__' ? '' : v })}>
+                                              <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                                <SelectItem value="optante">Optante</SelectItem>
+                                                <SelectItem value="nao_optante">Não Optante</SelectItem>
+                                              </SelectContent>
+                                            </Select>
                                           </div>
                                         </div>
                                       )}
@@ -1288,13 +1500,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium h-8" />
                             </div>
                           </div>
-                          {/* Nome Fantasia */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" disabled={draftEntity.tipo_pessoa === 'PF'} className="h-8" />
+                          {/* Nome Fantasia - hidden for PF */}
+                          {draftEntity.tipo_pessoa !== 'PF' && (
+                            <div className="flex flex-row items-center gap-4">
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
+                              <div className="flex-1">
+                                <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" className="h-8" />
+                              </div>
                             </div>
-                          </div>
+                          )}
                           {/* Inscrição Estadual */}
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual *</Label>
@@ -1315,7 +1529,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <div className="flex flex-row items-center gap-4">
                               <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE *</Label>
                               <div className="flex-1">
-                                <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" className="h-8" />
+                                <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" maxLength={15} className="h-8" />
                               </div>
                             </div>
                           )}
@@ -1328,18 +1542,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </div>
                             </div>
                           )}
-                          {/* Simples Nacional */}
+                          {/* Simples Nacional - Select */}
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <div className="flex flex-row items-center gap-4">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional</Label>
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 h-8">
-                                  <Checkbox
-                                    checked={draftEntity.simples_nacional || false}
-                                    onCheckedChange={c => setDraftEntity({ ...draftEntity, simples_nacional: !!c })}
-                                  />
-                                  <span className="text-sm">Optante</span>
-                                </div>
+                                <Select value={draftEntity.simples_nacional || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, simples_nacional: v === '__none__' ? '' : v })}>
+                                  <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">Selecione...</SelectItem>
+                                    <SelectItem value="optante">Optante</SelectItem>
+                                    <SelectItem value="nao_optante">Não Optante</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                             </div>
                           )}
@@ -1675,7 +1890,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
                                       <span className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</span>
                                     </div>
-                                    <div className="font-bold text-foreground mt-0.5">{formatCurrency(cont.valor_projeto)}</div>
+                                    <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
                                   </div>
                                   <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
                                 </button>
@@ -1706,15 +1921,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                                       <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
-                                      <FieldPair label="Data Emissão" value={cont.data_emissao} />
+                                      <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : '—'} />
                                       <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
                                       <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
                                       {cont.descricao_projeto && <div className="col-span-2 md:col-span-3"><FieldPair label="Descrição" value={cont.descricao_projeto} /></div>}
-                                      <FieldPair label="Data Início" value={cont.data_inicio_projeto} />
-                                      <FieldPair label="Data Fim" value={cont.data_fim_projeto} />
-                                      <FieldPair label="Valor do Projeto" value={formatCurrency(cont.valor_projeto)} />
-                                      <FieldPair label="Reembolso km" value={formatCurrency(cont.valor_reembolso_km)} />
-                                      <FieldPair label="Reembolso refeição" value={formatCurrency(cont.valor_reembolso_refeicao)} />
+                                      <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : '—'} />
+                                      <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : '—'} />
+                                      <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
+                                      <FieldPair label="Reembolso km" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
+                                      <FieldPair label="Reembolso refeição por pessoa" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
                                     </div>
                                   </div>
                                 )}
@@ -1733,17 +1948,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
                                         <div className="flex-1">
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_emissao && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {ec.data_emissao ? format(parseDate(ec.data_emissao), "dd/MM/yyyy") : "Selecione..."}
-                                              </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                              <Calendar mode="single" selected={ec.data_emissao ? parseDate(ec.data_emissao) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_emissao: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                            </PopoverContent>
-                                          </Popover>
+                                          <DateFieldWithInput value={ec.data_emissao || ''} onChange={v => setEditingContractData({ ...ec, data_emissao: v })} />
                                         </div>
                                       </div>
                                       {/* Gestor */}
@@ -1781,48 +1986,28 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <div className="flex flex-row items-center gap-4 flex-1">
                                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
                                           <div className="flex-1">
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_inicio_projeto && "text-muted-foreground")}>
-                                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                                  {ec.data_inicio_projeto ? format(parseDate(ec.data_inicio_projeto), "dd/MM/yyyy") : "Selecione..."}
-                                                </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                                <Calendar mode="single" selected={ec.data_inicio_projeto ? parseDate(ec.data_inicio_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_inicio_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                              </PopoverContent>
-                                            </Popover>
+                                            <DateFieldWithInput value={ec.data_inicio_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_inicio_projeto: v })} />
                                           </div>
                                         </div>
                                         <div className="flex flex-row items-center gap-4 flex-1">
                                           <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
                                           <div className="flex-1">
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_fim_projeto && "text-muted-foreground")}>
-                                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                                  {ec.data_fim_projeto ? format(parseDate(ec.data_fim_projeto), "dd/MM/yyyy") : "Selecione..."}
-                                                </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                                <Calendar mode="single" selected={ec.data_fim_projeto ? parseDate(ec.data_fim_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_fim_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                              </PopoverContent>
-                                            </Popover>
+                                            <DateFieldWithInput value={ec.data_fim_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_fim_projeto: v })} />
                                           </div>
                                         </div>
                                       </div>
                                       {/* Reembolsos (lado a lado) */}
                                       <div className="flex flex-row items-center gap-6">
                                         <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$)</Label>
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$) *</Label>
                                           <div className="flex-1">
-                                            <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                            <CurrencyField value={ec.valor_reembolso_km || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_km: v })} className="max-w-[160px]" />
                                           </div>
                                         </div>
                                         <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição (R$)</Label>
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição por pessoa (R$) *</Label>
                                           <div className="flex-1">
-                                            <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                            <CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} className="max-w-[160px]" />
                                           </div>
                                         </div>
                                       </div>
@@ -1830,7 +2015,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
                                         <div className="flex-1">
-                                          <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} className="h-8" />
+                                          <CurrencyField value={ec.valor_projeto || 0} onChange={v => setEditingContractData({ ...ec, valor_projeto: v })} />
                                         </div>
                                       </div>
                                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
@@ -1875,17 +2060,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
                             <div className="flex-1">
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_emissao && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {draftContract.data_emissao ? format(parseDate(draftContract.data_emissao), "dd/MM/yyyy") : "Selecione..."}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                  <Calendar mode="single" selected={draftContract.data_emissao ? parseDate(draftContract.data_emissao) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_emissao: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                </PopoverContent>
-                              </Popover>
+                              <DateFieldWithInput value={draftContract.data_emissao} onChange={v => setDraftContract({ ...draftContract, data_emissao: v })} />
                             </div>
                           </div>
                           {/* Gestor */}
@@ -1929,48 +2104,28 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <div className="flex flex-row items-center gap-4 flex-1">
                               <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
                               <div className="flex-1">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_inicio_projeto && "text-muted-foreground")}>
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {draftContract.data_inicio_projeto ? format(parseDate(draftContract.data_inicio_projeto), "dd/MM/yyyy") : "Selecione..."}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                    <Calendar mode="single" selected={draftContract.data_inicio_projeto ? parseDate(draftContract.data_inicio_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_inicio_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                  </PopoverContent>
-                                </Popover>
+                                <DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={v => setDraftContract({ ...draftContract, data_inicio_projeto: v })} />
                               </div>
                             </div>
                             <div className="flex flex-row items-center gap-4 flex-1">
                               <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
                               <div className="flex-1">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_fim_projeto && "text-muted-foreground")}>
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {draftContract.data_fim_projeto ? format(parseDate(draftContract.data_fim_projeto), "dd/MM/yyyy") : "Selecione..."}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                                    <Calendar mode="single" selected={draftContract.data_fim_projeto ? parseDate(draftContract.data_fim_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_fim_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
-                                  </PopoverContent>
-                                </Popover>
+                                <DateFieldWithInput value={draftContract.data_fim_projeto} onChange={v => setDraftContract({ ...draftContract, data_fim_projeto: v })} />
                               </div>
                             </div>
                           </div>
                           {/* Reembolsos (lado a lado) */}
                           <div className="flex flex-row items-center gap-6">
                             <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$)</Label>
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$) *</Label>
                               <div className="flex-1">
-                                <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                <CurrencyField value={draftContract.valor_reembolso_km} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_km: v })} className="max-w-[160px]" />
                               </div>
                             </div>
                             <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição (R$)</Label>
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição por pessoa (R$) *</Label>
                               <div className="flex-1">
-                                <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                <CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })} className="max-w-[160px]" />
                               </div>
                             </div>
                           </div>
@@ -1978,7 +2133,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
                             <div className="flex-1">
-                              <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="h-8" />
+                              <CurrencyField value={draftContract.valor_projeto} onChange={v => setDraftContract({ ...draftContract, valor_projeto: v })} />
                             </div>
                           </div>
                         </div>
