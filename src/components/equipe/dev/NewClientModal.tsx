@@ -15,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -856,150 +855,128 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
               </div>
 
               <ScrollArea className="flex-1">
-                <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
+                <TabsContent value="cliente" className="mt-0 p-4 md:p-6">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
                       <h3 className="text-base font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="px-4 py-3 flex flex-col gap-2">
-                      {/* Nome */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome do Cliente / Grupo *</Label>
-                        <div className="flex-1 w-full">
-                          <Input
-                            autoFocus={!isReadOnly}
-                            disabled={isReadOnly}
-                            value={clientData.nome}
-                            onChange={e => setClientData({ ...clientData, nome: e.target.value })}
-                            placeholder="Ex: Grupo Empresarial Silva"
-                            className="h-8"
-                          />
-                        </div>
+                    <div className="p-4 grid grid-cols-12 gap-4">
+                      <div className="col-span-12">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
+                        <Input
+                          autoFocus={!isReadOnly}
+                          disabled={isReadOnly}
+                          value={clientData.nome}
+                          onChange={e => setClientData({ ...clientData, nome: e.target.value })}
+                          placeholder="Ex: Grupo Empresarial Silva"
+                          className="text-base font-bold"
+                        />
                       </div>
-                      {/* Categoria */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Categoria</Label>
-                        <div className="flex-1 w-full">
-                          <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
-                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Bronze">Bronze</SelectItem>
-                              <SelectItem value="Prata">Prata</SelectItem>
-                              <SelectItem value="Ouro">Ouro</SelectItem>
-                              <SelectItem value="Diamante">Diamante</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
+                        <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Bronze">Bronze</SelectItem>
+                            <SelectItem value="Prata">Prata</SelectItem>
+                            <SelectItem value="Ouro">Ouro</SelectItem>
+                            <SelectItem value="Diamante">Diamante</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      {/* Status */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Status</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
+                        <div className="flex items-center gap-2 h-10">
                           <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
                           <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
-                      {/* Tipo de Relacionamento */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de relacionamento</Label>
-                        <ToggleGroup
-                          type="single"
-                          variant="outline"
-                          size="sm"
-                          disabled={isReadOnly}
-                          value={clientData.fixo === 'Sim' ? 'fixo' : 'pontual'}
-                          onValueChange={v => { if (v) setClientData({ ...clientData, fixo: v === 'fixo' ? 'Sim' : 'Não' }); }}
-                        >
-                          <ToggleGroupItem value="fixo" className="text-xs px-4">Fixo</ToggleGroupItem>
-                          <ToggleGroupItem value="pontual" className="text-xs px-4">Pontual</ToggleGroupItem>
-                        </ToggleGroup>
-                      </div>
-                      {/* Área do negócio */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Área do negócio *</Label>
-                        <div className="flex-1 w-full">
-                          <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
-                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
-                              <SelectItem value="INS">INS - Instituições do agro</SelectItem>
-                              <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
-                              <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
-                              <SelectItem value="IND">IND - Agroindústria</SelectItem>
-                              <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
-                              <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de relacionamento</Label>
+                        <div className="flex bg-muted p-1 rounded-lg">
+                          <button
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Fixo</button>
+                          <button
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
+                          >Pontual</button>
                         </div>
                       </div>
-                      {/* Tipo de produto/segmento */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de produto/segmento *</Label>
-                        <div className="flex-1 w-full">
-                          <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
-                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
+                        <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
+                            <SelectItem value="INS">INS - Instituições do agro</SelectItem>
+                            <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
+                            <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
+                            <SelectItem value="IND">IND - Agroindústria</SelectItem>
+                            <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
+                            <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      {clientData.tipo_produto_segmento === '__outro__' && (
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3 md:ml-48 md:pl-3">
-                          <Label className="w-full md:w-auto shrink-0 text-xs font-semibold text-muted-foreground md:hidden">Outro produto</Label>
-                          <div className="flex-1 w-full">
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
+                        <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {clientData.tipo_produto_segmento === '__outro__' && (
                             <Input
                               disabled={isReadOnly}
-                              className="h-8"
-                              value={clientData.tipo_produto_segmento_custom}
-                              onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
-                              placeholder="Nome do novo produto/segmento"
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {/* Região */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Região *</Label>
-                        <div className="flex-1 w-full">
-                          <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
-                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
-                              <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
-                              <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
-                              <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
-                              <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
-                              <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
-                              <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                              className="mt-2"
+                            value={clientData.tipo_produto_segmento_custom}
+                            onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
+                            placeholder="Nome do novo produto/segmento"
+                          />
+                        )}
                       </div>
-                      {/* Empresa / Faturamento */}
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Empresa / Faturamento *</Label>
-                        <div className="flex-1 w-full">
-                          <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
-                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              <SelectItem value="PRADO ADVOGADOS">PRADO ADVOGADOS</SelectItem>
-                              <SelectItem value="PRADO CONSULTORES">PRADO CONSULTORES</SelectItem>
-                              <SelectItem value="PRADO SUZUKI">PRADO SUZUKI</SelectItem>
-                              <SelectItem value="PROFITTO">PROFITTO</SelectItem>
-                              <SelectItem value="PROTENUN">PROTENUN</SelectItem>
-                              <SelectItem value="PSA ADM JUDICIAL">PSA ADM JUDICIAL</SelectItem>
-                              <SelectItem value="PSA AUDITORES">PSA AUDITORES</SelectItem>
-                              <SelectItem value="PSA NORTE">PSA NORTE</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
+                        <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
+                            <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
+                            <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
+                            <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
+                            <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
+                            <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
+                            <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-12 md:col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Empresa / Faturamento *</Label>
+                        <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="PRADO ADVOGADOS">PRADO ADVOGADOS</SelectItem>
+                            <SelectItem value="PRADO CONSULTORES">PRADO CONSULTORES</SelectItem>
+                            <SelectItem value="PRADO SUZUKI">PRADO SUZUKI</SelectItem>
+                            <SelectItem value="PROFITTO">PROFITTO</SelectItem>
+                            <SelectItem value="PROTENUN">PROTENUN</SelectItem>
+                            <SelectItem value="PSA ADM JUDICIAL">PSA ADM JUDICIAL</SelectItem>
+                            <SelectItem value="PSA AUDITORES">PSA AUDITORES</SelectItem>
+                            <SelectItem value="PSA NORTE">PSA NORTE</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </section>
