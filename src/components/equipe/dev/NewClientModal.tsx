@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,12 +62,16 @@ interface DraftEntity {
   tipo_pessoa: string;
   cpf_cnpj: string;
   nome_razao_social: string;
+  nome_fantasia: string;
   situacao_inscricao_estadual: string; // 'sim' | 'isento' | ''
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
   simples_nacional: boolean;
+  cep: string;
   logradouro: string;
+  numero: string;
+  complemento: string;
   bairro: string;
   municipio: string;
   uf: string;
@@ -118,6 +122,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
 
   const tabOrder: typeof activeTab[] = ['cliente', 'contribuintes', 'participantes', 'contratos'];
@@ -182,10 +188,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   // Section 2 - Contribuintes
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
-    tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
+    tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
     situacao_inscricao_estadual: '', inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: false,
-    logradouro: '', bairro: '', municipio: '', uf: '',
+    cep: '', logradouro: '', numero: '', complemento: '',
+    bairro: '', municipio: '', uf: '',
   });
 
   // Section 3 - Participantes
@@ -243,12 +250,16 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             tipo_pessoa: c.tipo_pessoa || 'PJ',
             cpf_cnpj: c.cpf_cnpj || '',
             nome_razao_social: c.nome_razao_social || '',
+            nome_fantasia: '',
             situacao_inscricao_estadual: c.inscricao_estadual ? 'sim' : 'isento',
             inscricao_estadual: c.inscricao_estadual || '',
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
             simples_nacional: c.simples_nacional ?? false,
+            cep: '',
             logradouro: '',
+            numero: '',
+            complemento: '',
             bairro: '',
             municipio: '',
             uf: '',
@@ -294,6 +305,60 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   // --- ENTITY HANDLERS ---
+  // --- CNPJ FETCH ---
+  const handleCnpjBlur = async (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 14) return;
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error('not found');
+      const data = await res.json();
+      setDraftEntity(prev => ({
+        ...prev,
+        nome_razao_social: data.razao_social || prev?.nome_razao_social || '',
+        nome_fantasia: data.nome_fantasia || '',
+        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : (prev?.cod_cnae || ''),
+        cep: data.cep ? String(data.cep).replace(/\D/g, '') : (prev?.cep || ''),
+        logradouro: data.logradouro || prev?.logradouro || '',
+        numero: data.numero || prev?.numero || '',
+        complemento: data.complemento || prev?.complemento || '',
+        bairro: data.bairro || prev?.bairro || '',
+        municipio: data.municipio || prev?.municipio || '',
+        uf: data.uf || prev?.uf || '',
+      }));
+      toast.success('Dados preenchidos via CNPJ');
+    } catch {
+      toast.error('CNPJ não encontrado na base federal');
+    } finally {
+      setCnpjLoading(false);
+    }
+  };
+
+  // --- CEP FETCH ---
+  const handleCepBlur = async (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) throw new Error('not found');
+      setDraftEntity(prev => ({
+        ...prev,
+        logradouro: data.logradouro || prev?.logradouro || '',
+        bairro: data.bairro || prev?.bairro || '',
+        municipio: data.localidade || prev?.municipio || '',
+        uf: data.uf || prev?.uf || '',
+      }));
+      toast.success('Endereço preenchido via CEP');
+    } catch {
+      toast.error('CEP não encontrado');
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
   const addEntity = () => {
     if (!draftEntity.nome_razao_social?.trim()) { toast.error('Razão Social é obrigatória'); return; }
     
@@ -318,10 +383,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
-      tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '',
+      tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
       situacao_inscricao_estadual: '', inscricao_estadual: '',
       cod_cnae: '', setor: 'Indústria', simples_nacional: false,
-      logradouro: '', bairro: '', municipio: '', uf: '',
+      cep: '', logradouro: '', numero: '', complemento: '',
+      bairro: '', municipio: '', uf: '',
     });
   };
 
@@ -706,6 +772,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           Novo Contribuinte
                         </h4>
                         <div className="grid grid-cols-12 gap-3">
+                          {/* 1. Tipo + CPF/CNPJ */}
                           <div className="col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
                             <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
@@ -718,14 +785,29 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </div>
                           <div className="col-span-9">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ *</Label>
-                            <Input value={draftEntity.cpf_cnpj || ''} onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })} placeholder="000.000.000-00" className="font-mono" />
+                            <div className="relative">
+                              <Input
+                                value={draftEntity.cpf_cnpj || ''}
+                                onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: e.target.value })}
+                                onBlur={e => handleCnpjBlur(e.target.value)}
+                                placeholder={draftEntity.tipo_pessoa === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+                                className="font-mono pr-8"
+                              />
+                              {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                            </div>
                           </div>
-                          <div className="col-span-12">
+
+                          {/* 2. Razão Social + Nome Fantasia */}
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
                             <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
                           </div>
+                          <div className="col-span-6">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
+                            <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" />
+                          </div>
 
-                          {/* Situação Inscrição Estadual */}
+                          {/* 3. Inscrição Estadual */}
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
                             <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
@@ -746,6 +828,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             )}
                           </div>
 
+                          {/* 4. CNAE + Simples */}
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <>
                               <div className="col-span-6">
@@ -764,10 +847,37 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               </div>
                             </>
                           )}
-                          <div className="col-span-12">
+
+                          {/* 5. CEP */}
+                          <div className="col-span-4">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP</Label>
+                            <div className="relative">
+                              <Input
+                                value={draftEntity.cep || ''}
+                                onChange={e => setDraftEntity({ ...draftEntity, cep: e.target.value })}
+                                onBlur={e => handleCepBlur(e.target.value)}
+                                placeholder="00000-000"
+                                className="font-mono pr-8"
+                              />
+                              {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                            </div>
+                          </div>
+
+                          {/* 6. Logradouro + Número + Complemento */}
+                          <div className="col-span-8">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro *</Label>
                             <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
                           </div>
+                          <div className="col-span-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
+                            <Input value={draftEntity.numero || ''} onChange={e => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" />
+                          </div>
+                          <div className="col-span-9">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
+                            <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." />
+                          </div>
+
+                          {/* 7. Bairro + Município + UF */}
                           <div className="col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro *</Label>
                             <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
