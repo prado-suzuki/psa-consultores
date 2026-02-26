@@ -1,0 +1,1 @@
+ALTER TABLE public.fiscal_tasks ADD COLUMN estimated_hours numeric;

@@ -67,6 +67,7 @@ const taskSchema = z.object({
   client_id: z.string().optional(),
   categoria_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
+  estimated_hours: z.coerce.number().positive('Deve ser maior que 0').optional().or(z.literal('')),
   tags: z.array(z.string()).optional(),
 });
 
@@ -232,6 +233,7 @@ export const TaskModal = ({
         client_id: task.client_id || undefined,
         categoria_id: task.categoria_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
+        estimated_hours: (task as any).estimated_hours ?? '',
         tags: task.tags || [],
       });
     } else {
@@ -288,6 +290,7 @@ export const TaskModal = ({
       client_id: values.client_id || undefined,
       categoria_id: values.categoria_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
+      estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
       tags: values.tags && values.tags.length > 0 ? values.tags : undefined,
     };
 
@@ -522,6 +525,29 @@ export const TaskModal = ({
                 )}
               />
             </div>
+
+            {/* Horas estimadas */}
+            <FormField
+              control={form.control}
+              name="estimated_hours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Horas estimadas</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="Ex: 4"
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* 6. Responsável */}
             <FormField
