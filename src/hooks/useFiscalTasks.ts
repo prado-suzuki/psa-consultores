@@ -228,8 +228,6 @@ export interface TaskFilters {
         });
 
         return data || current;
-
-        return data;
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
