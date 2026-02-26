@@ -1,49 +1,26 @@
 
 
-# Tornar campo Projeto obrigatório no TaskModal fiscal
+# Adicionar coluna `estimated_hours` na tabela `fiscal_tasks`
 
-## Mudanças em `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+## Diagnóstico
 
-### 1. Schema zod (linha 66)
-```tsx
-// DE:
-project_id: z.string().optional(),
-// PARA:
-project_id: z.string().min(1, 'Projeto é obrigatório'),
+A coluna `estimated_hours` **não existe** na tabela `fiscal_tasks`. O Kanban fiscal tenta renderizar `task.estimated_hours` mas o campo nunca vem do banco.
+
+## Plano
+
+### 1. Migration SQL
+```sql
+ALTER TABLE public.fiscal_tasks ADD COLUMN estimated_hours numeric;
 ```
 
-### 2. Select onChange — trocar undefined por string vazia (linha 330)
-```tsx
-// DE:
-onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-// PARA:
-onValueChange={(v) => field.onChange(v === '_none' ? '' : v)}
-```
+### 2. Atualizar interface `FiscalTask` em `src/hooks/useFiscalTasks.ts`
+Adicionar `estimated_hours: number | null;` ao tipo `FiscalTask`.
 
-### 3. Default values nos form.reset — garantir `project_id: ''` em vez de `undefined`
+### 3. Atualizar interface `CreateFiscalTaskInput` em `src/hooks/useFiscalTasks.ts`
+Adicionar `estimated_hours?: number;` ao tipo de input.
 
-No reset de nova tarefa (linha ~252):
-```tsx
-project_id: parentTask?.project_id || '',
-```
+### 4. Atualizar `TaskModal.tsx`
+Adicionar campo "Horas estimadas" no formulário (input numérico, opcional) e incluir no schema zod como `z.number().optional()`.
 
-No reset ao editar (linha ~231):
-```tsx
-project_id: task.project_id || '',
-```
-
-No draft restore (mantém o valor do draft, que já será string).
-
-### 4. Label com asterisco (linha 328)
-```tsx
-// DE:
-<FormLabel>Projeto</FormLabel>
-// PARA:
-<FormLabel>Projeto <span className="text-red-500">*</span></FormLabel>
-```
-
-### 5. FormMessage já existe (linha 345)
-O `<FormMessage />` já está no JSX abaixo do Select de Projeto — a mensagem de erro do zod será exibida automaticamente.
-
-**Total: 4 pontos de edição no mesmo arquivo.**
+**4 pontos de edição: 1 migration + 3 arquivos TypeScript.**
 
