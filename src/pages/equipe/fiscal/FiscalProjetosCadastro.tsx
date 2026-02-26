@@ -373,12 +373,38 @@ const FiscalProjetosCadastro = () => {
     mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
       if (editingProject) {
-        if (data.name !== editingProject.name) changedFields.name = { old: editingProject.name, new: data.name };
-        if (data.status !== editingProject.status) changedFields.status = { old: editingProject.status, new: data.status };
-        if ((data.start_date || null) !== (editingProject.start_date || null)) changedFields.start_date = { old: editingProject.start_date, new: data.start_date };
-        if ((data.end_date || null) !== (editingProject.end_date || null)) changedFields.end_date = { old: editingProject.end_date, new: data.end_date };
-        if ((data.area_id || null) !== (editingProject.area_id || null)) changedFields.area_id = { old: editingProject.area_id, new: data.area_id };
-        if ((data.description || null) !== (editingProject.description || null)) changedFields.description = { old: editingProject.description, new: data.description };
+        const ep = editingProject as any;
+        const comparisons: [string, unknown, unknown][] = [
+          ['name', ep.name, data.name],
+          ['status', ep.status, data.status],
+          ['start_date', ep.start_date || null, data.start_date || null],
+          ['end_date', ep.end_date || null, data.end_date || null],
+          ['area_id', ep.area_id || null, data.area_id || null],
+          ['description', ep.description || null, data.description || null],
+          ['responsible_id', ep.responsible_id || null, data.responsible_id || null],
+          ['leader_id', ep.leader_id || null, data.leader_id || null],
+          ['external_client_id', ep.external_client_id || null, data.external_client_id || null],
+          ['contribuinte_id', ep.contribuinte_id || null, data.contribuinte_id || null],
+          ['objective', ep.objective || null, data.objective || null],
+        ];
+        for (const [field, oldVal, newVal] of comparisons) {
+          if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
+        }
+        // Compare category_ids arrays
+        const oldCatIds = currentProjectCategories.map(c => c.categoria_id).sort();
+        const newCatIds = [...data.category_ids].sort();
+        if (JSON.stringify(oldCatIds) !== JSON.stringify(newCatIds)) {
+          changedFields.category_ids = { old: oldCatIds, new: newCatIds };
+        }
+        // Compare member_ids arrays
+        const oldMemberIds = currentProjectMembers
+          .filter(m => m.role === 'member')
+          .map(m => m.user_id)
+          .sort();
+        const newMemberIds = [...data.member_ids].sort();
+        if (JSON.stringify(oldMemberIds) !== JSON.stringify(newMemberIds)) {
+          changedFields.member_ids = { old: oldMemberIds, new: newMemberIds };
+        }
       }
 
       const { error } = await supabase
@@ -429,11 +455,14 @@ const FiscalProjetosCadastro = () => {
         if (membersError) throw membersError;
       }
 
-      await logAction({
-        area: 'tax', entity_type: 'project', entity_id: id,
-        entity_name: data.name, action: 'updated',
-        changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
-      });
+      // Only log if something actually changed
+      if (Object.keys(changedFields).length > 0) {
+        await logAction({
+          area: 'tax', entity_type: 'project', entity_id: id,
+          entity_name: data.name, action: 'updated',
+          changed_fields: changedFields,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
