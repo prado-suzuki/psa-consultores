@@ -1260,17 +1260,23 @@ const EquipeControleAcessos = () => {
                               <div className="space-y-1">
                                 {categoryPages.map((page) => {
                                   const userHasAccess = hasAccess(selectedUserId, page.id);
+                                  const userIsAdmin = selectedUser?.roles.includes('admin') || false;
+                                  const requiresAdminOnly = page.requires_admin && !userIsAdmin;
                                   return (
                                     <div
                                       key={page.id}
-                                      className="flex items-center justify-between p-2 rounded-lg bg-slate-50"
+                                      className={`flex items-center justify-between p-2 rounded-lg ${requiresAdminOnly ? 'bg-slate-100 opacity-60' : 'bg-slate-50'}`}
                                     >
                                       <div>
                                         <p className="text-sm text-slate-900">{page.page_name}</p>
                                         <p className="text-xs text-slate-500">{page.page_path}</p>
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        {userHasAccess ? (
+                                        {requiresAdminOnly ? (
+                                          <span className="text-xs text-slate-400 italic" title="Requer permissão de administrador">
+                                            Requer admin
+                                          </span>
+                                        ) : userHasAccess ? (
                                           <Button
                                             variant="ghost"
                                             size="sm"
