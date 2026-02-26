@@ -24,7 +24,7 @@ const GestaoClientes = () => {
   const [status, setStatus] = useState('');
   const [tipo, setTipo] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [searched, setSearched] = useState(false);
+  const [searched, setSearched] = useState(true);
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
