@@ -1085,7 +1085,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual</Label>
-                                        <Select disabled={ed.tipo_pessoa === 'PF'} value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
+                                        <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                           <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
                                         </Select>
@@ -1222,7 +1222,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           {/* 3. Inscrição Estadual */}
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
-                            <Select disabled={draftEntity.tipo_pessoa === 'PF'} value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
+                            <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__">Selecione...</SelectItem>
