@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NewClientModal from '@/components/equipe/dev/NewClientModal';
 
@@ -30,8 +30,6 @@ const GestaoClientes = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Estados do contribuinte (apenas para filtrar)
-  const [tipoPessoa, setTipoPessoa] = useState('');
-  const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
 
   // Modal de cadastro completo (usado para criar, editar e visualizar)
@@ -42,10 +40,10 @@ const GestaoClientes = () => {
   const queryClient = useQueryClient();
 
   // Verifica se há filtros ativos
-  const hasActiveFilters = clienteId || status || tipo || categoria || nomeRazaoSocial || tipoPessoa || cpfCnpj;
+  const hasActiveFilters = clienteId || status || tipo || categoria || nomeRazaoSocial;
 
   // Verifica se há filtros de contribuinte ativos
-  const hasContribuinteFilters = nomeRazaoSocial || tipoPessoa || cpfCnpj;
+  const hasContribuinteFilters = !!nomeRazaoSocial;
 
   // Query para lista de clientes (id + nome)
   const { data: clientes = [] } = useQuery({
@@ -98,7 +96,7 @@ const GestaoClientes = () => {
 
   // Query principal - busca clientes
   const { data: resultados = [], isLoading, refetch } = useQuery({
-    queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, categoria, tipoPessoa, cpfCnpj, nomeRazaoSocial],
+    queryKey: ['clientes-filtrados', clienteTable, clienteId, status, tipo, categoria, nomeRazaoSocial],
     queryFn: async () => {
       let filteredClienteIds: string[] | null = null;
       
@@ -107,8 +105,6 @@ const GestaoClientes = () => {
           .from(contribuinteTable)
           .select('cliente_id');
         
-        if (tipoPessoa) contribuinteQuery = contribuinteQuery.eq('tipo_pessoa', tipoPessoa);
-        if (cpfCnpj) contribuinteQuery = contribuinteQuery.ilike('cpf_cnpj', `%${cpfCnpj}%`);
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq('nome_razao_social', nomeRazaoSocial);
 
         const { data: contribData, error: contribError } = await contribuinteQuery;
@@ -168,8 +164,6 @@ const GestaoClientes = () => {
     setStatus('');
     setTipo('');
     setCategoria('');
-    setTipoPessoa('');
-    setCpfCnpj('');
     setNomeRazaoSocial('');
     setSearched(false);
     setCurrentPage(1);
@@ -242,8 +236,8 @@ const GestaoClientes = () => {
                 </Select>
               </div>
 
-              {/* Contribuinte - 5 colunas */}
-              <div className="col-span-12 md:col-span-5">
+              {/* Contribuinte - 3 colunas */}
+              <div className="col-span-12 md:col-span-3">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte</label>
                 <Select value={nomeRazaoSocial} onValueChange={setNomeRazaoSocial}>
                   <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
@@ -310,9 +304,9 @@ const GestaoClientes = () => {
                   Limpar filtros
                 </Button>
               )}
-              <Button onClick={handleSearch} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-                <Search className="h-4 w-4" />
-                Buscar
+              <Button onClick={handleSearch} disabled={isLoading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {isLoading ? 'Buscando...' : 'Buscar'}
               </Button>
             </div>
           </CardContent>

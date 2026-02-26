@@ -872,7 +872,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           className="text-base font-bold"
                         />
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
                         <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -884,14 +884,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
                         <div className="flex items-center gap-2 h-10">
                           <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
                           <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de relacionamento</Label>
                         <div className="flex bg-muted p-1 rounded-lg">
                           <button
@@ -908,7 +908,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           >Pontual</button>
                         </div>
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
                         <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -924,7 +924,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
                         <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -945,7 +945,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           />
                         )}
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
                         <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -961,7 +961,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-12 md:col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Empresa / Faturamento *</Label>
                         <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1061,36 +1061,36 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 {isExpanded && isEditingThis && ed && (
                                   <div className="px-4 pb-4 border-t pt-3">
                                     <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-3">
+                                      <div className="col-span-12 md:col-span-3">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
                                         <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}>
                                           <SelectTrigger><SelectValue /></SelectTrigger>
                                           <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="col-span-9">
+                                      <div className="col-span-12 md:col-span-9">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
                                         <div className="relative">
                                           <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ') })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8" />
                                           {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                                         </div>
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
                                         <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium" />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
                                         <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} disabled={ed.tipo_pessoa === 'PF'} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual</Label>
                                         <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                           <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         {ed.situacao_inscricao_estadual === 'sim' && (
                                           <>
                                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº IE</Label>
@@ -1100,11 +1100,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       {ed.tipo_pessoa === 'PJ' && (
                                         <>
-                                          <div className="col-span-6">
+                                          <div className="col-span-12 md:col-span-6">
                                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
                                             <Input value={ed.cod_cnae || ''} onChange={e => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} />
                                           </div>
-                                          <div className="col-span-6">
+                                          <div className="col-span-12 md:col-span-6">
                                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
                                             <div className="flex items-center gap-2 h-10">
                                               <Checkbox checked={ed.simples_nacional || false} onCheckedChange={c => setEditingEntityData({ ...ed, simples_nacional: !!c })} />
@@ -1113,34 +1113,34 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </div>
                                         </>
                                       )}
-                                      <div className="col-span-4">
+                                      <div className="col-span-12 md:col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
                                         <div className="relative">
                                           <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
                                           {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                                         </div>
                                       </div>
-                                      <div className="col-span-8">
+                                      <div className="col-span-12 md:col-span-8">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro</Label>
                                         <Input value={ed.logradouro || ''} onChange={e => setEditingEntityData({ ...ed, logradouro: e.target.value })} />
                                       </div>
-                                      <div className="col-span-3">
+                                      <div className="col-span-12 md:col-span-3">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
                                         <Input value={ed.numero || ''} onChange={e => setEditingEntityData({ ...ed, numero: e.target.value })} />
                                       </div>
-                                      <div className="col-span-9">
+                                      <div className="col-span-12 md:col-span-9">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
                                         <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} />
                                       </div>
-                                      <div className="col-span-4">
+                                      <div className="col-span-12 md:col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro</Label>
                                         <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} />
                                       </div>
-                                      <div className="col-span-5">
+                                      <div className="col-span-12 md:col-span-5">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
                                         <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} />
                                       </div>
-                                      <div className="col-span-3">
+                                      <div className="col-span-12 md:col-span-3">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
                                         <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} />
                                       </div>
@@ -1185,7 +1185,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         </div>
                         <div className="grid grid-cols-12 gap-3">
                           {/* 1. Tipo + CPF/CNPJ */}
-                          <div className="col-span-3">
+                          <div className="col-span-12 md:col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
                             <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1195,7 +1195,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-9">
+                          <div className="col-span-12 md:col-span-9">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ *</Label>
                             <div className="relative">
                               <Input
@@ -1210,17 +1210,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </div>
 
                           {/* 2. Razão Social + Nome Fantasia */}
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
                             <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
                             <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" disabled={draftEntity.tipo_pessoa === 'PF'} />
                           </div>
 
                           {/* 3. Inscrição Estadual */}
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
                             <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1232,7 +1232,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             {draftEntity.situacao_inscricao_estadual === 'sim' && (
                               <>
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº Inscrição Estadual *</Label>
@@ -1244,11 +1244,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           {/* 4. CNAE + Simples */}
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <>
-                              <div className="col-span-6">
+                              <div className="col-span-12 md:col-span-6">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE *</Label>
                                 <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
                               </div>
-                              <div className="col-span-6">
+                              <div className="col-span-12 md:col-span-6">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
                                 <div className="flex items-center gap-2 h-10">
                                   <Checkbox
@@ -1262,7 +1262,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           )}
 
                           {/* 5. CEP */}
-                          <div className="col-span-4">
+                          <div className="col-span-12 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
                             <div className="relative">
                               <Input
@@ -1277,29 +1277,29 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </div>
 
                           {/* 6. Logradouro + Número + Complemento */}
-                          <div className="col-span-8">
+                          <div className="col-span-12 md:col-span-8">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro *</Label>
                             <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." />
                           </div>
-                          <div className="col-span-3">
+                          <div className="col-span-12 md:col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
                             <Input value={draftEntity.numero || ''} onChange={e => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" />
                           </div>
-                          <div className="col-span-9">
+                          <div className="col-span-12 md:col-span-9">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
                             <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." />
                           </div>
 
                           {/* 7. Bairro + Município + UF */}
-                          <div className="col-span-4">
+                          <div className="col-span-12 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro *</Label>
                             <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} />
                           </div>
-                          <div className="col-span-5">
+                          <div className="col-span-12 md:col-span-5">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município *</Label>
                             <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} />
                           </div>
-                          <div className="col-span-3">
+                          <div className="col-span-12 md:col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF *</Label>
                             <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} />
                           </div>
@@ -1383,11 +1383,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 {isExpanded && isEditingThis && ep && (
                                   <div className="px-4 pb-4 border-t pt-3">
                                     <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome *</Label>
                                         <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
                                         <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1399,19 +1399,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
                                         <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
                                         <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                                         <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
                                         <div className="flex items-center gap-2 h-10">
                                           <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
@@ -1455,11 +1455,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           Novo Participante
                         </h4>
                         <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
                             <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
                             <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1471,19 +1471,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
                             <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
                             <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                             <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
                             <div className="flex items-center gap-2 h-10">
                               <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
@@ -1582,15 +1582,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 {isExpanded && isEditingThis && ec && (
                                   <div className="px-4 pb-4 border-t pt-3">
                                     <div className="grid grid-cols-12 gap-3">
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">OS *</Label>
                                         <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
                                         <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
                                         <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1602,7 +1602,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
                                         <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} />
                                       </div>
@@ -1611,23 +1611,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
                                         <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
                                         <Input type="date" value={ec.data_inicio_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_inicio_projeto: e.target.value })} />
                                       </div>
-                                      <div className="col-span-6">
+                                      <div className="col-span-12 md:col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
                                         <Input type="date" value={ec.data_fim_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_fim_projeto: e.target.value })} />
                                       </div>
-                                      <div className="col-span-4">
+                                      <div className="col-span-12 md:col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor (R$) *</Label>
                                         <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} />
                                       </div>
-                                      <div className="col-span-4">
+                                      <div className="col-span-12 md:col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso km (R$)</Label>
                                         <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} />
                                       </div>
-                                      <div className="col-span-4">
+                                      <div className="col-span-12 md:col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
                                         <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} />
                                       </div>
@@ -1662,15 +1662,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
                         <div className="grid grid-cols-12 gap-3">
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número da OS *</Label>
                             <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
                             <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
                             <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1682,7 +1682,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
                             <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
                           </div>
@@ -1697,23 +1697,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             />
                             <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
                             <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-12 md:col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
                             <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-4">
+                          <div className="col-span-12 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
                             <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
                           </div>
-                          <div className="col-span-4">
+                          <div className="col-span-12 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso por km (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} />
                           </div>
-                          <div className="col-span-4">
+                          <div className="col-span-12 md:col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} />
                           </div>
