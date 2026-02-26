@@ -324,6 +324,36 @@ const EquipeControleAcessos = () => {
         }
       }
       
+      // Fire-and-forget: dispara webhook n8n para e-mail de boas-vindas
+      const adminName = user?.user_metadata?.first_name && user?.user_metadata?.last_name
+        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+        : user?.email || 'Admin';
+
+      fetch('https://psadigital.app.n8n.cloud/webhook-test/8dd8b7e4-2843-4ab6-bf97-7a3941548153', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'user_created',
+          user_data: {
+            first_name: newUser.first_name,
+            last_name: newUser.last_name,
+            email: newUser.email,
+            roles: newUser.roles,
+            areas: newUser.areas,
+          },
+          credentials: {
+            email: newUser.email,
+            temporary_password: newUser.password,
+          },
+          platform: {
+            login_url: 'https://psa-consultores.lovable.app/equipe',
+            name: 'PSA Consultores',
+          },
+          created_by: adminName,
+          created_at: new Date().toISOString(),
+        }),
+      }).catch((err) => console.error('[Webhook boas-vindas] Falha ao disparar:', err));
+
       setCreatedCredentials({ email: newUser.email, password: newUser.password });
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
