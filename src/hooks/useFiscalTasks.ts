@@ -25,6 +25,7 @@ export interface FiscalTask {
    category: FiscalTaskCategory;
    tags: string[];
    
+   estimated_hours: number | null;
    parent_task_id: string | null;
   start_date: string | null;
   project_id: string | null;
@@ -76,6 +77,7 @@ export interface TaskFilters {
    recurrence_type?: FiscalRecurrenceType;
    category?: FiscalTaskCategory;
    tags?: string[];
+   estimated_hours?: number;
    parent_task_id?: string;
   project_id?: string;
   client_id?: string;
