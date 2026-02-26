@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const { signIn, user, isAdmin, loading: authLoading } = useAuth();
+  const { signIn, user, isAdmin, mustChangePassword, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Query to check if user has access to gestao area
@@ -74,6 +74,11 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // Must change password — redirect
+  if (user && mustChangePassword) {
+    return <Navigate to="/primeiro-acesso" replace />;
   }
 
   // If not authenticated, show login form
