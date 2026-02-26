@@ -169,6 +169,13 @@ const EquipeAuth = () => {
             return;
           }
           
+          // Verificar se precisa trocar senha
+          if (session.user.user_metadata?.must_change_password === true) {
+            navigate('/primeiro-acesso', { replace: true });
+            setIsLoading(false);
+            return;
+          }
+          
           // Tem acesso, pode navegar
           navigateToArea(navigate, selectedArea);
         }

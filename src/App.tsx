@@ -57,6 +57,7 @@ import Novidades from "./pages/Novidades";
 import Ajuda from "./pages/Ajuda";
 import Missao from "./pages/Missao";
 import NotFound from "./pages/NotFound";
+import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
@@ -95,6 +96,7 @@ const App = () => (
             <Route path="/ajuda" element={<Ajuda />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
             
             {/* Cliente Routes */}
             <Route path="/cliente" element={<ProtectedRoute><ClienteDashboard /></ProtectedRoute>} />

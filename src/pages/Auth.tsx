@@ -49,6 +49,10 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
+      if (user.user_metadata?.must_change_password === true) {
+        navigate('/primeiro-acesso', { replace: true });
+        return;
+      }
       navigate(isAdmin ? '/admin' : '/cliente');
     }
   }, [user, isAdmin, navigate]);
