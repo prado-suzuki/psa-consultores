@@ -140,6 +140,24 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
+  // Fetch aggregated estimated hours per project from fiscal_tasks
+  const { data: projectHours = {} } = useQuery({
+    queryKey: ['fiscal-project-hours'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fiscal_tasks')
+        .select('project_id, estimated_hours');
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((t: any) => {
+        if (t.project_id && t.estimated_hours) {
+          map[t.project_id] = (map[t.project_id] || 0) + t.estimated_hours;
+        }
+      });
+      return map;
+    },
+  });
+
   // Fetch tax_area_categorias (links)
   const { data: areaCategoryLinks = [] } = useQuery({
     queryKey: ['tax-area-categorias'],
@@ -626,19 +644,20 @@ const FiscalProjetosCadastro = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Término</TableHead>
+                  <TableHead>Horas Est.</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-slate-500">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-slate-500">
                       Nenhum projeto cadastrado
                     </TableCell>
                   </TableRow>
@@ -691,6 +710,9 @@ const FiscalProjetosCadastro = () => {
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {project.end_date ? format(new Date(project.end_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
