@@ -1,147 +1,139 @@
 
 
-# Refatorar Layout para Estritamente Vertical (1 Campo = 1 Linha)
+# Correcoes de UX: Datas, Endereco e Agrupamento na Aba OS
 
-## Problema
-Os formularios das abas Contribuintes, Participantes e OS agrupam 2-3 campos na mesma linha (ex: "Tipo + CPF/CNPJ", "Bairro + Municipio + UF"), causando layout apertado e ilegivel.
+## 1. Reordenacao dos campos de endereco (Aba Contribuintes)
 
-## Regra unica
-Cada campo ocupa sua propria linha. Zero excecoes. Campos curtos (UF, Numero, CEP, CNAE, Nº OS) recebem `max-w` no container do input para nao esticar.
+Tanto no **Inline Edit** (linhas 1159-1210) quanto no **Draft Form** (linhas 1342-1399), a ordem atual dos campos de endereco sera reorganizada para:
 
-## Estrutura padrao de cada linha
+1. **CEP** (max-w-[160px], com loader ViaCEP) -- mantem no topo
+2. **UF** (max-w-[120px])
+3. **Municipio** (full width)
+4. **Bairro** (full width)
+5. **Logradouro** (full width)
+6. **Numero** (max-w-[120px])
+7. **Complemento** (full width)
+
+Isso significa apenas reordenar os blocos `<div>` existentes -- nenhuma alteracao de estrutura ou estilo, apenas mover as linhas de CEP, UF, Municipio, Bairro, Logradouro, Numero, Complemento para a nova sequencia.
+
+---
+
+## 2. Substituicao dos inputs de data por Popover + Calendar (Aba OS)
+
+### Componentes reutilizados do projeto
+
+- `Popover`, `PopoverTrigger`, `PopoverContent` de `@/components/ui/popover`
+- `Calendar` de `@/components/ui/calendar` (ja configurado com `ptBR` e `pointer-events-auto`)
+- `Button` de `@/components/ui/button`
+- `format` e `parse` de `date-fns` com locale `ptBR`
+- `CalendarIcon` de `lucide-react`
+- Funcoes utilitarias de `@/lib/dateUtils` (`parseDate`)
+
+### Campos afetados (4 campos x 2 formularios = 8 substituicoes)
+
+| Campo | Inline Edit | Draft Form |
+|-------|-------------|------------|
+| Data Emissao | linha 1729-1734 | linha 1838-1843 |
+| Data Inicio | linha 1765-1771 | linha 1881-1886 |
+| Data Fim | linha 1772-1778 | linha 1888-1893 |
+
+### Estrutura do novo campo de data
+
+Cada `<Input type="date">` sera substituido por:
 
 ```text
-<div className="flex flex-row items-center gap-4">
-  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome</Label>
-  <div className="flex-1">
-    <Input className="h-8" />
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" className="h-8 max-w-[200px] justify-start text-left font-normal">
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      {valor ? format(parseDate(valor), "dd/MM/yyyy") : "Selecione..."}
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+    <Calendar
+      mode="single"
+      selected={valor ? parseDate(valor) : undefined}
+      onSelect={(date) => {
+        // Converte Date para string YYYY-MM-DD e atualiza o state
+      }}
+      disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060}
+      initialFocus
+    />
+  </PopoverContent>
+</Popover>
+```
+
+### Travas de ano
+
+- `disabled` no Calendar impede selecao de datas com ano < 2000 ou > 2060.
+- O formato de exibicao sera `dd/MM/yyyy` (padrao brasileiro).
+- O valor armazenado internamente continua como string `YYYY-MM-DD` (compativel com o banco).
+
+### Imports a adicionar
+
+- `CalendarIcon` de `lucide-react` (ja tem outros icones importados)
+- `Calendar` de `@/components/ui/calendar`
+- `Popover, PopoverTrigger, PopoverContent` de `@/components/ui/popover`
+- `format` de `date-fns`
+- `parseDate` de `@/lib/dateUtils`
+
+---
+
+## 3. Agrupamento lado a lado na Aba OS
+
+### Par 1: Data Inicio + Data Fim
+
+Agrupar em uma unica linha flex horizontal:
+
+```text
+<div className="flex flex-row items-center gap-6">
+  <div className="flex flex-row items-center gap-4 flex-1">
+    <Label className="w-48 shrink-0 ...">Data Inicio *</Label>
+    <div className="flex-1">[Popover Calendar]</div>
+  </div>
+  <div className="flex flex-row items-center gap-4 flex-1">
+    <Label className="w-32 shrink-0 ...">Data Fim</Label>
+    <div className="flex-1">[Popover Calendar]</div>
   </div>
 </div>
 ```
 
-Para campos curtos (UF, Numero, CEP, CNAE, Nº OS):
-```text
-<div className="flex flex-row items-center gap-4">
-  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
-  <div className="flex-1">
-    <Input className="h-8 max-w-[120px]" maxLength={2} />
-  </div>
-</div>
-```
+### Par 2: Reembolsos (km + refeicao)
 
-Para Checkbox/Switch:
+Agrupar lado a lado com labels completas:
+
 ```text
-<div className="flex flex-row items-center gap-4">
-  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional</Label>
-  <div className="flex-1">
-    <div className="flex items-center gap-2 h-8">
-      <Checkbox /> <span>Optante</span>
+<div className="flex flex-row items-center gap-6">
+  <div className="flex flex-row items-center gap-4 flex-1">
+    <Label className="w-48 shrink-0 ...">Reembolso por km (R$)</Label>
+    <div className="flex-1">
+      <Input type="number" className="h-8 max-w-[160px]" />
+    </div>
+  </div>
+  <div className="flex flex-row items-center gap-4 flex-1">
+    <Label className="w-48 shrink-0 ...">Reembolso refeicao (R$)</Label>
+    <div className="flex-1">
+      <Input type="number" className="h-8 max-w-[160px]" />
     </div>
   </div>
 </div>
 ```
 
-Para Textarea (items-start em vez de items-center):
-```text
-<div className="flex flex-row items-start gap-4">
-  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Descricao</Label>
-  <div className="flex-1">
-    <Textarea className="min-h-[60px]" />
-  </div>
-</div>
-```
+Nota: a label `w-48` nos pares usa um pouco menos de espaco que campos sozinhos porque `flex-1` distribui igualmente. A label do segundo campo no par de datas usa `w-32` pois "Data Fim" e mais curto.
+
+### Aplicacao
+
+Estes agrupamentos se aplicam tanto ao **Inline Edit** (linhas 1765-1798) quanto ao **Draft Form** (linhas 1881-1914).
 
 ---
 
-## Exemplo: Endereco na aba Contribuintes (draft)
+## Resumo de alteracoes
 
-Cada campo em sua propria linha, na ordem:
-
-1. CEP (max-w-[160px], com loader)
-2. Logradouro (full width)
-3. Numero (max-w-[120px])
-4. Complemento (full width)
-5. Bairro (full width)
-6. Municipio (full width)
-7. UF (max-w-[120px])
-
----
-
-## Secoes impactadas no arquivo
-
-### Aba Cliente (linhas 858-1004) -- JA OK
-A aba Cliente ja segue o padrao vertical. Nenhuma alteracao necessaria.
-
-### Aba Contribuintes
-
-**Inline Edit (linhas 1084-1186)** -- 6 blocos lado-a-lado para desmontar:
-- Tipo + CPF/CNPJ → 2 linhas separadas (Tipo com max-w-[160px])
-- Razao Social + Nome Fantasia → 2 linhas separadas
-- IE + Nº IE → 2 linhas separadas (IE Select com max-w-xs)
-- CNAE + Simples → 2 linhas separadas (CNAE com max-w-[200px])
-- CEP + Logradouro → 2 linhas separadas
-- Numero + Complemento → 2 linhas separadas
-- Bairro + Municipio + UF → 3 linhas separadas
-
-**Draft Form (linhas 1226-1357)** -- mesmos 6 blocos:
-- Tipo + CPF/CNPJ → 2 linhas
-- Razao Social + Nome Fantasia → 2 linhas
-- IE + Nº IE → 2 linhas
-- CNAE + Simples → 2 linhas
-- CEP + Logradouro → 2 linhas
-- Numero + Complemento → 2 linhas
-- Bairro + Municipio + UF → 3 linhas
-
-### Aba Participantes
-
-**Inline Edit (linhas 1437-1486)** -- 3 blocos:
-- Nome + Tipo → 2 linhas
-- Cargo + Email → 2 linhas
-- Telefone + Acesso Chamados → 2 linhas
-- Observacoes → ja esta sozinho (manter)
-
-**Draft Form (linhas 1519-1573)** -- mesmos 3 blocos:
-- Nome + Tipo → 2 linhas
-- Cargo + Email → 2 linhas
-- Telefone + Acesso Chamados → 2 linhas
-- Observacoes → manter
-
-### Aba OS
-
-**Inline Edit (linhas 1656-1720)** -- 4 blocos:
-- OS + Data Emissao → 2 linhas (OS com max-w-[200px])
-- Gestor + Projeto → 2 linhas
-- Descricao → manter sozinho
-- Data Inicio + Data Fim → 2 linhas (max-w-[200px] cada)
-- Valor + Reemb. km + Reemb. refeicao → 3 linhas separadas (max-w-[200px])
-
-**Draft Form (linhas 1751-1821)** -- mesmos 4 blocos:
-- OS + Data Emissao → 2 linhas
-- Gestor + Projeto → 2 linhas
-- Descricao → manter
-- Data Inicio + Data Fim → 2 linhas
-- Valor + Reemb. km + Reemb. refeicao → 3 linhas
-
-## Campos com max-w (curtos)
-
-| Campo | max-w |
-|-------|-------|
-| Tipo (PJ/PF) | max-w-[160px] |
-| UF | max-w-[120px] |
-| Numero | max-w-[120px] |
-| CEP | max-w-[160px] |
-| CNAE | max-w-[200px] |
-| Nº OS | max-w-[200px] |
-| Data Emissao | max-w-[200px] |
-| Data Inicio | max-w-[200px] |
-| Data Fim | max-w-[200px] |
-| Valor | max-w-[200px] |
-| Reemb. km | max-w-[200px] |
-| Reemb. refeicao | max-w-[200px] |
-
-## Arquivo alterado
-
-| Arquivo | Secoes |
-|---------|--------|
-| `NewClientModal.tsx` | Inline edit e draft form das 3 abas (Contribuintes, Participantes, OS) |
+| Arquivo | Alteracao |
+|---------|-----------|
+| `NewClientModal.tsx` | Reordenar campos de endereco (Contribuintes inline + draft) |
+| `NewClientModal.tsx` | Substituir 8x `<Input type="date">` por Popover+Calendar (OS inline + draft) |
+| `NewClientModal.tsx` | Agrupar Data Inicio/Fim e Reembolsos lado a lado (OS inline + draft) |
+| `NewClientModal.tsx` | Renomear labels "Reemb. km" → "Reembolso por km (R$)" e "Reemb. refeicao" → "Reembolso refeicao (R$)" |
+| `NewClientModal.tsx` | Adicionar imports: Calendar, Popover*, CalendarIcon, format, parseDate |
 
