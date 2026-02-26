@@ -3,88 +3,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
 
-// Helper para sincronizar com DW em background (fire-and-forget)
-const syncCadastrosToDW = (payload: {
-  clientes?: Array<{
-    id_cliente: string;
-    nome: string;
-    fixo: string | null;
-    telefone: string | null;
-    setor_cliente: string | null;
-    municipio: string | null;
-    uf: string | null;
-    ativo: boolean | null;
-    categoria: string | null;
-    created_at: string;
-    updated_at: string;
-  }>;
-  contribuintes?: Array<{
-    id_contribuinte: string;
-    id_cliente: string;
-    tipo_pessoa: string;
-    cpf_cnpj: string | null;
-    nome_razao_social: string;
-    inscricao_estadual: string | null;
-    cod_cnae: string | null;
-    setor: string | null;
-    simples_nacional: boolean | null;
-    created_at: string;
-    updated_at: string;
-  }>;
-}) => {
-  const environment = isProductionEnvironment ? 'production' : 'development';
-  
-  supabase.functions.invoke('sync-cadastros', {
-    body: { ...payload, environment }
-  }).then(({ error }) => {
-    if (error) {
-      console.error('[sync-cadastros] Erro ao invocar:', error.message);
-    } else {
-      console.log('[sync-cadastros] Sync iniciado em background');
-    }
-  }).catch(err => {
-    console.error('[sync-cadastros] Erro:', err);
-  });
-};
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Building2, X, Loader2, Plus, Pencil } from 'lucide-react';
+import { Filter, Search, Eraser, Users, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import NewClientModal from '@/components/equipe/dev/NewClientModal';
 
 const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
 const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
 
 const ITEMS_PER_PAGE = 10;
-const MODAL_ITEMS_PER_PAGE = 10;
-
-// Formatadores
-const formatCpfCnpj = (value: string | null) => {
-  if (!value) return '-';
-  const clean = value.replace(/\D/g, '');
-  if (clean.length === 11) {
-    return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  }
-  if (clean.length === 14) {
-    return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  }
-  return value;
-};
-
-const formatSimples = (value: boolean | null) => {
-  if (value === null || value === undefined) return '-';
-  return value ? 'Sim' : 'Não';
-};
 
 const GestaoClientes = () => {
   // Estados do cliente
@@ -102,28 +34,10 @@ const GestaoClientes = () => {
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState('');
 
-  // Estados do modal de detalhes (contribuintes)
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<{ id: string; nome: string } | null>(null);
-  const [modalPage, setModalPage] = useState(1);
-
-  // Estados do modal de criar/editar contribuinte
-  const [contribuinteDialogOpen, setContribuinteDialogOpen] = useState(false);
-  const [editingContribuinteId, setEditingContribuinteId] = useState<string | null>(null);
-  const [savingContribuinte, setSavingContribuinte] = useState(false);
-  const [contribuinteForm, setContribuinteForm] = useState({
-    nome_razao_social: '',
-    tipo_pessoa: '',
-    cpf_cnpj: '',
-    inscricao_estadual: '',
-    cod_cnae: '',
-    setor: '',
-    simples_nacional: false,
-  });
-
-  // Novo modal de cadastro completo (usado para criar e editar)
+  // Modal de cadastro completo (usado para criar, editar e visualizar)
   const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
   const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState(false); // true = readOnly (clique na tabela), false = edição
 
   const queryClient = useQueryClient();
 
@@ -229,24 +143,6 @@ const GestaoClientes = () => {
     enabled: searched,
   });
 
-  // Query para contribuintes do modal
-  const { data: contribuintesModal = [], isLoading: loadingModal } = useQuery({
-    queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente?.id],
-    queryFn: async () => {
-      if (!selectedCliente?.id) return [];
-      
-      const { data, error } = await supabase
-        .from(contribuinteTable)
-        .select('*')
-        .eq('cliente_id', selectedCliente.id)
-        .order('nome_razao_social');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: modalOpen && !!selectedCliente?.id,
-  });
-
   // Reset página quando buscar novamente
   useEffect(() => {
     setCurrentPage(1);
@@ -260,15 +156,6 @@ const GestaoClientes = () => {
       currentPage * ITEMS_PER_PAGE
     );
   }, [resultados, currentPage]);
-
-  // Paginação do modal
-  const modalTotalPages = Math.ceil(contribuintesModal.length / MODAL_ITEMS_PER_PAGE);
-  const paginatedContribuintes = useMemo(() => {
-    return contribuintesModal.slice(
-      (modalPage - 1) * MODAL_ITEMS_PER_PAGE,
-      modalPage * MODAL_ITEMS_PER_PAGE
-    );
-  }, [contribuintesModal, modalPage]);
 
   const handleSearch = () => {
     setSearched(true);
@@ -288,117 +175,10 @@ const GestaoClientes = () => {
     setCurrentPage(1);
   };
 
-  const handleClienteClick = (cliente: { id: string; nome: string }) => {
-    setSelectedCliente(cliente);
-    setModalOpen(true);
-    setModalPage(1);
-  };
-
-  // Abrir modal de editar cliente (usando o modal completo)
-  const handleEditCliente = (e: React.MouseEvent, row: any) => {
-    e.stopPropagation();
-    setEditingClienteId(row.id);
+  const handleClienteClick = (cliente: { id: string }) => {
+    setEditingClienteId(cliente.id);
+    setViewMode(true);
     setNovoClienteModalOpen(true);
-  };
-
-  // Abrir modal de novo contribuinte
-  const handleNovoContribuinte = () => {
-    setEditingContribuinteId(null);
-    setContribuinteForm({
-      nome_razao_social: '',
-      tipo_pessoa: '',
-      cpf_cnpj: '',
-      inscricao_estadual: '',
-      cod_cnae: '',
-      setor: '',
-      simples_nacional: false,
-    });
-    setContribuinteDialogOpen(true);
-  };
-
-  // Abrir modal de editar contribuinte
-  const handleEditContribuinte = (e: React.MouseEvent, row: any) => {
-    e.stopPropagation();
-    setEditingContribuinteId(row.id);
-    setContribuinteForm({
-      nome_razao_social: row.nome_razao_social || '',
-      tipo_pessoa: row.tipo_pessoa || '',
-      cpf_cnpj: row.cpf_cnpj || '',
-      inscricao_estadual: row.inscricao_estadual || '',
-      cod_cnae: row.cod_cnae || '',
-      setor: row.setor || '',
-      simples_nacional: row.simples_nacional ?? false,
-    });
-    setContribuinteDialogOpen(true);
-  };
-
-  // Salvar contribuinte
-  const handleSaveContribuinte = async () => {
-    if (!contribuinteForm.nome_razao_social.trim() || !contribuinteForm.tipo_pessoa) {
-      toast.error('Nome/Razão Social e Tipo Pessoa são obrigatórios');
-      return;
-    }
-    
-    if (!selectedCliente?.id) {
-      toast.error('Nenhum cliente selecionado');
-      return;
-    }
-    
-    setSavingContribuinte(true);
-    try {
-      const contribPayload = {
-        nome_razao_social: contribuinteForm.nome_razao_social.trim(),
-        tipo_pessoa: contribuinteForm.tipo_pessoa,
-        cpf_cnpj: contribuinteForm.cpf_cnpj.trim() || null,
-        inscricao_estadual: contribuinteForm.inscricao_estadual.trim() || null,
-        cod_cnae: contribuinteForm.cod_cnae.trim() || null,
-        setor: contribuinteForm.setor.trim() || null,
-        simples_nacional: contribuinteForm.simples_nacional,
-      };
-
-      let data: any;
-      if (editingContribuinteId) {
-        const { data: updated, error } = await supabase.from(contribuinteTable).update(contribPayload).eq('id', editingContribuinteId).select().single();
-        if (error) throw error;
-        data = updated;
-        toast.success('Contribuinte atualizado com sucesso');
-      } else {
-        const { data: inserted, error } = await supabase.from(contribuinteTable).insert({
-          ...contribPayload,
-          cliente_id: selectedCliente!.id,
-        }).select().single();
-        if (error) throw error;
-        data = inserted;
-        toast.success('Contribuinte adicionado com sucesso');
-      }
-      setContribuinteDialogOpen(false);
-      setEditingContribuinteId(null);
-      queryClient.invalidateQueries({ queryKey: ['contribuintes-modal', contribuinteTable, selectedCliente.id] });
-      queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
-      
-      // Sync assíncrono com DW
-      if (data) {
-        syncCadastrosToDW({
-          contribuintes: [{
-            id_contribuinte: data.id,
-            id_cliente: data.cliente_id,
-            tipo_pessoa: data.tipo_pessoa,
-            cpf_cnpj: data.cpf_cnpj,
-            nome_razao_social: data.nome_razao_social,
-            inscricao_estadual: data.inscricao_estadual,
-            cod_cnae: data.cod_cnae,
-            setor: data.setor,
-            simples_nacional: data.simples_nacional,
-            created_at: data.created_at,
-            updated_at: data.updated_at,
-          }]
-        });
-      }
-    } catch (error: any) {
-      toast.error('Erro ao adicionar contribuinte: ' + error.message);
-    } finally {
-      setSavingContribuinte(false);
-    }
   };
 
   const formatStatus = (ativo: boolean | null) => {
@@ -437,7 +217,7 @@ const GestaoClientes = () => {
                 <Filter className="h-5 w-5 text-teal-600" />
                 <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
               </CardTitle>
-              <Button onClick={() => { setEditingClienteId(null); setNovoClienteModalOpen(true); }} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              <Button onClick={() => { setEditingClienteId(null); setViewMode(false); setNovoClienteModalOpen(true); }} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
                 <Plus className="h-4 w-4" />
                 Novo cliente
               </Button>
@@ -569,7 +349,6 @@ const GestaoClientes = () => {
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-slate-100">
@@ -580,7 +359,7 @@ const GestaoClientes = () => {
                               "cursor-pointer transition-colors hover:bg-teal-50/60",
                               index % 2 === 1 && "bg-slate-50/50"
                             )}
-                            onClick={() => handleClienteClick({ id: row.id, nome: row.nome || '-' })}
+                            onClick={() => handleClienteClick({ id: row.id })}
                           >
                             <TableCell className="px-4 py-3.5 font-medium text-slate-900">
                               {row.nome || '-'}
@@ -590,16 +369,6 @@ const GestaoClientes = () => {
                             <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || '-'}</TableCell>
                             <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || '-'}</TableCell>
-                            <TableCell className="px-4 py-3.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
-                                onClick={(e) => handleEditCliente(e, row)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -646,261 +415,18 @@ const GestaoClientes = () => {
         )}
       </div>
 
-      {/* Modal de Contribuintes */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent 
-          className={cn(
-            "max-w-6xl h-auto max-h-[80vh] p-0",
-            "flex flex-col overflow-hidden",
-            "[&>button]:hidden"
-          )}
-        >
-          {/* Header */}
-          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {selectedCliente?.nome}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Contribuintes vinculados
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleNovoContribuinte}
-                className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                size="sm"
-              >
-                <Plus className="h-4 w-4" />
-                Contribuinte
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setModalOpen(false)}
-                className="h-9 w-9 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-auto p-6">
-            {loadingModal ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : contribuintesModal.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
-                Nenhum contribuinte vinculado a este cliente.
-              </div>
-            ) : (
-              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome/Razão Social</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Pessoa</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Simples Nacional</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">CPF/CNPJ</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Inscrição Estadual</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Código CNAE</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="divide-y divide-slate-100">
-                    {paginatedContribuintes.map((row, index) => (
-                      <TableRow 
-                        key={row.id}
-                        className={cn(
-                          "transition-colors hover:bg-teal-50/60",
-                          index % 2 === 1 && "bg-slate-50/50"
-                        )}
-                      >
-                        <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome_razao_social || '-'}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.tipo_pessoa || '-'}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.setor || '-'}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{formatSimples(row.simples_nacional)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600 font-mono text-sm">{formatCpfCnpj(row.cpf_cnpj)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.inscricao_estadual || '-'}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.cod_cnae || '-'}</TableCell>
-                        <TableCell className="px-4 py-3.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
-                            onClick={(e) => handleEditContribuinte(e, row)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-
-          {/* Footer - Paginação */}
-          {contribuintesModal.length > 0 && (
-            <div className="h-12 px-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between flex-shrink-0">
-              <span className="text-xs text-slate-500">
-                Exibindo {paginatedContribuintes.length} de {contribuintesModal.length} contribuintes
-              </span>
-              
-              {modalTotalPages > 1 && (
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">
-                    Página {modalPage} de {modalTotalPages}
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={modalPage === 1 || loadingModal}
-                      onClick={() => setModalPage(p => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={modalPage === modalTotalPages || loadingModal}
-                      onClick={() => setModalPage(p => p + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Criar/Editar Contribuinte */}
-      <Dialog open={contribuinteDialogOpen} onOpenChange={setContribuinteDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-teal-600" />
-              {editingContribuinteId ? 'Editar Contribuinte' : 'Novo Contribuinte'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="nome_razao">Nome/Razão Social *</Label>
-              <Input
-                id="nome_razao"
-                value={contribuinteForm.nome_razao_social}
-                onChange={(e) => setContribuinteForm(f => ({ ...f, nome_razao_social: e.target.value }))}
-                placeholder="Nome ou Razão Social"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Tipo Pessoa *</Label>
-                <Select 
-                  value={contribuinteForm.tipo_pessoa} 
-                  onValueChange={(v) => setContribuinteForm(f => ({ ...f, tipo_pessoa: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PF">Pessoa Física</SelectItem>
-                    <SelectItem value="PJ">Pessoa Jurídica</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                <Input
-                  id="cpf_cnpj"
-                  value={contribuinteForm.cpf_cnpj}
-                  onChange={(e) => setContribuinteForm(f => ({ ...f, cpf_cnpj: e.target.value }))}
-                  placeholder="000.000.000-00"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="ie">Inscrição Estadual</Label>
-                <Input
-                  id="ie"
-                  value={contribuinteForm.inscricao_estadual}
-                  onChange={(e) => setContribuinteForm(f => ({ ...f, inscricao_estadual: e.target.value }))}
-                  placeholder="Inscrição Estadual"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="cnae">Código CNAE</Label>
-                <Input
-                  id="cnae"
-                  value={contribuinteForm.cod_cnae}
-                  onChange={(e) => setContribuinteForm(f => ({ ...f, cod_cnae: e.target.value }))}
-                  placeholder="Código CNAE"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="setor_contrib">Setor</Label>
-                <Input
-                  id="setor_contrib"
-                  value={contribuinteForm.setor}
-                  onChange={(e) => setContribuinteForm(f => ({ ...f, setor: e.target.value }))}
-                  placeholder="Setor"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Simples Nacional</Label>
-                <div className="flex items-center gap-2 h-10">
-                  <Checkbox
-                    checked={contribuinteForm.simples_nacional}
-                    onCheckedChange={(checked) => setContribuinteForm(f => ({ ...f, simples_nacional: !!checked }))}
-                  />
-                  <span className="text-sm">Optante do Simples Nacional</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setContribuinteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveContribuinte} disabled={savingContribuinte} className="bg-teal-600 hover:bg-teal-700">
-              {savingContribuinte && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Cadastro Completo (Novo + Editar Cliente) */}
+      {/* Modal de Cadastro Completo (Novo, Editar e Visualizar Cliente) */}
       <NewClientModal
         open={novoClienteModalOpen}
         onOpenChange={(v) => {
           setNovoClienteModalOpen(v);
-          if (!v) setEditingClienteId(null);
+          if (!v) {
+            setEditingClienteId(null);
+            setViewMode(false);
+          }
         }}
         editingClienteId={editingClienteId}
+        readOnly={viewMode}
       />
     </DevLayout>
   );

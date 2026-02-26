@@ -115,9 +115,10 @@ interface NewClientModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingClienteId?: string | null;
+  readOnly?: boolean;
 }
 
-export default function NewClientModal({ open, onOpenChange, editingClienteId }: NewClientModalProps) {
+export default function NewClientModal({ open, onOpenChange, editingClienteId, readOnly = false }: NewClientModalProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -125,6 +126,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
+  const [isReadOnly, setIsReadOnly] = useState(readOnly);
+
+  // Sync isReadOnly when modal opens or readOnly prop changes
+  useEffect(() => {
+    if (open) setIsReadOnly(readOnly);
+  }, [open, readOnly]);
 
   const tabOrder: typeof activeTab[] = ['cliente', 'contribuintes', 'participantes', 'contratos'];
   const currentTabIndex = tabOrder.indexOf(activeTab);
@@ -562,6 +569,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
     });
     setActiveTab('cliente');
+    setIsReadOnly(readOnly);
     clearDraft();
     onOpenChange(false);
   };
@@ -583,16 +591,30 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         {/* Header */}
         <div className="px-6 py-3 border-b flex justify-between items-center bg-muted/50 shrink-0">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            {isEditing ? (
+            {isReadOnly ? (
+              <Building2 className="text-teal-600" size={22} />
+            ) : isEditing ? (
               <Pencil className="text-teal-600" size={22} />
             ) : (
               <Plus className="text-teal-600" size={22} />
             )}
-            {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
+            {isReadOnly ? 'Visualizar Cliente' : isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
           </h2>
-          <button onClick={resetAndClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
-            <X size={22} />
-          </button>
+          <div className="flex items-center gap-2">
+            {isReadOnly && (
+              <Button
+                onClick={() => setIsReadOnly(false)}
+                className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                size="sm"
+              >
+                <Pencil size={14} />
+                Editar
+              </Button>
+            )}
+            <button onClick={resetAndClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
+              <X size={22} />
+            </button>
+          </div>
         </div>
 
         {loadingEdit ? (
@@ -621,7 +643,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
                         <Input
-                          autoFocus
+                          autoFocus={!isReadOnly}
+                          disabled={isReadOnly}
                           value={clientData.nome}
                           onChange={e => setClientData({ ...clientData, nome: e.target.value })}
                           placeholder="Ex: Grupo Empresarial Silva"
@@ -630,7 +653,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Categoria</Label>
-                        <Select value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
+                        <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Bronze">Bronze</SelectItem>
@@ -643,7 +666,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Status</Label>
                         <div className="flex items-center gap-2 h-10">
-                          <Switch checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
+                          <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
                           <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
@@ -652,11 +675,13 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         <div className="flex bg-muted p-1 rounded-lg">
                           <button
                             type="button"
+                            disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
                             className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Sim' ? 'bg-card text-blue-700 shadow-sm' : 'text-muted-foreground'}`}
                           >Fixo</button>
                           <button
                             type="button"
+                            disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
                             className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${clientData.fixo === 'Não' ? 'bg-card text-orange-700 shadow-sm' : 'text-muted-foreground'}`}
                           >Pontual</button>
@@ -664,7 +689,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
-                        <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
+                        <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
@@ -680,7 +705,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
-                        <Select value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
+                        <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
@@ -690,8 +715,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                         {clientData.tipo_produto_segmento === '__outro__' && (
-                          <Input
-                            className="mt-2"
+                            <Input
+                              disabled={isReadOnly}
+                              className="mt-2"
                             value={clientData.tipo_produto_segmento_custom}
                             onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
                             placeholder="Nome do novo produto/segmento"
@@ -700,7 +726,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
-                        <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
+                        <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
@@ -716,7 +742,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                       </div>
                       <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável *</Label>
-                        <Select value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
+                        <Select disabled={isReadOnly} value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
@@ -751,9 +777,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                           {entities.map(ent => (
                             <div key={ent._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!isReadOnly && <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
-                              </button>
+                              </button>}
                               <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
                               <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
                               {ent.tipo_pessoa === 'PJ' && (
@@ -767,6 +793,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
+                      {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Contribuinte
@@ -897,6 +924,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   </section>
                 </TabsContent>
@@ -911,9 +939,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                           {participants.map(part => (
                             <div key={part._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!isReadOnly && <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
-                              </button>
+                              </button>}
                               <div className="font-bold text-foreground">{part.nome}</div>
                               <div className="text-sm text-muted-foreground">{part.cargo}</div>
                               <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
@@ -923,6 +951,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
+                      {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Participante
@@ -960,6 +989,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   </section>
                 </TabsContent>
@@ -974,9 +1004,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                           {contracts.map(cont => (
                              <div key={cont._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!isReadOnly && <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={14} />
-                              </button>
+                              </button>}
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
                                 <span className="text-xs text-muted-foreground">{cont.gestor_responsavel || '—'}</span>
@@ -992,6 +1022,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
+                      {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Nova OS
@@ -1058,6 +1089,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </Button>
                         </div>
                       </div>
+                      )}
                     </div>
                   </section>
                 </TabsContent>
@@ -1074,16 +1106,26 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                 )}
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
-                {isLastTab ? (
-                  <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                    {isEditing ? 'Salvar Alterações' : 'Salvar Cliente'}
-                  </Button>
+                {isReadOnly ? (
+                  !isLastTab && (
+                    <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                      Avançar <ChevronRight size={16} />
+                    </Button>
+                  )
                 ) : (
-                  <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
-                    Avançar <ChevronRight size={16} />
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
+                    {isLastTab ? (
+                      <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                        {isEditing ? 'Salvar Alterações' : 'Salvar Cliente'}
+                      </Button>
+                    ) : (
+                      <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                        Avançar <ChevronRight size={16} />
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
