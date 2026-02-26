@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -94,6 +94,7 @@ export const TaskModal = ({
   const createTask = useCreateFiscalTask();
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
+  const isResettingRef = useRef(false);
 
   // Fetch projects for Tax area
   const { data: projects = [] } = useQuery({
@@ -197,6 +198,10 @@ export const TaskModal = ({
 
   // When project changes: clear dependent fields and auto-set client (with guards)
   useEffect(() => {
+    if (isResettingRef.current) {
+      isResettingRef.current = false;
+      return;
+    }
     if (form.getValues('categoria_id') !== undefined) {
       form.setValue('categoria_id', undefined);
     }
@@ -216,6 +221,7 @@ export const TaskModal = ({
 
   useEffect(() => {
     if (task) {
+      isResettingRef.current = true;
       form.reset({
         title: task.title,
         description: task.description || '',
@@ -237,6 +243,7 @@ export const TaskModal = ({
         tags: task.tags || [],
       });
     } else {
+      isResettingRef.current = true;
       // Try to restore draft first
       const draft = restoreDraft();
       if (draft && draft.title) {
