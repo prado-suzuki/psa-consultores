@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search } from 'lucide-react';
+import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -127,6 +127,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   const [cepLoading, setCepLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
+
+  // Inline expand/edit states
+  const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
+  const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
+  const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
+
+  const [expandedParticipantId, setExpandedParticipantId] = useState<number | null>(null);
+  const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
+  const [editingParticipantData, setEditingParticipantData] = useState<Partial<DraftParticipant> | null>(null);
+
+  const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
+  const [editingContractId, setEditingContractId] = useState<number | null>(null);
+  const [editingContractData, setEditingContractData] = useState<Partial<DraftContract> | null>(null);
 
   // Sync isReadOnly when modal opens or readOnly prop changes
   useEffect(() => {
@@ -441,6 +454,97 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
     });
   };
+
+  // --- INLINE EDIT HELPERS ---
+  const handleInlineCnpjBlur = async (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 14) return;
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error('not found');
+      const data = await res.json();
+      setEditingEntityData(prev => prev ? ({
+        ...prev,
+        nome_razao_social: data.razao_social || prev.nome_razao_social || '',
+        nome_fantasia: data.nome_fantasia || '',
+        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : (prev.cod_cnae || ''),
+        cep: data.cep ? String(data.cep).replace(/\D/g, '') : (prev.cep || ''),
+        logradouro: data.logradouro || prev.logradouro || '',
+        numero: data.numero || prev.numero || '',
+        complemento: data.complemento || prev.complemento || '',
+        bairro: data.bairro || prev.bairro || '',
+        municipio: data.municipio || prev.municipio || '',
+        uf: data.uf || prev.uf || '',
+      }) : prev);
+      toast.success('Dados preenchidos via CNPJ');
+    } catch { toast.error('CNPJ não encontrado'); }
+    finally { setCnpjLoading(false); }
+  };
+
+  const handleInlineCepBlur = async (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) throw new Error('not found');
+      setEditingEntityData(prev => prev ? ({
+        ...prev,
+        logradouro: data.logradouro || prev.logradouro || '',
+        bairro: data.bairro || prev.bairro || '',
+        municipio: data.localidade || prev.municipio || '',
+        uf: data.uf || prev.uf || '',
+      }) : prev);
+      toast.success('Endereço preenchido via CEP');
+    } catch { toast.error('CEP não encontrado'); }
+    finally { setCepLoading(false); }
+  };
+
+  const startEditEntity = (ent: DraftEntity) => {
+    setEditingEntityId(ent._id);
+    setEditingEntityData({ ...ent });
+  };
+  const cancelEditEntity = () => { setEditingEntityId(null); setEditingEntityData(null); };
+  const saveEditEntity = () => {
+    if (!editingEntityData || editingEntityId == null) return;
+    setEntities(entities.map(e => e._id === editingEntityId ? { ...e, ...editingEntityData } as DraftEntity : e));
+    setEditingEntityId(null); setEditingEntityData(null);
+    toast.success('Contribuinte atualizado');
+  };
+
+  const startEditParticipant = (p: DraftParticipant) => {
+    setEditingParticipantId(p._id);
+    setEditingParticipantData({ ...p });
+  };
+  const cancelEditParticipant = () => { setEditingParticipantId(null); setEditingParticipantData(null); };
+  const saveEditParticipant = () => {
+    if (!editingParticipantData || editingParticipantId == null) return;
+    setParticipants(participants.map(p => p._id === editingParticipantId ? { ...p, ...editingParticipantData } as DraftParticipant : p));
+    setEditingParticipantId(null); setEditingParticipantData(null);
+    toast.success('Participante atualizado');
+  };
+
+  const startEditContract = (c: DraftContract) => {
+    setEditingContractId(c._id);
+    setEditingContractData({ ...c });
+  };
+  const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
+  const saveEditContract = () => {
+    if (!editingContractData || editingContractId == null) return;
+    setContracts(contracts.map(c => c._id === editingContractId ? { ...c, ...editingContractData } as DraftContract : c));
+    setEditingContractId(null); setEditingContractData(null);
+    toast.success('OS atualizada');
+  };
+
+  // Field display helper
+  const FieldPair = ({ label, value }: { label: string; value: string | undefined }) => (
+    <div>
+      <span className="text-[10px] font-bold uppercase text-muted-foreground">{label}</span>
+      <div className="text-sm text-foreground">{value || '—'}</div>
+    </div>
+  );
 
   // --- FINAL SAVE ---
   const handleSave = async () => {
@@ -774,22 +878,157 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                     </div>
                     <div className="p-4">
                       {entities.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                          {entities.map(ent => (
-                            <div key={ent._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              {!isReadOnly && <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash2 size={14} />
-                              </button>}
-                              <div className="font-bold text-foreground">{ent.nome_razao_social}</div>
-                              <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
-                              {ent.tipo_pessoa === 'PJ' && (
-                                <div className="flex items-center gap-2 mt-2">
-                                  {/* setor badge removed */}
-                                  {ent.simples_nacional && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                        <div className="space-y-3 mb-4">
+                          {entities.map(ent => {
+                            const isExpanded = expandedEntityId === ent._id;
+                            const isEditingThis = editingEntityId === ent._id;
+                            const ed = isEditingThis ? editingEntityData : null;
+                            return (
+                              <div key={ent._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
+                                {/* Header - always visible */}
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between p-4 text-left"
+                                  onClick={() => { if (!isEditingThis) setExpandedEntityId(isExpanded ? null : ent._id); }}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-bold text-foreground truncate">{ent.nome_razao_social}</div>
+                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{ent.cpf_cnpj || '-'}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2 ml-2">
+                                    {ent.simples_nacional && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
+                                    <Badge variant="outline" className="text-[10px]">{ent.tipo_pessoa}</Badge>
+                                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                                  </div>
+                                </button>
+
+                                {/* Expanded content */}
+                                {isExpanded && !isEditingThis && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="flex justify-end gap-2 mb-3">
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); startEditEntity(ent); }}>
+                                        <Pencil size={12} /> Editar
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setEntities(entities.filter(x => x._id !== ent._id)); setExpandedEntityId(null); }}>
+                                        <Trash2 size={12} /> Remover
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                                      <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
+                                      <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
+                                      <FieldPair label="Razão Social" value={ent.nome_razao_social} />
+                                      <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
+                                      <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : (ent.inscricao_estadual || '—')} />
+                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="CNAE" value={ent.cod_cnae} />}
+                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional ? 'Sim' : 'Não'} />}
+                                      <FieldPair label="CEP" value={ent.cep} />
+                                      <FieldPair label="Logradouro" value={ent.logradouro} />
+                                      <FieldPair label="Número" value={ent.numero} />
+                                      <FieldPair label="Complemento" value={ent.complemento} />
+                                      <FieldPair label="Bairro" value={ent.bairro} />
+                                      <FieldPair label="Município" value={ent.municipio} />
+                                      <FieldPair label="UF" value={ent.uf} />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Inline edit mode */}
+                                {isExpanded && isEditingThis && ed && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="grid grid-cols-12 gap-3">
+                                      <div className="col-span-3">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
+                                        <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v })}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="col-span-9">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CPF/CNPJ</Label>
+                                        <div className="relative">
+                                          <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: e.target.value })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8" />
+                                          {cnpjLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                                        </div>
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social</Label>
+                                        <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium" />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
+                                        <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual</Label>
+                                        <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
+                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                          <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem></SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="col-span-6">
+                                        {ed.situacao_inscricao_estadual === 'sim' && (
+                                          <>
+                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nº IE</Label>
+                                            <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} />
+                                          </>
+                                        )}
+                                      </div>
+                                      {ed.tipo_pessoa === 'PJ' && (
+                                        <>
+                                          <div className="col-span-6">
+                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE</Label>
+                                            <Input value={ed.cod_cnae || ''} onChange={e => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} />
+                                          </div>
+                                          <div className="col-span-6">
+                                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
+                                            <div className="flex items-center gap-2 h-10">
+                                              <Checkbox checked={ed.simples_nacional || false} onCheckedChange={c => setEditingEntityData({ ...ed, simples_nacional: !!c })} />
+                                              <span className="text-sm">Optante</span>
+                                            </div>
+                                          </div>
+                                        </>
+                                      )}
+                                      <div className="col-span-4">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP</Label>
+                                        <div className="relative">
+                                          <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: e.target.value })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
+                                          {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                                        </div>
+                                      </div>
+                                      <div className="col-span-8">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Logradouro</Label>
+                                        <Input value={ed.logradouro || ''} onChange={e => setEditingEntityData({ ...ed, logradouro: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-3">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número</Label>
+                                        <Input value={ed.numero || ''} onChange={e => setEditingEntityData({ ...ed, numero: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-9">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Complemento</Label>
+                                        <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Bairro</Label>
+                                        <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-5">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Município</Label>
+                                        <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-3">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">UF</Label>
+                                        <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} />
+                                      </div>
+                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                        <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
+                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}><Save size={14} /> Salvar</Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -936,18 +1175,78 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                     </div>
                     <div className="p-4">
                       {participants.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                          {participants.map(part => (
-                            <div key={part._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              {!isReadOnly && <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash2 size={14} />
-                              </button>}
-                              <div className="font-bold text-foreground">{part.nome}</div>
-                              <div className="text-sm text-muted-foreground">{part.cargo}</div>
-                              <div className="text-xs text-muted-foreground mt-1">{part.email}</div>
-                              {part.observacoes && <div className="text-xs text-muted-foreground mt-1 truncate" title={part.observacoes}>{part.observacoes}</div>}
-                            </div>
-                          ))}
+                        <div className="space-y-3 mb-4">
+                          {participants.map(part => {
+                            const isExpanded = expandedParticipantId === part._id;
+                            const isEditingThis = editingParticipantId === part._id;
+                            const ep = isEditingThis ? editingParticipantData : null;
+                            return (
+                              <div key={part._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between p-4 text-left"
+                                  onClick={() => { if (!isEditingThis) setExpandedParticipantId(isExpanded ? null : part._id); }}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-bold text-foreground truncate">{part.nome}</div>
+                                    <div className="text-sm text-muted-foreground">{part.cargo}</div>
+                                  </div>
+                                  <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
+                                </button>
+
+                                {isExpanded && !isEditingThis && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="flex justify-end gap-2 mb-3">
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditParticipant(part)}>
+                                        <Pencil size={12} /> Editar
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setParticipants(participants.filter(p => p._id !== part._id)); setExpandedParticipantId(null); }}>
+                                        <Trash2 size={12} /> Remover
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                      <FieldPair label="Nome" value={part.nome} />
+                                      <FieldPair label="Cargo" value={part.cargo} />
+                                      <FieldPair label="Email" value={part.email} />
+                                      <FieldPair label="Telefone" value={part.telefone} />
+                                      {part.observacoes && <div className="col-span-2"><FieldPair label="Observações" value={part.observacoes} /></div>}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isExpanded && isEditingThis && ep && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="grid grid-cols-12 gap-3">
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome *</Label>
+                                        <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo *</Label>
+                                        <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
+                                        <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
+                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-12">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
+                                        <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="min-h-[60px]" />
+                                      </div>
+                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                        <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
+                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}><Save size={14} /> Salvar</Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -1001,24 +1300,112 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                     </div>
                     <div className="p-4">
                       {contracts.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                          {contracts.map(cont => (
-                             <div key={cont._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
-                              {!isReadOnly && <button onClick={() => setContracts(contracts.filter(c => c._id !== cont._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash2 size={14} />
-                              </button>}
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
-                                <span className="text-xs text-muted-foreground">{cont.gestor_responsavel || '—'}</span>
+                        <div className="space-y-3 mb-6">
+                          {contracts.map(cont => {
+                            const isExpanded = expandedContractId === cont._id;
+                            const isEditingThis = editingContractId === cont._id;
+                            const ec = isEditingThis ? editingContractData : null;
+                            return (
+                              <div key={cont._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between p-4 text-left"
+                                  onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
+                                      <span className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</span>
+                                    </div>
+                                    <div className="font-bold text-foreground mt-0.5">{formatCurrency(cont.valor_projeto)}</div>
+                                  </div>
+                                  <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
+                                </button>
+
+                                {isExpanded && !isEditingThis && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="flex justify-end gap-2 mb-3">
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}>
+                                        <Pencil size={12} /> Editar
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setContracts(contracts.filter(c => c._id !== cont._id)); setExpandedContractId(null); }}>
+                                        <Trash2 size={12} /> Remover
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                                      <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
+                                      <FieldPair label="Data Emissão" value={cont.data_emissao} />
+                                      <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
+                                      <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
+                                      {cont.descricao_projeto && <div className="col-span-2 md:col-span-3"><FieldPair label="Descrição" value={cont.descricao_projeto} /></div>}
+                                      <FieldPair label="Data Início" value={cont.data_inicio_projeto} />
+                                      <FieldPair label="Data Fim" value={cont.data_fim_projeto} />
+                                      <FieldPair label="Valor do Projeto" value={formatCurrency(cont.valor_projeto)} />
+                                      <FieldPair label="Reembolso km" value={formatCurrency(cont.valor_reembolso_km)} />
+                                      <FieldPair label="Reembolso refeição" value={formatCurrency(cont.valor_reembolso_refeicao)} />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isExpanded && isEditingThis && ec && (
+                                  <div className="px-4 pb-4 border-t pt-3">
+                                    <div className="grid grid-cols-12 gap-3">
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">OS *</Label>
+                                        <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
+                                        <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-12">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
+                                        <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
+                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {lideres.map(l => (<SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="col-span-12">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
+                                        <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-12">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição</Label>
+                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[80px]" />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
+                                        <Input type="date" value={ec.data_inicio_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_inicio_projeto: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
+                                        <Input type="date" value={ec.data_fim_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_fim_projeto: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor (R$) *</Label>
+                                        <Input type="number" value={ec.valor_projeto ?? 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso km (R$)</Label>
+                                        <Input type="number" value={ec.valor_reembolso_km ?? 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
+                                        <Input type="number" value={ec.valor_reembolso_refeicao ?? 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} />
+                                      </div>
+                                      <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
+                                        <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
+                                        <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}><Save size={14} /> Salvar</Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</div>
-                              <div className="font-bold text-lg text-foreground mt-1">{formatCurrency(cont.valor_projeto)}</div>
-                              <div className="flex gap-3 text-[11px] text-muted-foreground mt-2">
-                                {cont.data_inicio_projeto && <span>Início: {cont.data_inicio_projeto}</span>}
-                                {cont.data_fim_projeto && <span>Fim: {cont.data_fim_projeto}</span>}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
 
