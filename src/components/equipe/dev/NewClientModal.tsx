@@ -15,7 +15,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save, Copy } from 'lucide-react';
+import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save, Copy, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -1166,6 +1170,27 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </div>
                                         </div>
                                       </div>
+                                      {/* UF */}
+                                      <div className="flex flex-row items-center gap-4">
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
+                                        <div className="flex-1">
+                                          <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
+                                        </div>
+                                      </div>
+                                      {/* Município */}
+                                      <div className="flex flex-row items-center gap-4">
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município</Label>
+                                        <div className="flex-1">
+                                          <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" />
+                                        </div>
+                                      </div>
+                                      {/* Bairro */}
+                                      <div className="flex flex-row items-center gap-4">
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro</Label>
+                                        <div className="flex-1">
+                                          <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" />
+                                        </div>
+                                      </div>
                                       {/* Logradouro */}
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro</Label>
@@ -1185,27 +1210,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
                                         <div className="flex-1">
                                           <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Bairro */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Município */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* UF */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
                                         </div>
                                       </div>
                                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
@@ -1355,6 +1359,27 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </div>
                             </div>
                           </div>
+                          {/* UF */}
+                          <div className="flex flex-row items-center gap-4">
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
+                            <div className="flex-1">
+                              <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
+                            </div>
+                          </div>
+                          {/* Município */}
+                          <div className="flex flex-row items-center gap-4">
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
+                            <div className="flex-1">
+                              <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" />
+                            </div>
+                          </div>
+                          {/* Bairro */}
+                          <div className="flex flex-row items-center gap-4">
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
+                            <div className="flex-1">
+                              <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" />
+                            </div>
+                          </div>
                           {/* Logradouro */}
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro *</Label>
@@ -1374,27 +1399,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
                             <div className="flex-1">
                               <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." className="h-8" />
-                            </div>
-                          </div>
-                          {/* Bairro */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" />
-                            </div>
-                          </div>
-                          {/* Município */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" />
-                            </div>
-                          </div>
-                          {/* UF */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
                             </div>
                           </div>
                           <div className="flex justify-end mt-2">
@@ -1729,7 +1733,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
                                         <div className="flex-1">
-                                          <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} className="h-8 max-w-[200px]" />
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_emissao && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {ec.data_emissao ? format(parseDate(ec.data_emissao), "dd/MM/yyyy") : "Selecione..."}
+                                              </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                              <Calendar mode="single" selected={ec.data_emissao ? parseDate(ec.data_emissao) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_emissao: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                            </PopoverContent>
+                                          </Popover>
                                         </div>
                                       </div>
                                       {/* Gestor */}
@@ -1762,18 +1776,39 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
                                         </div>
                                       </div>
-                                      {/* Data Início */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
-                                        <div className="flex-1">
-                                          <Input type="date" value={ec.data_inicio_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_inicio_projeto: e.target.value })} className="h-8 max-w-[200px]" />
+                                      {/* Data Início + Data Fim (lado a lado) */}
+                                      <div className="flex flex-row items-center gap-6">
+                                        <div className="flex flex-row items-center gap-4 flex-1">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
+                                          <div className="flex-1">
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_inicio_projeto && "text-muted-foreground")}>
+                                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                                  {ec.data_inicio_projeto ? format(parseDate(ec.data_inicio_projeto), "dd/MM/yyyy") : "Selecione..."}
+                                                </Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                                <Calendar mode="single" selected={ec.data_inicio_projeto ? parseDate(ec.data_inicio_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_inicio_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                              </PopoverContent>
+                                            </Popover>
+                                          </div>
                                         </div>
-                                      </div>
-                                      {/* Data Fim */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
-                                        <div className="flex-1">
-                                          <Input type="date" value={ec.data_fim_projeto || ''} onChange={e => setEditingContractData({ ...ec, data_fim_projeto: e.target.value })} className="h-8 max-w-[200px]" />
+                                        <div className="flex flex-row items-center gap-4 flex-1">
+                                          <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
+                                          <div className="flex-1">
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !ec.data_fim_projeto && "text-muted-foreground")}>
+                                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                                  {ec.data_fim_projeto ? format(parseDate(ec.data_fim_projeto), "dd/MM/yyyy") : "Selecione..."}
+                                                </Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                                <Calendar mode="single" selected={ec.data_fim_projeto ? parseDate(ec.data_fim_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setEditingContractData({ ...ec, data_fim_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                              </PopoverContent>
+                                            </Popover>
+                                          </div>
                                         </div>
                                       </div>
                                       {/* Valor */}
@@ -1783,18 +1818,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} className="h-8 max-w-[200px]" />
                                         </div>
                                       </div>
-                                      {/* Reemb. km */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. km</Label>
-                                        <div className="flex-1">
-                                          <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[200px]" />
+                                      {/* Reembolsos (lado a lado) */}
+                                      <div className="flex flex-row items-center gap-6">
+                                        <div className="flex flex-row items-center gap-4 flex-1">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$)</Label>
+                                          <div className="flex-1">
+                                            <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                          </div>
                                         </div>
-                                      </div>
-                                      {/* Reemb. refeição */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. refeição</Label>
-                                        <div className="flex-1">
-                                          <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[200px]" />
+                                        <div className="flex flex-row items-center gap-4 flex-1">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição (R$)</Label>
+                                          <div className="flex-1">
+                                            <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                                          </div>
                                         </div>
                                       </div>
                                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
@@ -1839,7 +1875,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
                             <div className="flex-1">
-                              <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} className="h-8 max-w-[200px]" />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_emissao && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {draftContract.data_emissao ? format(parseDate(draftContract.data_emissao), "dd/MM/yyyy") : "Selecione..."}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                  <Calendar mode="single" selected={draftContract.data_emissao ? parseDate(draftContract.data_emissao) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_emissao: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           </div>
                           {/* Gestor */}
@@ -1878,18 +1924,39 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
                             </div>
                           </div>
-                          {/* Data Início */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
-                            <div className="flex-1">
-                              <Input type="date" value={draftContract.data_inicio_projeto} onChange={e => setDraftContract({ ...draftContract, data_inicio_projeto: e.target.value })} className="h-8 max-w-[200px]" />
+                          {/* Data Início + Data Fim (lado a lado) */}
+                          <div className="flex flex-row items-center gap-6">
+                            <div className="flex flex-row items-center gap-4 flex-1">
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
+                              <div className="flex-1">
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_inicio_projeto && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {draftContract.data_inicio_projeto ? format(parseDate(draftContract.data_inicio_projeto), "dd/MM/yyyy") : "Selecione..."}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                    <Calendar mode="single" selected={draftContract.data_inicio_projeto ? parseDate(draftContract.data_inicio_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_inicio_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
                             </div>
-                          </div>
-                          {/* Data Fim */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
-                            <div className="flex-1">
-                              <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} className="h-8 max-w-[200px]" />
+                            <div className="flex flex-row items-center gap-4 flex-1">
+                              <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
+                              <div className="flex-1">
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("h-8 max-w-[200px] justify-start text-left font-normal", !draftContract.data_fim_projeto && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {draftContract.data_fim_projeto ? format(parseDate(draftContract.data_fim_projeto), "dd/MM/yyyy") : "Selecione..."}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                                    <Calendar mode="single" selected={draftContract.data_fim_projeto ? parseDate(draftContract.data_fim_projeto) : undefined} onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); setDraftContract({ ...draftContract, data_fim_projeto: `${y}-${m}-${d}` }); } }} disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060} initialFocus className="p-3 pointer-events-auto" />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
                             </div>
                           </div>
                           {/* Valor */}
@@ -1899,18 +1966,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} className="h-8 max-w-[200px]" />
                             </div>
                           </div>
-                          {/* Reemb. km */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. km</Label>
-                            <div className="flex-1">
-                              <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[200px]" />
+                          {/* Reembolsos (lado a lado) */}
+                          <div className="flex flex-row items-center gap-6">
+                            <div className="flex flex-row items-center gap-4 flex-1">
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$)</Label>
+                              <div className="flex-1">
+                                <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                              </div>
                             </div>
-                          </div>
-                          {/* Reemb. refeição */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reemb. refeição</Label>
-                            <div className="flex-1">
-                              <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[200px]" />
+                            <div className="flex flex-row items-center gap-4 flex-1">
+                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição (R$)</Label>
+                              <div className="flex-1">
+                                <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} className="h-8 max-w-[160px]" />
+                              </div>
                             </div>
                           </div>
                         </div>
