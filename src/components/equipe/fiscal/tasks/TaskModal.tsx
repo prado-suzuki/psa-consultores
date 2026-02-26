@@ -95,6 +95,7 @@ export const TaskModal = ({
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
   const isResettingRef = useRef(false);
+  const prevProjectIdRef = useRef<string | undefined>(undefined);
 
   // Fetch projects for Tax area
   const { data: projects = [] } = useQuery({
@@ -196,26 +197,31 @@ export const TaskModal = ({
     enabled: open && !!watchedProjectId,
   });
 
-  // When project changes: clear dependent fields and auto-set client (with guards)
+  // When project changes: clear dependent fields and auto-set client
+  // Only act when the user manually changes the project (not during form.reset)
   useEffect(() => {
+    // Skip if this is a reset-triggered change
     if (isResettingRef.current) {
+      prevProjectIdRef.current = watchedProjectId;
       isResettingRef.current = false;
       return;
     }
+    // Skip if the project didn't actually change (e.g. projects array reloaded)
+    if (prevProjectIdRef.current === watchedProjectId) {
+      return;
+    }
+    prevProjectIdRef.current = watchedProjectId;
+
     if (form.getValues('categoria_id') !== undefined) {
       form.setValue('categoria_id', undefined);
     }
-    // Only clear parent_task_id if we're NOT creating a subtask via defaultParentId
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
     // Auto-fill client from the selected project
     const selectedProject = projects.find(p => p.id === watchedProjectId);
     if (selectedProject?.external_client_id) {
-      const currentClient = form.getValues('client_id');
-      if (currentClient !== selectedProject.external_client_id) {
-        form.setValue('client_id', selectedProject.external_client_id);
-      }
+      form.setValue('client_id', selectedProject.external_client_id);
     }
   }, [watchedProjectId, form, projects, defaultParentId]);
 
