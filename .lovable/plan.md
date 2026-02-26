@@ -1,103 +1,70 @@
 
 
-# Refatoracao do NewClientModal -- Novas Regras de Negocio e UX
+# Melhorias de UX e Mascaras no NewClientModal (com correcao de edge case)
 
-## Visao Geral
-Refatorar o componente `NewClientModal.tsx` em 4 frentes: Aba Cliente, Aba Contribuintes, Aba Participantes e Fluxo de UX com prevencao de perda de dados.
+## Resumo
+Adicionar 4 blocos de melhorias ao componente: protecao contra refresh do navegador, funcoes de mascara para formatacao automatica, aplicacao dessas mascaras nos inputs + limite de caracteres, e correcao do edge case ao trocar tipo de pessoa.
 
----
+## Detalhes Tecnicos
 
-## 1. Aba "Dados do Cliente/Grupo" -- Campo empresa_faturamento
+### 1. Protecao contra Refresh / Fechamento da Aba
 
-**Alteracoes:**
-- No `clientData` state (linha 194): substituir `equipe_responsavel` por `empresa_faturamento` (string, default vazio).
-- No `resetAndClose` (linha 667): atualizar o reset para usar `empresa_faturamento` em vez de `equipe_responsavel`.
-- No `handleSave` validacao (linha 559): trocar `equipe_responsavel` por `empresa_faturamento` com mensagem "Empresa / Faturamento e obrigatoria".
-- No JSX (linhas 848-870): substituir label "Equipe responsavel" por "Empresa / Faturamento *" e trocar os SelectItems para as 8 opcoes:
-  - PRADO ADVOGADOS, PRADO CONSULTORES, PRADO SUZUKI, PROFITTO, PROTENUN, PSA ADM JUDICIAL, PSA AUDITORES, PSA NORTE
-- No `loadData` (linha 262): mapear `empresa_faturamento` em vez de `equipe_responsavel`.
+Adicionar um `useEffect` que observa `hasUnsavedChanges`:
+- Se `true`, registra `window.addEventListener('beforeunload', handler)`.
+- O handler: `e.preventDefault(); e.returnValue = '';`.
+- Cleanup remove o listener.
 
----
+### 2. Funcoes de Mascara (utilitarias puras)
 
-## 2. Aba "Contribuintes"
+Criar 3 funcoes no topo do arquivo (antes do componente, apos as constantes):
 
-### 2a. Label Razao Social
-- Nas linhas 1097 e 969 (draft e inline edit): trocar label de "Razao Social *" para "Razao Social / Nome Completo *".
-- Na view expandida (linha 934): trocar label "Razao Social" para "Razao Social / Nome Completo".
+- **`formatCpfCnpj(value, tipo)`**: Remove nao-digitos. Se PF, limita 11 digitos e aplica `000.000.000-00`. Se PJ, limita 14 digitos e aplica `00.000.000/0000-00`.
+- **`formatCep(value)`**: Remove nao-digitos, limita 8, aplica `00000-000`.
+- **`formatPhone(value)`**: Remove nao-digitos, limita 11, aplica `(00) 0000-0000` (10 digitos) ou `(00) 00000-0000` (11 digitos).
 
-### 2b. Nome Fantasia bloqueado para PF
-- Draft (linha 1102): adicionar `disabled={draftEntity.tipo_pessoa === 'PF'}`.
-- Inline edit (linha 974): adicionar `disabled={ed.tipo_pessoa === 'PF'}`.
+### 3. Aplicacao das Mascaras e Limites nos Inputs
 
-### 2c. Inscricao Estadual -- opcao "Nao" + bloqueio para PF
-- Draft (linhas 1108-1115): adicionar `<SelectItem value="nao">Nao</SelectItem>` e adicionar `disabled={draftEntity.tipo_pessoa === 'PF'}` no Select.
-- Inline edit (linhas 978-981): mesmo tratamento.
-- Ao selecionar "nao", limpar o campo inscricao_estadual (mesma logica do "isento").
+**Aba Contribuintes -- CPF/CNPJ:**
+- Draft: trocar onChange para usar `formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ')`.
+- Inline edit: trocar onChange para usar `formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ')`.
 
-### 2d. CEP obrigatorio
-- Label do CEP (linha 1148): adicionar asterisco "CEP *".
-- Validacao `addEntity` (antes da linha 392): adicionar `if (!draftEntity.cep?.trim()) { toast.error('CEP e obrigatorio'); return; }`.
-- Validacao `saveEditEntity`: adicionar mesma verificacao no inline edit.
-- Label do CEP no inline edit (linha 1007): adicionar asterisco.
+**Aba Contribuintes -- CEP:**
+- Draft: trocar onChange para usar `formatCep(e.target.value)`.
+- Inline edit: trocar onChange para usar `formatCep(e.target.value)`.
 
-### 2e. Botao "Copiar endereco do primeiro contribuinte"
-- No bloco "Novo Contribuinte" (apos o titulo na linha 1068, antes dos campos de endereco), adicionar um botao `variant="ghost"` visivel apenas quando `entities.length > 0`.
-- Ao clicar: verificar se `entities[0].cep` existe. Se nao, toast de aviso. Se sim, copiar cep, logradouro, numero, complemento, bairro, municipio, uf para `draftEntity`.
+**Aba Participantes -- Telefone:**
+- Draft: trocar onChange para usar `formatPhone(e.target.value)`.
+- Inline edit: mesma mascara.
 
----
+**Aba Contratos -- Descricao do Projeto:**
+- Draft Textarea: adicionar `maxLength={500}` e contador de caracteres abaixo (`X/500`).
+- Inline edit Textarea: adicionar `maxLength={500}` e contador abaixo.
 
-## 3. Aba "Participantes"
+### 4. Correcao do Edge Case: Troca de Tipo de Pessoa (PJ <-> PF)
 
-### 3a. Interface DraftParticipant
-- Adicionar `tipo_participante: string` e `acesso_chamados: boolean` a interface `DraftParticipant` (linha 81).
-- Atualizar o `draftParticipant` state inicial (linha 221) com `tipo_participante: ''` e `acesso_chamados: false`.
+Ao trocar o Select de "Tipo" (PJ/PF), o campo CPF/CNPJ deve ser limpo para evitar que numeros residuais quebrem a mascara do novo tipo.
 
-### 3b. Campo "Tipo de Participante *"
-- No JSX do draft (antes do campo Cargo, linha 1320): adicionar Select com opcoes: Socio/Proprietario, Contador, Advogado, Procurador, Representante Legal, Diretor/Gestor, Consultor Externo, Outros.
-- Validacao `addParticipant` (linha 416): adicionar verificacao de tipo_participante obrigatorio.
-- Cargo passa a ser opcional (remover asterisco da label e remover validacao de cargo obrigatorio na linha 418).
+**Draft (linha ~1150):** Alterar o `onValueChange` do Select de tipo_pessoa para:
+```text
+onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}
+```
 
-### 3c. Email obrigatorio
-- Label (linha 1325): adicionar asterisco "Email *".
-- Validacao `addParticipant` (linhas 420-423): tornar email obrigatorio (verificar preenchimento antes de validar formato).
+**Inline edit (linha ~1026):** Alterar o `onValueChange` para:
+```text
+onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}
+```
 
-### 3d. Switch "Acesso a Chamados"
-- No JSX do draft (abaixo do campo Telefone): adicionar Switch com label "Acesso a Chamados", default false.
-- No inline edit: adicionar os mesmos campos (tipo_participante, acesso_chamados).
-- Na view expandida: exibir tipo_participante e acesso_chamados.
+### Resumo de alteracoes
 
----
-
-## 4. Fluxo de UX -- Prevencao de Perda de Dados
-
-### 4a. onInteractOutside
-- No `DialogContent` (linha 684): adicionar `onInteractOutside={(e) => e.preventDefault()}`.
-
-### 4b. Estado hasUnsavedChanges
-- Criar um estado `hasUnsavedChanges` derivado da comparacao entre os dados atuais e os dados iniciais (snapshot ao abrir o modal).
-- Armazenar um snapshot dos dados iniciais (`initialSnapshot`) via useRef ao carregar o modal.
-- Comparar `clientData`, `entities`, `participants`, `contracts` com o snapshot para determinar se houve alteracao.
-
-### 4c. AlertDialog de confirmacao ao fechar
-- Criar estado `showExitConfirm` (boolean).
-- Interceptar: botao X (linha 719), botao Cancelar (linha 1589), e `onOpenChange` do Dialog (linha 683).
-- Se `hasUnsavedChanges === true`, mostrar AlertDialog com mensagem "Voce tem dados nao salvos. Deseja sair sem salvar?" com botoes "Sair" e "Continuar Editando".
-- "Sair" chama `resetAndClose()`. "Continuar Editando" fecha apenas o alerta.
-
----
-
-## Resumo de alteracoes
-
-| Area | O que muda |
-|------|-----------|
-| Interface `DraftParticipant` | Adiciona `tipo_participante` e `acesso_chamados` |
-| State `clientData` | `equipe_responsavel` vira `empresa_faturamento` |
-| State `draftParticipant` | Adiciona campos novos |
-| Validacoes | CEP obrigatorio, email obrigatorio, tipo_participante obrigatorio, empresa_faturamento obrigatoria |
-| JSX Aba Cliente | Novo Select com 8 empresas |
-| JSX Aba Contribuintes | Labels atualizadas, campos disabled para PF, opcao "Nao" na IE, botao copiar endereco |
-| JSX Aba Participantes | Select tipo_participante, Switch acesso_chamados, email obrigatorio |
-| Dialog wrapper | onInteractOutside, AlertDialog de confirmacao |
+| Local | O que muda |
+|-------|-----------|
+| Topo do arquivo | 3 funcoes utilitarias: `formatCpfCnpj`, `formatCep`, `formatPhone` |
+| useEffect | Listener `beforeunload` baseado em `hasUnsavedChanges` |
+| Input CPF/CNPJ (draft + inline) | onChange com mascara |
+| Input CEP (draft + inline) | onChange com mascara |
+| Input Telefone participante (draft + inline) | onChange com mascara |
+| Select tipo_pessoa (draft + inline) | Limpa cpf_cnpj ao trocar tipo |
+| Textarea Descricao OS (draft + inline) | `maxLength={500}` + contador |
 
 Arquivo unico alterado: `src/components/equipe/dev/NewClientModal.tsx`
 
