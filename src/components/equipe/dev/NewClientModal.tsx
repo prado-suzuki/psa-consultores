@@ -313,7 +313,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
     if (draftEntity.tipo_pessoa === 'PJ') {
       if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
-      if (!draftEntity.setor?.trim()) { toast.error('Setor é obrigatório para PJ'); return; }
+      // setor removed from UI validation
     }
 
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
@@ -515,24 +515,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
           Formulário de cadastro de cliente com contribuintes, participantes e contratos
         </DialogDescription>
         {/* Header */}
-        <div className="px-8 py-5 border-b flex justify-between items-center bg-muted/50 shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              {isEditing ? (
-                <Pencil className="text-teal-600" size={28} />
-              ) : (
-                <Plus className="text-teal-600" size={28} />
-              )}
-              {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isEditing
-                ? 'Edite os dados do cliente, contribuintes, contatos e contratos.'
-                : 'Adicione todos os dados do cliente, contribuintes, contatos e contratos.'}
-            </p>
-          </div>
+        <div className="px-6 py-3 border-b flex justify-between items-center bg-muted/50 shrink-0">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            {isEditing ? (
+              <Pencil className="text-teal-600" size={22} />
+            ) : (
+              <Plus className="text-teal-600" size={22} />
+            )}
+            {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
+          </h2>
           <button onClick={resetAndClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
-            <X size={28} />
+            <X size={22} />
           </button>
         </div>
 
@@ -543,7 +536,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
         ) : (
           <>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-4 shrink-0">
+              <div className="px-6 pt-2 shrink-0">
                 <TabsList className="w-full grid grid-cols-4">
                   <TabsTrigger value="cliente">Dados do Cliente/Grupo</TabsTrigger>
                   <TabsTrigger value="contribuintes">Contribuintes</TabsTrigger>
@@ -553,12 +546,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
               </div>
 
               <ScrollArea className="flex-1">
-                <TabsContent value="cliente" className="mt-0 p-6 md:p-10">
+                <TabsContent value="cliente" className="mt-0 p-4 md:p-6">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-foreground">Dados do Cliente/Grupo</h3>
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-base font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="p-6 grid grid-cols-12 gap-5">
+                    <div className="p-4 grid grid-cols-12 gap-4">
                       <div className="col-span-12">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Cliente / Grupo *</Label>
                         <Input
@@ -588,7 +581,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           <span className="text-sm">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
                         </div>
                       </div>
-                      <div className="col-span-12">
+                      <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de relacionamento</Label>
                         <div className="flex bg-muted p-1 rounded-lg">
                           <button
@@ -603,7 +596,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           >Pontual</button>
                         </div>
                       </div>
-                      <div className="col-span-12">
+                      <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Área do negócio *</Label>
                         <Select value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -619,7 +612,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12">
+                      <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de produto/segmento *</Label>
                         <Select value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -639,7 +632,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           />
                         )}
                       </div>
-                      <div className="col-span-12">
+                      <div className="col-span-6">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
+                        <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
+                            <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
+                            <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
+                            <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
+                            <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
+                            <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
+                            <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-6">
                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável *</Label>
                         <Select value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -662,34 +671,18 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-12">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Região *</Label>
-                        <Select value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
-                            <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
-                            <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
-                            <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
-                            <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
-                            <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
-                            <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
                   </section>
                 </TabsContent>
 
-                <TabsContent value="contribuintes" className="mt-0 p-6 md:p-10">
+                <TabsContent value="contribuintes" className="mt-0 p-4 md:p-6">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-foreground">Contribuintes ({entities.length})</h3>
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-base font-bold text-foreground">Contribuintes ({entities.length})</h3>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {entities.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                           {entities.map(ent => (
                             <div key={ent._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
                               <button onClick={() => setEntities(entities.filter(e => e._id !== ent._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
@@ -699,7 +692,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                               <div className="text-xs text-muted-foreground font-mono mt-1">{ent.cpf_cnpj || '-'}</div>
                               {ent.tipo_pessoa === 'PJ' && (
                                 <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-[10px] bg-card px-2 py-0.5 rounded border font-bold text-foreground">{ent.setor}</span>
+                                  {/* setor badge removed */}
                                   {ent.simples_nacional && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
                                 </div>
                               )}
@@ -708,11 +701,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
-                      <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                      <div className="bg-muted/50 rounded-lg border p-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Contribuinte
                         </h4>
-                        <div className="grid grid-cols-12 gap-4">
+                        <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo</Label>
                             <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v })}>
@@ -755,22 +748,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
 
                           {draftEntity.tipo_pessoa === 'PJ' && (
                             <>
-                              <div className="col-span-4">
+                              <div className="col-span-6">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CNAE *</Label>
                                 <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" />
                               </div>
-                              <div className="col-span-4">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Setor *</Label>
-                                <Select value={draftEntity.setor || 'Indústria'} onValueChange={v => setDraftEntity({ ...draftEntity, setor: v })}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Indústria">Indústria</SelectItem>
-                                    <SelectItem value="Agronegócio">Agronegócio</SelectItem>
-                                    <SelectItem value="Transportes">Transportes</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="col-span-4">
+                              <div className="col-span-6">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Simples Nacional</Label>
                                 <div className="flex items-center gap-2 h-10">
                                   <Checkbox
@@ -809,14 +791,14 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                   </section>
                 </TabsContent>
 
-                <TabsContent value="participantes" className="mt-0 p-6 md:p-10">
+                <TabsContent value="participantes" className="mt-0 p-4 md:p-6">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-foreground">Participantes ({participants.length})</h3>
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-base font-bold text-foreground">Participantes ({participants.length})</h3>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {participants.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                           {participants.map(part => (
                             <div key={part._id} className="bg-muted/30 border rounded-lg p-4 relative group hover:shadow-md transition-all">
                               <button onClick={() => setParticipants(participants.filter(p => p._id !== part._id))} className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 bg-card rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
@@ -831,11 +813,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
-                      <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                      <div className="bg-muted/50 rounded-lg border p-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Participante
                         </h4>
-                        <div className="grid grid-cols-12 gap-4">
+                        <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Completo *</Label>
                             <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
@@ -872,12 +854,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                   </section>
                 </TabsContent>
 
-                <TabsContent value="contratos" className="mt-0 p-6 md:p-10">
+                <TabsContent value="contratos" className="mt-0 p-4 md:p-6">
                   <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center gap-3">
+                      <h3 className="text-base font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {contracts.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                           {contracts.map(cont => (
@@ -900,11 +882,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                         </div>
                       )}
 
-                      <div className="bg-muted/50 rounded-lg border p-5">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4">
+                      <div className="bg-muted/50 rounded-lg border p-4">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Nova OS
                         </h4>
-                        <div className="grid grid-cols-12 gap-4">
+                        <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Ordem de Serviço *</Label>
                             <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="OS-001" />
@@ -946,15 +928,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Fim</Label>
                             <Input type="date" value={draftContract.data_fim_projeto} onChange={e => setDraftContract({ ...draftContract, data_fim_projeto: e.target.value })} />
                           </div>
-                          <div className="col-span-12">
+                          <div className="col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor do Projeto (R$) *</Label>
                             <Input type="number" value={draftContract.valor_projeto} onChange={e => setDraftContract({ ...draftContract, valor_projeto: Number(e.target.value) })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso por km (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_km} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_km: Number(e.target.value) })} />
                           </div>
-                          <div className="col-span-6">
+                          <div className="col-span-4">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
                             <Input type="number" value={draftContract.valor_reembolso_refeicao} onChange={e => setDraftContract({ ...draftContract, valor_reembolso_refeicao: Number(e.target.value) })} />
                           </div>
@@ -973,7 +955,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId }:
             </Tabs>
 
             {/* Footer */}
-            <div className="p-6 border-t bg-card flex justify-between shrink-0">
+            <div className="p-4 border-t bg-card flex justify-between shrink-0">
               <div>
                 {!isFirstTab && (
                   <Button variant="outline" onClick={handleBack} className="gap-2">
