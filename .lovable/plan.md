@@ -1,57 +1,110 @@
 
 
-## Ajustes no Modal de Cadastro de Cliente
+## Plano: Integrar Brasil API (CNPJ) e ViaCEP no NewClientModal
 
-### 1. Remover campo "Setor" da aba Contribuintes
-- Remover o Select de "Setor" (linhas 762-772) do formulário de novo contribuinte
-- Manter o campo `setor` no DraftEntity para compatibilidade, mas remover da UI e da validacao (linhas 316-317)
-- Ajustar o grid: CNAE passa de `col-span-4` para `col-span-6`, Simples Nacional de `col-span-4` para `col-span-6`
-- Remover o badge de setor do card de contribuinte listado (linha 702)
+### 1. Mapeamento de Campos
 
-### 2. Trocar ordem: Regiao antes de Equipe Responsavel
-- Mover o bloco "Regiao" (linhas 665-680) para antes do bloco "Equipe responsavel" (linhas 642-664)
+**Brasil API (`brasilapi.com.br/api/cnpj/v1/{cnpj}`) → DraftEntity:**
 
-### 3. Reducao de extensao vertical e design compacto
+| Campo API             | Campo Formulario        |
+|----------------------|------------------------|
+| `razao_social`       | `nome_razao_social`    |
+| `cnae_fiscal` (codigo) | `cod_cnae`           |
+| `descricao_situacao_cadastral` | (informativo, nao mapeado) |
+| `logradouro`         | `logradouro`           |
+| `bairro`             | `bairro`               |
+| `municipio`          | `municipio`            |
+| `uf`                 | `uf`                   |
+| `cep`                | `cep` (novo campo)     |
 
-**Problema atual:** cada campo ocupa `col-span-12` (largura total), padding excessivo (`p-6 md:p-10`), gaps grandes (`gap-5`), headers pesados.
+**ViaCEP (`viacep.com.br/ws/{cep}/json/`) → DraftEntity:**
 
-**Solucoes:**
+| Campo API      | Campo Formulario |
+|---------------|-----------------|
+| `logradouro`  | `logradouro`    |
+| `bairro`      | `bairro`        |
+| `localidade`  | `municipio`     |
+| `uf`          | `uf`            |
 
-- **Aba Cliente/Grupo:**
-  - Categoria + Status na mesma linha (ja estao `col-span-6` cada, ok)
-  - Area do negocio + Tipo produto/segmento: lado a lado `col-span-6` cada (hoje sao `col-span-12`)
-  - Regiao + Equipe responsavel: lado a lado `col-span-6` cada
-  - Tipo de relacionamento: reduzir de `col-span-12` para `col-span-6`, alinhado com outro campo
-  - Reduzir padding do conteudo: `p-6 md:p-10` → `p-4 md:p-6`
-  - Reduzir gap do grid: `gap-5` → `gap-4`
+---
 
-- **Aba Contribuintes:**
-  - Padding interno: `p-6` → `p-4`, `p-5` → `p-4`
-  - Gap: `gap-4` → `gap-3`
-  - Margin do titulo "Novo Contribuinte": `mb-4` → `mb-3`
+### 2. Refatoracao da UI (nova ordem dos campos na aba Contribuintes)
 
-- **Aba Participantes:**
-  - Padding: `p-6` → `p-4`, `p-5` → `p-4`
-  - Gap: `gap-4` → `gap-3`
+**Ordem atual:**
+Tipo + CPF/CNPJ → Razao Social → Inscricao Estadual → CNAE + Simples → Logradouro → Bairro + Municipio + UF
 
-- **Aba OS:**
-  - Mesma reducao de padding e gap
-  - Campos de valor lado a lado (3 colunas) em vez de empilhados
+**Nova ordem:**
+1. **Tipo** (PJ/PF) + **CPF/CNPJ** (com botao de busca ou busca automatica)
+2. **Razao Social** + **Nome Fantasia** (novo campo, preenchido pela API)
+3. **Inscricao Estadual** (situacao + numero)
+4. **CNAE** + **Simples Nacional**
+5. **CEP** (novo campo, com busca automatica via ViaCEP)
+6. **Logradouro** + **Numero** (novo campo) + **Complemento** (novo campo)
+7. **Bairro** + **Municipio** + **UF**
 
-- **Header do modal:**
-  - Reduzir padding: `px-8 py-5` → `px-6 py-3`
-  - Titulo: `text-2xl` → `text-xl`, icone de 28 → 22
-  - Remover descricao (paragrafo) para economizar espaco vertical
+---
 
-- **Tabs:**
-  - Reduzir padding: `px-6 pt-4` → `px-6 pt-2`
+### 3. Plano de Implementacao Logica
 
-- **Section headers internos:**
-  - Reduzir padding: `px-6 py-4` → `px-4 py-2.5`
-  - Titulo: `text-lg` → `text-base`
+#### 3.1. Alteracoes no tipo `DraftEntity`
+
+Adicionar campos:
+```ts
+cep: string;
+nome_fantasia: string;
+numero: string;
+complemento: string;
+```
+
+#### 3.2. Funcao `fetchCNPJ`
+
+- **Trigger:** Quando o campo CPF/CNPJ perde o foco (`onBlur`) e contem exatamente 14 digitos (somente numeros).
+- **Nao dispara** se: tem 11 digitos (CPF), menos de 14, ou campo vazio.
+- **Estado de loading:** `cnpjLoading: boolean` (novo state). Exibir spinner no campo enquanto busca.
+- **Fluxo:**
+  1. Limpar caracteres nao numericos
+  2. Verificar se `digits.length === 14`
+  3. Setar `cnpjLoading = true`
+  4. `fetch('https://brasilapi.com.br/api/cnpj/v1/${digits}')`
+  5. Em caso de sucesso: preencher `nome_razao_social`, `cod_cnae`, `logradouro`, `bairro`, `municipio`, `uf`, `cep`, `nome_fantasia`
+  6. Em caso de erro: exibir `toast.error('CNPJ nao encontrado')`, nao bloquear preenchimento manual
+  7. Setar `cnpjLoading = false`
+- **Sem debounce** (usa `onBlur`, nao `onChange`), evitando chamadas desnecessarias.
+
+#### 3.3. Funcao `fetchCEP`
+
+- **Trigger:** Quando o campo CEP perde o foco (`onBlur`) e contem exatamente 8 digitos.
+- **Estado de loading:** `cepLoading: boolean`. Spinner no campo.
+- **Fluxo:**
+  1. Limpar caracteres nao numericos
+  2. Verificar se `digits.length === 8`
+  3. Setar `cepLoading = true`
+  4. `fetch('https://viacep.com.br/ws/${digits}/json/')`
+  5. Se `response.erro` ou falha HTTP: `toast.error('CEP nao encontrado')`
+  6. Sucesso: preencher `logradouro`, `bairro`, `municipio`, `uf`
+  7. Setar `cepLoading = false`
+- Util quando usuario digita CEP manualmente (sem ter buscado CNPJ, ou para corrigir endereco).
+
+#### 3.4. Fallback e flexibilidade
+
+- Todos os campos preenchidos automaticamente permanecem editaveis.
+- Nenhum campo fica `disabled` apos preenchimento automatico.
+- Se a API falhar ou retornar erro, o formulario continua funcionando normalmente para preenchimento manual.
+- Toast informativo (nao bloqueante) em caso de erro de API.
+
+#### 3.5. Indicadores visuais
+
+- Icone de `Loader2` animado dentro do campo CPF/CNPJ durante busca.
+- Icone de `Loader2` animado no campo CEP durante busca.
+- Apos preenchimento automatico, exibir um badge sutil "Dados preenchidos via CNPJ" que desaparece em 3 segundos (opcional, via toast de sucesso).
+
+---
 
 ### Resumo tecnico
 
 - **Arquivo unico:** `src/components/equipe/dev/NewClientModal.tsx`
-- **Sem alteracao de banco de dados**
-- Campos passam a aproveitar melhor a largura horizontal, reduzindo scroll vertical em ~40%
+- **APIs externas:** Brasil API (publica, sem chave) e ViaCEP (publica, sem chave)
+- **Sem alteracao de banco de dados** (campos `cep`, `nome_fantasia`, `numero`, `complemento` sao apenas no formulario; se quiser persistir, sera necessaria migracao, mas nao faz parte deste escopo)
+- **Sem dependencias novas** (usa `fetch` nativo)
+- **Estrategia de disparo:** `onBlur` (nao necessita debounce)
+
