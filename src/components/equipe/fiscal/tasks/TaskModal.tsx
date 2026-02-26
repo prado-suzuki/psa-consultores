@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -127,6 +127,7 @@ export const TaskModal = ({
 
 
   const [tagInput, setTagInput] = useState('');
+  const [showDraftNotice, setShowDraftNotice] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -169,8 +170,9 @@ export const TaskModal = ({
     enabled: open && !!watchedClientId,
   });
 
-  // Clear contribuinte when client changes (only if it has a value)
+  // Clear contribuinte when client changes (only on user action, not during reset)
   useEffect(() => {
+    if (isResettingRef.current) return;
     const current = form.getValues('contribuinte_id');
     if (current !== undefined) {
       form.setValue('contribuinte_id', undefined);
@@ -197,19 +199,14 @@ export const TaskModal = ({
     enabled: open && !!watchedProjectId,
   });
 
-  // When project changes: clear dependent fields and auto-set client
-  // Only act when the user manually changes the project (not during form.reset)
+  // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {
-    // Skip if this is a reset-triggered change
     if (isResettingRef.current) {
       prevProjectIdRef.current = watchedProjectId;
       isResettingRef.current = false;
       return;
     }
-    // Skip if the project didn't actually change (e.g. projects array reloaded)
-    if (prevProjectIdRef.current === watchedProjectId) {
-      return;
-    }
+    if (prevProjectIdRef.current === watchedProjectId) return;
     prevProjectIdRef.current = watchedProjectId;
 
     if (form.getValues('categoria_id') !== undefined) {
@@ -218,12 +215,20 @@ export const TaskModal = ({
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
-    // Auto-fill client from the selected project
+  }, [watchedProjectId, form, defaultParentId]);
+
+  // Effect B: Auto-fill client from project (runs when projects load or project changes)
+  useEffect(() => {
+    if (isResettingRef.current) return;
+    if (!watchedProjectId || projects.length === 0) return;
     const selectedProject = projects.find(p => p.id === watchedProjectId);
     if (selectedProject?.external_client_id) {
-      form.setValue('client_id', selectedProject.external_client_id);
+      const currentClient = form.getValues('client_id');
+      if (currentClient !== selectedProject.external_client_id) {
+        form.setValue('client_id', selectedProject.external_client_id);
+      }
     }
-  }, [watchedProjectId, form, projects, defaultParentId]);
+  }, [watchedProjectId, projects, form]);
 
   useEffect(() => {
     if (task) {
@@ -254,6 +259,8 @@ export const TaskModal = ({
       const draft = restoreDraft();
       if (draft && draft.title) {
         form.reset(draft);
+        setShowDraftNotice(true);
+        setTimeout(() => setShowDraftNotice(false), 4000);
       } else {
         const parentTask = defaultParentId ? parentTasks.find(t => t.id === defaultParentId) : null;
         form.reset({
@@ -323,13 +330,25 @@ export const TaskModal = ({
   const isRecurring = form.watch('is_recurring');
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) clearDraft(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        clearDraft();
+        prevProjectIdRef.current = undefined;
+        setShowDraftNotice(false);
+      }
+      onOpenChange(v);
+    }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}
           </DialogTitle>
           <DialogDescription className="sr-only">Formulário de tarefa fiscal</DialogDescription>
+          {showDraftNotice && (
+            <p className="text-xs text-amber-600 mt-1 animate-pulse">
+              Rascunho restaurado — clique em Salvar para confirmar.
+            </p>
+          )}
         </DialogHeader>
 
         <Form {...form}>
