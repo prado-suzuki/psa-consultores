@@ -1,71 +1,57 @@
 
 
-## Diagnóstico
+## Ajustes no Modal de Cadastro de Cliente
 
-**Arquivo:** `src/pages/equipe/fiscal/FiscalDashboard.tsx`
-- Renderiza a rota `/equipe/tax/dashboard`
-- **Imports atuais:** FiscalLayout, Card/CardContent/CardHeader/CardTitle, lucide icons, useQuery, supabase, recharts (BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell)
-- **Query atual:** Apenas 1 query em `tax_projects` (id, name, status). `estimatedHours` e `spentHours` são hardcoded como 0.
-- **Dados disponíveis confirmados:**
-  - `fiscal_tasks`: tem `assigned_to`, `assigned_to_name`, `client_id`, `project_id`, `estimated_hours`, `due_date`, `status`, `parent_task_id`, `title`
-  - `tax_projects`: tem `area_id`, `name`, `status`
-  - `profiles_safe` (view): `id`, `first_name`, `last_name`
-  - `tax_areas`: `id`, `nome`
-  - `cliente_dev`: `id`, `nome`
+### 1. Remover campo "Setor" da aba Contribuintes
+- Remover o Select de "Setor" (linhas 762-772) do formulário de novo contribuinte
+- Manter o campo `setor` no DraftEntity para compatibilidade, mas remover da UI e da validacao (linhas 316-317)
+- Ajustar o grid: CNAE passa de `col-span-4` para `col-span-6`, Simples Nacional de `col-span-4` para `col-span-6`
+- Remover o badge de setor do card de contribuinte listado (linha 702)
 
----
+### 2. Trocar ordem: Regiao antes de Equipe Responsavel
+- Mover o bloco "Regiao" (linhas 665-680) para antes do bloco "Equipe responsavel" (linhas 642-664)
 
-## Plano de implementação
+### 3. Reducao de extensao vertical e design compacto
 
-### Arquivo a editar: `src/pages/equipe/fiscal/FiscalDashboard.tsx`
+**Problema atual:** cada campo ocupa `col-span-12` (largura total), padding excessivo (`p-6 md:p-10`), gaps grandes (`gap-5`), headers pesados.
 
-Reescrever o componente inteiro mantendo o FiscalLayout wrapper e o estilo visual.
+**Solucoes:**
 
-### Novas queries (4 total)
+- **Aba Cliente/Grupo:**
+  - Categoria + Status na mesma linha (ja estao `col-span-6` cada, ok)
+  - Area do negocio + Tipo produto/segmento: lado a lado `col-span-6` cada (hoje sao `col-span-12`)
+  - Regiao + Equipe responsavel: lado a lado `col-span-6` cada
+  - Tipo de relacionamento: reduzir de `col-span-12` para `col-span-6`, alinhado com outro campo
+  - Reduzir padding do conteudo: `p-6 md:p-10` → `p-4 md:p-6`
+  - Reduzir gap do grid: `gap-5` → `gap-4`
 
-1. **Projetos** (existente, manter): `tax_projects` → id, name, status, area_id
-2. **Tarefas** (nova): `fiscal_tasks` com `parent_task_id IS NULL` → todos campos necessários. Join client-side com projetos e clientes.
-3. **Clientes** (nova): `cliente_dev` → id, nome (para resolver nomes)
-4. **Áreas** (nova): `tax_areas` → id, nome
-5. **Membros** (nova): `profiles_safe` → id, first_name, last_name
+- **Aba Contribuintes:**
+  - Padding interno: `p-6` → `p-4`, `p-5` → `p-4`
+  - Gap: `gap-4` → `gap-3`
+  - Margin do titulo "Novo Contribuinte": `mb-4` → `mb-3`
 
-### Layout
+- **Aba Participantes:**
+  - Padding: `p-6` → `p-4`, `p-5` → `p-4`
+  - Gap: `gap-4` → `gap-3`
 
-**LINHA 1 — 6 cards KPI** (grid 2→3→6 colunas)
-- Total de Projetos (existente)
-- Em Andamento (existente)
-- Concluídos (existente)
-- Pausados (existente)
-- **Total de Tarefas** (novo) — count de tarefas top-level
-- **Tarefas Atrasadas** (novo) — count onde `due_date < hoje AND status != 'done'`, borda vermelha se > 0
+- **Aba OS:**
+  - Mesma reducao de padding e gap
+  - Campos de valor lado a lado (3 colunas) em vez de empilhados
 
-**LINHA 2 — 3 gráficos** (grid 1→3 colunas)
-- **Tarefas por Status** — PieChart/donut com cores do `taskStatusColors`
-- **Horas Est. por Projeto** — BarChart horizontal, agrupado por project_id
-- **Horas Est. por Cliente** — BarChart horizontal, agrupado por client_id
+- **Header do modal:**
+  - Reduzir padding: `px-8 py-5` → `px-6 py-3`
+  - Titulo: `text-2xl` → `text-xl`, icone de 28 → 22
+  - Remover descricao (paragrafo) para economizar espaco vertical
 
-**LINHA 3 — 2 tabelas** (grid 1→2 colunas)
-- **Tarefas Atrasadas** — Table com título, projeto, responsável, vencimento, dias atraso
-- **Carga por Membro** — Table com membro, tarefas ativas, horas estimadas, tarefas atrasadas
+- **Tabs:**
+  - Reduzir padding: `px-6 pt-4` → `px-6 pt-2`
 
-**LINHA 4 — 1 gráfico**
-- **Tarefas por Área Fiscal** — BarChart vertical, resolve area via `tax_projects.area_id → tax_areas.nome`
+- **Section headers internos:**
+  - Reduzir padding: `px-6 py-4` → `px-4 py-2.5`
+  - Titulo: `text-lg` → `text-base`
 
-### Imports a adicionar
-- `PieChart, Pie, Legend` de recharts
-- `Table, TableBody, TableCell, TableHead, TableHeader, TableRow` de ui/table
-- `ListChecks, AlertCircle, Users` de lucide-react
-- `format, differenceInDays, isBefore, startOfDay` de date-fns
+### Resumo tecnico
 
-### Processamento de dados (client-side)
-Todas as agregações (group by status, project, client, member, area) serão feitas em JavaScript a partir dos arrays retornados, evitando RPC/views extras. O filtro `parent_task_id IS NULL` será aplicado via `.is('parent_task_id', null)` na query.
-
-### Responsividade
-- Cards: `grid-cols-2 md:grid-cols-3 lg:grid-cols-6`
-- Gráficos L2: `grid-cols-1 lg:grid-cols-3`
-- Tabelas L3: `grid-cols-1 lg:grid-cols-2`
-- Gráfico L4: full width
-
-### Sem alterações de banco
-Todas as tabelas e views já existem. Nenhuma migração necessária.
-
+- **Arquivo unico:** `src/components/equipe/dev/NewClientModal.tsx`
+- **Sem alteracao de banco de dados**
+- Campos passam a aproveitar melhor a largura horizontal, reduzindo scroll vertical em ~40%
