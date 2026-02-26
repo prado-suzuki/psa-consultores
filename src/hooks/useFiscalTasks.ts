@@ -205,29 +205,32 @@ export interface TaskFilters {
 
         if (error) throw error;
 
-        // Build changed_fields
-        const changedFields: Record<string, { old: unknown; new: unknown }> = {};
-        if (current) {
-          for (const key of Object.keys(updates)) {
-            if (key === 'id') continue;
-            const oldVal = (current as any)[key];
-            const newVal = (updates as any)[key];
-            if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-              changedFields[key] = { old: oldVal, new: newVal };
-            }
-          }
-        }
+         // Build changed_fields (convert undefined→null to avoid missing "new" in JSON)
+         const changedFields: Record<string, { old: unknown; new: unknown }> = {};
+         if (current) {
+           for (const key of Object.keys(updates)) {
+             if (key === 'id') continue;
+             const oldVal = (current as any)[key] ?? null;
+             const newVal = (updates as any)[key] ?? null;
+             if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+               changedFields[key] = { old: oldVal, new: newVal };
+             }
+           }
+         }
 
-        const entityName = data?.title || current?.title || 'Tarefa';
-        const isSubtask = !!(data?.parent_task_id || current?.parent_task_id);
+         const entityName = data?.title || current?.title || 'Tarefa';
+         const isSubtask = !!(data?.parent_task_id || current?.parent_task_id);
 
-        await logAction({
-          area: 'tax', entity_type: isSubtask ? 'subtask' : 'task',
-          entity_id: id, entity_name: entityName, action: 'updated',
-          changed_fields: Object.keys(changedFields).length > 0 ? changedFields : undefined,
-        });
+         // Only log if something actually changed
+         if (Object.keys(changedFields).length > 0) {
+           await logAction({
+             area: 'tax', entity_type: isSubtask ? 'subtask' : 'task',
+             entity_id: id, entity_name: entityName, action: 'updated',
+             changed_fields: changedFields,
+           });
+         }
 
-        return data || current;
+         return data || current;
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });

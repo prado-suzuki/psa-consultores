@@ -32,6 +32,8 @@ const FIELD_LABELS: Record<string, string> = {
   area_id: 'Área',
   responsible_id: 'Responsável',
   leader_id: 'Líder',
+  member_ids: 'Membros',
+  category_ids: 'Categorias',
 };
 
 // ── Status translations ──────────────────────────────────────
@@ -91,6 +93,12 @@ const UUID_FIELDS: Record<string, string> = {
   categoria_id: 'categorias',
   parent_task_id: 'tasks',
   performed_by: 'profiles',
+};
+
+// Fields whose array values contain UUIDs to resolve
+const UUID_ARRAY_FIELDS: Record<string, string> = {
+  member_ids: 'profiles',
+  category_ids: 'categorias',
 };
 
 // Fields that contain dates
@@ -157,6 +165,13 @@ function formatValue(
   if (UUID_FIELDS[field] && UUID_REGEX.test(str)) {
     const mapKey = UUID_FIELDS[field] as keyof LookupMaps;
     return lookups[mapKey]?.[str] ?? str;
+  }
+
+  // UUID arrays (member_ids, category_ids)
+  if (UUID_ARRAY_FIELDS[field] && Array.isArray(val)) {
+    const mapKey = UUID_ARRAY_FIELDS[field] as keyof LookupMaps;
+    const resolved = val.map(v => UUID_REGEX.test(String(v)) ? (lookups[mapKey]?.[String(v)] ?? String(v)) : String(v));
+    return resolved.length > 0 ? resolved.join(', ') : '(vazio)';
   }
 
   // Tags (arrays)
