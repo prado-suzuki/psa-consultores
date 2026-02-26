@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save } from 'lucide-react';
+import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,6 +57,17 @@ const PRODUTO_SEGMENTO_OPTIONS = [
   { value: '__outro__', label: 'Outro (personalizado)' },
 ];
 
+const TIPO_PARTICIPANTE_OPTIONS = [
+  'Sócio/Proprietário',
+  'Contador',
+  'Advogado',
+  'Procurador',
+  'Representante Legal',
+  'Diretor/Gestor',
+  'Consultor Externo',
+  'Outros',
+];
+
 // Types for draft items
 interface DraftEntity {
   _id: number;
@@ -64,7 +75,7 @@ interface DraftEntity {
   cpf_cnpj: string;
   nome_razao_social: string;
   nome_fantasia: string;
-  situacao_inscricao_estadual: string; // 'sim' | 'isento' | ''
+  situacao_inscricao_estadual: string; // 'sim' | 'isento' | 'nao' | ''
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
@@ -81,10 +92,12 @@ interface DraftEntity {
 interface DraftParticipant {
   _id: number;
   nome: string;
+  tipo_participante: string;
   cargo: string;
   email: string;
   telefone: string;
   observacoes: string;
+  acesso_chamados: boolean;
 }
 
 interface DraftContract {
@@ -128,6 +141,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   const [cepLoading, setCepLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Inline expand/edit states
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
@@ -190,8 +204,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       .map((p: any) => ({ id: p.id, nome: `${p.first_name || ''} ${p.last_name || ''}`.trim() }));
   }, [userRoles, profiles]);
 
-  // Section 1 - Client data
-  const [clientData, setClientData] = useState({
+  // Default states
+  const defaultClientData = {
     nome: '',
     categoria: 'Bronze',
     ativo: true,
@@ -202,9 +216,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     setor_cliente: '',
     tipo_produto_segmento: '',
     tipo_produto_segmento_custom: '',
-    equipe_responsavel: '',
+    empresa_faturamento: '',
     regiao: '',
-  });
+  };
+
+  // Section 1 - Client data
+  const [clientData, setClientData] = useState(defaultClientData);
 
   // Section 2 - Contribuintes
   const [entities, setEntities] = useState<DraftEntity[]>([]);
@@ -219,7 +236,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   // Section 3 - Participantes
   const [participants, setParticipants] = useState<DraftParticipant[]>([]);
   const [draftParticipant, setDraftParticipant] = useState({
-    nome: '', cargo: '', email: '', telefone: '', observacoes: '',
+    nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false,
   });
 
   // Section 4 - OS (Ordem de Serviço)
@@ -229,6 +246,30 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
     valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
   });
+
+  // --- Unsaved changes detection ---
+  const initialSnapshotRef = useRef<string | null>(null);
+
+  const currentSnapshot = useMemo(() => JSON.stringify({ clientData, entities, participants, contracts }), [clientData, entities, participants, contracts]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!initialSnapshotRef.current) return false;
+    return currentSnapshot !== initialSnapshotRef.current;
+  }, [currentSnapshot]);
+
+  // Capture initial snapshot once loading completes
+  useEffect(() => {
+    if (open && !loadingEdit) {
+      // Small delay to let restored/loaded data settle
+      const t = setTimeout(() => {
+        initialSnapshotRef.current = JSON.stringify({ clientData, entities, participants, contracts });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+    if (!open) {
+      initialSnapshotRef.current = null;
+    }
+  }, [open, loadingEdit]);
 
   // Draft persistence for new client mode
   const draftValues = useMemo(() => ({
@@ -259,7 +300,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
             setor_cliente: cli.setor_cliente || '',
             tipo_produto_segmento: '',
             tipo_produto_segmento_custom: '',
-            equipe_responsavel: (cli as any).equipe_responsavel || '',
+            empresa_faturamento: (cli as any).empresa_faturamento || '',
             regiao: (cli as any).regiao || '',
           });
         }
@@ -292,10 +333,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
           setParticipants(parts.map((p: any) => ({
             _id: Date.now() + Math.random(),
             nome: p.nome || '',
+            tipo_participante: (p as any).tipo_participante || '',
             cargo: p.cargo || '',
             email: p.email || '',
             telefone: p.telefone || '',
             observacoes: (p as any).observacoes || '',
+            acesso_chamados: (p as any).acesso_chamados ?? false,
           })));
         }
 
@@ -389,6 +432,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       toast.error('CPF deve ter 11 dígitos ou CNPJ 14 dígitos'); return;
     }
 
+    if (!draftEntity.cep?.trim()) { toast.error('CEP é obrigatório'); return; }
     if (!draftEntity.logradouro?.trim()) { toast.error('Logradouro é obrigatório'); return; }
     if (!draftEntity.bairro?.trim()) { toast.error('Bairro é obrigatório'); return; }
     if (!draftEntity.municipio?.trim()) { toast.error('Município é obrigatório'); return; }
@@ -399,7 +443,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
     if (draftEntity.tipo_pessoa === 'PJ') {
       if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
-      // setor removed from UI validation
     }
 
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
@@ -415,12 +458,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   // --- PARTICIPANT HANDLERS ---
   const addParticipant = () => {
     if (!draftParticipant.nome.trim()) { toast.error('Nome é obrigatório'); return; }
-    if (!draftParticipant.cargo.trim()) { toast.error('Cargo é obrigatório'); return; }
+    if (!draftParticipant.tipo_participante) { toast.error('Tipo de Participante é obrigatório'); return; }
 
-    if (draftParticipant.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(draftParticipant.email.trim())) { toast.error('Formato de e-mail inválido'); return; }
-    }
+    if (!draftParticipant.email.trim()) { toast.error('Email é obrigatório'); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(draftParticipant.email.trim())) { toast.error('Formato de e-mail inválido'); return; }
 
     if (draftParticipant.telefone.trim()) {
       const telDigits = draftParticipant.telefone.replace(/\D/g, '');
@@ -432,7 +474,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     }
 
     setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
-    setDraftParticipant({ nome: '', cargo: '', email: '', telefone: '', observacoes: '' });
+    setDraftParticipant({ nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false });
   };
 
   // --- OS HANDLERS ---
@@ -510,6 +552,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   const cancelEditEntity = () => { setEditingEntityId(null); setEditingEntityData(null); };
   const saveEditEntity = () => {
     if (!editingEntityData || editingEntityId == null) return;
+    if (!editingEntityData.cep?.trim()) { toast.error('CEP é obrigatório'); return; }
     setEntities(entities.map(e => e._id === editingEntityId ? { ...e, ...editingEntityData } as DraftEntity : e));
     setEditingEntityId(null); setEditingEntityData(null);
     toast.success('Contribuinte atualizado');
@@ -547,6 +590,27 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     </div>
   );
 
+  // --- Copy address from first entity ---
+  const handleCopyFirstAddress = () => {
+    if (entities.length === 0) return;
+    const first = entities[0];
+    if (!first.cep?.trim()) {
+      toast.warning('O primeiro contribuinte não possui endereço cadastrado');
+      return;
+    }
+    setDraftEntity(prev => ({
+      ...prev,
+      cep: first.cep,
+      logradouro: first.logradouro,
+      numero: first.numero,
+      complemento: first.complemento,
+      bairro: first.bairro,
+      municipio: first.municipio,
+      uf: first.uf,
+    }));
+    toast.success('Endereço copiado do primeiro contribuinte');
+  };
+
   // --- FINAL SAVE ---
   const handleSave = async () => {
     if (!clientData.nome.trim()) { toast.error('Nome do cliente é obrigatório'); return; }
@@ -556,7 +620,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
       toast.error('Informe o nome do produto/segmento personalizado'); return;
     }
-    if (!clientData.equipe_responsavel) { toast.error('Equipe responsável é obrigatória'); return; }
+    if (!clientData.empresa_faturamento) { toast.error('Empresa / Faturamento é obrigatória'); return; }
     if (!clientData.regiao) { toast.error('Região é obrigatória'); return; }
 
     setSaving(true);
@@ -664,7 +728,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   };
 
   const resetAndClose = () => {
-    setClientData({ nome: '', categoria: 'Bronze', ativo: true, fixo: 'Sim', telefone: '', municipio: '', uf: '', setor_cliente: '', tipo_produto_segmento: '', tipo_produto_segmento_custom: '', equipe_responsavel: '', regiao: '' });
+    setClientData({ ...defaultClientData });
     setEntities([]);
     setParticipants([]);
     setContracts([]);
@@ -673,19 +737,31 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
     });
+    setDraftParticipant({ nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false });
     setActiveTab('cliente');
     setIsReadOnly(readOnly);
+    setShowExitConfirm(false);
     clearDraft();
     onOpenChange(false);
   };
 
+  const handleAttemptClose = () => {
+    if (hasUnsavedChanges) {
+      setShowExitConfirm(true);
+    } else {
+      resetAndClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
+    <>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleAttemptClose(); }}>
       <DialogContent
         className={cn(
           "max-w-5xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0",
           "[&>button]:hidden"
         )}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">
           {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
@@ -716,7 +792,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                 Editar
               </Button>
             )}
-            <button onClick={resetAndClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
+            <button onClick={handleAttemptClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
               <X size={22} />
             </button>
           </div>
@@ -846,25 +922,19 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         </Select>
                       </div>
                       <div className="col-span-6">
-                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Equipe responsável *</Label>
-                        <Select disabled={isReadOnly} value={clientData.equipe_responsavel || '__none__'} onValueChange={v => setClientData({ ...clientData, equipe_responsavel: v === '__none__' ? '' : v })}>
+                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Empresa / Faturamento *</Label>
+                        <Select disabled={isReadOnly} value={clientData.empresa_faturamento || '__none__'} onValueChange={v => setClientData({ ...clientData, empresa_faturamento: v === '__none__' ? '' : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="Administracao Executiva">Administração Executiva</SelectItem>
-                            <SelectItem value="Administracao Judicial - PSA Adm Judicial">Administração Judicial - PSA Adm Judicial</SelectItem>
-                            <SelectItem value="Administrativo">Administrativo</SelectItem>
-                            <SelectItem value="Auditoria - PSA Auditores">Auditoria - PSA Auditores</SelectItem>
-                            <SelectItem value="Auditoria - PSA Norte">Auditoria - PSA Norte</SelectItem>
-                            <SelectItem value="CCR - Prado Advogados">CCR - Prado Advogados</SelectItem>
-                            <SelectItem value="Comercial">Comercial</SelectItem>
-                            <SelectItem value="Compliance - Prado Advogados">Compliance - Prado Advogados</SelectItem>
-                            <SelectItem value="Comunicacao">Comunicação</SelectItem>
-                            <SelectItem value="Consultoria Fiscal - PSA Consultores">Consultoria Fiscal - PSA Consultores</SelectItem>
-                            <SelectItem value="Consultoria Tributaria - Prado Advogados">Consultoria Tributária - Prado Advogados</SelectItem>
-                            <SelectItem value="Legal - Prado Advogados">Legal - Prado Advogados</SelectItem>
-                            <SelectItem value="OSG - Protenun">OSG - Protenun</SelectItem>
-                            <SelectItem value="Outsourcing - Profitto">Outsourcing - Profitto</SelectItem>
+                            <SelectItem value="PRADO ADVOGADOS">PRADO ADVOGADOS</SelectItem>
+                            <SelectItem value="PRADO CONSULTORES">PRADO CONSULTORES</SelectItem>
+                            <SelectItem value="PRADO SUZUKI">PRADO SUZUKI</SelectItem>
+                            <SelectItem value="PROFITTO">PROFITTO</SelectItem>
+                            <SelectItem value="PROTENUN">PROTENUN</SelectItem>
+                            <SelectItem value="PSA ADM JUDICIAL">PSA ADM JUDICIAL</SelectItem>
+                            <SelectItem value="PSA AUDITORES">PSA AUDITORES</SelectItem>
+                            <SelectItem value="PSA NORTE">PSA NORTE</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -931,9 +1001,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                                       <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
                                       <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
-                                      <FieldPair label="Razão Social" value={ent.nome_razao_social} />
+                                      <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
                                       <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
-                                      <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : (ent.inscricao_estadual || '—')} />
+                                      <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : ent.situacao_inscricao_estadual === 'nao' ? 'Não' : (ent.inscricao_estadual || '—')} />
                                       {ent.tipo_pessoa === 'PJ' && <FieldPair label="CNAE" value={ent.cod_cnae} />}
                                       {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional ? 'Sim' : 'Não'} />}
                                       <FieldPair label="CEP" value={ent.cep} />
@@ -966,18 +1036,18 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         </div>
                                       </div>
                                       <div className="col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
                                         <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium" />
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
-                                        <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} />
+                                        <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} disabled={ed.tipo_pessoa === 'PF'} />
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual</Label>
-                                        <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
+                                        <Select disabled={ed.tipo_pessoa === 'PF'} value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem></SelectContent>
+                                          <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
                                         </Select>
                                       </div>
                                       <div className="col-span-6">
@@ -1004,7 +1074,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         </>
                                       )}
                                       <div className="col-span-4">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
                                         <div className="relative">
                                           <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: e.target.value })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8" />
                                           {cepLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
@@ -1063,9 +1133,16 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                       {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
-                          Novo Contribuinte
-                        </h4>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-muted-foreground uppercase">
+                            Novo Contribuinte
+                          </h4>
+                          {entities.length > 0 && (
+                            <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopyFirstAddress}>
+                              <Copy size={12} /> Copiar endereço do primeiro contribuinte
+                            </Button>
+                          )}
+                        </div>
                         <div className="grid grid-cols-12 gap-3">
                           {/* 1. Tipo + CPF/CNPJ */}
                           <div className="col-span-3">
@@ -1094,23 +1171,24 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                           {/* 2. Razão Social + Nome Fantasia */}
                           <div className="col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social *</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Razão Social / Nome Completo *</Label>
                             <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium" />
                           </div>
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome Fantasia</Label>
-                            <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" />
+                            <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" disabled={draftEntity.tipo_pessoa === 'PF'} />
                           </div>
 
                           {/* 3. Inscrição Estadual */}
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Inscrição Estadual *</Label>
-                            <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
+                            <Select disabled={draftEntity.tipo_pessoa === 'PF'} value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__">Selecione...</SelectItem>
                                 <SelectItem value="sim">Sim</SelectItem>
                                 <SelectItem value="isento">Isento</SelectItem>
+                                <SelectItem value="nao">Não</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1145,7 +1223,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                           {/* 5. CEP */}
                           <div className="col-span-4">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">CEP *</Label>
                             <div className="relative">
                               <Input
                                 value={draftEntity.cep || ''}
@@ -1218,9 +1296,12 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 >
                                   <div className="flex-1 min-w-0">
                                     <div className="font-bold text-foreground truncate">{part.nome}</div>
-                                    <div className="text-sm text-muted-foreground">{part.cargo}</div>
+                                    <div className="text-sm text-muted-foreground">{part.tipo_participante}{part.cargo ? ` — ${part.cargo}` : ''}</div>
                                   </div>
-                                  <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
+                                  <div className="flex items-center gap-2 ml-2">
+                                    {part.acesso_chamados && <Badge variant="outline" className="text-[10px]">Chamados</Badge>}
+                                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                                  </div>
                                 </button>
 
                                 {isExpanded && !isEditingThis && (
@@ -1249,9 +1330,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                       <FieldPair label="Nome" value={part.nome} />
+                                      <FieldPair label="Tipo de Participante" value={part.tipo_participante} />
                                       <FieldPair label="Cargo" value={part.cargo} />
                                       <FieldPair label="Email" value={part.email} />
                                       <FieldPair label="Telefone" value={part.telefone} />
+                                      <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? 'Sim' : 'Não'} />
                                       {part.observacoes && <div className="col-span-2"><FieldPair label="Observações" value={part.observacoes} /></div>}
                                     </div>
                                   </div>
@@ -1265,16 +1348,35 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} />
                                       </div>
                                       <div className="col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo *</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
+                                        <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
+                                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
                                         <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} />
                                       </div>
                                       <div className="col-span-6">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
                                         <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} />
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                                         <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: e.target.value })} />
+                                      </div>
+                                      <div className="col-span-6">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
+                                        <div className="flex items-center gap-2 h-10">
+                                          <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
+                                          <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                                        </div>
                                       </div>
                                       <div className="col-span-12">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
@@ -1318,16 +1420,35 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium" />
                           </div>
                           <div className="col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo *</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Tipo de Participante *</Label>
+                            <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
+                              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Cargo</Label>
                             <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} />
                           </div>
                           <div className="col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Email *</Label>
                             <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} />
                           </div>
                           <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Telefone</Label>
                             <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: e.target.value })} />
+                          </div>
+                          <div className="col-span-6">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Acesso a Chamados</Label>
+                            <div className="flex items-center gap-2 h-10">
+                              <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
+                              <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                            </div>
                           </div>
                           <div className="col-span-12">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Observações</Label>
@@ -1429,23 +1550,25 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
                                         <Input type="date" value={ec.data_emissao || ''} onChange={e => setEditingContractData({ ...ec, data_emissao: e.target.value })} />
                                       </div>
-                                      <div className="col-span-12">
+                                      <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
                                         <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
                                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {lideres.map(l => (<SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>))}
+                                            {lideres.map(l => (
+                                              <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                            ))}
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="col-span-12">
+                                      <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
                                         <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} />
                                       </div>
                                       <div className="col-span-12">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Descrição</Label>
-                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[80px]" />
+                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" />
                                       </div>
                                       <div className="col-span-6">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Início *</Label>
@@ -1457,15 +1580,15 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       <div className="col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Valor (R$) *</Label>
-                                        <Input type="number" value={ec.valor_projeto ?? 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} />
+                                        <Input type="number" value={ec.valor_projeto || 0} onChange={e => setEditingContractData({ ...ec, valor_projeto: Number(e.target.value) })} />
                                       </div>
                                       <div className="col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso km (R$)</Label>
-                                        <Input type="number" value={ec.valor_reembolso_km ?? 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} />
+                                        <Input type="number" value={ec.valor_reembolso_km || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_km: Number(e.target.value) })} />
                                       </div>
                                       <div className="col-span-4">
                                         <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Reembolso refeição (R$)</Label>
-                                        <Input type="number" value={ec.valor_reembolso_refeicao ?? 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} />
+                                        <Input type="number" value={ec.valor_reembolso_refeicao || 0} onChange={e => setEditingContractData({ ...ec, valor_reembolso_refeicao: Number(e.target.value) })} />
                                       </div>
                                       <div className="col-span-12 flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
@@ -1496,19 +1619,17 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                       {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
-                          Nova OS
-                        </h4>
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
                         <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Ordem de Serviço *</Label>
-                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="OS-001" />
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Número da OS *</Label>
+                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" />
                           </div>
                           <div className="col-span-6">
-                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data de Emissão *</Label>
+                            <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Data Emissão *</Label>
                             <Input type="date" value={draftContract.data_emissao} onChange={e => setDraftContract({ ...draftContract, data_emissao: e.target.value })} />
                           </div>
-                          <div className="col-span-12">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Gestor Responsável *</Label>
                             <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
                               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1520,7 +1641,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-12">
+                          <div className="col-span-6">
                             <Label className="text-xs font-bold uppercase text-muted-foreground mb-1 block">Nome do Projeto *</Label>
                             <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} />
                           </div>
@@ -1586,7 +1707,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                   )
                 ) : (
                   <>
-                    <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
+                    <Button variant="outline" onClick={handleAttemptClose}>Cancelar</Button>
                     {isLastTab ? (
                       <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
@@ -1605,5 +1726,22 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Exit confirmation AlertDialog */}
+    <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você tem dados não salvos. Deseja sair sem salvar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={resetAndClose}>Sair</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
