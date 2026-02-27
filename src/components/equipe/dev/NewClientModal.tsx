@@ -95,6 +95,7 @@ interface DraftEntity {
   cod_cnae: string;
   setor: string;
   simples_nacional: string; // '' | 'optante' | 'nao_optante'
+  telefone: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -425,6 +426,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
     situacao_inscricao_estadual: '', inscricao_estadual: '',
     cod_cnae: '', setor: 'Indústria', simples_nacional: '',
+    telefone: '',
     cep: '', logradouro: '', numero: '', complemento: '',
     bairro: '', municipio: '', uf: '',
   });
@@ -525,6 +527,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
             cod_cnae: c.cod_cnae || '',
             setor: c.setor || '',
             simples_nacional: c.simples_nacional === true ? 'optante' : c.simples_nacional === false ? 'nao_optante' : '',
+            telefone: (c as any).telefone || '',
             cep: '',
             logradouro: '',
             numero: '',
@@ -658,6 +661,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
       situacao_inscricao_estadual: '', inscricao_estadual: '',
       cod_cnae: '', setor: 'Indústria', simples_nacional: '',
+      telefone: '',
       cep: '', logradouro: '', numero: '', complemento: '',
       bairro: '', municipio: '', uf: '',
     });
@@ -900,6 +904,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
           cod_cnae: e.cod_cnae || null,
           setor: e.setor || null,
           simples_nacional: e.simples_nacional === 'optante' ? true : e.simples_nacional === 'nao_optante' ? false : null,
+          telefone: e.telefone || null,
         }));
         const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
         if (contribError) throw contribError;
@@ -1274,6 +1279,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
                                       <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
                                       {ent.tipo_pessoa !== 'PF' && <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />}
+                                      <FieldPair label="Telefone" value={ent.telefone} />
                                       <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : ent.situacao_inscricao_estadual === 'nao' ? 'Não' : (ent.inscricao_estadual || '—')} />
                                       {ent.tipo_pessoa === 'PJ' && <FieldPair label="CNAE" value={ent.cod_cnae} />}
                                       {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional === 'optante' ? 'Optante' : ent.simples_nacional === 'nao_optante' ? 'Não Optante' : '—'} />}
@@ -1314,9 +1320,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </div>
                                       {/* Razão Social */}
                                       <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Razão Social *</Label>
+                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ed.tipo_pessoa === 'PF' ? 'Nome completo *' : 'Razão Social *'}</Label>
                                         <div className="flex-1">
-                                          <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} className="font-medium h-8" />
+                                          <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} placeholder={ed.tipo_pessoa === 'PF' ? 'Nome completo do contribuinte' : 'Nome Empresarial'} className="font-medium h-8" />
                                         </div>
                                       </div>
                                       {/* Nome Fantasia - hidden for PF */}
@@ -1328,13 +1334,20 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           </div>
                                         </div>
                                       )}
+                                      {/* Telefone */}
+                                      <div className="flex flex-row items-center gap-4">
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
+                                        <div className="flex-1">
+                                          <Input value={ed.telefone || ''} onChange={e => setEditingEntityData({ ...ed, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" />
+                                        </div>
+                                      </div>
                                       {/* Inscrição Estadual */}
                                       <div className="flex flex-row items-center gap-4">
                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual</Label>
                                         <div className="flex-1">
-                                          <Select value={ed.situacao_inscricao_estadual || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
+                                          <Select value={ed.situacao_inscricao_estadual || undefined} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
                                             <SelectTrigger className="h-8 max-w-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                            <SelectContent><SelectItem value="__none__">Selecione...</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
+                                            <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
                                           </Select>
                                         </div>
                                       </div>
@@ -1361,10 +1374,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                         <div className="flex flex-row items-center gap-4">
                                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
                                           <div className="flex-1">
-                                            <Select value={ed.simples_nacional || '__none__'} onValueChange={v => setEditingEntityData({ ...ed, simples_nacional: v === '__none__' ? '' : v })}>
+                                            <Select value={ed.simples_nacional || undefined} onValueChange={v => setEditingEntityData({ ...ed, simples_nacional: v })}>
                                               <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                               <SelectContent>
-                                                <SelectItem value="__none__">Selecione...</SelectItem>
                                                 <SelectItem value="optante">Optante</SelectItem>
                                                 <SelectItem value="nao_optante">Não Optante</SelectItem>
                                               </SelectContent>
@@ -1495,9 +1507,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                           </div>
                           {/* Razão Social */}
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Razão Social *</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{draftEntity.tipo_pessoa === 'PF' ? 'Nome completo *' : 'Razão Social *'}</Label>
                             <div className="flex-1">
-                              <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder="Nome Empresarial" className="font-medium h-8" />
+                              <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder={draftEntity.tipo_pessoa === 'PF' ? 'Nome completo do contribuinte' : 'Nome Empresarial'} className="font-medium h-8" />
                             </div>
                           </div>
                           {/* Nome Fantasia - hidden for PF */}
@@ -1509,14 +1521,20 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               </div>
                             </div>
                           )}
+                          {/* Telefone */}
+                          <div className="flex flex-row items-center gap-4">
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
+                            <div className="flex-1">
+                              <Input value={draftEntity.telefone || ''} onChange={e => setDraftEntity({ ...draftEntity, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" />
+                            </div>
+                          </div>
                           {/* Inscrição Estadual */}
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual *</Label>
                             <div className="flex-1">
-                              <Select value={draftEntity.situacao_inscricao_estadual || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v === '__none__' ? '' : v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
+                              <Select value={draftEntity.situacao_inscricao_estadual || undefined} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
                                 <SelectTrigger className="h-8 max-w-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
                                   <SelectItem value="sim">Sim</SelectItem>
                                   <SelectItem value="isento">Isento</SelectItem>
                                   <SelectItem value="nao">Não</SelectItem>
@@ -1547,10 +1565,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             <div className="flex flex-row items-center gap-4">
                               <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
                               <div className="flex-1">
-                                <Select value={draftEntity.simples_nacional || '__none__'} onValueChange={v => setDraftEntity({ ...draftEntity, simples_nacional: v === '__none__' ? '' : v })}>
+                                <Select value={draftEntity.simples_nacional || undefined} onValueChange={v => setDraftEntity({ ...draftEntity, simples_nacional: v })}>
                                   <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="__none__">Selecione...</SelectItem>
                                     <SelectItem value="optante">Optante</SelectItem>
                                     <SelectItem value="nao_optante">Não Optante</SelectItem>
                                   </SelectContent>
@@ -1649,7 +1666,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                 >
                                   <div className="flex-1 min-w-0">
                                     <div className="font-bold text-foreground truncate">{part.nome}</div>
-                                    <div className="text-sm text-muted-foreground">{part.tipo_participante}{part.cargo ? ` — ${part.cargo}` : ''}</div>
+                                    <div className="text-sm text-muted-foreground">{part.tipo_participante}</div>
                                   </div>
                                   <div className="flex items-center gap-2 ml-2">
                                     {part.acesso_chamados && <Badge variant="outline" className="text-[10px]">Chamados</Badge>}
@@ -1683,8 +1700,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                       <FieldPair label="Nome" value={part.nome} />
-                                      <FieldPair label="Tipo de Participante" value={part.tipo_participante} />
-                                      <FieldPair label="Cargo" value={part.cargo} />
+                                      <FieldPair label="Cargo/função" value={part.tipo_participante} />
                                       <FieldPair label="Email" value={part.email} />
                                       <FieldPair label="Telefone" value={part.telefone} />
                                       <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? 'Sim' : 'Não'} />
@@ -1703,9 +1719,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                           <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} className="h-8" />
                                         </div>
                                       </div>
-                                      {/* Tipo */}
+                                      {/* Cargo/função */}
                                       <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo *</Label>
+                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
                                         <div className="flex-1">
                                           <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
                                             <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1716,13 +1732,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                               ))}
                                             </SelectContent>
                                           </Select>
-                                        </div>
-                                      </div>
-                                      {/* Cargo */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo</Label>
-                                        <div className="flex-1">
-                                          <Input value={ep.cargo || ''} onChange={e => setEditingParticipantData({ ...ep, cargo: e.target.value })} className="h-8" />
                                         </div>
                                       </div>
                                       {/* Email */}
@@ -1796,9 +1805,9 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                               <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" />
                             </div>
                           </div>
-                          {/* Tipo */}
+                          {/* Cargo/função */}
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo *</Label>
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
                             <div className="flex-1">
                               <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
                                 <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -1809,13 +1818,6 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                   ))}
                                 </SelectContent>
                               </Select>
-                            </div>
-                          </div>
-                          {/* Cargo */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo</Label>
-                            <div className="flex-1">
-                              <Input value={draftParticipant.cargo} onChange={e => setDraftParticipant({ ...draftParticipant, cargo: e.target.value })} className="h-8" />
                             </div>
                           </div>
                           {/* Email */}
