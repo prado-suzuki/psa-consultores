@@ -223,6 +223,17 @@ export function PerFormModal({
 
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
+      // Verificar se já existe PER com este número
+      const { data: existing } = await supabase
+        .from('per')
+        .select('numero_processo_per')
+        .eq('numero_processo_per', data.numero_processo_per)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error('Já existe um PER cadastrado com este número de processo.');
+      }
+
       // Insert PER with nr_proc_ret if retificadora
       const { error: perError } = await supabase.from('per').insert([{
         numero_processo_per: data.numero_processo_per,
@@ -284,7 +295,10 @@ export function PerFormModal({
       syncPerdcompToDW(syncPayload);
     },
     onError: (error: any) => {
-      toast.error(`Erro ao criar PER: ${error.message}`);
+      const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
+        ? 'Já existe um PER cadastrado com este número de processo.'
+        : error.message;
+      toast.error(`Erro ao criar PER: ${msg}`);
     },
   });
 
