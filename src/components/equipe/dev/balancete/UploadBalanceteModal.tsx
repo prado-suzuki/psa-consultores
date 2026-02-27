@@ -86,7 +86,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
       formData.append('periodo_inicio', monthYearToDateString(periodoInicio, 'start'));
       formData.append('periodo_fim', monthYearToDateString(periodoFim, 'end'));
       formData.append('adicionado_por', user?.email || '');
-      formData.append('arquivo', file);
+      formData.append('file', file);
 
       const response = await fetchWithAuth(getApiUrl('/api/v1/contabil/balancetes'), {
         method: 'POST',
