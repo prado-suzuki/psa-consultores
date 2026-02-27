@@ -1489,13 +1489,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "per_id_contribuinte_fkey"
-            columns: ["id_contribuinte"]
-            isOneToOne: false
-            referencedRelation: "contribuinte"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
             isOneToOne: false
