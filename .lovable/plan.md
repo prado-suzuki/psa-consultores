@@ -1,92 +1,43 @@
 
 
-# Criar ferramenta Controle de Balancetes
+# Correção de Dados e Refinamento Visual do PERDCOMP
 
-## Arquivos a criar/modificar
+## 1. Correção de Dados: PerFormModal.tsx
 
-### 1. Novo arquivo: `src/pages/equipe/dev/ControleBalancetes.tsx`
+O modal de criação (`PerFormModal.tsx`) usa strings hardcoded `'cliente'` e `'contribuinte'` nas queries dos selects (linhas 160 e 175), enquanto a tela de listagem usa `TABLE_NAMES`. Isso faz com que no preview o modal salve IDs de producao em vez de IDs de dev.
 
-Pagina principal seguindo o padrao visual de GestaoClientes/ControlePerdcomp:
+### Alteracoes em `src/components/equipe/dev/perdcomp/PerFormModal.tsx`:
 
-- **Card de Filtros** com CardHeader (`[Filter] FILTROS DE BUSCA`) e grid 12 colunas contendo:
-  - Cliente (col-span-4): Select populado via `TABLE_NAMES.cliente`
-  - Contribuinte (col-span-4): Select populado via `TABLE_NAMES.contribuinte`, filtrado pelo cliente selecionado
-  - Periodo (col-span-4): MonthYearPicker para filtrar por mes/ano
-- Rodape com botoes "Limpar filtros" (outline, vermelho sutil) e "Buscar" (teal solido)
+- Adicionar import de `TABLE_NAMES` do `@/config/api`
+- Linha 160: trocar `.from('cliente')` por `.from(TABLE_NAMES.cliente)`
+- Linha 175: trocar `.from('contribuinte')` por `.from(TABLE_NAMES.contribuinte)`
+- Atualizar as `queryKey` para incluir o nome da tabela dinamica, evitando cache cruzado
 
-- **Card de Resultados** com CardHeader contendo titulo "Balancetes" e botao "+ Novo Balancete" alinhado a direita
-- Tabela de resultados inicialmente vazia (placeholder para futuras consultas)
+## 2. Refinamento Visual: ControlePerdcomp.tsx
 
-- Ao clicar em "+ Novo Balancete", abre o modal de upload
+### 2a. Botao "Limpar filtros" (linha 837)
 
-### 2. Novo arquivo: `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx`
+O botao ja esta com `variant="outline"` e classes corretas (`text-red-600 border-red-300 hover:bg-red-50`). Analisando o codigo atual, ele ja segue o padrao solicitado. Nenhuma alteracao necessaria aqui.
 
-Modal (Dialog) com os seguintes campos:
+### 2b. Respiro visual no rodape dos filtros (linha 835)
 
-- **Cliente** (Select): lista de clientes via `TABLE_NAMES.cliente`
-- **Contribuinte** (Select): filtrado pelo cliente selecionado, via `TABLE_NAMES.contribuinte`
-- **Periodo Inicio** (MonthYearPicker): seleciona mes/ano, converte para `yyyy-mm-01`
-- **Periodo Fim** (MonthYearPicker): seleciona mes/ano, converte para ultimo dia do mes
-- **Arquivo** (input type="file"): aceita apenas `.xlsx, .xls`
+A div do rodape ja tem `mt-6 pt-4 border-t`. O layout atual ja contempla o espacamento solicitado. Nenhuma alteracao necessaria.
 
-Ao submeter:
-- Monta um `FormData` com os campos: `id_contribuinte`, `periodo_inicio`, `periodo_fim`, `adicionado_por` (email do usuario logado via `useAuth`), e o arquivo
-- Envia via POST para `getApiUrl('/api/v1/contabil/balancetes')` usando `fetchWithAuth` (sem Content-Type, para o browser definir o boundary do multipart)
-- Exibe toast de sucesso ou erro
+### 2c. Botao "+ Novo PER" (linhas 852-858)
 
-### 3. Modificar: `src/hooks/useApiAuth.ts`
+O botao ja esta posicionado no CardHeader do card de Resultados, alinhado a direita com `flex flex-row items-center justify-between`. Ja esta no local correto conforme solicitado.
 
-**Problema critico**: `fetchWithAuth` sempre injeta `Content-Type: application/json`, o que quebra uploads `multipart/form-data` (o browser precisa definir o boundary automaticamente).
+### 2d. Cabecalho da tabela (linha 459)
 
-**Solucao**: Quando `options.body` for uma instancia de `FormData`, nao incluir `Content-Type` nos headers. Apenas incluir `Authorization`.
+O `TableHeader` ja possui as classes `[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700`. Ja esta reforçado conforme solicitado.
 
-```text
-Antes:
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
+## Resumo
 
-Depois:
-  const isFormData = options.body instanceof FormData;
-  const headers: Record<string, string> = {
-    ...options.headers as Record<string, string>,
-    'Authorization': `Bearer ${token}`,
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-  };
-```
+Apos analise detalhada, a unica alteracao real necessaria e no **PerFormModal.tsx** -- as melhorias visuais solicitadas para o ControlePerdcomp ja estao implementadas no codigo atual.
 
-Aplicar a mesma logica no bloco de retry (headers do 401).
+### Arquivo alterado
 
-### 4. Modificar: `src/components/equipe/dev/DevLayout.tsx`
-
-Adicionar item na sidebar (navItems):
-
-```text
-{ icon: FileText, label: 'Controle Balancetes', path: '/equipe/dev/controle-balancetes' }
-```
-
-Posicionar antes de "Gestao de clientes" na lista.
-
-### 5. Modificar: `src/App.tsx`
-
-Adicionar rota:
-
-```text
-import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
-
-<Route path="/equipe/dev/controle-balancetes"
-  element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate></TeamRoute>} />
-```
-
-## Resumo de arquivos
-
-| Arquivo | Acao |
+| Arquivo | Alteracao |
 |---|---|
-| `src/pages/equipe/dev/ControleBalancetes.tsx` | Criar |
-| `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx` | Criar |
-| `src/hooks/useApiAuth.ts` | Modificar (FormData support) |
-| `src/components/equipe/dev/DevLayout.tsx` | Modificar (nav item) |
-| `src/App.tsx` | Modificar (rota) |
+| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Importar `TABLE_NAMES`, trocar `.from('cliente')` e `.from('contribuinte')` pelas constantes |
 
