@@ -1,71 +1,58 @@
 
 
-# Restaurar campo Contribuinte no modal de cadastrar PER
+# Corrigir id_contribuinte vazio vindo do draft
 
-## Contexto
-O campo de contribuinte foi removido anteriormente, mas agora precisa voltar ao formulario, posicionado no topo, com a lista de contribuintes carregando corretamente a partir do banco.
+## Problema
 
-## Alteracoes
+Quando o formulario abre e encontra um rascunho salvo (draft), ele restaura todos os valores com `form.reset(saved)` (linha 230), incluindo um `id_contribuinte` que pode estar vazio -- especialmente se o draft foi salvo antes do campo de contribuinte ser adicionado ao formulario.
+
+Mesmo que o usuario selecione cliente e contribuinte visualmente, se o draft ja foi restaurado com valor vazio e o usuario nao interagir com o campo Select de contribuinte (por exemplo, se ele ja aparece com o placeholder mas sem valor real), o `id_contribuinte` no estado do formulario permanece como string vazia.
+
+## Solucao
 
 **Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-### 1. Restaurar a query de contribuintes (apos linha 148)
+### 1. Forcar `id_contribuinte` ao restaurar draft (linha 230)
 
-Adicionar de volta a query que busca contribuintes do banco, filtrando por `clienteId`:
+Alterar de:
+```typescript
+form.reset(saved);
+```
+Para:
+```typescript
+form.reset({ ...saved, id_contribuinte: saved.id_contribuinte || contribuinteId || '' });
+```
+
+Isso garante que, se o draft nao tiver um `id_contribuinte` valido, ele usa o contribuinte selecionado no filtro da pagina.
+
+### 2. Adicionar validacao no submit (linha 382)
+
+Antes de chamar a mutation, verificar se `id_contribuinte` esta preenchido:
 
 ```typescript
-const { data: contribuintes = [] } = useQuery({
-  queryKey: ['contribuintes', clienteId],
-  queryFn: async () => {
-    if (!clienteId) return [];
-    const { data, error } = await supabase
-      .from('contribuinte_dev')
-      .select('id, nome_razao_social, cpf_cnpj')
-      .eq('cliente_id', clienteId)
-      .order('nome_razao_social');
-    if (error) throw error;
-    return data || [];
-  },
-  enabled: !!clienteId,
-});
+const onSubmit = (data: PerFormData) => {
+  if (!data.id_contribuinte) {
+    toast.error('Selecione um contribuinte antes de cadastrar o PER.');
+    return;
+  }
+  // ... resto do codigo
+};
 ```
 
-### 2. Adicionar o campo visual no topo do formulario (antes do campo "Numero do Processo", linha ~459)
+### 3. Melhorar o onError do createMutation
 
-Inserir um `FormField` com `Select` para o contribuinte, pre-selecionando o `contribuinteId` vindo da prop quando disponivel:
+Adicionar deteccao do erro `per_id_contribuinte_fkey` para exibir mensagem amigavel caso a validacao do passo 2 seja contornada por race condition:
 
-```tsx
-<FormField
-  control={form.control}
-  name="id_contribuinte"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Contribuinte</FormLabel>
-      <Select onValueChange={field.onChange} value={field.value}>
-        <FormControl>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o contribuinte" />
-          </SelectTrigger>
-        </FormControl>
-        <SelectContent>
-          {contribuintes.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.nome_razao_social} {c.cpf_cnpj ? `(${c.cpf_cnpj})` : ''}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+```typescript
+onError: (error: any) => {
+  const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
+    ? 'Ja existe um PER cadastrado com este numero de processo.'
+    : error.message?.includes('per_id_contribuinte_fkey')
+    ? 'Contribuinte invalido. Selecione um contribuinte valido.'
+    : error.message;
+  toast.error(`Erro ao criar PER: ${msg}`);
+}
 ```
 
-### 3. Garantir inicializacao correta
-
-O `defaultValues` ja inicializa `id_contribuinte` com `contribuinteId || ''` (linha 132), entao o campo vira pre-selecionado quando o filtro da pagina principal estiver ativo. O usuario tambem podera mudar manualmente se necessario.
-
-### 4. Posicionamento
-
-O campo Contribuinte ficara como o **primeiro campo** do formulario, antes de "Tipo de Declaracao" e "Numero do Processo".
+Essas tres alteracoes cobrem: draft com valor vazio, usuario que esquece de selecionar, e race conditions.
 
