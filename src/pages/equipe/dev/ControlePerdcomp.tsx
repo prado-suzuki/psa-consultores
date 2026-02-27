@@ -24,6 +24,8 @@ import {
   Pencil,
   X,
   Loader2,
+  Filter,
+  Eraser,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
@@ -80,7 +82,7 @@ export default function ControlePerdcomp() {
   const [processoFilter, setProcessoFilter] = useState<string>("");
   const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
 
-  const [searched, setSearched] = useState(false);
+  const [searched, setSearched] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -433,11 +435,11 @@ export default function ControlePerdcomp() {
   const isDeleting = deleteDcompMutation.isPending;
 
   const renderTable = () => {
-    if (!searched) {
+   if (!searched || !contribuinteId) {
       return (
         <div className="text-center py-12 text-muted-foreground">
           <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Selecione os filtros e clique em Buscar para visualizar os registros</p>
+          <p>Selecione um cliente e contribuinte para visualizar os registros</p>
         </div>
       );
     }
@@ -693,23 +695,34 @@ export default function ControlePerdcomp() {
     <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP">
       {/* Filters Card */}
       <Card className="mb-6">
-        <CardContent className="pt-6">
-          {/* Linha 1: Cliente, Contribuinte, Buscar, Limpar, Novo PER */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2 md:col-span-2">
-              <Label>Cliente</Label>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg text-primary">
+              <Filter className="h-5 w-5 text-teal-600" />
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+            </CardTitle>
+            <Button onClick={handleNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              <Plus className="h-4 w-4" />
+              Novo PER
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Cliente - 3 colunas */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente</label>
               <Select
                 value={clienteId}
                 onValueChange={(v) => {
                   setClienteId(v);
                   setContribuinteId("");
-                  setSearched(false);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white z-50">
                   {clientes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nome}
@@ -719,20 +732,18 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Contribuinte</Label>
+            {/* Contribuinte - 3 colunas */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte</label>
               <Select
                 value={contribuinteId}
-                onValueChange={(v) => {
-                  setContribuinteId(v);
-                  setSearched(false);
-                }}
+                onValueChange={setContribuinteId}
                 disabled={!clienteId}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white z-50">
                   {contribuintes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nome_razao_social}
@@ -742,26 +753,9 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
-            <div className="flex items-end gap-2">
-              <Button onClick={handleSearch} className="flex-1">
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
-              </Button>
-              <Button onClick={handleClear} variant="outline" className="flex-1">
-                <X className="h-4 w-4 mr-2" />
-                Limpar
-              </Button>
-              <Button onClick={handleNew} className="flex-1">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo PER
-              </Button>
-            </div>
-          </div>
-
-          {/* Linha 2: Situação, Exercício, Nº do Processo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div className="space-y-2">
-              <Label>Situação</Label>
+            {/* Situação - 2 colunas */}
+            <div className="col-span-6 md:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Situação</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between h-10 font-normal">
@@ -810,16 +804,17 @@ export default function ControlePerdcomp() {
               </Popover>
             </div>
 
-            <div className="space-y-2">
-              <Label>Exercício</Label>
+            {/* Exercício - 2 colunas */}
+            <div className="col-span-6 md:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Exercício</label>
               <Select
                 value={exercicioFilter || "__none__"}
                 onValueChange={(v) => setExercicioFilter(v === "__none__" ? "" : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white z-50">
                   <SelectItem value="__none__">Todos</SelectItem>
                   {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
                     <SelectItem key={year} value={year.toString()}>
@@ -830,14 +825,30 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Nº do Processo</Label>
+            {/* Nº Processo - 2 colunas */}
+            <div className="col-span-12 md:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Nº do Processo</label>
               <Input
+                className="h-11 bg-white dark:bg-slate-800"
                 placeholder="Digite o número..."
                 value={processoFilter}
                 onChange={(e) => setProcessoFilter(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Rodapé de ações */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            {(clienteId || contribuinteId || exercicioFilter || processoFilter || situacaoFilter.length > 0) && (
+              <Button onClick={handleClear} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+                <Eraser className="h-4 w-4" />
+                Limpar filtros
+              </Button>
+            )}
+            <Button onClick={handleSearch} disabled={isLoading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {isLoading ? 'Buscando...' : 'Buscar'}
+            </Button>
           </div>
         </CardContent>
       </Card>
