@@ -1,43 +1,62 @@
 
 
-# Correção de Dados e Refinamento Visual do PERDCOMP
+# Implementar Validation Trigger para `per.id_contribuinte`
 
-## 1. Correção de Dados: PerFormModal.tsx
+## Contexto
 
-O modal de criação (`PerFormModal.tsx`) usa strings hardcoded `'cliente'` e `'contribuinte'` nas queries dos selects (linhas 160 e 175), enquanto a tela de listagem usa `TABLE_NAMES`. Isso faz com que no preview o modal salve IDs de producao em vez de IDs de dev.
+A tabela `per` possui a FK `per_id_contribuinte_fkey` que referencia apenas `contribuinte` (producao). Isso impede que o Preview (que usa `contribuinte_dev`) insira registros validos. A solucao e substituir a FK rigida por um trigger de validacao que aceite IDs de ambas as tabelas.
 
-### Alteracoes em `src/components/equipe/dev/perdcomp/PerFormModal.tsx`:
+## Etapas
 
-- Adicionar import de `TABLE_NAMES` do `@/config/api`
-- Linha 160: trocar `.from('cliente')` por `.from(TABLE_NAMES.cliente)`
-- Linha 175: trocar `.from('contribuinte')` por `.from(TABLE_NAMES.contribuinte)`
-- Atualizar as `queryKey` para incluir o nome da tabela dinamica, evitando cache cruzado
+### 1. Migration SQL
 
-## 2. Refinamento Visual: ControlePerdcomp.tsx
+Executar uma unica migration que:
 
-### 2a. Botao "Limpar filtros" (linha 837)
+1. **Remove a FK existente:**
+   ```text
+   ALTER TABLE public.per DROP CONSTRAINT per_id_contribuinte_fkey;
+   ```
 
-O botao ja esta com `variant="outline"` e classes corretas (`text-red-600 border-red-300 hover:bg-red-50`). Analisando o codigo atual, ele ja segue o padrao solicitado. Nenhuma alteracao necessaria aqui.
+2. **Cria a funcao de validacao:**
+   ```text
+   CREATE OR REPLACE FUNCTION public.validate_per_contribuinte()
+   RETURNS trigger AS $$
+   BEGIN
+     IF NOT EXISTS (
+       SELECT 1 FROM public.contribuinte WHERE id = NEW.id_contribuinte
+     ) AND NOT EXISTS (
+       SELECT 1 FROM public.contribuinte_dev WHERE id = NEW.id_contribuinte
+     ) THEN
+       RAISE EXCEPTION 'Contribuinte invalido: id % nao encontrado em contribuinte nem contribuinte_dev', NEW.id_contribuinte;
+     END IF;
+     RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
+   ```
 
-### 2b. Respiro visual no rodape dos filtros (linha 835)
+3. **Cria o trigger na tabela `per`:**
+   ```text
+   CREATE TRIGGER trg_validate_per_contribuinte
+     BEFORE INSERT OR UPDATE ON public.per
+     FOR EACH ROW
+     EXECUTE FUNCTION public.validate_per_contribuinte();
+   ```
 
-A div do rodape ja tem `mt-6 pt-4 border-t`. O layout atual ja contempla o espacamento solicitado. Nenhuma alteracao necessaria.
+### 2. Codigo (nenhuma alteracao)
 
-### 2c. Botao "+ Novo PER" (linhas 852-858)
-
-O botao ja esta posicionado no CardHeader do card de Resultados, alinhado a direita com `flex flex-row items-center justify-between`. Ja esta no local correto conforme solicitado.
-
-### 2d. Cabecalho da tabela (linha 459)
-
-O `TableHeader` ja possui as classes `[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700`. Ja esta reforçado conforme solicitado.
+O `PerFormModal.tsx` ja usa `TABLE_NAMES.cliente` e `TABLE_NAMES.contribuinte` (alteracao anterior). Com o trigger no lugar da FK, os IDs de `contribuinte_dev` serao aceitos no Preview e os de `contribuinte` continuarao funcionando em producao.
 
 ## Resumo
 
-Apos analise detalhada, a unica alteracao real necessaria e no **PerFormModal.tsx** -- as melhorias visuais solicitadas para o ControlePerdcomp ja estao implementadas no codigo atual.
-
-### Arquivo alterado
-
-| Arquivo | Alteracao |
+| Item | Acao |
 |---|---|
-| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Importar `TABLE_NAMES`, trocar `.from('cliente')` e `.from('contribuinte')` pelas constantes |
+| FK `per_id_contribuinte_fkey` | Remover |
+| Funcao `validate_per_contribuinte()` | Criar |
+| Trigger `trg_validate_per_contribuinte` | Criar na tabela `per` |
+| Codigo frontend | Nenhuma alteracao necessaria |
+
+## Riscos
+
+- **Baixo**: a validacao continua existindo, apenas aceita IDs de ambas as tabelas
+- **Sem CASCADE**: a FK original nao tinha `ON DELETE CASCADE`, entao nao ha perda de comportamento automatico de exclusao
 
