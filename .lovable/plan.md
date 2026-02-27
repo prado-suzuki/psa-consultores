@@ -1,57 +1,92 @@
 
 
-# Refinamentos visuais no Controle PERDCOMP
+# Criar ferramenta Controle de Balancetes
 
-## Arquivo: `src/pages/equipe/dev/ControlePerdcomp.tsx`
+## Arquivos a criar/modificar
 
-### 1. Mover botao "+ Novo PER" para o card de Resultados
+### 1. Novo arquivo: `src/pages/equipe/dev/ControleBalancetes.tsx`
 
-Remover o botao `handleNew` do `CardHeader` do card de filtros (linhas 704-707) e inseri-lo no `CardHeader` do card de Resultados (linhas 857-860), alinhado a direita na mesma linha do titulo:
+Pagina principal seguindo o padrao visual de GestaoClientes/ControlePerdcomp:
+
+- **Card de Filtros** com CardHeader (`[Filter] FILTROS DE BUSCA`) e grid 12 colunas contendo:
+  - Cliente (col-span-4): Select populado via `TABLE_NAMES.cliente`
+  - Contribuinte (col-span-4): Select populado via `TABLE_NAMES.contribuinte`, filtrado pelo cliente selecionado
+  - Periodo (col-span-4): MonthYearPicker para filtrar por mes/ano
+- Rodape com botoes "Limpar filtros" (outline, vermelho sutil) e "Buscar" (teal solido)
+
+- **Card de Resultados** com CardHeader contendo titulo "Balancetes" e botao "+ Novo Balancete" alinhado a direita
+- Tabela de resultados inicialmente vazia (placeholder para futuras consultas)
+
+- Ao clicar em "+ Novo Balancete", abre o modal de upload
+
+### 2. Novo arquivo: `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx`
+
+Modal (Dialog) com os seguintes campos:
+
+- **Cliente** (Select): lista de clientes via `TABLE_NAMES.cliente`
+- **Contribuinte** (Select): filtrado pelo cliente selecionado, via `TABLE_NAMES.contribuinte`
+- **Periodo Inicio** (MonthYearPicker): seleciona mes/ano, converte para `yyyy-mm-01`
+- **Periodo Fim** (MonthYearPicker): seleciona mes/ano, converte para ultimo dia do mes
+- **Arquivo** (input type="file"): aceita apenas `.xlsx, .xls`
+
+Ao submeter:
+- Monta um `FormData` com os campos: `id_contribuinte`, `periodo_inicio`, `periodo_fim`, `adicionado_por` (email do usuario logado via `useAuth`), e o arquivo
+- Envia via POST para `getApiUrl('/api/v1/contabil/balancetes')` usando `fetchWithAuth` (sem Content-Type, para o browser definir o boundary do multipart)
+- Exibe toast de sucesso ou erro
+
+### 3. Modificar: `src/hooks/useApiAuth.ts`
+
+**Problema critico**: `fetchWithAuth` sempre injeta `Content-Type: application/json`, o que quebra uploads `multipart/form-data` (o browser precisa definir o boundary automaticamente).
+
+**Solucao**: Quando `options.body` for uma instancia de `FormData`, nao incluir `Content-Type` nos headers. Apenas incluir `Authorization`.
 
 ```text
 Antes:
-  Card Filtros  -> [Filter] FILTROS DE BUSCA    [+ Novo PER]
-  Card Resultados -> Resultados - PER
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
 
 Depois:
-  Card Filtros  -> [Filter] FILTROS DE BUSCA
-  Card Resultados -> Resultados - PER            [+ Novo PER]
+  const isFormData = options.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...options.headers as Record<string, string>,
+    'Authorization': `Bearer ${token}`,
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+  };
 ```
 
-O `CardHeader` de Resultados passara a usar `flex items-center justify-between` com o titulo e o botao lado a lado.
+Aplicar a mesma logica no bloco de retry (headers do 401).
 
-### 2. Rebaixar hierarquia do botao "Limpar filtros"
+### 4. Modificar: `src/components/equipe/dev/DevLayout.tsx`
 
-Alterar de `bg-red-600 hover:bg-red-700 text-white` para `variant="outline"` com texto vermelho sutil:
+Adicionar item na sidebar (navItems):
 
 ```text
-Antes:  <Button className="bg-red-600 ...">
-Depois: <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
+{ icon: FileText, label: 'Controle Balancetes', path: '/equipe/dev/controle-balancetes' }
 ```
 
-Isso mantem o "Buscar" (teal solido) como unica acao primaria do rodape.
+Posicionar antes de "Gestao de clientes" na lista.
 
-### 3. Respiro visual no rodape de acoes
+### 5. Modificar: `src/App.tsx`
 
-Adicionar `mt-6` a div do rodape que ja tem `pt-4 border-t`:
+Adicionar rota:
 
 ```text
-Antes:  <div className="flex ... pt-4 border-t">
-Depois: <div className="flex ... mt-6 pt-4 border-t">
+import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
+
+<Route path="/equipe/dev/controle-balancetes"
+  element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate></TeamRoute>} />
 ```
 
-### 4. Reforcar tipografia do cabecalho da tabela
+## Resumo de arquivos
 
-Nas celulas `TableHead` dentro de `renderTable()`, aplicar classes de enfase:
-
-```text
-Antes:  <TableHead>Nº Documento</TableHead>
-Depois: <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-700">Nº Documento</TableHead>
-```
-
-Aplicar a mesma classe em todas as colunas do `TableHeader` da tabela de PER (e DCOMP, se houver).
-
----
-
-Sao alteracoes puramente de classes Tailwind e reorganizacao de JSX, sem mudanca de logica ou estado.
+| Arquivo | Acao |
+|---|---|
+| `src/pages/equipe/dev/ControleBalancetes.tsx` | Criar |
+| `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx` | Criar |
+| `src/hooks/useApiAuth.ts` | Modificar (FormData support) |
+| `src/components/equipe/dev/DevLayout.tsx` | Modificar (nav item) |
+| `src/App.tsx` | Modificar (rota) |
 
