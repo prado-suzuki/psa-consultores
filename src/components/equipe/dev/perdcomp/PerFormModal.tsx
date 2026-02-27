@@ -157,7 +157,7 @@ export function PerFormModal({
     queryKey: ['clientes-dev-per-modal'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('cliente_dev')
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
@@ -172,7 +172,7 @@ export function PerFormModal({
     queryFn: async () => {
       if (!selectedClienteId) return [];
       const { data, error } = await supabase
-        .from('contribuinte_dev')
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedClienteId)
         .order('nome_razao_social');
