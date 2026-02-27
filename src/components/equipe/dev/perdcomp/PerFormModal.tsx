@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { TABLE_NAMES } from '@/config/api';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { toast } from 'sonner';
 import {
@@ -154,10 +155,10 @@ export function PerFormModal({
 
   // Fetch all clients for the client selector
   const { data: clientes = [] } = useQuery({
-    queryKey: ['clientes-dev-per-modal'],
+    queryKey: ['clientes-dev-per-modal', TABLE_NAMES.cliente],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('cliente')
+        .from(TABLE_NAMES.cliente)
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
@@ -168,11 +169,11 @@ export function PerFormModal({
 
   // Fetch contribuintes for the selected client in the modal
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes', selectedClienteId],
+    queryKey: ['contribuintes', TABLE_NAMES.contribuinte, selectedClienteId],
     queryFn: async () => {
       if (!selectedClienteId) return [];
       const { data, error } = await supabase
-        .from('contribuinte')
+        .from(TABLE_NAMES.contribuinte)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedClienteId)
         .order('nome_razao_social');
