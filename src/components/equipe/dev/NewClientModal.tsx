@@ -122,11 +122,11 @@ interface DraftEntity {
   cpf_cnpj: string;
   nome_razao_social: string;
   nome_fantasia: string;
-  situacao_inscricao_estadual: string; // 'sim' | 'isento' | 'nao' | ''
+  situacao_inscricao_estadual: string;
   inscricao_estadual: string;
   cod_cnae: string;
   setor: string;
-  simples_nacional: string; // '' | 'optante' | 'nao_optante'
+  simples_nacional: string;
   telefone: string;
   cep: string;
   logradouro: string;
@@ -135,6 +135,7 @@ interface DraftEntity {
   bairro: string;
   municipio: string;
   uf: string;
+  contribuinte_faturamento: boolean;
 }
 
 interface DraftParticipant {
@@ -507,6 +508,7 @@ export default function NewClientModal({
     bairro: "",
     municipio: "",
     uf: "",
+    contribuinte_faturamento: false,
   });
 
   // Section 3 - Participantes
@@ -654,6 +656,7 @@ export default function NewClientModal({
               bairro: "",
               municipio: "",
               uf: "",
+              contribuinte_faturamento: false,
             })),
           );
         }
@@ -833,6 +836,7 @@ export default function NewClientModal({
       bairro: "",
       municipio: "",
       uf: "",
+      contribuinte_faturamento: false,
     });
   };
 
@@ -1630,6 +1634,11 @@ export default function NewClientModal({
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2 ml-2">
+                                      {ent.contribuinte_faturamento && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
+                                          Faturamento
+                                        </span>
+                                      )}
                                       {ent.simples_nacional === "optante" && (
                                         <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">
                                           Simples
@@ -1735,6 +1744,10 @@ export default function NewClientModal({
                                         <FieldPair label="Bairro" value={ent.bairro} />
                                         <FieldPair label="Município" value={ent.municipio} />
                                         <FieldPair label="UF" value={ent.uf} />
+                                        <FieldPair
+                                          label="Contribuinte de Faturamento"
+                                          value={ent.contribuinte_faturamento ? "Sim" : "Não"}
+                                        />
                                       </div>
                                     </div>
                                   )}
@@ -2032,6 +2045,23 @@ export default function NewClientModal({
                                               }
                                               className="h-8"
                                             />
+                                          </div>
+                                        </div>
+                                        {/* Contribuinte de Faturamento */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Contribuinte de Faturamento
+                                          </Label>
+                                          <div className="flex items-center gap-2">
+                                            <Switch
+                                              checked={!!(ed as any).contribuinte_faturamento}
+                                              onCheckedChange={(v) =>
+                                                setEditingEntityData({ ...ed, contribuinte_faturamento: v })
+                                              }
+                                            />
+                                            <span className="text-xs text-muted-foreground">
+                                              {(ed as any).contribuinte_faturamento ? "Sim" : "Não"}
+                                            </span>
                                           </div>
                                         </div>
                                         <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
@@ -2380,6 +2410,23 @@ export default function NewClientModal({
                                     placeholder="Sala, Andar..."
                                     className="h-8"
                                   />
+                                </div>
+                              </div>
+                              {/* Contribuinte de Faturamento */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Contribuinte de Faturamento
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={!!draftEntity.contribuinte_faturamento}
+                                    onCheckedChange={(v) =>
+                                      setDraftEntity({ ...draftEntity, contribuinte_faturamento: v })
+                                    }
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    {draftEntity.contribuinte_faturamento ? "Sim" : "Não"}
+                                  </span>
                                 </div>
                               </div>
                               <div className="flex justify-end mt-2">
