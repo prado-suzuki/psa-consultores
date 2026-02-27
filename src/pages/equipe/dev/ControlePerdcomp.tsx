@@ -137,17 +137,12 @@ export default function ControlePerdcomp() {
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
       const { data, error } = await supabase
-        .from("per")
-        .select(
-          `
-          *,
-          contribuinte:id_contribuinte (nome_razao_social)
-        `,
-        )
+        .from("per_with_contribuinte" as any)
+        .select("*")
         .eq("id_contribuinte", contribuinteId)
         .order("exercicio", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: searched && !!contribuinteId,
   });
