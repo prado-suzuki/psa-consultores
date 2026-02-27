@@ -1089,7 +1089,7 @@ export default function NewClientModal({
       return;
     }
     if (clientData.empresa_faturamento.length === 0) {
-      toast.error(" é obrigatória");
+      toast.error("Empresa / Faturamento é obrigatória");
       return;
     }
     if (!clientData.regiao) {
@@ -1506,11 +1506,10 @@ export default function NewClientModal({
                           </Select>
                         </div>
 
-                        {/* 8.  (Multi-select) */}
+                        {/* 8. Empresa / Faturamento (Multi-select) */}
                         <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
                           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                            {" "}
-                            *
+                            Empresa / Faturamento *
                           </Label>
                           <div className="flex-1">
                             <Popover>
