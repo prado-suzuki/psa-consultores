@@ -895,7 +895,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
       toast.error('Informe o nome do produto/segmento personalizado'); return;
     }
-    if (clientData.empresa_faturamento.length === 0) { toast.error('Empresa / Faturamento é obrigatória'); return; }
+    if (clientData.empresa_faturamento.length === 0) { toast.error('Centro de Custo / Faturamento é obrigatório'); return; }
     if (!clientData.regiao) { toast.error('Região é obrigatória'); return; }
 
     setSaving(true);
@@ -1097,68 +1097,68 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                     <div className="px-4 py-2 bg-muted/50 border-b">
                       <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
                     </div>
-                    <div className="px-4 py-3 flex flex-col gap-2.5">
+                    <div className="px-4 py-3 space-y-4">
 
                       {/* 1. Nome */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome do Cliente / Grupo *</Label>
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome do Cliente / Grupo <span className="text-destructive">*</span></Label>
                         <Input
                           autoFocus={!isReadOnly}
                           disabled={isReadOnly}
                           value={clientData.nome}
                           onChange={e => setClientData({ ...clientData, nome: e.target.value })}
                           placeholder="Ex: Grupo Empresarial Silva"
-                          className="flex-1 h-8"
+                          className="h-8"
                         />
                       </div>
 
-                      {/* 2. Categoria */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Categoria</Label>
-                        <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
-                          <SelectTrigger className="flex-1 h-8"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Bronze">Bronze</SelectItem>
-                            <SelectItem value="Prata">Prata</SelectItem>
-                            <SelectItem value="Ouro">Ouro</SelectItem>
-                            <SelectItem value="Diamante">Diamante</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* 3. Status */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Status</Label>
-                        <div className="flex items-center gap-2">
-                          <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
-                          <span className="text-xs font-medium">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+                      {/* 2+3. Categoria + Status lado a lado */}
+                      <div className="grid grid-cols-2 gap-x-6">
+                        <div>
+                          <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Categoria</Label>
+                          <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Bronze">Bronze</SelectItem>
+                              <SelectItem value="Prata">Prata</SelectItem>
+                              <SelectItem value="Ouro">Ouro</SelectItem>
+                              <SelectItem value="Diamante">Diamante</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Status</Label>
+                          <div className="flex items-center gap-2 h-8">
+                            <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
+                            <span className="text-xs font-medium">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+                          </div>
                         </div>
                       </div>
 
                       {/* 4. Tipo de Relacionamento */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de relacionamento</Label>
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Relacionamento</Label>
                         <div className="flex border rounded-md overflow-hidden">
                           <button
                             type="button"
                             disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
-                            className={`px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === 'Sim' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+                            className={`flex-1 px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === 'Sim' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
                           >Fixo</button>
                           <button
                             type="button"
                             disabled={isReadOnly}
                             onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
-                            className={`px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === 'Não' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+                            className={`flex-1 px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === 'Não' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
                           >Pontual</button>
                         </div>
                       </div>
 
                       {/* 5. Área do Negócio */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Área do negócio *</Label>
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Área do Negócio <span className="text-destructive">*</span></Label>
                         <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
-                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
                             <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
@@ -1172,38 +1172,11 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         </Select>
                       </div>
 
-                      {/* 6. Tipo de produto/segmento */}
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo de produto/segmento *</Label>
-                          <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
-                            <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {clientData.tipo_produto_segmento === '__outro__' && (
-                          <div className="md:ml-[12.75rem] md:pl-3">
-                            <Input
-                              disabled={isReadOnly}
-                              className="h-8"
-                              value={clientData.tipo_produto_segmento_custom}
-                              onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
-                              placeholder="Nome do novo produto/segmento"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 7. Região */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">Região *</Label>
+                      {/* 6. Região */}
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Região <span className="text-destructive">*</span></Label>
                         <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
-                          <SelectTrigger className="flex-1 h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__none__">Selecione...</SelectItem>
                             <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
@@ -1217,52 +1190,73 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         </Select>
                       </div>
 
-                      {/* 8. Empresa / Faturamento (Multi-select) */}
-                      <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                        <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Empresa / Faturamento *</Label>
-                        <div className="flex-1">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                disabled={isReadOnly}
-                                className={cn(
-                                  "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
-                                  clientData.empresa_faturamento.length === 0 && "text-muted-foreground"
-                                )}
-                              >
-                                {clientData.empresa_faturamento.length > 0 ? (
-                                  clientData.empresa_faturamento.map(emp => (
-                                    <Badge key={emp} variant="secondary" className="text-xs gap-1">
-                                      {emp}
-                                      {!isReadOnly && (
-                                        <X
-                                          className="h-3 w-3 cursor-pointer"
-                                          onClick={(e) => { e.stopPropagation(); toggleEmpresaFaturamento(emp); }}
-                                        />
-                                      )}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  "Selecione..."
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2" align="start">
-                              <div className="flex flex-col gap-1">
-                                {EMPRESA_FATURAMENTO_OPTIONS.map(emp => (
-                                  <label key={emp} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
-                                    <Checkbox
-                                      checked={clientData.empresa_faturamento.includes(emp)}
-                                      onCheckedChange={() => toggleEmpresaFaturamento(emp)}
-                                    />
+                      {/* 7. Tipo de produto/segmento */}
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Produto/Segmento <span className="text-destructive">*</span></Label>
+                        <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
+                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Selecione...</SelectItem>
+                            {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {clientData.tipo_produto_segmento === '__outro__' && (
+                          <Input
+                            disabled={isReadOnly}
+                            className="h-8 mt-2"
+                            value={clientData.tipo_produto_segmento_custom}
+                            onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
+                            placeholder="Nome do novo produto/segmento"
+                          />
+                        )}
+                      </div>
+
+                      {/* 8. Centro de Custo / Faturamento (Multi-select) */}
+                      <div>
+                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Centro de Custo / Faturamento <span className="text-destructive">*</span></Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              disabled={isReadOnly}
+                              className={cn(
+                                "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
+                                clientData.empresa_faturamento.length === 0 && "text-muted-foreground"
+                              )}
+                            >
+                              {clientData.empresa_faturamento.length > 0 ? (
+                                clientData.empresa_faturamento.map(emp => (
+                                  <Badge key={emp} variant="secondary" className="text-xs gap-1">
                                     {emp}
-                                  </label>
-                                ))}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
+                                    {!isReadOnly && (
+                                      <X
+                                        className="h-3 w-3 cursor-pointer"
+                                        onClick={(e) => { e.stopPropagation(); toggleEmpresaFaturamento(emp); }}
+                                      />
+                                    )}
+                                  </Badge>
+                                ))
+                              ) : (
+                                "Selecione..."
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-2" align="start">
+                            <div className="flex flex-col gap-1">
+                              {EMPRESA_FATURAMENTO_OPTIONS.map(emp => (
+                                <label key={emp} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                                  <Checkbox
+                                    checked={clientData.empresa_faturamento.includes(emp)}
+                                    onCheckedChange={() => toggleEmpresaFaturamento(emp)}
+                                  />
+                                  {emp}
+                                </label>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                     </div>
@@ -1750,8 +1744,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       </AlertDialog>
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                                      <FieldPair label="Nome" value={part.nome} />
-                                      <FieldPair label="Cargo/função" value={part.tipo_participante} />
+                                      <FieldPair label="Nome Completo" value={part.nome} />
+                                      <FieldPair label="Tipo de Participante" value={part.tipo_participante} />
                                       <FieldPair label="Email" value={part.email} />
                                       <FieldPair label="Telefone" value={part.telefone} />
                                       <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? 'Sim' : 'Não'} />
@@ -1762,78 +1756,66 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
                                 {isExpanded && isEditingThis && ep && (
                                   <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex flex-col gap-2.5">
-                                      {/* Nome */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome *</Label>
-                                        <div className="flex-1">
-                                          <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} className="h-8" />
-                                        </div>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                                      {/* Nome Completo */}
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome Completo <span className="text-destructive">*</span></Label>
+                                        <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} className="h-8" />
                                       </div>
-                                      {/* Cargo/função */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
-                                        <div className="flex-1">
-                                          <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
-                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">Selecione...</SelectItem>
-                                              {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
+                                      {/* Tipo de Participante */}
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Participante <span className="text-destructive">*</span></Label>
+                                        <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
+                                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
                                       {/* Email */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Email *</Label>
-                                        <div className="flex-1">
-                                          <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} className="h-8" />
-                                        </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Email <span className="text-destructive">*</span></Label>
+                                        <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} className="h-8" />
                                       </div>
                                       {/* Telefone */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                                        <div className="flex-1">
-                                          <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} className="h-8" />
-                                        </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Telefone</Label>
+                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} className="h-8" />
                                       </div>
-                                      {/* Acesso Chamados */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 h-8">
-                                            <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
-                                            <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
-                                          </div>
+                                      {/* Acesso a Chamados */}
+                                      <div className="col-span-2">
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Acesso a Chamados</Label>
+                                        <div className="flex items-center gap-2 h-8">
+                                          <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
+                                          <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
                                         </div>
                                       </div>
                                       {/* Observações */}
-                                      <div className="flex flex-row items-start gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Observações</Label>
-                                        <div className="flex-1">
-                                          <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="min-h-[60px]" />
-                                        </div>
+                                      <div className="col-span-2">
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
+                                        <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="min-h-[60px]" />
                                       </div>
-                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                                        <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                              <AlertDialogDescription>Deseja salvar as alterações feitas neste participante?</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Salvar</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
+                                      <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                            <AlertDialogDescription>Deseja salvar as alterações feitas neste participante?</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Salvar</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                   </div>
                                 )}
@@ -1848,67 +1830,55 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
                           Novo Participante
                         </h4>
-                        <div className="flex flex-col gap-2.5">
-                          {/* Nome */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome *</Label>
-                            <div className="flex-1">
-                              <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" />
-                            </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                          {/* Nome Completo */}
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome Completo <span className="text-destructive">*</span></Label>
+                            <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" />
                           </div>
-                          {/* Cargo/função */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
-                            <div className="flex-1">
-                              <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
-                                <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
-                                  {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                          {/* Tipo de Participante */}
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Participante <span className="text-destructive">*</span></Label>
+                            <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           {/* Email */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Email *</Label>
-                            <div className="flex-1">
-                              <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} className="h-8" />
-                            </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Email <span className="text-destructive">*</span></Label>
+                            <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} className="h-8" />
                           </div>
                           {/* Telefone */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                            <div className="flex-1">
-                              <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} className="h-8" />
-                            </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Telefone</Label>
+                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} className="h-8" />
                           </div>
-                          {/* Acesso Chamados */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 h-8">
-                                <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
-                                <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
-                              </div>
+                          {/* Acesso a Chamados */}
+                          <div className="col-span-2">
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Acesso a Chamados</Label>
+                            <div className="flex items-center gap-2 h-8">
+                              <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
+                              <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
                             </div>
                           </div>
                           {/* Observações */}
-                          <div className="flex flex-row items-start gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Observações</Label>
-                            <div className="flex-1">
-                              <Textarea
-                                value={draftParticipant.observacoes}
-                                onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
-                                placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
-                                className="min-h-[60px]"
-                              />
-                            </div>
+                          <div className="col-span-2">
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
+                            <Textarea
+                              value={draftParticipant.observacoes}
+                              onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
+                              placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
+                              className="min-h-[60px]"
+                            />
                           </div>
-                          <div className="flex justify-end mt-2">
-                            <Button onClick={addParticipant} className="gap-2">
+                          <div className="col-span-2">
+                            <Button onClick={addParticipant} className="w-full gap-2">
                               Adicionar à Lista
                             </Button>
                           </div>
