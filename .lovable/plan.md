@@ -1,58 +1,38 @@
 
 
-# Corrigir id_contribuinte vazio vindo do draft
+# Corrigir FK: buscar contribuintes da tabela correta
 
-## Problema
+## Problema raiz
 
-Quando o formulario abre e encontra um rascunho salvo (draft), ele restaura todos os valores com `form.reset(saved)` (linha 230), incluindo um `id_contribuinte` que pode estar vazio -- especialmente se o draft foi salvo antes do campo de contribuinte ser adicionado ao formulario.
+O erro nao tem a ver com draft nem com campo vazio. O problema real e que:
 
-Mesmo que o usuario selecione cliente e contribuinte visualmente, se o draft ja foi restaurado com valor vazio e o usuario nao interagir com o campo Select de contribuinte (por exemplo, se ele ja aparece com o placeholder mas sem valor real), o `id_contribuinte` no estado do formulario permanece como string vazia.
+- A tabela `per` tem uma foreign key (`per_id_contribuinte_fkey`) que aponta para a tabela **`contribuinte`** (producao)
+- O modal busca os contribuintes da tabela **`contribuinte_dev`** (desenvolvimento)
+- Os UUIDs sao diferentes entre as duas tabelas, entao mesmo selecionando corretamente um contribuinte, o ID vindo de `contribuinte_dev` nao existe em `contribuinte`, e o banco rejeita o insert
 
 ## Solucao
 
 **Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-### 1. Forcar `id_contribuinte` ao restaurar draft (linha 230)
-
-Alterar de:
-```typescript
-form.reset(saved);
-```
-Para:
-```typescript
-form.reset({ ...saved, id_contribuinte: saved.id_contribuinte || contribuinteId || '' });
-```
-
-Isso garante que, se o draft nao tiver um `id_contribuinte` valido, ele usa o contribuinte selecionado no filtro da pagina.
-
-### 2. Adicionar validacao no submit (linha 382)
-
-Antes de chamar a mutation, verificar se `id_contribuinte` esta preenchido:
+Alterar a query de contribuintes (linha 174) para buscar da tabela `contribuinte` em vez de `contribuinte_dev`:
 
 ```typescript
-const onSubmit = (data: PerFormData) => {
-  if (!data.id_contribuinte) {
-    toast.error('Selecione um contribuinte antes de cadastrar o PER.');
-    return;
-  }
-  // ... resto do codigo
-};
+// DE:
+.from('contribuinte_dev')
+
+// PARA:
+.from('contribuinte')
 ```
 
-### 3. Melhorar o onError do createMutation
-
-Adicionar deteccao do erro `per_id_contribuinte_fkey` para exibir mensagem amigavel caso a validacao do passo 2 seja contornada por race condition:
+Mesma correcao para a query de clientes (linha 159), que deve buscar de `cliente` em vez de `cliente_dev`, ja que os IDs de `cliente_dev` nao correspondem aos `cliente_id` da tabela `contribuinte`:
 
 ```typescript
-onError: (error: any) => {
-  const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
-    ? 'Ja existe um PER cadastrado com este numero de processo.'
-    : error.message?.includes('per_id_contribuinte_fkey')
-    ? 'Contribuinte invalido. Selecione um contribuinte valido.'
-    : error.message;
-  toast.error(`Erro ao criar PER: ${msg}`);
-}
+// DE:
+.from('cliente_dev')
+
+// PARA:
+.from('cliente')
 ```
 
-Essas tres alteracoes cobrem: draft com valor vazio, usuario que esquece de selecionar, e race conditions.
+Sao apenas 2 linhas alteradas. Nenhuma outra mudanca e necessaria -- o fluxo de selecao e submit ja esta correto.
 
