@@ -144,8 +144,21 @@ export function PerFormModal({
   const draftEnabled = open && !isEditing;
   const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled, user?.id);
 
-
-
+  // Fetch contribuintes for the selected client
+  const { data: contribuintes = [] } = useQuery({
+    queryKey: ['contribuintes', clienteId],
+    queryFn: async () => {
+      if (!clienteId) return [];
+      const { data, error } = await supabase
+        .from('contribuinte_dev')
+        .select('id, nome_razao_social, cpf_cnpj')
+        .eq('cliente_id', clienteId)
+        .order('nome_razao_social');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!clienteId,
+  });
 
   // Fetch existing PERs for the contribuinte (for rectification selection)
   const { data: persExistentes = [] } = useQuery({
@@ -376,6 +389,32 @@ export function PerFormModal({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Contribuinte */}
+            <FormField
+              control={form.control}
+              name="id_contribuinte"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contribuinte</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o contribuinte" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {contribuintes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome_razao_social} {c.cpf_cnpj ? `(${c.cpf_cnpj})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Tipo de Declaração - Only show when creating */}
             {!isEditing && (
               <div className="space-y-2">
