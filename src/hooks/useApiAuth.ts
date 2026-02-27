@@ -86,10 +86,11 @@ export function useApiAuth() {
           throw new Error('Sessão expirada');
         }
 
-        const headers = {
-          ...options.headers,
+        const isFormData = options.body instanceof FormData;
+        const headers: Record<string, string> = {
+          ...(options.headers as Record<string, string>),
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         };
 
         let response = await fetch(url, { 
@@ -111,10 +112,11 @@ export function useApiAuth() {
           }
 
           // Retry with new token
-          const retryHeaders = {
-            ...options.headers,
+          const isFormDataRetry = options.body instanceof FormData;
+          const retryHeaders: Record<string, string> = {
+            ...(options.headers as Record<string, string>),
             'Authorization': `Bearer ${newSession.access_token}`,
-            'Content-Type': 'application/json',
+            ...(isFormDataRetry ? {} : { 'Content-Type': 'application/json' }),
           };
 
           response = await fetch(url, { 
