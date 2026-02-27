@@ -693,12 +693,10 @@ export default function ControlePerdcomp() {
     <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP">
       {/* Filters Card */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-            <div className="space-y-2">
+        <CardContent className="pt-6">
+          {/* Linha 1: Cliente, Contribuinte, Buscar, Limpar, Novo PER */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="space-y-2 md:col-span-2">
               <Label>Cliente</Label>
               <Select
                 value={clienteId}
@@ -721,7 +719,7 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label>Contribuinte</Label>
               <Select
                 value={contribuinteId}
@@ -744,6 +742,24 @@ export default function ControlePerdcomp() {
               </Select>
             </div>
 
+            <div className="flex items-end gap-2">
+              <Button onClick={handleSearch} className="flex-1">
+                <Search className="h-4 w-4 mr-2" />
+                Buscar
+              </Button>
+              <Button onClick={handleClear} variant="outline" className="flex-1">
+                <X className="h-4 w-4 mr-2" />
+                Limpar
+              </Button>
+              <Button onClick={handleNew} className="flex-1">
+                <Plus className="h-4 w-4 mr-2" />
+                Novo PER
+              </Button>
+            </div>
+          </div>
+
+          {/* Linha 2: Situação, Exercício, Nº do Processo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="space-y-2">
               <Label>Situação</Label>
               <Popover>
@@ -793,6 +809,7 @@ export default function ControlePerdcomp() {
                 </PopoverContent>
               </Popover>
             </div>
+
             <div className="space-y-2">
               <Label>Exercício</Label>
               <Select
@@ -821,31 +838,14 @@ export default function ControlePerdcomp() {
                 onChange={(e) => setProcessoFilter(e.target.value)}
               />
             </div>
-
-            <div className="flex items-end gap-2 md:col-span-2">
-              <Button onClick={handleClear} variant="outline" className="flex-1">
-                <X className="h-4 w-4 mr-2" />
-                Limpar
-              </Button>
-              <Button onClick={handleSearch} className="flex-1">
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Results Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-lg">Resultados - PER</CardTitle>
-          {searched && (
-            <Button onClick={handleNew} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Novo
-            </Button>
-          )}
         </CardHeader>
         <CardContent>{renderTable()}</CardContent>
       </Card>
