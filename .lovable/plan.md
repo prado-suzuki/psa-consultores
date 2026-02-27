@@ -1,42 +1,71 @@
 
-# Corrigir erro de chave duplicada ao criar PER
 
-## Problema
+# Restaurar campo Contribuinte no modal de cadastrar PER
 
-A tabela `per` usa `numero_processo_per` como chave primaria (nao um UUID auto-gerado). Quando o usuario tenta cadastrar um PER com um numero de processo que ja existe no banco, o Postgres retorna o erro `duplicate key value violates unique constraint "per_pkey"`, que e exibido como mensagem generica para o usuario.
+## Contexto
+O campo de contribuinte foi removido anteriormente, mas agora precisa voltar ao formulario, posicionado no topo, com a lista de contribuintes carregando corretamente a partir do banco.
 
-## Solucao
-
-Adicionar uma verificacao previa no `createMutation` antes do `insert`: consultar se ja existe um registro com o mesmo `numero_processo_per`. Se existir, lancar um erro amigavel em portugues em vez de deixar o banco rejeitar silenciosamente.
-
-## Alteracao
+## Alteracoes
 
 **Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-Na funcao `mutationFn` do `createMutation` (linha 225), adicionar antes do insert:
+### 1. Restaurar a query de contribuintes (apos linha 148)
 
-```text
-// Verificar se já existe PER com este número
-const { data: existing } = await supabase
-  .from('per')
-  .select('numero_processo_per')
-  .eq('numero_processo_per', data.numero_processo_per)
-  .maybeSingle();
+Adicionar de volta a query que busca contribuintes do banco, filtrando por `clienteId`:
 
-if (existing) {
-  throw new Error('Já existe um PER cadastrado com este número de processo.');
-}
+```typescript
+const { data: contribuintes = [] } = useQuery({
+  queryKey: ['contribuintes', clienteId],
+  queryFn: async () => {
+    if (!clienteId) return [];
+    const { data, error } = await supabase
+      .from('contribuinte_dev')
+      .select('id, nome_razao_social, cpf_cnpj')
+      .eq('cliente_id', clienteId)
+      .order('nome_razao_social');
+    if (error) throw error;
+    return data || [];
+  },
+  enabled: !!clienteId,
+});
 ```
 
-Isso garante uma mensagem clara e em portugues para o usuario, sem depender da mensagem crua do Postgres.
+### 2. Adicionar o campo visual no topo do formulario (antes do campo "Numero do Processo", linha ~459)
 
-Adicionalmente, melhorar o `onError` para tratar tambem o caso de a verificacao falhar por race condition (dois usuarios simultaneos), capturando o erro do Postgres e exibindo a mesma mensagem amigavel:
+Inserir um `FormField` com `Select` para o contribuinte, pre-selecionando o `contribuinteId` vindo da prop quando disponivel:
 
-```text
-onError: (error: any) => {
-  const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
-    ? 'Já existe um PER cadastrado com este número de processo.'
-    : error.message;
-  toast.error(`Erro ao criar PER: ${msg}`);
-}
+```tsx
+<FormField
+  control={form.control}
+  name="id_contribuinte"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Contribuinte</FormLabel>
+      <Select onValueChange={field.onChange} value={field.value}>
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o contribuinte" />
+          </SelectTrigger>
+        </FormControl>
+        <SelectContent>
+          {contribuintes.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.nome_razao_social} {c.cpf_cnpj ? `(${c.cpf_cnpj})` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 ```
+
+### 3. Garantir inicializacao correta
+
+O `defaultValues` ja inicializa `id_contribuinte` com `contribuinteId || ''` (linha 132), entao o campo vira pre-selecionado quando o filtro da pagina principal estiver ativo. O usuario tambem podera mudar manualmente se necessario.
+
+### 4. Posicionamento
+
+O campo Contribuinte ficara como o **primeiro campo** do formulario, antes de "Tipo de Declaracao" e "Numero do Processo".
+
