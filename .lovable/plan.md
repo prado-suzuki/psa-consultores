@@ -1,114 +1,149 @@
 
-
-# Atualizar nomenclatura e layout das abas Cliente e Participantes
+# Adicionar novos campos na aba OS (front-end only)
 
 ## Objetivo
 
-Aplicar o layout grid 2 colunas (igual ao da aba OS) nas abas Cliente e Participantes, incluindo mudancas de nomenclatura identificadas nas imagens de referencia.
+Implementar os campos e secoes que constam no HTML de referencia mas ainda nao existem no codigo, mantendo tudo apenas no front-end (sem alteracoes de banco de dados). Os dados ficarao no state local do formulario para validacao visual.
 
 ## Arquivo alterado
 
 - `src/components/equipe/dev/NewClientModal.tsx`
 
-## Mudancas de nomenclatura
+## Novos campos e secoes
 
-### Aba Cliente
+### 1. Situacao do Projeto (Select)
 
-| Label atual | Novo label |
-|---|---|
-| Empresa / Faturamento * | CENTRO DE CUSTO / FATURAMENTO * |
+Opcoes: "Em andamento", "Concluido", "Suspenso", "Cancelado"
 
-Isso afeta:
-- Label no formulario (linha ~1222)
-- Mensagem de validacao (linha ~898): "Empresa / Faturamento e obrigatoria" → "Centro de Custo / Faturamento e obrigatorio"
-- Nome da constante `EMPRESA_FATURAMENTO_OPTIONS` e funcao `toggleEmpresaFaturamento` permanecem inalterados (sao internos)
+### 2. Observacoes do Projeto (Textarea)
 
-### Aba Participantes
+Campo de texto livre para observacoes. Secao com titulo "OBSERVACOES" e placeholder "Insira observacoes relevantes sobre o projeto...".
 
-| Label atual | Novo label |
-|---|---|
-| Nome * | NOME COMPLETO * |
-| Cargo/funcao * | TIPO DE PARTICIPANTE * |
-| Acesso Chamados | ACESSO A CHAMADOS |
+### 3. Servicos Contratados (lista dinamica)
 
-Isso afeta:
-- Labels no formulario "Novo Participante" (linhas ~1854, ~1861, ~1890)
-- Labels no inline edit de participante
-- Labels no card read-only expandido (FieldPair na linha ~1753-1754)
+- Secao com borda tracejada e titulo "SERVICOS CONTRATADOS"
+- Botao "+ Adicionar Servico"
+- Cada linha: Select com opcoes do `catalog_clients` (busca do banco) + botao remover (X)
+- Dados ficam no state local do draft como array de strings (IDs)
 
-## Mudancas de layout
+### 4. Distribuicao de Receita - Centros de Custo (lista dinamica)
 
-### Aba Cliente (linhas 1095-1270)
+- Secao com borda tracejada e titulo "DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO)"
+- Botao "+ Adicionar Centro de Custo"
+- Cada linha: Select com opcoes de `EMPRESA_FATURAMENTO_OPTIONS` + Input de percentual + botao remover (X)
+- Indicador de total distribuido: "Total Distribuido: XX% - Faltam YY% para completar 100%"
+- Dados ficam no state local como array de objetos `{ empresa: string, percentual: number }`
 
-Converter de `flex-col md:flex-row md:items-center` para layout vertical com labels acima dos campos:
+## Mudancas tecnicas
 
-```text
-NOME DO CLIENTE / GRUPO *
-[input full width]
+### Interface DraftContract (linha 144)
 
-CATEGORIA                STATUS
-[select]                 [switch] Ativo
+Adicionar campos:
 
-TIPO DE RELACIONAMENTO
-[Fixo | Pontual toggle full width]
-
-AREA DO NEGOCIO *
-[select full width]
-
-REGIAO *
-[select full width]
-
-CPF/CNPJ PRINCIPAL *
-[input full width]
-
-CEP *
-[input full width]
-
-ENDERECO *
-[input full width]
-
-TIPO DE PRODUTO/SEGMENTO *
-[select full width]
-
-CENTRO DE CUSTO / FATURAMENTO *
-[multi-select badges full width]
+```typescript
+interface DraftContract {
+  // ... existentes ...
+  situacao_projeto: string;
+  observacoes_projeto: string;
+  servicos_contratados: string[];
+  centros_custo: Array<{ empresa: string; percentual: number }>;
+}
 ```
 
-- Maioria dos campos ocupa largura total (single column)
-- Apenas Categoria + Status ficam lado a lado em `grid grid-cols-2`
-- Labels: `uppercase text-xs font-semibold text-muted-foreground mb-1.5 block`
+### State draftContract (linha 503)
 
-### Aba Participantes - Formulario "Novo Participante" (linhas 1851-1914)
+Adicionar valores iniciais:
 
-Converter para grid 2 colunas:
-
-```text
-NOME COMPLETO *              TIPO DE PARTICIPANTE *
-[input]                      [select]
-
-EMAIL *                      TELEFONE
-[input]                      [input]
-
-ACESSO A CHAMADOS (col-span-2)
-[switch]
-
-OBSERVACOES (col-span-2)
-[textarea]
-
-[========= Adicionar a Lista =========]
+```typescript
+situacao_projeto: "em_andamento",
+observacoes_projeto: "",
+servicos_contratados: [],
+centros_custo: [],
 ```
 
-### Aba Participantes - Inline Edit (linhas ~1763-1837)
+### Constante SITUACAO_PROJETO_OPTIONS
 
-Aplicar o mesmo grid 2 colunas e mesma nomenclatura.
+```typescript
+const SITUACAO_PROJETO_OPTIONS = [
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "concluido", label: "Concluído" },
+  { value: "suspenso", label: "Suspenso" },
+  { value: "cancelado", label: "Cancelado" },
+];
+```
 
-### Aba Participantes - Card Read-only (linhas ~1752-1772)
+### Query catalog_clients
 
-Atualizar os labels dos FieldPair:
-- "Nome" → "Nome Completo"
-- "Cargo/funcao" → "Tipo de Participante"
+Adicionar um `useQuery` para buscar servicos do `catalog_clients` (tabela ja existente):
+
+```typescript
+const { data: catalogServices } = useQuery({
+  queryKey: ["catalog_clients_services"],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from("catalog_clients")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    return data || [];
+  },
+});
+```
+
+### Formulario "Nova OS" (apos linha 3246)
+
+Inserir apos o campo Valor:
+
+1. **Situacao do Projeto** - Select no grid 2 colunas ao lado do Valor
+2. **Observacoes** - Textarea full width com titulo de secao
+3. **Servicos Contratados** - Secao dashed com lista dinamica
+4. **Distribuicao de Receita** - Secao dashed com lista + barra de progresso
+
+### Inline Edit da OS (apos linha 3043)
+
+Adicionar os mesmos 4 campos/secoes no modo de edicao inline.
+
+### Card Read-only da OS (apos linha 2876)
+
+Exibir:
+- Situacao do Projeto como FieldPair
+- Observacoes como FieldPair (col-span full)
+- Lista de servicos contratados (nomes)
+- Lista de centros de custo com percentuais
+
+### Funcao addContract e reset (linhas 859-910)
+
+Adicionar validacao e reset dos novos campos. Nao exigir 100% nos centros de custo por enquanto (apenas visual).
+
+## Layout dos novos campos na Nova OS
+
+```text
+(campos existentes no grid 2 colunas)
+
+VALOR DO PROJETO (R$) *     SITUACAO DO PROJETO *
+[currency]                  [select]
+
+REEMBOLSO POR KM (R$)       REEMBOLSO REFEICAO (R$)
+[currency]                   [currency]
+
+--- OBSERVACOES ---
+[textarea full width]
+
+--- SERVICOS CONTRATADOS ---
+[+ Adicionar Servico]
+| [Select servico]  [X] |
+| [Select servico]  [X] |
+
+--- DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO) ---
+[+ Adicionar Centro de Custo]
+| [Select empresa] [input %] [X] |
+| [Select empresa] [input %] [X] |
+Total Distribuido: 70% - Faltam 30% para completar 100%
+```
 
 ## Resumo de impacto
 
-Somente mudancas visuais (CSS/labels). Nenhuma alteracao de logica, estado ou banco de dados. Os nomes internos de variaveis (`empresa_faturamento`, `tipo_participante`, `cargo`) permanecem inalterados.
-
+- **Banco de dados**: Nenhuma alteracao
+- **State local**: 4 novos campos no DraftContract
+- **UI**: Novos campos no formulario, inline edit e card read-only da OS
+- **Persistencia**: Os novos campos serao ignorados no `handleSave` ate que as tabelas sejam criadas
