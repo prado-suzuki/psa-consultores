@@ -119,6 +119,9 @@ export function PerFormModal({
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
   const [calendarOpen, setCalendarOpen] = useState(false);
   
+  // State for client selection within the modal (defaults to prop)
+  const [selectedClienteId, setSelectedClienteId] = useState(clienteId || '');
+  
   // State for declaration type (Original or Retificadora)
   const [tipoDeclaracao, setTipoDeclaracao] = useState<'original' | 'retificadora'>('original');
   const [perRetificadoOpen, setPerRetificadoOpen] = useState(false);
@@ -144,20 +147,39 @@ export function PerFormModal({
   const draftEnabled = open && !isEditing;
   const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled, user?.id);
 
-  // Fetch contribuintes for the selected client
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes', clienteId],
+  // Sync selectedClienteId when prop changes
+  useEffect(() => {
+    if (clienteId) setSelectedClienteId(clienteId);
+  }, [clienteId]);
+
+  // Fetch all clients for the client selector
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientes-dev-per-modal'],
     queryFn: async () => {
-      if (!clienteId) return [];
+      const { data, error } = await supabase
+        .from('cliente_dev')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch contribuintes for the selected client in the modal
+  const { data: contribuintes = [] } = useQuery({
+    queryKey: ['contribuintes', selectedClienteId],
+    queryFn: async () => {
+      if (!selectedClienteId) return [];
       const { data, error } = await supabase
         .from('contribuinte_dev')
         .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', clienteId)
+        .eq('cliente_id', selectedClienteId)
         .order('nome_razao_social');
       if (error) throw error;
       return data || [];
     },
-    enabled: !!clienteId,
+    enabled: !!selectedClienteId,
   });
 
   // Fetch existing PERs for the contribuinte (for rectification selection)
@@ -389,6 +411,30 @@ export function PerFormModal({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Cliente */}
+            <div className="space-y-2">
+              <FormLabel>Cliente</FormLabel>
+              <Select
+                value={selectedClienteId}
+                onValueChange={(v) => {
+                  setSelectedClienteId(v);
+                  // Reset contribuinte when client changes
+                  form.setValue('id_contribuinte', '');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Contribuinte */}
             <FormField
               control={form.control}
