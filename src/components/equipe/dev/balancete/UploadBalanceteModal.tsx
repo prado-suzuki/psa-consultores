@@ -95,7 +95,13 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || `Erro ${response.status}`);
+        const detail = errorData?.detail;
+        const message = typeof detail === 'object' && detail?.error_message
+          ? detail.error_message
+          : typeof detail === 'string'
+            ? detail
+            : `Erro ${response.status}`;
+        throw new Error(message);
       }
 
       toast({ title: 'Balancete enviado com sucesso!' });
