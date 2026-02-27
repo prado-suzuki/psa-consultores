@@ -227,7 +227,7 @@ export function PerFormModal({
     } else if (open) {
       const saved = restore();
       if (saved) {
-        form.reset(saved);
+        form.reset({ ...saved, id_contribuinte: saved.id_contribuinte || contribuinteId || '' });
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_credito || 0));
       } else {
         form.reset({
@@ -332,6 +332,8 @@ export function PerFormModal({
     onError: (error: any) => {
       const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
         ? 'Já existe um PER cadastrado com este número de processo.'
+        : error.message?.includes('per_id_contribuinte_fkey')
+        ? 'Contribuinte inválido. Selecione um contribuinte válido.'
         : error.message;
       toast.error(`Erro ao criar PER: ${msg}`);
     },
@@ -380,6 +382,10 @@ export function PerFormModal({
   });
 
   const onSubmit = (data: PerFormData) => {
+    if (!data.id_contribuinte) {
+      toast.error('Selecione um contribuinte antes de cadastrar o PER.');
+      return;
+    }
     // Set nr_proc_ret based on tipo declaração
     const submissionData = {
       ...data,
