@@ -1,71 +1,62 @@
 
 
-# Ajustes no NewClientModal
+# Criar View para resolver JOIN entre PER e Contribuinte
 
-## 1. Aba Cliente: Ordem dos campos (sem alteracao)
+## Problema
 
-A ordem atual ja esta correta: Area do negocio (5) -> Tipo de produto/segmento (6) -> Regiao (7). Nenhuma movimentacao necessaria.
+A FK `per_id_contribuinte_fkey` foi removida anteriormente e substituida por um trigger de validacao. Isso quebrou o join automatico do PostgREST (`contribuinte:id_contribuinte(nome_razao_social)`), causando erro 400 na busca de PERs.
 
-## 2. Aba Participantes
+## Solucao
 
-### 2a. Remover campo "Cargo" (3 locais)
-- **Formulario novo** (linhas 1814-1820): remover bloco do campo Cargo
-- **Edicao inline** (linhas 1721-1727): remover bloco do campo Cargo
-- **Visualizacao expandida** (linha 1687): remover `<FieldPair label="Cargo" ...>`
+Criar uma **database view** que faz o JOIN explicito em SQL puro. O PostgREST expoe views como se fossem tabelas, permitindo consultas normais via `.from('per_with_contribuinte')`.
 
-### 2b. Renomear "Tipo" para "Cargo/funcao" (3 locais)
-- Formulario novo (linha 1801): `"Tipo *"` -> `"Cargo/funcao *"`
-- Edicao inline (linha 1708): `"Tipo *"` -> `"Cargo/funcao *"`
-- Visualizacao expandida (linha 1686): `"Tipo de Participante"` -> `"Cargo/funcao"`
+## Passo 1: Migration - Criar a view
 
-### 2c. Header do card (linha 1652)
-- Remover referencia a `part.cargo` no subtitulo (exibir apenas `part.tipo_participante`)
+```sql
+CREATE OR REPLACE VIEW public.per_with_contribuinte AS
+SELECT
+  p.*,
+  COALESCE(c.nome_razao_social, cd.nome_razao_social) AS contribuinte_nome
+FROM public.per p
+LEFT JOIN public.contribuinte c ON c.id = p.id_contribuinte
+LEFT JOIN public.contribuinte_dev cd ON cd.id = p.id_contribuinte;
+```
 
-## 3. Aba Contribuintes: Adicionar campo telefone
+A view faz LEFT JOIN em ambas as tabelas (`contribuinte` e `contribuinte_dev`) porque o trigger de validacao aceita IDs de qualquer uma delas.
 
-### 3a. Interface `DraftEntity` (linha 87-105)
-Adicionar `telefone: string` na interface.
+## Passo 2: Atualizar query no frontend
 
-### 3b. Inicializacao
-Incluir `telefone: ''` nos valores default do draftEntity e nos resets.
+No arquivo `src/pages/equipe/dev/ControlePerdcomp.tsx` (linhas 139-146):
 
-### 3c. Formulario de novo contribuinte
-Adicionar campo de telefone com mascara `formatPhone` (ja existente no projeto) apos Nome Fantasia, seguindo o layout padrao (Label w-48, Input h-8).
+**De:**
+```typescript
+const { data, error } = await supabase
+  .from("per")
+  .select(`*, contribuinte:id_contribuinte (nome_razao_social)`)
+  .eq("id_contribuinte", contribuinteId)
+  .order("exercicio", { ascending: false });
+```
 
-### 3d. Formulario de edicao inline
-Adicionar campo equivalente na edicao inline do contribuinte.
+**Para:**
+```typescript
+const { data, error } = await supabase
+  .from("per_with_contribuinte")
+  .select("*")
+  .eq("id_contribuinte", contribuinteId)
+  .order("exercicio", { ascending: false });
+```
 
-### 3e. Visualizacao expandida (linha 1272-1287)
-Adicionar `<FieldPair label="Telefone" value={ent.telefone} />`.
+O campo `contribuinte_nome` ja vira embutido no resultado, sem necessidade de join do PostgREST.
 
-### 3f. Payload de salvamento (linha 893-903)
-Incluir `telefone: e.telefone || null` no objeto de insert do contribuinte.
+## Passo 3: Verificar uso de `item.contribuinte`
 
-## 4. Aba Contribuintes: Labels dinamicas para PF
+Checar se algum componente acessa `item.contribuinte.nome_razao_social` e atualizar para `item.contribuinte_nome`.
 
-Quando `tipo_pessoa === 'PF'`:
-- **Formulario novo** (linha 1498): label muda de `"Razao Social *"` para `"Nome completo *"`, placeholder de `"Nome Empresarial"` para `"Nome completo do contribuinte"`
-- **Edicao inline** (linha 1317): mesma logica de label e placeholder
-- Visualizacao expandida (linha 1275): ja exibe `"Razao Social / Nome Completo"` -- manter como esta
+## Resumo
 
-## 5. Selects: Remover "Selecione" da lista suspensa
-
-Nos selects de Inscricao Estadual e Simples Nacional, o item `<SelectItem value="__none__">Selecione...</SelectItem>` aparece como opcao selecionavel. A correcao:
-
-- Remover o `<SelectItem value="__none__">` do `<SelectContent>`
-- Manter `placeholder="Selecione..."` no `<SelectTrigger>` (ja existe)
-- Mudar `value` de `|| '__none__'` para `|| ''` e ajustar `onValueChange` para tratar string vazia
-
-**Locais afetados (4 selects):**
-- Inscricao Estadual - formulario novo (linhas 1516-1524)
-- Inscricao Estadual - edicao inline (linhas 1335-1338)
-- Simples Nacional - formulario novo (linhas 1550-1557)
-- Simples Nacional - edicao inline (linhas 1364-1371)
-
-## Resumo tecnico
-
-| Alteracao | Arquivo |
+| O que | Arquivo/Local |
 |---|---|
-| Todas as alteracoes acima | `src/components/equipe/dev/NewClientModal.tsx` |
+| Criar view `per_with_contribuinte` | Migration SQL |
+| Atualizar query `.from("per")` | `src/pages/equipe/dev/ControlePerdcomp.tsx` |
+| Ajustar referencias a `item.contribuinte` | Componentes que renderizam dados de PER |
 
-Nenhuma migration de banco necessaria (campo `telefone` ja existe na tabela `contribuinte`/`contribuinte_dev` conforme schema).
