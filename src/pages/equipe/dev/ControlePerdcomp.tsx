@@ -456,7 +456,7 @@ export default function ControlePerdcomp() {
       <TooltipProvider>
         <div className="overflow-x-auto w-full">
           <Table className="text-xs min-w-[1400px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
-            <TableHeader>
+            <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700">
               <TableRow>
                 <TableHead
                   className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
@@ -696,16 +696,10 @@ export default function ControlePerdcomp() {
       {/* Filters Card */}
       <Card className="mb-6">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg text-primary">
-              <Filter className="h-5 w-5 text-teal-600" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
-            </CardTitle>
-            <Button onClick={handleNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-              <Plus className="h-4 w-4" />
-              Novo PER
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-lg text-primary">
+            <Filter className="h-5 w-5 text-teal-600" />
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
@@ -838,9 +832,9 @@ export default function ControlePerdcomp() {
           </div>
 
           {/* Rodapé de ações */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
             {(clienteId || contribuinteId || exercicioFilter || processoFilter || situacaoFilter.length > 0) && (
-              <Button onClick={handleClear} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+              <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-300 hover:bg-red-50">
                 <Eraser className="h-4 w-4" />
                 Limpar filtros
               </Button>
@@ -855,8 +849,12 @@ export default function ControlePerdcomp() {
 
       {/* Results Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-lg">Resultados - PER</CardTitle>
+          <Button onClick={handleNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+            <Plus className="h-4 w-4" />
+            Novo PER
+          </Button>
         </CardHeader>
         <CardContent>{renderTable()}</CardContent>
       </Card>
