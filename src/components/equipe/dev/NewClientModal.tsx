@@ -1,86 +1,111 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useDraftPersistence } from '@/hooks/useDraftPersistence';
-import { isProductionEnvironment } from '@/config/api';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Trash2, Building2, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Search, ChevronDown, Save, Copy, CalendarIcon } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { parseDate } from '@/lib/dateUtils';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDraftPersistence } from "@/hooks/useDraftPersistence";
+import { isProductionEnvironment } from "@/config/api";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Plus,
+  X,
+  Trash2,
+  Building2,
+  Loader2,
+  CheckCircle2,
+  Pencil,
+  ChevronRight,
+  ChevronLeft,
+  Search,
+  ChevronDown,
+  Save,
+  Copy,
+  CalendarIcon,
+} from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { parseDate } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 
-const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
-const contratoTable = isProductionEnvironment ? 'contrato' : 'contrato_dev';
+const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
+const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
+const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
+const contratoTable = isProductionEnvironment ? "contrato" : "contrato_dev";
 
 const PRODUTO_SEGMENTO_OPTIONS = [
-  { value: 'ASO', label: 'ASO - Auditoria Pessoa Jurídica' },
-  { value: 'AFI', label: 'AFI - Auditoria Pessoa Física' },
-  { value: 'PFT', label: 'PFT - Consultoria Profitto' },
-  { value: 'PTN', label: 'PTN - Consultoria Protenun' },
-  { value: 'DHU', label: 'DHU - Consultoria em Recursos Humanos' },
-  { value: 'FMB', label: 'FMB - Consultoria Family Business' },
-  { value: 'OS1', label: 'OS1 - Sucessão Familiar - 1.0 (jurídico)' },
-  { value: 'OSG', label: 'OSG - Sucessão Familiar - 2.0 (jurídico + governança)' },
-  { value: 'SOC', label: 'SOC - Consultoria em Organização Societária' },
-  { value: 'OUT', label: 'OUT - Receitas com Parceiros' },
-  { value: 'PTR', label: 'PTR - Planejamento Tributário' },
-  { value: 'REA', label: 'REA - Reduções de Encargos na Venda de Ativos' },
-  { value: 'ACF', label: 'ACF - Assessoramento Contábil e Fiscal' },
-  { value: 'RRT', label: 'RRT - Recuperação e Ressarcimento Tributário Administrativo' },
-  { value: 'DTB', label: 'DTB - Defesas Tributárias Federais, Estaduais e Previdenciárias' },
-  { value: 'EDP', label: 'EDP - Emissão de Pareceres' },
-  { value: 'RTJ', label: 'RTJ - Recuperação Tributária Jurídica' },
-  { value: 'RSC', label: 'RSC - Reestruturação Societária' },
-  { value: 'IPC', label: 'IPC - Implantação de Programa de COMPLIANCE' },
-  { value: 'CDI', label: 'CDI - Implantação de Canal de Denúncia e Investigação nas Empresas' },
-  { value: 'AIV', label: 'AIV - Ação de Inventário' },
-  { value: 'APV', label: 'APV - Antecipação de Provas' },
-  { value: 'AGP', label: 'AGP - Ações de Grande Porte' },
-  { value: 'JCM', label: 'JCM - Consultoria Jurídica Civil Mensal' },
-  { value: 'ACO', label: 'ACO - Ações Coletivas' },
-  { value: 'ADJ', label: 'ADJ - Administração Judicial' },
-  { value: 'CJP', label: 'CJP - Consultoria Jurídica Pontual' },
-  { value: 'DIV', label: 'DIV - Diversos' },
-  { value: '__outro__', label: 'Outro (personalizado)' },
+  { value: "ASO", label: "ASO - Auditoria Pessoa Jurídica" },
+  { value: "AFI", label: "AFI - Auditoria Pessoa Física" },
+  { value: "PFT", label: "PFT - Consultoria Profitto" },
+  { value: "PTN", label: "PTN - Consultoria Protenun" },
+  { value: "DHU", label: "DHU - Consultoria em Recursos Humanos" },
+  { value: "FMB", label: "FMB - Consultoria Family Business" },
+  { value: "OS1", label: "OS1 - Sucessão Familiar - 1.0 (jurídico)" },
+  { value: "OSG", label: "OSG - Sucessão Familiar - 2.0 (jurídico + governança)" },
+  { value: "SOC", label: "SOC - Consultoria em Organização Societária" },
+  { value: "OUT", label: "OUT - Receitas com Parceiros" },
+  { value: "PTR", label: "PTR - Planejamento Tributário" },
+  { value: "REA", label: "REA - Reduções de Encargos na Venda de Ativos" },
+  { value: "ACF", label: "ACF - Assessoramento Contábil e Fiscal" },
+  { value: "RRT", label: "RRT - Recuperação e Ressarcimento Tributário Administrativo" },
+  { value: "DTB", label: "DTB - Defesas Tributárias Federais, Estaduais e Previdenciárias" },
+  { value: "EDP", label: "EDP - Emissão de Pareceres" },
+  { value: "RTJ", label: "RTJ - Recuperação Tributária Jurídica" },
+  { value: "RSC", label: "RSC - Reestruturação Societária" },
+  { value: "IPC", label: "IPC - Implantação de Programa de COMPLIANCE" },
+  { value: "CDI", label: "CDI - Implantação de Canal de Denúncia e Investigação nas Empresas" },
+  { value: "AIV", label: "AIV - Ação de Inventário" },
+  { value: "APV", label: "APV - Antecipação de Provas" },
+  { value: "AGP", label: "AGP - Ações de Grande Porte" },
+  { value: "JCM", label: "JCM - Consultoria Jurídica Civil Mensal" },
+  { value: "ACO", label: "ACO - Ações Coletivas" },
+  { value: "ADJ", label: "ADJ - Administração Judicial" },
+  { value: "CJP", label: "CJP - Consultoria Jurídica Pontual" },
+  { value: "DIV", label: "DIV - Diversos" },
+  { value: "__outro__", label: "Outro (personalizado)" },
 ];
 
 const TIPO_PARTICIPANTE_OPTIONS = [
-  'Sócio/Proprietário',
-  'Contador',
-  'Advogado',
-  'Procurador',
-  'Representante Legal',
-  'Diretor/Gestor',
-  'Consultor Externo',
-  'Outros',
+  "Sócio/Proprietário",
+  "Contador",
+  "Advogado",
+  "Procurador",
+  "Representante Legal",
+  "Diretor/Gestor",
+  "Consultor Externo",
+  "Outros",
 ];
 
 const EMPRESA_FATURAMENTO_OPTIONS = [
-  'PRADO ADVOGADOS',
-  'PSA CONSULTORES',
-  'PRADO SUZUKI',
-  'PROFITTO',
-  'PROTENUN',
-  'PSA ADM JUDICIAL',
-  'PSA AUDITORES',
-  'PSA NORTE',
+  "PRADO ADVOGADOS",
+  "PSA CONSULTORES",
+  "PRADO SUZUKI",
+  "PROFITTO",
+  "PROTENUN",
+  "PSA ADM JUDICIAL",
+  "PSA AUDITORES",
+  "PSA NORTE",
 ];
 
 // Types for draft items
@@ -116,17 +141,6 @@ interface DraftParticipant {
   acesso_chamados: boolean;
 }
 
-interface DraftContractService {
-  _id: number;
-  catalog_client_id: string;
-}
-
-interface DraftContractCostCenter {
-  _id: number;
-  name: string;
-  percent: number;
-}
-
 interface DraftContract {
   _id: number;
   ordem_servico: string;
@@ -139,28 +153,12 @@ interface DraftContract {
   valor_reembolso_km: number;
   valor_reembolso_refeicao: number;
   gestor_responsavel: string;
-  situacao_projeto: string;
-  servicos: DraftContractService[];
-  centros_custo: DraftContractCostCenter[];
 }
-
-const SITUACAO_PROJETO_OPTIONS = [
-  { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'concluido', label: 'Concluído' },
-  { value: 'suspenso', label: 'Suspenso' },
-  { value: 'cancelado', label: 'Cancelado' },
-];
-
-const CENTRO_CUSTO_OPTIONS = [
-  'Administrativo/Matriz',
-  'Comercial',
-  'Operacional',
-];
 
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
-  const digits = value.replace(/\D/g, '');
-  if (tipo === 'PF') {
+  const digits = value.replace(/\D/g, "");
+  if (tipo === "PF") {
     const d = digits.slice(0, 11);
     if (d.length <= 3) return d;
     if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
@@ -176,14 +174,14 @@ const formatCpfCnpj = (value: string, tipo: string): string => {
 };
 
 const formatCep = (value: string): string => {
-  const d = value.replace(/\D/g, '').slice(0, 8);
+  const d = value.replace(/\D/g, "").slice(0, 8);
   if (d.length <= 5) return d;
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 };
 
 const formatPhone = (value: string): string => {
-  const d = value.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
@@ -191,43 +189,43 @@ const formatPhone = (value: string): string => {
 
 // --- Currency mask utilities ---
 const formatBRLInput = (value: number): string => {
-  if (value === 0) return '0,00';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (value === 0) return "0,00";
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const parseBRLInput = (formatted: string): number => {
-  const clean = formatted.replace(/\./g, '').replace(',', '.');
+  const clean = formatted.replace(/\./g, "").replace(",", ".");
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
 };
 
 const handleCurrencyChange = (raw: string): string => {
   // Remove everything except digits and comma
-  let clean = raw.replace(/[^\d,]/g, '');
+  let clean = raw.replace(/[^\d,]/g, "");
   // Allow only one comma
-  const parts = clean.split(',');
-  if (parts.length > 2) clean = parts[0] + ',' + parts.slice(1).join('');
+  const parts = clean.split(",");
+  if (parts.length > 2) clean = parts[0] + "," + parts.slice(1).join("");
   // Limit decimal to 2 digits
   if (parts.length === 2 && parts[1].length > 2) {
-    clean = parts[0] + ',' + parts[1].slice(0, 2);
+    clean = parts[0] + "," + parts[1].slice(0, 2);
   }
   // Add thousand separators to integer part
-  const intPart = clean.split(',')[0];
-  const decPart = clean.split(',')[1];
-  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const intPart = clean.split(",")[0];
+  const decPart = clean.split(",")[1];
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return decPart !== undefined ? `${formatted},${decPart}` : formatted;
 };
 
 // --- Date mask utilities ---
 const formatDateMask = (value: string): string => {
-  const d = value.replace(/\D/g, '').slice(0, 8);
+  const d = value.replace(/\D/g, "").slice(0, 8);
   if (d.length <= 2) return d;
   if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
   return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
 };
 
 const parseDateMask = (masked: string): string | null => {
-  const d = masked.replace(/\D/g, '');
+  const d = masked.replace(/\D/g, "");
   if (d.length !== 8) return null;
   const day = parseInt(d.slice(0, 2));
   const month = parseInt(d.slice(2, 4));
@@ -235,32 +233,43 @@ const parseDateMask = (masked: string): string | null => {
   if (year < 2000 || year > 2060) return null;
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > 31) return null;
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 };
 
 const isoToMasked = (iso: string): string => {
-  if (!iso) return '';
+  if (!iso) return "";
   try {
     const date = parseDate(iso);
-    return format(date, 'dd/MM/yyyy');
+    return format(date, "dd/MM/yyyy");
   } catch {
-    return '';
+    return "";
   }
 };
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
-  const environment = isProductionEnvironment ? 'production' : 'development';
-  supabase.functions.invoke('sync-cadastros', {
-    body: { ...payload, environment }
-  }).then(({ error }) => {
-    if (error) console.error('[sync-cadastros] Erro:', error.message);
-    else console.log('[sync-cadastros] Sync iniciado');
-  }).catch(err => console.error('[sync-cadastros] Erro:', err));
+  const environment = isProductionEnvironment ? "production" : "development";
+  supabase.functions
+    .invoke("sync-cadastros", {
+      body: { ...payload, environment },
+    })
+    .then(({ error }) => {
+      if (error) console.error("[sync-cadastros] Erro:", error.message);
+      else console.log("[sync-cadastros] Sync iniciado");
+    })
+    .catch((err) => console.error("[sync-cadastros] Erro:", err));
 };
 
 // --- Date field component ---
-const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChange: (iso: string) => void; label?: string }) => {
+const DateFieldWithInput = ({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (iso: string) => void;
+  label?: string;
+}) => {
   const [textValue, setTextValue] = useState(isoToMasked(value));
 
   useEffect(() => {
@@ -275,13 +284,13 @@ const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChang
   };
 
   const handleTextBlur = () => {
-    if (textValue && textValue.replace(/\D/g, '').length === 8) {
+    if (textValue && textValue.replace(/\D/g, "").length === 8) {
       const parsed = parseDateMask(textValue);
       if (!parsed) {
-        toast.error('Data inválida');
+        toast.error("Data inválida");
         setTextValue(isoToMasked(value));
       }
-    } else if (textValue && textValue.replace(/\D/g, '').length > 0) {
+    } else if (textValue && textValue.replace(/\D/g, "").length > 0) {
       setTextValue(isoToMasked(value));
     }
   };
@@ -290,7 +299,7 @@ const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChang
     <div className="flex items-center gap-1 max-w-[220px]">
       <Input
         value={textValue}
-        onChange={e => handleTextChange(e.target.value)}
+        onChange={(e) => handleTextChange(e.target.value)}
         onBlur={handleTextBlur}
         placeholder="DD/MM/AAAA"
         className="h-8 font-mono text-sm"
@@ -309,8 +318,8 @@ const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChang
             onSelect={(date) => {
               if (date) {
                 const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
                 onChange(`${y}-${m}-${d}`);
               }
             }}
@@ -325,7 +334,15 @@ const DateFieldWithInput = ({ value, onChange, label }: { value: string; onChang
 };
 
 // --- Currency field component ---
-const CurrencyField = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => {
+const CurrencyField = ({
+  value,
+  onChange,
+  className,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  className?: string;
+}) => {
   const [display, setDisplay] = useState(formatBRLInput(value));
 
   useEffect(() => {
@@ -342,7 +359,7 @@ const CurrencyField = ({ value, onChange, className }: { value: number; onChange
   return (
     <Input
       value={display}
-      onChange={e => handleChange(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
       className={cn("h-8", className)}
       inputMode="decimal"
     />
@@ -356,14 +373,19 @@ interface NewClientModalProps {
   readOnly?: boolean;
 }
 
-export default function NewClientModal({ open, onOpenChange, editingClienteId, readOnly = false }: NewClientModalProps) {
+export default function NewClientModal({
+  open,
+  onOpenChange,
+  editingClienteId,
+  readOnly = false,
+}: NewClientModalProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'cliente' | 'contribuintes' | 'participantes' | 'contratos'>('cliente');
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -385,7 +407,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (open) setIsReadOnly(readOnly);
   }, [open, readOnly]);
 
-  const tabOrder: typeof activeTab[] = ['cliente', 'contribuintes', 'participantes', 'contratos'];
+  const tabOrder: (typeof activeTab)[] = ["cliente", "contribuintes", "participantes", "contratos"];
   const currentTabIndex = tabOrder.indexOf(activeTab);
   const isLastTab = currentTabIndex === tabOrder.length - 1;
   const isFirstTab = currentTabIndex === 0;
@@ -401,59 +423,42 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
   // Queries for lider dropdown
   const { data: userRoles = [] } = useQuery({
-    queryKey: ['user-roles-lider'],
+    queryKey: ["user-roles-lider"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .eq('role', 'lider');
+      const { data } = await supabase.from("user_roles").select("user_id, role").eq("role", "lider");
       return data || [];
-    }
+    },
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-all'],
+    queryKey: ["profiles-all"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name');
+      const { data } = await supabase.from("profiles").select("id, first_name, last_name");
       return data || [];
-    }
-  });
-
-  const { data: catalogClients = [] } = useQuery({
-    queryKey: ['catalog-clients-active'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('catalog_clients')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      return data || [];
-    }
+    },
   });
 
   const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
     return profiles
       .filter((p: any) => liderIds.has(p.id))
-      .map((p: any) => ({ id: p.id, nome: `${p.first_name || ''} ${p.last_name || ''}`.trim() }));
+      .map((p: any) => ({ id: p.id, nome: `${p.first_name || ""} ${p.last_name || ""}`.trim() }));
   }, [userRoles, profiles]);
 
   // Default states
   const defaultClientData = {
-    nome: '',
-    categoria: 'Bronze',
+    nome: "",
+    categoria: "Bronze",
     ativo: true,
-    fixo: 'Sim',
-    telefone: '',
-    municipio: '',
-    uf: '',
-    setor_cliente: '',
-    tipo_produto_segmento: '',
-    tipo_produto_segmento_custom: '',
+    fixo: "Sim",
+    telefone: "",
+    municipio: "",
+    uf: "",
+    setor_cliente: "",
+    tipo_produto_segmento: "",
+    tipo_produto_segmento_custom: "",
     empresa_faturamento: [] as string[],
-    regiao: '',
+    regiao: "",
   };
 
   // Section 1 - Client data
@@ -462,33 +467,59 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   // Section 2 - Contribuintes
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
-    tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
-    situacao_inscricao_estadual: '', inscricao_estadual: '',
-    cod_cnae: '', setor: 'Indústria', simples_nacional: '',
-    telefone: '',
-    cep: '', logradouro: '', numero: '', complemento: '',
-    bairro: '', municipio: '', uf: '',
+    tipo_pessoa: "PJ",
+    cpf_cnpj: "",
+    nome_razao_social: "",
+    nome_fantasia: "",
+    situacao_inscricao_estadual: "",
+    inscricao_estadual: "",
+    cod_cnae: "",
+    setor: "Indústria",
+    simples_nacional: "",
+    telefone: "",
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    municipio: "",
+    uf: "",
   });
 
   // Section 3 - Participantes
   const [participants, setParticipants] = useState<DraftParticipant[]>([]);
   const [draftParticipant, setDraftParticipant] = useState({
-    nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false,
+    nome: "",
+    tipo_participante: "",
+    cargo: "",
+    email: "",
+    telefone: "",
+    observacoes: "",
+    acesso_chamados: false,
   });
 
   // Section 4 - OS (Ordem de Serviço)
   const [contracts, setContracts] = useState<DraftContract[]>([]);
   const [draftContract, setDraftContract] = useState({
-    ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
-    data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
-    valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
-    situacao_projeto: 'em_andamento', servicos: [] as DraftContractService[], centros_custo: [] as DraftContractCostCenter[],
+    ordem_servico: "",
+    data_emissao: "",
+    nome_projeto: "",
+    descricao_projeto: "",
+    data_inicio_projeto: "",
+    data_fim_projeto: "",
+    valor_projeto: 0,
+    valor_reembolso_km: 0,
+    valor_reembolso_refeicao: 0,
+    gestor_responsavel: "",
   });
 
   // --- Unsaved changes detection ---
   const initialSnapshotRef = useRef<string | null>(null);
 
-  const currentSnapshot = useMemo(() => JSON.stringify({ clientData, entities, participants, contracts }), [clientData, entities, participants, contracts]);
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ clientData, entities, participants, contracts }),
+    [clientData, entities, participants, contracts],
+  );
 
   const hasUnsavedChanges = useMemo(() => {
     if (!initialSnapshotRef.current) return false;
@@ -511,18 +542,30 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   // Beforeunload protection
   useEffect(() => {
     if (!hasUnsavedChanges) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedChanges]);
 
   // Draft persistence for new client mode
-  const draftValues = useMemo(() => ({
-    clientData, entities, participants, contracts,
-  }), [clientData, entities, participants, contracts]);
+  const draftValues = useMemo(
+    () => ({
+      clientData,
+      entities,
+      participants,
+      contracts,
+    }),
+    [clientData, entities, participants, contracts],
+  );
   const draftEnabled = open && !isEditing;
   const { restore: restoreDraft, clear: clearDraft } = useDraftPersistence(
-    'newclient-form-draft', draftValues, draftEnabled, user?.id,
+    "newclient-form-draft",
+    draftValues,
+    draftEnabled,
+    user?.id,
   );
 
   // Load existing data when editing
@@ -532,70 +575,84 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     const loadData = async () => {
       setLoadingEdit(true);
       try {
-        const { data: cli } = await supabase.from(clienteTable).select('*').eq('id', editingClienteId).maybeSingle();
+        const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const rawEmpresa = (cli as any).empresa_faturamento || '';
-          const empresaArr = typeof rawEmpresa === 'string' && rawEmpresa
-            ? rawEmpresa.split(',').map((s: string) => s.trim()).filter(Boolean)
-            : [];
+          const rawEmpresa = (cli as any).empresa_faturamento || "";
+          const empresaArr =
+            typeof rawEmpresa === "string" && rawEmpresa
+              ? rawEmpresa
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
+              : [];
           setClientData({
-            nome: cli.nome || '',
-            categoria: (cli as any).categoria || 'Bronze',
+            nome: cli.nome || "",
+            categoria: (cli as any).categoria || "Bronze",
             ativo: cli.ativo ?? true,
-            fixo: cli.fixo || 'Sim',
-            telefone: cli.telefone || '',
-            municipio: cli.municipio || '',
-            uf: cli.uf || '',
-            setor_cliente: cli.setor_cliente || '',
-            tipo_produto_segmento: '',
-            tipo_produto_segmento_custom: '',
+            fixo: cli.fixo || "Sim",
+            telefone: cli.telefone || "",
+            municipio: cli.municipio || "",
+            uf: cli.uf || "",
+            setor_cliente: cli.setor_cliente || "",
+            tipo_produto_segmento: "",
+            tipo_produto_segmento_custom: "",
             empresa_faturamento: empresaArr,
-            regiao: (cli as any).regiao || '',
+            regiao: (cli as any).regiao || "",
           });
         }
 
-        const { data: contribs } = await supabase.from(contribuinteTable).select('*').eq('cliente_id', editingClienteId);
+        const { data: contribs } = await supabase
+          .from(contribuinteTable)
+          .select("*")
+          .eq("cliente_id", editingClienteId);
         if (contribs) {
-          setEntities(contribs.map(c => ({
-            _id: Date.now() + Math.random(),
-            tipo_pessoa: c.tipo_pessoa || 'PJ',
-            cpf_cnpj: c.cpf_cnpj || '',
-            nome_razao_social: c.nome_razao_social || '',
-            nome_fantasia: '',
-            situacao_inscricao_estadual: c.inscricao_estadual ? 'sim' : 'isento',
-            inscricao_estadual: c.inscricao_estadual || '',
-            cod_cnae: c.cod_cnae || '',
-            setor: c.setor || '',
-            simples_nacional: c.simples_nacional === true ? 'optante' : c.simples_nacional === false ? 'nao_optante' : '',
-            telefone: (c as any).telefone || '',
-            cep: '',
-            logradouro: '',
-            numero: '',
-            complemento: '',
-            bairro: '',
-            municipio: '',
-            uf: '',
-          })));
+          setEntities(
+            contribs.map((c) => ({
+              _id: Date.now() + Math.random(),
+              tipo_pessoa: c.tipo_pessoa || "PJ",
+              cpf_cnpj: c.cpf_cnpj || "",
+              nome_razao_social: c.nome_razao_social || "",
+              nome_fantasia: "",
+              situacao_inscricao_estadual: c.inscricao_estadual ? "sim" : "isento",
+              inscricao_estadual: c.inscricao_estadual || "",
+              cod_cnae: c.cod_cnae || "",
+              setor: c.setor || "",
+              simples_nacional:
+                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
+              telefone: (c as any).telefone || "",
+              cep: "",
+              logradouro: "",
+              numero: "",
+              complemento: "",
+              bairro: "",
+              municipio: "",
+              uf: "",
+            })),
+          );
         }
 
-        const { data: parts } = await (supabase.from(participanteTable) as any).select('*').eq('id_cliente', editingClienteId);
+        const { data: parts } = await (supabase.from(participanteTable) as any)
+          .select("*")
+          .eq("id_cliente", editingClienteId);
         if (parts) {
-          setParticipants(parts.map((p: any) => ({
-            _id: Date.now() + Math.random(),
-            nome: p.nome || '',
-            tipo_participante: (p as any).tipo_participante || '',
-            cargo: p.cargo || '',
-            email: p.email || '',
-            telefone: p.telefone || '',
-            observacoes: (p as any).observacoes || '',
-            acesso_chamados: (p as any).acesso_chamados ?? false,
-          })));
+          setParticipants(
+            parts.map((p: any) => ({
+              _id: Date.now() + Math.random(),
+              nome: p.nome || "",
+              tipo_participante: (p as any).tipo_participante || "",
+              cargo: p.cargo || "",
+              email: p.email || "",
+              telefone: p.telefone || "",
+              observacoes: (p as any).observacoes || "",
+              acesso_chamados: (p as any).acesso_chamados ?? false,
+            })),
+          );
         }
 
         setContracts([]);
       } catch (err: any) {
-        console.error('Erro ao carregar dados do cliente:', err);
-        toast.error('Erro ao carregar dados do cliente');
+        console.error("Erro ao carregar dados do cliente:", err);
+        toast.error("Erro ao carregar dados do cliente");
       } finally {
         setLoadingEdit(false);
       }
@@ -616,34 +673,34 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
   }, [open, isEditing]);
 
   const formatCurrencyDisplay = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   // --- ENTITY HANDLERS ---
   // --- CNPJ FETCH ---
   const handleCnpjBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, "");
     if (digits.length !== 14) return;
     setCnpjLoading(true);
     try {
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error('not found');
+      if (!res.ok) throw new Error("not found");
       const data = await res.json();
-      setDraftEntity(prev => ({
+      setDraftEntity((prev) => ({
         ...prev,
-        nome_razao_social: data.razao_social || prev?.nome_razao_social || '',
-        nome_fantasia: data.nome_fantasia || '',
-        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : (prev?.cod_cnae || ''),
-        cep: data.cep ? String(data.cep).replace(/\D/g, '') : (prev?.cep || ''),
-        logradouro: data.logradouro || prev?.logradouro || '',
-        numero: data.numero || prev?.numero || '',
-        complemento: data.complemento || prev?.complemento || '',
-        bairro: data.bairro || prev?.bairro || '',
-        municipio: data.municipio || prev?.municipio || '',
-        uf: data.uf || prev?.uf || '',
+        nome_razao_social: data.razao_social || prev?.nome_razao_social || "",
+        nome_fantasia: data.nome_fantasia || "",
+        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev?.cod_cnae || "",
+        cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev?.cep || "",
+        logradouro: data.logradouro || prev?.logradouro || "",
+        numero: data.numero || prev?.numero || "",
+        complemento: data.complemento || prev?.complemento || "",
+        bairro: data.bairro || prev?.bairro || "",
+        municipio: data.municipio || prev?.municipio || "",
+        uf: data.uf || prev?.uf || "",
       }));
-      toast.success('Dados preenchidos via CNPJ');
+      toast.success("Dados preenchidos via CNPJ");
     } catch {
-      toast.error('CNPJ não encontrado na base federal');
+      toast.error("CNPJ não encontrado na base federal");
     } finally {
       setCnpjLoading(false);
     }
@@ -651,206 +708,332 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
   // --- CEP FETCH ---
   const handleCepBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, "");
     if (digits.length !== 8) return;
     setCepLoading(true);
     try {
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await res.json();
-      if (data.erro) throw new Error('not found');
-      setDraftEntity(prev => ({
+      if (data.erro) throw new Error("not found");
+      setDraftEntity((prev) => ({
         ...prev,
-        logradouro: data.logradouro || prev?.logradouro || '',
-        bairro: data.bairro || prev?.bairro || '',
-        municipio: data.localidade || prev?.municipio || '',
-        uf: data.uf || prev?.uf || '',
+        logradouro: data.logradouro || prev?.logradouro || "",
+        bairro: data.bairro || prev?.bairro || "",
+        municipio: data.localidade || prev?.municipio || "",
+        uf: data.uf || prev?.uf || "",
       }));
-      toast.success('Endereço preenchido via CEP');
+      toast.success("Endereço preenchido via CEP");
     } catch {
-      toast.error('CEP não encontrado');
+      toast.error("CEP não encontrado");
     } finally {
       setCepLoading(false);
     }
   };
 
   const addEntity = () => {
-    if (!draftEntity.nome_razao_social?.trim()) { toast.error('Razão Social é obrigatória'); return; }
-    
-    const cpfCnpjDigits = (draftEntity.cpf_cnpj || '').replace(/\D/g, '');
-    if (!cpfCnpjDigits) { toast.error('CPF/CNPJ é obrigatório'); return; }
-    if (cpfCnpjDigits.length !== 11 && cpfCnpjDigits.length !== 14) {
-      toast.error('CPF deve ter 11 dígitos ou CNPJ 14 dígitos'); return;
+    if (!draftEntity.nome_razao_social?.trim()) {
+      toast.error("Razão Social é obrigatória");
+      return;
     }
 
-    if (!draftEntity.cep?.trim()) { toast.error('CEP é obrigatório'); return; }
-    if (!draftEntity.logradouro?.trim()) { toast.error('Logradouro é obrigatório'); return; }
-    if (!draftEntity.bairro?.trim()) { toast.error('Bairro é obrigatório'); return; }
-    if (!draftEntity.municipio?.trim()) { toast.error('Município é obrigatório'); return; }
-    if (!draftEntity.uf?.trim() || (draftEntity.uf?.trim().length !== 2)) { toast.error('UF deve ter 2 caracteres'); return; }
+    const cpfCnpjDigits = (draftEntity.cpf_cnpj || "").replace(/\D/g, "");
+    if (!cpfCnpjDigits) {
+      toast.error("CPF/CNPJ é obrigatório");
+      return;
+    }
+    if (cpfCnpjDigits.length !== 11 && cpfCnpjDigits.length !== 14) {
+      toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos");
+      return;
+    }
 
-    if (!draftEntity.situacao_inscricao_estadual) { toast.error('Informe a situação da inscrição estadual'); return; }
-    if (draftEntity.situacao_inscricao_estadual === 'sim' && !draftEntity.inscricao_estadual?.trim()) { toast.error('Informe o número da inscrição estadual'); return; }
+    if (!draftEntity.cep?.trim()) {
+      toast.error("CEP é obrigatório");
+      return;
+    }
+    if (!draftEntity.logradouro?.trim()) {
+      toast.error("Logradouro é obrigatório");
+      return;
+    }
+    if (!draftEntity.bairro?.trim()) {
+      toast.error("Bairro é obrigatório");
+      return;
+    }
+    if (!draftEntity.municipio?.trim()) {
+      toast.error("Município é obrigatório");
+      return;
+    }
+    if (!draftEntity.uf?.trim() || draftEntity.uf?.trim().length !== 2) {
+      toast.error("UF deve ter 2 caracteres");
+      return;
+    }
 
-    if (draftEntity.tipo_pessoa === 'PJ') {
-      if (!draftEntity.cod_cnae?.trim()) { toast.error('CNAE é obrigatório para PJ'); return; }
-      if (!draftEntity.simples_nacional) { toast.error('Informe a situação do Simples Nacional'); return; }
+    if (!draftEntity.situacao_inscricao_estadual) {
+      toast.error("Informe a situação da inscrição estadual");
+      return;
+    }
+    if (draftEntity.situacao_inscricao_estadual === "sim" && !draftEntity.inscricao_estadual?.trim()) {
+      toast.error("Informe o número da inscrição estadual");
+      return;
+    }
+
+    if (draftEntity.tipo_pessoa === "PJ") {
+      if (!draftEntity.cod_cnae?.trim()) {
+        toast.error("CNAE é obrigatório para PJ");
+        return;
+      }
+      if (!draftEntity.simples_nacional) {
+        toast.error("Informe a situação do Simples Nacional");
+        return;
+      }
     }
 
     setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
-      tipo_pessoa: 'PJ', cpf_cnpj: '', nome_razao_social: '', nome_fantasia: '',
-      situacao_inscricao_estadual: '', inscricao_estadual: '',
-      cod_cnae: '', setor: 'Indústria', simples_nacional: '',
-      telefone: '',
-      cep: '', logradouro: '', numero: '', complemento: '',
-      bairro: '', municipio: '', uf: '',
+      tipo_pessoa: "PJ",
+      cpf_cnpj: "",
+      nome_razao_social: "",
+      nome_fantasia: "",
+      situacao_inscricao_estadual: "",
+      inscricao_estadual: "",
+      cod_cnae: "",
+      setor: "Indústria",
+      simples_nacional: "",
+      telefone: "",
+      cep: "",
+      logradouro: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      municipio: "",
+      uf: "",
     });
   };
 
   // --- PARTICIPANT HANDLERS ---
   const addParticipant = () => {
-    if (!draftParticipant.nome.trim()) { toast.error('Nome é obrigatório'); return; }
-    if (!draftParticipant.tipo_participante) { toast.error('Tipo de Participante é obrigatório'); return; }
+    if (!draftParticipant.nome.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    if (!draftParticipant.tipo_participante) {
+      toast.error("Tipo de Participante é obrigatório");
+      return;
+    }
 
-    if (!draftParticipant.email.trim()) { toast.error('Email é obrigatório'); return; }
+    if (!draftParticipant.email.trim()) {
+      toast.error("Email é obrigatório");
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(draftParticipant.email.trim())) { toast.error('Formato de e-mail inválido'); return; }
+    if (!emailRegex.test(draftParticipant.email.trim())) {
+      toast.error("Formato de e-mail inválido");
+      return;
+    }
 
     if (draftParticipant.telefone.trim()) {
-      const telDigits = draftParticipant.telefone.replace(/\D/g, '');
-      if (telDigits.length < 10) { toast.error('Telefone deve ter no mínimo 10 dígitos'); return; }
-    }
-
-    if (draftParticipant.observacoes.trim() && draftParticipant.observacoes.trim().length < 20) {
-      toast.error('Observações deve ter no mínimo 20 caracteres'); return;
-    }
-
-    setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
-    setDraftParticipant({ nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false });
-  };
-
-  // --- OS HANDLERS ---
-  const addContract = () => {
-    if (!draftContract.ordem_servico.trim()) { toast.error('Número da OS é obrigatório'); return; }
-    if (!draftContract.nome_projeto.trim()) { toast.error('Nome do Projeto é obrigatório'); return; }
-    if (!draftContract.data_emissao) { toast.error('Data de Emissão é obrigatória'); return; }
-    if (!draftContract.data_inicio_projeto) { toast.error('Data de Início é obrigatória'); return; }
-    if (!draftContract.gestor_responsavel) { toast.error('Gestor Responsável é obrigatório'); return; }
-    if (draftContract.valor_projeto <= 0) { toast.error('Valor do Projeto deve ser maior que zero'); return; }
-    if (draftContract.valor_reembolso_km === undefined || draftContract.valor_reembolso_km === null) { toast.error('Reembolso por km é obrigatório (pode ser 0)'); return; }
-    if (draftContract.valor_reembolso_refeicao === undefined || draftContract.valor_reembolso_refeicao === null) { toast.error('Reembolso refeição é obrigatório (pode ser 0)'); return; }
-
-    if (draftContract.descricao_projeto.trim() && draftContract.descricao_projeto.trim().length < 20) {
-      toast.error('Descrição do Projeto deve ter no mínimo 20 caracteres'); return;
-    }
-
-    // Validate cost centers total if any exist
-    if (draftContract.centros_custo.length > 0) {
-      const total = draftContract.centros_custo.reduce((s, c) => s + c.percent, 0);
-      if (total !== 100) {
-        toast.error(`A distribuição dos centros de custo deve totalizar 100% (atual: ${total}%)`);
+      const telDigits = draftParticipant.telefone.replace(/\D/g, "");
+      if (telDigits.length < 10) {
+        toast.error("Telefone deve ter no mínimo 10 dígitos");
         return;
       }
     }
 
+    if (draftParticipant.observacoes.trim() && draftParticipant.observacoes.trim().length < 20) {
+      toast.error("Observações deve ter no mínimo 20 caracteres");
+      return;
+    }
+
+    setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
+    setDraftParticipant({
+      nome: "",
+      tipo_participante: "",
+      cargo: "",
+      email: "",
+      telefone: "",
+      observacoes: "",
+      acesso_chamados: false,
+    });
+  };
+
+  // --- OS HANDLERS ---
+  const addContract = () => {
+    if (!draftContract.ordem_servico.trim()) {
+      toast.error("Número da OS é obrigatório");
+      return;
+    }
+    if (!draftContract.nome_projeto.trim()) {
+      toast.error("Nome do Projeto é obrigatório");
+      return;
+    }
+    if (!draftContract.data_emissao) {
+      toast.error("Data de Emissão é obrigatória");
+      return;
+    }
+    if (!draftContract.data_inicio_projeto) {
+      toast.error("Data de Início é obrigatória");
+      return;
+    }
+    if (!draftContract.gestor_responsavel) {
+      toast.error("Gestor Responsável é obrigatório");
+      return;
+    }
+    if (draftContract.valor_projeto <= 0) {
+      toast.error("Valor do Projeto deve ser maior que zero");
+      return;
+    }
+    if (draftContract.valor_reembolso_km === undefined || draftContract.valor_reembolso_km === null) {
+      toast.error("Reembolso por km é obrigatório (pode ser 0)");
+      return;
+    }
+    if (draftContract.valor_reembolso_refeicao === undefined || draftContract.valor_reembolso_refeicao === null) {
+      toast.error("Reembolso refeição é obrigatório (pode ser 0)");
+      return;
+    }
+
+    if (draftContract.descricao_projeto.trim() && draftContract.descricao_projeto.trim().length < 20) {
+      toast.error("Descrição do Projeto deve ter no mínimo 20 caracteres");
+      return;
+    }
+
     setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
     setDraftContract({
-      ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
-      data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
-      valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
-      situacao_projeto: 'em_andamento', servicos: [], centros_custo: [],
+      ordem_servico: "",
+      data_emissao: "",
+      nome_projeto: "",
+      descricao_projeto: "",
+      data_inicio_projeto: "",
+      data_fim_projeto: "",
+      valor_projeto: 0,
+      valor_reembolso_km: 0,
+      valor_reembolso_refeicao: 0,
+      gestor_responsavel: "",
     });
   };
 
   // --- INLINE EDIT HELPERS ---
   const handleInlineCnpjBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, "");
     if (digits.length !== 14) return;
     setCnpjLoading(true);
     try {
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error('not found');
+      if (!res.ok) throw new Error("not found");
       const data = await res.json();
-      setEditingEntityData(prev => prev ? ({
-        ...prev,
-        nome_razao_social: data.razao_social || prev.nome_razao_social || '',
-        nome_fantasia: data.nome_fantasia || '',
-        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : (prev.cod_cnae || ''),
-        cep: data.cep ? String(data.cep).replace(/\D/g, '') : (prev.cep || ''),
-        logradouro: data.logradouro || prev.logradouro || '',
-        numero: data.numero || prev.numero || '',
-        complemento: data.complemento || prev.complemento || '',
-        bairro: data.bairro || prev.bairro || '',
-        municipio: data.municipio || prev.municipio || '',
-        uf: data.uf || prev.uf || '',
-      }) : prev);
-      toast.success('Dados preenchidos via CNPJ');
-    } catch { toast.error('CNPJ não encontrado'); }
-    finally { setCnpjLoading(false); }
+      setEditingEntityData((prev) =>
+        prev
+          ? {
+              ...prev,
+              nome_razao_social: data.razao_social || prev.nome_razao_social || "",
+              nome_fantasia: data.nome_fantasia || "",
+              cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev.cod_cnae || "",
+              cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev.cep || "",
+              logradouro: data.logradouro || prev.logradouro || "",
+              numero: data.numero || prev.numero || "",
+              complemento: data.complemento || prev.complemento || "",
+              bairro: data.bairro || prev.bairro || "",
+              municipio: data.municipio || prev.municipio || "",
+              uf: data.uf || prev.uf || "",
+            }
+          : prev,
+      );
+      toast.success("Dados preenchidos via CNPJ");
+    } catch {
+      toast.error("CNPJ não encontrado");
+    } finally {
+      setCnpjLoading(false);
+    }
   };
 
   const handleInlineCepBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, "");
     if (digits.length !== 8) return;
     setCepLoading(true);
     try {
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await res.json();
-      if (data.erro) throw new Error('not found');
-      setEditingEntityData(prev => prev ? ({
-        ...prev,
-        logradouro: data.logradouro || prev.logradouro || '',
-        bairro: data.bairro || prev.bairro || '',
-        municipio: data.localidade || prev.municipio || '',
-        uf: data.uf || prev.uf || '',
-      }) : prev);
-      toast.success('Endereço preenchido via CEP');
-    } catch { toast.error('CEP não encontrado'); }
-    finally { setCepLoading(false); }
+      if (data.erro) throw new Error("not found");
+      setEditingEntityData((prev) =>
+        prev
+          ? {
+              ...prev,
+              logradouro: data.logradouro || prev.logradouro || "",
+              bairro: data.bairro || prev.bairro || "",
+              municipio: data.localidade || prev.municipio || "",
+              uf: data.uf || prev.uf || "",
+            }
+          : prev,
+      );
+      toast.success("Endereço preenchido via CEP");
+    } catch {
+      toast.error("CEP não encontrado");
+    } finally {
+      setCepLoading(false);
+    }
   };
 
   const startEditEntity = (ent: DraftEntity) => {
     setEditingEntityId(ent._id);
     setEditingEntityData({ ...ent });
   };
-  const cancelEditEntity = () => { setEditingEntityId(null); setEditingEntityData(null); };
+  const cancelEditEntity = () => {
+    setEditingEntityId(null);
+    setEditingEntityData(null);
+  };
   const saveEditEntity = () => {
     if (!editingEntityData || editingEntityId == null) return;
-    if (!editingEntityData.cep?.trim()) { toast.error('CEP é obrigatório'); return; }
-    setEntities(entities.map(e => e._id === editingEntityId ? { ...e, ...editingEntityData } as DraftEntity : e));
-    setEditingEntityId(null); setEditingEntityData(null);
-    toast.success('Contribuinte atualizado');
+    if (!editingEntityData.cep?.trim()) {
+      toast.error("CEP é obrigatório");
+      return;
+    }
+    setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
+    setEditingEntityId(null);
+    setEditingEntityData(null);
+    toast.success("Contribuinte atualizado");
   };
 
   const startEditParticipant = (p: DraftParticipant) => {
     setEditingParticipantId(p._id);
     setEditingParticipantData({ ...p });
   };
-  const cancelEditParticipant = () => { setEditingParticipantId(null); setEditingParticipantData(null); };
+  const cancelEditParticipant = () => {
+    setEditingParticipantId(null);
+    setEditingParticipantData(null);
+  };
   const saveEditParticipant = () => {
     if (!editingParticipantData || editingParticipantId == null) return;
-    setParticipants(participants.map(p => p._id === editingParticipantId ? { ...p, ...editingParticipantData } as DraftParticipant : p));
-    setEditingParticipantId(null); setEditingParticipantData(null);
-    toast.success('Participante atualizado');
+    setParticipants(
+      participants.map((p) =>
+        p._id === editingParticipantId ? ({ ...p, ...editingParticipantData } as DraftParticipant) : p,
+      ),
+    );
+    setEditingParticipantId(null);
+    setEditingParticipantData(null);
+    toast.success("Participante atualizado");
   };
 
   const startEditContract = (c: DraftContract) => {
     setEditingContractId(c._id);
     setEditingContractData({ ...c });
   };
-  const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
+  const cancelEditContract = () => {
+    setEditingContractId(null);
+    setEditingContractData(null);
+  };
   const saveEditContract = () => {
     if (!editingContractData || editingContractId == null) return;
-    setContracts(contracts.map(c => c._id === editingContractId ? { ...c, ...editingContractData } as DraftContract : c));
-    setEditingContractId(null); setEditingContractData(null);
-    toast.success('OS atualizada');
+    setContracts(
+      contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftContract) : c)),
+    );
+    setEditingContractId(null);
+    setEditingContractData(null);
+    toast.success("OS atualizada");
   };
 
   // Field display helper
   const FieldPair = ({ label, value }: { label: string; value: string | undefined }) => (
     <div>
       <span className="text-[10px] font-bold uppercase text-muted-foreground">{label}</span>
-      <div className="text-sm text-foreground">{value || '—'}</div>
+      <div className="text-sm text-foreground">{value || "—"}</div>
     </div>
   );
 
@@ -859,10 +1042,10 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     if (entities.length === 0) return;
     const first = entities[0];
     if (!first.cep?.trim()) {
-      toast.warning('O primeiro contribuinte não possui endereço cadastrado');
+      toast.warning("O primeiro contribuinte não possui endereço cadastrado");
       return;
     }
-    setDraftEntity(prev => ({
+    setDraftEntity((prev) => ({
       ...prev,
       cep: first.cep,
       logradouro: first.logradouro,
@@ -872,31 +1055,47 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       municipio: first.municipio,
       uf: first.uf,
     }));
-    toast.success('Endereço copiado do primeiro contribuinte');
+    toast.success("Endereço copiado do primeiro contribuinte");
   };
 
   // --- Multi-select helpers ---
   const toggleEmpresaFaturamento = (emp: string) => {
-    setClientData(prev => {
+    setClientData((prev) => {
       const arr = prev.empresa_faturamento;
       return {
         ...prev,
-        empresa_faturamento: arr.includes(emp) ? arr.filter(e => e !== emp) : [...arr, emp],
+        empresa_faturamento: arr.includes(emp) ? arr.filter((e) => e !== emp) : [...arr, emp],
       };
     });
   };
 
   // --- FINAL SAVE ---
   const handleSave = async () => {
-    if (!clientData.nome.trim()) { toast.error('Nome do cliente é obrigatório'); return; }
-
-    if (!clientData.setor_cliente) { toast.error('Área do negócio é obrigatória'); return; }
-    if (!clientData.tipo_produto_segmento) { toast.error('Tipo de produto/segmento é obrigatório'); return; }
-    if (clientData.tipo_produto_segmento === '__outro__' && !clientData.tipo_produto_segmento_custom.trim()) {
-      toast.error('Informe o nome do produto/segmento personalizado'); return;
+    if (!clientData.nome.trim()) {
+      toast.error("Nome do cliente é obrigatório");
+      return;
     }
-    if (clientData.empresa_faturamento.length === 0) { toast.error('Centro de Custo / Faturamento é obrigatório'); return; }
-    if (!clientData.regiao) { toast.error('Região é obrigatória'); return; }
+
+    if (!clientData.setor_cliente) {
+      toast.error("Área do negócio é obrigatória");
+      return;
+    }
+    if (!clientData.tipo_produto_segmento) {
+      toast.error("Tipo de produto/segmento é obrigatório");
+      return;
+    }
+    if (clientData.tipo_produto_segmento === "__outro__" && !clientData.tipo_produto_segmento_custom.trim()) {
+      toast.error("Informe o nome do produto/segmento personalizado");
+      return;
+    }
+    if (clientData.empresa_faturamento.length === 0) {
+      toast.error(" é obrigatória");
+      return;
+    }
+    if (!clientData.regiao) {
+      toast.error("Região é obrigatória");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -918,21 +1117,23 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
         const { data: updated, error } = await supabase
           .from(clienteTable)
           .update(clientPayload)
-          .eq('id', editingClienteId!)
+          .eq("id", editingClienteId!)
           .select()
           .single();
         if (error) throw error;
         clienteId = editingClienteId!;
         clienteResult = updated;
 
-        await supabase.from(contribuinteTable).delete().eq('cliente_id', clienteId);
+        await supabase.from(contribuinteTable).delete().eq("cliente_id", clienteId);
 
-        const { data: existingContratos } = await (supabase.from(contratoTable) as any).select('id_contrato').eq('id_cliente', clienteId);
+        const { data: existingContratos } = await (supabase.from(contratoTable) as any)
+          .select("id_contrato")
+          .eq("id_cliente", clienteId);
         if (existingContratos && existingContratos.length > 0) {
-          await (supabase.from(contratoTable) as any).delete().eq('id_cliente', clienteId);
+          await (supabase.from(contratoTable) as any).delete().eq("id_cliente", clienteId);
         }
 
-        await (supabase.from(participanteTable) as any).delete().eq('id_cliente', clienteId);
+        await (supabase.from(participanteTable) as any).delete().eq("id_cliente", clienteId);
       } else {
         const { data: newCliente, error: clienteError } = await supabase
           .from(clienteTable)
@@ -945,7 +1146,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       }
 
       if (entities.length > 0) {
-        const contribPayload = entities.map(e => ({
+        const contribPayload = entities.map((e) => ({
           cliente_id: clienteId,
           tipo_pessoa: e.tipo_pessoa,
           cpf_cnpj: e.cpf_cnpj || null,
@@ -953,7 +1154,8 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
           inscricao_estadual: e.inscricao_estadual || null,
           cod_cnae: e.cod_cnae || null,
           setor: e.setor || null,
-          simples_nacional: e.simples_nacional === 'optante' ? true : e.simples_nacional === 'nao_optante' ? false : null,
+          simples_nacional:
+            e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
           telefone: e.telefone || null,
         }));
         const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
@@ -961,7 +1163,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       }
 
       if (participants.length > 0) {
-        const partPayload = participants.map(p => ({
+        const partPayload = participants.map((p) => ({
           id_cliente: clienteId,
           nome: p.nome,
           cargo: p.cargo || null,
@@ -972,32 +1174,34 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
         if (partError) throw partError;
       }
 
-      console.log('[OS] Dados locais (não salvos no banco):', contracts);
+      console.log("[OS] Dados locais (não salvos no banco):", contracts);
 
       syncCadastrosToDW({
-        clientes: [{
-          id_cliente: clienteResult.id,
-          nome: clienteResult.nome,
-          fixo: clienteResult.fixo,
-          telefone: clienteResult.telefone,
-          setor_cliente: clienteResult.setor_cliente,
-          municipio: clienteResult.municipio,
-          uf: clienteResult.uf,
-          ativo: clienteResult.ativo,
-          categoria: (clienteResult as any).categoria ?? null,
-          created_at: clienteResult.created_at,
-          updated_at: clienteResult.updated_at,
-        }]
+        clientes: [
+          {
+            id_cliente: clienteResult.id,
+            nome: clienteResult.nome,
+            fixo: clienteResult.fixo,
+            telefone: clienteResult.telefone,
+            setor_cliente: clienteResult.setor_cliente,
+            municipio: clienteResult.municipio,
+            uf: clienteResult.uf,
+            ativo: clienteResult.ativo,
+            categoria: (clienteResult as any).categoria ?? null,
+            created_at: clienteResult.created_at,
+            updated_at: clienteResult.updated_at,
+          },
+        ],
       });
 
-      queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
-      queryClient.invalidateQueries({ queryKey: ['clientes-filtrados'] });
-      queryClient.invalidateQueries({ queryKey: ['contribuintes-modal'] });
-      queryClient.invalidateQueries({ queryKey: ['contribuintes-por-cliente'] });
-      toast.success(isEditing ? 'Cliente atualizado com sucesso!' : 'Cliente cadastrado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
+      queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
+      queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
+      queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
+      toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
       resetAndClose();
     } catch (error: any) {
-      toast.error(`Erro ao ${isEditing ? 'atualizar' : 'cadastrar'} cliente: ` + error.message);
+      toast.error(`Erro ao ${isEditing ? "atualizar" : "cadastrar"} cliente: ` + error.message);
     } finally {
       setSaving(false);
     }
@@ -1009,13 +1213,27 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     setParticipants([]);
     setContracts([]);
     setDraftContract({
-      ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
-      data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
-      valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
-      situacao_projeto: 'em_andamento', servicos: [], centros_custo: [],
+      ordem_servico: "",
+      data_emissao: "",
+      nome_projeto: "",
+      descricao_projeto: "",
+      data_inicio_projeto: "",
+      data_fim_projeto: "",
+      valor_projeto: 0,
+      valor_reembolso_km: 0,
+      valor_reembolso_refeicao: 0,
+      gestor_responsavel: "",
     });
-    setDraftParticipant({ nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false });
-    setActiveTab('cliente');
+    setDraftParticipant({
+      nome: "",
+      tipo_participante: "",
+      cargo: "",
+      email: "",
+      telefone: "",
+      observacoes: "",
+      acesso_chamados: false,
+    });
+    setActiveTab("cliente");
     setIsReadOnly(readOnly);
     setShowExitConfirm(false);
     clearDraft();
@@ -1032,92 +1250,107 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleAttemptClose(); }}>
-      <DialogContent
-        className={cn(
-          "max-w-5xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0",
-          "[&>button]:hidden"
-        )}
-        onInteractOutside={(e) => e.preventDefault()}
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          if (!v) handleAttemptClose();
+        }}
       >
-        <DialogTitle className="sr-only">
-          {isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          Formulário de cadastro de cliente com contribuintes, participantes e contratos
-        </DialogDescription>
-        {/* Header */}
-        <div className="px-6 py-3 border-b flex justify-between items-center bg-muted/50 shrink-0">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            {isReadOnly ? (
-              <Building2 className="text-teal-600" size={22} />
-            ) : isEditing ? (
-              <Pencil className="text-teal-600" size={22} />
-            ) : (
-              <Plus className="text-teal-600" size={22} />
-            )}
-            {isReadOnly ? 'Visualizar Cliente' : isEditing ? 'Editar Cliente' : 'Cadastrar Cliente'}
-          </h2>
-          <div className="flex items-center gap-2">
-            {isReadOnly && (
-              <Button
-                onClick={() => setIsReadOnly(false)}
-                className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                size="sm"
+        <DialogContent
+          className={cn("max-w-5xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden")}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulário de cadastro de cliente com contribuintes, participantes e contratos
+          </DialogDescription>
+          {/* Header */}
+          <div className="px-6 py-3 border-b flex justify-between items-center bg-muted/50 shrink-0">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              {isReadOnly ? (
+                <Building2 className="text-teal-600" size={22} />
+              ) : isEditing ? (
+                <Pencil className="text-teal-600" size={22} />
+              ) : (
+                <Plus className="text-teal-600" size={22} />
+              )}
+              {isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}
+            </h2>
+            <div className="flex items-center gap-2">
+              {isReadOnly && (
+                <Button
+                  onClick={() => setIsReadOnly(false)}
+                  className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                  size="sm"
+                >
+                  <Pencil size={14} />
+                  Editar
+                </Button>
+              )}
+              <button
+                onClick={handleAttemptClose}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
               >
-                <Pencil size={14} />
-                Editar
-              </Button>
-            )}
-            <button onClick={handleAttemptClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
-              <X size={22} />
-            </button>
+                <X size={22} />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {loadingEdit ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-          </div>
-        ) : (
-          <>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-2 shrink-0">
-                <TabsList className="w-full grid grid-cols-4">
-                  <TabsTrigger value="cliente">Dados do Cliente/Grupo</TabsTrigger>
-                  <TabsTrigger value="contribuintes">Contribuintes</TabsTrigger>
-                  <TabsTrigger value="participantes">Participantes</TabsTrigger>
-                  <TabsTrigger value="contratos">OS - Ordem de Serviço</TabsTrigger>
-                </TabsList>
-              </div>
+          {loadingEdit ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+            </div>
+          ) : (
+            <>
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <div className="px-6 pt-2 shrink-0">
+                  <TabsList className="w-full grid grid-cols-4">
+                    <TabsTrigger value="cliente">Dados do Cliente/Grupo</TabsTrigger>
+                    <TabsTrigger value="contribuintes">Contribuintes</TabsTrigger>
+                    <TabsTrigger value="participantes">Participantes</TabsTrigger>
+                    <TabsTrigger value="contratos">OS - Ordem de Serviço</TabsTrigger>
+                  </TabsList>
+                </div>
 
-              <ScrollArea className="flex-1">
-                <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
-                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2 bg-muted/50 border-b">
-                      <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
-                    </div>
-                    <div className="px-4 py-3 space-y-4">
-
-                      {/* 1. Nome */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome do Cliente / Grupo <span className="text-destructive">*</span></Label>
-                        <Input
-                          autoFocus={!isReadOnly}
-                          disabled={isReadOnly}
-                          value={clientData.nome}
-                          onChange={e => setClientData({ ...clientData, nome: e.target.value })}
-                          placeholder="Ex: Grupo Empresarial Silva"
-                          className="h-8"
-                        />
+                <ScrollArea className="flex-1">
+                  <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="px-4 py-2 bg-muted/50 border-b">
+                        <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
                       </div>
+                      <div className="px-4 py-3 flex flex-col gap-2.5">
+                        {/* 1. Nome */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Nome do Cliente / Grupo *
+                          </Label>
+                          <Input
+                            autoFocus={!isReadOnly}
+                            disabled={isReadOnly}
+                            value={clientData.nome}
+                            onChange={(e) => setClientData({ ...clientData, nome: e.target.value })}
+                            placeholder="Ex: Grupo Empresarial Silva"
+                            className="flex-1 h-8"
+                          />
+                        </div>
 
-                      {/* 2+3. Categoria + Status lado a lado */}
-                      <div className="grid grid-cols-2 gap-x-6">
-                        <div>
-                          <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Categoria</Label>
-                          <Select disabled={isReadOnly} value={clientData.categoria} onValueChange={v => setClientData({ ...clientData, categoria: v })}>
-                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        {/* 2. Categoria */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Categoria
+                          </Label>
+                          <Select
+                            disabled={isReadOnly}
+                            value={clientData.categoria}
+                            onValueChange={(v) => setClientData({ ...clientData, categoria: v })}
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Bronze">Bronze</SelectItem>
                               <SelectItem value="Prata">Prata</SelectItem>
@@ -1126,1286 +1359,1969 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Status</Label>
-                          <div className="flex items-center gap-2 h-8">
-                            <Switch disabled={isReadOnly} checked={clientData.ativo} onCheckedChange={c => setClientData({ ...clientData, ativo: c })} />
-                            <span className="text-xs font-medium">{clientData.ativo ? 'Ativo' : 'Inativo'}</span>
+
+                        {/* 3. Status */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Status
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              disabled={isReadOnly}
+                              checked={clientData.ativo}
+                              onCheckedChange={(c) => setClientData({ ...clientData, ativo: c })}
+                            />
+                            <span className="text-xs font-medium">{clientData.ativo ? "Ativo" : "Inativo"}</span>
+                          </div>
+                        </div>
+
+                        {/* 4. Tipo de Relacionamento */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Tipo de relacionamento
+                          </Label>
+                          <div className="flex border rounded-md overflow-hidden">
+                            <button
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => setClientData({ ...clientData, fixo: "Sim" })}
+                              className={`px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === "Sim" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
+                            >
+                              Fixo
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => setClientData({ ...clientData, fixo: "Não" })}
+                              className={`px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === "Não" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
+                            >
+                              Pontual
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 5. Área do Negócio */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Área do negócio *
+                          </Label>
+                          <Select
+                            disabled={isReadOnly}
+                            value={clientData.setor_cliente || "__none__"}
+                            onValueChange={(v) =>
+                              setClientData({ ...clientData, setor_cliente: v === "__none__" ? "" : v })
+                            }
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
+                              <SelectItem value="INS">INS - Instituições do agro</SelectItem>
+                              <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
+                              <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
+                              <SelectItem value="IND">IND - Agroindústria</SelectItem>
+                              <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
+                              <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* 6. Tipo de produto/segmento */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                            <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                              Tipo de produto/segmento *
+                            </Label>
+                            <Select
+                              disabled={isReadOnly}
+                              value={clientData.tipo_produto_segmento || "__none__"}
+                              onValueChange={(v) =>
+                                setClientData({
+                                  ...clientData,
+                                  tipo_produto_segmento: v === "__none__" ? "" : v,
+                                  tipo_produto_segmento_custom:
+                                    v !== "__outro__" ? "" : clientData.tipo_produto_segmento_custom,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="flex-1 h-8">
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {PRODUTO_SEGMENTO_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {clientData.tipo_produto_segmento === "__outro__" && (
+                            <div className="md:ml-[12.75rem] md:pl-3">
+                              <Input
+                                disabled={isReadOnly}
+                                className="h-8"
+                                value={clientData.tipo_produto_segmento_custom}
+                                onChange={(e) =>
+                                  setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })
+                                }
+                                placeholder="Nome do novo produto/segmento"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 7. Região */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Região *
+                          </Label>
+                          <Select
+                            disabled={isReadOnly}
+                            value={clientData.regiao || "__none__"}
+                            onValueChange={(v) => setClientData({ ...clientData, regiao: v === "__none__" ? "" : v })}
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
+                              <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
+                              <SelectItem value="3SU">
+                                3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS
+                              </SelectItem>
+                              <SelectItem value="PAR">
+                                PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia
+                              </SelectItem>
+                              <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
+                              <SelectItem value="RAO">
+                                RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo
+                              </SelectItem>
+                              <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* 8.  (Multi-select) */}
+                        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                            {" "}
+                            *
+                          </Label>
+                          <div className="flex-1">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  disabled={isReadOnly}
+                                  className={cn(
+                                    "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
+                                    clientData.empresa_faturamento.length === 0 && "text-muted-foreground",
+                                  )}
+                                >
+                                  {clientData.empresa_faturamento.length > 0
+                                    ? clientData.empresa_faturamento.map((emp) => (
+                                        <Badge key={emp} variant="secondary" className="text-xs gap-1">
+                                          {emp}
+                                          {!isReadOnly && (
+                                            <X
+                                              className="h-3 w-3 cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleEmpresaFaturamento(emp);
+                                              }}
+                                            />
+                                          )}
+                                        </Badge>
+                                      ))
+                                    : "Selecione..."}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-2" align="start">
+                                <div className="flex flex-col gap-1">
+                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
+                                    <label
+                                      key={emp}
+                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                                    >
+                                      <Checkbox
+                                        checked={clientData.empresa_faturamento.includes(emp)}
+                                        onCheckedChange={() => toggleEmpresaFaturamento(emp)}
+                                      />
+                                      {emp}
+                                    </label>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         </div>
                       </div>
+                    </section>
+                  </TabsContent>
 
-                      {/* 4. Tipo de Relacionamento */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Relacionamento</Label>
-                        <div className="flex border rounded-md overflow-hidden">
-                          <button
-                            type="button"
-                            disabled={isReadOnly}
-                            onClick={() => setClientData({ ...clientData, fixo: 'Sim' })}
-                            className={`flex-1 px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === 'Sim' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-                          >Fixo</button>
-                          <button
-                            type="button"
-                            disabled={isReadOnly}
-                            onClick={() => setClientData({ ...clientData, fixo: 'Não' })}
-                            className={`flex-1 px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === 'Não' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-                          >Pontual</button>
-                        </div>
+                  <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                        <h3 className="text-sm font-bold text-foreground">Contribuintes ({entities.length})</h3>
                       </div>
-
-                      {/* 5. Área do Negócio */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Área do Negócio <span className="text-destructive">*</span></Label>
-                        <Select disabled={isReadOnly} value={clientData.setor_cliente || '__none__'} onValueChange={v => setClientData({ ...clientData, setor_cliente: v === '__none__' ? '' : v })}>
-                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
-                            <SelectItem value="INS">INS - Instituições do agro</SelectItem>
-                            <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
-                            <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
-                            <SelectItem value="IND">IND - Agroindústria</SelectItem>
-                            <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
-                            <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* 6. Região */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Região <span className="text-destructive">*</span></Label>
-                        <Select disabled={isReadOnly} value={clientData.regiao || '__none__'} onValueChange={v => setClientData({ ...clientData, regiao: v === '__none__' ? '' : v })}>
-                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
-                            <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
-                            <SelectItem value="3SU">3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS</SelectItem>
-                            <SelectItem value="PAR">PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia</SelectItem>
-                            <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
-                            <SelectItem value="RAO">RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo</SelectItem>
-                            <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* 7. Tipo de produto/segmento */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Produto/Segmento <span className="text-destructive">*</span></Label>
-                        <Select disabled={isReadOnly} value={clientData.tipo_produto_segmento || '__none__'} onValueChange={v => setClientData({ ...clientData, tipo_produto_segmento: v === '__none__' ? '' : v, tipo_produto_segmento_custom: v !== '__outro__' ? '' : clientData.tipo_produto_segmento_custom })}>
-                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            {PRODUTO_SEGMENTO_OPTIONS.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {clientData.tipo_produto_segmento === '__outro__' && (
-                          <Input
-                            disabled={isReadOnly}
-                            className="h-8 mt-2"
-                            value={clientData.tipo_produto_segmento_custom}
-                            onChange={e => setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })}
-                            placeholder="Nome do novo produto/segmento"
-                          />
-                        )}
-                      </div>
-
-                      {/* 8. Centro de Custo / Faturamento (Multi-select) */}
-                      <div>
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Centro de Custo / Faturamento <span className="text-destructive">*</span></Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              disabled={isReadOnly}
-                              className={cn(
-                                "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
-                                clientData.empresa_faturamento.length === 0 && "text-muted-foreground"
-                              )}
-                            >
-                              {clientData.empresa_faturamento.length > 0 ? (
-                                clientData.empresa_faturamento.map(emp => (
-                                  <Badge key={emp} variant="secondary" className="text-xs gap-1">
-                                    {emp}
-                                    {!isReadOnly && (
-                                      <X
-                                        className="h-3 w-3 cursor-pointer"
-                                        onClick={(e) => { e.stopPropagation(); toggleEmpresaFaturamento(emp); }}
-                                      />
-                                    )}
-                                  </Badge>
-                                ))
-                              ) : (
-                                "Selecione..."
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-2" align="start">
-                            <div className="flex flex-col gap-1">
-                              {EMPRESA_FATURAMENTO_OPTIONS.map(emp => (
-                                <label key={emp} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
-                                  <Checkbox
-                                    checked={clientData.empresa_faturamento.includes(emp)}
-                                    onCheckedChange={() => toggleEmpresaFaturamento(emp)}
-                                  />
-                                  {emp}
-                                </label>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                    </div>
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
-                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-sm font-bold text-foreground">Contribuintes ({entities.length})</h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      {entities.length > 0 && (
-                        <div className="space-y-3 mb-4">
-                          {entities.map(ent => {
-                            const isExpanded = expandedEntityId === ent._id;
-                            const isEditingThis = editingEntityId === ent._id;
-                            const ed = isEditingThis ? editingEntityData : null;
-                            return (
-                              <div key={ent._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                                {/* Header - always visible */}
-                                <button
-                                  type="button"
-                                  className="w-full flex items-center justify-between p-4 text-left"
-                                  onClick={() => { if (!isEditingThis) setExpandedEntityId(isExpanded ? null : ent._id); }}
+                      <div className="px-4 py-3">
+                        {entities.length > 0 && (
+                          <div className="space-y-3 mb-4">
+                            {entities.map((ent) => {
+                              const isExpanded = expandedEntityId === ent._id;
+                              const isEditingThis = editingEntityId === ent._id;
+                              const ed = isEditingThis ? editingEntityData : null;
+                              return (
+                                <div
+                                  key={ent._id}
+                                  className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md"
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-foreground truncate">{ent.nome_razao_social}</div>
-                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{ent.cpf_cnpj || '-'}</div>
-                                  </div>
-                                  <div className="flex items-center gap-2 ml-2">
-                                    {ent.simples_nacional === 'optante' && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
-                                    <Badge variant="outline" className="text-[10px]">{ent.tipo_pessoa}</Badge>
-                                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
-                                  </div>
-                                </button>
-
-                                {/* Expanded content */}
-                                {isExpanded && !isEditingThis && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex justify-end gap-2 mb-3">
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); startEditEntity(ent); }}>
-                                        <Pencil size={12} /> Editar
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                                            <Trash2 size={12} /> Remover
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
-                                            <AlertDialogDescription>Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setEntities(entities.filter(x => x._id !== ent._id)); setExpandedEntityId(null); }}>Remover</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
+                                  {/* Header - always visible */}
+                                  <button
+                                    type="button"
+                                    className="w-full flex items-center justify-between p-4 text-left"
+                                    onClick={() => {
+                                      if (!isEditingThis) setExpandedEntityId(isExpanded ? null : ent._id);
+                                    }}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-bold text-foreground truncate">{ent.nome_razao_social}</div>
+                                      <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                        {ent.cpf_cnpj || "-"}
+                                      </div>
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                                      <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
-                                      <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
-                                      <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
-                                      {ent.tipo_pessoa !== 'PF' && <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />}
-                                      <FieldPair label="Telefone" value={ent.telefone} />
-                                      <FieldPair label="Inscrição Estadual" value={ent.situacao_inscricao_estadual === 'isento' ? 'Isento' : ent.situacao_inscricao_estadual === 'nao' ? 'Não' : (ent.inscricao_estadual || '—')} />
-                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="CNAE" value={ent.cod_cnae} />}
-                                      {ent.tipo_pessoa === 'PJ' && <FieldPair label="Simples Nacional" value={ent.simples_nacional === 'optante' ? 'Optante' : ent.simples_nacional === 'nao_optante' ? 'Não Optante' : '—'} />}
-                                      <FieldPair label="CEP" value={ent.cep} />
-                                      <FieldPair label="Logradouro" value={ent.logradouro} />
-                                      <FieldPair label="Número" value={ent.numero} />
-                                      <FieldPair label="Complemento" value={ent.complemento} />
-                                      <FieldPair label="Bairro" value={ent.bairro} />
-                                      <FieldPair label="Município" value={ent.municipio} />
-                                      <FieldPair label="UF" value={ent.uf} />
+                                    <div className="flex items-center gap-2 ml-2">
+                                      {ent.simples_nacional === "optante" && (
+                                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">
+                                          Simples
+                                        </span>
+                                      )}
+                                      <Badge variant="outline" className="text-[10px]">
+                                        {ent.tipo_pessoa}
+                                      </Badge>
+                                      <ChevronDown
+                                        size={16}
+                                        className={cn(
+                                          "text-muted-foreground transition-transform",
+                                          isExpanded && "rotate-180",
+                                        )}
+                                      />
                                     </div>
-                                  </div>
-                                )}
+                                  </button>
 
-                                {/* Inline edit mode */}
-                                {isExpanded && isEditingThis && ed && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex flex-col gap-2.5">
-                                      {/* Tipo */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
-                                        <div className="flex-1">
-                                          <Select value={ed.tipo_pessoa || 'PJ'} onValueChange={v => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: '' })}>
-                                            <SelectTrigger className="h-8 max-w-[160px]"><SelectValue /></SelectTrigger>
-                                            <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
-                                          </Select>
-                                        </div>
-                                      </div>
-                                      {/* CPF/CNPJ */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ</Label>
-                                        <div className="flex-1">
-                                          <div className="relative">
-                                            <Input value={ed.cpf_cnpj || ''} onChange={e => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || 'PJ') })} onBlur={e => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8 h-8" />
-                                            {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {/* Razão Social */}
-                                      <div className="flex flex-row items-center gap-4">
-                                         <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ed.tipo_pessoa === 'PF' ? 'Nome completo *' : 'Razão Social *'}</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.nome_razao_social || ''} onChange={e => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} placeholder={ed.tipo_pessoa === 'PF' ? 'Nome completo do contribuinte' : 'Nome Empresarial'} className="font-medium h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Nome Fantasia - hidden for PF */}
-                                      {ed.tipo_pessoa !== 'PF' && (
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                                          <div className="flex-1">
-                                            <Input value={ed.nome_fantasia || ''} onChange={e => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} className="h-8" />
-                                          </div>
-                                        </div>
-                                      )}
-                                      {/* Telefone */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.telefone || ''} onChange={e => setEditingEntityData({ ...ed, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Inscrição Estadual */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual</Label>
-                                        <div className="flex-1">
-                                          <Select value={ed.situacao_inscricao_estadual || undefined} onValueChange={v => setEditingEntityData({ ...ed, situacao_inscricao_estadual: v, inscricao_estadual: v !== 'sim' ? '' : (ed.inscricao_estadual || '') })}>
-                                            <SelectTrigger className="h-8 max-w-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                            <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="isento">Isento</SelectItem><SelectItem value="nao">Não</SelectItem></SelectContent>
-                                          </Select>
-                                        </div>
-                                      </div>
-                                      {/* Nº IE */}
-                                      {ed.situacao_inscricao_estadual === 'sim' && (
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE</Label>
-                                          <div className="flex-1">
-                                            <Input value={ed.inscricao_estadual || ''} onChange={e => setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })} maxLength={15} className="h-8" />
-                                          </div>
-                                        </div>
-                                      )}
-                                      {/* CNAE */}
-                                      {ed.tipo_pessoa === 'PJ' && (
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE</Label>
-                                          <div className="flex-1">
-                                            <Input value={ed.cod_cnae || ''} onChange={e => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} className="h-8 max-w-[200px]" />
-                                          </div>
-                                        </div>
-                                      )}
-                                      {/* Simples Nacional - Select */}
-                                      {ed.tipo_pessoa === 'PJ' && (
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
-                                          <div className="flex-1">
-                                            <Select value={ed.simples_nacional || undefined} onValueChange={v => setEditingEntityData({ ...ed, simples_nacional: v })}>
-                                              <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="optante">Optante</SelectItem>
-                                                <SelectItem value="nao_optante">Não Optante</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {/* CEP */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
-                                        <div className="flex-1">
-                                          <div className="relative max-w-[160px]">
-                                            <Input value={ed.cep || ''} onChange={e => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={e => handleInlineCepBlur(e.target.value)} className="font-mono pr-8 h-8" />
-                                            {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {/* UF */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.uf || ''} onChange={e => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
-                                        </div>
-                                      </div>
-                                      {/* Município */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.municipio || ''} onChange={e => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Bairro */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.bairro || ''} onChange={e => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Logradouro */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.logradouro || ''} onChange={e => setEditingEntityData({ ...ed, logradouro: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      {/* Número */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.numero || ''} onChange={e => setEditingEntityData({ ...ed, numero: e.target.value })} className="h-8 max-w-[120px]" />
-                                        </div>
-                                      </div>
-                                      {/* Complemento */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
-                                        <div className="flex-1">
-                                          <Input value={ed.complemento || ''} onChange={e => setEditingEntityData({ ...ed, complemento: e.target.value })} className="h-8" />
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                                        <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
+                                  {/* Expanded content */}
+                                  {isExpanded && !isEditingThis && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex justify-end gap-2 mb-3">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="gap-1.5 text-xs"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            startEditEntity(ent);
+                                          }}
+                                        >
+                                          <Pencil size={12} /> Editar
+                                        </Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
-                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Trash2 size={12} /> Remover
+                                            </Button>
                                           </AlertDialogTrigger>
                                           <AlertDialogContent>
                                             <AlertDialogHeader>
-                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                              <AlertDialogDescription>Deseja salvar as alterações feitas neste contribuinte?</AlertDialogDescription>
+                                              <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não
+                                                pode ser desfeita.
+                                              </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}>Salvar</AlertDialogAction>
+                                              <AlertDialogAction
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                onClick={() => {
+                                                  setEntities(entities.filter((x) => x._id !== ent._id));
+                                                  setExpandedEntityId(null);
+                                                }}
+                                              >
+                                                Remover
+                                              </AlertDialogAction>
                                             </AlertDialogFooter>
                                           </AlertDialogContent>
                                         </AlertDialog>
                                       </div>
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                                        <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
+                                        <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
+                                        <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
+                                        {ent.tipo_pessoa !== "PF" && (
+                                          <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
+                                        )}
+                                        <FieldPair label="Telefone" value={ent.telefone} />
+                                        <FieldPair
+                                          label="Inscrição Estadual"
+                                          value={
+                                            ent.situacao_inscricao_estadual === "isento"
+                                              ? "Isento"
+                                              : ent.situacao_inscricao_estadual === "nao"
+                                                ? "Não"
+                                                : ent.inscricao_estadual || "—"
+                                          }
+                                        />
+                                        {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
+                                        {ent.tipo_pessoa === "PJ" && (
+                                          <FieldPair
+                                            label="Simples Nacional"
+                                            value={
+                                              ent.simples_nacional === "optante"
+                                                ? "Optante"
+                                                : ent.simples_nacional === "nao_optante"
+                                                  ? "Não Optante"
+                                                  : "—"
+                                            }
+                                          />
+                                        )}
+                                        <FieldPair label="CEP" value={ent.cep} />
+                                        <FieldPair label="Logradouro" value={ent.logradouro} />
+                                        <FieldPair label="Número" value={ent.numero} />
+                                        <FieldPair label="Complemento" value={ent.complemento} />
+                                        <FieldPair label="Bairro" value={ent.bairro} />
+                                        <FieldPair label="Município" value={ent.municipio} />
+                                        <FieldPair label="UF" value={ent.uf} />
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                  )}
 
-                      {!isReadOnly && (
-                      <div className="bg-muted/50 rounded-lg border p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-muted-foreground uppercase">
-                            Novo Contribuinte
-                          </h4>
-                          {entities.length > 0 && (
-                            <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopyFirstAddress}>
-                              <Copy size={12} /> Copiar endereço do primeiro contribuinte
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-2.5">
-                          {/* Tipo */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
-                            <div className="flex-1">
-                              <Select value={draftEntity.tipo_pessoa || 'PJ'} onValueChange={v => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: '' })}>
-                                <SelectTrigger className="h-8 max-w-[160px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="PJ">PJ</SelectItem>
-                                  <SelectItem value="PF">PF</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          {/* CPF/CNPJ */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ *</Label>
-                            <div className="flex-1">
-                              <div className="relative">
-                                <Input
-                                  value={draftEntity.cpf_cnpj || ''}
-                                  onChange={e => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || 'PJ') })}
-                                  onBlur={e => handleCnpjBlur(e.target.value)}
-                                  placeholder={draftEntity.tipo_pessoa === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
-                                  className="font-mono pr-8 h-8"
-                                />
-                                {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                              </div>
-                            </div>
-                          </div>
-                          {/* Razão Social */}
-                          <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{draftEntity.tipo_pessoa === 'PF' ? 'Nome completo *' : 'Razão Social *'}</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.nome_razao_social || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder={draftEntity.tipo_pessoa === 'PF' ? 'Nome completo do contribuinte' : 'Nome Empresarial'} className="font-medium h-8" />
-                            </div>
-                          </div>
-                          {/* Nome Fantasia - hidden for PF */}
-                          {draftEntity.tipo_pessoa !== 'PF' && (
-                            <div className="flex flex-row items-center gap-4">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                              <div className="flex-1">
-                                <Input value={draftEntity.nome_fantasia || ''} onChange={e => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" className="h-8" />
-                              </div>
-                            </div>
-                          )}
-                          {/* Telefone */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.telefone || ''} onChange={e => setDraftEntity({ ...draftEntity, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" />
-                            </div>
-                          </div>
-                          {/* Inscrição Estadual */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Inscrição Estadual *</Label>
-                            <div className="flex-1">
-                              <Select value={draftEntity.situacao_inscricao_estadual || undefined} onValueChange={v => setDraftEntity({ ...draftEntity, situacao_inscricao_estadual: v, inscricao_estadual: v !== 'sim' ? '' : (draftEntity.inscricao_estadual || '') })}>
-                                <SelectTrigger className="h-8 max-w-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="sim">Sim</SelectItem>
-                                  <SelectItem value="isento">Isento</SelectItem>
-                                  <SelectItem value="nao">Não</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          {/* Nº IE */}
-                          {draftEntity.situacao_inscricao_estadual === 'sim' && (
-                            <div className="flex flex-row items-center gap-4">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nº IE *</Label>
-                              <div className="flex-1">
-                                <Input value={draftEntity.inscricao_estadual || ''} onChange={e => setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })} placeholder="Nº Inscrição" maxLength={15} className="h-8" />
-                              </div>
-                            </div>
-                          )}
-                          {/* CNAE */}
-                          {draftEntity.tipo_pessoa === 'PJ' && (
-                            <div className="flex flex-row items-center gap-4">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE *</Label>
-                              <div className="flex-1">
-                                <Input value={draftEntity.cod_cnae || ''} onChange={e => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" className="h-8 max-w-[200px]" />
-                              </div>
-                            </div>
-                          )}
-                          {/* Simples Nacional - Select */}
-                          {draftEntity.tipo_pessoa === 'PJ' && (
-                            <div className="flex flex-row items-center gap-4">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
-                              <div className="flex-1">
-                                <Select value={draftEntity.simples_nacional || undefined} onValueChange={v => setDraftEntity({ ...draftEntity, simples_nacional: v })}>
-                                  <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="optante">Optante</SelectItem>
-                                    <SelectItem value="nao_optante">Não Optante</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          )}
-                          {/* CEP */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
-                            <div className="flex-1">
-                              <div className="relative max-w-[160px]">
-                                <Input
-                                  value={draftEntity.cep || ''}
-                                  onChange={e => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })}
-                                  onBlur={e => handleCepBlur(e.target.value)}
-                                  placeholder="00000-000"
-                                  className="font-mono pr-8 h-8"
-                                />
-                                {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                              </div>
-                            </div>
-                          </div>
-                          {/* UF */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.uf || ''} onChange={e => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" />
-                            </div>
-                          </div>
-                          {/* Município */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.municipio || ''} onChange={e => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" />
-                            </div>
-                          </div>
-                          {/* Bairro */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.bairro || ''} onChange={e => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" />
-                            </div>
-                          </div>
-                          {/* Logradouro */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro *</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.logradouro || ''} onChange={e => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." className="h-8" />
-                            </div>
-                          </div>
-                          {/* Número */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.numero || ''} onChange={e => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" className="h-8 max-w-[120px]" />
-                            </div>
-                          </div>
-                          {/* Complemento */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
-                            <div className="flex-1">
-                              <Input value={draftEntity.complemento || ''} onChange={e => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." className="h-8" />
-                            </div>
-                          </div>
-                          <div className="flex justify-end mt-2">
-                            <Button onClick={addEntity} className="gap-2">
-                              Adicionar à Lista
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      )}
-                    </div>
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="participantes" className="mt-0 p-3 md:p-4">
-                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-sm font-bold text-foreground">Participantes ({participants.length})</h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      {participants.length > 0 && (
-                        <div className="space-y-3 mb-4">
-                          {participants.map(part => {
-                            const isExpanded = expandedParticipantId === part._id;
-                            const isEditingThis = editingParticipantId === part._id;
-                            const ep = isEditingThis ? editingParticipantData : null;
-                            return (
-                              <div key={part._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                                <button
-                                  type="button"
-                                  className="w-full flex items-center justify-between p-4 text-left"
-                                  onClick={() => { if (!isEditingThis) setExpandedParticipantId(isExpanded ? null : part._id); }}
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-foreground truncate">{part.nome}</div>
-                                    <div className="text-sm text-muted-foreground">{part.tipo_participante}</div>
-                                  </div>
-                                  <div className="flex items-center gap-2 ml-2">
-                                    {part.acesso_chamados && <Badge variant="outline" className="text-[10px]">Chamados</Badge>}
-                                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
-                                  </div>
-                                </button>
-
-                                {isExpanded && !isEditingThis && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex justify-end gap-2 mb-3">
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditParticipant(part)}>
-                                        <Pencil size={12} /> Editar
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                                            <Trash2 size={12} /> Remover
+                                  {/* Inline edit mode */}
+                                  {isExpanded && isEditingThis && ed && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex flex-col gap-2.5">
+                                        {/* Tipo */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Tipo
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Select
+                                              value={ed.tipo_pessoa || "PJ"}
+                                              onValueChange={(v) =>
+                                                setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: "" })
+                                              }
+                                            >
+                                              <SelectTrigger className="h-8 max-w-[160px]">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="PJ">PJ</SelectItem>
+                                                <SelectItem value="PF">PF</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        {/* CPF/CNPJ */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            CPF/CNPJ
+                                          </Label>
+                                          <div className="flex-1">
+                                            <div className="relative">
+                                              <Input
+                                                value={ed.cpf_cnpj || ""}
+                                                onChange={(e) =>
+                                                  setEditingEntityData({
+                                                    ...ed,
+                                                    cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || "PJ"),
+                                                  })
+                                                }
+                                                onBlur={(e) => handleInlineCnpjBlur(e.target.value)}
+                                                className="font-mono pr-8 h-8"
+                                              />
+                                              {cnpjLoading && (
+                                                <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* Razão Social */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            {ed.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.nome_razao_social || ""}
+                                              onChange={(e) =>
+                                                setEditingEntityData({ ...ed, nome_razao_social: e.target.value })
+                                              }
+                                              placeholder={
+                                                ed.tipo_pessoa === "PF"
+                                                  ? "Nome completo do contribuinte"
+                                                  : "Nome Empresarial"
+                                              }
+                                              className="font-medium h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Nome Fantasia - hidden for PF */}
+                                        {ed.tipo_pessoa !== "PF" && (
+                                          <div className="flex flex-row items-center gap-4">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Nome Fantasia
+                                            </Label>
+                                            <div className="flex-1">
+                                              <Input
+                                                value={ed.nome_fantasia || ""}
+                                                onChange={(e) =>
+                                                  setEditingEntityData({ ...ed, nome_fantasia: e.target.value })
+                                                }
+                                                className="h-8"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* Telefone */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Telefone
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.telefone || ""}
+                                              onChange={(e) =>
+                                                setEditingEntityData({ ...ed, telefone: formatPhone(e.target.value) })
+                                              }
+                                              placeholder="(00) 00000-0000"
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Inscrição Estadual */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Inscrição Estadual
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Select
+                                              value={ed.situacao_inscricao_estadual || undefined}
+                                              onValueChange={(v) =>
+                                                setEditingEntityData({
+                                                  ...ed,
+                                                  situacao_inscricao_estadual: v,
+                                                  inscricao_estadual: v !== "sim" ? "" : ed.inscricao_estadual || "",
+                                                })
+                                              }
+                                            >
+                                              <SelectTrigger className="h-8 max-w-xs">
+                                                <SelectValue placeholder="Selecione..." />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="sim">Sim</SelectItem>
+                                                <SelectItem value="isento">Isento</SelectItem>
+                                                <SelectItem value="nao">Não</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        {/* Nº IE */}
+                                        {ed.situacao_inscricao_estadual === "sim" && (
+                                          <div className="flex flex-row items-center gap-4">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Nº IE
+                                            </Label>
+                                            <div className="flex-1">
+                                              <Input
+                                                value={ed.inscricao_estadual || ""}
+                                                onChange={(e) =>
+                                                  setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })
+                                                }
+                                                maxLength={15}
+                                                className="h-8"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* CNAE */}
+                                        {ed.tipo_pessoa === "PJ" && (
+                                          <div className="flex flex-row items-center gap-4">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              CNAE
+                                            </Label>
+                                            <div className="flex-1">
+                                              <Input
+                                                value={ed.cod_cnae || ""}
+                                                onChange={(e) =>
+                                                  setEditingEntityData({ ...ed, cod_cnae: e.target.value })
+                                                }
+                                                className="h-8 max-w-[200px]"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* Simples Nacional - Select */}
+                                        {ed.tipo_pessoa === "PJ" && (
+                                          <div className="flex flex-row items-center gap-4">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Simples Nacional *
+                                            </Label>
+                                            <div className="flex-1">
+                                              <Select
+                                                value={ed.simples_nacional || undefined}
+                                                onValueChange={(v) =>
+                                                  setEditingEntityData({ ...ed, simples_nacional: v })
+                                                }
+                                              >
+                                                <SelectTrigger className="h-8 max-w-[200px]">
+                                                  <SelectValue placeholder="Selecione..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="optante">Optante</SelectItem>
+                                                  <SelectItem value="nao_optante">Não Optante</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* CEP */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            CEP *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <div className="relative max-w-[160px]">
+                                              <Input
+                                                value={ed.cep || ""}
+                                                onChange={(e) =>
+                                                  setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })
+                                                }
+                                                onBlur={(e) => handleInlineCepBlur(e.target.value)}
+                                                className="font-mono pr-8 h-8"
+                                              />
+                                              {cepLoading && (
+                                                <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* UF */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            UF
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.uf || ""}
+                                              onChange={(e) => setEditingEntityData({ ...ed, uf: e.target.value })}
+                                              maxLength={2}
+                                              className="h-8 max-w-[120px]"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Município */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Município
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.municipio || ""}
+                                              onChange={(e) =>
+                                                setEditingEntityData({ ...ed, municipio: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Bairro */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Bairro
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.bairro || ""}
+                                              onChange={(e) => setEditingEntityData({ ...ed, bairro: e.target.value })}
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Logradouro */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Logradouro
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.logradouro || ""}
+                                              onChange={(e) =>
+                                                setEditingEntityData({ ...ed, logradouro: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Número */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Número
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.numero || ""}
+                                              onChange={(e) => setEditingEntityData({ ...ed, numero: e.target.value })}
+                                              className="h-8 max-w-[120px]"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Complemento */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Complemento
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ed.complemento || ""}
+                                              onChange={(e) =>
+                                                setEditingEntityData({ ...ed, complemento: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
+                                          <Button size="sm" variant="outline" onClick={cancelEditEntity}>
+                                            Cancelar
                                           </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Remover participante</AlertDialogTitle>
-                                            <AlertDialogDescription>Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setParticipants(participants.filter(p => p._id !== part._id)); setExpandedParticipantId(null); }}>Remover</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                                      <FieldPair label="Nome Completo" value={part.nome} />
-                                      <FieldPair label="Tipo de Participante" value={part.tipo_participante} />
-                                      <FieldPair label="Email" value={part.email} />
-                                      <FieldPair label="Telefone" value={part.telefone} />
-                                      <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? 'Sim' : 'Não'} />
-                                      {part.observacoes && <div className="col-span-2"><FieldPair label="Observações" value={part.observacoes} /></div>}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {isExpanded && isEditingThis && ep && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                      {/* Nome Completo */}
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome Completo <span className="text-destructive">*</span></Label>
-                                        <Input value={ep.nome || ''} onChange={e => setEditingParticipantData({ ...ep, nome: e.target.value })} className="h-8" />
-                                      </div>
-                                      {/* Tipo de Participante */}
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Participante <span className="text-destructive">*</span></Label>
-                                        <Select value={ep.tipo_participante || '__none__'} onValueChange={v => setEditingParticipantData({ ...ep, tipo_participante: v === '__none__' ? '' : v })}>
-                                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      {/* Email */}
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Email <span className="text-destructive">*</span></Label>
-                                        <Input value={ep.email || ''} onChange={e => setEditingParticipantData({ ...ep, email: e.target.value })} className="h-8" />
-                                      </div>
-                                      {/* Telefone */}
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Telefone</Label>
-                                        <Input value={ep.telefone || ''} onChange={e => setEditingParticipantData({ ...ep, telefone: formatPhone(e.target.value) })} className="h-8" />
-                                      </div>
-                                      {/* Acesso a Chamados */}
-                                      <div className="col-span-2">
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Acesso a Chamados</Label>
-                                        <div className="flex items-center gap-2 h-8">
-                                          <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={c => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
-                                          <span className="text-sm">{ep.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                size="sm"
+                                                className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+                                              >
+                                                <Save size={14} /> Salvar
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Deseja salvar as alterações feitas neste contribuinte?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                                                  onClick={saveEditEntity}
+                                                >
+                                                  Salvar
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
                                         </div>
                                       </div>
-                                      {/* Observações */}
-                                      <div className="col-span-2">
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
-                                        <Textarea value={ep.observacoes || ''} onChange={e => setEditingParticipantData({ ...ep, observacoes: e.target.value })} className="min-h-[60px]" />
-                                      </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
-                                      <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                            <AlertDialogDescription>Deseja salvar as alterações feitas neste participante?</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Salvar</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
-                      {!isReadOnly && (
-                      <div className="bg-muted/50 rounded-lg border p-4">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
-                          Novo Participante
-                        </h4>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                          {/* Nome Completo */}
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Nome Completo <span className="text-destructive">*</span></Label>
-                            <Input value={draftParticipant.nome} onChange={e => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" />
-                          </div>
-                          {/* Tipo de Participante */}
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Tipo de Participante <span className="text-destructive">*</span></Label>
-                            <Select value={draftParticipant.tipo_participante || '__none__'} onValueChange={v => setDraftParticipant({ ...draftParticipant, tipo_participante: v === '__none__' ? '' : v })}>
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {TIPO_PARTICIPANTE_OPTIONS.map(opt => (
-                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {/* Email */}
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Email <span className="text-destructive">*</span></Label>
-                            <Input value={draftParticipant.email} onChange={e => setDraftParticipant({ ...draftParticipant, email: e.target.value })} className="h-8" />
-                          </div>
-                          {/* Telefone */}
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Telefone</Label>
-                            <Input value={draftParticipant.telefone} onChange={e => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} className="h-8" />
-                          </div>
-                          {/* Acesso a Chamados */}
-                          <div className="col-span-2">
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Acesso a Chamados</Label>
-                            <div className="flex items-center gap-2 h-8">
-                              <Switch checked={draftParticipant.acesso_chamados} onCheckedChange={c => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
-                              <span className="text-sm">{draftParticipant.acesso_chamados ? 'Ativado' : 'Desativado'}</span>
-                            </div>
-                          </div>
-                          {/* Observações */}
-                          <div className="col-span-2">
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
-                            <Textarea
-                              value={draftParticipant.observacoes}
-                              onChange={e => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })}
-                              placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
-                              className="min-h-[60px]"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Button onClick={addParticipant} className="w-full gap-2">
-                              Adicionar à Lista
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      )}
-                    </div>
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
-                  <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
-                      <h3 className="text-sm font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      {contracts.length > 0 && (
-                        <div className="space-y-3 mb-6">
-                          {contracts.map(cont => {
-                            const isExpanded = expandedContractId === cont._id;
-                            const isEditingThis = editingContractId === cont._id;
-                            const ec = isEditingThis ? editingContractData : null;
-                            return (
-                              <div key={cont._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                                <button
-                                  type="button"
-                                  className="w-full flex items-center justify-between p-4 text-left"
-                                  onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}
+                        {!isReadOnly && (
+                          <div className="bg-muted/50 rounded-lg border p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-bold text-muted-foreground uppercase">Novo Contribuinte</h4>
+                              {entities.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1.5 text-xs"
+                                  onClick={handleCopyFirstAddress}
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
-                                      <span className="font-semibold text-sm text-foreground truncate">{cont.nome_projeto}</span>
-                                    </div>
-                                    <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
-                                  </div>
-                                  <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
-                                </button>
-
-                                {isExpanded && !isEditingThis && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex justify-end gap-2 mb-3">
-                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}>
-                                        <Pencil size={12} /> Editar
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                                            <Trash2 size={12} /> Remover
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Remover OS</AlertDialogTitle>
-                                            <AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico} - {cont.nome_projeto}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setContracts(contracts.filter(c => c._id !== cont._id)); setExpandedContractId(null); }}>Remover</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                                      <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
-                                      <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : '—'} />
-                                      <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
-                                      <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
-                                      <FieldPair label="Situação" value={SITUACAO_PROJETO_OPTIONS.find(o => o.value === cont.situacao_projeto)?.label || cont.situacao_projeto} />
-                                      {cont.descricao_projeto && <div className="col-span-2 md:col-span-3"><FieldPair label="Descrição" value={cont.descricao_projeto} /></div>}
-                                      <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : '—'} />
-                                      <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : '—'} />
-                                      <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
-                                      <FieldPair label="Reembolso km" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
-                                      <FieldPair label="Reembolso refeição por pessoa" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
-                                    </div>
-                                    {cont.servicos && cont.servicos.length > 0 && (
-                                      <div className="mt-3 pt-3 border-t border-dashed">
-                                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Serviços Contratados</span>
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                          {cont.servicos.map(s => {
-                                            const cat = catalogClients.find((c: any) => c.id === s.catalog_client_id);
-                                            return <Badge key={s._id} variant="secondary" className="text-xs">{cat?.name || s.catalog_client_id}</Badge>;
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {cont.centros_custo && cont.centros_custo.length > 0 && (
-                                      <div className="mt-3 pt-3 border-t border-dashed">
-                                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Centros de Custo</span>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                          {cont.centros_custo.map(cc => (
-                                            <Badge key={cc._id} variant="outline" className="text-xs">{cc.name}: {cc.percent}%</Badge>
-                                          ))}
-                                        </div>
-                                      </div>
+                                  <Copy size={12} /> Copiar endereço do primeiro contribuinte
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-2.5">
+                              {/* Tipo */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Tipo
+                                </Label>
+                                <div className="flex-1">
+                                  <Select
+                                    value={draftEntity.tipo_pessoa || "PJ"}
+                                    onValueChange={(v) =>
+                                      setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: "" })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 max-w-[160px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="PJ">PJ</SelectItem>
+                                      <SelectItem value="PF">PF</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              {/* CPF/CNPJ */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  CPF/CNPJ *
+                                </Label>
+                                <div className="flex-1">
+                                  <div className="relative">
+                                    <Input
+                                      value={draftEntity.cpf_cnpj || ""}
+                                      onChange={(e) =>
+                                        setDraftEntity({
+                                          ...draftEntity,
+                                          cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ"),
+                                        })
+                                      }
+                                      onBlur={(e) => handleCnpjBlur(e.target.value)}
+                                      placeholder={
+                                        draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"
+                                      }
+                                      className="font-mono pr-8 h-8"
+                                    />
+                                    {cnpjLoading && (
+                                      <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
                                     )}
                                   </div>
-                                )}
-
-                                {isExpanded && isEditingThis && ec && (
-                                  <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Ordem de Serviço <span className="text-destructive">*</span></Label>
-                                        <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} className="h-8" />
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data de Emissão <span className="text-destructive">*</span></Label>
-                                        <DateFieldWithInput value={ec.data_emissao || ''} onChange={v => setEditingContractData({ ...ec, data_emissao: v })} />
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Início <span className="text-destructive">*</span></Label>
-                                        <DateFieldWithInput value={ec.data_inicio_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_inicio_projeto: v })} />
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Fim</Label>
-                                        <DateFieldWithInput value={ec.data_fim_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_fim_projeto: v })} />
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Valor do Projeto <span className="text-destructive">*</span></Label>
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                                          <CurrencyField value={ec.valor_projeto || 0} onChange={v => setEditingContractData({ ...ec, valor_projeto: v })} />
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Situação do Projeto <span className="text-destructive">*</span></Label>
-                                        <Select value={ec.situacao_projeto || 'em_andamento'} onValueChange={v => setEditingContractData({ ...ec, situacao_projeto: v })}>
-                                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                                          <SelectContent>
-                                            {SITUACAO_PROJETO_OPTIONS.map(o => (
-                                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso por km</Label>
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                                          <CurrencyField value={ec.valor_reembolso_km || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_km: v })} />
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso refeição</Label>
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                                          <CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} />
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Gestor Responsável <span className="text-destructive">*</span></Label>
-                                        <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
-                                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {lideres.map(l => (
-                                              <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div>
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Projeto <span className="text-destructive">*</span></Label>
-                                        <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} className="h-8" />
-                                      </div>
-                                      <div className="col-span-2">
-                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
-                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
-                                        <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
-                                      </div>
-                                    </div>
-
-                                    {/* Serviços Contratados - Edit */}
-                                    <div className="mt-4 border border-dashed rounded-lg p-3">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="uppercase text-xs font-semibold text-muted-foreground">Serviços Contratados</span>
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                                          const servicos = [...(ec.servicos || []), { _id: Date.now() + Math.random(), catalog_client_id: '' }];
-                                          setEditingContractData({ ...ec, servicos });
-                                        }}>
-                                          <Plus size={12} /> Adicionar Serviço
-                                        </Button>
-                                      </div>
-                                      {(ec.servicos || []).map((s, idx) => (
-                                        <div key={s._id} className="flex items-center gap-2 mb-2">
-                                          <Select value={s.catalog_client_id || '__none__'} onValueChange={v => {
-                                            const servicos = [...(ec.servicos || [])];
-                                            servicos[idx] = { ...s, catalog_client_id: v === '__none__' ? '' : v };
-                                            setEditingContractData({ ...ec, servicos });
-                                          }}>
-                                            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione o serviço..." /></SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">Selecione...</SelectItem>
-                                              {catalogClients.map((c: any) => (
-                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
-                                            const servicos = (ec.servicos || []).filter(x => x._id !== s._id);
-                                            setEditingContractData({ ...ec, servicos });
-                                          }}>
-                                            <Trash2 size={14} />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      {(!ec.servicos || ec.servicos.length === 0) && <p className="text-xs text-muted-foreground">Nenhum serviço adicionado</p>}
-                                    </div>
-
-                                    {/* Centros de Custo - Edit */}
-                                    <div className="mt-4 border border-dashed rounded-lg p-3">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="uppercase text-xs font-semibold text-muted-foreground">Distribuição de Receita (Centros de Custo)</span>
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                                          const centros_custo = [...(ec.centros_custo || []), { _id: Date.now() + Math.random(), name: '', percent: 0 }];
-                                          setEditingContractData({ ...ec, centros_custo });
-                                        }}>
-                                          <Plus size={12} /> Adicionar Centro de Custo
-                                        </Button>
-                                      </div>
-                                      {(ec.centros_custo || []).map((cc, idx) => (
-                                        <div key={cc._id} className="flex items-center gap-2 mb-2">
-                                          <Select value={cc.name || '__none__'} onValueChange={v => {
-                                            const centros_custo = [...(ec.centros_custo || [])];
-                                            centros_custo[idx] = { ...cc, name: v === '__none__' ? '' : v };
-                                            setEditingContractData({ ...ec, centros_custo });
-                                          }}>
-                                            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">Selecione...</SelectItem>
-                                              {CENTRO_CUSTO_OPTIONS.map(o => (
-                                                <SelectItem key={o} value={o}>{o}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <div className="flex items-center gap-1 w-24">
-                                            <Input type="number" min={0} max={100} value={cc.percent} onChange={e => {
-                                              const centros_custo = [...(ec.centros_custo || [])];
-                                              centros_custo[idx] = { ...cc, percent: Number(e.target.value) || 0 };
-                                              setEditingContractData({ ...ec, centros_custo });
-                                            }} className="h-8 text-center" />
-                                            <span className="text-xs text-muted-foreground">%</span>
-                                          </div>
-                                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
-                                            const centros_custo = (ec.centros_custo || []).filter(x => x._id !== cc._id);
-                                            setEditingContractData({ ...ec, centros_custo });
-                                          }}>
-                                            <Trash2 size={14} />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      {(ec.centros_custo || []).length > 0 && (() => {
-                                        const total = (ec.centros_custo || []).reduce((s, c) => s + c.percent, 0);
-                                        const remaining = 100 - total;
-                                        return (
-                                          <div className={cn("text-xs font-semibold mt-2 px-2 py-1 rounded", total === 100 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
-                                            Total: {total}%{remaining !== 0 && ` — Faltam ${remaining}%`}
-                                          </div>
-                                        );
-                                      })()}
-                                      {(!ec.centros_custo || ec.centros_custo.length === 0) && <p className="text-xs text-muted-foreground">Nenhum centro de custo adicionado</p>}
-                                    </div>
-
-                                    <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
-                                      <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                            <AlertDialogDescription>Deseja salvar as alterações feitas nesta OS?</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Salvar</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
+                                </div>
+                              </div>
+                              {/* Razão Social */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  {draftEntity.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.nome_razao_social || ""}
+                                    onChange={(e) =>
+                                      setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })
+                                    }
+                                    placeholder={
+                                      draftEntity.tipo_pessoa === "PF"
+                                        ? "Nome completo do contribuinte"
+                                        : "Nome Empresarial"
+                                    }
+                                    className="font-medium h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Nome Fantasia - hidden for PF */}
+                              {draftEntity.tipo_pessoa !== "PF" && (
+                                <div className="flex flex-row items-center gap-4">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Nome Fantasia
+                                  </Label>
+                                  <div className="flex-1">
+                                    <Input
+                                      value={draftEntity.nome_fantasia || ""}
+                                      onChange={(e) =>
+                                        setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })
+                                      }
+                                      placeholder="Nome Fantasia"
+                                      className="h-8"
+                                    />
                                   </div>
-                                )}
+                                </div>
+                              )}
+                              {/* Telefone */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Telefone
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.telefone || ""}
+                                    onChange={(e) =>
+                                      setDraftEntity({ ...draftEntity, telefone: formatPhone(e.target.value) })
+                                    }
+                                    placeholder="(00) 00000-0000"
+                                    className="h-8"
+                                  />
+                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {!isReadOnly && (
-                      <div className="bg-muted/50 rounded-lg border p-4">
-                        <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
-
-                        {/* Grid 2 colunas */}
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Ordem de Serviço <span className="text-destructive">*</span></Label>
-                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" className="h-8" />
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data de Emissão <span className="text-destructive">*</span></Label>
-                            <DateFieldWithInput value={draftContract.data_emissao} onChange={v => setDraftContract({ ...draftContract, data_emissao: v })} />
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Início <span className="text-destructive">*</span></Label>
-                            <DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={v => setDraftContract({ ...draftContract, data_inicio_projeto: v })} />
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Fim</Label>
-                            <DateFieldWithInput value={draftContract.data_fim_projeto} onChange={v => setDraftContract({ ...draftContract, data_fim_projeto: v })} />
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Valor do Projeto <span className="text-destructive">*</span></Label>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                              <CurrencyField value={draftContract.valor_projeto} onChange={v => setDraftContract({ ...draftContract, valor_projeto: v })} />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Situação do Projeto <span className="text-destructive">*</span></Label>
-                            <Select value={draftContract.situacao_projeto} onValueChange={v => setDraftContract({ ...draftContract, situacao_projeto: v })}>
-                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {SITUACAO_PROJETO_OPTIONS.map(o => (
-                                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso por km</Label>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                              <CurrencyField value={draftContract.valor_reembolso_km} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_km: v })} />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso refeição</Label>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
-                              <CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })} />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Gestor Responsável <span className="text-destructive">*</span></Label>
-                            <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {lideres.map(l => (
-                                  <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Projeto <span className="text-destructive">*</span></Label>
-                            <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} className="h-8" />
-                          </div>
-                          <div className="col-span-2">
-                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
-                            <Textarea
-                              value={draftContract.descricao_projeto}
-                              onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
-                              placeholder="Mín. 20 caracteres se preenchido..."
-                              className="min-h-[60px]"
-                              maxLength={500}
-                            />
-                            <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
-                          </div>
-                        </div>
-
-                        {/* Serviços Contratados */}
-                        <div className="mt-4 border border-dashed rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="uppercase text-xs font-semibold text-muted-foreground">Serviços Contratados</span>
-                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                              setDraftContract({ ...draftContract, servicos: [...draftContract.servicos, { _id: Date.now() + Math.random(), catalog_client_id: '' }] });
-                            }}>
-                              <Plus size={12} /> Adicionar Serviço
-                            </Button>
-                          </div>
-                          {draftContract.servicos.map((s, idx) => (
-                            <div key={s._id} className="flex items-center gap-2 mb-2">
-                              <Select value={s.catalog_client_id || '__none__'} onValueChange={v => {
-                                const servicos = [...draftContract.servicos];
-                                servicos[idx] = { ...s, catalog_client_id: v === '__none__' ? '' : v };
-                                setDraftContract({ ...draftContract, servicos });
-                              }}>
-                                <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione o serviço..." /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
-                                  {catalogClients.map((c: any) => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
-                                setDraftContract({ ...draftContract, servicos: draftContract.servicos.filter(x => x._id !== s._id) });
-                              }}>
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          ))}
-                          {draftContract.servicos.length === 0 && <p className="text-xs text-muted-foreground">Nenhum serviço adicionado</p>}
-                        </div>
-
-                        {/* Centros de Custo */}
-                        <div className="mt-4 border border-dashed rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="uppercase text-xs font-semibold text-muted-foreground">Distribuição de Receita (Centros de Custo)</span>
-                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                              setDraftContract({ ...draftContract, centros_custo: [...draftContract.centros_custo, { _id: Date.now() + Math.random(), name: '', percent: 0 }] });
-                            }}>
-                              <Plus size={12} /> Adicionar Centro de Custo
-                            </Button>
-                          </div>
-                          {draftContract.centros_custo.map((cc, idx) => (
-                            <div key={cc._id} className="flex items-center gap-2 mb-2">
-                              <Select value={cc.name || '__none__'} onValueChange={v => {
-                                const centros_custo = [...draftContract.centros_custo];
-                                centros_custo[idx] = { ...cc, name: v === '__none__' ? '' : v };
-                                setDraftContract({ ...draftContract, centros_custo });
-                              }}>
-                                <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
-                                  {CENTRO_CUSTO_OPTIONS.map(o => (
-                                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <div className="flex items-center gap-1 w-24">
-                                <Input type="number" min={0} max={100} value={cc.percent} onChange={e => {
-                                  const centros_custo = [...draftContract.centros_custo];
-                                  centros_custo[idx] = { ...cc, percent: Number(e.target.value) || 0 };
-                                  setDraftContract({ ...draftContract, centros_custo });
-                                }} className="h-8 text-center" />
-                                <span className="text-xs text-muted-foreground">%</span>
+                              {/* Inscrição Estadual */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Inscrição Estadual *
+                                </Label>
+                                <div className="flex-1">
+                                  <Select
+                                    value={draftEntity.situacao_inscricao_estadual || undefined}
+                                    onValueChange={(v) =>
+                                      setDraftEntity({
+                                        ...draftEntity,
+                                        situacao_inscricao_estadual: v,
+                                        inscricao_estadual: v !== "sim" ? "" : draftEntity.inscricao_estadual || "",
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 max-w-xs">
+                                      <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="sim">Sim</SelectItem>
+                                      <SelectItem value="isento">Isento</SelectItem>
+                                      <SelectItem value="nao">Não</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </div>
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
-                                setDraftContract({ ...draftContract, centros_custo: draftContract.centros_custo.filter(x => x._id !== cc._id) });
-                              }}>
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          ))}
-                          {draftContract.centros_custo.length > 0 && (() => {
-                            const total = draftContract.centros_custo.reduce((s, c) => s + c.percent, 0);
-                            const remaining = 100 - total;
-                            return (
-                              <div className={cn("text-xs font-semibold mt-2 px-2 py-1 rounded", total === 100 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
-                                Total: {total}%{remaining !== 0 && ` — Faltam ${remaining}%`}
+                              {/* Nº IE */}
+                              {draftEntity.situacao_inscricao_estadual === "sim" && (
+                                <div className="flex flex-row items-center gap-4">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Nº IE *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <Input
+                                      value={draftEntity.inscricao_estadual || ""}
+                                      onChange={(e) =>
+                                        setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })
+                                      }
+                                      placeholder="Nº Inscrição"
+                                      maxLength={15}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              {/* CNAE */}
+                              {draftEntity.tipo_pessoa === "PJ" && (
+                                <div className="flex flex-row items-center gap-4">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    CNAE *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <Input
+                                      value={draftEntity.cod_cnae || ""}
+                                      onChange={(e) => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })}
+                                      placeholder="0000-0/00"
+                                      className="h-8 max-w-[200px]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              {/* Simples Nacional - Select */}
+                              {draftEntity.tipo_pessoa === "PJ" && (
+                                <div className="flex flex-row items-center gap-4">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Simples Nacional *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <Select
+                                      value={draftEntity.simples_nacional || undefined}
+                                      onValueChange={(v) => setDraftEntity({ ...draftEntity, simples_nacional: v })}
+                                    >
+                                      <SelectTrigger className="h-8 max-w-[200px]">
+                                        <SelectValue placeholder="Selecione..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="optante">Optante</SelectItem>
+                                        <SelectItem value="nao_optante">Não Optante</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              )}
+                              {/* CEP */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  CEP *
+                                </Label>
+                                <div className="flex-1">
+                                  <div className="relative max-w-[160px]">
+                                    <Input
+                                      value={draftEntity.cep || ""}
+                                      onChange={(e) =>
+                                        setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })
+                                      }
+                                      onBlur={(e) => handleCepBlur(e.target.value)}
+                                      placeholder="00000-000"
+                                      className="font-mono pr-8 h-8"
+                                    />
+                                    {cepLoading && (
+                                      <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            );
-                          })()}
-                          {draftContract.centros_custo.length === 0 && <p className="text-xs text-muted-foreground">Nenhum centro de custo adicionado</p>}
-                        </div>
-
-                        <div className="flex justify-end mt-4 pt-2 border-t">
-                          <Button onClick={addContract} className="gap-2">
-                            Adicionar OS à Lista
-                          </Button>
-                        </div>
+                              {/* UF */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  UF *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.uf || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })}
+                                    maxLength={2}
+                                    className="h-8 max-w-[120px]"
+                                  />
+                                </div>
+                              </div>
+                              {/* Município */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Município *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.municipio || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, municipio: e.target.value })}
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Bairro */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Bairro *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.bairro || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, bairro: e.target.value })}
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Logradouro */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Logradouro *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.logradouro || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, logradouro: e.target.value })}
+                                    placeholder="Rua, Av., Rod..."
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Número */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Número
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.numero || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, numero: e.target.value })}
+                                    placeholder="Nº"
+                                    className="h-8 max-w-[120px]"
+                                  />
+                                </div>
+                              </div>
+                              {/* Complemento */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Complemento
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftEntity.complemento || ""}
+                                    onChange={(e) => setDraftEntity({ ...draftEntity, complemento: e.target.value })}
+                                    placeholder="Sala, Andar..."
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end mt-2">
+                                <Button onClick={addEntity} className="gap-2">
+                                  Adicionar à Lista
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      )}
-                    </div>
-                  </section>
-                </TabsContent>
-              </ScrollArea>
-            </Tabs>
+                    </section>
+                  </TabsContent>
 
-            {/* Footer */}
-            <div className="p-4 border-t bg-card flex justify-between shrink-0">
-              <div>
-                {!isFirstTab && (
-                  <Button variant="outline" onClick={handleBack} className="gap-2">
-                    <ChevronLeft size={16} /> Voltar
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-3">
-                {isReadOnly ? (
-                  !isLastTab && (
-                    <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
-                      Avançar <ChevronRight size={16} />
+                  <TabsContent value="participantes" className="mt-0 p-3 md:p-4">
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                        <h3 className="text-sm font-bold text-foreground">Participantes ({participants.length})</h3>
+                      </div>
+                      <div className="px-4 py-3">
+                        {participants.length > 0 && (
+                          <div className="space-y-3 mb-4">
+                            {participants.map((part) => {
+                              const isExpanded = expandedParticipantId === part._id;
+                              const isEditingThis = editingParticipantId === part._id;
+                              const ep = isEditingThis ? editingParticipantData : null;
+                              return (
+                                <div
+                                  key={part._id}
+                                  className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md"
+                                >
+                                  <button
+                                    type="button"
+                                    className="w-full flex items-center justify-between p-4 text-left"
+                                    onClick={() => {
+                                      if (!isEditingThis) setExpandedParticipantId(isExpanded ? null : part._id);
+                                    }}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-bold text-foreground truncate">{part.nome}</div>
+                                      <div className="text-sm text-muted-foreground">{part.tipo_participante}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-2">
+                                      {part.acesso_chamados && (
+                                        <Badge variant="outline" className="text-[10px]">
+                                          Chamados
+                                        </Badge>
+                                      )}
+                                      <ChevronDown
+                                        size={16}
+                                        className={cn(
+                                          "text-muted-foreground transition-transform",
+                                          isExpanded && "rotate-180",
+                                        )}
+                                      />
+                                    </div>
+                                  </button>
+
+                                  {isExpanded && !isEditingThis && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex justify-end gap-2 mb-3">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="gap-1.5 text-xs"
+                                          onClick={() => startEditParticipant(part)}
+                                        >
+                                          <Pencil size={12} /> Editar
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                                            >
+                                              <Trash2 size={12} /> Remover
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Remover participante</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser
+                                                desfeita.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                onClick={() => {
+                                                  setParticipants(participants.filter((p) => p._id !== part._id));
+                                                  setExpandedParticipantId(null);
+                                                }}
+                                              >
+                                                Remover
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        <FieldPair label="Nome" value={part.nome} />
+                                        <FieldPair label="Cargo/função" value={part.tipo_participante} />
+                                        <FieldPair label="Email" value={part.email} />
+                                        <FieldPair label="Telefone" value={part.telefone} />
+                                        <FieldPair
+                                          label="Acesso a Chamados"
+                                          value={part.acesso_chamados ? "Sim" : "Não"}
+                                        />
+                                        {part.observacoes && (
+                                          <div className="col-span-2">
+                                            <FieldPair label="Observações" value={part.observacoes} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {isExpanded && isEditingThis && ep && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex flex-col gap-2.5">
+                                        {/* Nome */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Nome *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ep.nome || ""}
+                                              onChange={(e) =>
+                                                setEditingParticipantData({ ...ep, nome: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Cargo/função */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Cargo/função *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Select
+                                              value={ep.tipo_participante || "__none__"}
+                                              onValueChange={(v) =>
+                                                setEditingParticipantData({
+                                                  ...ep,
+                                                  tipo_participante: v === "__none__" ? "" : v,
+                                                })
+                                              }
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Selecione..." />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                                {TIPO_PARTICIPANTE_OPTIONS.map((opt) => (
+                                                  <SelectItem key={opt} value={opt}>
+                                                    {opt}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        {/* Email */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Email *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ep.email || ""}
+                                              onChange={(e) =>
+                                                setEditingParticipantData({ ...ep, email: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Telefone */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Telefone
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ep.telefone || ""}
+                                              onChange={(e) =>
+                                                setEditingParticipantData({
+                                                  ...ep,
+                                                  telefone: formatPhone(e.target.value),
+                                                })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Acesso Chamados */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Acesso Chamados
+                                          </Label>
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 h-8">
+                                              <Switch
+                                                checked={ep.acesso_chamados ?? false}
+                                                onCheckedChange={(c) =>
+                                                  setEditingParticipantData({ ...ep, acesso_chamados: c })
+                                                }
+                                              />
+                                              <span className="text-sm">
+                                                {ep.acesso_chamados ? "Ativado" : "Desativado"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* Observações */}
+                                        <div className="flex flex-row items-start gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                                            Observações
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Textarea
+                                              value={ep.observacoes || ""}
+                                              onChange={(e) =>
+                                                setEditingParticipantData({ ...ep, observacoes: e.target.value })
+                                              }
+                                              className="min-h-[60px]"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
+                                          <Button size="sm" variant="outline" onClick={cancelEditParticipant}>
+                                            Cancelar
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                size="sm"
+                                                className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+                                              >
+                                                <Save size={14} /> Salvar
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Deseja salvar as alterações feitas neste participante?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                                                  onClick={saveEditParticipant}
+                                                >
+                                                  Salvar
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="bg-muted/50 rounded-lg border p-4">
+                            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">
+                              Novo Participante
+                            </h4>
+                            <div className="flex flex-col gap-2.5">
+                              {/* Nome */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Nome *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftParticipant.nome}
+                                    onChange={(e) => setDraftParticipant({ ...draftParticipant, nome: e.target.value })}
+                                    placeholder="Nome do contato"
+                                    className="font-medium h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Cargo/função */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Cargo/função *
+                                </Label>
+                                <div className="flex-1">
+                                  <Select
+                                    value={draftParticipant.tipo_participante || "__none__"}
+                                    onValueChange={(v) =>
+                                      setDraftParticipant({
+                                        ...draftParticipant,
+                                        tipo_participante: v === "__none__" ? "" : v,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
+                                      {TIPO_PARTICIPANTE_OPTIONS.map((opt) => (
+                                        <SelectItem key={opt} value={opt}>
+                                          {opt}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              {/* Email */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Email *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftParticipant.email}
+                                    onChange={(e) =>
+                                      setDraftParticipant({ ...draftParticipant, email: e.target.value })
+                                    }
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Telefone */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Telefone
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftParticipant.telefone}
+                                    onChange={(e) =>
+                                      setDraftParticipant({
+                                        ...draftParticipant,
+                                        telefone: formatPhone(e.target.value),
+                                      })
+                                    }
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Acesso Chamados */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Acesso Chamados
+                                </Label>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 h-8">
+                                    <Switch
+                                      checked={draftParticipant.acesso_chamados}
+                                      onCheckedChange={(c) =>
+                                        setDraftParticipant({ ...draftParticipant, acesso_chamados: c })
+                                      }
+                                    />
+                                    <span className="text-sm">
+                                      {draftParticipant.acesso_chamados ? "Ativado" : "Desativado"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Observações */}
+                              <div className="flex flex-row items-start gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                                  Observações
+                                </Label>
+                                <div className="flex-1">
+                                  <Textarea
+                                    value={draftParticipant.observacoes}
+                                    onChange={(e) =>
+                                      setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })
+                                    }
+                                    placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..."
+                                    className="min-h-[60px]"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end mt-2">
+                                <Button onClick={addParticipant} className="gap-2">
+                                  Adicionar à Lista
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </TabsContent>
+
+                  <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+                        <h3 className="text-sm font-bold text-foreground">
+                          OS - Ordem de Serviço ({contracts.length})
+                        </h3>
+                      </div>
+                      <div className="px-4 py-3">
+                        {contracts.length > 0 && (
+                          <div className="space-y-3 mb-6">
+                            {contracts.map((cont) => {
+                              const isExpanded = expandedContractId === cont._id;
+                              const isEditingThis = editingContractId === cont._id;
+                              const ec = isEditingThis ? editingContractData : null;
+                              return (
+                                <div
+                                  key={cont._id}
+                                  className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md"
+                                >
+                                  <button
+                                    type="button"
+                                    className="w-full flex items-center justify-between p-4 text-left"
+                                    onClick={() => {
+                                      if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id);
+                                    }}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
+                                          OS {cont.ordem_servico}
+                                        </span>
+                                        <span className="font-semibold text-sm text-foreground truncate">
+                                          {cont.nome_projeto}
+                                        </span>
+                                      </div>
+                                      <div className="font-bold text-foreground mt-0.5">
+                                        {formatCurrencyDisplay(cont.valor_projeto)}
+                                      </div>
+                                    </div>
+                                    <ChevronDown
+                                      size={16}
+                                      className={cn(
+                                        "text-muted-foreground transition-transform ml-2",
+                                        isExpanded && "rotate-180",
+                                      )}
+                                    />
+                                  </button>
+
+                                  {isExpanded && !isEditingThis && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex justify-end gap-2 mb-3">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="gap-1.5 text-xs"
+                                          onClick={() => startEditContract(cont)}
+                                        >
+                                          <Pencil size={12} /> Editar
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                                            >
+                                              <Trash2 size={12} /> Remover
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Remover OS</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Tem certeza que deseja remover a OS "{cont.ordem_servico} -{" "}
+                                                {cont.nome_projeto}"? Esta ação não pode ser desfeita.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                onClick={() => {
+                                                  setContracts(contracts.filter((c) => c._id !== cont._id));
+                                                  setExpandedContractId(null);
+                                                }}
+                                              >
+                                                Remover
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                                        <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
+                                        <FieldPair
+                                          label="Data Emissão"
+                                          value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
+                                        />
+                                        <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
+                                        <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
+                                        {cont.descricao_projeto && (
+                                          <div className="col-span-2 md:col-span-3">
+                                            <FieldPair label="Descrição" value={cont.descricao_projeto} />
+                                          </div>
+                                        )}
+                                        <FieldPair
+                                          label="Data Início"
+                                          value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"}
+                                        />
+                                        <FieldPair
+                                          label="Data Fim"
+                                          value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"}
+                                        />
+                                        <FieldPair
+                                          label="Valor do Projeto"
+                                          value={formatCurrencyDisplay(cont.valor_projeto)}
+                                        />
+                                        <FieldPair
+                                          label="Reembolso km"
+                                          value={formatCurrencyDisplay(cont.valor_reembolso_km)}
+                                        />
+                                        <FieldPair
+                                          label="Reembolso refeição por pessoa"
+                                          value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {isExpanded && isEditingThis && ec && (
+                                    <div className="px-4 pb-4 border-t pt-3">
+                                      <div className="flex flex-col gap-2.5">
+                                        {/* OS */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            OS *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ec.ordem_servico || ""}
+                                              onChange={(e) =>
+                                                setEditingContractData({ ...ec, ordem_servico: e.target.value })
+                                              }
+                                              className="h-8 max-w-[200px]"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Data Emissão */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Data Emissão *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <DateFieldWithInput
+                                              value={ec.data_emissao || ""}
+                                              onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })}
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Gestor */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Gestor *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Select
+                                              value={ec.gestor_responsavel || "__none__"}
+                                              onValueChange={(v) =>
+                                                setEditingContractData({
+                                                  ...ec,
+                                                  gestor_responsavel: v === "__none__" ? "" : v,
+                                                })
+                                              }
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Selecione..." />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                                {lideres.map((l) => (
+                                                  <SelectItem key={l.id} value={l.nome}>
+                                                    {l.nome}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        {/* Projeto */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Projeto *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Input
+                                              value={ec.nome_projeto || ""}
+                                              onChange={(e) =>
+                                                setEditingContractData({ ...ec, nome_projeto: e.target.value })
+                                              }
+                                              className="h-8"
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* Descrição */}
+                                        <div className="flex flex-row items-start gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                                            Descrição
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Textarea
+                                              value={ec.descricao_projeto || ""}
+                                              onChange={(e) =>
+                                                setEditingContractData({ ...ec, descricao_projeto: e.target.value })
+                                              }
+                                              className="min-h-[60px]"
+                                              maxLength={500}
+                                            />
+                                            <p className="text-xs text-muted-foreground text-right mt-1">
+                                              {(ec.descricao_projeto || "").length}/500
+                                            </p>
+                                          </div>
+                                        </div>
+                                        {/* Data Início + Data Fim (lado a lado) */}
+                                        <div className="flex flex-row items-center gap-6">
+                                          <div className="flex flex-row items-center gap-4 flex-1">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Data Início *
+                                            </Label>
+                                            <div className="flex-1">
+                                              <DateFieldWithInput
+                                                value={ec.data_inicio_projeto || ""}
+                                                onChange={(v) =>
+                                                  setEditingContractData({ ...ec, data_inicio_projeto: v })
+                                                }
+                                              />
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-row items-center gap-4 flex-1">
+                                            <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Data Fim
+                                            </Label>
+                                            <div className="flex-1">
+                                              <DateFieldWithInput
+                                                value={ec.data_fim_projeto || ""}
+                                                onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* Reembolsos (lado a lado) */}
+                                        <div className="flex flex-row items-center gap-6">
+                                          <div className="flex flex-row items-center gap-4 flex-1">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Reembolso por km (R$) *
+                                            </Label>
+                                            <div className="flex-1">
+                                              <CurrencyField
+                                                value={ec.valor_reembolso_km || 0}
+                                                onChange={(v) =>
+                                                  setEditingContractData({ ...ec, valor_reembolso_km: v })
+                                                }
+                                                className="max-w-[160px]"
+                                              />
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-row items-center gap-4 flex-1">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Reembolso refeição por pessoa (R$) *
+                                            </Label>
+                                            <div className="flex-1">
+                                              <CurrencyField
+                                                value={ec.valor_reembolso_refeicao || 0}
+                                                onChange={(v) =>
+                                                  setEditingContractData({ ...ec, valor_reembolso_refeicao: v })
+                                                }
+                                                className="max-w-[160px]"
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* Valor */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Valor (R$) *
+                                          </Label>
+                                          <div className="flex-1">
+                                            <CurrencyField
+                                              value={ec.valor_projeto || 0}
+                                              onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
+                                          <Button size="sm" variant="outline" onClick={cancelEditContract}>
+                                            Cancelar
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                size="sm"
+                                                className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+                                              >
+                                                <Save size={14} /> Salvar
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Deseja salvar as alterações feitas nesta OS?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                                                  onClick={saveEditContract}
+                                                >
+                                                  Salvar
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="bg-muted/50 rounded-lg border p-4">
+                            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
+                            <div className="flex flex-col gap-2.5">
+                              {/* Nº OS */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Nº OS *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftContract.ordem_servico}
+                                    onChange={(e) =>
+                                      setDraftContract({ ...draftContract, ordem_servico: e.target.value })
+                                    }
+                                    placeholder="Ex: 001/2025"
+                                    className="h-8 max-w-[200px]"
+                                  />
+                                </div>
+                              </div>
+                              {/* Data Emissão */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Data Emissão *
+                                </Label>
+                                <div className="flex-1">
+                                  <DateFieldWithInput
+                                    value={draftContract.data_emissao}
+                                    onChange={(v) => setDraftContract({ ...draftContract, data_emissao: v })}
+                                  />
+                                </div>
+                              </div>
+                              {/* Gestor */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Gestor *
+                                </Label>
+                                <div className="flex-1">
+                                  <Select
+                                    value={draftContract.gestor_responsavel || "__none__"}
+                                    onValueChange={(v) =>
+                                      setDraftContract({
+                                        ...draftContract,
+                                        gestor_responsavel: v === "__none__" ? "" : v,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
+                                      {lideres.map((l) => (
+                                        <SelectItem key={l.id} value={l.nome}>
+                                          {l.nome}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              {/* Projeto */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Projeto *
+                                </Label>
+                                <div className="flex-1">
+                                  <Input
+                                    value={draftContract.nome_projeto}
+                                    onChange={(e) =>
+                                      setDraftContract({ ...draftContract, nome_projeto: e.target.value })
+                                    }
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              {/* Descrição */}
+                              <div className="flex flex-row items-start gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                                  Descrição
+                                </Label>
+                                <div className="flex-1">
+                                  <Textarea
+                                    value={draftContract.descricao_projeto}
+                                    onChange={(e) =>
+                                      setDraftContract({ ...draftContract, descricao_projeto: e.target.value })
+                                    }
+                                    placeholder="Mín. 20 caracteres se preenchido..."
+                                    className="min-h-[60px]"
+                                    maxLength={500}
+                                  />
+                                  <p className="text-xs text-muted-foreground text-right mt-1">
+                                    {draftContract.descricao_projeto.length}/500
+                                  </p>
+                                </div>
+                              </div>
+                              {/* Data Início + Data Fim (lado a lado) */}
+                              <div className="flex flex-row items-center gap-6">
+                                <div className="flex flex-row items-center gap-4 flex-1">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Data Início *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <DateFieldWithInput
+                                      value={draftContract.data_inicio_projeto}
+                                      onChange={(v) => setDraftContract({ ...draftContract, data_inicio_projeto: v })}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex flex-row items-center gap-4 flex-1">
+                                  <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Data Fim
+                                  </Label>
+                                  <div className="flex-1">
+                                    <DateFieldWithInput
+                                      value={draftContract.data_fim_projeto}
+                                      onChange={(v) => setDraftContract({ ...draftContract, data_fim_projeto: v })}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Reembolsos (lado a lado) */}
+                              <div className="flex flex-row items-center gap-6">
+                                <div className="flex flex-row items-center gap-4 flex-1">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Reembolso por km (R$) *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <CurrencyField
+                                      value={draftContract.valor_reembolso_km}
+                                      onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_km: v })}
+                                      className="max-w-[160px]"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex flex-row items-center gap-4 flex-1">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Reembolso refeição por pessoa (R$) *
+                                  </Label>
+                                  <div className="flex-1">
+                                    <CurrencyField
+                                      value={draftContract.valor_reembolso_refeicao}
+                                      onChange={(v) =>
+                                        setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })
+                                      }
+                                      className="max-w-[160px]"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Valor */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Valor (R$) *
+                                </Label>
+                                <div className="flex-1">
+                                  <CurrencyField
+                                    value={draftContract.valor_projeto}
+                                    onChange={(v) => setDraftContract({ ...draftContract, valor_projeto: v })}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end mt-4 pt-2 border-t">
+                              <Button onClick={addContract} className="gap-2">
+                                Adicionar OS à Lista
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </TabsContent>
+                </ScrollArea>
+              </Tabs>
+
+              {/* Footer */}
+              <div className="p-4 border-t bg-card flex justify-between shrink-0">
+                <div>
+                  {!isFirstTab && (
+                    <Button variant="outline" onClick={handleBack} className="gap-2">
+                      <ChevronLeft size={16} /> Voltar
                     </Button>
-                  )
-                ) : (
-                  <>
-                    <Button variant="outline" onClick={handleAttemptClose}>Cancelar</Button>
-                    {isLastTab ? (
-                      <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                        {isEditing ? 'Salvar Alterações' : 'Salvar Cliente'}
-                      </Button>
-                    ) : (
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  {isReadOnly ? (
+                    !isLastTab && (
                       <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
                         Avançar <ChevronRight size={16} />
                       </Button>
-                    )}
-                  </>
-                )}
+                    )
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleAttemptClose}>
+                        Cancelar
+                      </Button>
+                      {isLastTab ? (
+                        <Button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="bg-teal-600 hover:bg-teal-700 text-white gap-2"
+                        >
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                          {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                        </Button>
+                      ) : (
+                        <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                          Avançar <ChevronRight size={16} />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-    {/* Exit confirmation AlertDialog */}
-    <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
-          <AlertDialogDescription>
-            Você tem dados não salvos. Deseja sair sem salvar?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
-          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={resetAndClose}>Sair</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {/* Exit confirmation AlertDialog */}
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
+            <AlertDialogDescription>Você tem dados não salvos. Deseja sair sem salvar?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={resetAndClose}
+            >
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
