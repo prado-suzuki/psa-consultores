@@ -1,48 +1,71 @@
 
-# Adicionar novos campos na aba OS (front-end only)
+
+# Reorganizar formulario OS para layout identico ao exemplo HTML
 
 ## Objetivo
 
-Implementar os campos e secoes que constam no HTML de referencia mas ainda nao existem no codigo, mantendo tudo apenas no front-end (sem alteracoes de banco de dados). Os dados ficarao no state local do formulario para validacao visual.
+Reestruturar completamente o formulario "Nova OS", o card read-only e o inline edit para ficarem 100% iguais ao HTML de referencia, removendo campos que nao existem no exemplo e ajustando o layout para grid 2 colunas com labels acima dos inputs.
 
 ## Arquivo alterado
 
 - `src/components/equipe/dev/NewClientModal.tsx`
 
-## Novos campos e secoes
+## Campos a REMOVER (nao existem no exemplo)
 
-### 1. Situacao do Projeto (Select)
+1. **Gestor** (`gestor_responsavel`) - Select com lideres
+2. **Projeto** (`nome_projeto`) - Input de texto
+3. **Descricao** (`descricao_projeto`) - Textarea com contador 500 chars
 
-Opcoes: "Em andamento", "Concluido", "Suspenso", "Cancelado"
+Esses campos serao removidos da interface `DraftContract`, do state `draftContract`, da validacao `addContract`, do reset, do card read-only, do inline edit e do formulario "Nova OS".
 
-### 2. Observacoes do Projeto (Textarea)
+## Layout final dos campos (identico ao HTML de referencia)
 
-Campo de texto livre para observacoes. Secao com titulo "OBSERVACOES" e placeholder "Insira observacoes relevantes sobre o projeto...".
+```text
+--- DADOS DA OS --- (titulo com borda inferior)
 
-### 3. Servicos Contratados (lista dinamica)
+ORDEM DE SERVICO *           DATA DE EMISSAO *
+[input text]                 [date input]
 
-- Secao com borda tracejada e titulo "SERVICOS CONTRATADOS"
-- Botao "+ Adicionar Servico"
-- Cada linha: Select com opcoes do `catalog_clients` (busca do banco) + botao remover (X)
-- Dados ficam no state local do draft como array de strings (IDs)
+DATA INICIO *                DATA FIM
+[date input]                 [date input]
 
-### 4. Distribuicao de Receita - Centros de Custo (lista dinamica)
+VALOR DO PROJETO (R$) *      SITUACAO DO PROJETO *
+[R$ currency]                [select]
 
-- Secao com borda tracejada e titulo "DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO)"
-- Botao "+ Adicionar Centro de Custo"
-- Cada linha: Select com opcoes de `EMPRESA_FATURAMENTO_OPTIONS` + Input de percentual + botao remover (X)
-- Indicador de total distribuido: "Total Distribuido: XX% - Faltam YY% para completar 100%"
-- Dados ficam no state local como array de objetos `{ empresa: string, percentual: number }`
+REEMBOLSO POR KM (R$) *      REEMBOLSO REFEICAO (R$) *
+[R$ currency]                [R$ currency]
 
-## Mudancas tecnicas
+--- OBSERVACOES --- (titulo de secao)
+[textarea full width, placeholder: "Insira observacoes relevantes sobre o projeto..."]
 
-### Interface DraftContract (linha 144)
+--- SERVICOS CONTRATADOS --- (secao dashed, sem mudancas)
+[+ Adicionar Servico]
+[select + X] ...
 
-Adicionar campos:
+--- DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO) --- (secao dashed, sem mudancas)
+[+ Adicionar Centro de Custo]
+[select + input % + X] ...
+Total Distribuido: XX% - Faltam YY% para completar 100%
+
+[Adicionar OS a Lista]
+```
+
+## Mudancas tecnicas detalhadas
+
+### 1. Interface DraftContract (linha 152)
+
+Remover `nome_projeto`, `descricao_projeto`, `gestor_responsavel`:
 
 ```typescript
 interface DraftContract {
-  // ... existentes ...
+  _id: number;
+  ordem_servico: string;
+  data_emissao: string;
+  data_inicio_projeto: string;
+  data_fim_projeto: string;
+  valor_projeto: number;
+  valor_reembolso_km: number;
+  valor_reembolso_refeicao: number;
   situacao_projeto: string;
   observacoes_projeto: string;
   servicos_contratados: string[];
@@ -50,100 +73,54 @@ interface DraftContract {
 }
 ```
 
-### State draftContract (linha 503)
+### 2. State draftContract (linha 528)
 
-Adicionar valores iniciais:
+Remover valores iniciais de `nome_projeto`, `descricao_projeto`, `gestor_responsavel`.
 
-```typescript
-situacao_projeto: "em_andamento",
-observacoes_projeto: "",
-servicos_contratados: [],
-centros_custo: [],
-```
+### 3. Funcao addContract (linha 890)
 
-### Constante SITUACAO_PROJETO_OPTIONS
+- Remover validacoes de `nome_projeto` e `gestor_responsavel`
+- Remover validacao de `descricao_projeto` (min 20 chars)
+- MANTER validacoes de `valor_reembolso_km` e `valor_reembolso_refeicao` como obrigatorios
+- Remover reset desses campos no objeto de reset
 
-```typescript
-const SITUACAO_PROJETO_OPTIONS = [
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluido", label: "Concluído" },
-  { value: "suspenso", label: "Suspenso" },
-  { value: "cancelado", label: "Cancelado" },
-];
-```
+### 4. Card read-only da OS (linha 2860-3008)
 
-### Query catalog_clients
+- Na linha do header do card, remover referencia a `cont.nome_projeto` (substituir por apenas "OS {numero}")
+- Na grid de FieldPairs, remover: Gestor Responsavel, Nome do Projeto, Descricao
+- Reordenar para: OS, Data Emissao, Data Inicio, Data Fim, Valor, Reembolso km, Reembolso refeicao, Situacao, Observacoes, Servicos, Centros de Custo
 
-Adicionar um `useQuery` para buscar servicos do `catalog_clients` (tabela ja existente):
+### 5. Inline edit da OS (linha 3012-3447)
 
-```typescript
-const { data: catalogServices } = useQuery({
-  queryKey: ["catalog_clients_services"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("catalog_clients")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("name");
-    return data || [];
-  },
-});
-```
+- Remover campos: Gestor (select lideres), Projeto (input), Descricao (textarea + contador)
+- Mudar layout de label-left para grid 2 colunas com labels acima
+- Ordem dos campos identica ao formulario "Nova OS"
 
-### Formulario "Nova OS" (apos linha 3246)
+### 6. Formulario "Nova OS" (linha 3456-3837)
 
-Inserir apos o campo Valor:
+Substituir layout inteiro. De rows com label a esquerda para grid 2 colunas com labels acima:
 
-1. **Situacao do Projeto** - Select no grid 2 colunas ao lado do Valor
-2. **Observacoes** - Textarea full width com titulo de secao
-3. **Servicos Contratados** - Secao dashed com lista dinamica
-4. **Distribuicao de Receita** - Secao dashed com lista + barra de progresso
+- Adicionar header "DADOS DA OS" com `text-xs font-bold uppercase` e `border-b pb-2 mb-4`
+- Grid `grid grid-cols-1 md:grid-cols-2 gap-4`
+- Cada campo: `<div><Label class="text-xs font-semibold uppercase text-muted-foreground">LABEL *</Label><Input .../></div>`
+- Remover campos Gestor, Projeto, Descricao
+- Manter secoes dashed de Servicos Contratados e Centros de Custo como estao (ja corretas)
+- Reembolso por KM e Reembolso Refeicao com asterisco (*) e validacao obrigatoria
 
-### Inline Edit da OS (apos linha 3043)
+### 7. Funcao handleSave / load (persistencia)
 
-Adicionar os mesmos 4 campos/secoes no modo de edicao inline.
+- Remover referencias a `nome_projeto`, `descricao_projeto`, `gestor_responsavel` nos inserts/updates do banco
+- Manter demais campos como estao
 
-### Card Read-only da OS (apos linha 2876)
+### 8. Confirmacao de remocao na AlertDialog
 
-Exibir:
-- Situacao do Projeto como FieldPair
-- Observacoes como FieldPair (col-span full)
-- Lista de servicos contratados (nomes)
-- Lista de centros de custo com percentuais
-
-### Funcao addContract e reset (linhas 859-910)
-
-Adicionar validacao e reset dos novos campos. Nao exigir 100% nos centros de custo por enquanto (apenas visual).
-
-## Layout dos novos campos na Nova OS
-
-```text
-(campos existentes no grid 2 colunas)
-
-VALOR DO PROJETO (R$) *     SITUACAO DO PROJETO *
-[currency]                  [select]
-
-REEMBOLSO POR KM (R$)       REEMBOLSO REFEICAO (R$)
-[currency]                   [currency]
-
---- OBSERVACOES ---
-[textarea full width]
-
---- SERVICOS CONTRATADOS ---
-[+ Adicionar Servico]
-| [Select servico]  [X] |
-| [Select servico]  [X] |
-
---- DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO) ---
-[+ Adicionar Centro de Custo]
-| [Select empresa] [input %] [X] |
-| [Select empresa] [input %] [X] |
-Total Distribuido: 70% - Faltam 30% para completar 100%
-```
+- Atualizar texto de confirmacao de remocao da OS que referencia `cont.nome_projeto` (linha 2908) para usar apenas `cont.ordem_servico`
 
 ## Resumo de impacto
 
 - **Banco de dados**: Nenhuma alteracao
-- **State local**: 4 novos campos no DraftContract
-- **UI**: Novos campos no formulario, inline edit e card read-only da OS
-- **Persistencia**: Os novos campos serao ignorados no `handleSave` ate que as tabelas sejam criadas
+- **Interface DraftContract**: 3 campos removidos (`nome_projeto`, `descricao_projeto`, `gestor_responsavel`)
+- **Layout**: De label-left vertical para grid 2 colunas com labels acima (identico ao HTML)
+- **Validacao**: Reembolso km e Reembolso refeicao permanecem obrigatorios; campos removidos nao sao mais validados
+- **Secoes dinamicas**: Servicos Contratados e Centros de Custo permanecem sem alteracoes
+
