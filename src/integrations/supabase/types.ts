@@ -653,6 +653,13 @@ export type Database = {
             referencedRelation: "per"
             referencedColumns: ["numero_processo_per"]
           },
+          {
+            foreignKeyName: "dcomp_nr_per_orig_fkey"
+            columns: ["nr_per_orig"]
+            isOneToOne: false
+            referencedRelation: "per_with_contribuinte"
+            referencedColumns: ["numero_processo_per"]
+          },
         ]
       }
       deliverable_attachments: {
@@ -1495,6 +1502,13 @@ export type Database = {
             referencedRelation: "per"
             referencedColumns: ["numero_processo_per"]
           },
+          {
+            foreignKeyName: "per_nr_proc_ret_fkey"
+            columns: ["nr_proc_ret"]
+            isOneToOne: false
+            referencedRelation: "per_with_contribuinte"
+            referencedColumns: ["numero_processo_per"]
+          },
         ]
       }
       per_situacao: {
@@ -1528,6 +1542,13 @@ export type Database = {
             columns: ["nr_proc_per"]
             isOneToOne: false
             referencedRelation: "per"
+            referencedColumns: ["numero_processo_per"]
+          },
+          {
+            foreignKeyName: "per_situacao_nr_proc_per_fkey"
+            columns: ["nr_proc_per"]
+            isOneToOne: false
+            referencedRelation: "per_with_contribuinte"
             referencedColumns: ["numero_processo_per"]
           },
         ]
@@ -3532,6 +3553,41 @@ export type Database = {
       }
     }
     Views: {
+      per_with_contribuinte: {
+        Row: {
+          atualizado_em: string | null
+          atualizado_por: string | null
+          contribuinte_nome: string | null
+          criado_em: string | null
+          criado_por: string | null
+          dt_solicitada: string | null
+          exercicio: number | null
+          id_contribuinte: string | null
+          nr_proc_ret: string | null
+          numero_processo_per: string | null
+          porcentagem_psa: number | null
+          tp_credito: string | null
+          tri_exercicio: number | null
+          vlr_credito: number | null
+          vlr_ressarcido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "per_nr_proc_ret_fkey"
+            columns: ["nr_proc_ret"]
+            isOneToOne: false
+            referencedRelation: "per"
+            referencedColumns: ["numero_processo_per"]
+          },
+          {
+            foreignKeyName: "per_nr_proc_ret_fkey"
+            columns: ["nr_proc_ret"]
+            isOneToOne: false
+            referencedRelation: "per_with_contribuinte"
+            referencedColumns: ["numero_processo_per"]
+          },
+        ]
+      }
       profiles_safe: {
         Row: {
           company: string | null
