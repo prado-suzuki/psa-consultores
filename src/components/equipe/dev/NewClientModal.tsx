@@ -153,14 +153,11 @@ interface DraftContract {
   _id: number;
   ordem_servico: string;
   data_emissao: string;
-  nome_projeto: string;
-  descricao_projeto: string;
   data_inicio_projeto: string;
   data_fim_projeto: string;
   valor_projeto: number;
   valor_reembolso_km: number;
   valor_reembolso_refeicao: number;
-  gestor_responsavel: string;
   situacao_projeto: string;
   observacoes_projeto: string;
   servicos_contratados: string[];
@@ -528,14 +525,11 @@ export default function NewClientModal({
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
-    nome_projeto: "",
-    descricao_projeto: "",
     data_inicio_projeto: "",
     data_fim_projeto: "",
     valor_projeto: 0,
     valor_reembolso_km: 0,
     valor_reembolso_refeicao: 0,
-    gestor_responsavel: "",
     situacao_projeto: "em_andamento",
     observacoes_projeto: "",
     servicos_contratados: [] as string[],
@@ -892,20 +886,12 @@ export default function NewClientModal({
       toast.error("Número da OS é obrigatório");
       return;
     }
-    if (!draftContract.nome_projeto.trim()) {
-      toast.error("Nome do Projeto é obrigatório");
-      return;
-    }
     if (!draftContract.data_emissao) {
       toast.error("Data de Emissão é obrigatória");
       return;
     }
     if (!draftContract.data_inicio_projeto) {
       toast.error("Data de Início é obrigatória");
-      return;
-    }
-    if (!draftContract.gestor_responsavel) {
-      toast.error("Gestor Responsável é obrigatório");
       return;
     }
     if (draftContract.valor_projeto <= 0) {
@@ -921,23 +907,15 @@ export default function NewClientModal({
       return;
     }
 
-    if (draftContract.descricao_projeto.trim() && draftContract.descricao_projeto.trim().length < 20) {
-      toast.error("Descrição do Projeto deve ter no mínimo 20 caracteres");
-      return;
-    }
-
     setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
-      nome_projeto: "",
-      descricao_projeto: "",
       data_inicio_projeto: "",
       data_fim_projeto: "",
       valor_projeto: 0,
       valor_reembolso_km: 0,
       valor_reembolso_refeicao: 0,
-      gestor_responsavel: "",
       situacao_projeto: "em_andamento",
       observacoes_projeto: "",
       servicos_contratados: [],
@@ -1250,14 +1228,11 @@ export default function NewClientModal({
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
-      nome_projeto: "",
-      descricao_projeto: "",
       data_inicio_projeto: "",
       data_fim_projeto: "",
       valor_projeto: 0,
       valor_reembolso_km: 0,
       valor_reembolso_refeicao: 0,
-      gestor_responsavel: "",
       situacao_projeto: "em_andamento",
       observacoes_projeto: "",
       servicos_contratados: [],
@@ -2862,9 +2837,6 @@ export default function NewClientModal({
                                         <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
                                           OS {cont.ordem_servico}
                                         </span>
-                                        <span className="font-semibold text-sm text-foreground truncate">
-                                          {cont.nome_projeto}
-                                        </span>
                                       </div>
                                       <div className="font-bold text-foreground mt-0.5">
                                         {formatCurrencyDisplay(cont.valor_projeto)}
@@ -2904,8 +2876,7 @@ export default function NewClientModal({
                                             <AlertDialogHeader>
                                               <AlertDialogTitle>Remover OS</AlertDialogTitle>
                                               <AlertDialogDescription>
-                                                Tem certeza que deseja remover a OS "{cont.ordem_servico} -{" "}
-                                                {cont.nome_projeto}"? Esta ação não pode ser desfeita.
+                                                Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.
                                               </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -2929,13 +2900,6 @@ export default function NewClientModal({
                                           label="Data Emissão"
                                           value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
                                         />
-                                        <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
-                                        <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
-                                        {cont.descricao_projeto && (
-                                          <div className="col-span-2 md:col-span-3">
-                                            <FieldPair label="Descrição" value={cont.descricao_projeto} />
-                                          </div>
-                                        )}
                                         <FieldPair
                                           label="Data Início"
                                           value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"}
@@ -2949,20 +2913,20 @@ export default function NewClientModal({
                                           value={formatCurrencyDisplay(cont.valor_projeto)}
                                         />
                                         <FieldPair
-                                          label="Reembolso km"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_km)}
-                                        />
-                                        <FieldPair
-                                          label="Reembolso refeição por pessoa"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
-                                        />
-                                        <FieldPair
                                           label="Situação do Projeto"
                                           value={
                                             SITUACAO_PROJETO_OPTIONS.find(
                                               (o) => o.value === (cont as any).situacao_projeto,
                                             )?.label || "—"
                                           }
+                                        />
+                                        <FieldPair
+                                          label="Reembolso por KM"
+                                          value={formatCurrencyDisplay(cont.valor_reembolso_km)}
+                                        />
+                                        <FieldPair
+                                          label="Reembolso Refeição"
+                                          value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
                                         />
                                         {(cont as any).observacoes_projeto && (
                                           <div className="col-span-2 md:col-span-3">
@@ -3011,211 +2975,99 @@ export default function NewClientModal({
 
                                   {isExpanded && isEditingThis && ec && (
                                     <div className="px-4 pb-4 border-t pt-3">
-                                      <div className="flex flex-col gap-2.5">
-                                        {/* OS */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            OS *
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Input
-                                              value={ec.ordem_servico || ""}
-                                              onChange={(e) =>
-                                                setEditingContractData({ ...ec, ordem_servico: e.target.value })
-                                              }
-                                              className="h-8 max-w-[200px]"
-                                            />
-                                          </div>
+                                      <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS</h5>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Ordem de Serviço *</Label>
+                                          <Input
+                                            value={ec.ordem_servico || ""}
+                                            onChange={(e) => setEditingContractData({ ...ec, ordem_servico: e.target.value })}
+                                            className="h-8 mt-1"
+                                          />
                                         </div>
-                                        {/* Data Emissão */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Data Emissão *
-                                          </Label>
-                                          <div className="flex-1">
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão *</Label>
+                                          <div className="mt-1">
                                             <DateFieldWithInput
                                               value={ec.data_emissao || ""}
                                               onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })}
                                             />
                                           </div>
                                         </div>
-                                        {/* Gestor */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Gestor *
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Select
-                                              value={ec.gestor_responsavel || "__none__"}
-                                              onValueChange={(v) =>
-                                                setEditingContractData({
-                                                  ...ec,
-                                                  gestor_responsavel: v === "__none__" ? "" : v,
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger className="h-8">
-                                                <SelectValue placeholder="Selecione..." />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                                {lideres.map((l) => (
-                                                  <SelectItem key={l.id} value={l.nome}>
-                                                    {l.nome}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                        {/* Projeto */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Projeto *
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Input
-                                              value={ec.nome_projeto || ""}
-                                              onChange={(e) =>
-                                                setEditingContractData({ ...ec, nome_projeto: e.target.value })
-                                              }
-                                              className="h-8"
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início *</Label>
+                                          <div className="mt-1">
+                                            <DateFieldWithInput
+                                              value={ec.data_inicio_projeto || ""}
+                                              onChange={(v) => setEditingContractData({ ...ec, data_inicio_projeto: v })}
                                             />
                                           </div>
                                         </div>
-                                        {/* Descrição */}
-                                        <div className="flex flex-row items-start gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                                            Descrição
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Textarea
-                                              value={ec.descricao_projeto || ""}
-                                              onChange={(e) =>
-                                                setEditingContractData({ ...ec, descricao_projeto: e.target.value })
-                                              }
-                                              className="min-h-[60px]"
-                                              maxLength={500}
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label>
+                                          <div className="mt-1">
+                                            <DateFieldWithInput
+                                              value={ec.data_fim_projeto || ""}
+                                              onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })}
                                             />
-                                            <p className="text-xs text-muted-foreground text-right mt-1">
-                                              {(ec.descricao_projeto || "").length}/500
-                                            </p>
                                           </div>
                                         </div>
-                                        {/* Data Início + Data Fim (lado a lado) */}
-                                        <div className="flex flex-row items-center gap-6">
-                                          <div className="flex flex-row items-center gap-4 flex-1">
-                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                              Data Início *
-                                            </Label>
-                                            <div className="flex-1">
-                                              <DateFieldWithInput
-                                                value={ec.data_inicio_projeto || ""}
-                                                onChange={(v) =>
-                                                  setEditingContractData({ ...ec, data_inicio_projeto: v })
-                                                }
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className="flex flex-row items-center gap-4 flex-1">
-                                            <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">
-                                              Data Fim
-                                            </Label>
-                                            <div className="flex-1">
-                                              <DateFieldWithInput
-                                                value={ec.data_fim_projeto || ""}
-                                                onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })}
-                                              />
-                                            </div>
-                                          </div>
-                                        </div>
-                                        {/* Reembolsos (lado a lado) */}
-                                        <div className="flex flex-row items-center gap-6">
-                                          <div className="flex flex-row items-center gap-4 flex-1">
-                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                              Reembolso por km (R$) *
-                                            </Label>
-                                            <div className="flex-1">
-                                              <CurrencyField
-                                                value={ec.valor_reembolso_km || 0}
-                                                onChange={(v) =>
-                                                  setEditingContractData({ ...ec, valor_reembolso_km: v })
-                                                }
-                                                className="max-w-[160px]"
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className="flex flex-row items-center gap-4 flex-1">
-                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                              Reembolso refeição por pessoa (R$) *
-                                            </Label>
-                                            <div className="flex-1">
-                                              <CurrencyField
-                                                value={ec.valor_reembolso_refeicao || 0}
-                                                onChange={(v) =>
-                                                  setEditingContractData({ ...ec, valor_reembolso_refeicao: v })
-                                                }
-                                                className="max-w-[160px]"
-                                              />
-                                            </div>
-                                          </div>
-                                        </div>
-                                        {/* Valor */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Valor (R$) *
-                                          </Label>
-                                          <div className="flex-1">
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$) *</Label>
+                                          <div className="mt-1">
                                             <CurrencyField
                                               value={ec.valor_projeto || 0}
                                               onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
                                             />
                                           </div>
                                         </div>
-                                        {/* Situação do Projeto */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Situação do Projeto
-                                          </Label>
-                                          <div className="flex-1">
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto *</Label>
+                                          <div className="mt-1">
                                             <Select
                                               value={(ec as any).situacao_projeto || "em_andamento"}
-                                              onValueChange={(v) =>
-                                                setEditingContractData({ ...ec, situacao_projeto: v } as any)
-                                              }
+                                              onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v } as any)}
                                             >
                                               <SelectTrigger className="h-8">
                                                 <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
                                                 {SITUACAO_PROJETO_OPTIONS.map((opt) => (
-                                                  <SelectItem key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                  </SelectItem>
+                                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                                 ))}
                                               </SelectContent>
                                             </Select>
                                           </div>
                                         </div>
-                                        {/* Observações */}
-                                        <div className="flex flex-row items-start gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                                            Observações
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Textarea
-                                              value={(ec as any).observacoes_projeto || ""}
-                                              onChange={(e) =>
-                                                setEditingContractData({
-                                                  ...ec,
-                                                  observacoes_projeto: e.target.value,
-                                                } as any)
-                                              }
-                                              placeholder="Insira observações relevantes sobre o projeto..."
-                                              className="min-h-[60px]"
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$) *</Label>
+                                          <div className="mt-1">
+                                            <CurrencyField
+                                              value={ec.valor_reembolso_km || 0}
+                                              onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_km: v })}
                                             />
                                           </div>
                                         </div>
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$) *</Label>
+                                          <div className="mt-1">
+                                            <CurrencyField
+                                              value={ec.valor_reembolso_refeicao || 0}
+                                              onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {/* Observações */}
+                                      <div className="mt-4">
+                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
+                                        <Textarea
+                                          value={(ec as any).observacoes_projeto || ""}
+                                          onChange={(e) => setEditingContractData({ ...ec, observacoes_projeto: e.target.value } as any)}
+                                          placeholder="Insira observações relevantes sobre o projeto..."
+                                          className="min-h-[60px]"
+                                        />
+                                      </div>
                                         {/* Serviços Contratados (inline edit) */}
                                         <div className="border border-dashed rounded-lg p-3 mt-1">
                                           <div className="flex items-center justify-between mb-2">
@@ -3444,7 +3296,6 @@ export default function NewClientModal({
                                             </AlertDialogContent>
                                           </AlertDialog>
                                         </div>
-                                      </div>
                                     </div>
                                   )}
                                 </div>
@@ -3455,160 +3306,52 @@ export default function NewClientModal({
 
                         {!isReadOnly && (
                           <div className="bg-muted/50 rounded-lg border p-4">
-                            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
-                            <div className="flex flex-col gap-2.5">
-                              {/* Nº OS */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Nº OS *
-                                </Label>
-                                <div className="flex-1">
-                                  <Input
-                                    value={draftContract.ordem_servico}
-                                    onChange={(e) =>
-                                      setDraftContract({ ...draftContract, ordem_servico: e.target.value })
-                                    }
-                                    placeholder="Ex: 001/2025"
-                                    className="h-8 max-w-[200px]"
-                                  />
-                                </div>
+                            <h4 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Ordem de Serviço */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Ordem de Serviço *</Label>
+                                <Input
+                                  value={draftContract.ordem_servico}
+                                  onChange={(e) => setDraftContract({ ...draftContract, ordem_servico: e.target.value })}
+                                  placeholder="Ex: 001/2025"
+                                  className="h-8 mt-1"
+                                />
                               </div>
-                              {/* Data Emissão */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Data Emissão *
-                                </Label>
-                                <div className="flex-1">
+                              {/* Data de Emissão */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão *</Label>
+                                <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_emissao}
                                     onChange={(v) => setDraftContract({ ...draftContract, data_emissao: v })}
                                   />
                                 </div>
                               </div>
-                              {/* Gestor */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Gestor *
-                                </Label>
-                                <div className="flex-1">
-                                  <Select
-                                    value={draftContract.gestor_responsavel || "__none__"}
-                                    onValueChange={(v) =>
-                                      setDraftContract({
-                                        ...draftContract,
-                                        gestor_responsavel: v === "__none__" ? "" : v,
-                                      })
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8">
-                                      <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {lideres.map((l) => (
-                                        <SelectItem key={l.id} value={l.nome}>
-                                          {l.nome}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                              {/* Projeto */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Projeto *
-                                </Label>
-                                <div className="flex-1">
-                                  <Input
-                                    value={draftContract.nome_projeto}
-                                    onChange={(e) =>
-                                      setDraftContract({ ...draftContract, nome_projeto: e.target.value })
-                                    }
-                                    className="h-8"
+                              {/* Data Início */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início *</Label>
+                                <div className="mt-1">
+                                  <DateFieldWithInput
+                                    value={draftContract.data_inicio_projeto}
+                                    onChange={(v) => setDraftContract({ ...draftContract, data_inicio_projeto: v })}
                                   />
                                 </div>
                               </div>
-                              {/* Descrição */}
-                              <div className="flex flex-row items-start gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                                  Descrição
-                                </Label>
-                                <div className="flex-1">
-                                  <Textarea
-                                    value={draftContract.descricao_projeto}
-                                    onChange={(e) =>
-                                      setDraftContract({ ...draftContract, descricao_projeto: e.target.value })
-                                    }
-                                    placeholder="Mín. 20 caracteres se preenchido..."
-                                    className="min-h-[60px]"
-                                    maxLength={500}
+                              {/* Data Fim */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label>
+                                <div className="mt-1">
+                                  <DateFieldWithInput
+                                    value={draftContract.data_fim_projeto}
+                                    onChange={(v) => setDraftContract({ ...draftContract, data_fim_projeto: v })}
                                   />
-                                  <p className="text-xs text-muted-foreground text-right mt-1">
-                                    {draftContract.descricao_projeto.length}/500
-                                  </p>
                                 </div>
                               </div>
-                              {/* Data Início + Data Fim (lado a lado) */}
-                              <div className="flex flex-row items-center gap-6">
-                                <div className="flex flex-row items-center gap-4 flex-1">
-                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Data Início *
-                                  </Label>
-                                  <div className="flex-1">
-                                    <DateFieldWithInput
-                                      value={draftContract.data_inicio_projeto}
-                                      onChange={(v) => setDraftContract({ ...draftContract, data_inicio_projeto: v })}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="flex flex-row items-center gap-4 flex-1">
-                                  <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Data Fim
-                                  </Label>
-                                  <div className="flex-1">
-                                    <DateFieldWithInput
-                                      value={draftContract.data_fim_projeto}
-                                      onChange={(v) => setDraftContract({ ...draftContract, data_fim_projeto: v })}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              {/* Reembolsos (lado a lado) */}
-                              <div className="flex flex-row items-center gap-6">
-                                <div className="flex flex-row items-center gap-4 flex-1">
-                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Reembolso por km (R$) *
-                                  </Label>
-                                  <div className="flex-1">
-                                    <CurrencyField
-                                      value={draftContract.valor_reembolso_km}
-                                      onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_km: v })}
-                                      className="max-w-[160px]"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="flex flex-row items-center gap-4 flex-1">
-                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Reembolso refeição por pessoa (R$) *
-                                  </Label>
-                                  <div className="flex-1">
-                                    <CurrencyField
-                                      value={draftContract.valor_reembolso_refeicao}
-                                      onChange={(v) =>
-                                        setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })
-                                      }
-                                      className="max-w-[160px]"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              {/* Valor */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Valor (R$) *
-                                </Label>
-                                <div className="flex-1">
+                              {/* Valor do Projeto */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$) *</Label>
+                                <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_projeto}
                                     onChange={(v) => setDraftContract({ ...draftContract, valor_projeto: v })}
@@ -3616,43 +3359,56 @@ export default function NewClientModal({
                                 </div>
                               </div>
                               {/* Situação do Projeto */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Situação do Projeto *
-                                </Label>
-                                <div className="flex-1">
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto *</Label>
+                                <div className="mt-1">
                                   <Select
                                     value={draftContract.situacao_projeto}
-                                    onValueChange={(v) =>
-                                      setDraftContract({ ...draftContract, situacao_projeto: v })
-                                    }
+                                    onValueChange={(v) => setDraftContract({ ...draftContract, situacao_projeto: v })}
                                   >
                                     <SelectTrigger className="h-8">
                                       <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                       {SITUACAO_PROJETO_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                          {opt.label}
-                                        </SelectItem>
+                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
                               </div>
-
-                              {/* Observações */}
-                              <div className="mt-4">
-                                <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
-                                <Textarea
-                                  value={draftContract.observacoes_projeto}
-                                  onChange={(e) =>
-                                    setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })
-                                  }
-                                  placeholder="Insira observações relevantes sobre o projeto..."
-                                  className="min-h-[80px]"
-                                />
+                              {/* Reembolso por KM */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$) *</Label>
+                                <div className="mt-1">
+                                  <CurrencyField
+                                    value={draftContract.valor_reembolso_km}
+                                    onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_km: v })}
+                                  />
+                                </div>
                               </div>
+                              {/* Reembolso Refeição */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$) *</Label>
+                                <div className="mt-1">
+                                  <CurrencyField
+                                    value={draftContract.valor_reembolso_refeicao}
+                                    onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Observações */}
+                            <div className="mt-4">
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
+                              <Textarea
+                                value={draftContract.observacoes_projeto}
+                                onChange={(e) => setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })}
+                                placeholder="Insira observações relevantes sobre o projeto..."
+                                className="min-h-[80px]"
+                              />
+                            </div>
 
                               {/* Serviços Contratados */}
                               <div className="mt-4 border border-dashed rounded-lg p-4">
@@ -3827,7 +3583,6 @@ export default function NewClientModal({
                                   );
                                 })()}
                               </div>
-                            </div>
 
                             <div className="flex justify-end mt-4 pt-2 border-t">
                               <Button onClick={addContract} className="gap-2">
