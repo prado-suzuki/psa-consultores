@@ -1,0 +1,1 @@
+ALTER VIEW public.per_with_contribuinte SET (security_invoker = on);
