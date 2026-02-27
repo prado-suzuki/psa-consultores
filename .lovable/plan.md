@@ -1,22 +1,90 @@
 
 
-# Reorganizar filtros em duas linhas com botao "Novo PER" no topo
+# Reestruturar filtros do Controle PERDCOMP seguindo padrao Gestao de Clientes
 
-## Layout proposto
+## Referencia visual
 
-**Linha 1 (sempre visivel):** Cliente | Contribuinte | Botao Buscar | Botao Limpar | Botao **Novo PER**
+A pagina **Gestao de Clientes** sera o padrao a seguir. Ela usa:
+- CardHeader com icone Filter + titulo "FILTROS DE BUSCA" (uppercase, tracking-wider) + botao de acao primaria a direita
+- CardContent com grid de 12 colunas para inputs
+- Rodape com botoes "Limpar filtros" e "Buscar" alinhados a direita, separados por `border-t`
+- Dados carregam automaticamente (`searched` inicia como `true`)
 
-**Linha 2 (sempre visivel):** Situacao | Exercicio | N do Processo
+## Mudancas no arquivo `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-## Mudancas tecnicas
+### 1. CardHeader com titulo e botao "Novo PER"
 
-**Arquivo:** `src/pages/equipe/dev/ControlePerdcomp.tsx`
+Adicionar CardHeader seguindo o padrao de GestaoClientes:
 
-1. **Remover CardHeader "Filtros"** para deixar o card mais compacto
-2. **Dividir o grid unico de 7 colunas em dois grids separados:**
-   - Linha 1: grid de 5 colunas -- Cliente (col-span-2), Contribuinte (col-span-2), e um grupo com Buscar + Limpar + Novo PER (col-span-1, flex horizontal)
-   - Linha 2: grid de 3 colunas -- Situacao, Exercicio, N do Processo (sempre visiveis, sem condicao)
-3. **Mover o botao "Novo"** do CardHeader de Resultados (linhas 843-848) para a linha 1 de filtros, com icone Plus e estilo primario
-4. **Remover o botao "Novo" e a condicao `searched`** do card de Resultados
-5. **Ambas as linhas ficam sempre visiveis**, sem depender de nenhum estado
+```text
++------------------------------------------------------------+
+| [Filter icon] FILTROS DE BUSCA            [+ Novo PER]     |
++------------------------------------------------------------+
+```
+
+- Icone `Filter` (lucide) com cor `text-teal-600`
+- Titulo em `uppercase text-sm tracking-wider font-bold text-slate-800`
+- Botao "Novo PER" alinhado a direita com `bg-teal-600 hover:bg-teal-700 text-white`
+
+### 2. Grid de inputs em 12 colunas
+
+Todos os 5 campos organizados em um unico grid `grid-cols-12`:
+
+```text
+| Cliente (col-span-3)  | Contribuinte (col-span-3) | Situacao (col-span-2) | Exercicio (col-span-2) | N Processo (col-span-2) |
+```
+
+- Labels com `text-xs font-bold uppercase tracking-wider text-slate-700`
+- SelectTrigger com `h-11 bg-white dark:bg-slate-800`
+- Em mobile: cada campo ocupa `col-span-12` ou `col-span-6`
+
+### 3. Rodape de acoes (Buscar + Limpar)
+
+Abaixo do grid, uma div com `flex justify-end gap-3 pt-4 border-t`:
+
+```text
+                                    [Limpar filtros]  [Buscar]
+```
+
+- "Limpar filtros" aparece apenas quando ha filtros ativos, com `bg-red-600`
+- "Buscar" com `bg-teal-600`, mostra spinner quando carregando
+
+### 4. Busca automatica ao montar a pagina
+
+- Alterar `useState(false)` para `useState(true)` no estado `searched`
+- Remover o empty state de "Selecione os filtros e clique em Buscar" (ou mante-lo apenas para quando nao ha contribuinte selecionado)
+- As queries ja ficam habilitadas desde o inicio, carregando dados do contribuinte selecionado (se houver)
+
+### 5. Importar icone Filter
+
+Adicionar `Filter` a lista de imports do lucide-react (ja existe `Search, Plus, X, Loader2`).
+
+## Estrutura final do JSX
+
+```text
+<Card>
+  <CardHeader>
+    [Filter] FILTROS DE BUSCA                    [+ Novo PER]
+  </CardHeader>
+  <CardContent>
+    <grid 12 colunas>
+      Cliente(3) | Contribuinte(3) | Situacao(2) | Exercicio(2) | N Processo(2)
+    </grid>
+    <div border-t flex justify-end>
+      [Limpar filtros]  [Buscar]
+    </div>
+  </CardContent>
+</Card>
+
+<Card>
+  <CardHeader>
+    Resultados - PER
+  </CardHeader>
+  <CardContent>
+    tabela...
+  </CardContent>
+</Card>
+```
+
+Essa estrutura espelha exatamente o padrao usado em Gestao de Clientes, mantendo consistencia visual em todo o modulo Dev.
 
