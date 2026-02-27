@@ -144,21 +144,8 @@ export function PerFormModal({
   const draftEnabled = open && !isEditing;
   const { restore, clear } = useDraftPersistence('per-form-draft', watchedValues, draftEnabled, user?.id);
 
-  // Fetch contribuintes based on clienteId
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes', clienteId],
-    queryFn: async () => {
-      if (!clienteId) return [];
-      const { data, error } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social')
-        .eq('cliente_id', clienteId)
-        .order('nome_razao_social');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!clienteId,
-  });
+
+
 
   // Fetch existing PERs for the contribuinte (for rectification selection)
   const { data: persExistentes = [] } = useQuery({
@@ -477,30 +464,8 @@ export function PerFormModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="id_contribuinte"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contribuinte</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o contribuinte" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {contribuintes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome_razao_social}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
