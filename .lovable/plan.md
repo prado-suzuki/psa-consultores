@@ -1,19 +1,42 @@
 
+# Corrigir erro de chave duplicada ao criar PER
 
-# Remover campo Contribuinte do formulário PER
+## Problema
 
-## Contexto
-O contribuinte já está selecionado no filtro da página principal (`ControlePerdcomp`), e o `contribuinteId` já é passado como prop para o `PerFormModal`. O campo de seleção de contribuinte no formulário é redundante.
+A tabela `per` usa `numero_processo_per` como chave primaria (nao um UUID auto-gerado). Quando o usuario tenta cadastrar um PER com um numero de processo que ja existe no banco, o Postgres retorna o erro `duplicate key value violates unique constraint "per_pkey"`, que e exibido como mensagem generica para o usuario.
 
-## Alterações
+## Solucao
+
+Adicionar uma verificacao previa no `createMutation` antes do `insert`: consultar se ja existe um registro com o mesmo `numero_processo_per`. Se existir, lancar um erro amigavel em portugues em vez de deixar o banco rejeitar silenciosamente.
+
+## Alteracao
 
 **Arquivo:** `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-1. **Remover o campo visual do formulário** (linhas 480-503): Deletar o bloco `<FormField name="id_contribuinte">` que renderiza o `<Select>` de contribuinte.
+Na funcao `mutationFn` do `createMutation` (linha 225), adicionar antes do insert:
 
-2. **Manter o valor no schema e no form**: O campo `id_contribuinte` continua existindo no `perSchema` e no `defaultValues` do `useForm`, pois é necessário para o insert/update no banco. O valor já é preenchido automaticamente via `contribuinteId` prop (linha 132: `id_contribuinte: contribuinteId || ''`).
+```text
+// Verificar se já existe PER com este número
+const { data: existing } = await supabase
+  .from('per')
+  .select('numero_processo_per')
+  .eq('numero_processo_per', data.numero_processo_per)
+  .maybeSingle();
 
-3. **Remover a query de contribuintes** (linhas 148-161): A query `['contribuintes', clienteId]` que busca a lista de contribuintes para popular o Select pode ser removida, já que o Select não existirá mais.
+if (existing) {
+  throw new Error('Já existe um PER cadastrado com este número de processo.');
+}
+```
 
-Nenhuma alteração necessária em `ControlePerdcomp.tsx`, pois ele já passa `contribuinteId` corretamente para o modal.
+Isso garante uma mensagem clara e em portugues para o usuario, sem depender da mensagem crua do Postgres.
 
+Adicionalmente, melhorar o `onError` para tratar tambem o caso de a verificacao falhar por race condition (dois usuarios simultaneos), capturando o erro do Postgres e exibindo a mesma mensagem amigavel:
+
+```text
+onError: (error: any) => {
+  const msg = error.message?.includes('per_pkey') || error.message?.includes('duplicate key')
+    ? 'Já existe um PER cadastrado com este número de processo.'
+    : error.message;
+  toast.error(`Erro ao criar PER: ${msg}`);
+}
+```
