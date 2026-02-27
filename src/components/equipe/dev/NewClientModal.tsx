@@ -116,6 +116,17 @@ interface DraftParticipant {
   acesso_chamados: boolean;
 }
 
+interface DraftContractService {
+  _id: number;
+  catalog_client_id: string;
+}
+
+interface DraftContractCostCenter {
+  _id: number;
+  name: string;
+  percent: number;
+}
+
 interface DraftContract {
   _id: number;
   ordem_servico: string;
@@ -128,7 +139,23 @@ interface DraftContract {
   valor_reembolso_km: number;
   valor_reembolso_refeicao: number;
   gestor_responsavel: string;
+  situacao_projeto: string;
+  servicos: DraftContractService[];
+  centros_custo: DraftContractCostCenter[];
 }
+
+const SITUACAO_PROJETO_OPTIONS = [
+  { value: 'em_andamento', label: 'Em andamento' },
+  { value: 'concluido', label: 'Concluído' },
+  { value: 'suspenso', label: 'Suspenso' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
+
+const CENTRO_CUSTO_OPTIONS = [
+  'Administrativo/Matriz',
+  'Comercial',
+  'Operacional',
+];
 
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
@@ -394,6 +421,18 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     }
   });
 
+  const { data: catalogClients = [] } = useQuery({
+    queryKey: ['catalog-clients-active'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('catalog_clients')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      return data || [];
+    }
+  });
+
   const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
     return profiles
@@ -443,6 +482,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
     ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
     data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
     valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
+    situacao_projeto: 'em_andamento', servicos: [] as DraftContractService[], centros_custo: [] as DraftContractCostCenter[],
   });
 
   // --- Unsaved changes detection ---
@@ -704,11 +744,21 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       toast.error('Descrição do Projeto deve ter no mínimo 20 caracteres'); return;
     }
 
+    // Validate cost centers total if any exist
+    if (draftContract.centros_custo.length > 0) {
+      const total = draftContract.centros_custo.reduce((s, c) => s + c.percent, 0);
+      if (total !== 100) {
+        toast.error(`A distribuição dos centros de custo deve totalizar 100% (atual: ${total}%)`);
+        return;
+      }
+    }
+
     setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
     setDraftContract({
       ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
       data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
+      situacao_projeto: 'em_andamento', servicos: [], centros_custo: [],
     });
   };
 
@@ -962,6 +1012,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
       ordem_servico: '', data_emissao: '', nome_projeto: '', descricao_projeto: '',
       data_inicio_projeto: '', data_fim_projeto: '', valor_projeto: 0,
       valor_reembolso_km: 0, valor_reembolso_refeicao: 0, gestor_responsavel: '',
+      situacao_projeto: 'em_andamento', servicos: [], centros_custo: [],
     });
     setDraftParticipant({ nome: '', tipo_participante: '', cargo: '', email: '', telefone: '', observacoes: '', acesso_chamados: false });
     setActiveTab('cliente');
@@ -1926,6 +1977,7 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : '—'} />
                                       <FieldPair label="Gestor Responsável" value={cont.gestor_responsavel} />
                                       <FieldPair label="Nome do Projeto" value={cont.nome_projeto} />
+                                      <FieldPair label="Situação" value={SITUACAO_PROJETO_OPTIONS.find(o => o.value === cont.situacao_projeto)?.label || cont.situacao_projeto} />
                                       {cont.descricao_projeto && <div className="col-span-2 md:col-span-3"><FieldPair label="Descrição" value={cont.descricao_projeto} /></div>}
                                       <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : '—'} />
                                       <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : '—'} />
@@ -1933,111 +1985,212 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                                       <FieldPair label="Reembolso km" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
                                       <FieldPair label="Reembolso refeição por pessoa" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
                                     </div>
+                                    {cont.servicos && cont.servicos.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-dashed">
+                                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Serviços Contratados</span>
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                          {cont.servicos.map(s => {
+                                            const cat = catalogClients.find((c: any) => c.id === s.catalog_client_id);
+                                            return <Badge key={s._id} variant="secondary" className="text-xs">{cat?.name || s.catalog_client_id}</Badge>;
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {cont.centros_custo && cont.centros_custo.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-dashed">
+                                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Centros de Custo</span>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                          {cont.centros_custo.map(cc => (
+                                            <Badge key={cc._id} variant="outline" className="text-xs">{cc.name}: {cc.percent}%</Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 
                                 {isExpanded && isEditingThis && ec && (
                                   <div className="px-4 pb-4 border-t pt-3">
-                                    <div className="flex flex-col gap-2.5">
-                                      {/* OS */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">OS *</Label>
-                                        <div className="flex-1">
-                                          <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} className="h-8 max-w-[200px]" />
-                                        </div>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Ordem de Serviço <span className="text-destructive">*</span></Label>
+                                        <Input value={ec.ordem_servico || ''} onChange={e => setEditingContractData({ ...ec, ordem_servico: e.target.value })} className="h-8" />
                                       </div>
-                                      {/* Data Emissão */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
-                                        <div className="flex-1">
-                                          <DateFieldWithInput value={ec.data_emissao || ''} onChange={v => setEditingContractData({ ...ec, data_emissao: v })} />
-                                        </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data de Emissão <span className="text-destructive">*</span></Label>
+                                        <DateFieldWithInput value={ec.data_emissao || ''} onChange={v => setEditingContractData({ ...ec, data_emissao: v })} />
                                       </div>
-                                      {/* Gestor */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Gestor *</Label>
-                                        <div className="flex-1">
-                                          <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
-                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">Selecione...</SelectItem>
-                                              {lideres.map(l => (
-                                                <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Início <span className="text-destructive">*</span></Label>
+                                        <DateFieldWithInput value={ec.data_inicio_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_inicio_projeto: v })} />
                                       </div>
-                                      {/* Projeto */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Projeto *</Label>
-                                        <div className="flex-1">
-                                          <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} className="h-8" />
-                                        </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Fim</Label>
+                                        <DateFieldWithInput value={ec.data_fim_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_fim_projeto: v })} />
                                       </div>
-                                      {/* Descrição */}
-                                      <div className="flex flex-row items-start gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Descrição</Label>
-                                        <div className="flex-1">
-                                          <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
-                                          <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
-                                        </div>
-                                      </div>
-                                      {/* Data Início + Data Fim (lado a lado) */}
-                                      <div className="flex flex-row items-center gap-6">
-                                        <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
-                                          <div className="flex-1">
-                                            <DateFieldWithInput value={ec.data_inicio_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_inicio_projeto: v })} />
-                                          </div>
-                                        </div>
-                                        <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
-                                          <div className="flex-1">
-                                            <DateFieldWithInput value={ec.data_fim_projeto || ''} onChange={v => setEditingContractData({ ...ec, data_fim_projeto: v })} />
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {/* Reembolsos (lado a lado) */}
-                                      <div className="flex flex-row items-center gap-6">
-                                        <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$) *</Label>
-                                          <div className="flex-1">
-                                            <CurrencyField value={ec.valor_reembolso_km || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_km: v })} className="max-w-[160px]" />
-                                          </div>
-                                        </div>
-                                        <div className="flex flex-row items-center gap-4 flex-1">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição por pessoa (R$) *</Label>
-                                          <div className="flex-1">
-                                            <CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} className="max-w-[160px]" />
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {/* Valor */}
-                                      <div className="flex flex-row items-center gap-4">
-                                        <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
-                                        <div className="flex-1">
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Valor do Projeto <span className="text-destructive">*</span></Label>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
                                           <CurrencyField value={ec.valor_projeto || 0} onChange={v => setEditingContractData({ ...ec, valor_projeto: v })} />
                                         </div>
                                       </div>
-                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                                        <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                              <AlertDialogDescription>Deseja salvar as alterações feitas nesta OS?</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Salvar</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Situação do Projeto <span className="text-destructive">*</span></Label>
+                                        <Select value={ec.situacao_projeto || 'em_andamento'} onValueChange={v => setEditingContractData({ ...ec, situacao_projeto: v })}>
+                                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            {SITUACAO_PROJETO_OPTIONS.map(o => (
+                                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso por km</Label>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
+                                          <CurrencyField value={ec.valor_reembolso_km || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_km: v })} />
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso refeição</Label>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-semibold text-muted-foreground">R$</span>
+                                          <CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={v => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} />
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Gestor Responsável <span className="text-destructive">*</span></Label>
+                                        <Select value={ec.gestor_responsavel || '__none__'} onValueChange={v => setEditingContractData({ ...ec, gestor_responsavel: v === '__none__' ? '' : v })}>
+                                          <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {lideres.map(l => (
+                                              <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Projeto <span className="text-destructive">*</span></Label>
+                                        <Input value={ec.nome_projeto || ''} onChange={e => setEditingContractData({ ...ec, nome_projeto: e.target.value })} className="h-8" />
+                                      </div>
+                                      <div className="col-span-2">
+                                        <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
+                                        <Textarea value={ec.descricao_projeto || ''} onChange={e => setEditingContractData({ ...ec, descricao_projeto: e.target.value })} className="min-h-[60px]" maxLength={500} />
+                                        <p className="text-xs text-muted-foreground text-right mt-1">{(ec.descricao_projeto || '').length}/500</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Serviços Contratados - Edit */}
+                                    <div className="mt-4 border border-dashed rounded-lg p-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="uppercase text-xs font-semibold text-muted-foreground">Serviços Contratados</span>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                                          const servicos = [...(ec.servicos || []), { _id: Date.now() + Math.random(), catalog_client_id: '' }];
+                                          setEditingContractData({ ...ec, servicos });
+                                        }}>
+                                          <Plus size={12} /> Adicionar Serviço
+                                        </Button>
+                                      </div>
+                                      {(ec.servicos || []).map((s, idx) => (
+                                        <div key={s._id} className="flex items-center gap-2 mb-2">
+                                          <Select value={s.catalog_client_id || '__none__'} onValueChange={v => {
+                                            const servicos = [...(ec.servicos || [])];
+                                            servicos[idx] = { ...s, catalog_client_id: v === '__none__' ? '' : v };
+                                            setEditingContractData({ ...ec, servicos });
+                                          }}>
+                                            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione o serviço..." /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">Selecione...</SelectItem>
+                                              {catalogClients.map((c: any) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
+                                            const servicos = (ec.servicos || []).filter(x => x._id !== s._id);
+                                            setEditingContractData({ ...ec, servicos });
+                                          }}>
+                                            <Trash2 size={14} />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                      {(!ec.servicos || ec.servicos.length === 0) && <p className="text-xs text-muted-foreground">Nenhum serviço adicionado</p>}
+                                    </div>
+
+                                    {/* Centros de Custo - Edit */}
+                                    <div className="mt-4 border border-dashed rounded-lg p-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="uppercase text-xs font-semibold text-muted-foreground">Distribuição de Receita (Centros de Custo)</span>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                                          const centros_custo = [...(ec.centros_custo || []), { _id: Date.now() + Math.random(), name: '', percent: 0 }];
+                                          setEditingContractData({ ...ec, centros_custo });
+                                        }}>
+                                          <Plus size={12} /> Adicionar Centro de Custo
+                                        </Button>
+                                      </div>
+                                      {(ec.centros_custo || []).map((cc, idx) => (
+                                        <div key={cc._id} className="flex items-center gap-2 mb-2">
+                                          <Select value={cc.name || '__none__'} onValueChange={v => {
+                                            const centros_custo = [...(ec.centros_custo || [])];
+                                            centros_custo[idx] = { ...cc, name: v === '__none__' ? '' : v };
+                                            setEditingContractData({ ...ec, centros_custo });
+                                          }}>
+                                            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">Selecione...</SelectItem>
+                                              {CENTRO_CUSTO_OPTIONS.map(o => (
+                                                <SelectItem key={o} value={o}>{o}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <div className="flex items-center gap-1 w-24">
+                                            <Input type="number" min={0} max={100} value={cc.percent} onChange={e => {
+                                              const centros_custo = [...(ec.centros_custo || [])];
+                                              centros_custo[idx] = { ...cc, percent: Number(e.target.value) || 0 };
+                                              setEditingContractData({ ...ec, centros_custo });
+                                            }} className="h-8 text-center" />
+                                            <span className="text-xs text-muted-foreground">%</span>
+                                          </div>
+                                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
+                                            const centros_custo = (ec.centros_custo || []).filter(x => x._id !== cc._id);
+                                            setEditingContractData({ ...ec, centros_custo });
+                                          }}>
+                                            <Trash2 size={14} />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                      {(ec.centros_custo || []).length > 0 && (() => {
+                                        const total = (ec.centros_custo || []).reduce((s, c) => s + c.percent, 0);
+                                        const remaining = 100 - total;
+                                        return (
+                                          <div className={cn("text-xs font-semibold mt-2 px-2 py-1 rounded", total === 100 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
+                                            Total: {total}%{remaining !== 0 && ` — Faltam ${remaining}%`}
+                                          </div>
+                                        );
+                                      })()}
+                                      {(!ec.centros_custo || ec.centros_custo.length === 0) && <p className="text-xs text-muted-foreground">Nenhum centro de custo adicionado</p>}
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
+                                      <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                            <AlertDialogDescription>Deseja salvar as alterações feitas nesta OS?</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Salvar</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                   </div>
                                 )}
@@ -2050,94 +2203,171 @@ export default function NewClientModal({ open, onOpenChange, editingClienteId, r
                       {!isReadOnly && (
                       <div className="bg-muted/50 rounded-lg border p-4">
                         <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Nova OS</h4>
-                        <div className="flex flex-col gap-2.5">
-                          {/* Nº OS */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nº OS *</Label>
-                            <div className="flex-1">
-                              <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" className="h-8 max-w-[200px]" />
-                            </div>
+
+                        {/* Grid 2 colunas */}
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Ordem de Serviço <span className="text-destructive">*</span></Label>
+                            <Input value={draftContract.ordem_servico} onChange={e => setDraftContract({ ...draftContract, ordem_servico: e.target.value })} placeholder="Ex: 001/2025" className="h-8" />
                           </div>
-                          {/* Data Emissão */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Emissão *</Label>
-                            <div className="flex-1">
-                              <DateFieldWithInput value={draftContract.data_emissao} onChange={v => setDraftContract({ ...draftContract, data_emissao: v })} />
-                            </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data de Emissão <span className="text-destructive">*</span></Label>
+                            <DateFieldWithInput value={draftContract.data_emissao} onChange={v => setDraftContract({ ...draftContract, data_emissao: v })} />
                           </div>
-                          {/* Gestor */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Gestor *</Label>
-                            <div className="flex-1">
-                              <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
-                                <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
-                                  {lideres.map(l => (
-                                    <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Início <span className="text-destructive">*</span></Label>
+                            <DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={v => setDraftContract({ ...draftContract, data_inicio_projeto: v })} />
                           </div>
-                          {/* Projeto */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Projeto *</Label>
-                            <div className="flex-1">
-                              <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} className="h-8" />
-                            </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Data Fim</Label>
+                            <DateFieldWithInput value={draftContract.data_fim_projeto} onChange={v => setDraftContract({ ...draftContract, data_fim_projeto: v })} />
                           </div>
-                          {/* Descrição */}
-                          <div className="flex flex-row items-start gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Descrição</Label>
-                            <div className="flex-1">
-                              <Textarea
-                                value={draftContract.descricao_projeto}
-                                onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
-                                placeholder="Mín. 20 caracteres se preenchido..."
-                                className="min-h-[60px]"
-                                maxLength={500}
-                              />
-                              <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
-                            </div>
-                          </div>
-                          {/* Data Início + Data Fim (lado a lado) */}
-                          <div className="flex flex-row items-center gap-6">
-                            <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Data Início *</Label>
-                              <div className="flex-1">
-                                <DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={v => setDraftContract({ ...draftContract, data_inicio_projeto: v })} />
-                              </div>
-                            </div>
-                            <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-32 shrink-0 text-xs font-semibold text-muted-foreground">Data Fim</Label>
-                              <div className="flex-1">
-                                <DateFieldWithInput value={draftContract.data_fim_projeto} onChange={v => setDraftContract({ ...draftContract, data_fim_projeto: v })} />
-                              </div>
-                            </div>
-                          </div>
-                          {/* Reembolsos (lado a lado) */}
-                          <div className="flex flex-row items-center gap-6">
-                            <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso por km (R$) *</Label>
-                              <div className="flex-1">
-                                <CurrencyField value={draftContract.valor_reembolso_km} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_km: v })} className="max-w-[160px]" />
-                              </div>
-                            </div>
-                            <div className="flex flex-row items-center gap-4 flex-1">
-                              <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Reembolso refeição por pessoa (R$) *</Label>
-                              <div className="flex-1">
-                                <CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })} className="max-w-[160px]" />
-                              </div>
-                            </div>
-                          </div>
-                          {/* Valor */}
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Valor (R$) *</Label>
-                            <div className="flex-1">
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Valor do Projeto <span className="text-destructive">*</span></Label>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
                               <CurrencyField value={draftContract.valor_projeto} onChange={v => setDraftContract({ ...draftContract, valor_projeto: v })} />
                             </div>
                           </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Situação do Projeto <span className="text-destructive">*</span></Label>
+                            <Select value={draftContract.situacao_projeto} onValueChange={v => setDraftContract({ ...draftContract, situacao_projeto: v })}>
+                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {SITUACAO_PROJETO_OPTIONS.map(o => (
+                                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso por km</Label>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
+                              <CurrencyField value={draftContract.valor_reembolso_km} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_km: v })} />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Reembolso refeição</Label>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-muted-foreground">R$</span>
+                              <CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={v => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })} />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Gestor Responsável <span className="text-destructive">*</span></Label>
+                            <Select value={draftContract.gestor_responsavel || '__none__'} onValueChange={v => setDraftContract({ ...draftContract, gestor_responsavel: v === '__none__' ? '' : v })}>
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {lideres.map(l => (
+                                  <SelectItem key={l.id} value={l.nome}>{l.nome}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Projeto <span className="text-destructive">*</span></Label>
+                            <Input value={draftContract.nome_projeto} onChange={e => setDraftContract({ ...draftContract, nome_projeto: e.target.value })} className="h-8" />
+                          </div>
+                          <div className="col-span-2">
+                            <Label className="uppercase text-xs font-semibold text-muted-foreground mb-1.5 block">Observações</Label>
+                            <Textarea
+                              value={draftContract.descricao_projeto}
+                              onChange={e => setDraftContract({ ...draftContract, descricao_projeto: e.target.value })}
+                              placeholder="Mín. 20 caracteres se preenchido..."
+                              className="min-h-[60px]"
+                              maxLength={500}
+                            />
+                            <p className="text-xs text-muted-foreground text-right mt-1">{draftContract.descricao_projeto.length}/500</p>
+                          </div>
+                        </div>
+
+                        {/* Serviços Contratados */}
+                        <div className="mt-4 border border-dashed rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="uppercase text-xs font-semibold text-muted-foreground">Serviços Contratados</span>
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                              setDraftContract({ ...draftContract, servicos: [...draftContract.servicos, { _id: Date.now() + Math.random(), catalog_client_id: '' }] });
+                            }}>
+                              <Plus size={12} /> Adicionar Serviço
+                            </Button>
+                          </div>
+                          {draftContract.servicos.map((s, idx) => (
+                            <div key={s._id} className="flex items-center gap-2 mb-2">
+                              <Select value={s.catalog_client_id || '__none__'} onValueChange={v => {
+                                const servicos = [...draftContract.servicos];
+                                servicos[idx] = { ...s, catalog_client_id: v === '__none__' ? '' : v };
+                                setDraftContract({ ...draftContract, servicos });
+                              }}>
+                                <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione o serviço..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {catalogClients.map((c: any) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
+                                setDraftContract({ ...draftContract, servicos: draftContract.servicos.filter(x => x._id !== s._id) });
+                              }}>
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          ))}
+                          {draftContract.servicos.length === 0 && <p className="text-xs text-muted-foreground">Nenhum serviço adicionado</p>}
+                        </div>
+
+                        {/* Centros de Custo */}
+                        <div className="mt-4 border border-dashed rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="uppercase text-xs font-semibold text-muted-foreground">Distribuição de Receita (Centros de Custo)</span>
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                              setDraftContract({ ...draftContract, centros_custo: [...draftContract.centros_custo, { _id: Date.now() + Math.random(), name: '', percent: 0 }] });
+                            }}>
+                              <Plus size={12} /> Adicionar Centro de Custo
+                            </Button>
+                          </div>
+                          {draftContract.centros_custo.map((cc, idx) => (
+                            <div key={cc._id} className="flex items-center gap-2 mb-2">
+                              <Select value={cc.name || '__none__'} onValueChange={v => {
+                                const centros_custo = [...draftContract.centros_custo];
+                                centros_custo[idx] = { ...cc, name: v === '__none__' ? '' : v };
+                                setDraftContract({ ...draftContract, centros_custo });
+                              }}>
+                                <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {CENTRO_CUSTO_OPTIONS.map(o => (
+                                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <div className="flex items-center gap-1 w-24">
+                                <Input type="number" min={0} max={100} value={cc.percent} onChange={e => {
+                                  const centros_custo = [...draftContract.centros_custo];
+                                  centros_custo[idx] = { ...cc, percent: Number(e.target.value) || 0 };
+                                  setDraftContract({ ...draftContract, centros_custo });
+                                }} className="h-8 text-center" />
+                                <span className="text-xs text-muted-foreground">%</span>
+                              </div>
+                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => {
+                                setDraftContract({ ...draftContract, centros_custo: draftContract.centros_custo.filter(x => x._id !== cc._id) });
+                              }}>
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          ))}
+                          {draftContract.centros_custo.length > 0 && (() => {
+                            const total = draftContract.centros_custo.reduce((s, c) => s + c.percent, 0);
+                            const remaining = 100 - total;
+                            return (
+                              <div className={cn("text-xs font-semibold mt-2 px-2 py-1 rounded", total === 100 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive")}>
+                                Total: {total}%{remaining !== 0 && ` — Faltam ${remaining}%`}
+                              </div>
+                            );
+                          })()}
+                          {draftContract.centros_custo.length === 0 && <p className="text-xs text-muted-foreground">Nenhum centro de custo adicionado</p>}
                         </div>
 
                         <div className="flex justify-end mt-4 pt-2 border-t">
