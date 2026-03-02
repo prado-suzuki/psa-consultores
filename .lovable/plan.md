@@ -1,126 +1,65 @@
 
 
-# Reorganizar formulario OS para layout identico ao exemplo HTML
+# Refazer layout da pagina GestaoClientes conforme referencia HTML
 
 ## Objetivo
 
-Reestruturar completamente o formulario "Nova OS", o card read-only e o inline edit para ficarem 100% iguais ao HTML de referencia, removendo campos que nao existem no exemplo e ajustando o layout para grid 2 colunas com labels acima dos inputs.
+Reorganizar a interface principal de `src/pages/equipe/dev/GestaoClientes.tsx` para ficar identica ao layout do HTML de referencia e imagem fornecidos, mantendo as cores padrao do projeto (Teal/Slate).
 
-## Arquivo alterado
+## Diferencas identificadas (atual vs referencia)
 
-- `src/components/equipe/dev/NewClientModal.tsx`
+### 1. Secao do topo (Botao + texto auxiliar)
+- **Atual**: Titulo "Visao Geral" + subtitulo + botao a direita com `bg-teal-600 text-white`
+- **Referencia**: Apenas botao "+ Novo cliente" a ESQUERDA com fundo teal, e texto auxiliar "Gerencie sua base de dados de clientes" a DIREITA (com icone info). Sem titulo "Visao Geral" nem subtitulo.
 
-## Campos a REMOVER (nao existem no exemplo)
+### 2. Card de Filtros
+- **Atual**: Titulo "Filtros de busca" (sentence case), grid 5 colunas, labels `text-xs`, selects com `bg-gray-50`, botoes na mesma area do card
+- **Referencia**:
+  - Titulo "FILTROS DE BUSCA" (uppercase, bold, lg) com icone filter_list em bg-gray-50 separado por borda
+  - Grid 3 colunas (linha 1: Cliente, Contribuinte, Status; linha 2: Tipo, Categoria)
+  - Labels `text-sm font-bold uppercase tracking-wider`
+  - Selects com `h-12 bg-white border border-gray-300 rounded-lg shadow-sm`
+  - Area de botoes separada em footer com `bg-gray-50 border-t` contendo "Limpar filtros" (sempre visivel, estilo outline) e "Buscar" (teal com icone search)
 
-1. **Gestor** (`gestor_responsavel`) - Select com lideres
-2. **Projeto** (`nome_projeto`) - Input de texto
-3. **Descricao** (`descricao_projeto`) - Textarea com contador 500 chars
+### 3. Secao de Resultados
+- **Atual**: Card branco com header "Resultados recentes" + badge de contagem, empty state com icone grande em circulo
+- **Referencia**:
+  - Titulo "Resultados recentes" e "Mostrando X resultados" FORA de card, como texto simples entre o card de filtros e a area de resultados
+  - Empty state: card com borda dashed, icone menor, texto simples "Utilize os filtros acima para encontrar clientes."
+  - Sem card envolvente pesado, apenas borda dashed arredondada
 
-Esses campos serao removidos da interface `DraftContract`, do state `draftContract`, da validacao `addContract`, do reset, do card read-only, do inline edit e do formulario "Nova OS".
+### 4. Placeholders dos selects
+- **Atual**: "Todos os clientes", "Selecione...", "Todos", "Selecione...", "Qualquer"
+- **Referencia**: "Selecione um cliente", "Selecione o contribuinte", "Todos os status", "Selecione o tipo", "Selecione a categoria"
 
-## Layout final dos campos (identico ao HTML de referencia)
+## Mudancas tecnicas
 
-```text
---- DADOS DA OS --- (titulo com borda inferior)
+### Arquivo: `src/pages/equipe/dev/GestaoClientes.tsx`
 
-ORDEM DE SERVICO *           DATA DE EMISSAO *
-[input text]                 [date input]
+**1. Secao do topo (linhas 203-220)**
+- Remover titulo "Visao Geral" e subtitulo
+- Botao "+ Novo cliente" a ESQUERDA com classes `h-12 px-6 bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold rounded-lg shadow-md`
+- Texto auxiliar a DIREITA: icone info + "Gerencie sua base de dados de clientes" (hidden em mobile)
 
-DATA INICIO *                DATA FIM
-[date input]                 [date input]
+**2. Card de Filtros (linhas 222-330)**
+- Header separado: `px-6 py-5 border-b bg-gray-50` com icone Filter teal + titulo "FILTROS DE BUSCA" uppercase bold lg
+- Corpo: `p-6` com grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
+- Labels: `text-sm font-bold uppercase tracking-wider text-gray-900`
+- SelectTrigger: `h-12 bg-white border-gray-300 rounded-lg shadow-sm`
+- Placeholders atualizados conforme referencia
+- Footer separado: `px-6 py-4 bg-gray-50 border-t flex justify-end gap-3`
+- Botao "Limpar filtros": sempre visivel (nao condicional), estilo `bg-white border border-gray-300 text-gray-500 hover:text-gray-900 h-10 px-4 rounded-lg font-bold shadow-sm`
+- Botao "Buscar": `bg-teal-500 hover:bg-teal-600 text-gray-900 h-10 px-6 rounded-lg font-bold shadow-sm` com icone Search
 
-VALOR DO PROJETO (R$) *      SITUACAO DO PROJETO *
-[R$ currency]                [select]
+**3. Secao de Resultados (linhas 332-457)**
+- Remover card envolvente branco com header
+- Titulo "Resultados recentes" como `text-lg font-bold` e "Mostrando X resultados" como `text-sm text-gray-500` em flex justify-between FORA de qualquer card
+- Empty state: `rounded-xl border border-dashed border-gray-300 bg-white h-48 flex items-center justify-center gap-3 text-gray-500 shadow-sm` com icone Search menor e texto simples
+- Quando ha resultados: manter tabela atual com paginacao como esta (ja esta boa)
 
-REEMBOLSO POR KM (R$) *      REEMBOLSO REFEICAO (R$) *
-[R$ currency]                [R$ currency]
+## Campos e funcionalidades preservados
 
---- OBSERVACOES --- (titulo de secao)
-[textarea full width, placeholder: "Insira observacoes relevantes sobre o projeto..."]
-
---- SERVICOS CONTRATADOS --- (secao dashed, sem mudancas)
-[+ Adicionar Servico]
-[select + X] ...
-
---- DISTRIBUICAO DE RECEITA (CENTROS DE CUSTO) --- (secao dashed, sem mudancas)
-[+ Adicionar Centro de Custo]
-[select + input % + X] ...
-Total Distribuido: XX% - Faltam YY% para completar 100%
-
-[Adicionar OS a Lista]
-```
-
-## Mudancas tecnicas detalhadas
-
-### 1. Interface DraftContract (linha 152)
-
-Remover `nome_projeto`, `descricao_projeto`, `gestor_responsavel`:
-
-```typescript
-interface DraftContract {
-  _id: number;
-  ordem_servico: string;
-  data_emissao: string;
-  data_inicio_projeto: string;
-  data_fim_projeto: string;
-  valor_projeto: number;
-  valor_reembolso_km: number;
-  valor_reembolso_refeicao: number;
-  situacao_projeto: string;
-  observacoes_projeto: string;
-  servicos_contratados: string[];
-  centros_custo: Array<{ empresa: string; percentual: number }>;
-}
-```
-
-### 2. State draftContract (linha 528)
-
-Remover valores iniciais de `nome_projeto`, `descricao_projeto`, `gestor_responsavel`.
-
-### 3. Funcao addContract (linha 890)
-
-- Remover validacoes de `nome_projeto` e `gestor_responsavel`
-- Remover validacao de `descricao_projeto` (min 20 chars)
-- MANTER validacoes de `valor_reembolso_km` e `valor_reembolso_refeicao` como obrigatorios
-- Remover reset desses campos no objeto de reset
-
-### 4. Card read-only da OS (linha 2860-3008)
-
-- Na linha do header do card, remover referencia a `cont.nome_projeto` (substituir por apenas "OS {numero}")
-- Na grid de FieldPairs, remover: Gestor Responsavel, Nome do Projeto, Descricao
-- Reordenar para: OS, Data Emissao, Data Inicio, Data Fim, Valor, Reembolso km, Reembolso refeicao, Situacao, Observacoes, Servicos, Centros de Custo
-
-### 5. Inline edit da OS (linha 3012-3447)
-
-- Remover campos: Gestor (select lideres), Projeto (input), Descricao (textarea + contador)
-- Mudar layout de label-left para grid 2 colunas com labels acima
-- Ordem dos campos identica ao formulario "Nova OS"
-
-### 6. Formulario "Nova OS" (linha 3456-3837)
-
-Substituir layout inteiro. De rows com label a esquerda para grid 2 colunas com labels acima:
-
-- Adicionar header "DADOS DA OS" com `text-xs font-bold uppercase` e `border-b pb-2 mb-4`
-- Grid `grid grid-cols-1 md:grid-cols-2 gap-4`
-- Cada campo: `<div><Label class="text-xs font-semibold uppercase text-muted-foreground">LABEL *</Label><Input .../></div>`
-- Remover campos Gestor, Projeto, Descricao
-- Manter secoes dashed de Servicos Contratados e Centros de Custo como estao (ja corretas)
-- Reembolso por KM e Reembolso Refeicao com asterisco (*) e validacao obrigatoria
-
-### 7. Funcao handleSave / load (persistencia)
-
-- Remover referencias a `nome_projeto`, `descricao_projeto`, `gestor_responsavel` nos inserts/updates do banco
-- Manter demais campos como estao
-
-### 8. Confirmacao de remocao na AlertDialog
-
-- Atualizar texto de confirmacao de remocao da OS que referencia `cont.nome_projeto` (linha 2908) para usar apenas `cont.ordem_servico`
-
-## Resumo de impacto
-
-- **Banco de dados**: Nenhuma alteracao
-- **Interface DraftContract**: 3 campos removidos (`nome_projeto`, `descricao_projeto`, `gestor_responsavel`)
-- **Layout**: De label-left vertical para grid 2 colunas com labels acima (identico ao HTML)
-- **Validacao**: Reembolso km e Reembolso refeicao permanecem obrigatorios; campos removidos nao sao mais validados
-- **Secoes dinamicas**: Servicos Contratados e Centros de Custo permanecem sem alteracoes
-
+- Todos os 5 filtros (Cliente, Contribuinte, Status, Tipo, Categoria) mantidos
+- Logica de queries, paginacao e modal inalterados
+- Tabela de resultados e formatadores mantidos
+- Cores Teal/Slate do projeto mantidas
