@@ -1,62 +1,55 @@
 
+# Plano: Conectar endpoints de listagem, download e export de balancetes
 
-# Plano: Atualizar filtro de situacao do PERDCOMP
+## Resumo
 
-## Problema
+Conectar a pagina de Controle de Balancetes aos 3 endpoints da API:
+1. **Listagem** - buscar balancetes por contribuinte (com filtro opcional de periodo)
+2. **Download** - baixar arquivo original do balancete
+3. **Export Excel** - exportar movimentos do balancete para Excel
 
-O filtro de situacao busca apenas valores distintos ja cadastrados no banco (`per_situacao`). Se uma situacao nunca foi usada, ela nao aparece no filtro. O usuario quer ver todas as opcoes possiveis.
+## Alteracoes
 
-## Situacoes existentes no sistema
+### Arquivo: `src/pages/equipe/dev/ControleBalancetes.tsx`
 
-Existem duas listas de situacoes no codigo:
+**1. Busca de balancetes (endpoint de listagem)**
 
-**SituacaoFormModal.tsx** (formulario de cadastro):
-- Pendente de Analise, Em Analise, Deferido, Deferido Parcialmente, Indeferido, Pago, Cancelado, Aguardando Documentacao
+- Ao clicar "Buscar", chamar `GET /api/v1/contabil/balancetes?id_contribuinte={id}` via `fetchWithAuth`
+- Se o usuario selecionou periodo, adicionar `dt_ini` e `dt_fim` como query params (usando `monthYearToDateString`)
+- Contribuinte sera obrigatorio para buscar (o endpoint exige `id_contribuinte`)
+- Armazenar resultado em state e exibir na tabela existente
+- Mostrar loading durante a busca
 
-**PerDetailModal.tsx** (detalhe do PER):
-- Analise concluida, Analise preliminar disponibilizada, Cancelado, Contribuinte intimado, Despacho decisorio emitido, Em analise, Em discussao administrativa - CARF/CSRF/DRJ, Homologado, Nao admitido, Pedido de cancelamento deferido, PER deferido, Retificado
+**2. Tabela de resultados**
 
-Alem disso, o PER e criado automaticamente com situacao "Analisado".
+- Preencher a tabela com os dados retornados pela API (contribuinte, periodo inicio, periodo fim, adicionado por, data upload)
+- Adicionar coluna "Acoes" com dois botoes por linha:
+  - Botao de download (icone Download) - baixa o arquivo original
+  - Botao de export Excel (icone FileDown) - exporta movimentos
 
-## Alteracao
+**3. Download do arquivo original**
 
-Em `ControlePerdcomp.tsx`:
+- `GET /api/v1/contabil/balancetes/{id_balancete}/download` via `fetchWithAuth`
+- Receber como blob e disparar download no navegador com nome sugerido
 
-1. Substituir a query `allSituacoes` (que busca apenas valores do banco) por uma lista estatica completa, unificando todas as situacoes dos dois formularios mais "Analisado".
+**4. Export Excel dos movimentos**
 
-2. Manter merge com valores do banco para cobrir situacoes customizadas que possam existir.
+- `GET /api/v1/contabil/balancetes/{id_balancete}/export-excel` via `fetchWithAuth`
+- Mesmo mecanismo de download via blob
 
-3. A opcao "Todas" ja existe (quando nenhuma checkbox esta marcada, exibe "Todas"). O botao "Limpar selecao" tambem ja funciona como "Todos".
+**5. Integracao com hooks existentes**
 
-## Lista unificada final
+- Usar `useApiAuth` (ja usado no modal de upload) para autenticacao
+- Usar `getApiUrl` para construir URLs
+- Usar `monthYearToDateString` para formatar datas dos filtros
+- Adicionar `toast` para feedback de erros
 
-```
-Aguardando Documentacao
-Analise concluida
-Analise preliminar disponibilizada
-Analisado
-Cancelado
-Contribuinte intimado
-Deferido
-Deferido Parcialmente
-Despacho decisorio emitido
-Em Analise
-Em discussao administrativa - CARF
-Em discussao administrativa - CSRF
-Em discussao administrativa - DRJ
-Homologado
-Indeferido
-Nao admitido
-Pago
-Pedido de cancelamento deferido
-PER deferido
-Pendente de Analise
-Retificado
-```
+## Detalhes tecnicos
 
-## Arquivo impactado
-
-| Arquivo | Alteracao |
+| Item | Detalhe |
 |---|---|
-| `ControlePerdcomp.tsx` | Substituir query de situacoes distintas por lista estatica unificada + merge com DB |
-
+| Arquivo modificado | `src/pages/equipe/dev/ControleBalancetes.tsx` |
+| Novos imports | `useApiAuth`, `getApiUrl`, `monthYearToDateString`, `Download`, `FileDown`, `Loader2`, `toast` |
+| State novo | `balancetes` (array), `loading` (boolean), `downloading` (Record de ids em progresso) |
+| Validacao | Contribuinte obrigatorio para buscar; toast de erro se nao selecionado |
+| Refresh apos upload | Ao fechar o modal de upload com sucesso, re-executar a busca se contribuinte estiver selecionado |
