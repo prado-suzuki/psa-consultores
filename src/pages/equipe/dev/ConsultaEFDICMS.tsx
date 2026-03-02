@@ -512,7 +512,7 @@ const ConsultaEFDICMS = () => {
   return (
     <DevLayout 
       title="Consulta EFD ICMS" 
-      subtitle="Análise e auditoria de arquivos SPED ICMS/IPI"
+      subtitle="Consulta de EFD ICMS/IPI"
     >
       {/* Card de Filtros de Busca */}
       <Card className="mb-6 shadow-sm">

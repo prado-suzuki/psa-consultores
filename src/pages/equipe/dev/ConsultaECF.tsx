@@ -328,7 +328,7 @@ const ConsultaECF = () => {
   return (
     <DevLayout
       title="Consulta ECF"
-      subtitle="Análise e auditoria de Escrituração Contábil Fiscal"
+      subtitle="Consulta de Escrituração Contábil Fiscal"
     >
       {/* Card de Filtros */}
       <Card className="mb-6 shadow-sm">

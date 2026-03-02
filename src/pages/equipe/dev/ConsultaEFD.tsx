@@ -369,7 +369,7 @@ const ConsultaEFD = () => {
   return (
     <DevLayout 
       title="Consulta EFD Contribuições" 
-      subtitle="Análise e auditoria de arquivos SPED"
+      subtitle="Consulta de EFD Contribuições"
     >
       {/* Card de Filtros de Busca */}
       <Card className="mb-6 shadow-sm">
