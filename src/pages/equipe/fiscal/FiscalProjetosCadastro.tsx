@@ -368,7 +368,7 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
         if (membersError) throw membersError;
       }
 
@@ -455,7 +455,8 @@ const FiscalProjetosCadastro = () => {
       }
 
       // Replace project members: delete all, re-insert
-      await supabase.from('tax_project_members').delete().eq('project_id', id);
+      const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
+      if (delError) throw delError;
       const members: { project_id: string; user_id: string; role: string }[] = [];
       if (data.responsible_id) {
         members.push({ project_id: id, user_id: data.responsible_id, role: 'responsible' });
@@ -469,7 +470,7 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
         if (membersError) throw membersError;
       }
 
