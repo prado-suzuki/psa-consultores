@@ -526,6 +526,30 @@ export type Database = {
           },
         ]
       }
+      contribuinte_bal_config: {
+        Row: {
+          balancete_detalhamento: boolean | null
+          created_at: string
+          id: string
+          id_contribuinte: string
+          updated_at: string
+        }
+        Insert: {
+          balancete_detalhamento?: boolean | null
+          created_at?: string
+          id?: string
+          id_contribuinte: string
+          updated_at?: string
+        }
+        Update: {
+          balancete_detalhamento?: boolean | null
+          created_at?: string
+          id?: string
+          id_contribuinte?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contribuinte_dev: {
         Row: {
           cliente_id: string

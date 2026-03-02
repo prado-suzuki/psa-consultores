@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
-import { Upload, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Upload, Loader2, AlertCircle } from 'lucide-react';
 
 interface UploadBalanceteModalProps {
   open: boolean;
@@ -29,6 +30,9 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const [periodoFim, setPeriodoFim] = useState<{ month: number; year: number } | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
+  const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
 
   // Fetch clientes
   const { data: clientes } = useQuery({
@@ -60,12 +64,67 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     enabled: open && !!clienteId,
   });
 
+  // Fetch config when contribuinte changes
+  useEffect(() => {
+    if (!contribuinteId) {
+      setDetalhamento(null);
+      setShowDetalhamentoPrompt(false);
+      return;
+    }
+
+    const fetchConfig = async () => {
+      const { data, error } = await supabase
+        .from('contribuinte_bal_config')
+        .select('balancete_detalhamento')
+        .eq('id_contribuinte', contribuinteId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao buscar config:', error);
+        setDetalhamento(null);
+        setShowDetalhamentoPrompt(false);
+        return;
+      }
+
+      if (data && data.balancete_detalhamento !== null) {
+        setDetalhamento(data.balancete_detalhamento);
+        setShowDetalhamentoPrompt(false);
+      } else {
+        setDetalhamento(null);
+        setShowDetalhamentoPrompt(true);
+      }
+    };
+
+    fetchConfig();
+  }, [contribuinteId]);
+
+  const handleDetalhamentoChoice = async (value: boolean) => {
+    setSavingConfig(true);
+    try {
+      const { error } = await supabase
+        .from('contribuinte_bal_config')
+        .upsert(
+          { id_contribuinte: contribuinteId, balancete_detalhamento: value },
+          { onConflict: 'id_contribuinte' }
+        );
+      if (error) throw error;
+      setDetalhamento(value);
+      setShowDetalhamentoPrompt(false);
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar configuração', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
   const resetForm = () => {
     setClienteId('');
     setContribuinteId('');
     setPeriodoInicio(null);
     setPeriodoFim(null);
     setFile(null);
+    setDetalhamento(null);
+    setShowDetalhamentoPrompt(false);
   };
 
   const handleClose = (value: boolean) => {
@@ -74,7 +133,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   };
 
   const handleSubmit = async () => {
-    if (!contribuinteId || !periodoInicio || !periodoFim || !file) {
+    if (!contribuinteId || !periodoInicio || !periodoFim || !file || detalhamento === null) {
       toast({ title: 'Preencha todos os campos', variant: 'destructive' });
       return;
     }
@@ -86,6 +145,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
       formData.append('periodo_inicio', monthYearToDateString(periodoInicio, 'start'));
       formData.append('periodo_fim', monthYearToDateString(periodoFim, 'end'));
       formData.append('adicionado_por', user?.email || '');
+      formData.append('detalhamento', String(detalhamento));
       formData.append('file', file);
 
       const response = await fetchWithAuth(getApiUrl('/api/v1/contabil/balancetes'), {
@@ -113,7 +173,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     }
   };
 
-  const isValid = contribuinteId && periodoInicio && periodoFim && file;
+  const isValid = contribuinteId && periodoInicio && periodoFim && file && detalhamento !== null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -149,6 +209,54 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
               </SelectContent>
             </Select>
           </div>
+
+          {/* Detalhamento - prompt de primeira vez */}
+          {showDetalhamentoPrompt && contribuinteId && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-800">
+                  O balancete deste contribuinte possui detalhamento?
+                </p>
+              </div>
+              <div className="flex gap-2 ml-6">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={savingConfig}
+                  onClick={() => handleDetalhamentoChoice(true)}
+                  className="text-xs"
+                >
+                  Sim
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={savingConfig}
+                  onClick={() => handleDetalhamentoChoice(false)}
+                  className="text-xs"
+                >
+                  Não
+                </Button>
+                {savingConfig && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+            </div>
+          )}
+
+          {/* Detalhamento - switch normal */}
+          {detalhamento !== null && contribuinteId && (
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <Label htmlFor="detalhamento-switch" className="text-sm">Detalhamento</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{detalhamento ? 'Sim' : 'Não'}</span>
+                <Switch
+                  id="detalhamento-switch"
+                  checked={detalhamento}
+                  onCheckedChange={setDetalhamento}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Período Início */}
           <div className="space-y-2">
