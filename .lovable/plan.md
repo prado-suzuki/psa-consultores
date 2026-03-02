@@ -1,65 +1,117 @@
 
 
-# Refazer layout da pagina GestaoClientes conforme referencia HTML
+# Criar ferramentas ECD e ECF baseadas no layout EFD ICMS
 
 ## Objetivo
 
-Reorganizar a interface principal de `src/pages/equipe/dev/GestaoClientes.tsx` para ficar identica ao layout do HTML de referencia e imagem fornecidos, mantendo as cores padrao do projeto (Teal/Slate).
+Criar duas novas paginas de consulta -- "Consulta ECD" e "Consulta ECF" -- replicando fielmente o layout, estrutura de filtros, tabela de resultados e acoes do EFD ICMS, adaptando apenas os campos especificos de cada obrigacao. Como os endpoints ainda nao existem, o frontend sera criado com estrutura pronta para integracao futura, usando o mesmo hook `useEFDOverview` com tipos `ecd` e `ecf`.
 
-## Diferencas identificadas (atual vs referencia)
+## Arquivos a criar
 
-### 1. Secao do topo (Botao + texto auxiliar)
-- **Atual**: Titulo "Visao Geral" + subtitulo + botao a direita com `bg-teal-600 text-white`
-- **Referencia**: Apenas botao "+ Novo cliente" a ESQUERDA com fundo teal, e texto auxiliar "Gerencie sua base de dados de clientes" a DIREITA (com icone info). Sem titulo "Visao Geral" nem subtitulo.
+### 1. `src/pages/equipe/dev/ConsultaECD.tsx`
+Pagina completa baseada na ConsultaEFDICMS, com as seguintes adaptacoes:
 
-### 2. Card de Filtros
-- **Atual**: Titulo "Filtros de busca" (sentence case), grid 5 colunas, labels `text-xs`, selects com `bg-gray-50`, botoes na mesma area do card
-- **Referencia**:
-  - Titulo "FILTROS DE BUSCA" (uppercase, bold, lg) com icone filter_list em bg-gray-50 separado por borda
-  - Grid 3 colunas (linha 1: Cliente, Contribuinte, Status; linha 2: Tipo, Categoria)
-  - Labels `text-sm font-bold uppercase tracking-wider`
-  - Selects com `h-12 bg-white border border-gray-300 rounded-lg shadow-sm`
-  - Area de botoes separada em footer com `bg-gray-50 border-t` contendo "Limpar filtros" (sempre visivel, estilo outline) e "Buscar" (teal com icone search)
+- **DevLayout**: title="Consulta ECD", subtitle="Analise e auditoria de Escrituracao Contabil Digital"
+- **Filtros**: Mesma estrutura (Cliente 3col, Contribuinte 5col, Data Inicio 2col, Data Fim 2col) -- SEM filtro de Filial
+- **Tabela de resultados**: Colunas adaptadas para ECD:
+  - Checkbox (selecao multipla)
+  - Arquivo (nome + ID)
+  - Periodo (DT_INI a DT_FIN)
+  - Tipo (Original/Retificadora)
+  - Finalidade (campo COD_FIN: 0=Original, 1=Substituta, etc.)
+  - Acoes (Baixar TXT, Exportar Excel, Analisar)
+- **Header de resultados**: CNPJ + Refresh + acoes de selecao (Exportar excel, Baixar txt) -- sem dropdown de filial
+- **Empty states**: Identicos ao EFD ICMS
+- **Hooks**: Usa `useEFDOverview` com `tipo: 'ecd'`
+- **Downloads**: URLs adaptadas para `/api/v1/query/download/efd/ecd/...`
+- **Modais**: Usa os mesmos `EFDAnalysisModal` e `EFDExportDialog` com `tipo="ecd"`
 
-### 3. Secao de Resultados
-- **Atual**: Card branco com header "Resultados recentes" + badge de contagem, empty state com icone grande em circulo
-- **Referencia**:
-  - Titulo "Resultados recentes" e "Mostrando X resultados" FORA de card, como texto simples entre o card de filtros e a area de resultados
-  - Empty state: card com borda dashed, icone menor, texto simples "Utilize os filtros acima para encontrar clientes."
-  - Sem card envolvente pesado, apenas borda dashed arredondada
+### 2. `src/pages/equipe/dev/ConsultaECF.tsx`
+Pagina completa baseada na ConsultaEFDICMS, com as seguintes adaptacoes:
 
-### 4. Placeholders dos selects
-- **Atual**: "Todos os clientes", "Selecione...", "Todos", "Selecione...", "Qualquer"
-- **Referencia**: "Selecione um cliente", "Selecione o contribuinte", "Todos os status", "Selecione o tipo", "Selecione a categoria"
+- **DevLayout**: title="Consulta ECF", subtitle="Analise e auditoria de Escrituracao Contabil Fiscal"
+- **Filtros**: Mesma estrutura (Cliente 3col, Contribuinte 5col, Data Inicio 2col, Data Fim 2col) -- SEM filtro de Filial
+- **Tabela de resultados**: Colunas adaptadas para ECF:
+  - Checkbox (selecao multipla)
+  - Arquivo (nome + ID)
+  - Periodo (DT_INI a DT_FIN)
+  - Tipo (Original/Retificadora)
+  - Situacao Especial (IND_SIT_ESP)
+  - Acoes (Baixar TXT, Exportar Excel, Analisar)
+- **Header de resultados**: CNPJ + Refresh + acoes de selecao -- sem dropdown de filial
+- **Hooks**: Usa `useEFDOverview` com `tipo: 'ecf'`
+- **Downloads**: URLs adaptadas para `/api/v1/query/download/efd/ecf/...`
+- **Modais**: Usa os mesmos `EFDAnalysisModal` e `EFDExportDialog` com `tipo="ecf"`
 
-## Mudancas tecnicas
+## Arquivos a modificar
 
-### Arquivo: `src/pages/equipe/dev/GestaoClientes.tsx`
+### 3. `src/types/efd.ts`
+- Adicionar `'ecd' | 'ecf'` ao tipo `EFDTipo` (atualmente apenas `'contribuicoes' | 'icms'`)
 
-**1. Secao do topo (linhas 203-220)**
-- Remover titulo "Visao Geral" e subtitulo
-- Botao "+ Novo cliente" a ESQUERDA com classes `h-12 px-6 bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold rounded-lg shadow-md`
-- Texto auxiliar a DIREITA: icone info + "Gerencie sua base de dados de clientes" (hidden em mobile)
+### 4. `src/components/equipe/dev/DevLayout.tsx`
+- Adicionar 2 entradas no array `navItems`:
+  - `{ icon: FileText, label: 'ECD', path: '/equipe/dev/consulta-ecd' }`
+  - `{ icon: FileText, label: 'ECF', path: '/equipe/dev/consulta-ecf' }`
+- Posicionar logo apos "EFD ICMS" na lista
 
-**2. Card de Filtros (linhas 222-330)**
-- Header separado: `px-6 py-5 border-b bg-gray-50` com icone Filter teal + titulo "FILTROS DE BUSCA" uppercase bold lg
-- Corpo: `p-6` com grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
-- Labels: `text-sm font-bold uppercase tracking-wider text-gray-900`
-- SelectTrigger: `h-12 bg-white border-gray-300 rounded-lg shadow-sm`
-- Placeholders atualizados conforme referencia
-- Footer separado: `px-6 py-4 bg-gray-50 border-t flex justify-end gap-3`
-- Botao "Limpar filtros": sempre visivel (nao condicional), estilo `bg-white border border-gray-300 text-gray-500 hover:text-gray-900 h-10 px-4 rounded-lg font-bold shadow-sm`
-- Botao "Buscar": `bg-teal-500 hover:bg-teal-600 text-gray-900 h-10 px-6 rounded-lg font-bold shadow-sm` com icone Search
+### 5. `src/App.tsx`
+- Importar `ConsultaECD` e `ConsultaECF`
+- Adicionar 2 rotas com TeamRoute + PageAccessGate:
+  - `/equipe/dev/consulta-ecd`
+  - `/equipe/dev/consulta-ecf`
 
-**3. Secao de Resultados (linhas 332-457)**
-- Remover card envolvente branco com header
-- Titulo "Resultados recentes" como `text-lg font-bold` e "Mostrando X resultados" como `text-sm text-gray-500` em flex justify-between FORA de qualquer card
-- Empty state: `rounded-xl border border-dashed border-gray-300 bg-white h-48 flex items-center justify-center gap-3 text-gray-500 shadow-sm` com icone Search menor e texto simples
-- Quando ha resultados: manter tabela atual com paginacao como esta (ja esta boa)
+## Detalhes tecnicos
 
-## Campos e funcionalidades preservados
+### Estrutura do componente (identica para ECD e ECF)
 
-- Todos os 5 filtros (Cliente, Contribuinte, Status, Tipo, Categoria) mantidos
-- Logica de queries, paginacao e modal inalterados
-- Tabela de resultados e formatadores mantidos
-- Cores Teal/Slate do projeto mantidas
+```text
+DevLayout
+  Card (Filtros)
+    CardHeader: icone Filter + "FILTROS DE BUSCA" uppercase
+    CardContent: grid 12 colunas
+      - Cliente (3col): Select com clientes ativos
+      - Contribuinte (5col): Select filtrado por cliente
+      - Data Inicio (2col): MonthYearPicker
+      - Data Fim (2col): MonthYearPicker
+    Barra de acoes: Limpar filtros (ghost) + Buscar (primary)
+  Card (Resultados)
+    Header: CNPJ + Refresh + Exportar Excel + Baixar TXT
+    Tabela com colunas especificas
+    Empty states (inicial, loading, sem resultados)
+  EFDAnalysisModal
+  EFDExportDialog (controlado externamente)
+```
+
+### Colunas da tabela ECD
+| Coluna | Campo | Alinhamento |
+|--------|-------|-------------|
+| Checkbox | selecao | esquerda |
+| Arquivo | NOME + ID_ARQUIVO | esquerda |
+| Periodo | DT_INI a DT_FIN | esquerda |
+| Tipo | TIPO_ESCRIT (Original/Retificadora) | esquerda |
+| Finalidade | COD_FIN | esquerda |
+| Acoes | Baixar, Exportar, Analisar | centro |
+
+### Colunas da tabela ECF
+| Coluna | Campo | Alinhamento |
+|--------|-------|-------------|
+| Checkbox | selecao | esquerda |
+| Arquivo | NOME + ID_ARQUIVO | esquerda |
+| Periodo | DT_INI a DT_FIN | esquerda |
+| Tipo | TIPO_ESCRIT (Original/Retificadora) | esquerda |
+| Situacao Especial | IND_SIT_ESP | esquerda |
+| Acoes | Baixar, Exportar, Analisar | centro |
+
+### Hook reutilizado
+O `useEFDOverview` ja aceita o parametro `tipo` que define a rota da API (`/api/v1/efd/{tipo}/{cnpj}`). Basta passar `'ecd'` ou `'ecf'`. Quando o endpoint nao existir, a tela mostrara o erro normalmente via toast.
+
+### Funcionalidades incluidas (identicas ao EFD ICMS)
+- Selecao multipla com checkbox (toggle individual + toggle all)
+- Download individual TXT
+- Download em lote (ZIP)
+- Exportacao Excel (via EFDExportDialog)
+- Analise detalhada (via EFDAnalysisModal)
+- Auto-selecao de contribuinte quando cliente tem apenas um
+- Filtragem local por periodo (interseccao de datas)
+- Formatadores: CNPJ, moeda, periodo
+
