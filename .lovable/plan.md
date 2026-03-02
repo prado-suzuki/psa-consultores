@@ -1,52 +1,37 @@
 
 
-# Correcao: Atualizacao dos botoes Ressarcimento/DCOMP em tempo real
+# Correção: Erro de chave duplicada ao alterar responsável do projeto
 
 ## Problema
+O `delete` na linha 458 não verifica erros — se falhar (por RLS ou timing), o `insert` gera conflito de chave única. Afeta alguns usuários e outros não.
 
-Ao registrar um ressarcimento ou adicionar DCOMPs dentro do modal do PER, os botoes "Novo Ressarcimento" e "Novo DCOMP" nao atualizam seu estado (desabilitar/esconder) ate que o usuario feche e reabra o modal. Alem disso, quando o saldo restante atinge zero ou fica negativo, o sistema ainda permite adicionar mais DCOMPs.
+## Alterações em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-## Solucao
-
-### 1. Desabilitar "Novo DCOMP" quando saldo esgotado
-
-Adicionar condicao `saldoRestante <= 0` para desabilitar o botao "Novo DCOMP" (linha 618), mesmo quando `perPago` ainda nao e verdadeiro. Isso impede novas compensacoes quando o credito ja foi totalmente consumido.
-
+### 1. Edição (linha 458) — Verificar erro do delete
 ```typescript
-// Linha 618 - adicionar disabled quando saldo <= 0
-<Button onClick={handleNewDcomp} size="sm" disabled={saldoRestante <= 0}>
+// DE:
+await supabase.from('tax_project_members').delete().eq('project_id', id);
+
+// PARA:
+const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
+if (delError) throw delError;
 ```
 
-### 2. Garantir refetch imediato apos mutations
-
-O `perAtualizado` query (linha 155) depende de invalidacao para atualizar `perPago`. Atualmente a invalidacao ocorre corretamente, mas para garantir atualizacao sincrona:
-
-- Na `ressarcimentoMutation.onSuccess` (linha 279): adicionar `await queryClient.refetchQueries` para o `per-detail` ao inves de apenas invalidar, garantindo que o estado `perPago` atualiza antes do re-render.
-- Na callback `onOpenChange` do `DcompFormModal` (linha 734): tambem forcar refetch de `per-dcomps` para atualizar `saldoRestante` imediatamente.
-
-### 3. Forcar refetch ao fechar DcompFormModal
-
-Na callback do `DcompFormModal` (linha 734-738), alem de invalidar, chamar `refetchQueries` para garantir que os dados de DCOMPs e do PER sejam atualizados imediatamente:
-
+### 2. Edição (linha 472) — Usar upsert na edição
 ```typescript
-onOpenChange={(open) => {
-  setDcompModalOpen(open);
-  if (!open) {
-    queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
-    queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
-  }
-}}
+// DE:
+const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+
+// PARA:
+const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
 ```
 
-## Arquivo afetado
+### 3. Edição (linha 371) — Usar upsert na criação
+```typescript
+// DE:
+const { error: membersError } = await supabase.from('tax_project_members').insert(members);
 
-`src/components/equipe/dev/perdcomp/PerDetailModal.tsx`
-
-## Resumo das alteracoes
-
-| Local | Alteracao |
-|---|---|
-| Linha 618 (botao Novo DCOMP) | Adicionar `disabled={saldoRestante <= 0}` |
-| Linha 279-283 (ressarcimentoMutation.onSuccess) | Trocar `invalidateQueries` por `refetchQueries` para `per-detail` |
-| Linhas 734-738 (DcompFormModal onOpenChange) | Usar `refetchQueries` para `per-dcomps` e `per-detail` |
+// PARA:
+const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+```
 
