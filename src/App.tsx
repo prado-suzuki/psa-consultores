@@ -43,6 +43,8 @@ import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
 import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
 import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
 import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
+import ConsultaECD from "./pages/equipe/dev/ConsultaECD";
+import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import AuditoriaFiscal from "./pages/equipe/dev/AuditoriaFiscal";
 import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
@@ -137,6 +139,8 @@ const App = () => (
             <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/consulta-efd" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/consulta-efd-icms" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/consulta-ecd" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/consulta-ecf" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/auditoria-fiscal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/auditoria-fiscal"><AuditoriaFiscal /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-perdcomp" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate></TeamRoute>} />
