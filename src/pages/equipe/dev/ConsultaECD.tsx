@@ -322,7 +322,7 @@ const ConsultaECD = () => {
   return (
     <DevLayout
       title="Consulta ECD"
-      subtitle="Análise e auditoria de Escrituração Contábil Digital"
+      subtitle="Consulta de Escrituração Contábil Digital"
     >
       {/* Card de Filtros */}
       <Card className="mb-6 shadow-sm">
