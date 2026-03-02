@@ -394,7 +394,9 @@ export default function NewClientModal({
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos">("cliente");
+  const [activeTab, setActiveTab] = useState<
+    "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
+  >("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -416,7 +418,7 @@ export default function NewClientModal({
     if (open) setIsReadOnly(readOnly);
   }, [open, readOnly]);
 
-  const tabOrder: (typeof activeTab)[] = ["cliente", "contribuintes", "participantes", "contratos"];
+  const tabOrder: (typeof activeTab)[] = ["cliente", "contribuintes", "participantes", "contratos", "faturamento"];
   const currentTabIndex = tabOrder.indexOf(activeTab);
   const isLastTab = currentTabIndex === tabOrder.length - 1;
   const isFirstTab = currentTabIndex === 0;
@@ -450,11 +452,7 @@ export default function NewClientModal({
   const { data: catalogServices = [] } = useQuery({
     queryKey: ["catalog_clients_services"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("catalog_clients")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
+      const { data } = await supabase.from("catalog_clients").select("id, name").eq("is_active", true).order("name");
       return data || [];
     },
   });
@@ -1278,18 +1276,22 @@ export default function NewClientModal({
           <DialogDescription className="sr-only">
             Formulário de cadastro de cliente com contribuintes, participantes e contratos
           </DialogDescription>
-          {/* Header */}
-          <div className="px-6 py-3 border-b flex justify-between items-center bg-muted/50 shrink-0">
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              {isReadOnly ? (
-                <Building2 className="text-teal-600" size={22} />
-              ) : isEditing ? (
-                <Pencil className="text-teal-600" size={22} />
-              ) : (
-                <Plus className="text-teal-600" size={22} />
-              )}
-              {isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}
-            </h2>
+          {/* Header — Stich style */}
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="bg-teal-600/10 p-2 rounded-lg">
+                {isReadOnly ? (
+                  <Building2 className="text-teal-600" size={22} />
+                ) : isEditing ? (
+                  <Pencil className="text-teal-600" size={22} />
+                ) : (
+                  <Plus className="text-teal-600" size={22} />
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}
+              </h2>
+            </div>
             <div className="flex items-center gap-2">
               {isReadOnly && (
                 <Button
@@ -1303,9 +1305,9 @@ export default function NewClientModal({
               )}
               <button
                 onClick={handleAttemptClose}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
           </div>
@@ -1321,12 +1323,39 @@ export default function NewClientModal({
                 onValueChange={(v) => setActiveTab(v as typeof activeTab)}
                 className="flex-1 flex flex-col overflow-hidden"
               >
-                <div className="px-6 pt-2 shrink-0">
-                  <TabsList className="w-full grid grid-cols-4">
-                    <TabsTrigger value="cliente">Dados do Cliente/Grupo</TabsTrigger>
-                    <TabsTrigger value="contribuintes">Contribuintes</TabsTrigger>
-                    <TabsTrigger value="participantes">Participantes</TabsTrigger>
-                    <TabsTrigger value="contratos">OS - Ordem de Serviço</TabsTrigger>
+                {/* Pill Tabs — Stich style */}
+                <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
+                  <TabsList className="w-full grid grid-cols-5 bg-gray-100/80 p-1 rounded-lg h-auto">
+                    <TabsTrigger
+                      value="cliente"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
+                    >
+                      Dados do Cliente
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="contribuintes"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
+                    >
+                      Contribuintes
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="participantes"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
+                    >
+                      Participantes
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="contratos"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
+                    >
+                      OS - Ordem de Serviço
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="faturamento"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
+                    >
+                      Faturamento
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -2876,7 +2905,8 @@ export default function NewClientModal({
                                             <AlertDialogHeader>
                                               <AlertDialogTitle>Remover OS</AlertDialogTitle>
                                               <AlertDialogDescription>
-                                                Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.
+                                                Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação
+                                                não pode ser desfeita.
                                               </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -2930,10 +2960,7 @@ export default function NewClientModal({
                                         />
                                         {(cont as any).observacoes_projeto && (
                                           <div className="col-span-2 md:col-span-3">
-                                            <FieldPair
-                                              label="Observações"
-                                              value={(cont as any).observacoes_projeto}
-                                            />
+                                            <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
                                           </div>
                                         )}
                                         {(cont as any).servicos_contratados?.length > 0 && (
@@ -2975,18 +3002,26 @@ export default function NewClientModal({
 
                                   {isExpanded && isEditingThis && ec && (
                                     <div className="px-4 pb-4 border-t pt-3">
-                                      <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS</h5>
+                                      <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">
+                                        Dados da OS
+                                      </h5>
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Ordem de Serviço *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Ordem de Serviço *
+                                          </Label>
                                           <Input
                                             value={ec.ordem_servico || ""}
-                                            onChange={(e) => setEditingContractData({ ...ec, ordem_servico: e.target.value })}
+                                            onChange={(e) =>
+                                              setEditingContractData({ ...ec, ordem_servico: e.target.value })
+                                            }
                                             className="h-8 mt-1"
                                           />
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Data de Emissão *
+                                          </Label>
                                           <div className="mt-1">
                                             <DateFieldWithInput
                                               value={ec.data_emissao || ""}
@@ -2995,16 +3030,22 @@ export default function NewClientModal({
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Data Início *
+                                          </Label>
                                           <div className="mt-1">
                                             <DateFieldWithInput
                                               value={ec.data_inicio_projeto || ""}
-                                              onChange={(v) => setEditingContractData({ ...ec, data_inicio_projeto: v })}
+                                              onChange={(v) =>
+                                                setEditingContractData({ ...ec, data_inicio_projeto: v })
+                                              }
                                             />
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Data Fim
+                                          </Label>
                                           <div className="mt-1">
                                             <DateFieldWithInput
                                               value={ec.data_fim_projeto || ""}
@@ -3013,7 +3054,9 @@ export default function NewClientModal({
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$) *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Valor do Projeto (R$) *
+                                          </Label>
                                           <div className="mt-1">
                                             <CurrencyField
                                               value={ec.valor_projeto || 0}
@@ -3022,25 +3065,33 @@ export default function NewClientModal({
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Situação do Projeto *
+                                          </Label>
                                           <div className="mt-1">
                                             <Select
                                               value={(ec as any).situacao_projeto || "em_andamento"}
-                                              onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v } as any)}
+                                              onValueChange={(v) =>
+                                                setEditingContractData({ ...ec, situacao_projeto: v } as any)
+                                              }
                                             >
                                               <SelectTrigger className="h-8">
                                                 <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
                                                 {SITUACAO_PROJETO_OPTIONS.map((opt) => (
-                                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                                  <SelectItem key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                  </SelectItem>
                                                 ))}
                                               </SelectContent>
                                             </Select>
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$) *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Reembolso por KM (R$) *
+                                          </Label>
                                           <div className="mt-1">
                                             <CurrencyField
                                               value={ec.valor_reembolso_km || 0}
@@ -3049,198 +3100,199 @@ export default function NewClientModal({
                                           </div>
                                         </div>
                                         <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$) *</Label>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Reembolso Refeição (R$) *
+                                          </Label>
                                           <div className="mt-1">
                                             <CurrencyField
                                               value={ec.valor_reembolso_refeicao || 0}
-                                              onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })}
+                                              onChange={(v) =>
+                                                setEditingContractData({ ...ec, valor_reembolso_refeicao: v })
+                                              }
                                             />
                                           </div>
                                         </div>
                                       </div>
                                       {/* Observações */}
                                       <div className="mt-4">
-                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
+                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                          Observações
+                                        </h5>
                                         <Textarea
                                           value={(ec as any).observacoes_projeto || ""}
-                                          onChange={(e) => setEditingContractData({ ...ec, observacoes_projeto: e.target.value } as any)}
+                                          onChange={(e) =>
+                                            setEditingContractData({
+                                              ...ec,
+                                              observacoes_projeto: e.target.value,
+                                            } as any)
+                                          }
                                           placeholder="Insira observações relevantes sobre o projeto..."
                                           className="min-h-[60px]"
                                         />
                                       </div>
-                                        {/* Serviços Contratados (inline edit) */}
-                                        <div className="border border-dashed rounded-lg p-3 mt-1">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                              Serviços Contratados
-                                            </h5>
-                                            <Button
-                                              type="button"
-                                              size="sm"
-                                              variant="outline"
-                                              className="gap-1 text-xs"
-                                              onClick={() =>
-                                                setEditingContractData({
-                                                  ...ec,
-                                                  servicos_contratados: [
-                                                    ...((ec as any).servicos_contratados || []),
-                                                    "",
-                                                  ],
-                                                } as any)
-                                              }
-                                            >
-                                              <Plus size={12} /> Adicionar
-                                            </Button>
-                                          </div>
-                                          {((ec as any).servicos_contratados || []).map(
-                                            (svcId: string, idx: number) => (
-                                              <div key={idx} className="flex items-center gap-2 mt-1">
-                                                <Select
-                                                  value={svcId || "__none__"}
-                                                  onValueChange={(v) => {
-                                                    const updated = [
-                                                      ...((ec as any).servicos_contratados || []),
-                                                    ];
-                                                    updated[idx] = v === "__none__" ? "" : v;
-                                                    setEditingContractData({
-                                                      ...ec,
-                                                      servicos_contratados: updated,
-                                                    } as any);
-                                                  }}
-                                                >
-                                                  <SelectTrigger className="h-8 flex-1">
-                                                    <SelectValue placeholder="Selecione..." />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="__none__">Selecione...</SelectItem>
-                                                    {catalogServices.map((svc: any) => (
-                                                      <SelectItem key={svc.id} value={svc.id}>
-                                                        {svc.name}
-                                                      </SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
-                                                <Button
-                                                  type="button"
-                                                  size="icon"
-                                                  variant="ghost"
-                                                  className="h-8 w-8 shrink-0 text-destructive"
-                                                  onClick={() => {
-                                                    const updated = (
-                                                      (ec as any).servicos_contratados || []
-                                                    ).filter((_: any, i: number) => i !== idx);
-                                                    setEditingContractData({
-                                                      ...ec,
-                                                      servicos_contratados: updated,
-                                                    } as any);
-                                                  }}
-                                                >
-                                                  <X size={14} />
-                                                </Button>
-                                              </div>
-                                            ),
-                                          )}
+                                      {/* Serviços Contratados (inline edit) */}
+                                      <div className="border border-dashed rounded-lg p-3 mt-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h5 className="text-xs font-bold text-muted-foreground uppercase">
+                                            Serviços Contratados
+                                          </h5>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-1 text-xs"
+                                            onClick={() =>
+                                              setEditingContractData({
+                                                ...ec,
+                                                servicos_contratados: [...((ec as any).servicos_contratados || []), ""],
+                                              } as any)
+                                            }
+                                          >
+                                            <Plus size={12} /> Adicionar
+                                          </Button>
                                         </div>
-                                        {/* Centros de Custo (inline edit) */}
-                                        <div className="border border-dashed rounded-lg p-3 mt-1">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                              Distribuição de Receita (Centros de Custo)
-                                            </h5>
-                                            <Button
-                                              type="button"
-                                              size="sm"
-                                              variant="outline"
-                                              className="gap-1 text-xs"
-                                              onClick={() =>
+                                        {((ec as any).servicos_contratados || []).map((svcId: string, idx: number) => (
+                                          <div key={idx} className="flex items-center gap-2 mt-1">
+                                            <Select
+                                              value={svcId || "__none__"}
+                                              onValueChange={(v) => {
+                                                const updated = [...((ec as any).servicos_contratados || [])];
+                                                updated[idx] = v === "__none__" ? "" : v;
                                                 setEditingContractData({
                                                   ...ec,
-                                                  centros_custo: [
-                                                    ...((ec as any).centros_custo || []),
-                                                    { empresa: "", percentual: 0 },
-                                                  ],
-                                                } as any)
-                                              }
+                                                  servicos_contratados: updated,
+                                                } as any);
+                                              }}
                                             >
-                                              <Plus size={12} /> Adicionar
+                                              <SelectTrigger className="h-8 flex-1">
+                                                <SelectValue placeholder="Selecione..." />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                                {catalogServices.map((svc: any) => (
+                                                  <SelectItem key={svc.id} value={svc.id}>
+                                                    {svc.name}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <Button
+                                              type="button"
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8 shrink-0 text-destructive"
+                                              onClick={() => {
+                                                const updated = ((ec as any).servicos_contratados || []).filter(
+                                                  (_: any, i: number) => i !== idx,
+                                                );
+                                                setEditingContractData({
+                                                  ...ec,
+                                                  servicos_contratados: updated,
+                                                } as any);
+                                              }}
+                                            >
+                                              <X size={14} />
                                             </Button>
                                           </div>
-                                          {((ec as any).centros_custo || []).map(
-                                            (cc: { empresa: string; percentual: number }, idx: number) => (
-                                              <div key={idx} className="flex items-center gap-2 mt-1">
-                                                <Select
-                                                  value={cc.empresa || "__none__"}
-                                                  onValueChange={(v) => {
-                                                    const updated = [
-                                                      ...((ec as any).centros_custo || []),
-                                                    ];
+                                        ))}
+                                      </div>
+                                      {/* Centros de Custo (inline edit) */}
+                                      <div className="border border-dashed rounded-lg p-3 mt-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h5 className="text-xs font-bold text-muted-foreground uppercase">
+                                            Distribuição de Receita (Centros de Custo)
+                                          </h5>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-1 text-xs"
+                                            onClick={() =>
+                                              setEditingContractData({
+                                                ...ec,
+                                                centros_custo: [
+                                                  ...((ec as any).centros_custo || []),
+                                                  { empresa: "", percentual: 0 },
+                                                ],
+                                              } as any)
+                                            }
+                                          >
+                                            <Plus size={12} /> Adicionar
+                                          </Button>
+                                        </div>
+                                        {((ec as any).centros_custo || []).map(
+                                          (cc: { empresa: string; percentual: number }, idx: number) => (
+                                            <div key={idx} className="flex items-center gap-2 mt-1">
+                                              <Select
+                                                value={cc.empresa || "__none__"}
+                                                onValueChange={(v) => {
+                                                  const updated = [...((ec as any).centros_custo || [])];
+                                                  updated[idx] = {
+                                                    ...updated[idx],
+                                                    empresa: v === "__none__" ? "" : v,
+                                                  };
+                                                  setEditingContractData({
+                                                    ...ec,
+                                                    centros_custo: updated,
+                                                  } as any);
+                                                }}
+                                              >
+                                                <SelectTrigger className="h-8 flex-1">
+                                                  <SelectValue placeholder="Empresa / Faturamento" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
+                                                    <SelectItem key={emp} value={emp}>
+                                                      {emp}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  max={100}
+                                                  value={cc.percentual || ""}
+                                                  onChange={(e) => {
+                                                    const updated = [...((ec as any).centros_custo || [])];
                                                     updated[idx] = {
                                                       ...updated[idx],
-                                                      empresa: v === "__none__" ? "" : v,
+                                                      percentual: parseFloat(e.target.value) || 0,
                                                     };
                                                     setEditingContractData({
                                                       ...ec,
                                                       centros_custo: updated,
                                                     } as any);
                                                   }}
-                                                >
-                                                  <SelectTrigger className="h-8 flex-1">
-                                                    <SelectValue placeholder="Empresa / Faturamento" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="__none__">Selecione...</SelectItem>
-                                                    {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                                      <SelectItem key={emp} value={emp}>
-                                                        {emp}
-                                                      </SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                  <Input
-                                                    type="number"
-                                                    min={0}
-                                                    max={100}
-                                                    value={cc.percentual || ""}
-                                                    onChange={(e) => {
-                                                      const updated = [
-                                                        ...((ec as any).centros_custo || []),
-                                                      ];
-                                                      updated[idx] = {
-                                                        ...updated[idx],
-                                                        percentual: parseFloat(e.target.value) || 0,
-                                                      };
-                                                      setEditingContractData({
-                                                        ...ec,
-                                                        centros_custo: updated,
-                                                      } as any);
-                                                    }}
-                                                    className="h-8 w-20 text-right"
-                                                    placeholder="%"
-                                                  />
-                                                  <span className="text-xs text-muted-foreground">%</span>
-                                                </div>
-                                                <Button
-                                                  type="button"
-                                                  size="icon"
-                                                  variant="ghost"
-                                                  className="h-8 w-8 shrink-0 text-destructive"
-                                                  onClick={() => {
-                                                    const updated = (
-                                                      (ec as any).centros_custo || []
-                                                    ).filter((_: any, i: number) => i !== idx);
-                                                    setEditingContractData({
-                                                      ...ec,
-                                                      centros_custo: updated,
-                                                    } as any);
-                                                  }}
-                                                >
-                                                  <X size={14} />
-                                                </Button>
+                                                  className="h-8 w-20 text-right"
+                                                  placeholder="%"
+                                                />
+                                                <span className="text-xs text-muted-foreground">%</span>
                                               </div>
-                                            ),
-                                          )}
-                                          {((ec as any).centros_custo || []).length > 0 && (() => {
+                                              <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 shrink-0 text-destructive"
+                                                onClick={() => {
+                                                  const updated = ((ec as any).centros_custo || []).filter(
+                                                    (_: any, i: number) => i !== idx,
+                                                  );
+                                                  setEditingContractData({
+                                                    ...ec,
+                                                    centros_custo: updated,
+                                                  } as any);
+                                                }}
+                                              >
+                                                <X size={14} />
+                                              </Button>
+                                            </div>
+                                          ),
+                                        )}
+                                        {((ec as any).centros_custo || []).length > 0 &&
+                                          (() => {
                                             const total = ((ec as any).centros_custo || []).reduce(
                                               (acc: number, cc: any) => acc + (cc.percentual || 0),
                                               0,
@@ -3263,39 +3315,39 @@ export default function NewClientModal({
                                               </p>
                                             );
                                           })()}
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                                          <Button size="sm" variant="outline" onClick={cancelEditContract}>
-                                            Cancelar
-                                          </Button>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button
-                                                size="sm"
-                                                className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+                                      </div>
+                                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
+                                        <Button size="sm" variant="outline" onClick={cancelEditContract}>
+                                          Cancelar
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+                                            >
+                                              <Save size={14} /> Salvar
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Deseja salvar as alterações feitas nesta OS?
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                className="bg-teal-600 hover:bg-teal-700 text-white"
+                                                onClick={saveEditContract}
                                               >
-                                                <Save size={14} /> Salvar
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  Deseja salvar as alterações feitas nesta OS?
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                  className="bg-teal-600 hover:bg-teal-700 text-white"
-                                                  onClick={saveEditContract}
-                                                >
-                                                  Salvar
-                                                </AlertDialogAction>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                        </div>
+                                                Salvar
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
@@ -3306,21 +3358,29 @@ export default function NewClientModal({
 
                         {!isReadOnly && (
                           <div className="bg-muted/50 rounded-lg border p-4">
-                            <h4 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS</h4>
+                            <h4 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">
+                              Dados da OS
+                            </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Ordem de Serviço */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Ordem de Serviço *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Ordem de Serviço *
+                                </Label>
                                 <Input
                                   value={draftContract.ordem_servico}
-                                  onChange={(e) => setDraftContract({ ...draftContract, ordem_servico: e.target.value })}
+                                  onChange={(e) =>
+                                    setDraftContract({ ...draftContract, ordem_servico: e.target.value })
+                                  }
                                   placeholder="Ex: 001/2025"
                                   className="h-8 mt-1"
                                 />
                               </div>
                               {/* Data de Emissão */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Data de Emissão *
+                                </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_emissao}
@@ -3330,7 +3390,9 @@ export default function NewClientModal({
                               </div>
                               {/* Data Início */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Data Início *
+                                </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_inicio_projeto}
@@ -3340,7 +3402,9 @@ export default function NewClientModal({
                               </div>
                               {/* Data Fim */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Data Fim
+                                </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_fim_projeto}
@@ -3350,7 +3414,9 @@ export default function NewClientModal({
                               </div>
                               {/* Valor do Projeto */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$) *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Valor do Projeto (R$) *
+                                </Label>
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_projeto}
@@ -3360,7 +3426,9 @@ export default function NewClientModal({
                               </div>
                               {/* Situação do Projeto */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Situação do Projeto *
+                                </Label>
                                 <div className="mt-1">
                                   <Select
                                     value={draftContract.situacao_projeto}
@@ -3371,7 +3439,9 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       {SITUACAO_PROJETO_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -3379,7 +3449,9 @@ export default function NewClientModal({
                               </div>
                               {/* Reembolso por KM */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$) *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Reembolso por KM (R$) *
+                                </Label>
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_reembolso_km}
@@ -3389,11 +3461,15 @@ export default function NewClientModal({
                               </div>
                               {/* Reembolso Refeição */}
                               <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$) *</Label>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Reembolso Refeição (R$) *
+                                </Label>
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_reembolso_refeicao}
-                                    onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })}
+                                    onChange={(v) =>
+                                      setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })
+                                    }
                                   />
                                 </div>
                               </div>
@@ -3404,165 +3480,160 @@ export default function NewClientModal({
                               <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
                               <Textarea
                                 value={draftContract.observacoes_projeto}
-                                onChange={(e) => setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })}
+                                onChange={(e) =>
+                                  setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })
+                                }
                                 placeholder="Insira observações relevantes sobre o projeto..."
                                 className="min-h-[80px]"
                               />
                             </div>
 
-                              {/* Serviços Contratados */}
-                              <div className="mt-4 border border-dashed rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                    Serviços Contratados
-                                  </h5>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1 text-xs"
-                                    onClick={() =>
-                                      setDraftContract({
-                                        ...draftContract,
-                                        servicos_contratados: [...draftContract.servicos_contratados, ""],
-                                      })
-                                    }
-                                  >
-                                    <Plus size={12} /> Adicionar Serviço
-                                  </Button>
-                                </div>
-                                {draftContract.servicos_contratados.length === 0 && (
-                                  <p className="text-xs text-muted-foreground italic">Nenhum serviço adicionado.</p>
-                                )}
-                                {draftContract.servicos_contratados.map((svcId, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 mt-2">
-                                    <Select
-                                      value={svcId || "__none__"}
-                                      onValueChange={(v) => {
-                                        const updated = [...draftContract.servicos_contratados];
-                                        updated[idx] = v === "__none__" ? "" : v;
-                                        setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                      }}
-                                    >
-                                      <SelectTrigger className="h-8 flex-1">
-                                        <SelectValue placeholder="Selecione um serviço..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="__none__">Selecione...</SelectItem>
-                                        {catalogServices.map((svc: any) => (
-                                          <SelectItem key={svc.id} value={svc.id}>
-                                            {svc.name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8 shrink-0 text-destructive"
-                                      onClick={() => {
-                                        const updated = draftContract.servicos_contratados.filter(
-                                          (_, i) => i !== idx,
-                                        );
-                                        setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                      }}
-                                    >
-                                      <X size={14} />
-                                    </Button>
-                                  </div>
-                                ))}
+                            {/* Serviços Contratados */}
+                            <div className="mt-4 border border-dashed rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
+                                  Serviços Contratados
+                                </h5>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1 text-xs"
+                                  onClick={() =>
+                                    setDraftContract({
+                                      ...draftContract,
+                                      servicos_contratados: [...draftContract.servicos_contratados, ""],
+                                    })
+                                  }
+                                >
+                                  <Plus size={12} /> Adicionar Serviço
+                                </Button>
                               </div>
-
-                              {/* Distribuição de Receita (Centros de Custo) */}
-                              <div className="mt-4 border border-dashed rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                    Distribuição de Receita (Centros de Custo)
-                                  </h5>
+                              {draftContract.servicos_contratados.length === 0 && (
+                                <p className="text-xs text-muted-foreground italic">Nenhum serviço adicionado.</p>
+                              )}
+                              {draftContract.servicos_contratados.map((svcId, idx) => (
+                                <div key={idx} className="flex items-center gap-2 mt-2">
+                                  <Select
+                                    value={svcId || "__none__"}
+                                    onValueChange={(v) => {
+                                      const updated = [...draftContract.servicos_contratados];
+                                      updated[idx] = v === "__none__" ? "" : v;
+                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 flex-1">
+                                      <SelectValue placeholder="Selecione um serviço..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
+                                      {catalogServices.map((svc: any) => (
+                                        <SelectItem key={svc.id} value={svc.id}>
+                                          {svc.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                   <Button
                                     type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1 text-xs"
-                                    onClick={() =>
-                                      setDraftContract({
-                                        ...draftContract,
-                                        centros_custo: [
-                                          ...draftContract.centros_custo,
-                                          { empresa: "", percentual: 0 },
-                                        ],
-                                      })
-                                    }
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 shrink-0 text-destructive"
+                                    onClick={() => {
+                                      const updated = draftContract.servicos_contratados.filter((_, i) => i !== idx);
+                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
+                                    }}
                                   >
-                                    <Plus size={12} /> Adicionar Centro de Custo
+                                    <X size={14} />
                                   </Button>
                                 </div>
-                                {draftContract.centros_custo.length === 0 && (
-                                  <p className="text-xs text-muted-foreground italic">
-                                    Nenhum centro de custo adicionado.
-                                  </p>
-                                )}
-                                {draftContract.centros_custo.map((cc, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 mt-2">
-                                    <Select
-                                      value={cc.empresa || "__none__"}
-                                      onValueChange={(v) => {
+                              ))}
+                            </div>
+
+                            {/* Distribuição de Receita (Centros de Custo) */}
+                            <div className="mt-4 border border-dashed rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
+                                  Distribuição de Receita (Centros de Custo)
+                                </h5>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1 text-xs"
+                                  onClick={() =>
+                                    setDraftContract({
+                                      ...draftContract,
+                                      centros_custo: [...draftContract.centros_custo, { empresa: "", percentual: 0 }],
+                                    })
+                                  }
+                                >
+                                  <Plus size={12} /> Adicionar Centro de Custo
+                                </Button>
+                              </div>
+                              {draftContract.centros_custo.length === 0 && (
+                                <p className="text-xs text-muted-foreground italic">
+                                  Nenhum centro de custo adicionado.
+                                </p>
+                              )}
+                              {draftContract.centros_custo.map((cc, idx) => (
+                                <div key={idx} className="flex items-center gap-2 mt-2">
+                                  <Select
+                                    value={cc.empresa || "__none__"}
+                                    onValueChange={(v) => {
+                                      const updated = [...draftContract.centros_custo];
+                                      updated[idx] = { ...updated[idx], empresa: v === "__none__" ? "" : v };
+                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 flex-1">
+                                      <SelectValue placeholder="Empresa / Faturamento" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
+                                      {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
+                                        <SelectItem key={emp} value={emp}>
+                                          {emp}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      value={cc.percentual || ""}
+                                      onChange={(e) => {
                                         const updated = [...draftContract.centros_custo];
-                                        updated[idx] = { ...updated[idx], empresa: v === "__none__" ? "" : v };
+                                        updated[idx] = {
+                                          ...updated[idx],
+                                          percentual: parseFloat(e.target.value) || 0,
+                                        };
                                         setDraftContract({ ...draftContract, centros_custo: updated });
                                       }}
-                                    >
-                                      <SelectTrigger className="h-8 flex-1">
-                                        <SelectValue placeholder="Empresa / Faturamento" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="__none__">Selecione...</SelectItem>
-                                        {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                          <SelectItem key={emp} value={emp}>
-                                            {emp}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        value={cc.percentual || ""}
-                                        onChange={(e) => {
-                                          const updated = [...draftContract.centros_custo];
-                                          updated[idx] = {
-                                            ...updated[idx],
-                                            percentual: parseFloat(e.target.value) || 0,
-                                          };
-                                          setDraftContract({ ...draftContract, centros_custo: updated });
-                                        }}
-                                        className="h-8 w-20 text-right"
-                                        placeholder="%"
-                                      />
-                                      <span className="text-xs text-muted-foreground">%</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8 shrink-0 text-destructive"
-                                      onClick={() => {
-                                        const updated = draftContract.centros_custo.filter((_, i) => i !== idx);
-                                        setDraftContract({ ...draftContract, centros_custo: updated });
-                                      }}
-                                    >
-                                      <X size={14} />
-                                    </Button>
+                                      className="h-8 w-20 text-right"
+                                      placeholder="%"
+                                    />
+                                    <span className="text-xs text-muted-foreground">%</span>
                                   </div>
-                                ))}
-                                {draftContract.centros_custo.length > 0 && (() => {
-                                  const total = draftContract.centros_custo.reduce(
-                                    (acc, cc) => acc + cc.percentual,
-                                    0,
-                                  );
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 shrink-0 text-destructive"
+                                    onClick={() => {
+                                      const updated = draftContract.centros_custo.filter((_, i) => i !== idx);
+                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                    }}
+                                  >
+                                    <X size={14} />
+                                  </Button>
+                                </div>
+                              ))}
+                              {draftContract.centros_custo.length > 0 &&
+                                (() => {
+                                  const total = draftContract.centros_custo.reduce((acc, cc) => acc + cc.percentual, 0);
                                   const faltam = 100 - total;
                                   return (
                                     <p
@@ -3582,7 +3653,7 @@ export default function NewClientModal({
                                     </p>
                                   );
                                 })()}
-                              </div>
+                            </div>
 
                             <div className="flex justify-end mt-4 pt-2 border-t">
                               <Button onClick={addContract} className="gap-2">
@@ -3594,14 +3665,110 @@ export default function NewClientModal({
                       </div>
                     </section>
                   </TabsContent>
+
+                  {/* ====== TAB: FATURAMENTO (read-only) ====== */}
+                  <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="px-4 py-2 bg-muted/50 border-b">
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                          Dados de Faturamento
+                        </h3>
+                      </div>
+                      {(() => {
+                        const faturamentoEntity = entities.find((e) => e.contribuinte_faturamento) || entities[0];
+                        if (!faturamentoEntity) {
+                          return (
+                            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <Building2 className="h-8 w-8 text-gray-300" />
+                              </div>
+                              <h4 className="text-base font-semibold text-gray-900 mb-2">
+                                Nenhum contribuinte cadastrado
+                              </h4>
+                              <p className="text-gray-500 text-sm max-w-sm">
+                                Os dados de faturamento serão exibidos aqui após o cadastro de um contribuinte marcado
+                                para faturamento.
+                              </p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="px-4 py-4 grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
+                            <div className="space-y-5">
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Razão Social</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.nome_razao_social || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">CPF / CNPJ</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900 font-mono">
+                                  {faturamentoEntity.cpf_cnpj || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Inscrição Estadual</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.inscricao_estadual || "Isento"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Telefone</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.telefone || "—"}
+                                </dd>
+                              </div>
+                            </div>
+                            <div className="space-y-5">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <dt className="text-sm font-medium text-gray-500">CEP</dt>
+                                  <dd className="mt-1 text-sm font-semibold text-gray-900 font-mono">
+                                    {faturamentoEntity.cep || "—"}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-sm font-medium text-gray-500">Número</dt>
+                                  <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                    {faturamentoEntity.numero || "—"}
+                                  </dd>
+                                </div>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Endereço</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.logradouro}
+                                  {faturamentoEntity.complemento ? `, ${faturamentoEntity.complemento}` : ""}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Bairro</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.bairro || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Cidade / UF</dt>
+                                <dd className="mt-1 text-sm font-semibold text-gray-900">
+                                  {faturamentoEntity.municipio || "—"}
+                                  {faturamentoEntity.uf ? ` / ${faturamentoEntity.uf}` : ""}
+                                </dd>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </section>
+                  </TabsContent>
                 </ScrollArea>
               </Tabs>
 
-              {/* Footer */}
-              <div className="p-4 border-t bg-card flex justify-between shrink-0">
+              {/* Footer — Stich style */}
+              <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
                 <div>
                   {!isFirstTab && (
-                    <Button variant="outline" onClick={handleBack} className="gap-2">
+                    <Button variant="outline" onClick={handleBack} className="gap-2 border-gray-300 text-gray-600">
                       <ChevronLeft size={16} /> Voltar
                     </Button>
                   )}
@@ -3615,17 +3782,17 @@ export default function NewClientModal({
                     )
                   ) : (
                     <>
-                      <Button variant="outline" onClick={handleAttemptClose}>
+                      <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">
                         Cancelar
                       </Button>
                       {isLastTab ? (
                         <Button
                           onClick={handleSave}
                           disabled={saving}
-                          className="bg-teal-600 hover:bg-teal-700 text-white gap-2"
+                          className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
                         >
                           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                          {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                          {isEditing ? "Salvar Alterações" : "Confirmar Dados"}
                         </Button>
                       ) : (
                         <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
