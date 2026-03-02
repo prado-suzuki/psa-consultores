@@ -1,7 +1,7 @@
 // Tipos para EFD (Contribuições e ICMS) - Baseado na API Real
 
 // Tipo discriminador para EFD
-export type EFDTipo = 'contribuicoes' | 'icms';
+export type EFDTipo = 'contribuicoes' | 'icms' | 'ecd' | 'ecf';
 
 // Estrutura do arquivo EFD retornado pela API (campos em CAIXA ALTA)
 export interface EFDArquivo {
