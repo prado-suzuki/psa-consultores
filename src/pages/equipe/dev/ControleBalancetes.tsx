@@ -249,18 +249,16 @@ const ControleBalancetes = () => {
             <Table className="text-xs">
               <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700">
                 <TableRow>
-                  <TableHead>Contribuinte</TableHead>
                   <TableHead>Período Início</TableHead>
                   <TableHead>Período Fim</TableHead>
                   <TableHead>Adicionado por</TableHead>
-                  <TableHead>Data Upload</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                   <TableCell colSpan={4} className="text-center py-12 text-slate-400">
                       <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-teal-500" />
                       <p className="text-sm font-medium">Buscando balancetes...</p>
                     </TableCell>
@@ -268,11 +266,9 @@ const ControleBalancetes = () => {
                 ) : balancetes.length > 0 ? (
                   balancetes.map((b) => (
                     <TableRow key={b.id}>
-                      <TableCell className="font-medium">{b.contribuinte_nome || b.id_contribuinte}</TableCell>
                       <TableCell>{formatDate(b.periodo_inicio)}</TableCell>
                       <TableCell>{formatDate(b.periodo_fim)}</TableCell>
                       <TableCell>{b.adicionado_por || '-'}</TableCell>
-                      <TableCell>{formatDate(b.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider>
@@ -317,7 +313,7 @@ const ControleBalancetes = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                    <TableCell colSpan={4} className="text-center py-12 text-slate-400">
                       <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-slate-300" />
                       <p className="text-sm font-medium">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
