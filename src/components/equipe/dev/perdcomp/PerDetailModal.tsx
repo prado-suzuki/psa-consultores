@@ -276,10 +276,10 @@ export function PerDetailModal({
 
       return { valor, sitData };
     },
-    onSuccess: ({ valor, sitData }) => {
-      queryClient.invalidateQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
+    onSuccess: async ({ valor, sitData }) => {
+      await queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
-      queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
+      await queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       toast.success('Ressarcimento registrado com sucesso!');
       setRessarcimentoOpen(false);
@@ -615,7 +615,7 @@ export function PerDetailModal({
                         <DollarSign className="h-4 w-4 mr-2" />
                         Novo Ressarcimento
                       </Button>
-                      <Button onClick={handleNewDcomp} size="sm">
+                      <Button onClick={handleNewDcomp} size="sm" disabled={saldoRestante <= 0}>
                         <Plus className="h-4 w-4 mr-2" />
                         Novo DCOMP
                       </Button>
@@ -734,7 +734,8 @@ export function PerDetailModal({
         onOpenChange={(open) => {
           setDcompModalOpen(open);
           if (!open) {
-            queryClient.invalidateQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
+            queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
+            queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
           }
         }}
         editData={editDcompData}
