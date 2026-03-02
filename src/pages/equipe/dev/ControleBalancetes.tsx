@@ -105,7 +105,8 @@ const ControleBalancetes = () => {
       }
 
       const data = await response.json();
-      setBalancetes(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.balancetes) ? data.balancetes : []);
+      setBalancetes(list.map((b: any) => ({ ...b, id: b.id_balancete || b.id })));
     } catch (err: any) {
       toast({ title: 'Erro ao buscar balancetes', description: err.message, variant: 'destructive' });
       setBalancetes([]);
