@@ -202,17 +202,16 @@ const GestaoClientes = () => {
       <div className="space-y-6">
         {/* Topo: Botão à esquerda + texto auxiliar à direita */}
         <div className="flex justify-between items-center">
-          <button
+          <Button
             onClick={() => {
               setEditingClienteId(null);
               setViewMode(false);
               setNovoClienteModalOpen(true);
             }}
-            className="h-12 px-6 bg-teal-500 hover:bg-teal-600 text-slate-900 font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4 mr-2" />
             Novo cliente
-          </button>
+          </Button>
           <div className="hidden md:flex items-center text-slate-500 gap-2">
             <Search className="h-4 w-4" />
             <span className="text-sm">Gerencie sua base de dados de clientes</span>
@@ -298,20 +297,19 @@ const GestaoClientes = () => {
           </div>
           {/* Footer */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-            <button
+            <Button
+              variant="ghost"
               onClick={handleClear}
-              className="bg-white border border-slate-300 text-slate-500 hover:text-slate-900 h-10 px-4 rounded-lg font-bold shadow-sm transition-colors text-sm"
             >
               Limpar filtros
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSearch}
               disabled={isLoading}
-              className="bg-teal-500 hover:bg-teal-600 text-slate-900 h-10 px-6 rounded-lg font-bold shadow-sm transition-colors text-sm flex items-center gap-2"
             >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
               {isLoading ? "Buscando..." : "Buscar"}
-            </button>
+            </Button>
           </div>
         </div>
 
