@@ -598,9 +598,10 @@ export default function NewClientModal({
       try {
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const rawEmpresa = (cli as any).empresa_faturamento || "";
-          const empresaArr =
-            typeof rawEmpresa === "string" && rawEmpresa
+          const rawEmpresa = (cli as any).empresa_faturamento;
+          const empresaArr = Array.isArray(rawEmpresa)
+            ? rawEmpresa
+            : typeof rawEmpresa === "string" && rawEmpresa
               ? rawEmpresa
                   .split(",")
                   .map((s: string) => s.trim())
@@ -615,8 +616,8 @@ export default function NewClientModal({
             municipio: cli.municipio || "",
             uf: cli.uf || "",
             setor_cliente: cli.setor_cliente || "",
-            tipo_produto_segmento: "",
-            tipo_produto_segmento_custom: "",
+            tipo_produto_segmento: (cli as any).tipo_produto_segmento || "",
+            tipo_produto_segmento_custom: (cli as any).tipo_produto_segmento_custom || "",
             empresa_faturamento: empresaArr,
             regiao: (cli as any).regiao || "",
           });
@@ -633,22 +634,22 @@ export default function NewClientModal({
               tipo_pessoa: c.tipo_pessoa || "PJ",
               cpf_cnpj: c.cpf_cnpj || "",
               nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: "",
-              situacao_inscricao_estadual: c.inscricao_estadual ? "sim" : "isento",
+              nome_fantasia: (c as any).nome_fantasia || "",
+              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
               inscricao_estadual: c.inscricao_estadual || "",
               cod_cnae: c.cod_cnae || "",
               setor: c.setor || "",
               simples_nacional:
                 c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
               telefone: (c as any).telefone || "",
-              cep: "",
-              logradouro: "",
-              numero: "",
-              complemento: "",
-              bairro: "",
-              municipio: "",
-              uf: "",
-              contribuinte_faturamento: false,
+              cep: (c as any).cep || "",
+              logradouro: (c as any).logradouro || "",
+              numero: (c as any).numero || "",
+              complemento: (c as any).complemento || "",
+              bairro: (c as any).bairro || "",
+              municipio: (c as any).municipio || "",
+              uf: (c as any).uf || "",
+              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
             })),
           );
         }
@@ -661,17 +662,40 @@ export default function NewClientModal({
             parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
               nome: p.nome || "",
-              tipo_participante: (p as any).tipo_participante || "",
+              tipo_participante: p.tipo_participante || "",
               cargo: p.cargo || "",
               email: p.email || "",
               telefone: p.telefone || "",
-              observacoes: (p as any).observacoes || "",
-              acesso_chamados: (p as any).acesso_chamados ?? false,
+              observacoes: p.observacoes || "",
+              acesso_chamados: p.acesso_chamados ?? false,
             })),
           );
         }
 
-        setContracts([]);
+        // Carregar contratos/OS do banco
+        const { data: existingContratos } = await (supabase.from(contratoTable) as any)
+          .select("*")
+          .eq("id_cliente", editingClienteId);
+        if (existingContratos && existingContratos.length > 0) {
+          setContracts(
+            existingContratos.map((ct: any) => ({
+              _id: Date.now() + Math.random(),
+              ordem_servico: ct.numero_contrato || "",
+              data_emissao: ct.data_emissao || "",
+              data_inicio_projeto: ct.data_inicio || "",
+              data_fim_projeto: ct.data_fim || "",
+              valor_projeto: ct.valor_fixo || 0,
+              valor_reembolso_km: ct.valor_reembolso_km || 0,
+              valor_reembolso_refeicao: ct.valor_reembolso_refeicao || 0,
+              situacao_projeto: ct.situacao_projeto || "em_andamento",
+              observacoes_projeto: ct.observacoes_projeto || "",
+              servicos_contratados: ct.servicos_contratados || [],
+              centros_custo: ct.centros_custo || [],
+            })),
+          );
+        } else {
+          setContracts([]);
+        }
       } catch (err: any) {
         console.error("Erro ao carregar dados do cliente:", err);
         toast.error("Erro ao carregar dados do cliente");
@@ -1110,6 +1134,11 @@ export default function NewClientModal({
 
     setSaving(true);
     try {
+      const produtoFinal =
+        clientData.tipo_produto_segmento === "__outro__"
+          ? clientData.tipo_produto_segmento_custom.trim()
+          : clientData.tipo_produto_segmento;
+
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -1119,6 +1148,15 @@ export default function NewClientModal({
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
+        ...(isProductionEnvironment && {
+          empresa_faturamento: clientData.empresa_faturamento,
+          tipo_produto_segmento: produtoFinal || null,
+          tipo_produto_segmento_custom:
+            clientData.tipo_produto_segmento === "__outro__"
+              ? clientData.tipo_produto_segmento_custom.trim() || null
+              : null,
+          regiao: clientData.regiao || null,
+        }),
       };
 
       let clienteId: string;
@@ -1167,7 +1205,21 @@ export default function NewClientModal({
           setor: e.setor || null,
           simples_nacional:
             e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
-          telefone: e.telefone || null,
+          ...(isProductionEnvironment
+            ? {
+                telefone: e.telefone || null,
+                nome_fantasia: e.nome_fantasia || null,
+                situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
+                cep: e.cep || null,
+                logradouro: e.logradouro || null,
+                numero: e.numero || null,
+                complemento: e.complemento || null,
+                bairro: e.bairro || null,
+                municipio: e.municipio || null,
+                uf: e.uf || null,
+                contribuinte_faturamento: e.contribuinte_faturamento ?? false,
+              }
+            : {}),
         }));
         const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
         if (contribError) throw contribError;
@@ -1180,12 +1232,37 @@ export default function NewClientModal({
           cargo: p.cargo || null,
           email: p.email || null,
           telefone: p.telefone || null,
+          ...(isProductionEnvironment && {
+            tipo_participante: p.tipo_participante || null,
+            observacoes: p.observacoes || null,
+            acesso_chamados: p.acesso_chamados ?? false,
+          }),
         }));
         const { error: partError } = await (supabase.from(participanteTable) as any).insert(partPayload);
         if (partError) throw partError;
       }
 
-      console.log("[OS] Dados locais (não salvos no banco):", contracts);
+      // Persistir contratos/OS no banco
+      if (contracts.length > 0) {
+        const osPayload = contracts.map((c) => ({
+          id_cliente: clienteId,
+          numero_contrato: c.ordem_servico || null,
+          data_inicio: c.data_inicio_projeto || null,
+          data_fim: c.data_fim_projeto || null,
+          valor_fixo: c.valor_projeto || 0,
+          ...(isProductionEnvironment && {
+            data_emissao: c.data_emissao || null,
+            valor_reembolso_km: c.valor_reembolso_km || 0,
+            valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+            situacao_projeto: c.situacao_projeto || "em_andamento",
+            observacoes_projeto: c.observacoes_projeto || null,
+            servicos_contratados: c.servicos_contratados || [],
+            centros_custo: c.centros_custo || [],
+          }),
+        }));
+        const { error: osError } = await (supabase.from(contratoTable) as any).insert(osPayload);
+        if (osError) throw osError;
+      }
 
       syncCadastrosToDW({
         clientes: [
@@ -1201,6 +1278,11 @@ export default function NewClientModal({
             categoria: (clienteResult as any).categoria ?? null,
             created_at: clienteResult.created_at,
             updated_at: clienteResult.updated_at,
+            ...(isProductionEnvironment && {
+              empresa_faturamento: clientData.empresa_faturamento,
+              tipo_produto_segmento: (clienteResult as any).tipo_produto_segmento ?? null,
+              regiao: (clienteResult as any).regiao ?? null,
+            }),
           },
         ],
       });
