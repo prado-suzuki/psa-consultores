@@ -137,6 +137,7 @@ interface DraftEntity {
   municipio: string;
   uf: string;
   contribuinte_faturamento: boolean;
+  atividade_principal: string;
 }
 
 interface DraftParticipant {
@@ -200,34 +201,14 @@ const formatPhone = (value: string): string => {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 };
 
-// --- Currency mask utilities ---
+// --- Currency mask utilities (centavos approach) ---
 const formatBRLInput = (value: number): string => {
-  if (value === 0) return "0,00";
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const parseBRLInput = (formatted: string): number => {
-  const clean = formatted.replace(/\./g, "").replace(",", ".");
-  const num = parseFloat(clean);
-  return isNaN(num) ? 0 : num;
-};
+const centsToValue = (cents: number): number => cents / 100;
 
-const handleCurrencyChange = (raw: string): string => {
-  // Remove everything except digits and comma
-  let clean = raw.replace(/[^\d,]/g, "");
-  // Allow only one comma
-  const parts = clean.split(",");
-  if (parts.length > 2) clean = parts[0] + "," + parts.slice(1).join("");
-  // Limit decimal to 2 digits
-  if (parts.length === 2 && parts[1].length > 2) {
-    clean = parts[0] + "," + parts[1].slice(0, 2);
-  }
-  // Add thousand separators to integer part
-  const intPart = clean.split(",")[0];
-  const decPart = clean.split(",")[1];
-  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return decPart !== undefined ? `${formatted},${decPart}` : formatted;
-};
+const valueToCents = (value: number): number => Math.round(value * 100);
 
 // --- Date mask utilities ---
 const formatDateMask = (value: string): string => {
@@ -346,7 +327,7 @@ const DateFieldWithInput = ({
   );
 };
 
-// --- Currency field component ---
+// --- Currency field component (centavos approach) ---
 const CurrencyField = ({
   value,
   onChange,
@@ -356,25 +337,25 @@ const CurrencyField = ({
   onChange: (v: number) => void;
   className?: string;
 }) => {
-  const [display, setDisplay] = useState(formatBRLInput(value));
+  const [cents, setCents] = useState(valueToCents(value));
 
   useEffect(() => {
-    setDisplay(formatBRLInput(value));
+    setCents(valueToCents(value));
   }, [value]);
 
   const handleChange = (raw: string) => {
-    const formatted = handleCurrencyChange(raw);
-    setDisplay(formatted);
-    const num = parseBRLInput(formatted);
-    onChange(num);
+    const digits = raw.replace(/\D/g, "");
+    const newCents = parseInt(digits || "0", 10);
+    setCents(newCents);
+    onChange(centsToValue(newCents));
   };
 
   return (
     <Input
-      value={display}
+      value={formatBRLInput(centsToValue(cents))}
       onChange={(e) => handleChange(e.target.value)}
       className={cn("h-8", className)}
-      inputMode="decimal"
+      inputMode="numeric"
     />
   );
 };
@@ -454,9 +435,9 @@ export default function NewClientModal({
   });
 
   const { data: catalogServices = [] } = useQuery({
-    queryKey: ["catalog_clients_services"],
+    queryKey: ["tax_categorias_services"],
     queryFn: async () => {
-      const { data } = await supabase.from("catalog_clients").select("id, name").eq("is_active", true).order("name");
+      const { data } = await supabase.from("tax_categorias").select("id, nome").order("nome");
       return data || [];
     },
   });
@@ -508,6 +489,7 @@ export default function NewClientModal({
     municipio: "",
     uf: "",
     contribuinte_faturamento: false,
+    atividade_principal: "",
   });
 
   // Section 3 - Participantes
@@ -654,6 +636,7 @@ export default function NewClientModal({
               municipio: (c as any).municipio || "",
               uf: (c as any).uf || "",
               contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
+              atividade_principal: "",
             })),
           );
         }
@@ -740,6 +723,7 @@ export default function NewClientModal({
         nome_razao_social: data.razao_social || prev?.nome_razao_social || "",
         nome_fantasia: data.nome_fantasia || "",
         cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev?.cod_cnae || "",
+        atividade_principal: data.cnae_fiscal_descricao || "",
         cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev?.cep || "",
         logradouro: data.logradouro || prev?.logradouro || "",
         numero: data.numero || prev?.numero || "",
@@ -837,7 +821,7 @@ export default function NewClientModal({
       }
     }
 
-    setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
+  setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
       tipo_pessoa: "PJ",
       cpf_cnpj: "",
@@ -857,6 +841,7 @@ export default function NewClientModal({
       municipio: "",
       uf: "",
       contribuinte_faturamento: false,
+      atividade_principal: "",
     });
   };
 
@@ -965,6 +950,7 @@ export default function NewClientModal({
               nome_razao_social: data.razao_social || prev.nome_razao_social || "",
               nome_fantasia: data.nome_fantasia || "",
               cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev.cod_cnae || "",
+              atividade_principal: data.cnae_fiscal_descricao || "",
               cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev.cep || "",
               logradouro: data.logradouro || prev.logradouro || "",
               numero: data.numero || prev.numero || "",
@@ -1423,7 +1409,7 @@ export default function NewClientModal({
                       value="cliente"
                       className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all"
                     >
-                      Dados do Cliente
+                      Dados do Cliente/Grupo
                     </TabsTrigger>
                     <TabsTrigger
                       value="contribuintes"
@@ -1564,7 +1550,39 @@ export default function NewClientModal({
                           </Select>
                         </div>
 
-                        {/* 6. Tipo de produto/segmento */}
+                        {/* 6. Região */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                            Região *
+                          </Label>
+                          <Select
+                            disabled={isReadOnly}
+                            value={clientData.regiao || "__none__"}
+                            onValueChange={(v) => setClientData({ ...clientData, regiao: v === "__none__" ? "" : v })}
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
+                              <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
+                              <SelectItem value="3SU">
+                                3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS
+                              </SelectItem>
+                              <SelectItem value="PAR">
+                                PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia
+                              </SelectItem>
+                              <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
+                              <SelectItem value="RAO">
+                                RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo
+                              </SelectItem>
+                              <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* 7. Tipo de produto/segmento */}
                         <div className="flex flex-col gap-1">
                           <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                             <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
@@ -1608,38 +1626,6 @@ export default function NewClientModal({
                               />
                             </div>
                           )}
-                        </div>
-
-                        {/* 7. Região */}
-                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                            Região *
-                          </Label>
-                          <Select
-                            disabled={isReadOnly}
-                            value={clientData.regiao || "__none__"}
-                            onValueChange={(v) => setClientData({ ...clientData, regiao: v === "__none__" ? "" : v })}
-                          >
-                            <SelectTrigger className="flex-1 h-8">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione...</SelectItem>
-                              <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
-                              <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
-                              <SelectItem value="3SU">
-                                3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS
-                              </SelectItem>
-                              <SelectItem value="PAR">
-                                PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia
-                              </SelectItem>
-                              <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
-                              <SelectItem value="RAO">
-                                RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo
-                              </SelectItem>
-                              <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
 
                         {/* 8. Empresa / Faturamento (Multi-select) */}
@@ -1821,7 +1807,10 @@ export default function NewClientModal({
                                                 : ent.inscricao_estadual || "—"
                                           }
                                         />
-                                        {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
+                        {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
+                        {ent.tipo_pessoa === "PJ" && ent.atividade_principal && (
+                          <FieldPair label="Atividade Principal" value={ent.atividade_principal} />
+                        )}
                                         {ent.tipo_pessoa === "PJ" && (
                                           <FieldPair
                                             label="Simples Nacional"
@@ -1973,8 +1962,8 @@ export default function NewClientModal({
                                               </SelectTrigger>
                                               <SelectContent>
                                                 <SelectItem value="sim">Sim</SelectItem>
-                                                <SelectItem value="isento">Isento</SelectItem>
                                                 <SelectItem value="nao">Não</SelectItem>
+                                                <SelectItem value="isento">Isento</SelectItem>
                                               </SelectContent>
                                             </Select>
                                           </div>
@@ -2010,6 +1999,21 @@ export default function NewClientModal({
                                                   setEditingEntityData({ ...ed, cod_cnae: e.target.value })
                                                 }
                                                 className="h-8 max-w-[200px]"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* Atividade Principal (read-only) */}
+                                        {ed.tipo_pessoa === "PJ" && (ed as any).atividade_principal && (
+                                          <div className="flex flex-row items-center gap-4">
+                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                              Atividade Principal
+                                            </Label>
+                                            <div className="flex-1">
+                                              <Input
+                                                value={(ed as any).atividade_principal || ""}
+                                                disabled
+                                                className="h-8 bg-muted/50"
                                               />
                                             </div>
                                           </div>
@@ -2342,8 +2346,8 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="sim">Sim</SelectItem>
-                                      <SelectItem value="isento">Isento</SelectItem>
                                       <SelectItem value="nao">Não</SelectItem>
+                                      <SelectItem value="isento">Isento</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -2379,6 +2383,21 @@ export default function NewClientModal({
                                       onChange={(e) => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })}
                                       placeholder="0000-0/00"
                                       className="h-8 max-w-[200px]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              {/* Atividade Principal (read-only, from BrasilAPI) */}
+                              {draftEntity.tipo_pessoa === "PJ" && (draftEntity as any).atividade_principal && (
+                                <div className="flex flex-row items-center gap-4">
+                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                    Atividade Principal
+                                  </Label>
+                                  <div className="flex-1">
+                                    <Input
+                                      value={(draftEntity as any).atividade_principal || ""}
+                                      disabled
+                                      className="h-8 bg-muted/50"
                                     />
                                   </div>
                                 </div>
@@ -3066,7 +3085,7 @@ export default function NewClientModal({
                                                 const svc = catalogServices.find((s: any) => s.id === svcId);
                                                 return (
                                                   <Badge key={svcId} variant="secondary" className="text-xs">
-                                                    {svc?.name || svcId}
+                                                    {svc?.nome || svcId}
                                                   </Badge>
                                                 );
                                               })}
@@ -3264,7 +3283,7 @@ export default function NewClientModal({
                                                 <SelectItem value="__none__">Selecione...</SelectItem>
                                                 {catalogServices.map((svc: any) => (
                                                   <SelectItem key={svc.id} value={svc.id}>
-                                                    {svc.name}
+                                                    {svc.nome}
                                                   </SelectItem>
                                                 ))}
                                               </SelectContent>
@@ -3622,7 +3641,7 @@ export default function NewClientModal({
                                       <SelectItem value="__none__">Selecione...</SelectItem>
                                       {catalogServices.map((svc: any) => (
                                         <SelectItem key={svc.id} value={svc.id}>
-                                          {svc.name}
+                                          {svc.nome}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
