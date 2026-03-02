@@ -1,60 +1,62 @@
-# Plano: Configuracoes globais do contribuinte + campo "Detalhamento" no upload de balancete
-
-## Resumo
-
-Criar uma tabela `contribuinte_bal_config` para armazenar configuracoes globais por contribuinte (comecando com `balancete_detalhamento`). No modal de upload, ao selecionar um contribuinte pela primeira vez, perguntar se o balancete possui detalhamento. Nas vezes seguintes, pre-preencher o campo com o valor salvo.
-
----
-
-## Fase 1: Migracao SQL
-
-Criar a tabela `contribuinte_bal_config` :
 
 
-| Coluna                   | Tipo                 | Default             | Descricao                          |
-| ------------------------ | -------------------- | ------------------- | ---------------------------------- |
-| `id`                     | uuid PK              | `gen_random_uuid()` | Identificador                      |
-| `id_contribuinte`        | uuid NOT NULL UNIQUE | -                   | Referencia ao contribuinte (1:1)   |
-| `balancete_detalhamento` | boolean              | NULL                | Se o balancete possui detalhamento |
-| `created_at`             | timestamptz          | `now()`             | -                                  |
-| `updated_at`             | timestamptz          | `now()`             | -                                  |
+# Plano: Nova aba "Clientes" no Controle de Acessos
 
+## Objetivo
 
-- Constraint UNIQUE em `id_contribuinte` para garantir 1 registro por contribuinte.
-- RLS: mesmas politicas das tabelas operacionais (team_member + admin).
-- Trigger `update_updated_at_column` para atualizar `updated_at` automaticamente.
+Adicionar uma quarta aba "Clientes" em `EquipeControleAcessos.tsx` focada em usuarios com role `client`. A aba mostra a lista de clientes, permite selecionar um e gerenciar permissoes restritas apenas as paginas do ambiente de chamados (rotas `/cliente/*`).
 
 ---
 
-## Fase 2: Frontend -- `UploadBalanceteModal.tsx`
+## Alteracoes em `EquipeControleAcessos.tsx`
 
-### 2.1 Consultar config ao selecionar contribuinte
+### 1. Nova aba no TabsList
 
-Quando o usuario seleciona um contribuinte, fazer query em `contribuinte_bal_config` filtrando por `id_contribuinte`:
+Adicionar tab "Clientes" com icone `Users` apos "Cadastros":
 
-- Se existir registro com `balancete_detalhamento` preenchido: pre-preencher o switch de detalhamento e mostrar o campo normalmente.
-- Se NAO existir registro (primeira vez): exibir um alerta/prompt inline perguntando "O balancete deste contribuinte possui detalhamento?" com opcoes Sim/Nao. Ao responder, salvar (upsert) na tabela `contribuinte_bal_config` e pre-preencher o campo.
+```text
+<TabsTrigger value="clientes">
+  <Users /> Clientes
+</TabsTrigger>
+```
 
-### 2.2 Adicionar campo "Detalhamento" ao formulario
+### 2. Filtro de usuarios clientes
 
-- Novo campo Switch (Sim/Nao) entre o seletor de contribuinte e o periodo.
-- Estado: `detalhamento: boolean | null` -- comeca `null`, preenchido apos consulta ou resposta do usuario.
-- O campo fica desabilitado ate que um contribuinte seja selecionado.
+Derivar lista `clientUsers` filtrando `users` por quem tem role `client`:
 
-### 2.3 Enviar no payload
+```text
+const clientUsers = users?.filter(u => u.roles.includes('client'));
+```
 
-Adicionar `formData.append('detalhamento', String(detalhamento))` ao `handleSubmit`, enviando `'true'` ou `'false'` junto ao POST para `/api/v1/contabil/balancetes`.
+### 3. Filtro de paginas de chamados
 
-### 2.4 Permitir alteracao
+Filtrar `pages` para exibir apenas as da categoria `gestao` (chamados) ou com path iniciando em `/cliente`:
 
-O usuario pode trocar o valor do switch manualmente no formulario (caso queira enviar um balancete diferente do padrao). Isso NAO altera a config salva -- so o envio atual. Para alterar a config padrao, o usuario precisaria de uma acao separada (fora do escopo agora).
+```text
+const clientPages = pages?.filter(p => 
+  p.category === 'gestao' || p.page_path.startsWith('/cliente')
+);
+```
+
+### 4. Conteudo da aba
+
+Layout identico a aba "Usuarios" (grid 1/3 + 2/3):
+- **Coluna esquerda**: lista de usuarios clientes com busca, nome, email e badges
+- **Coluna direita**: permissoes do cliente selecionado, mostrando apenas paginas de chamados com botoes Conceder/Revogar
+- Reutilizar `selectedUserId`, `hasAccess`, `grantAccessMutation` e `revokeAccessMutation` ja existentes
+- Adicionar estado `selectedClientId` separado para nao conflitar com a aba de usuarios da equipe
+
+### 5. Sem criacao de usuario na aba
+
+Nao incluir botao "Criar Novo Usuario" -- clientes sao cadastrados via Gestao de Clientes. Apenas visualizacao e controle de permissoes.
 
 ---
 
 ## Arquivos impactados
 
+| Arquivo | Alteracao |
+|---|---|
+| `EquipeControleAcessos.tsx` | Nova aba "Clientes", estado `selectedClientId`, filtros de usuarios e paginas |
 
-| Arquivo                    | Alteracao                                                                   |
-| -------------------------- | --------------------------------------------------------------------------- |
-| Migracao SQL               | CREATE TABLE `contribuinte_bal_config` , RLS, trigger                       |
-| `UploadBalanceteModal.tsx` | Query de config, switch de detalhamento, logica de primeiro acesso, payload |
+Nenhuma migracao SQL necessaria -- reutiliza as tabelas `page_permissions` e `user_page_access` existentes.
+
