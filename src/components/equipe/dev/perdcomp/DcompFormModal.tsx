@@ -369,9 +369,11 @@ export function DcompFormModal({
                       <SelectItem value="PIS">PIS</SelectItem>
                       <SelectItem value="COFINS">COFINS</SelectItem>
                       <SelectItem value="IPI">IPI</SelectItem>
+                      <SelectItem value="INSS">INSS</SelectItem>
+                      <SelectItem value="IRRF">IRRF</SelectItem>
                       <SelectItem value="IRPJ">IRPJ</SelectItem>
                       <SelectItem value="CSLL">CSLL</SelectItem>
-                      <SelectItem value="INSS">INSS</SelectItem>
+                      <SelectItem value="CSRF">CSRF</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
