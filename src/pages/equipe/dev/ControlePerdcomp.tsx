@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -790,36 +791,38 @@ export default function ControlePerdcomp() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2" align="start">
-                  <div className="space-y-1">
-                    {allSituacoes.map((s) => (
-                      <label
-                        key={s}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                      >
-                        <Checkbox
-                          checked={situacaoFilter.includes(s)}
-                          onCheckedChange={(checked) => {
-                            setSituacaoFilter((prev) => (checked ? [...prev, s] : prev.filter((x) => x !== s)));
+                  <ScrollArea className="max-h-64 overflow-auto">
+                    <div className="space-y-1">
+                      {allSituacoes.map((s) => (
+                        <label
+                          key={s}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={situacaoFilter.includes(s)}
+                            onCheckedChange={(checked) => {
+                              setSituacaoFilter((prev) => (checked ? [...prev, s] : prev.filter((x) => x !== s)));
+                              setCurrentPage(1);
+                            }}
+                          />
+                          {s}
+                        </label>
+                      ))}
+                      {situacaoFilter.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full mt-1"
+                          onClick={() => {
+                            setSituacaoFilter([]);
                             setCurrentPage(1);
                           }}
-                        />
-                        {s}
-                      </label>
-                    ))}
-                    {situacaoFilter.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full mt-1"
-                        onClick={() => {
-                          setSituacaoFilter([]);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        Limpar seleção
-                      </Button>
-                    )}
-                  </div>
+                        >
+                          Limpar seleção
+                        </Button>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
