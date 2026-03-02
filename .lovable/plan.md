@@ -1,43 +1,44 @@
 
 
-# Ajustes no Controle PERDCOMP
+# Alinhamento DB-Frontend: Gestão de Clientes (CONCLUÍDO)
 
-## 1. Adicionar label "Editar" no botao de edicao da tabela principal
+## Fase 1: Migrações SQL (tabelas de produção) ✅
 
-No arquivo `src/pages/equipe/dev/ControlePerdcomp.tsx`, o botao de edicao (linha 624-633) tem apenas o icone de lapis. Sera adicionado o texto "Editar" ao lado do icone e o botao tera `size="sm"` ao inves de `size="icon"`.
+Colunas adicionadas em `cliente`, `contribuinte`, `participante` e `contrato`.
+Tabelas `_dev` **não foram alteradas**.
 
-## 2. Corrigir bug de data (timezone UTC)
+### cliente
+- `empresa_faturamento text[] DEFAULT '{}'`
+- `tipo_produto_segmento text`
+- `tipo_produto_segmento_custom text`
+- `regiao text`
 
-O problema ocorre em dois pontos:
+### contribuinte
+- `telefone`, `nome_fantasia`, `situacao_inscricao_estadual`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `municipio`, `uf` (todos text)
+- `contribuinte_faturamento boolean DEFAULT false`
 
-- **`formatDate`** em `ControlePerdcomp.tsx` (linha 58-65) e `PerDetailModal.tsx` (linha 108-115): `new Date(dateStr)` interpreta datas no formato `YYYY-MM-DD` como UTC, causando deslocamento de 1 dia no fuso horario brasileiro (UTC-3). A correcao usa parse manual: `new Date(year, month-1, day)`.
+### participante
+- `tipo_participante text`, `observacoes text`
+- `acesso_chamados boolean DEFAULT false`
 
-- **Ressarcimento**: O campo `ressarcimentoData` no `PerDetailModal.tsx` salva a data corretamente como string YYYY-MM-DD, mas a exibicao posterior via `formatDate` usa `new Date()` que causa o shift. A mesma correcao do `formatDate` resolve.
+### contrato
+- `data_emissao date`
+- `valor_reembolso_km numeric DEFAULT 0`, `valor_reembolso_refeicao numeric DEFAULT 0`
+- `situacao_projeto text DEFAULT 'em_andamento'`, `observacoes_projeto text`
+- `servicos_contratados jsonb DEFAULT '[]'`, `centros_custo jsonb DEFAULT '[]'`
 
-Arquivos afetados:
-- `src/pages/equipe/dev/ControlePerdcomp.tsx` - corrigir `formatDate`
-- `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` - corrigir `formatDate`
+## Fase 2: Refatoração do NewClientModal.tsx ✅
 
-## 3. Mover "Percentual Aplicado" do PER para o Ressarcimento
+### handleSave
+- Payloads de `cliente`, `contribuinte` e `participante` usam spread condicional `...(isProductionEnvironment && { ... })` para incluir campos novos apenas em produção.
+- **Contratos/OS agora são persistidos** no banco via `insert` na tabela `contrato`/`contrato_dev`, substituindo o antigo `console.log`.
+- `empresa_faturamento` é passado como array nativo `text[]` (sem `.join()`).
 
-- **Remover** o campo `porcentagem_psa` do formulario `PerFormModal.tsx` (linhas 709-727) e do schema/defaultValues
-- **Adicionar** o campo "Percentual Aplicado" no dialog de Ressarcimento em `PerDetailModal.tsx` (linhas 749-767), com input numerico step 0.01
-- A mutation de ressarcimento passara a salvar `porcentagem_psa` junto com `vlr_ressarcido` na tabela `per`
+### loadData
+- Carrega campos novos do cliente (`tipo_produto_segmento`, `empresa_faturamento` como array, `regiao`).
+- Carrega campos novos dos contribuintes (endereço, `nome_fantasia`, etc.).
+- Carrega campos novos dos participantes (`tipo_participante`, `observacoes`, `acesso_chamados`).
+- **Contratos são carregados do banco** em vez de `setContracts([])`.
 
-## 4. Adicionar impostos faltantes no DCOMP
-
-No `DcompFormModal.tsx` (linhas ~279-286), a lista de impostos atual e: PIS, COFINS, IPI, IRPJ, CSLL, INSS. Adicionar:
-- **IRRF** (entre INSS e IRPJ)
-- **CSRF** (apos CSLL)
-
-Lista final: PIS, COFINS, IPI, IRPJ, CSLL, INSS, IRRF, CSRF
-
-## Resumo de arquivos
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Corrigir `formatDate` + adicionar label "Editar" |
-| `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` | Corrigir `formatDate` + adicionar campo % no ressarcimento |
-| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Remover campo `porcentagem_psa` |
-| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Adicionar IRRF e CSRF nos impostos |
-
+### syncCadastrosToDW
+- Payload enriquecido com `empresa_faturamento`, `tipo_produto_segmento`, `regiao` (condicional prod).
