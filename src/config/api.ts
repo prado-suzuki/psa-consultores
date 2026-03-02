@@ -28,6 +28,7 @@ export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
 export const TABLE_NAMES = {
   cliente: isProductionEnvironment ? "cliente" : "cliente_dev",
   contribuinte: isProductionEnvironment ? "contribuinte" : "contribuinte_dev",
+  ordem_servico: isProductionEnvironment ? "ordem_servico" : "contrato_dev",
 } as const;
 
 // Helper para obter o nome da tabela correto para o ambiente
