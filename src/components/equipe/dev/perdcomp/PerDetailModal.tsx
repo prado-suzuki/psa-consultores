@@ -357,8 +357,9 @@ export function PerDetailModal({
   };
 
   const handleSaveRessarcimento = () => {
-    const valor = parseFloat(ressarcimentoValor);
-    if (isNaN(valor) || valor <= 0) {
+    const digits = ressarcimentoValor.replace(/\D/g, '');
+    const valor = parseInt(digits || '0', 10) / 100;
+    if (valor <= 0) {
       toast.error('Informe um valor válido');
       return;
     }
@@ -754,11 +755,15 @@ export function PerDetailModal({
             <div className="space-y-2">
               <Label>Valor Ressarcido (R$)</Label>
               <Input
-                type="number"
-                step="0.01"
-                placeholder="0,00"
+                type="text"
+                inputMode="numeric"
+                placeholder="R$ 0,00"
                 value={ressarcimentoValor}
-                onChange={(e) => setRessarcimentoValor(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '');
+                  const num = parseInt(digits || '0', 10) / 100;
+                  setRessarcimentoValor(num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -770,7 +775,7 @@ export function PerDetailModal({
               />
             </div>
             <div className="space-y-2">
-              <Label>Percentual Aplicado</Label>
+              <Label>Percentual Aplicado (%)</Label>
               <Input
                 type="number"
                 step="0.01"
