@@ -43,6 +43,27 @@ const normalizeMesAno = (value: string): string => {
   return value;
 };
 
+// Format DCOMP document number: XXXXX.XXXXX/XXXX-XX (16 digits)
+const formatDcompNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 16);
+  let formatted = digits;
+  if (digits.length > 5) formatted = digits.slice(0, 5) + '.' + digits.slice(5);
+  if (digits.length > 10) formatted = formatted.slice(0, 11) + '/' + digits.slice(10);
+  if (digits.length > 14) formatted = formatted.slice(0, 16) + '-' + digits.slice(14);
+  return formatted;
+};
+
+// Format currency for display: R$ 1.234,56
+const formatCurrencyDisplay = (value: number): string => {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+// Parse currency string to number (cents-based)
+const parseCurrencyToNumber = (value: string): number => {
+  const digits = value.replace(/\D/g, '');
+  return parseInt(digits || '0', 10) / 100;
+};
+
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
   nr_per_orig: z.string().min(1, 'PER de origem é obrigatório'),
@@ -74,6 +95,7 @@ export function DcompFormModal({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
 
   const form = useForm<DcompFormData>({
     resolver: zodResolver(dcompSchema),
@@ -150,10 +172,12 @@ export function DcompFormModal({
         nr_dcomp_ret: editData.nr_dcomp_ret || null,
         porcentagem_psa: editData.porcentagem_psa ?? null,
       });
+      setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_compensado || 0));
     } else if (open) {
       const saved = restore();
       if (saved) {
         form.reset(saved);
+        setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_compensado || 0));
       } else {
         form.reset({
           nr_documento: '',
@@ -165,6 +189,7 @@ export function DcompFormModal({
           nr_dcomp_ret: null,
           porcentagem_psa: null,
         });
+        setCurrencyDisplay('R$ 0,00');
       }
     }
   }, [editData, form, preSelectedPer, open]);
@@ -261,7 +286,15 @@ export function DcompFormModal({
                 <FormItem>
                   <FormLabel>Número do Documento</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isEditing} />
+                    <Input
+                      {...field}
+                      disabled={isEditing}
+                      placeholder="XXXXX.XXXXX/XXXX-XX"
+                      onChange={(e) => {
+                        const formatted = formatDcompNumber(e.target.value);
+                        field.onChange(formatted);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -384,11 +417,20 @@ export function DcompFormModal({
             <FormField
               control={form.control}
               name="vlr_compensado"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Valor Compensado (R$)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} />
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={currencyDisplay}
+                      onChange={(e) => {
+                        const numericValue = parseCurrencyToNumber(e.target.value);
+                        form.setValue('vlr_compensado', numericValue);
+                        setCurrencyDisplay(formatCurrencyDisplay(numericValue));
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -400,7 +442,7 @@ export function DcompFormModal({
               name="porcentagem_psa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Percentual Aplicado</FormLabel>
+                  <FormLabel>Percentual Aplicado (%)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
