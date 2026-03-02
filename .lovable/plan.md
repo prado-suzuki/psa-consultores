@@ -1,102 +1,60 @@
+# Plano: Configuracoes globais do contribuinte + campo "Detalhamento" no upload de balancete
 
+## Resumo
 
-# Plano: Criar tabela `ordem_servico` e migrar dados de OS
-
-## Contexto
-
-Atualmente, os dados de Ordens de Servico (OS) estao sendo salvos na tabela `contrato`, o que mistura duas entidades semanticamente distintas. Vamos criar uma tabela dedicada `ordem_servico` na producao, migrar os dados existentes, e limpar as colunas de OS da tabela `contrato`.
+Criar uma tabela `contribuinte_bal_config` para armazenar configuracoes globais por contribuinte (comecando com `balancete_detalhamento`). No modal de upload, ao selecionar um contribuinte pela primeira vez, perguntar se o balancete possui detalhamento. Nas vezes seguintes, pre-preencher o campo com o valor salvo.
 
 ---
 
-## Fase 1: Migracao SQL (apenas producao)
+## Fase 1: Migracao SQL
 
-### 1.1 Criar tabela `ordem_servico`
+Criar a tabela `contribuinte_bal_config` :
 
-| Coluna | Tipo | Default | Descricao |
-|---|---|---|---|
-| `id` | uuid PK | `gen_random_uuid()` | Identificador unico |
-| `id_cliente` | uuid NOT NULL | - | FK logica para `cliente` |
-| `numero_os` | text | - | Codigo da OS (ex: "001/2025") |
-| `data_emissao` | date | - | Data de emissao |
-| `data_inicio` | date | - | Inicio da execucao |
-| `data_fim` | date | - | Fim previsto |
-| `valor_projeto` | numeric | 0 | Valor total da OS |
-| `valor_reembolso_km` | numeric | 0 | Reembolso por km |
-| `valor_reembolso_refeicao` | numeric | 0 | Reembolso refeicao |
-| `situacao` | text | `'em_andamento'` | Status da OS |
-| `observacoes` | text | - | Notas livres |
-| `servicos_contratados` | jsonb | `'[]'` | Array de codigos de servico |
-| `centros_custo` | jsonb | `'[]'` | Array de {empresa, percentual} |
-| `created_at` | timestamptz | `now()` | - |
-| `updated_at` | timestamptz | `now()` | - |
 
-RLS: mesmas politicas das demais tabelas operacionais (team_member + admin para CRUD, admin para DELETE).
+| Coluna                   | Tipo                 | Default             | Descricao                          |
+| ------------------------ | -------------------- | ------------------- | ---------------------------------- |
+| `id`                     | uuid PK              | `gen_random_uuid()` | Identificador                      |
+| `id_contribuinte`        | uuid NOT NULL UNIQUE | -                   | Referencia ao contribuinte (1:1)   |
+| `balancete_detalhamento` | boolean              | NULL                | Se o balancete possui detalhamento |
+| `created_at`             | timestamptz          | `now()`             | -                                  |
+| `updated_at`             | timestamptz          | `now()`             | -                                  |
 
-### 1.2 Migrar dados existentes de `contrato` para `ordem_servico`
 
-Copiar linhas de `contrato` que tenham `servicos_contratados IS NOT NULL` ou `situacao_projeto IS NOT NULL` (indicando que sao OS e nao contratos reais) para a nova tabela, mapeando:
-
-- `numero_contrato` -> `numero_os`
-- `valor_fixo` -> `valor_projeto`
-- `situacao_projeto` -> `situacao`
-- `observacoes_projeto` -> `observacoes`
-
-### 1.3 Remover colunas OS-especificas de `contrato`
-
-Remover da tabela `contrato` as 7 colunas que pertencem exclusivamente a OS:
-- `data_emissao`
-- `valor_reembolso_km`
-- `valor_reembolso_refeicao`
-- `situacao_projeto`
-- `observacoes_projeto`
-- `servicos_contratados`
-- `centros_custo`
-
-A tabela `contrato` permanece com suas colunas originais: `id_contrato`, `id_cliente`, `numero_contrato`, `tipo_contrato`, `data_inicio`, `data_fim`, `valor_fixo`, `aliquota_contrato`.
-
-### 1.4 Tabelas `_dev`
-
-**Nenhuma tabela `_dev` sera criada ou alterada.** O frontend usara `contrato_dev` como fallback no ambiente de desenvolvimento, enviando apenas os campos compativeis.
+- Constraint UNIQUE em `id_contribuinte` para garantir 1 registro por contribuinte.
+- RLS: mesmas politicas das tabelas operacionais (team_member + admin).
+- Trigger `update_updated_at_column` para atualizar `updated_at` automaticamente.
 
 ---
 
-## Fase 2: Refatoracao do Frontend (`NewClientModal.tsx`)
+## Fase 2: Frontend -- `UploadBalanceteModal.tsx`
 
-### 2.1 Constante de tabela
+### 2.1 Consultar config ao selecionar contribuinte
 
-Substituir o uso de `contratoTable` para OS:
+Quando o usuario seleciona um contribuinte, fazer query em `contribuinte_bal_config` filtrando por `id_contribuinte`:
 
-```text
-const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
-```
+- Se existir registro com `balancete_detalhamento` preenchido: pre-preencher o switch de detalhamento e mostrar o campo normalmente.
+- Se NAO existir registro (primeira vez): exibir um alerta/prompt inline perguntando "O balancete deste contribuinte possui detalhamento?" com opcoes Sim/Nao. Ao responder, salvar (upsert) na tabela `contribuinte_bal_config` e pre-preencher o campo.
 
-### 2.2 `handleSave` -- persistencia de OS
+### 2.2 Adicionar campo "Detalhamento" ao formulario
 
-Atualizar o bloco de insercao de contratos/OS (linhas ~1246-1264) para apontar para `ordemServicoTable` com payload mapeado para a nova estrutura:
+- Novo campo Switch (Sim/Nao) entre o seletor de contribuinte e o periodo.
+- Estado: `detalhamento: boolean | null` -- comeca `null`, preenchido apos consulta ou resposta do usuario.
+- O campo fica desabilitado ate que um contribuinte seja selecionado.
 
-```text
-numero_os       <- ordem_servico
-valor_projeto   <- valor_projeto
-situacao        <- situacao_projeto
-observacoes     <- observacoes_projeto
-```
+### 2.3 Enviar no payload
 
-Manter espalhamento condicional `...(isProductionEnvironment && { ... })` para campos que so existem em `ordem_servico` e nao em `contrato_dev`.
+Adicionar `formData.append('detalhamento', String(detalhamento))` ao `handleSubmit`, enviando `'true'` ou `'false'` junto ao POST para `/api/v1/contabil/balancetes`.
 
-### 2.3 `loadData` -- carregamento de OS
+### 2.4 Permitir alteracao
 
-Alterar a query de carregamento (linhas ~676-698) para ler de `ordemServicoTable` em vez de `contratoTable`, mapeando os nomes de coluna corretamente.
-
-### 2.4 Interface `DraftContract`
-
-Renomear para `DraftOrdemServico` para refletir a semantica correta.
+O usuario pode trocar o valor do switch manualmente no formulario (caso queira enviar um balancete diferente do padrao). Isso NAO altera a config salva -- so o envio atual. Para alterar a config padrao, o usuario precisaria de uma acao separada (fora do escopo agora).
 
 ---
 
-## Resumo de arquivos impactados
+## Arquivos impactados
 
-| Arquivo | Alteracao |
-|---|---|
-| Migracao SQL | CREATE TABLE `ordem_servico`, INSERT migrados, DROP COLUMN em `contrato` |
-| `NewClientModal.tsx` | Constante de tabela, handleSave, loadData, rename da interface |
 
+| Arquivo                    | Alteracao                                                                   |
+| -------------------------- | --------------------------------------------------------------------------- |
+| Migracao SQL               | CREATE TABLE `contribuinte_bal_config` , RLS, trigger                       |
+| `UploadBalanceteModal.tsx` | Query de config, switch de detalhamento, logica de primeiro acesso, payload |
