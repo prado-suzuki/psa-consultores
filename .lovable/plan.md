@@ -1,117 +1,43 @@
 
 
-# Criar ferramentas ECD e ECF baseadas no layout EFD ICMS
+# Ajustes no Controle PERDCOMP
 
-## Objetivo
+## 1. Adicionar label "Editar" no botao de edicao da tabela principal
 
-Criar duas novas paginas de consulta -- "Consulta ECD" e "Consulta ECF" -- replicando fielmente o layout, estrutura de filtros, tabela de resultados e acoes do EFD ICMS, adaptando apenas os campos especificos de cada obrigacao. Como os endpoints ainda nao existem, o frontend sera criado com estrutura pronta para integracao futura, usando o mesmo hook `useEFDOverview` com tipos `ecd` e `ecf`.
+No arquivo `src/pages/equipe/dev/ControlePerdcomp.tsx`, o botao de edicao (linha 624-633) tem apenas o icone de lapis. Sera adicionado o texto "Editar" ao lado do icone e o botao tera `size="sm"` ao inves de `size="icon"`.
 
-## Arquivos a criar
+## 2. Corrigir bug de data (timezone UTC)
 
-### 1. `src/pages/equipe/dev/ConsultaECD.tsx`
-Pagina completa baseada na ConsultaEFDICMS, com as seguintes adaptacoes:
+O problema ocorre em dois pontos:
 
-- **DevLayout**: title="Consulta ECD", subtitle="Analise e auditoria de Escrituracao Contabil Digital"
-- **Filtros**: Mesma estrutura (Cliente 3col, Contribuinte 5col, Data Inicio 2col, Data Fim 2col) -- SEM filtro de Filial
-- **Tabela de resultados**: Colunas adaptadas para ECD:
-  - Checkbox (selecao multipla)
-  - Arquivo (nome + ID)
-  - Periodo (DT_INI a DT_FIN)
-  - Tipo (Original/Retificadora)
-  - Finalidade (campo COD_FIN: 0=Original, 1=Substituta, etc.)
-  - Acoes (Baixar TXT, Exportar Excel, Analisar)
-- **Header de resultados**: CNPJ + Refresh + acoes de selecao (Exportar excel, Baixar txt) -- sem dropdown de filial
-- **Empty states**: Identicos ao EFD ICMS
-- **Hooks**: Usa `useEFDOverview` com `tipo: 'ecd'`
-- **Downloads**: URLs adaptadas para `/api/v1/query/download/efd/ecd/...`
-- **Modais**: Usa os mesmos `EFDAnalysisModal` e `EFDExportDialog` com `tipo="ecd"`
+- **`formatDate`** em `ControlePerdcomp.tsx` (linha 58-65) e `PerDetailModal.tsx` (linha 108-115): `new Date(dateStr)` interpreta datas no formato `YYYY-MM-DD` como UTC, causando deslocamento de 1 dia no fuso horario brasileiro (UTC-3). A correcao usa parse manual: `new Date(year, month-1, day)`.
 
-### 2. `src/pages/equipe/dev/ConsultaECF.tsx`
-Pagina completa baseada na ConsultaEFDICMS, com as seguintes adaptacoes:
+- **Ressarcimento**: O campo `ressarcimentoData` no `PerDetailModal.tsx` salva a data corretamente como string YYYY-MM-DD, mas a exibicao posterior via `formatDate` usa `new Date()` que causa o shift. A mesma correcao do `formatDate` resolve.
 
-- **DevLayout**: title="Consulta ECF", subtitle="Analise e auditoria de Escrituracao Contabil Fiscal"
-- **Filtros**: Mesma estrutura (Cliente 3col, Contribuinte 5col, Data Inicio 2col, Data Fim 2col) -- SEM filtro de Filial
-- **Tabela de resultados**: Colunas adaptadas para ECF:
-  - Checkbox (selecao multipla)
-  - Arquivo (nome + ID)
-  - Periodo (DT_INI a DT_FIN)
-  - Tipo (Original/Retificadora)
-  - Situacao Especial (IND_SIT_ESP)
-  - Acoes (Baixar TXT, Exportar Excel, Analisar)
-- **Header de resultados**: CNPJ + Refresh + acoes de selecao -- sem dropdown de filial
-- **Hooks**: Usa `useEFDOverview` com `tipo: 'ecf'`
-- **Downloads**: URLs adaptadas para `/api/v1/query/download/efd/ecf/...`
-- **Modais**: Usa os mesmos `EFDAnalysisModal` e `EFDExportDialog` com `tipo="ecf"`
+Arquivos afetados:
+- `src/pages/equipe/dev/ControlePerdcomp.tsx` - corrigir `formatDate`
+- `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` - corrigir `formatDate`
 
-## Arquivos a modificar
+## 3. Mover "Percentual Aplicado" do PER para o Ressarcimento
 
-### 3. `src/types/efd.ts`
-- Adicionar `'ecd' | 'ecf'` ao tipo `EFDTipo` (atualmente apenas `'contribuicoes' | 'icms'`)
+- **Remover** o campo `porcentagem_psa` do formulario `PerFormModal.tsx` (linhas 709-727) e do schema/defaultValues
+- **Adicionar** o campo "Percentual Aplicado" no dialog de Ressarcimento em `PerDetailModal.tsx` (linhas 749-767), com input numerico step 0.01
+- A mutation de ressarcimento passara a salvar `porcentagem_psa` junto com `vlr_ressarcido` na tabela `per`
 
-### 4. `src/components/equipe/dev/DevLayout.tsx`
-- Adicionar 2 entradas no array `navItems`:
-  - `{ icon: FileText, label: 'ECD', path: '/equipe/dev/consulta-ecd' }`
-  - `{ icon: FileText, label: 'ECF', path: '/equipe/dev/consulta-ecf' }`
-- Posicionar logo apos "EFD ICMS" na lista
+## 4. Adicionar impostos faltantes no DCOMP
 
-### 5. `src/App.tsx`
-- Importar `ConsultaECD` e `ConsultaECF`
-- Adicionar 2 rotas com TeamRoute + PageAccessGate:
-  - `/equipe/dev/consulta-ecd`
-  - `/equipe/dev/consulta-ecf`
+No `DcompFormModal.tsx` (linhas ~279-286), a lista de impostos atual e: PIS, COFINS, IPI, IRPJ, CSLL, INSS. Adicionar:
+- **IRRF** (entre INSS e IRPJ)
+- **CSRF** (apos CSLL)
 
-## Detalhes tecnicos
+Lista final: PIS, COFINS, IPI, IRPJ, CSLL, INSS, IRRF, CSRF
 
-### Estrutura do componente (identica para ECD e ECF)
+## Resumo de arquivos
 
-```text
-DevLayout
-  Card (Filtros)
-    CardHeader: icone Filter + "FILTROS DE BUSCA" uppercase
-    CardContent: grid 12 colunas
-      - Cliente (3col): Select com clientes ativos
-      - Contribuinte (5col): Select filtrado por cliente
-      - Data Inicio (2col): MonthYearPicker
-      - Data Fim (2col): MonthYearPicker
-    Barra de acoes: Limpar filtros (ghost) + Buscar (primary)
-  Card (Resultados)
-    Header: CNPJ + Refresh + Exportar Excel + Baixar TXT
-    Tabela com colunas especificas
-    Empty states (inicial, loading, sem resultados)
-  EFDAnalysisModal
-  EFDExportDialog (controlado externamente)
-```
-
-### Colunas da tabela ECD
-| Coluna | Campo | Alinhamento |
-|--------|-------|-------------|
-| Checkbox | selecao | esquerda |
-| Arquivo | NOME + ID_ARQUIVO | esquerda |
-| Periodo | DT_INI a DT_FIN | esquerda |
-| Tipo | TIPO_ESCRIT (Original/Retificadora) | esquerda |
-| Finalidade | COD_FIN | esquerda |
-| Acoes | Baixar, Exportar, Analisar | centro |
-
-### Colunas da tabela ECF
-| Coluna | Campo | Alinhamento |
-|--------|-------|-------------|
-| Checkbox | selecao | esquerda |
-| Arquivo | NOME + ID_ARQUIVO | esquerda |
-| Periodo | DT_INI a DT_FIN | esquerda |
-| Tipo | TIPO_ESCRIT (Original/Retificadora) | esquerda |
-| Situacao Especial | IND_SIT_ESP | esquerda |
-| Acoes | Baixar, Exportar, Analisar | centro |
-
-### Hook reutilizado
-O `useEFDOverview` ja aceita o parametro `tipo` que define a rota da API (`/api/v1/efd/{tipo}/{cnpj}`). Basta passar `'ecd'` ou `'ecf'`. Quando o endpoint nao existir, a tela mostrara o erro normalmente via toast.
-
-### Funcionalidades incluidas (identicas ao EFD ICMS)
-- Selecao multipla com checkbox (toggle individual + toggle all)
-- Download individual TXT
-- Download em lote (ZIP)
-- Exportacao Excel (via EFDExportDialog)
-- Analise detalhada (via EFDAnalysisModal)
-- Auto-selecao de contribuinte quando cliente tem apenas um
-- Filtragem local por periodo (interseccao de datas)
-- Formatadores: CNPJ, moeda, periodo
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/equipe/dev/ControlePerdcomp.tsx` | Corrigir `formatDate` + adicionar label "Editar" |
+| `src/components/equipe/dev/perdcomp/PerDetailModal.tsx` | Corrigir `formatDate` + adicionar campo % no ressarcimento |
+| `src/components/equipe/dev/perdcomp/PerFormModal.tsx` | Remover campo `porcentagem_psa` |
+| `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` | Adicionar IRRF e CSRF nos impostos |
 
