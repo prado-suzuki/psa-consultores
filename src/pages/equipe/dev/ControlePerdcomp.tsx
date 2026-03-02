@@ -282,15 +282,44 @@ export default function ControlePerdcomp() {
     return true;
   });
 
-  // Independent query for all distinct situações (loads before search)
-  const { data: allSituacoes = [] } = useQuery({
+  // Static list of all possible situações (unified from all forms + "Analisado")
+  const PREDEFINED_SITUACOES = [
+    'Aguardando Documentação',
+    'Análise concluída',
+    'Análise preliminar disponibilizada',
+    'Analisado',
+    'Cancelado',
+    'Contribuinte intimado',
+    'Deferido',
+    'Deferido Parcialmente',
+    'Despacho decisório emitido',
+    'Em Análise',
+    'Em discussão administrativa - CARF',
+    'Em discussão administrativa - CSRF',
+    'Em discussão administrativa - DRJ',
+    'Homologado',
+    'Indeferido',
+    'Não admitido',
+    'Pago',
+    'Pedido de cancelamento deferido',
+    'PER deferido',
+    'Pendente de Análise',
+    'Retificado',
+  ];
+
+  // Merge with DB values to cover any custom situações
+  const { data: dbSituacoes = [] } = useQuery({
     queryKey: ["per-situacoes-distintas"],
     queryFn: async () => {
       const { data } = await supabase.from("per_situacao").select("situacao").not("situacao", "is", null);
-      const set = new Set(data?.map((d) => d.situacao));
-      return Array.from(set).sort();
+      return Array.from(new Set(data?.map((d) => d.situacao) || []));
     },
   });
+
+  const allSituacoes = useMemo(() => {
+    const merged = new Set([...PREDEFINED_SITUACOES, ...dbSituacoes]);
+    return Array.from(merged).sort();
+  }, [dbSituacoes]);
 
   // Fetch Selic rates individually per PER (each PER has its own data_fim)
   const { data: selicPerMap = {}, isLoading: selicLoading } = useSelicDataPerPer(
