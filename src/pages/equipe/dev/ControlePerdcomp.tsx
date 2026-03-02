@@ -58,7 +58,8 @@ const formatCurrency = (value: number) => {
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return "-";
   try {
-    return format(new Date(dateStr), "dd/MM/yyyy", { locale: ptBR });
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return format(new Date(year, month - 1, day), "dd/MM/yyyy", { locale: ptBR });
   } catch {
     return dateStr;
   }
@@ -623,13 +624,14 @@ export default function ControlePerdcomp() {
                       <TableCell>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEdit(item);
                           }}
                         >
                           <Pencil className="h-4 w-4" />
+                          Editar
                         </Button>
                       </TableCell>
                     </TableRow>

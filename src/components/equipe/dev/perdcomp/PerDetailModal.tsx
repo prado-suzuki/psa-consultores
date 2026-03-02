@@ -108,7 +108,8 @@ const formatCurrency = (value: number) => {
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return '-';
   try {
-    return format(new Date(dateStr), 'dd/MM/yyyy', { locale: ptBR });
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return format(new Date(year, month - 1, day), 'dd/MM/yyyy', { locale: ptBR });
   } catch {
     return dateStr;
   }
@@ -148,6 +149,7 @@ export function PerDetailModal({
   const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
+  const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
 
   // Query para dados atualizados do PER (refetch após mutations)
   const { data: perAtualizado } = useQuery({
@@ -252,11 +254,11 @@ export function PerDetailModal({
 
   // Mutation para salvar ressarcimento
   const ressarcimentoMutation = useMutation({
-    mutationFn: async ({ valor, dataPagamento }: { valor: number; dataPagamento: string }) => {
-      // Update per.vlr_ressarcido
+    mutationFn: async ({ valor, dataPagamento, percentual }: { valor: number; dataPagamento: string; percentual: number | null }) => {
+      // Update per.vlr_ressarcido + porcentagem_psa
       const { error: perError } = await supabase
         .from('per')
-        .update({ vlr_ressarcido: valor })
+        .update({ vlr_ressarcido: valor, porcentagem_psa: percentual })
         .eq('numero_processo_per', per?.numero_processo_per);
       if (perError) throw perError;
 
@@ -283,6 +285,7 @@ export function PerDetailModal({
       setRessarcimentoOpen(false);
       setRessarcimentoValor('');
       setRessarcimentoData('');
+      setRessarcimentoPercentual('');
 
       if (per) {
         syncPerdcompToDW({
@@ -363,7 +366,8 @@ export function PerDetailModal({
       toast.error('Informe a data do pagamento');
       return;
     }
-    ressarcimentoMutation.mutate({ valor, dataPagamento: ressarcimentoData });
+    const percentual = ressarcimentoPercentual ? parseFloat(ressarcimentoPercentual) : null;
+    ressarcimentoMutation.mutate({ valor, dataPagamento: ressarcimentoData, percentual });
   };
 
   if (!per) return null;
@@ -763,6 +767,16 @@ export function PerDetailModal({
                 type="date"
                 value={ressarcimentoData}
                 onChange={(e) => setRessarcimentoData(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Percentual Aplicado</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Ex: 15.00"
+                value={ressarcimentoPercentual}
+                onChange={(e) => setRessarcimentoPercentual(e.target.value)}
               />
             </div>
           </div>
