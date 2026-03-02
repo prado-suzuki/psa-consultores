@@ -1,50 +1,52 @@
 
 
-# Plano: Formatacao de campos PERDCOMP
+# Correcao: Atualizacao dos botoes Ressarcimento/DCOMP em tempo real
 
-## Alteracoes
+## Problema
 
-### 1. Labels de percentagem com indicador (%)
+Ao registrar um ressarcimento ou adicionar DCOMPs dentro do modal do PER, os botoes "Novo Ressarcimento" e "Novo DCOMP" nao atualizam seu estado (desabilitar/esconder) ate que o usuario feche e reabra o modal. Alem disso, quando o saldo restante atinge zero ou fica negativo, o sistema ainda permite adicionar mais DCOMPs.
 
-Adicionar "(%)' aos labels dos campos de percentual em:
+## Solucao
 
-- **DcompFormModal.tsx** (linha 403): "Percentual Aplicado" -> "Percentual Aplicado (%)"
-- **PerDetailModal.tsx** (linha 773): "Percentual Aplicado" -> "Percentual Aplicado (%)"
+### 1. Desabilitar "Novo DCOMP" quando saldo esgotado
 
-### 2. Auto-formatacao de valores em reais (R$)
+Adicionar condicao `saldoRestante <= 0` para desabilitar o botao "Novo DCOMP" (linha 618), mesmo quando `perPago` ainda nao e verdadeiro. Isso impede novas compensacoes quando o credito ja foi totalmente consumido.
 
-Aplicar a mesma logica de centavos ja usada no `PerFormModal` (funcoes `formatCurrencyDisplay` e `parseCurrencyToNumber`) nos seguintes campos que ainda usam `type="number"` sem mascara:
+```typescript
+// Linha 618 - adicionar disabled quando saldo <= 0
+<Button onClick={handleNewDcomp} size="sm" disabled={saldoRestante <= 0}>
+```
 
-**DcompFormModal.tsx - campo `vlr_compensado`** (linhas 384-396):
-- Adicionar estado local `currencyDisplay` para o valor formatado
-- Trocar o input `type="number"` por input de texto com mascara de centavos
-- Inicializar corretamente no `useEffect` ao carregar dados de edicao ou draft
+### 2. Garantir refetch imediato apos mutations
 
-**PerDetailModal.tsx - campo `ressarcimentoValor`** (linhas 754-762):
-- Trocar o input `type="number"` por input de texto com mascara de centavos
-- Adicionar estado `ressarcimentoDisplay` para exibicao formatada
-- Ajustar `handleSaveRessarcimento` para usar o valor numerico ja parseado
+O `perAtualizado` query (linha 155) depende de invalidacao para atualizar `perPago`. Atualmente a invalidacao ocorre corretamente, mas para garantir atualizacao sincrona:
 
-### 3. Auto-formatacao do numero do documento DCOMP
+- Na `ressarcimentoMutation.onSuccess` (linha 279): adicionar `await queryClient.refetchQueries` para o `per-detail` ao inves de apenas invalidar, garantindo que o estado `perPago` atualiza antes do re-render.
+- Na callback `onOpenChange` do `DcompFormModal` (linha 734): tambem forcar refetch de `per-dcomps` para atualizar `saldoRestante` imediatamente.
 
-O numero do documento DCOMP segue o mesmo padrao de numero de processo da Receita Federal (igual ao PER): `XXXXX.XXXXX/XXXX-XX` com 16 digitos.
+### 3. Forcar refetch ao fechar DcompFormModal
 
-**DcompFormModal.tsx** (linhas 257-269):
-- Adicionar funcao `formatDcompNumber` que formata os digitos no padrao `XXXXX.XXXXX/XXXX-XX`
-- Aplicar a formatacao no `onChange` do campo `nr_documento`, similar ao que ja e feito com `formatProcessNumber` no PER
+Na callback do `DcompFormModal` (linha 734-738), alem de invalidar, chamar `refetchQueries` para garantir que os dados de DCOMPs e do PER sejam atualizados imediatamente:
 
----
+```typescript
+onOpenChange={(open) => {
+  setDcompModalOpen(open);
+  if (!open) {
+    queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
+    queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
+  }
+}}
+```
 
-## Arquivos afetados
+## Arquivo afetado
 
-| Arquivo | Alteracao |
+`src/components/equipe/dev/perdcomp/PerDetailModal.tsx`
+
+## Resumo das alteracoes
+
+| Local | Alteracao |
 |---|---|
-| `DcompFormModal.tsx` | Currency mask em vlr_compensado, (%) no label porcentagem, auto-format nr_documento |
-| `PerDetailModal.tsx` | Currency mask em ressarcimentoValor, (%) no label percentual |
-
-## Detalhes tecnicos
-
-- Reutilizar as funcoes `formatCurrencyDisplay` e `parseCurrencyToNumber` ja existentes no `PerFormModal.tsx`, copiando-as para cada arquivo ou extraindo para utilitario
-- O formato do DCOMP (XXXXX.XXXXX/XXXX-XX) limita a 16 digitos, inserindo ponto apos o 5o e 10o digito, barra apos o 14o e hifen apos o 16o
-- Nenhuma alteracao de banco de dados necessaria -- os valores armazenados continuam numericos puros
+| Linha 618 (botao Novo DCOMP) | Adicionar `disabled={saldoRestante <= 0}` |
+| Linha 279-283 (ressarcimentoMutation.onSuccess) | Trocar `invalidateQueries` por `refetchQueries` para `per-detail` |
+| Linhas 734-738 (DcompFormModal onOpenChange) | Usar `refetchQueries` para `per-dcomps` e `per-detail` |
 
