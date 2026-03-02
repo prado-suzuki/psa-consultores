@@ -84,7 +84,7 @@ export default function ControlePerdcomp() {
   const [processoFilter, setProcessoFilter] = useState<string>("");
   const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
 
-  const [searched, setSearched] = useState(true);
+  const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
