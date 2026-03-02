@@ -331,7 +331,7 @@ const EquipeControleAcessos = () => {
         ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
         : user?.email || 'Admin';
 
-      fetch('https://psadigital.app.n8n.cloud/webhook-test/8dd8b7e4-2843-4ab6-bf97-7a3941548153', {
+      fetch('https://psadigital.app.n8n.cloud/webhook/8dd8b7e4-2843-4ab6-bf97-7a3941548153', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
