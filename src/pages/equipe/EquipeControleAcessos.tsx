@@ -346,7 +346,7 @@ const EquipeControleAcessos = () => {
             temporary_password: newUser.password,
           },
           platform: {
-            login_url: 'https://psa-consultores.lovable.app/equipe',
+            login_url: 'https://psa-consultores.lovable.app/auth',
             name: 'PSA Consultores',
           },
           created_by: adminName,
