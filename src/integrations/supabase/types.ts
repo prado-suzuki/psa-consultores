@@ -352,60 +352,39 @@ export type Database = {
       contrato: {
         Row: {
           aliquota_contrato: number | null
-          centros_custo: Json | null
           created_at: string | null
-          data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
           id_cliente: string
           id_contrato: string
           numero_contrato: string | null
-          observacoes_projeto: string | null
-          servicos_contratados: Json | null
-          situacao_projeto: string | null
           tipo_contrato: string | null
           updated_at: string | null
           valor_fixo: number | null
-          valor_reembolso_km: number | null
-          valor_reembolso_refeicao: number | null
         }
         Insert: {
           aliquota_contrato?: number | null
-          centros_custo?: Json | null
           created_at?: string | null
-          data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id_cliente: string
           id_contrato?: string
           numero_contrato?: string | null
-          observacoes_projeto?: string | null
-          servicos_contratados?: Json | null
-          situacao_projeto?: string | null
           tipo_contrato?: string | null
           updated_at?: string | null
           valor_fixo?: number | null
-          valor_reembolso_km?: number | null
-          valor_reembolso_refeicao?: number | null
         }
         Update: {
           aliquota_contrato?: number | null
-          centros_custo?: Json | null
           created_at?: string | null
-          data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id_cliente?: string
           id_contrato?: string
           numero_contrato?: string | null
-          observacoes_projeto?: string | null
-          servicos_contratados?: Json | null
-          situacao_projeto?: string | null
           tipo_contrato?: string | null
           updated_at?: string | null
           valor_fixo?: number | null
-          valor_reembolso_km?: number | null
-          valor_reembolso_refeicao?: number | null
         }
         Relationships: [
           {
@@ -1387,6 +1366,60 @@ export type Database = {
           texto_original?: string | null
           titulo?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ordem_servico: {
+        Row: {
+          centros_custo: Json | null
+          created_at: string | null
+          data_emissao: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          id: string
+          id_cliente: string
+          numero_os: string | null
+          observacoes: string | null
+          servicos_contratados: Json | null
+          situacao: string | null
+          updated_at: string | null
+          valor_projeto: number | null
+          valor_reembolso_km: number | null
+          valor_reembolso_refeicao: number | null
+        }
+        Insert: {
+          centros_custo?: Json | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          id_cliente: string
+          numero_os?: string | null
+          observacoes?: string | null
+          servicos_contratados?: Json | null
+          situacao?: string | null
+          updated_at?: string | null
+          valor_projeto?: number | null
+          valor_reembolso_km?: number | null
+          valor_reembolso_refeicao?: number | null
+        }
+        Update: {
+          centros_custo?: Json | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          id_cliente?: string
+          numero_os?: string | null
+          observacoes?: string | null
+          servicos_contratados?: Json | null
+          situacao?: string | null
+          updated_at?: string | null
+          valor_projeto?: number | null
+          valor_reembolso_km?: number | null
+          valor_reembolso_refeicao?: number | null
         }
         Relationships: []
       }

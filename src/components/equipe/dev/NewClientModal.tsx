@@ -53,6 +53,7 @@ const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
 const contratoTable = isProductionEnvironment ? "contrato" : "contrato_dev";
+const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
 const PRODUTO_SEGMENTO_OPTIONS = [
   { value: "ASO", label: "ASO - Auditoria Pessoa Jurídica" },
@@ -149,7 +150,7 @@ interface DraftParticipant {
   acesso_chamados: boolean;
 }
 
-interface DraftContract {
+interface DraftOrdemServico {
   _id: number;
   ordem_servico: string;
   data_emissao: string;
@@ -163,6 +164,9 @@ interface DraftContract {
   servicos_contratados: string[];
   centros_custo: Array<{ empresa: string; percentual: number }>;
 }
+
+/** @deprecated Use DraftOrdemServico */
+type DraftContract = DraftOrdemServico;
 
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
@@ -672,25 +676,25 @@ export default function NewClientModal({
           );
         }
 
-        // Carregar contratos/OS do banco
-        const { data: existingContratos } = await (supabase.from(contratoTable) as any)
+        // Carregar ordens de serviço do banco
+        const { data: existingOS } = await (supabase.from(ordemServicoTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId);
-        if (existingContratos && existingContratos.length > 0) {
+        if (existingOS && existingOS.length > 0) {
           setContracts(
-            existingContratos.map((ct: any) => ({
+            existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
-              ordem_servico: ct.numero_contrato || "",
-              data_emissao: ct.data_emissao || "",
-              data_inicio_projeto: ct.data_inicio || "",
-              data_fim_projeto: ct.data_fim || "",
-              valor_projeto: ct.valor_fixo || 0,
-              valor_reembolso_km: ct.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: ct.valor_reembolso_refeicao || 0,
-              situacao_projeto: ct.situacao_projeto || "em_andamento",
-              observacoes_projeto: ct.observacoes_projeto || "",
-              servicos_contratados: ct.servicos_contratados || [],
-              centros_custo: ct.centros_custo || [],
+              ordem_servico: (isProductionEnvironment ? os.numero_os : os.numero_contrato) || "",
+              data_emissao: os.data_emissao || "",
+              data_inicio_projeto: os.data_inicio || "",
+              data_fim_projeto: os.data_fim || "",
+              valor_projeto: (isProductionEnvironment ? os.valor_projeto : os.valor_fixo) || 0,
+              valor_reembolso_km: os.valor_reembolso_km || 0,
+              valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
+              situacao_projeto: (isProductionEnvironment ? os.situacao : os.situacao_projeto) || "em_andamento",
+              observacoes_projeto: (isProductionEnvironment ? os.observacoes : os.observacoes_projeto) || "",
+              servicos_contratados: os.servicos_contratados || [],
+              centros_custo: os.centros_custo || [],
             })),
           );
         } else {
@@ -1175,11 +1179,11 @@ export default function NewClientModal({
 
         await supabase.from(contribuinteTable).delete().eq("cliente_id", clienteId);
 
-        const { data: existingContratos } = await (supabase.from(contratoTable) as any)
-          .select("id_contrato")
+        const { data: existingOS } = await (supabase.from(ordemServicoTable) as any)
+          .select(isProductionEnvironment ? "id" : "id_contrato")
           .eq("id_cliente", clienteId);
-        if (existingContratos && existingContratos.length > 0) {
-          await (supabase.from(contratoTable) as any).delete().eq("id_cliente", clienteId);
+        if (existingOS && existingOS.length > 0) {
+          await (supabase.from(ordemServicoTable) as any).delete().eq("id_cliente", clienteId);
         }
 
         await (supabase.from(participanteTable) as any).delete().eq("id_cliente", clienteId);
@@ -1242,25 +1246,32 @@ export default function NewClientModal({
         if (partError) throw partError;
       }
 
-      // Persistir contratos/OS no banco
+      // Persistir ordens de serviço no banco
       if (contracts.length > 0) {
         const osPayload = contracts.map((c) => ({
           id_cliente: clienteId,
-          numero_contrato: c.ordem_servico || null,
-          data_inicio: c.data_inicio_projeto || null,
-          data_fim: c.data_fim_projeto || null,
-          valor_fixo: c.valor_projeto || 0,
-          ...(isProductionEnvironment && {
-            data_emissao: c.data_emissao || null,
-            valor_reembolso_km: c.valor_reembolso_km || 0,
-            valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-            situacao_projeto: c.situacao_projeto || "em_andamento",
-            observacoes_projeto: c.observacoes_projeto || null,
-            servicos_contratados: c.servicos_contratados || [],
-            centros_custo: c.centros_custo || [],
-          }),
+          ...(isProductionEnvironment
+            ? {
+                numero_os: c.ordem_servico || null,
+                data_emissao: c.data_emissao || null,
+                data_inicio: c.data_inicio_projeto || null,
+                data_fim: c.data_fim_projeto || null,
+                valor_projeto: c.valor_projeto || 0,
+                valor_reembolso_km: c.valor_reembolso_km || 0,
+                valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+                situacao: c.situacao_projeto || "em_andamento",
+                observacoes: c.observacoes_projeto || null,
+                servicos_contratados: c.servicos_contratados || [],
+                centros_custo: c.centros_custo || [],
+              }
+            : {
+                numero_contrato: c.ordem_servico || null,
+                data_inicio: c.data_inicio_projeto || null,
+                data_fim: c.data_fim_projeto || null,
+                valor_fixo: c.valor_projeto || 0,
+              }),
         }));
-        const { error: osError } = await (supabase.from(contratoTable) as any).insert(osPayload);
+        const { error: osError } = await (supabase.from(ordemServicoTable) as any).insert(osPayload);
         if (osError) throw osError;
       }
 
