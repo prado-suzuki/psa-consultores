@@ -1498,7 +1498,10 @@ const EquipeControleAcessos = () => {
                 </div>
 
                 {(() => {
-                  const clientUsers = users?.filter(u => u.roles.includes('client')) || [];
+                  const clientUsers = users?.filter(u => 
+                    u.roles.includes('client') && 
+                    !u.roles.some(r => ['admin', 'team_member', 'lider'].includes(r))
+                  ) || [];
                   const filteredClientUsers = clientUsers.filter(u => {
                     if (!clientSearch) return true;
                     const search = clientSearch.toLowerCase();
