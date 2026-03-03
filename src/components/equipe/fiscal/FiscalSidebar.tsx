@@ -122,51 +122,7 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
     const parentActive = isParentActive(item.children);
     const active = isActive(item.path);
 
-    if (isCollapsed) {
-      if (hasChildren) {
-        return (
-          <div key={item.id} className="space-y-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => item.children?.[0]?.path && navigate(item.children[0].path)}
-                  className={cn(
-                    "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
-                    parentActive
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
-            </Tooltip>
-          </div>
-        );
-      }
-
-      return (
-        <Tooltip key={item.id}>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => item.path && navigate(item.path)}
-              className={cn(
-                "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
-                active
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              <Icon className="h-5 w-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{item.label}</TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    // Expanded view
+    // Since sidebar is fully hidden when collapsed, only render expanded view
     if (hasChildren) {
       return (
         <Collapsible
@@ -268,62 +224,29 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       </nav>
 
       {/* Footer with actions */}
-      <div className={cn("p-3 border-t border-slate-200 space-y-2", isCollapsed && "px-2")}>
-        {isCollapsed ? (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="w-full text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-                  onClick={() => navigate('/equipe')}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Trocar área</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="w-full text-slate-600 hover:text-red-600 hover:bg-red-50"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Sair</TooltipContent>
-            </Tooltip>
-          </>
-        ) : (
-          <>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-              onClick={() => navigate('/equipe')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Trocar área
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-            <div className="pt-2 border-t border-slate-100">
-              <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
-            </div>
-          </>
-        )}
+      <div className="p-3 border-t border-slate-200 space-y-2">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+          onClick={() => navigate('/equipe')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Trocar área
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
+        <div className="pt-2 border-t border-slate-100">
+          <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
         </div>
+      </div>
     </div>
   );
 };
