@@ -797,76 +797,12 @@ const FiscalProjetosCadastro = () => {
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-6">
-              {/* Basic Info */}
+              {/* 1. Cliente */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Informações Básicas</h3>
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Cliente</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <Label>Nome do Projeto *</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Nome do projeto"
-                    />
-                  </div>
-                  <div>
-                    <Label>Status</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Ativo</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                        <SelectItem value="on_hold">Pausado</SelectItem>
-                        <SelectItem value="cancelled">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Data de Início</Label>
-                    <Input
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Data de Término</Label>
-                    <Input
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Área</Label>
-                    <Select
-                      value={formData.area_id}
-                      onValueChange={(value) => setFormData({ ...formData, area_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a área" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {taxAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Client & Team */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Cliente e Equipe</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Cliente</Label>
+                    <Label>Cliente *</Label>
                     <Select
                       value={formData.external_client_id}
                       onValueChange={(value) => setFormData({ ...formData, external_client_id: value, contribuinte_id: '' })}
@@ -902,7 +838,157 @@ const FiscalProjetosCadastro = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                   <div>
+                </div>
+              </div>
+
+              {/* 2. OS vinculadas (read-only) */}
+              {formData.external_client_id && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Ordens de Serviço Vinculadas
+                  </h3>
+                  {clienteOS.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma OS encontrada para este cliente.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {clienteOS.map((os: any) => {
+                        const osId = getOsId(os);
+                        const isSelected = selectedOsId === osId;
+                        return (
+                          <div
+                            key={osId}
+                            onClick={() => setSelectedOsId(osId)}
+                            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'border-emerald-400 bg-emerald-50/60 ring-1 ring-emerald-200'
+                                : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="font-medium text-sm">
+                                OS: {getOsLabel(os)}
+                              </span>
+                              {isProductionEnvironment && os.situacao && (
+                                <Badge variant="outline" className="text-xs">
+                                  {os.situacao}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                              {os.data_inicio && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Início: {format(new Date(os.data_inicio + 'T00:00:00'), 'dd/MM/yyyy')}
+                                </span>
+                              )}
+                              {os.data_fim && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
+                                </span>
+                              )}
+                              {getOsValue(os) != null && (
+                                <span className="flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" />
+                                  {Number(getOsValue(os)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                              )}
+                            </div>
+                            {isProductionEnvironment && os.servicos_contratados && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {(Array.isArray(os.servicos_contratados)
+                                  ? os.servicos_contratados
+                                  : typeof os.servicos_contratados === 'object'
+                                    ? Object.keys(os.servicos_contratados)
+                                    : []
+                                ).map((s: string, i: number) => (
+                                  <Badge key={i} variant="secondary" className="text-xs font-normal">{s}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <p className="text-xs text-muted-foreground">
+                        {clienteOS.length > 1
+                          ? 'Clique em uma OS para usar suas datas como sugestão.'
+                          : 'OS selecionada automaticamente. Datas sugeridas no formulário abaixo.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 3. Informações Básicas */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Informações Básicas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Nome do Projeto *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Nome do projeto"
+                    />
+                  </div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="completed">Concluído</SelectItem>
+                        <SelectItem value="on_hold">Pausado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Área</Label>
+                    <Select
+                      value={formData.area_id}
+                      onValueChange={(value) => setFormData({ ...formData, area_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a área" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taxAreas.map(area => (
+                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Data de Início</Label>
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Data de Término</Label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Equipe */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Equipe</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <Label>Responsável Interno</Label>
                     <Select
                       value={formData.responsible_id}
@@ -941,7 +1027,7 @@ const FiscalProjetosCadastro = () => {
                 </div>
               </div>
 
-              {/* Project Members */}
+              {/* 4b. Membros do Projeto */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">
                   <div className="flex items-center gap-2">
@@ -949,7 +1035,7 @@ const FiscalProjetosCadastro = () => {
                     Membros do Projeto
                   </div>
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   O Responsável Interno e o Líder são adicionados automaticamente. Selecione os demais membros que terão acesso ao projeto e suas tarefas.
                 </p>
                 {(formData.responsible_id || formData.leader_id) && (
@@ -973,7 +1059,7 @@ const FiscalProjetosCadastro = () => {
                 <div className="border rounded-md overflow-hidden">
                   <div className="max-h-48 overflow-y-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 border-b sticky top-0 z-10">
+                      <thead className="bg-muted/50 border-b sticky top-0 z-10">
                         <tr>
                           <th className="w-10 px-3 py-2 text-left">
                             <Checkbox
@@ -989,15 +1075,14 @@ const FiscalProjetosCadastro = () => {
                               }}
                             />
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Nome</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">Nome</th>
                         </tr>
                       </thead>
                       <tbody>
                         {availableMembers.map((member, idx) => (
                           <tr
                             key={member.id}
-                            className={`cursor-pointer hover:bg-teal-50/60 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}
+                            className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
                             onClick={() => handleMemberToggle(member.id)}
                           >
                             <td className="px-3 py-1.5">
@@ -1006,27 +1091,26 @@ const FiscalProjetosCadastro = () => {
                                 onCheckedChange={() => handleMemberToggle(member.id)}
                               />
                             </td>
-                            <td className="px-3 py-1.5 font-medium text-slate-900">
+                            <td className="px-3 py-1.5 font-medium text-foreground">
                               {member.first_name} {member.last_name}
                             </td>
-                            <td className="px-3 py-1.5 text-slate-500">{member.first_name} {member.last_name}</td>
                           </tr>
                         ))}
                         {availableMembers.length === 0 && (
-                          <tr><td colSpan={3} className="px-3 py-3 text-xs text-slate-400 text-center">Nenhum membro disponível</td></tr>
+                          <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum membro disponível</td></tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                   {formData.member_ids.length > 0 && (
-                    <div className="border-t px-3 py-1.5 text-xs text-slate-500 bg-slate-50">
+                    <div className="border-t px-3 py-1.5 text-xs text-muted-foreground bg-muted/50">
                       {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Objective & Description */}
+              {/* 5. Objetivo, Descrição e Categorias */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Objetivo e Descrição</h3>
                 <div>
@@ -1053,9 +1137,9 @@ const FiscalProjetosCadastro = () => {
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
                 {!formData.area_id ? (
-                  <p className="text-sm text-slate-400">Selecione uma área para ver as categorias disponíveis.</p>
+                  <p className="text-sm text-muted-foreground">Selecione uma área para ver as categorias disponíveis.</p>
                 ) : filteredCategories.length === 0 ? (
-                  <p className="text-sm text-slate-400">Nenhuma categoria vinculada a esta área.</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma categoria vinculada a esta área.</p>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     {filteredCategories.map(category => (
