@@ -118,8 +118,6 @@ const EquipeControleAcessos = () => {
   const queryClient = useQueryClient();
   const { syncPages, isSyncing } = useSyncProtectedPages();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [clientSearch, setClientSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   
   // User creation states
@@ -835,13 +833,6 @@ const EquipeControleAcessos = () => {
                   Cadastros
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="clientes" 
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Clientes
-                </TabsTrigger>
-                <TabsTrigger 
                   value="cadastros_clientes" 
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
@@ -1494,164 +1485,6 @@ const EquipeControleAcessos = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              {/* Clientes Tab */}
-              <TabsContent value="clientes" className="space-y-4">
-                <div className="flex items-center justify-between bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-                  <div>
-                    <h3 className="text-base font-medium text-slate-900">Controle de Acessos — Clientes</h3>
-                    <p className="text-sm text-slate-500">Gerencie as permissões de acesso dos clientes ao ambiente de chamados</p>
-                  </div>
-                </div>
-
-                {(() => {
-                  const clientUsers = users?.filter(u => 
-                    u.roles.includes('client') && 
-                    !u.roles.some(r => ['admin', 'team_member', 'lider'].includes(r))
-                  ) || [];
-                  const filteredClientUsers = clientUsers.filter(u => {
-                    if (!clientSearch) return true;
-                    const search = clientSearch.toLowerCase();
-                    return (
-                      u.first_name.toLowerCase().includes(search) ||
-                      u.last_name.toLowerCase().includes(search) ||
-                      u.email.toLowerCase().includes(search)
-                    );
-                  });
-                  const clientPages = pages?.filter(p => 
-                    p.category === 'gestao' || p.page_path.startsWith('/cliente')
-                  ) || [];
-                  const selectedClient = clientUsers.find(u => u.id === selectedClientId);
-
-                  return (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      {/* Client Users List */}
-                      <Card className="bg-white border-slate-200/60 shadow-sm">
-                        <CardHeader>
-                          <CardTitle className="text-slate-900 text-sm">Clientes</CardTitle>
-                          <CardDescription className="text-slate-500">
-                            Selecione um cliente para gerenciar acessos
-                          </CardDescription>
-                          <Input
-                            placeholder="Buscar cliente..."
-                            value={clientSearch}
-                            onChange={(e) => setClientSearch(e.target.value)}
-                            className="mt-2 bg-white border-slate-200 text-slate-900"
-                          />
-                        </CardHeader>
-                        <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
-                          {loadingUsers ? (
-                            <div className="flex items-center justify-center py-4">
-                              <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
-                            </div>
-                          ) : filteredClientUsers.length === 0 ? (
-                            <div className="text-center py-4 text-slate-500 text-sm">
-                              Nenhum cliente encontrado
-                            </div>
-                          ) : (
-                            filteredClientUsers.map((u) => (
-                              <button
-                                key={u.id}
-                                className={`w-full p-3 rounded-lg text-left transition-colors ${
-                                  selectedClientId === u.id
-                                    ? 'bg-teal-500/10 border border-teal-200'
-                                    : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
-                                }`}
-                                onClick={() => setSelectedClientId(u.id)}
-                              >
-                                <p className="font-medium text-slate-900 text-sm">
-                                  {u.first_name} {u.last_name}
-                                </p>
-                                <p className="text-xs text-slate-500">{u.email}</p>
-                                <div className="flex gap-1 mt-1">
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs border-slate-200 text-slate-600 bg-slate-50"
-                                  >
-                                    Cliente
-                                  </Badge>
-                                </div>
-                              </button>
-                            ))
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      {/* Client Permissions */}
-                      <Card className="lg:col-span-2 bg-white border-slate-200/60 shadow-sm">
-                        <CardHeader>
-                          <CardTitle className="text-slate-900 text-sm">
-                            {selectedClient
-                              ? `Acessos de ${selectedClient.first_name} ${selectedClient.last_name}`
-                              : 'Selecione um cliente'}
-                          </CardTitle>
-                          <CardDescription className="text-slate-500">
-                            Permissões restritas ao ambiente de chamados
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {selectedClientId && selectedClient ? (
-                            <div className="space-y-1">
-                              {clientPages.map((page) => {
-                                const clientHasAccess = hasAccess(selectedClientId, page.id);
-                                return (
-                                  <div
-                                    key={page.id}
-                                    className="flex items-center justify-between p-2 rounded-lg bg-slate-50"
-                                  >
-                                    <div>
-                                      <p className="text-sm text-slate-900">{page.page_name}</p>
-                                      <p className="text-xs text-slate-500">{page.page_path}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {clientHasAccess ? (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                          onClick={() =>
-                                            revokeAccessMutation.mutate({
-                                              userId: selectedClientId,
-                                              pageId: page.id,
-                                            })
-                                          }
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-1" />
-                                          Revogar
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                                          onClick={() =>
-                                            grantAccessMutation.mutate({
-                                              userId: selectedClientId,
-                                              pageId: page.id,
-                                            })
-                                          }
-                                        >
-                                          <Plus className="h-4 w-4 mr-1" />
-                                          Conceder
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8 text-slate-500">
-                              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                              <p>Selecione um cliente na lista ao lado</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  );
-                })()}
               </TabsContent>
 
               {/* Cadastros Clientes Tab */}
