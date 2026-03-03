@@ -1,6 +1,9 @@
 /**
  * Lista de páginas protegidas que devem ser gerenciadas pelo sistema de controle de acessos.
  * Quando novas páginas são adicionadas ao sistema, elas devem ser registradas aqui.
+ *
+ * IMPORTANTE: Toda nova página/rota protegida DEVE ser registrada neste array.
+ * Sem isso, ela NÃO aparecerá no controle de permissões mesmo após clicar em "Atualizar".
  */
 
 export interface ProtectedPage {
@@ -142,6 +145,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/tax/projetos/tarefas',
     page_name: 'Tax Tarefas',
     page_description: 'Tarefas de projetos da área Tax',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tax/projetos/clientes',
+    page_name: 'Tax Clientes',
+    page_description: 'Cadastros de clientes da área Tax',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
