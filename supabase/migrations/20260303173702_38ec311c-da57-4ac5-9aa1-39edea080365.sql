@@ -1,0 +1,1 @@
+ALTER TABLE public.estrutura_areas ADD COLUMN page_categories text[] DEFAULT '{}';
