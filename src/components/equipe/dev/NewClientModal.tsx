@@ -55,37 +55,8 @@ const participanteTable = isProductionEnvironment ? "participante" : "participan
 const contratoTable = isProductionEnvironment ? "contrato" : "contrato_dev";
 const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
-const PRODUTO_SEGMENTO_OPTIONS = [
-  { value: "ASO", label: "ASO - Auditoria Pessoa Jurídica" },
-  { value: "AFI", label: "AFI - Auditoria Pessoa Física" },
-  { value: "PFT", label: "PFT - Consultoria Profitto" },
-  { value: "PTN", label: "PTN - Consultoria Protenun" },
-  { value: "DHU", label: "DHU - Consultoria em Recursos Humanos" },
-  { value: "FMB", label: "FMB - Consultoria Family Business" },
-  { value: "OS1", label: "OS1 - Sucessão Familiar - 1.0 (jurídico)" },
-  { value: "OSG", label: "OSG - Sucessão Familiar - 2.0 (jurídico + governança)" },
-  { value: "SOC", label: "SOC - Consultoria em Organização Societária" },
-  { value: "OUT", label: "OUT - Receitas com Parceiros" },
-  { value: "PTR", label: "PTR - Planejamento Tributário" },
-  { value: "REA", label: "REA - Reduções de Encargos na Venda de Ativos" },
-  { value: "ACF", label: "ACF - Assessoramento Contábil e Fiscal" },
-  { value: "RRT", label: "RRT - Recuperação e Ressarcimento Tributário Administrativo" },
-  { value: "DTB", label: "DTB - Defesas Tributárias Federais, Estaduais e Previdenciárias" },
-  { value: "EDP", label: "EDP - Emissão de Pareceres" },
-  { value: "RTJ", label: "RTJ - Recuperação Tributária Jurídica" },
-  { value: "RSC", label: "RSC - Reestruturação Societária" },
-  { value: "IPC", label: "IPC - Implantação de Programa de COMPLIANCE" },
-  { value: "CDI", label: "CDI - Implantação de Canal de Denúncia e Investigação nas Empresas" },
-  { value: "AIV", label: "AIV - Ação de Inventário" },
-  { value: "APV", label: "APV - Antecipação de Provas" },
-  { value: "AGP", label: "AGP - Ações de Grande Porte" },
-  { value: "JCM", label: "JCM - Consultoria Jurídica Civil Mensal" },
-  { value: "ACO", label: "ACO - Ações Coletivas" },
-  { value: "ADJ", label: "ADJ - Administração Judicial" },
-  { value: "CJP", label: "CJP - Consultoria Jurídica Pontual" },
-  { value: "DIV", label: "DIV - Diversos" },
-  { value: "__outro__", label: "Outro (personalizado)" },
-];
+// PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
+// with a static fallback for "Outro (personalizado)"
 
 const TIPO_PARTICIPANTE_OPTIONS = [
   "Sócio/Proprietário",
@@ -441,6 +412,19 @@ export default function NewClientModal({
       return data || [];
     },
   });
+
+  const { data: produtoSegmentoOptions = [] } = useQuery({
+    queryKey: ["produto_segmento"],
+    queryFn: async () => {
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
+      return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
+    },
+  });
+
+  const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
+    ...produtoSegmentoOptions,
+    { value: "__outro__", label: "Outro (personalizado)" },
+  ], [produtoSegmentoOptions]);
 
   const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
