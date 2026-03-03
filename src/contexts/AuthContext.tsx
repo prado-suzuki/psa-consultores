@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   isTeamMember: boolean;
+  isLider: boolean;
+  isSublider: boolean;
   mustChangePassword: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -23,6 +25,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTeamMember, setIsTeamMember] = useState(false);
+  const [isLider, setIsLider] = useState(false);
+  const [isSublider, setIsSublider] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Refs to compare identity before triggering state updates
@@ -46,6 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setIsAdmin(false);
           setIsTeamMember(false);
+          setIsLider(false);
+          setIsSublider(false);
         }
       } finally {
         setLoading(false);
@@ -91,6 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setIsAdmin(false);
         setIsTeamMember(false);
+        setIsLider(false);
+        setIsSublider(false);
         setLoading(false);
         return;
       }
@@ -123,15 +131,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const roles = data.map(r => r.role);
         setIsAdmin(roles.includes('admin'));
         setIsTeamMember(roles.includes('team_member'));
+        setIsLider(roles.includes('lider'));
+        setIsSublider(roles.includes('sublider'));
         return;
       }
 
       setIsAdmin(false);
       setIsTeamMember(false);
+      setIsLider(false);
+      setIsSublider(false);
     } catch (error) {
       console.error('Error checking roles:', error);
       setIsAdmin(false);
       setIsTeamMember(false);
+      setIsLider(false);
+      setIsSublider(false);
     }
   };
 
@@ -230,6 +244,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(null);
       setIsAdmin(false);
       setIsTeamMember(false);
+      setIsLider(false);
+      setIsSublider(false);
       toast({
         title: "Logout realizado",
         description: "Você saiu da sua conta.",
@@ -256,7 +272,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, signIn, signUp, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, isLider, isSublider, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, signIn, signUp, signOut, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );
