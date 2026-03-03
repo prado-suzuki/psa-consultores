@@ -1,17 +1,25 @@
 
+# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-# Tornar linhas da tabela de projetos clicáveis
+## ✅ Concluído
 
-## Problema
-As linhas da tabela de projetos não são clicáveis. O usuário precisa clicar no pequeno ícone de lápis para editar, o que é difícil de encontrar/usar.
+### 1. Migration SQL
+- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
 
-## Solução
-Adicionar `onClick={() => handleOpenModal(project)}` e `className="cursor-pointer hover:bg-slate-50"` em cada `<TableRow>` da listagem de projetos, permitindo que clicar em qualquer lugar da linha abra o modal de edição.
+### 2. Hook `useUserEstrutura`
+- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
 
-Para evitar duplo disparo, adicionar `e.stopPropagation()` nos botões de ação (editar/excluir) dentro da linha.
+### 3. UI — Mapeamento no Controle de Acessos
+- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
+- Admin faz o mapeamento uma vez por área
 
-## Arquivo impactado
-| Arquivo | Alteração |
-|---|---|
-| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Adicionar onClick + cursor-pointer nas TableRows + stopPropagation nos botões |
+### 4. Acesso automático por membership
+- Coluna `page_categories text[]` em `estrutura_areas`
+- `usePageAccess.ts` verifica membership na estrutura + categoria da página
+- UI multi-select de categorias no form de área (EstruturaManager)
+- Categoria `geral` → qualquer team_member tem acesso automático
+- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
 
+## Próximas etapas (fora de escopo)
+- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
+- Substituir referências diretas a `catalog_clients` nos outros módulos
