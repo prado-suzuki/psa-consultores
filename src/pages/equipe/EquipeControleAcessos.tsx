@@ -1437,6 +1437,29 @@ const EquipeControleAcessos = () => {
                 <Input type="color" value={cadastroForm.color} onChange={(e) => setCadastroForm({ ...cadastroForm, color: e.target.value })} className="w-12 h-8 p-0 border-0" />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Vincular à Estrutura Organizacional</Label>
+              <Select
+                value={cadastroForm.estrutura_area_id}
+                onValueChange={(value) => setCadastroForm({ ...cadastroForm, estrutura_area_id: value === '_none' ? '' : value })}
+              >
+                <SelectTrigger className="bg-white border-slate-200">
+                  <SelectValue placeholder="Nenhuma (sem vínculo)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhuma (sem vínculo)</SelectItem>
+                  {estruturaAreas.map((ea) => (
+                    <SelectItem key={ea.id} value={ea.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ea.color || '#94a3b8' }} />
+                        {ea.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Associa esta área legada à estrutura organizacional (cluster → área → equipe)</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-slate-200 text-slate-600">Cancelar</Button>
