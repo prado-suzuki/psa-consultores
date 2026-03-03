@@ -377,7 +377,13 @@ export default function EstruturaManager() {
                     <Network className="h-5 w-5 text-teal-600 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-900">{cluster.name}</div>
-                      {cluster.cost_center && (
+                      {cluster.empresa_id && (
+                        <div className="text-xs text-slate-500">
+                          Empresa: {empresas.find(e => e.id === cluster.empresa_id)?.nome || '—'}
+                          {getEmpresaCcLabel(cluster.empresa_id) && ` • CC: ${getEmpresaCcLabel(cluster.empresa_id)}`}
+                        </div>
+                      )}
+                      {!cluster.empresa_id && cluster.cost_center && (
                         <div className="text-xs text-slate-500">Centro de Custo: {cluster.cost_center}</div>
                       )}
                     </div>
@@ -553,8 +559,24 @@ export default function EstruturaManager() {
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
             <div className="space-y-2">
-              <Label>Centro de Custo</Label>
-              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" />
+              <Label>Empresa / Faturamento</Label>
+              <Select value={clusterForm.empresa_id} onValueChange={(val) => setClusterForm(f => ({ ...f, empresa_id: val === '_none' ? '' : val }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhuma</SelectItem>
+                  {empresas.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {clusterForm.empresa_id && getEmpresaCcLabel(clusterForm.empresa_id) && (
+                <p className="text-xs text-slate-500">Centro de Custo: {getEmpresaCcLabel(clusterForm.empresa_id)}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo (manual)</Label>
+              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" disabled={!!clusterForm.empresa_id} />
+              {clusterForm.empresa_id && <p className="text-xs text-slate-400">Preenchido automaticamente pela empresa</p>}
             </div>
           </div>
           <DialogFooter>
