@@ -59,6 +59,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { GestaoClientesContent } from '@/pages/equipe/dev/GestaoClientes';
+import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 
 
 interface PagePermission {
@@ -859,6 +860,13 @@ const EquipeControleAcessos = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Cadastros Clientes
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="cadastro_categorias" 
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                >
+                  <FolderKanban className="h-4 w-4 mr-2" />
+                  Cadastro Categorias
+                </TabsTrigger>
               </TabsList>
 
               {/* Pages Tab */}
@@ -1398,6 +1406,11 @@ const EquipeControleAcessos = () => {
               {/* Cadastros Clientes Tab */}
               <TabsContent value="cadastros_clientes" className="space-y-4">
                 <GestaoClientesContent />
+              </TabsContent>
+
+              {/* Cadastro Categorias Tab */}
+              <TabsContent value="cadastro_categorias" className="space-y-4">
+                <CadastroCategorias />
               </TabsContent>
             </Tabs>
 
