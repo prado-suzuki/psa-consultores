@@ -238,37 +238,27 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
     <div 
       className={cn(
         "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64"
       )}
     >
       {/* Header with collapse button */}
       <div className="h-14 border-b border-slate-200 flex items-center justify-between px-3">
-        {!isCollapsed && (
-          <div className="flex items-center">
-            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
-              <Calculator className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
-              <p className="text-xs text-slate-500">Gestão de Projetos</p>
-            </div>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mx-auto">
+        <div className="flex items-center">
+          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
             <Calculator className="h-5 w-5 text-emerald-600" />
           </div>
-        )}
+          <div>
+            <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
+            <p className="text-xs text-slate-500">Gestão de Projetos</p>
+          </div>
+        </div>
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn("h-8 w-8 flex-shrink-0", isCollapsed && "absolute right-1 top-3")}
+          onClick={onToggle}
+          className="h-8 w-8 flex-shrink-0"
         >
-          <ChevronLeft className={cn(
-            "h-4 w-4 transition-transform",
-            isCollapsed && "rotate-180"
-          )} />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
 
