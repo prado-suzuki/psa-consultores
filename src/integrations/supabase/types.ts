@@ -934,6 +934,206 @@ export type Database = {
           },
         ]
       }
+      estrutura_area_lideres: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrutura_area_lideres_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: true
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_area_lideres_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_area_lideres_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estrutura_areas: {
+        Row: {
+          cluster_id: string
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          cluster_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrutura_areas_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estrutura_clusters: {
+        Row: {
+          cost_center: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          cost_center?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          cost_center?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      estrutura_equipe_membros: {
+        Row: {
+          created_at: string
+          equipe_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipe_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipe_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrutura_equipe_membros_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_equipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_equipe_membros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_equipe_membros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estrutura_equipes: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sublider_id: string | null
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sublider_id?: string | null
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sublider_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrutura_equipes_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_equipes_sublider_id_fkey"
+            columns: ["sublider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_equipes_sublider_id_fkey"
+            columns: ["sublider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_profiles: {
         Row: {
           columns: string[]
