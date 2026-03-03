@@ -381,21 +381,28 @@ const FiscalProjetosCadastro = () => {
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
 
-  // When editing, load current members (leaders, subliders, members) into form
+  // When editing, load current members — migrate roles based on current user_roles
   useEffect(() => {
-    if (editingProject && currentProjectMembers.length > 0) {
-      const leaderUserIds = currentProjectMembers
-        .filter(m => m.role === 'leader' || m.role === 'responsible')
-        .map(m => m.user_id);
-      const subliderUserIds = currentProjectMembers
-        .filter(m => m.role === 'sublider')
-        .map(m => m.user_id);
-      const memberUserIds = currentProjectMembers
-        .filter(m => m.role === 'member')
-        .map(m => m.user_id);
+    if (editingProject && currentProjectMembers.length > 0 && userRoles.length > 0) {
+      const roleMap = new Map(userRoles.map(r => [r.user_id, r.role]));
+      const leaderUserIds: string[] = [];
+      const subliderUserIds: string[] = [];
+      const memberUserIds: string[] = [];
+
+      for (const m of currentProjectMembers) {
+        const currentRole = roleMap.get(m.user_id);
+        if (currentRole === 'lider') {
+          leaderUserIds.push(m.user_id);
+        } else if (currentRole === 'sublider') {
+          subliderUserIds.push(m.user_id);
+        } else {
+          memberUserIds.push(m.user_id);
+        }
+      }
+
       setFormData(prev => ({ ...prev, leader_ids: leaderUserIds, sublider_ids: subliderUserIds, member_ids: memberUserIds }));
     }
-  }, [editingProject, currentProjectMembers]);
+  }, [editingProject, currentProjectMembers, userRoles]);
 
   // When editing, load current categories into form
   useEffect(() => {
@@ -449,7 +456,7 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
         if (membersError) throw membersError;
       }
 
@@ -553,7 +560,7 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
         if (membersError) throw membersError;
       }
 
@@ -645,6 +652,10 @@ const FiscalProjetosCadastro = () => {
       toast.error('Nome é obrigatório');
       return;
     }
+    if (formData.leader_ids.length === 0) {
+      toast.error('Selecione ao menos um Líder Geral');
+      return;
+    }
     if (editingProject) {
       updateProject.mutate({ id: editingProject.id, ...formData });
     } else {
@@ -692,11 +703,12 @@ const FiscalProjetosCadastro = () => {
 
   const availableMembers = useMemo(() => {
     const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
-    if (formData.sublider_ids.length === 0) return [];
+    const selectedSet = new Set(formData.member_ids);
+    if (formData.sublider_ids.length === 0 && selectedSet.size === 0) return [];
     return teamMembers.filter(
-      m => !excludeIds.has(m.id) && filteredMemberIds.includes(m.id)
+      m => !excludeIds.has(m.id) && (filteredMemberIds.includes(m.id) || selectedSet.has(m.id))
     );
-  }, [teamMembers, formData.leader_ids, formData.sublider_ids, filteredMemberIds]);
+  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -1140,7 +1152,7 @@ const FiscalProjetosCadastro = () => {
                 {/* Membros do Projeto (multi-select dropdown) */}
                 <div>
                   <Label>Membros do Projeto</Label>
-                  {formData.sublider_ids.length === 0 ? (
+                  {formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
                       Selecione ao menos um sublíder para ver os membros disponíveis.
                     </p>
