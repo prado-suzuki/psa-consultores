@@ -5,13 +5,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 
 const MONTHS = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez"
-];
+"Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+"Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 
 interface MonthYearPickerProps {
-  value?: { month: number; year: number } | null;
-  onChange: (value: { month: number; year: number } | null) => void;
+  value?: {month: number;year: number;} | null;
+  onChange: (value: {month: number;year: number;} | null) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -26,7 +26,7 @@ export function MonthYearPicker({
   className,
   disabled = false,
   minYear = 2020,
-  maxYear = new Date().getFullYear() + 1,
+  maxYear = new Date().getFullYear() + 1
 }: MonthYearPickerProps) {
   const [open, setOpen] = React.useState(false);
   const [viewYear, setViewYear] = React.useState(value?.year || new Date().getFullYear());
@@ -70,9 +70,9 @@ export function MonthYearPicker({
             "w-full h-11 justify-start text-left font-normal pl-10",
             !value && "text-muted-foreground",
             className
-          )}
-        >
-          <Calendar className="absolute left-3 h-5 w-5 text-slate-400" />
+          )}>
+          
+          <Calendar className="absolute left-3 h-5 w-5 text-slate-400 mx-[517px]" />
           {formatDisplay() || <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
@@ -85,8 +85,8 @@ export function MonthYearPicker({
               size="icon"
               className="h-7 w-7"
               onClick={handlePrevYear}
-              disabled={viewYear <= minYear}
-            >
+              disabled={viewYear <= minYear}>
+              
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-semibold">{viewYear}</span>
@@ -95,8 +95,8 @@ export function MonthYearPicker({
               size="icon"
               className="h-7 w-7"
               onClick={handleNextYear}
-              disabled={viewYear >= maxYear}
-            >
+              disabled={viewYear >= maxYear}>
+              
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -105,9 +105,9 @@ export function MonthYearPicker({
           <div className="grid grid-cols-4 gap-2">
             {MONTHS.map((monthName, index) => {
               const isSelected = value?.month === index && value?.year === viewYear;
-              const isCurrentMonth = 
-                index === new Date().getMonth() && 
-                viewYear === new Date().getFullYear();
+              const isCurrentMonth =
+              index === new Date().getMonth() &&
+              viewYear === new Date().getFullYear();
 
               return (
                 <Button
@@ -119,28 +119,28 @@ export function MonthYearPicker({
                     isCurrentMonth && !isSelected && "bg-accent text-accent-foreground",
                     isSelected && "bg-primary text-primary-foreground"
                   )}
-                  onClick={() => handleMonthSelect(index)}
-                >
+                  onClick={() => handleMonthSelect(index)}>
+                  
                   {monthName}
-                </Button>
-              );
+                </Button>);
+
             })}
           </div>
         </div>
       </PopoverContent>
-    </Popover>
-  );
+    </Popover>);
+
 }
 
 // Helper para converter MonthYear para string de data (primeiro/último dia)
 export function monthYearToDateString(
-  value: { month: number; year: number } | null,
-  position: 'start' | 'end'
-): string {
+value: {month: number;year: number;} | null,
+position: 'start' | 'end')
+: string {
   if (!value) return '';
-  
+
   const { month, year } = value;
-  
+
   if (position === 'start') {
     // Primeiro dia do mês
     return `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -152,11 +152,11 @@ export function monthYearToDateString(
 }
 
 // Helper para converter string de data para MonthYear
-export function dateStringToMonthYear(dateStr: string): { month: number; year: number } | null {
+export function dateStringToMonthYear(dateStr: string): {month: number;year: number;} | null {
   if (!dateStr) return null;
-  
+
   const [year, month] = dateStr.split('-').map(Number);
   if (isNaN(year) || isNaN(month)) return null;
-  
+
   return { month: month - 1, year };
 }
