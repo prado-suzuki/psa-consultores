@@ -69,7 +69,6 @@ import { PageAccessGate } from "./components/auth/PageAccessGate";
 // New Area Dashboards
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
-import FiscalDemandasClientes from "./pages/equipe/fiscal/FiscalDemandasClientes";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";

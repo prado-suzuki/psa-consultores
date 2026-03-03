@@ -92,7 +92,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
 
   // === GESTÃO PAGES ===
   {
-    page_path: '/gestao/novidades',
+    page_path: '/gestao',
     page_name: 'Novidades',
     page_description: 'Gerenciar novidades do site',
     category: 'gestao',
@@ -124,7 +124,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
-  // === TEX PAGES ===
+  // === TAX PAGES ===
   {
     page_path: '/equipe/tax/dashboard',
     page_name: 'Tax Dashboard',
@@ -158,22 +158,44 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
-  // === FISCAL PAGES (dentro de Projetos) ===
+  // === DEV PAGES (missing) ===
   {
-    page_path: '/equipe/projetos/fiscal/dashboard',
-    page_name: 'Fiscal Dashboard',
-    page_description: 'Painel principal da área Fiscal',
-    category: 'projetos',
+    page_path: '/equipe/dev/consulta-ecd',
+    page_name: 'Consulta ECD',
+    page_description: 'Consulta de arquivos ECD',
+    category: 'dev',
     requires_admin: false,
     requires_team_member: true,
   },
-
-  // === FIXOS PAGES (dentro de Projetos) ===
   {
-    page_path: '/equipe/projetos/fixos/dashboard',
-    page_name: 'Fixos Dashboard',
-    page_description: 'Painel principal da área Fixos',
-    category: 'projetos',
+    page_path: '/equipe/dev/consulta-ecf',
+    page_name: 'Consulta ECF',
+    page_description: 'Consulta de arquivos ECF',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/gestao-clientes',
+    page_name: 'Gestão Clientes',
+    page_description: 'Gerenciamento de clientes Dev',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/calculadora-ibs-cbs',
+    page_name: 'Calculadora IBS/CBS',
+    page_description: 'Calculadora de IBS e CBS',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/controle-balancetes',
+    page_name: 'Controle Balancetes',
+    page_description: 'Gerenciamento de balancetes',
+    category: 'dev',
     requires_admin: false,
     requires_team_member: true,
   },
@@ -188,23 +210,6 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
-  // === PROJETOS PAGES ===
-  {
-    page_path: '/equipe/projetos/dashboard',
-    page_name: 'Projetos Dashboard',
-    page_description: 'Painel principal da área de Projetos',
-    category: 'projetos',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/projetos/demandas',
-    page_name: 'Demandas',
-    page_description: 'Gestão de pacotes de trabalho e tarefas',
-    category: 'projetos',
-    requires_admin: false,
-    requires_team_member: true,
-  },
 
   // === BOARD PAGES ===
   {

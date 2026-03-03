@@ -232,7 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // Força limpeza do localStorage como fallback
-      localStorage.removeItem('sb-zwoainzzqhudmmknuycq-auth-token');
+      localStorage.removeItem(`sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
       
       toast({
         title: "Logout realizado",
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('[Auth] Erro ao fazer logout:', error);
       // Força limpeza mesmo com erro
-      localStorage.removeItem('sb-zwoainzzqhudmmknuycq-auth-token');
+      localStorage.removeItem(`sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
       setUser(null);
       setSession(null);
       setIsAdmin(false);
