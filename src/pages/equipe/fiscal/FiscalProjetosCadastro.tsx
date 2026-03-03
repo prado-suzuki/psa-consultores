@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign, Check, ChevronsUpDown } from 'lucide-react';
 import { isProductionEnvironment } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -36,6 +36,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import {
   Select,
   SelectContent,
@@ -1233,7 +1235,7 @@ const FiscalProjetosCadastro = () => {
                 </div>
               </div>
 
-              {/* Categories */}
+              {/* Categories (multi-select dropdown) */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
                 {!formData.area_id ? (
@@ -1241,23 +1243,47 @@ const FiscalProjetosCadastro = () => {
                 ) : filteredCategories.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhuma categoria vinculada a esta área.</p>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredCategories.map(category => (
-                      <div key={category.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={category.id}
-                          checked={formData.category_ids.includes(category.id)}
-                          onCheckedChange={() => handleCategoryToggle(category.id)}
-                        />
-                        <label
-                          htmlFor={category.id}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {category.nome}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-10">
+                        {formData.category_ids.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {formData.category_ids.map(id => {
+                              const cat = filteredCategories.find(c => c.id === id);
+                              return cat ? (
+                                <Badge key={id} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  {cat.nome}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Selecionar categorias...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar categoria..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {filteredCategories.map(category => (
+                              <CommandItem
+                                key={category.id}
+                                value={category.nome}
+                                onSelect={() => handleCategoryToggle(category.id)}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${formData.category_ids.includes(category.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                {category.nome}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
             </div>

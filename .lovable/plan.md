@@ -1,32 +1,25 @@
 
+# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-# Converter Integrantes e Categorias para dropdown multi-select (Popover+Command)
+## ✅ Concluído
 
-## Problema
+### 1. Migration SQL
+- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
 
-Os campos **Líder Geral**, **Sublíder**, **Membros do Projeto** e **Categorias** ainda são renderizados como tabelas/checkboxes inline sempre visíveis. O padrão esperado é dropdown colapsável com multi-select interno.
+### 2. Hook `useUserEstrutura`
+- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
 
-## Solução
+### 3. UI — Mapeamento no Controle de Acessos
+- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
+- Admin faz o mapeamento uma vez por área
 
-Substituir as 4 seções por componentes `Popover + Command` (mesmo padrão já planejado anteriormente):
+### 4. Acesso automático por membership
+- Coluna `page_categories text[]` em `estrutura_areas`
+- `usePageAccess.ts` verifica membership na estrutura + categoria da página
+- UI multi-select de categorias no form de área (EstruturaManager)
+- Categoria `geral` → qualquer team_member tem acesso automático
+- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
 
-### Campos a converter (todos em `FiscalProjetosCadastro.tsx`):
-
-1. **Líder Geral** (linhas ~1032-1086) — tabela com checkboxes → Popover+Command multi-select com badges emerald
-2. **Sublíder** (linhas ~1088-1142) — tabela com checkboxes → Popover+Command multi-select com badges blue
-3. **Membros do Projeto** (linhas ~1144-1210) — tabela com checkbox "select all" → Popover+Command multi-select com badges purple e botão "Selecionar todos"
-4. **Categorias** (linhas ~1236-1262) — grid de checkboxes → Popover+Command multi-select com badges orange
-
-### Padrão de cada dropdown:
-
-- **Trigger**: `Button variant="outline"` mostrando badges dos selecionados ou placeholder
-- **Content**: `Popover` → `Command` → `CommandInput` (busca) + `CommandList` com `CommandItem` clicáveis
-- Ícone `Check` nos itens selecionados; toggle sem fechar o dropdown
-- Contagem de selecionados no trigger quando muitos
-
-### Arquivo impactado
-
-| Arquivo | Alteração |
-|---|---|
-| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Substituir 4 blocos (Líder, Sublíder, Membros, Categorias) por Popover+Command dropdowns |
-
+## Próximas etapas (fora de escopo)
+- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
+- Substituir referências diretas a `catalog_clients` nos outros módulos
