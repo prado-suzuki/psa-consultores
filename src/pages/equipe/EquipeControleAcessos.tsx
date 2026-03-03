@@ -94,6 +94,7 @@ interface AreaInterna {
   color: string;
   is_active: boolean;
   created_at: string;
+  estrutura_area_id: string | null;
 }
 
 interface CadastroStats {
@@ -161,6 +162,7 @@ const EquipeControleAcessos = () => {
     responsible: '',
     description: '',
     color: '#3B82F6',
+    estrutura_area_id: '' as string,
   });
 
   const colorPresets = [
@@ -594,7 +596,7 @@ const EquipeControleAcessos = () => {
 
   const openCadastroCreate = () => {
     setEditingArea(null);
-    setCadastroForm({ name: '', responsible: '', description: '', color: '#3B82F6' });
+    setCadastroForm({ name: '', responsible: '', description: '', color: '#3B82F6', estrutura_area_id: '' });
     setCadastroDialogOpen(true);
   };
 
@@ -605,6 +607,7 @@ const EquipeControleAcessos = () => {
       responsible: area.responsible || '',
       description: area.description || '',
       color: area.color || '#3B82F6',
+      estrutura_area_id: area.estrutura_area_id || '',
     });
     setCadastroDialogOpen(true);
   };
@@ -620,6 +623,7 @@ const EquipeControleAcessos = () => {
         responsible: cadastroForm.responsible.trim() || null,
         description: cadastroForm.description.trim() || null,
         color: cadastroForm.color,
+        estrutura_area_id: cadastroForm.estrutura_area_id || null,
       };
       if (editingArea) {
         const { error } = await supabase.from('catalog_clients').update(payload).eq('id', editingArea.id);
