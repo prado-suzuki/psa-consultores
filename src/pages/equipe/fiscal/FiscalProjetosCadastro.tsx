@@ -105,8 +105,8 @@ const FiscalProjetosCadastro = () => {
     status: 'active',
     start_date: '',
     end_date: '',
-    responsible_id: '',
-    leader_id: '',
+    leader_ids: [] as string[],
+    sublider_ids: [] as string[],
     external_client_id: '',
     contribuinte_id: '',
     area_id: '',
@@ -191,7 +191,7 @@ const FiscalProjetosCadastro = () => {
       const { data, error } = await supabase
         .from('user_roles')
         .select('user_id, role')
-        .in('role', ['lider', 'team_member']);
+        .in('role', ['lider', 'team_member', 'sublider']);
       if (error) throw error;
       return data as { user_id: string; role: string }[];
     },
@@ -203,11 +203,33 @@ const FiscalProjetosCadastro = () => {
     return teamMembers.filter(m => liderIds.includes(m.id));
   }, [teamMembers, userRoles]);
 
-  const responsaveisInternos = useMemo(() => {
-    const teamMemberIds = userRoles.filter(r => r.role === 'team_member').map(r => r.user_id);
-    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
-    return teamMembers.filter(m => teamMemberIds.includes(m.id) && !liderIds.includes(m.id));
+  const sublideres = useMemo(() => {
+    const subliderIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
+    return teamMembers.filter(m => subliderIds.includes(m.id));
   }, [teamMembers, userRoles]);
+
+  // Fetch members filtered by selected subliders' teams
+  const { data: filteredMemberIds = [] } = useQuery({
+    queryKey: ['sublider-team-members', formData.sublider_ids],
+    queryFn: async () => {
+      if (formData.sublider_ids.length === 0) return [];
+      // Get teams where sublider_id is one of the selected subliders
+      const { data: teams, error: tErr } = await supabase
+        .from('estrutura_equipes')
+        .select('id')
+        .in('sublider_id', formData.sublider_ids);
+      if (tErr) throw tErr;
+      if (!teams?.length) return [];
+      // Get members of those teams
+      const { data: members, error: mErr } = await supabase
+        .from('estrutura_equipe_membros')
+        .select('user_id')
+        .in('equipe_id', teams.map(t => t.id));
+      if (mErr) throw mErr;
+      return [...new Set((members || []).map(m => m.user_id))];
+    },
+    enabled: formData.sublider_ids.length > 0,
+  });
 
   // Fetch external clients
   const { data: externalClients = [] } = useQuery({
@@ -357,13 +379,19 @@ const FiscalProjetosCadastro = () => {
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
 
-  // When editing, load current members into form
+  // When editing, load current members (leaders, subliders, members) into form
   useEffect(() => {
     if (editingProject && currentProjectMembers.length > 0) {
+      const leaderUserIds = currentProjectMembers
+        .filter(m => m.role === 'leader' || m.role === 'responsible')
+        .map(m => m.user_id);
+      const subliderUserIds = currentProjectMembers
+        .filter(m => m.role === 'sublider')
+        .map(m => m.user_id);
       const memberUserIds = currentProjectMembers
         .filter(m => m.role === 'member')
         .map(m => m.user_id);
-      setFormData(prev => ({ ...prev, member_ids: memberUserIds }));
+      setFormData(prev => ({ ...prev, leader_ids: leaderUserIds, sublider_ids: subliderUserIds, member_ids: memberUserIds }));
     }
   }, [editingProject, currentProjectMembers]);
 
@@ -383,8 +411,8 @@ const FiscalProjetosCadastro = () => {
         status: data.status,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
-        responsible_id: data.responsible_id || null,
-        leader_id: data.leader_id || null,
+        responsible_id: data.leader_ids[0] || null,
+        leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
@@ -405,11 +433,13 @@ const FiscalProjetosCadastro = () => {
 
       // Insert project members
       const members: { project_id: string; user_id: string; role: string }[] = [];
-      if (data.responsible_id) {
-        members.push({ project_id: project.id, user_id: data.responsible_id, role: 'responsible' });
+      for (const uid of data.leader_ids) {
+        members.push({ project_id: project.id, user_id: uid, role: 'leader' });
       }
-      if (data.leader_id && data.leader_id !== data.responsible_id) {
-        members.push({ project_id: project.id, user_id: data.leader_id, role: 'leader' });
+      for (const uid of data.sublider_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: project.id, user_id: uid, role: 'sublider' });
+        }
       }
       for (const uid of data.member_ids) {
         if (!members.some(m => m.user_id === uid)) {
@@ -448,8 +478,8 @@ const FiscalProjetosCadastro = () => {
           ['end_date', ep.end_date || null, data.end_date || null],
           ['area_id', ep.area_id || null, data.area_id || null],
           ['description', ep.description || null, data.description || null],
-          ['responsible_id', ep.responsible_id || null, data.responsible_id || null],
-          ['leader_id', ep.leader_id || null, data.leader_id || null],
+          ['responsible_id', ep.responsible_id || null, data.leader_ids[0] || null],
+          ['leader_id', ep.leader_id || null, data.leader_ids[0] || null],
           ['external_client_id', ep.external_client_id || null, data.external_client_id || null],
           ['contribuinte_id', ep.contribuinte_id || null, data.contribuinte_id || null],
           ['objective', ep.objective || null, data.objective || null],
@@ -482,8 +512,8 @@ const FiscalProjetosCadastro = () => {
           status: data.status,
           start_date: data.start_date || null,
           end_date: data.end_date || null,
-          responsible_id: data.responsible_id || null,
-          leader_id: data.leader_id || null,
+          responsible_id: data.leader_ids[0] || null,
+          leader_id: data.leader_ids[0] || null,
           external_client_id: data.external_client_id || null,
           contribuinte_id: data.contribuinte_id || null,
           area_id: data.area_id || null,
@@ -507,11 +537,13 @@ const FiscalProjetosCadastro = () => {
       const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
       if (delError) throw delError;
       const members: { project_id: string; user_id: string; role: string }[] = [];
-      if (data.responsible_id) {
-        members.push({ project_id: id, user_id: data.responsible_id, role: 'responsible' });
+      for (const uid of data.leader_ids) {
+        members.push({ project_id: id, user_id: uid, role: 'leader' });
       }
-      if (data.leader_id && data.leader_id !== data.responsible_id) {
-        members.push({ project_id: id, user_id: data.leader_id, role: 'leader' });
+      for (const uid of data.sublider_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: id, user_id: uid, role: 'sublider' });
+        }
       }
       for (const uid of data.member_ids) {
         if (!members.some(m => m.user_id === uid)) {
@@ -574,8 +606,8 @@ const FiscalProjetosCadastro = () => {
         status: project.status,
         start_date: project.start_date || '',
         end_date: project.end_date || '',
-        responsible_id: project.responsible_id || '',
-        leader_id: project.leader_id || '',
+        leader_ids: [],
+        sublider_ids: [],
         external_client_id: project.external_client_id || '',
         contribuinte_id: project.contribuinte_id || '',
         area_id: project.area_id || '',
@@ -588,7 +620,7 @@ const FiscalProjetosCadastro = () => {
       setFormData({ 
         name: '', description: '', status: 'active',
         start_date: '', end_date: '',
-        responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
+        leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
       });
     }
@@ -601,7 +633,7 @@ const FiscalProjetosCadastro = () => {
     setFormData({ 
       name: '', description: '', status: 'active',
       start_date: '', end_date: '',
-      responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
+      leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
     });
   };
@@ -656,9 +688,13 @@ const FiscalProjetosCadastro = () => {
     return '-';
   };
 
-  const availableMembers = teamMembers.filter(
-    m => m.id !== formData.responsible_id && m.id !== formData.leader_id
-  );
+  const availableMembers = useMemo(() => {
+    const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+    if (formData.sublider_ids.length === 0) return [];
+    return teamMembers.filter(
+      m => !excludeIds.has(m.id) && filteredMemberIds.includes(m.id)
+    );
+  }, [teamMembers, formData.leader_ids, formData.sublider_ids, filteredMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
