@@ -638,6 +638,19 @@ export default function EstruturaManager() {
                 })}
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo (opcional)</Label>
+              <p className="text-xs text-slate-500">Pode ser diferente do centro de custo do cluster/empresa.</p>
+              <Select value={areaForm.cost_center_id} onValueChange={(val) => setAreaForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}>
+                <SelectTrigger><SelectValue placeholder="Herdar do cluster" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Herdar do cluster</SelectItem>
+                  {centrosCusto.map(cc => (
+                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAreaDialog(false)}>Cancelar</Button>
