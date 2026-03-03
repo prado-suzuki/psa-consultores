@@ -2228,6 +2228,30 @@ export type Database = {
           },
         ]
       }
+      produto_segmento: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null
