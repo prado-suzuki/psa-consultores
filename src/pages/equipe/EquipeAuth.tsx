@@ -78,10 +78,24 @@ const EquipeAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [pendingArea, setPendingArea] = useState<string | null>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Navegação reativa: só navega quando AuthContext confirma user + roles
+  useEffect(() => {
+    if (pendingArea && !loading && user && (isTeamMember || isAdmin)) {
+      if (user.user_metadata?.must_change_password === true) {
+        navigate('/primeiro-acesso', { replace: true });
+        setPendingArea(null);
+        return;
+      }
+      navigateToArea(navigate, pendingArea);
+      setPendingArea(null);
+    }
+  }, [pendingArea, loading, user, isTeamMember, isAdmin, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,15 +183,8 @@ const EquipeAuth = () => {
             return;
           }
           
-          // Verificar se precisa trocar senha
-          if (session.user.user_metadata?.must_change_password === true) {
-            navigate('/primeiro-acesso', { replace: true });
-            setIsLoading(false);
-            return;
-          }
-          
-          // Tem acesso, pode navegar
-          navigateToArea(navigate, selectedArea);
+          // Navegação reativa via useEffect — aguarda AuthContext atualizar
+          setPendingArea(selectedArea);
         }
       }
     } catch (err: any) {
