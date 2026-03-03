@@ -1,25 +1,13 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Renomear aba "Cadastro" para "Entregas" no módulo Tax
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Alterações
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+| Arquivo | O que muda |
+|---|---|
+| `src/components/equipe/fiscal/FiscalSidebar.tsx` | Linha 64: `label: 'Cadastro'` → `label: 'Entregas'`, linha 63: `id: 'cadastro-projetos'` → `id: 'entregas-projetos'` |
+| `src/config/protectedPages.ts` | Linha 138: `page_name: 'Tax Cadastro'` → `page_name: 'Tax Entregas'`, linha 139: `page_description` atualizado para "Entregas de projetos da área Tax" |
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+As rotas (`/equipe/tax/projetos/cadastro`) permanecem inalteradas para não quebrar links existentes — apenas o label visível muda.
 
-### 4. Acesso automático por membership
-- Coluna `page_categories text[]` em `estrutura_areas`
-- `usePageAccess.ts` verifica membership na estrutura + categoria da página
-- UI multi-select de categorias no form de área (EstruturaManager)
-- Categoria `geral` → qualquer team_member tem acesso automático
-- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
-
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
