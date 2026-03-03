@@ -425,6 +425,18 @@ export default function EstruturaManager() {
                                   {liderProfile && (
                                     <span className="text-xs text-slate-500 ml-1">• Líder: {profileLabel(liderProfile)}</span>
                                   )}
+                                  {(() => {
+                                    let ccLabel: string | null = null;
+                                    if (area.cost_center_id) {
+                                      const cc = centrosCusto.find(c => c.id === area.cost_center_id);
+                                      ccLabel = cc ? `${cc.codigo} - ${cc.nome}` : null;
+                                    } else {
+                                      ccLabel = getEmpresaCcLabel(cluster.empresa_id);
+                                    }
+                                    return ccLabel ? (
+                                      <Badge variant="secondary" className="text-xs ml-1">{area.cost_center_id ? 'CC:' : 'CC (herdado):'} {ccLabel}</Badge>
+                                    ) : null;
+                                  })()}
                                   <Badge variant="outline" className="ml-auto mr-2 text-xs">{areaEquipes.length} equipes</Badge>
                                   <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openAreaEdit(area)}>
