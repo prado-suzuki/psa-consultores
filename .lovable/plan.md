@@ -1,14 +1,25 @@
 
 
-# Registrar página "Clientes TAX" nas permissões
+# Registrar "Tax Clientes" no array de páginas protegidas
 
 ## Problema
 
-A nova página `/equipe/tax/projetos/clientes` não foi adicionada ao array `PROTECTED_PAGES` em `src/config/protectedPages.ts`. Esse array é a fonte de verdade que sincroniza com a tabela `page_permissions` no banco. Sem essa entrada, a página não aparece na listagem de permissões em "Usuários Estrutura".
+A página `/equipe/tax/projetos/clientes` foi criada (rota, componente, sidebar), mas nunca foi adicionada ao array `PROTECTED_PAGES` em `src/config/protectedPages.ts`. O botão de sincronização lê esse array — se a página não está lá, ele não a cria no banco.
 
 ## Correção
 
-Adicionar uma entrada em `src/config/protectedPages.ts`, na seção TEX PAGES, com categoria `tax`:
+### `src/config/protectedPages.ts`
+
+1. Adicionar comentário-guia no topo do arquivo (antes do `export interface`) para prevenir esse erro no futuro:
+
+```typescript
+/**
+ * IMPORTANTE: Toda nova página/rota protegida DEVE ser registrada neste array.
+ * Sem isso, ela NÃO aparecerá no controle de permissões mesmo após clicar em "Atualizar".
+ */
+```
+
+2. Na seção TEX PAGES (~linha 145, após "Tax Tarefas"), adicionar:
 
 ```typescript
 {
@@ -21,11 +32,11 @@ Adicionar uma entrada em `src/config/protectedPages.ts`, na seção TEX PAGES, c
 },
 ```
 
-Nenhuma outra alteração necessária — o hook `useSyncProtectedPages` sincroniza automaticamente novas entradas com o banco.
+Após essa alteração, o botão de sincronização detectará a nova entrada e a criará no banco automaticamente.
 
-## Arquivo
+## Arquivo impactado
 
 | Arquivo | Alteração |
 |---|---|
-| `src/config/protectedPages.ts` | Nova entrada para `/equipe/tax/projetos/clientes` |
+| `src/config/protectedPages.ts` | Nova entrada + comentário preventivo |
 
