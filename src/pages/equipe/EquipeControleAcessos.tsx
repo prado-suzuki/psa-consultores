@@ -830,7 +830,7 @@ const EquipeControleAcessos = () => {
                   onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
                 >
                   <Building2 className="h-4 w-4 mr-2" />
-                  Cadastros
+                  Cadastros Estrutura
                 </TabsTrigger>
                 <TabsTrigger 
                   value="cadastros_clientes" 
