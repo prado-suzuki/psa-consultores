@@ -256,23 +256,29 @@ const FiscalProjetosCadastro = () => {
     enabled: !!formData.external_client_id,
   });
 
+  // Helper to get OS id regardless of environment
+  const getOsId = (os: any): string => isProductionEnvironment ? os.id : os.id_contrato;
+  const getOsLabel = (os: any): string => isProductionEnvironment ? (os.numero_os || 'Sem número') : (os.numero_contrato || 'Sem número');
+  const getOsValue = (os: any): number | null => isProductionEnvironment ? os.valor_projeto : os.valor_fixo;
+
   // State for selected OS
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
 
-  // Auto-fill dates when single OS or user selects one
+  // Auto-select when single OS
   useEffect(() => {
     if (!formData.external_client_id) {
       setSelectedOsId(null);
       return;
     }
     if (clienteOS.length === 1) {
-      setSelectedOsId(isProductionEnvironment ? clienteOS[0].id : clienteOS[0].id_contrato);
+      setSelectedOsId(getOsId(clienteOS[0]));
     }
   }, [clienteOS, formData.external_client_id]);
 
+  // Auto-fill dates from selected OS (only on create)
   useEffect(() => {
     if (!selectedOsId || editingProject) return;
-    const os = clienteOS.find((o: any) => (isProductionEnvironment ? o.id : o.id_contrato) === selectedOsId);
+    const os = clienteOS.find((o: any) => getOsId(o) === selectedOsId);
     if (!os) return;
     setFormData(prev => ({
       ...prev,
