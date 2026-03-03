@@ -188,19 +188,19 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '' });
+  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[] });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [] }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [] }); setAreaDialog(true); };
 
   const saveArea = async () => {
     if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editingArea) {
-      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color }).eq('id', editingArea.id);
+      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories }).eq('id', editingArea.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
     } else {
-      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id });
+      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories });
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
     }
