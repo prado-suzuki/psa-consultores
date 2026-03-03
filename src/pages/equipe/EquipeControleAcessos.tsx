@@ -322,7 +322,7 @@ const EquipeControleAcessos = () => {
     },
     onSuccess: async (data) => {
       // Grant area access if team_member and areas selected
-      if (newUser.roles.includes('team_member') && newUser.areas.length > 0 && data?.user_id) {
+      if ((newUser.roles.includes('team_member') || newUser.roles.includes('lider') || newUser.roles.includes('sublider')) && newUser.areas.length > 0 && data?.user_id) {
         try {
           const categoriesToGrant = newUser.areas.flatMap(area => AREA_CATEGORIES_MAP[area]?.categories || []);
           const { data: pagePerms } = await supabase
@@ -447,7 +447,7 @@ const EquipeControleAcessos = () => {
       }
 
       // Sync area access
-      if (editUser.roles.includes('team_member')) {
+      if (editUser.roles.includes('team_member') || editUser.roles.includes('lider') || editUser.roles.includes('sublider')) {
         const selectedCategories = editUser.areas.flatMap(area => AREA_CATEGORIES_MAP[area]?.categories || []);
         
         // Get all page permissions
@@ -1155,7 +1155,7 @@ const EquipeControleAcessos = () => {
                                 </div>
                               ))}
                             </div>
-                            {newUser.roles.includes('team_member') && (
+                            {(newUser.roles.includes('team_member') || newUser.roles.includes('lider') || newUser.roles.includes('sublider')) && (
                               <div className="space-y-3">
                                 <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
                                 <p className="text-xs text-slate-500">Selecione as áreas que o membro terá acesso</p>
@@ -1545,7 +1545,7 @@ const EquipeControleAcessos = () => {
                   </div>
                 ))}
               </div>
-              {editUser.roles.includes('team_member') && (
+              {(editUser.roles.includes('team_member') || editUser.roles.includes('lider') || editUser.roles.includes('sublider')) && (
                 <div className="space-y-3">
                   <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
                   <p className="text-xs text-slate-500">Selecione as áreas que o membro terá acesso</p>
