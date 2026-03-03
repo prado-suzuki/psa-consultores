@@ -84,6 +84,19 @@ const EquipeAuth = () => {
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Navegação reativa: só navega quando AuthContext confirma user + roles
+  useEffect(() => {
+    if (pendingArea && !loading && user && (isTeamMember || isAdmin)) {
+      if (user.user_metadata?.must_change_password === true) {
+        navigate('/primeiro-acesso', { replace: true });
+        setPendingArea(null);
+        return;
+      }
+      navigateToArea(navigate, pendingArea);
+      setPendingArea(null);
+    }
+  }, [pendingArea, loading, user, isTeamMember, isAdmin, navigate]);
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
