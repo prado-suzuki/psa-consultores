@@ -105,8 +105,8 @@ const FiscalProjetosCadastro = () => {
     status: 'active',
     start_date: '',
     end_date: '',
-    responsible_id: '',
-    leader_id: '',
+    leader_ids: [] as string[],
+    sublider_ids: [] as string[],
     external_client_id: '',
     contribuinte_id: '',
     area_id: '',
@@ -191,7 +191,7 @@ const FiscalProjetosCadastro = () => {
       const { data, error } = await supabase
         .from('user_roles')
         .select('user_id, role')
-        .in('role', ['lider', 'team_member']);
+        .in('role', ['lider', 'team_member', 'sublider']);
       if (error) throw error;
       return data as { user_id: string; role: string }[];
     },
@@ -203,11 +203,33 @@ const FiscalProjetosCadastro = () => {
     return teamMembers.filter(m => liderIds.includes(m.id));
   }, [teamMembers, userRoles]);
 
-  const responsaveisInternos = useMemo(() => {
-    const teamMemberIds = userRoles.filter(r => r.role === 'team_member').map(r => r.user_id);
-    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
-    return teamMembers.filter(m => teamMemberIds.includes(m.id) && !liderIds.includes(m.id));
+  const sublideres = useMemo(() => {
+    const subliderIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
+    return teamMembers.filter(m => subliderIds.includes(m.id));
   }, [teamMembers, userRoles]);
+
+  // Fetch members filtered by selected subliders' teams
+  const { data: filteredMemberIds = [] } = useQuery({
+    queryKey: ['sublider-team-members', formData.sublider_ids],
+    queryFn: async () => {
+      if (formData.sublider_ids.length === 0) return [];
+      // Get teams where sublider_id is one of the selected subliders
+      const { data: teams, error: tErr } = await supabase
+        .from('estrutura_equipes')
+        .select('id')
+        .in('sublider_id', formData.sublider_ids);
+      if (tErr) throw tErr;
+      if (!teams?.length) return [];
+      // Get members of those teams
+      const { data: members, error: mErr } = await supabase
+        .from('estrutura_equipe_membros')
+        .select('user_id')
+        .in('equipe_id', teams.map(t => t.id));
+      if (mErr) throw mErr;
+      return [...new Set((members || []).map(m => m.user_id))];
+    },
+    enabled: formData.sublider_ids.length > 0,
+  });
 
   // Fetch external clients
   const { data: externalClients = [] } = useQuery({
@@ -357,13 +379,19 @@ const FiscalProjetosCadastro = () => {
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
 
-  // When editing, load current members into form
+  // When editing, load current members (leaders, subliders, members) into form
   useEffect(() => {
     if (editingProject && currentProjectMembers.length > 0) {
+      const leaderUserIds = currentProjectMembers
+        .filter(m => m.role === 'leader' || m.role === 'responsible')
+        .map(m => m.user_id);
+      const subliderUserIds = currentProjectMembers
+        .filter(m => m.role === 'sublider')
+        .map(m => m.user_id);
       const memberUserIds = currentProjectMembers
         .filter(m => m.role === 'member')
         .map(m => m.user_id);
-      setFormData(prev => ({ ...prev, member_ids: memberUserIds }));
+      setFormData(prev => ({ ...prev, leader_ids: leaderUserIds, sublider_ids: subliderUserIds, member_ids: memberUserIds }));
     }
   }, [editingProject, currentProjectMembers]);
 
@@ -383,8 +411,8 @@ const FiscalProjetosCadastro = () => {
         status: data.status,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
-        responsible_id: data.responsible_id || null,
-        leader_id: data.leader_id || null,
+        responsible_id: data.leader_ids[0] || null,
+        leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
@@ -405,11 +433,13 @@ const FiscalProjetosCadastro = () => {
 
       // Insert project members
       const members: { project_id: string; user_id: string; role: string }[] = [];
-      if (data.responsible_id) {
-        members.push({ project_id: project.id, user_id: data.responsible_id, role: 'responsible' });
+      for (const uid of data.leader_ids) {
+        members.push({ project_id: project.id, user_id: uid, role: 'leader' });
       }
-      if (data.leader_id && data.leader_id !== data.responsible_id) {
-        members.push({ project_id: project.id, user_id: data.leader_id, role: 'leader' });
+      for (const uid of data.sublider_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: project.id, user_id: uid, role: 'sublider' });
+        }
       }
       for (const uid of data.member_ids) {
         if (!members.some(m => m.user_id === uid)) {
@@ -448,8 +478,8 @@ const FiscalProjetosCadastro = () => {
           ['end_date', ep.end_date || null, data.end_date || null],
           ['area_id', ep.area_id || null, data.area_id || null],
           ['description', ep.description || null, data.description || null],
-          ['responsible_id', ep.responsible_id || null, data.responsible_id || null],
-          ['leader_id', ep.leader_id || null, data.leader_id || null],
+          ['responsible_id', ep.responsible_id || null, data.leader_ids[0] || null],
+          ['leader_id', ep.leader_id || null, data.leader_ids[0] || null],
           ['external_client_id', ep.external_client_id || null, data.external_client_id || null],
           ['contribuinte_id', ep.contribuinte_id || null, data.contribuinte_id || null],
           ['objective', ep.objective || null, data.objective || null],
@@ -482,8 +512,8 @@ const FiscalProjetosCadastro = () => {
           status: data.status,
           start_date: data.start_date || null,
           end_date: data.end_date || null,
-          responsible_id: data.responsible_id || null,
-          leader_id: data.leader_id || null,
+          responsible_id: data.leader_ids[0] || null,
+          leader_id: data.leader_ids[0] || null,
           external_client_id: data.external_client_id || null,
           contribuinte_id: data.contribuinte_id || null,
           area_id: data.area_id || null,
@@ -507,11 +537,13 @@ const FiscalProjetosCadastro = () => {
       const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
       if (delError) throw delError;
       const members: { project_id: string; user_id: string; role: string }[] = [];
-      if (data.responsible_id) {
-        members.push({ project_id: id, user_id: data.responsible_id, role: 'responsible' });
+      for (const uid of data.leader_ids) {
+        members.push({ project_id: id, user_id: uid, role: 'leader' });
       }
-      if (data.leader_id && data.leader_id !== data.responsible_id) {
-        members.push({ project_id: id, user_id: data.leader_id, role: 'leader' });
+      for (const uid of data.sublider_ids) {
+        if (!members.some(m => m.user_id === uid)) {
+          members.push({ project_id: id, user_id: uid, role: 'sublider' });
+        }
       }
       for (const uid of data.member_ids) {
         if (!members.some(m => m.user_id === uid)) {
@@ -574,8 +606,8 @@ const FiscalProjetosCadastro = () => {
         status: project.status,
         start_date: project.start_date || '',
         end_date: project.end_date || '',
-        responsible_id: project.responsible_id || '',
-        leader_id: project.leader_id || '',
+        leader_ids: [],
+        sublider_ids: [],
         external_client_id: project.external_client_id || '',
         contribuinte_id: project.contribuinte_id || '',
         area_id: project.area_id || '',
@@ -588,7 +620,7 @@ const FiscalProjetosCadastro = () => {
       setFormData({ 
         name: '', description: '', status: 'active',
         start_date: '', end_date: '',
-        responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
+        leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
       });
     }
@@ -601,7 +633,7 @@ const FiscalProjetosCadastro = () => {
     setFormData({ 
       name: '', description: '', status: 'active',
       start_date: '', end_date: '',
-      responsible_id: '', leader_id: '', external_client_id: '', contribuinte_id: '',
+      leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
     });
   };
@@ -656,9 +688,13 @@ const FiscalProjetosCadastro = () => {
     return '-';
   };
 
-  const availableMembers = teamMembers.filter(
-    m => m.id !== formData.responsible_id && m.id !== formData.leader_id
-  );
+  const availableMembers = useMemo(() => {
+    const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+    if (formData.sublider_ids.length === 0) return [];
+    return teamMembers.filter(
+      m => !excludeIds.has(m.id) && filteredMemberIds.includes(m.id)
+    );
+  }, [teamMembers, formData.leader_ids, formData.sublider_ids, filteredMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -984,128 +1020,192 @@ const FiscalProjetosCadastro = () => {
                 </div>
               </div>
 
-              {/* 4. Equipe */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Equipe</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Responsável Interno</Label>
-                    <Select
-                      value={formData.responsible_id}
-                      onValueChange={(value) => setFormData({ ...formData, responsible_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {responsaveisInternos.map(member => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.first_name} {member.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Líder Responsável</Label>
-                    <Select
-                      value={formData.leader_id}
-                      onValueChange={(value) => setFormData({ ...formData, leader_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {lideres.map(member => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.first_name} {member.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4b. Membros do Projeto */}
+              {/* 4. Integrantes */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Membros do Projeto
+                    Integrantes
                   </div>
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  O Responsável Interno e o Líder são adicionados automaticamente. Selecione os demais membros que terão acesso ao projeto e suas tarefas.
-                </p>
-                {(formData.responsible_id || formData.leader_id) && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.responsible_id && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                        <User className="h-3 w-3 mr-1" />
-                        {teamMembers.find(m => m.id === formData.responsible_id)?.first_name}{' '}
-                        {teamMembers.find(m => m.id === formData.responsible_id)?.last_name} (Responsável)
-                      </Badge>
-                    )}
-                    {formData.leader_id && formData.leader_id !== formData.responsible_id && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        <User className="h-3 w-3 mr-1" />
-                        {teamMembers.find(m => m.id === formData.leader_id)?.first_name}{' '}
-                        {teamMembers.find(m => m.id === formData.leader_id)?.last_name} (Líder)
-                      </Badge>
-                    )}
-                  </div>
-                )}
-                <div className="border rounded-md overflow-hidden">
-                  <div className="max-h-48 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/50 border-b sticky top-0 z-10">
-                        <tr>
-                          <th className="w-10 px-3 py-2 text-left">
-                            <Checkbox
-                              checked={availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id))}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  const allIds = availableMembers.map(m => m.id);
-                                  setFormData({ ...formData, member_ids: [...new Set([...formData.member_ids, ...allIds])] });
-                                } else {
-                                  const removeIds = new Set(availableMembers.map(m => m.id));
-                                  setFormData({ ...formData, member_ids: formData.member_ids.filter(id => !removeIds.has(id)) });
-                                }
-                              }}
-                            />
-                          </th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">Nome</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {availableMembers.map((member, idx) => (
-                          <tr
-                            key={member.id}
-                            className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
-                            onClick={() => handleMemberToggle(member.id)}
-                          >
-                            <td className="px-3 py-1.5">
-                              <Checkbox
-                                checked={formData.member_ids.includes(member.id)}
-                                onCheckedChange={() => handleMemberToggle(member.id)}
-                              />
-                            </td>
-                            <td className="px-3 py-1.5 font-medium text-foreground">
-                              {member.first_name} {member.last_name}
-                            </td>
-                          </tr>
-                        ))}
-                        {availableMembers.length === 0 && (
-                          <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum membro disponível</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {formData.member_ids.length > 0 && (
-                    <div className="border-t px-3 py-1.5 text-xs text-muted-foreground bg-muted/50">
-                      {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
+
+                {/* Líder Geral (multi-select) */}
+                <div>
+                  <Label>Líder Geral</Label>
+                  {formData.leader_ids.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
+                      {formData.leader_ids.map(id => {
+                        const m = teamMembers.find(t => t.id === id);
+                        return m ? (
+                          <Badge key={id} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            {m.first_name} {m.last_name}
+                          </Badge>
+                        ) : null;
+                      })}
                     </div>
+                  )}
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="max-h-32 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {lideres.map((member, idx) => (
+                            <tr
+                              key={member.id}
+                              className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  leader_ids: prev.leader_ids.includes(member.id)
+                                    ? prev.leader_ids.filter(id => id !== member.id)
+                                    : [...prev.leader_ids, member.id],
+                                }));
+                              }}
+                            >
+                              <td className="w-10 px-3 py-1.5">
+                                <Checkbox checked={formData.leader_ids.includes(member.id)} onCheckedChange={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    leader_ids: prev.leader_ids.includes(member.id)
+                                      ? prev.leader_ids.filter(id => id !== member.id)
+                                      : [...prev.leader_ids, member.id],
+                                  }));
+                                }} />
+                              </td>
+                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                {member.first_name} {member.last_name}
+                              </td>
+                            </tr>
+                          ))}
+                          {lideres.length === 0 && (
+                            <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum líder disponível</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sublíder (multi-select) */}
+                <div>
+                  <Label>Sublíder</Label>
+                  {formData.sublider_ids.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
+                      {formData.sublider_ids.map(id => {
+                        const m = teamMembers.find(t => t.id === id);
+                        return m ? (
+                          <Badge key={id} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            {m.first_name} {m.last_name}
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="max-h-32 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {sublideres.map((member, idx) => (
+                            <tr
+                              key={member.id}
+                              className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  sublider_ids: prev.sublider_ids.includes(member.id)
+                                    ? prev.sublider_ids.filter(id => id !== member.id)
+                                    : [...prev.sublider_ids, member.id],
+                                }));
+                              }}
+                            >
+                              <td className="w-10 px-3 py-1.5">
+                                <Checkbox checked={formData.sublider_ids.includes(member.id)} onCheckedChange={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    sublider_ids: prev.sublider_ids.includes(member.id)
+                                      ? prev.sublider_ids.filter(id => id !== member.id)
+                                      : [...prev.sublider_ids, member.id],
+                                  }));
+                                }} />
+                              </td>
+                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                {member.first_name} {member.last_name}
+                              </td>
+                            </tr>
+                          ))}
+                          {sublideres.length === 0 && (
+                            <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum sublíder disponível</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Membros do Projeto (condicional à seleção de sublíderes) */}
+                <div>
+                  <Label>Membros do Projeto</Label>
+                  {formData.sublider_ids.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Selecione ao menos um sublíder para ver os membros disponíveis.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Membros das equipes dos sublíderes selecionados.
+                      </p>
+                      <div className="border rounded-md overflow-hidden">
+                        <div className="max-h-48 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted/50 border-b sticky top-0 z-10">
+                              <tr>
+                                <th className="w-10 px-3 py-2 text-left">
+                                  <Checkbox
+                                    checked={availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id))}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        const allIds = availableMembers.map(m => m.id);
+                                        setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...allIds])] }));
+                                      } else {
+                                        const removeIds = new Set(availableMembers.map(m => m.id));
+                                        setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
+                                      }
+                                    }}
+                                  />
+                                </th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">Nome</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {availableMembers.map((member, idx) => (
+                                <tr
+                                  key={member.id}
+                                  className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
+                                  onClick={() => handleMemberToggle(member.id)}
+                                >
+                                  <td className="px-3 py-1.5">
+                                    <Checkbox
+                                      checked={formData.member_ids.includes(member.id)}
+                                      onCheckedChange={() => handleMemberToggle(member.id)}
+                                    />
+                                  </td>
+                                  <td className="px-3 py-1.5 font-medium text-foreground">
+                                    {member.first_name} {member.last_name}
+                                  </td>
+                                </tr>
+                              ))}
+                              {availableMembers.length === 0 && (
+                                <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum membro encontrado nas equipes dos sublíderes selecionados</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {formData.member_ids.length > 0 && (
+                          <div className="border-t px-3 py-1.5 text-xs text-muted-foreground bg-muted/50">
+                            {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
