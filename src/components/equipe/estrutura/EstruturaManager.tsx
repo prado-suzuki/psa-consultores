@@ -163,6 +163,25 @@ export default function EstruturaManager() {
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
+  // Empresas and Centros de Custo for correlation
+  const { data: empresas = [] } = useQuery({
+    queryKey: ['empresas_faturamento'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('empresas_faturamento').select('*').eq('is_active', true).order('nome');
+      if (error) throw error;
+      return data as EmpresaFat[];
+    },
+  });
+
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ['centros_custo'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('centros_custo').select('*').eq('is_active', true).order('codigo');
+      if (error) throw error;
+      return data as CentroCusto[];
+    },
+  });
+
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ['estrutura-clusters'] });
     qc.invalidateQueries({ queryKey: ['estrutura-areas'] });
@@ -171,13 +190,22 @@ export default function EstruturaManager() {
     qc.invalidateQueries({ queryKey: ['estrutura-membros'] });
   };
 
+  // Helper to get CC name from empresa
+  const getEmpresaCcLabel = (empresaId: string | null) => {
+    if (!empresaId) return null;
+    const emp = empresas.find(e => e.id === empresaId);
+    if (!emp?.centro_custo_id) return null;
+    const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+    return cc ? `${cc.codigo} - ${cc.nome}` : null;
+  };
+
   // ─── Cluster CRUD ─────────────────────────────────────────────────
   const [clusterDialog, setClusterDialog] = useState(false);
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
-  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '' });
+  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '', empresa_id: '' });
 
-  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '' }); setClusterDialog(true); };
-  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '' }); setClusterDialog(true); };
+  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '', empresa_id: '' }); setClusterDialog(true); };
+  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
 
   const saveCluster = async () => {
     if (!clusterForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
