@@ -1,31 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-# Corrigir calendário da Agenda cortando na direita
+## ✅ Corrigido
 
-## Problema
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-O grid do calendário (`grid grid-cols-7`) não tem `min-width` definido, então quando o container é menor que o necessário para 7 colunas com `min-h-[100px]`, as colunas de Sex/Sáb ficam cortadas pelo `overflow-hidden` do layout pai.
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-## Solução
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-No `SprintCalendar.tsx`:
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-1. Envolver o grid do calendário em um container com scroll horizontal e largura mínima:
-   - Adicionar `overflow-x-auto` no wrapper
-   - Adicionar `min-w-[700px]` no grid para garantir que as 7 colunas sempre tenham espaço adequado
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-Alteração simples na linha 87:
-```tsx
-// Antes:
-<div className="grid grid-cols-7 gap-1">
-
-// Depois — envolver em scroll container:
-<div className="overflow-x-auto">
-  <div className="grid grid-cols-7 gap-1 min-w-[700px]">
-    ...
-  </div>
-</div>
-```
-
-Isso garante que em telas menores o calendário faz scroll horizontal em vez de cortar, e em telas maiores (que é o caso da screenshot — monitor grande com sidebar) as colunas se expandem normalmente.
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
