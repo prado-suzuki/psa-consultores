@@ -1,42 +1,25 @@
 
+# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-# Registrar "Tax Clientes" no array de páginas protegidas
+## ✅ Concluído
 
-## Problema
+### 1. Migration SQL
+- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
 
-A página `/equipe/tax/projetos/clientes` foi criada (rota, componente, sidebar), mas nunca foi adicionada ao array `PROTECTED_PAGES` em `src/config/protectedPages.ts`. O botão de sincronização lê esse array — se a página não está lá, ele não a cria no banco.
+### 2. Hook `useUserEstrutura`
+- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
 
-## Correção
+### 3. UI — Mapeamento no Controle de Acessos
+- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
+- Admin faz o mapeamento uma vez por área
 
-### `src/config/protectedPages.ts`
+### 4. Acesso automático por membership
+- Coluna `page_categories text[]` em `estrutura_areas`
+- `usePageAccess.ts` verifica membership na estrutura + categoria da página
+- UI multi-select de categorias no form de área (EstruturaManager)
+- Categoria `geral` → qualquer team_member tem acesso automático
+- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
 
-1. Adicionar comentário-guia no topo do arquivo (antes do `export interface`) para prevenir esse erro no futuro:
-
-```typescript
-/**
- * IMPORTANTE: Toda nova página/rota protegida DEVE ser registrada neste array.
- * Sem isso, ela NÃO aparecerá no controle de permissões mesmo após clicar em "Atualizar".
- */
-```
-
-2. Na seção TEX PAGES (~linha 145, após "Tax Tarefas"), adicionar:
-
-```typescript
-{
-  page_path: '/equipe/tax/projetos/clientes',
-  page_name: 'Tax Clientes',
-  page_description: 'Cadastros de clientes da área Tax',
-  category: 'tax',
-  requires_admin: false,
-  requires_team_member: true,
-},
-```
-
-Após essa alteração, o botão de sincronização detectará a nova entrada e a criará no banco automaticamente.
-
-## Arquivo impactado
-
-| Arquivo | Alteração |
-|---|---|
-| `src/config/protectedPages.ts` | Nova entrada + comentário preventivo |
-
+## Próximas etapas (fora de escopo)
+- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
+- Substituir referências diretas a `catalog_clients` nos outros módulos
