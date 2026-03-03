@@ -78,6 +78,7 @@ const EquipeAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [pendingArea, setPendingArea] = useState<string | null>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
