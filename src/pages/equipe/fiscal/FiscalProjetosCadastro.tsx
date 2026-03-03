@@ -749,7 +749,7 @@ const FiscalProjetosCadastro = () => {
                   </TableRow>
                 ) : (
                   projects.map((project: any) => (
-                    <TableRow key={project.id}>
+                    <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                       <TableCell>
                         <div>
                           <span className="font-medium">{project.name}</span>
