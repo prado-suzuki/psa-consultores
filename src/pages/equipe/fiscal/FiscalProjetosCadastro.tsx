@@ -1031,119 +1031,113 @@ const FiscalProjetosCadastro = () => {
                   </div>
                 </h3>
 
-                {/* Líder Geral (multi-select) */}
+                {/* Líder Geral (multi-select dropdown) */}
                 <div>
                   <Label>Líder Geral</Label>
-                  {formData.leader_ids.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
-                      {formData.leader_ids.map(id => {
-                        const m = teamMembers.find(t => t.id === id);
-                        return m ? (
-                          <Badge key={id} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            {m.first_name} {m.last_name}
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                  <div className="border rounded-md overflow-hidden">
-                    <div className="max-h-32 overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {lideres.map((member, idx) => (
-                            <tr
-                              key={member.id}
-                              className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
-                              onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  leader_ids: prev.leader_ids.includes(member.id)
-                                    ? prev.leader_ids.filter(id => id !== member.id)
-                                    : [...prev.leader_ids, member.id],
-                                }));
-                              }}
-                            >
-                              <td className="w-10 px-3 py-1.5">
-                                <Checkbox checked={formData.leader_ids.includes(member.id)} onCheckedChange={() => {
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                        {formData.leader_ids.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {formData.leader_ids.map(id => {
+                              const m = teamMembers.find(t => t.id === id);
+                              return m ? (
+                                <Badge key={id} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                  {m.first_name} {m.last_name}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Selecionar líderes...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar líder..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum líder encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {lideres.map(member => (
+                              <CommandItem
+                                key={member.id}
+                                value={`${member.first_name} ${member.last_name}`}
+                                onSelect={() => {
                                   setFormData(prev => ({
                                     ...prev,
                                     leader_ids: prev.leader_ids.includes(member.id)
                                       ? prev.leader_ids.filter(id => id !== member.id)
                                       : [...prev.leader_ids, member.id],
                                   }));
-                                }} />
-                              </td>
-                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${formData.leader_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
                                 {member.first_name} {member.last_name}
-                              </td>
-                            </tr>
-                          ))}
-                          {lideres.length === 0 && (
-                            <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum líder disponível</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                {/* Sublíder (multi-select) */}
+                {/* Sublíder (multi-select dropdown) */}
                 <div>
                   <Label>Sublíder</Label>
-                  {formData.sublider_ids.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
-                      {formData.sublider_ids.map(id => {
-                        const m = teamMembers.find(t => t.id === id);
-                        return m ? (
-                          <Badge key={id} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {m.first_name} {m.last_name}
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                  <div className="border rounded-md overflow-hidden">
-                    <div className="max-h-32 overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {sublideres.map((member, idx) => (
-                            <tr
-                              key={member.id}
-                              className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
-                              onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  sublider_ids: prev.sublider_ids.includes(member.id)
-                                    ? prev.sublider_ids.filter(id => id !== member.id)
-                                    : [...prev.sublider_ids, member.id],
-                                }));
-                              }}
-                            >
-                              <td className="w-10 px-3 py-1.5">
-                                <Checkbox checked={formData.sublider_ids.includes(member.id)} onCheckedChange={() => {
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                        {formData.sublider_ids.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {formData.sublider_ids.map(id => {
+                              const m = teamMembers.find(t => t.id === id);
+                              return m ? (
+                                <Badge key={id} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  {m.first_name} {m.last_name}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Selecionar sublíderes...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar sublíder..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum sublíder encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {sublideres.map(member => (
+                              <CommandItem
+                                key={member.id}
+                                value={`${member.first_name} ${member.last_name}`}
+                                onSelect={() => {
                                   setFormData(prev => ({
                                     ...prev,
                                     sublider_ids: prev.sublider_ids.includes(member.id)
                                       ? prev.sublider_ids.filter(id => id !== member.id)
                                       : [...prev.sublider_ids, member.id],
                                   }));
-                                }} />
-                              </td>
-                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${formData.sublider_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
                                 {member.first_name} {member.last_name}
-                              </td>
-                            </tr>
-                          ))}
-                          {sublideres.length === 0 && (
-                            <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum sublíder disponível</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                {/* Membros do Projeto (condicional à seleção de sublíderes) */}
+                {/* Membros do Projeto (multi-select dropdown) */}
                 <div>
                   <Label>Membros do Projeto</Label>
                   {formData.sublider_ids.length === 0 ? (
@@ -1151,63 +1145,68 @@ const FiscalProjetosCadastro = () => {
                       Selecione ao menos um sublíder para ver os membros disponíveis.
                     </p>
                   ) : (
-                    <>
-                      <p className="text-xs text-muted-foreground mt-1 mb-2">
-                        Membros das equipes dos sublíderes selecionados.
-                      </p>
-                      <div className="border rounded-md overflow-hidden">
-                        <div className="max-h-48 overflow-y-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-muted/50 border-b sticky top-0 z-10">
-                              <tr>
-                                <th className="w-10 px-3 py-2 text-left">
-                                  <Checkbox
-                                    checked={availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id))}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        const allIds = availableMembers.map(m => m.id);
-                                        setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...allIds])] }));
-                                      } else {
-                                        const removeIds = new Set(availableMembers.map(m => m.id));
-                                        setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
-                                      }
-                                    }}
-                                  />
-                                </th>
-                                <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase">Nome</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {availableMembers.map((member, idx) => (
-                                <tr
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                          {formData.member_ids.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {formData.member_ids.map(id => {
+                                const m = teamMembers.find(t => t.id === id);
+                                return m ? (
+                                  <Badge key={id} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                    {m.first_name} {m.last_name}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">Selecionar membros...</span>
+                          )}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar membro..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="__select_all__"
+                                onSelect={() => {
+                                  const allIds = availableMembers.map(m => m.id);
+                                  const allSelected = allIds.every(id => formData.member_ids.includes(id));
+                                  if (allSelected) {
+                                    const removeIds = new Set(allIds);
+                                    setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
+                                  } else {
+                                    setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...allIds])] }));
+                                  }
+                                }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id)) ? 'opacity-100' : 'opacity-0'}`} />
+                                <span className="font-medium">Selecionar todos</span>
+                              </CommandItem>
+                              {availableMembers.map(member => (
+                                <CommandItem
                                   key={member.id}
-                                  className={`cursor-pointer hover:bg-accent/40 transition-colors ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}
-                                  onClick={() => handleMemberToggle(member.id)}
+                                  value={`${member.first_name} ${member.last_name}`}
+                                  onSelect={() => handleMemberToggle(member.id)}
                                 >
-                                  <td className="px-3 py-1.5">
-                                    <Checkbox
-                                      checked={formData.member_ids.includes(member.id)}
-                                      onCheckedChange={() => handleMemberToggle(member.id)}
-                                    />
-                                  </td>
-                                  <td className="px-3 py-1.5 font-medium text-foreground">
-                                    {member.first_name} {member.last_name}
-                                  </td>
-                                </tr>
+                                  <Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                  {member.first_name} {member.last_name}
+                                </CommandItem>
                               ))}
-                              {availableMembers.length === 0 && (
-                                <tr><td colSpan={2} className="px-3 py-3 text-xs text-muted-foreground text-center">Nenhum membro encontrado nas equipes dos sublíderes selecionados</td></tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                        {formData.member_ids.length > 0 && (
-                          <div className="border-t px-3 py-1.5 text-xs text-muted-foreground bg-muted/50">
-                            {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
-                          </div>
-                        )}
-                      </div>
-                    </>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  {formData.member_ids.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}
+                    </p>
                   )}
                 </div>
               </div>
