@@ -1004,7 +1004,7 @@ const EquipeControleAcessos = () => {
                         Criar Novo Usuário
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md bg-white border-slate-200">
+                    <DialogContent className="sm:max-w-lg bg-white border-slate-200 max-h-[85vh] overflow-y-auto">
                       {createdCredentials ? (
                         <>
                           <DialogHeader>
@@ -1313,7 +1313,7 @@ const EquipeControleAcessos = () => {
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="max-h-[600px] overflow-y-auto">
                       {selectedUserId ? (
                         <div className="space-y-4">
                           {Object.entries(groupedPages).map(([category, categoryPages]) => (
@@ -1473,7 +1473,7 @@ const EquipeControleAcessos = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md bg-white border-slate-200">
+        <DialogContent className="sm:max-w-lg bg-white border-slate-200 max-h-[85vh] overflow-y-auto">
           <form onSubmit={handleEditSubmit}>
             <DialogHeader>
               <DialogTitle className="text-slate-900">Editar Usuário</DialogTitle>

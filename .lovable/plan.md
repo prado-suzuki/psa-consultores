@@ -1,24 +1,19 @@
 
+# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-# Corrigir proporção do card de permissões
+## ✅ Concluído
 
-## Problema
-O card "Acessos de [usuário]" (coluna direita na aba Usuários) não tem limite de altura nem scroll, ficando desproporcional quando há muitas páginas/categorias. O conteúdo transborda e não é possível ver/ajustar todas as opções.
+### 1. Migration SQL
+- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
 
-Mesma situação nos dialogs de criação e edição de usuário -- com 6 papéis + 5 áreas, o conteúdo excede a viewport.
+### 2. Hook `useUserEstrutura`
+- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
 
-## Correções
+### 3. UI — Mapeamento no Controle de Acessos
+- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
+- Admin faz o mapeamento uma vez por área
 
-### 1. Card de permissões do usuário (linhas 1279-1389)
-- Adicionar `ScrollArea` com `max-h-[600px]` no `CardContent` interno (onde lista as categorias e páginas)
-- Isso permite rolar dentro do card sem perder o header com botões "Editar/Excluir"
-
-### 2. Dialog de criação de usuário (linha 1007)
-- Alterar `DialogContent` para `sm:max-w-lg` e adicionar `max-h-[85vh] overflow-y-auto` no container do formulário
-
-### 3. Dialog de edição de usuário (linha 1476)
-- Mesma correção: `sm:max-w-lg` e `max-h-[85vh] overflow-y-auto` no container do formulário
-
-### Arquivo
-- `src/pages/equipe/EquipeControleAcessos.tsx` — 3 pontos de alteração
-
+## Próximas etapas (fora de escopo)
+- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
+- Substituir referências diretas a `catalog_clients` nos outros módulos
+- Permissões de acesso baseadas na estrutura organizacional
