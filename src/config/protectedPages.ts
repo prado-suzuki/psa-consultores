@@ -135,8 +135,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/tax/projetos/cadastro',
-    page_name: 'Tax Cadastro',
-    page_description: 'Cadastro de projetos da área Tax',
+    page_name: 'Tax Entregas',
+    page_description: 'Entregas de projetos da área Tax',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
