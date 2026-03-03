@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,7 @@ export function MonthYearPicker({
             className
           )}>
           
-          <Calendar className="absolute left-3 h-5 w-5 text-slate-400 mx-[517px]" />
+          
           {formatDisplay() || <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
