@@ -1,37 +1,47 @@
 
 
-# Correção: Erro de chave duplicada ao alterar responsável do projeto
+# Correção: Login + seleção de área redireciona para tela inicial
 
-## Problema
-O `delete` na linha 458 não verifica erros — se falhar (por RLS ou timing), o `insert` gera conflito de chave única. Afeta alguns usuários e outros não.
+## Diagnóstico
 
-## Alterações em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+O `handleSubmit` em `EquipeAuth` chama `navigateToArea` imediatamente após `signIn`. Porém, o `onAuthStateChange('SIGNED_IN')` no AuthContext pode disparar **assincronamente**, causando:
 
-### 1. Edição (linha 458) — Verificar erro do delete
+1. `signIn` retorna sem erro → `handleSubmit` navega para `/equipe/tax/dashboard`
+2. `TeamRoute` avalia: `loading=false` (ainda do init), `user=null` (não atualizado pelo SIGNED_IN ainda)
+3. `TeamRoute` redireciona para `/equipe` (tela inicial)
+4. Só depois `SIGNED_IN` atualiza o user/roles — mas já é tarde
+
+## Solução
+
+Substituir a navegação direta por uma navegação reativa via `useEffect`. Em vez de chamar `navigateToArea` dentro do `handleSubmit`, armazenar a área pendente e navegar somente quando o AuthContext confirmar que `loading=false`, `user` existe e roles estão carregadas.
+
+### Alterações em `src/pages/equipe/EquipeAuth.tsx`
+
+**1. Adicionar estado `pendingArea`:**
 ```typescript
-// DE:
-await supabase.from('tax_project_members').delete().eq('project_id', id);
-
-// PARA:
-const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
-if (delError) throw delError;
+const [pendingArea, setPendingArea] = useState<string | null>(null);
 ```
 
-### 2. Edição (linha 472) — Usar upsert na edição
+**2. Adicionar `useEffect` para navegação reativa:**
 ```typescript
-// DE:
-const { error: membersError } = await supabase.from('tax_project_members').insert(members);
-
-// PARA:
-const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+useEffect(() => {
+  if (pendingArea && !loading && user && (isTeamMember || isAdmin)) {
+    navigateToArea(navigate, pendingArea);
+    setPendingArea(null);
+  }
+}, [pendingArea, loading, user, isTeamMember, isAdmin, navigate]);
 ```
 
-### 3. Edição (linha 371) — Usar upsert na criação
+**3. No `handleSubmit` (linha 180), trocar:**
 ```typescript
 // DE:
-const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+navigateToArea(navigate, selectedArea);
 
 // PARA:
-const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+setPendingArea(selectedArea);
 ```
+
+**4. No `handleSubmit`, também trocar a navegação de `/primeiro-acesso` para usar replace e manter consistência.**
+
+Essa abordagem elimina a race condition porque a navegação só ocorre quando o AuthContext confirma o estado completo do usuário.
 
