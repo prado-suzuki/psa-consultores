@@ -1,41 +1,25 @@
 
+# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-# Duplicar Cadastros Clientes no módulo TAX
+## ✅ Concluído
 
-## Resumo
+### 1. Migration SQL
+- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
 
-Criar uma nova página no módulo TAX que renderiza o mesmo componente `GestaoClientesContent`, adicionando-a como submenu em "Projetos" acima de "Cadastro". A edição só será permitida para quem tem acesso à página.
+### 2. Hook `useUserEstrutura`
+- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
 
-## Alterações
+### 3. UI — Mapeamento no Controle de Acessos
+- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
+- Admin faz o mapeamento uma vez por área
 
-### 1. Nova página `src/pages/equipe/fiscal/FiscalCadastrosClientes.tsx`
+### 4. Acesso automático por membership
+- Coluna `page_categories text[]` em `estrutura_areas`
+- `usePageAccess.ts` verifica membership na estrutura + categoria da página
+- UI multi-select de categorias no form de área (EstruturaManager)
+- Categoria `geral` → qualquer team_member tem acesso automático
+- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
 
-Página wrapper simples que usa `FiscalLayout` e renderiza `GestaoClientesContent` (o mesmo componente já usado em Controle de Acessos). Dados compartilham a mesma tabela — qualquer alteração reflete em ambos os locais.
-
-### 2. Rota em `src/App.tsx`
-
-Adicionar rota `/equipe/tax/projetos/clientes` com `TeamRoute` + `PageAccessGate`.
-
-### 3. Menu lateral `src/components/equipe/fiscal/FiscalSidebar.tsx`
-
-Adicionar item filho "Clientes" no submenu "Projetos", **acima** de "Cadastro":
-
-```text
-Projetos
-  ├── Clientes      ← NOVO (path: /equipe/tax/projetos/clientes)
-  ├── Cadastro
-  └── Tarefas
-```
-
-### 4. Controle de edição
-
-O componente `GestaoClientesContent` já é renderizado dentro de `PageAccessGate`, que garante que apenas quem tem permissão de acesso à página pode visualizá-la. Como o acesso é controlado via `usePageAccess` (membership na estrutura ou permissão manual), somente membros autorizados poderão editar.
-
-## Arquivos impactados
-
-| Arquivo | Alteração |
-|---|---|
-| `src/pages/equipe/fiscal/FiscalCadastrosClientes.tsx` | **Novo** — wrapper com FiscalLayout + GestaoClientesContent |
-| `src/App.tsx` | Nova rota `/equipe/tax/projetos/clientes` |
-| `src/components/equipe/fiscal/FiscalSidebar.tsx` | Novo item "Clientes" no submenu Projetos |
-
+## Próximas etapas (fora de escopo)
+- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
+- Substituir referências diretas a `catalog_clients` nos outros módulos

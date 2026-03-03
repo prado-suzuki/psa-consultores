@@ -74,6 +74,7 @@ import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
+import FiscalCadastrosClientes from "./pages/equipe/fiscal/FiscalCadastrosClientes";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 const queryClient = new QueryClient({
@@ -160,6 +161,7 @@ const App = () => (
             
             {/* Tax (Fiscal) Routes */}
             <Route path="/equipe/tax/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/tax/projetos/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/tax/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
              <Route path="/equipe/tax/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
             
