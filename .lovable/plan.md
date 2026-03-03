@@ -1,25 +1,51 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Trocar checkboxes em tabela por dropdown multi-select (Líder Geral e Sublíder)
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Alteração
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+Substituir as tabelas com checkboxes dos campos "Líder Geral" e "Sublíder" por um componente **Popover + Command** (padrão combobox multi-select), onde:
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+- O trigger mostra os nomes selecionados como badges (ou placeholder se vazio)
+- Ao clicar, abre um dropdown com lista pesquisável
+- Cada item tem checkbox inline para multi-seleção
+- Clicar em um item alterna a seleção sem fechar o dropdown
 
-### 4. Acesso automático por membership
-- Coluna `page_categories text[]` em `estrutura_areas`
-- `usePageAccess.ts` verifica membership na estrutura + categoria da página
-- UI multi-select de categorias no form de área (EstruturaManager)
-- Categoria `geral` → qualquer team_member tem acesso automático
-- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
+## Arquivo impactado
 
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
+| Arquivo | Alteração |
+|---|---|
+| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Linhas ~1032-1145: substituir as duas tabelas de checkboxes por Popover+Command multi-select |
+
+## Implementação
+
+Usar `Popover` + `Command` (já disponíveis no projeto via `cmdk`) para criar um dropdown multi-select para cada campo:
+
+```tsx
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" className="w-full justify-between">
+      {formData.leader_ids.length > 0
+        ? <badges dos selecionados>
+        : "Selecione líderes..."}
+      <ChevronsUpDown />
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <Command>
+      <CommandInput placeholder="Buscar líder..." />
+      <CommandList>
+        {lideres.map(m => (
+          <CommandItem onSelect={toggle}>
+            <Check className={selected ? 'opacity-100' : 'opacity-0'} />
+            {m.first_name} {m.last_name}
+          </CommandItem>
+        ))}
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+```
+
+Mesmo padrão para Sublíder com `sublideres` e `sublider_ids`.
+
