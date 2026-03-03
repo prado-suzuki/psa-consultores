@@ -1,26 +1,37 @@
 
 
-# Mover "Gestão de Clientes" para a área de Acessos
+# Correção: Erro de chave duplicada ao alterar responsável do projeto
 
-## Resumo
-Remover a página "Gestão de Clientes" do menu Digital Dev e adicioná-la como uma nova aba "Cadastros Clientes" dentro da página `EquipeControleAcessos` (área de Acessos).
+## Problema
+O `delete` na linha 458 não verifica erros — se falhar (por RLS ou timing), o `insert` gera conflito de chave única. Afeta alguns usuários e outros não.
 
-## Alterações
+## Alterações em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-### 1. `src/components/equipe/dev/DevLayout.tsx` (linha 60)
-Remover o item de menu `Gestão de clientes` do sidebar do Dev.
+### 1. Edição (linha 458) — Verificar erro do delete
+```typescript
+// DE:
+await supabase.from('tax_project_members').delete().eq('project_id', id);
 
-### 2. `src/pages/equipe/dev/GestaoClientes.tsx`
-Refatorar para exportar o conteúdo **sem** o wrapper `<DevLayout>`, criando um componente reutilizável (ex: `GestaoClientesContent`) que pode ser embarcado como aba. Manter o export default com DevLayout para compatibilidade de rota (caso queira manter a rota legada) ou remover.
+// PARA:
+const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
+if (delError) throw delError;
+```
 
-### 3. `src/pages/equipe/EquipeControleAcessos.tsx`
-- Adicionar nova `TabsTrigger` chamada **"Cadastros Clientes"** (após a aba "Clientes" existente, ~linha 842)
-- Adicionar `TabsContent` correspondente que renderiza o conteúdo de `GestaoClientes` (sem DevLayout)
-- Importar o componente refatorado
+### 2. Edição (linha 472) — Usar upsert na edição
+```typescript
+// DE:
+const { error: membersError } = await supabase.from('tax_project_members').insert(members);
 
-### 4. `src/App.tsx` (linha 148)
-Remover ou redirecionar a rota `/equipe/dev/gestao-clientes`. Opcionalmente adicionar redirect para `/equipe/acessos`.
+// PARA:
+const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+```
 
-### 5. `src/config/protectedPages.ts`
-Remover a entrada `'/equipe/dev/gestao-clientes'` da lista de páginas protegidas (já que agora faz parte da página de Acessos, que é `AdminRoute`).
+### 3. Edição (linha 371) — Usar upsert na criação
+```typescript
+// DE:
+const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+
+// PARA:
+const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+```
 

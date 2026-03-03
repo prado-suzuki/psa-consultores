@@ -145,6 +145,7 @@ const App = () => (
             <Route path="/equipe/dev/auditoria-fiscal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/auditoria-fiscal"><AuditoriaFiscal /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-perdcomp" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-balancetes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate></TeamRoute>} />
+            {/* Redirect legacy route */}
             <Route path="/equipe/dev/gestao-clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/calculadora-ibs-cbs" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />

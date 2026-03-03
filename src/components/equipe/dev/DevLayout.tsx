@@ -57,7 +57,7 @@ const navItemsAfterSped: NavItem[] = [
   { icon: Calculator, label: 'Calculadora IBS/CBS', path: '/equipe/dev/calculadora-ibs-cbs' },
   { icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' },
   { icon: FileText, label: 'Controle Balancetes', path: '/equipe/dev/controle-balancetes' },
-  { icon: Users, label: 'Gestão de clientes', path: '/equipe/dev/gestao-clientes' },
+  
   { icon: Database, label: 'Gerenciar dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
