@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -94,6 +95,7 @@ interface AreaInterna {
   color: string;
   is_active: boolean;
   created_at: string;
+  estrutura_area_id: string | null;
 }
 
 interface CadastroStats {
@@ -161,6 +163,7 @@ const EquipeControleAcessos = () => {
     responsible: '',
     description: '',
     color: '#3B82F6',
+    estrutura_area_id: '' as string,
   });
 
   const colorPresets = [
@@ -219,6 +222,20 @@ const EquipeControleAcessos = () => {
       
       if (error) throw error;
       return data as UserPageAccess[];
+    },
+  });
+
+  // Fetch estrutura_areas for mapping select
+  const { data: estruturaAreas = [] } = useQuery({
+    queryKey: ['estrutura-areas-for-mapping'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_areas')
+        .select('id, name, color')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; name: string; color: string | null }[];
     },
   });
 
@@ -594,7 +611,7 @@ const EquipeControleAcessos = () => {
 
   const openCadastroCreate = () => {
     setEditingArea(null);
-    setCadastroForm({ name: '', responsible: '', description: '', color: '#3B82F6' });
+    setCadastroForm({ name: '', responsible: '', description: '', color: '#3B82F6', estrutura_area_id: '' });
     setCadastroDialogOpen(true);
   };
 
@@ -605,6 +622,7 @@ const EquipeControleAcessos = () => {
       responsible: area.responsible || '',
       description: area.description || '',
       color: area.color || '#3B82F6',
+      estrutura_area_id: area.estrutura_area_id || '',
     });
     setCadastroDialogOpen(true);
   };
@@ -620,6 +638,7 @@ const EquipeControleAcessos = () => {
         responsible: cadastroForm.responsible.trim() || null,
         description: cadastroForm.description.trim() || null,
         color: cadastroForm.color,
+        estrutura_area_id: cadastroForm.estrutura_area_id || null,
       };
       if (editingArea) {
         const { error } = await supabase.from('catalog_clients').update(payload).eq('id', editingArea.id);
@@ -1417,6 +1436,29 @@ const EquipeControleAcessos = () => {
                 </div>
                 <Input type="color" value={cadastroForm.color} onChange={(e) => setCadastroForm({ ...cadastroForm, color: e.target.value })} className="w-12 h-8 p-0 border-0" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Vincular à Estrutura Organizacional</Label>
+              <Select
+                value={cadastroForm.estrutura_area_id}
+                onValueChange={(value) => setCadastroForm({ ...cadastroForm, estrutura_area_id: value === '_none' ? '' : value })}
+              >
+                <SelectTrigger className="bg-white border-slate-200">
+                  <SelectValue placeholder="Nenhuma (sem vínculo)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhuma (sem vínculo)</SelectItem>
+                  {estruturaAreas.map((ea) => (
+                    <SelectItem key={ea.id} value={ea.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ea.color || '#94a3b8' }} />
+                        {ea.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Associa esta área legada à estrutura organizacional (cluster → área → equipe)</p>
             </div>
           </div>
           <DialogFooter>

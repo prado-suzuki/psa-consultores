@@ -91,6 +91,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           description: string | null
+          estrutura_area_id: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -101,6 +102,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          estrutura_area_id?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -111,13 +113,22 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          estrutura_area_id?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
           responsible?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalog_clients_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_documents: {
         Row: {
