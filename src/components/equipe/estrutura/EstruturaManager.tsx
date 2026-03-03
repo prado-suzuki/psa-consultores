@@ -19,6 +19,22 @@ interface Cluster {
   id: string;
   name: string;
   cost_center: string | null;
+  empresa_id: string | null;
+  is_active: boolean;
+}
+
+interface EmpresaFat {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  centro_custo_id: string | null;
+  is_active: boolean;
+}
+
+interface CentroCusto {
+  id: string;
+  codigo: string;
+  nome: string;
   is_active: boolean;
 }
 
@@ -29,6 +45,7 @@ interface Area {
   color: string | null;
   is_active: boolean;
   page_categories: string[];
+  cost_center_id: string | null;
 }
 
 interface AreaLider {
