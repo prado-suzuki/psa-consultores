@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign } from 'lucide-react';
+import { isProductionEnvironment } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Button } from '@/components/ui/button';
