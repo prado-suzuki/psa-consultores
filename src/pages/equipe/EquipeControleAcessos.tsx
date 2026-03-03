@@ -823,10 +823,10 @@ const EquipeControleAcessos = () => {
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
                   <Users className="h-4 w-4 mr-2" />
-                  Usuários
+                  Usuários Estrutura
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="cadastros" 
+                  value="cadastros"
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                   onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
                 >
