@@ -81,12 +81,16 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-export const FiscalSidebar = () => {
+interface FiscalSidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-   const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -118,51 +122,7 @@ export const FiscalSidebar = () => {
     const parentActive = isParentActive(item.children);
     const active = isActive(item.path);
 
-    if (isCollapsed) {
-      if (hasChildren) {
-        return (
-          <div key={item.id} className="space-y-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => item.children?.[0]?.path && navigate(item.children[0].path)}
-                  className={cn(
-                    "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
-                    parentActive
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
-            </Tooltip>
-          </div>
-        );
-      }
-
-      return (
-        <Tooltip key={item.id}>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => item.path && navigate(item.path)}
-              className={cn(
-                "w-full flex items-center justify-center p-2 rounded-lg transition-colors",
-                active
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              <Icon className="h-5 w-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{item.label}</TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    // Expanded view
+    // Since sidebar is fully hidden when collapsed, only render expanded view
     if (hasChildren) {
       return (
         <Collapsible
@@ -234,37 +194,27 @@ export const FiscalSidebar = () => {
     <div 
       className={cn(
         "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64"
       )}
     >
       {/* Header with collapse button */}
       <div className="h-14 border-b border-slate-200 flex items-center justify-between px-3">
-        {!isCollapsed && (
-          <div className="flex items-center">
-            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
-              <Calculator className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
-              <p className="text-xs text-slate-500">Gestão de Projetos</p>
-            </div>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mx-auto">
+        <div className="flex items-center">
+          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
             <Calculator className="h-5 w-5 text-emerald-600" />
           </div>
-        )}
+          <div>
+            <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
+            <p className="text-xs text-slate-500">Gestão de Projetos</p>
+          </div>
+        </div>
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn("h-8 w-8 flex-shrink-0", isCollapsed && "absolute right-1 top-3")}
+          onClick={onToggle}
+          className="h-8 w-8 flex-shrink-0"
         >
-          <ChevronLeft className={cn(
-            "h-4 w-4 transition-transform",
-            isCollapsed && "rotate-180"
-          )} />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
 
@@ -274,62 +224,29 @@ export const FiscalSidebar = () => {
       </nav>
 
       {/* Footer with actions */}
-      <div className={cn("p-3 border-t border-slate-200 space-y-2", isCollapsed && "px-2")}>
-        {isCollapsed ? (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="w-full text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-                  onClick={() => navigate('/equipe')}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Trocar área</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="w-full text-slate-600 hover:text-red-600 hover:bg-red-50"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Sair</TooltipContent>
-            </Tooltip>
-          </>
-        ) : (
-          <>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-              onClick={() => navigate('/equipe')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Trocar área
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-            <div className="pt-2 border-t border-slate-100">
-              <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
-            </div>
-          </>
-        )}
+      <div className="p-3 border-t border-slate-200 space-y-2">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+          onClick={() => navigate('/equipe')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Trocar área
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
+        <div className="pt-2 border-t border-slate-100">
+          <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
         </div>
+      </div>
     </div>
   );
 };
