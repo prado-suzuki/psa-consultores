@@ -74,6 +74,7 @@ import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
+import FiscalCadastrosClientes from "./pages/equipe/fiscal/FiscalCadastrosClientes";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 const queryClient = new QueryClient({

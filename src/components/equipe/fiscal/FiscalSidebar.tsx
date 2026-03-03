@@ -54,6 +54,12 @@ const menuItems: MenuItem[] = [
     icon: FolderKanban,
     children: [
       {
+        id: 'clientes',
+        label: 'Clientes',
+        icon: ClipboardList,
+        path: '/equipe/tax/projetos/clientes'
+      },
+      {
         id: 'cadastro-projetos',
         label: 'Cadastro',
         icon: FolderKanban,
