@@ -219,6 +219,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(null);
       setIsAdmin(false);
       setIsTeamMember(false);
+      setIsLider(false);
+      setIsSublider(false);
       
       // Faz o signOut no Supabase com scope global para invalidar no servidor também
       const { error } = await supabase.auth.signOut({ scope: 'global' });
