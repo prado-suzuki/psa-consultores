@@ -130,6 +130,30 @@ export type Database = {
           },
         ]
       }
+      centros_custo: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+        }
+        Relationships: []
+      }
       client_documents: {
         Row: {
           created_at: string | null
@@ -945,6 +969,41 @@ export type Database = {
           },
         ]
       }
+      empresas_faturamento: {
+        Row: {
+          centro_custo_id: string | null
+          cnpj: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+        }
+        Update: {
+          centro_custo_id?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_faturamento_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estrutura_area_lideres: {
         Row: {
           area_id: string
@@ -992,6 +1051,7 @@ export type Database = {
         Row: {
           cluster_id: string
           color: string | null
+          cost_center_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1002,6 +1062,7 @@ export type Database = {
         Insert: {
           cluster_id: string
           color?: string | null
+          cost_center_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1012,6 +1073,7 @@ export type Database = {
         Update: {
           cluster_id?: string
           color?: string | null
+          cost_center_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1027,12 +1089,20 @@ export type Database = {
             referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "estrutura_areas_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
         ]
       }
       estrutura_clusters: {
         Row: {
           cost_center: string | null
           created_at: string
+          empresa_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -1041,6 +1111,7 @@ export type Database = {
         Insert: {
           cost_center?: string | null
           created_at?: string
+          empresa_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -1049,12 +1120,21 @@ export type Database = {
         Update: {
           cost_center?: string | null
           created_at?: string
+          empresa_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "estrutura_clusters_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_faturamento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estrutura_equipe_membros: {
         Row: {
@@ -3337,6 +3417,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_date: string | null
+          estrutura_area_id: string | null
           external_client_id: string | null
           id: string
           leader_id: string | null
@@ -3354,6 +3435,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
           leader_id?: string | null
@@ -3371,6 +3453,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
           leader_id?: string | null
@@ -3408,6 +3491,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_projects_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
             referencedColumns: ["id"]
           },
           {
