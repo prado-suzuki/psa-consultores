@@ -1,25 +1,50 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Áreas de Acesso para Admin
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Análise
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+**Não é necessário para Admin.** O papel `admin` já concede acesso total a todas as páginas do sistema — a verificação de admin é a primeira checagem no `usePageAccess.ts`, antes de qualquer verificação de área ou categoria.
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+Portanto, mesmo que as áreas não apareçam ao selecionar `admin`, isso não causa nenhum problema de acesso: o admin enxerga tudo independentemente.
 
-### 4. Acesso automático por membership
-- Coluna `page_categories text[]` em `estrutura_areas`
-- `usePageAccess.ts` verifica membership na estrutura + categoria da página
-- UI multi-select de categorias no form de área (EstruturaManager)
-- Categoria `geral` → qualquer team_member tem acesso automático
-- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
+## Correção necessária (apenas lider/sublider)
 
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
+O problema real está apenas nos papéis `lider` e `sublider`, que precisam de áreas associadas para funcionar, mas a UI esconde o seletor quando esses papéis são escolhidos.
+
+### Alterações em `EquipeControleAcessos.tsx`:
+
+1. **Linha 1158** (dialog de criação):
+```typescript
+// De:
+{newUser.roles.includes('team_member') && (
+// Para:
+{(newUser.roles.includes('team_member') || newUser.roles.includes('lider') || newUser.roles.includes('sublider')) && (
+```
+
+2. **Linha 1548** (dialog de edição):
+```typescript
+// De:
+{editUser.roles.includes('team_member') && (
+// Para:
+{(editUser.roles.includes('team_member') || editUser.roles.includes('lider') || editUser.roles.includes('sublider')) && (
+```
+
+3. **Linha 325** (lógica de criação — sync de áreas):
+```typescript
+// De:
+if (newUser.roles.includes('team_member') && newUser.areas.length > 0 ...
+// Para:
+if ((newUser.roles.includes('team_member') || newUser.roles.includes('lider') || newUser.roles.includes('sublider')) && newUser.areas.length > 0 ...
+```
+
+4. **Linha 450** (lógica de edição — sync de áreas):
+```typescript
+// De:
+if (editUser.roles.includes('team_member')) {
+// Para:
+if (editUser.roles.includes('team_member') || editUser.roles.includes('lider') || editUser.roles.includes('sublider')) {
+```
+
+Admin não precisa dessa alteração pois já tem acesso irrestrito.
+
