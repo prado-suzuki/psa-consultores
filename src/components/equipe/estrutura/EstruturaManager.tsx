@@ -28,6 +28,7 @@ interface Area {
   name: string;
   color: string | null;
   is_active: boolean;
+  page_categories: string[];
 }
 
 interface AreaLider {
