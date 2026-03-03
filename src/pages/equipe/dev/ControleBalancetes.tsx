@@ -31,7 +31,7 @@ const ControleBalancetes = () => {
 
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
-  const [periodo, setPeriodo] = useState<{ month: number; year: number } | null>(null);
+  const [periodo, setPeriodo] = useState<{month: number;year: number;} | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [balancetes, setBalancetes] = useState<Balancete[]>([]);
@@ -43,29 +43,29 @@ const ControleBalancetes = () => {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-balancetes', TABLE_NAMES.cliente],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAMES.cliente)
-        .select('id, nome')
-        .eq('ativo', true)
-        .order('nome');
+      const { data, error } = await supabase.
+      from(TABLE_NAMES.cliente).
+      select('id, nome').
+      eq('ativo', true).
+      order('nome');
       if (error) throw error;
       return data;
-    },
+    }
   });
 
   // Fetch contribuintes filtered by client
   const { data: contribuintes } = useQuery({
     queryKey: ['contribuintes-balancetes', TABLE_NAMES.contribuinte, clienteId],
     queryFn: async () => {
-      let query = supabase
-        .from(TABLE_NAMES.contribuinte)
-        .select('id, nome_razao_social, cliente_id')
-        .order('nome_razao_social');
+      let query = supabase.
+      from(TABLE_NAMES.contribuinte).
+      select('id, nome_razao_social, cliente_id').
+      order('nome_razao_social');
       if (clienteId) query = query.eq('cliente_id', clienteId);
       const { data, error } = await query;
       if (error) throw error;
       return data;
-    },
+    }
   });
 
   const handleClear = () => {
@@ -98,14 +98,14 @@ const ControleBalancetes = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
+        const message = typeof detail === 'object' && detail?.error_message ?
+        detail.error_message :
+        typeof detail === 'string' ? detail : `Erro ${response.status}`;
         throw new Error(message);
       }
 
       const data = await response.json();
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.balancetes) ? data.balancetes : []);
+      const list = Array.isArray(data) ? data : Array.isArray(data?.balancetes) ? data.balancetes : [];
       setBalancetes(list.map((b: any) => ({ ...b, id: b.id_balancete || b.id })));
     } catch (err: any) {
       toast({ title: 'Erro ao buscar balancetes', description: err.message, variant: 'destructive' });
@@ -116,15 +116,15 @@ const ControleBalancetes = () => {
   }, [contribuinteId, periodo, fetchWithAuth]);
 
   const handleBlobDownload = async (id: string, endpoint: 'download' | 'export-excel', type: 'download' | 'export') => {
-    setDownloading(prev => ({ ...prev, [id]: type }));
+    setDownloading((prev) => ({ ...prev, [id]: type }));
     try {
       const response = await fetchWithAuth(getApiUrl(`/api/v1/contabil/balancetes/${id}/${endpoint}`));
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
+        const message = typeof detail === 'object' && detail?.error_message ?
+        detail.error_message :
+        typeof detail === 'string' ? detail : `Erro ${response.status}`;
         throw new Error(message);
       }
 
@@ -147,7 +147,7 @@ const ControleBalancetes = () => {
     } catch (err: any) {
       toast({ title: type === 'download' ? 'Erro ao baixar arquivo' : 'Erro ao exportar Excel', description: err.message, variant: 'destructive' });
     } finally {
-      setDownloading(prev => ({ ...prev, [id]: null }));
+      setDownloading((prev) => ({ ...prev, [id]: null }));
     }
   };
 
@@ -185,14 +185,14 @@ const ControleBalancetes = () => {
             {/* Cliente */}
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-slate-700">Cliente</Label>
-              <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
+              <Select value={clienteId} onValueChange={(v) => {setClienteId(v);setContribuinteId('');}}>
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
+                  {clientes?.map((c) =>
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -205,9 +205,9 @@ const ControleBalancetes = () => {
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>
-                  {contribuintes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                  ))}
+                  {contribuintes?.map((c) =>
+                  <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -221,13 +221,13 @@ const ControleBalancetes = () => {
 
           {/* Action footer */}
           <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-            {hasFilters && (
-              <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-300 hover:bg-red-50">
+            {hasFilters &&
+            <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-300 hover:bg-red-50">
                 <Eraser className="h-4 w-4" />
                 Limpar filtros
               </Button>
-            )}
-            <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+            }
+            <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white py-[20px] px-[15px] my-[5px] mx-px">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Buscar
             </Button>
@@ -256,16 +256,16 @@ const ControleBalancetes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                  <TableRow>
+                {loading ?
+                <TableRow>
                    <TableCell colSpan={4} className="text-center py-12 text-slate-400">
                       <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-teal-500" />
                       <p className="text-sm font-medium">Buscando balancetes...</p>
                     </TableCell>
-                  </TableRow>
-                ) : balancetes.length > 0 ? (
-                  balancetes.map((b) => (
-                    <TableRow key={b.id}>
+                  </TableRow> :
+                balancetes.length > 0 ?
+                balancetes.map((b) =>
+                <TableRow key={b.id}>
                       <TableCell>{formatDate(b.periodo_inicio)}</TableCell>
                       <TableCell>{formatDate(b.periodo_fim)}</TableCell>
                       <TableCell>{b.adicionado_por || '-'}</TableCell>
@@ -275,15 +275,15 @@ const ControleBalancetes = () => {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  disabled={downloading[b.id] === 'download'}
-                                  onClick={() => handleBlobDownload(b.id, 'download', 'download')}
-                                >
-                                  {downloading[b.id] === 'download'
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <Download className="h-4 w-4 text-teal-600" />}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={downloading[b.id] === 'download'}
+                              onClick={() => handleBlobDownload(b.id, 'download', 'download')}>
+                              
+                                  {downloading[b.id] === 'download' ?
+                              <Loader2 className="h-4 w-4 animate-spin" /> :
+                              <Download className="h-4 w-4 text-teal-600" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Baixar arquivo original</TooltipContent>
@@ -293,15 +293,15 @@ const ControleBalancetes = () => {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  disabled={downloading[b.id] === 'export'}
-                                  onClick={() => handleBlobDownload(b.id, 'export-excel', 'export')}
-                                >
-                                  {downloading[b.id] === 'export'
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <FileDown className="h-4 w-4 text-blue-600" />}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={downloading[b.id] === 'export'}
+                              onClick={() => handleBlobDownload(b.id, 'export-excel', 'export')}>
+                              
+                                  {downloading[b.id] === 'export' ?
+                              <Loader2 className="h-4 w-4 animate-spin" /> :
+                              <FileDown className="h-4 w-4 text-blue-600" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Exportar movimentos (Excel)</TooltipContent>
@@ -310,20 +310,20 @@ const ControleBalancetes = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
+                ) :
+
+                <TableRow>
                     <TableCell colSpan={4} className="text-center py-12 text-slate-400">
                       <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-slate-300" />
                       <p className="text-sm font-medium">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
                       </p>
-                      {!searched && (
-                        <p className="text-xs mt-1">Ou clique em "+ Novo Balancete" para enviar um arquivo</p>
-                      )}
+                      {!searched &&
+                    <p className="text-xs mt-1">Ou clique em "+ Novo Balancete" para enviar um arquivo</p>
+                    }
                     </TableCell>
                   </TableRow>
-                )}
+                }
               </TableBody>
             </Table>
           </div>
@@ -331,8 +331,8 @@ const ControleBalancetes = () => {
       </Card>
 
       <UploadBalanceteModal open={modalOpen} onOpenChange={handleModalClose} />
-    </DevLayout>
-  );
+    </DevLayout>);
+
 };
 
 export default ControleBalancetes;
