@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const TeamRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isTeamMember, isAdmin, mustChangePassword, loading } = useAuth();
 
-  if (loading && !user) {
+  if (loading) {
     return null;
   }
 

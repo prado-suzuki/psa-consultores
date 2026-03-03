@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, mustChangePassword, loading } = useAuth();
 
-  if (loading && !user) {
+  if (loading) {
     return null;
   }
 
