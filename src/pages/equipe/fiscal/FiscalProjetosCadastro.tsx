@@ -239,6 +239,48 @@ const FiscalProjetosCadastro = () => {
     enabled: !!formData.external_client_id,
   });
 
+  // Fetch OS/contratos for selected client
+  const ordemServicoTable = isProductionEnvironment ? 'ordem_servico' : 'contrato_dev';
+  const { data: clienteOS = [] } = useQuery({
+    queryKey: ['cliente-os', formData.external_client_id, ordemServicoTable],
+    queryFn: async () => {
+      if (!formData.external_client_id) return [];
+      const { data, error } = await supabase
+        .from(ordemServicoTable)
+        .select('*')
+        .eq('id_cliente', formData.external_client_id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!formData.external_client_id,
+  });
+
+  // State for selected OS
+  const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
+
+  // Auto-fill dates when single OS or user selects one
+  useEffect(() => {
+    if (!formData.external_client_id) {
+      setSelectedOsId(null);
+      return;
+    }
+    if (clienteOS.length === 1) {
+      setSelectedOsId(isProductionEnvironment ? clienteOS[0].id : clienteOS[0].id_contrato);
+    }
+  }, [clienteOS, formData.external_client_id]);
+
+  useEffect(() => {
+    if (!selectedOsId || editingProject) return;
+    const os = clienteOS.find((o: any) => (isProductionEnvironment ? o.id : o.id_contrato) === selectedOsId);
+    if (!os) return;
+    setFormData(prev => ({
+      ...prev,
+      start_date: prev.start_date || (os as any).data_inicio || '',
+      end_date: prev.end_date || (os as any).data_fim || '',
+    }));
+  }, [selectedOsId]);
+
   // Fetch projects with area join
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['fiscal-projects-tax-area'],
