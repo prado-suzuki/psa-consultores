@@ -1,31 +1,31 @@
 
 
-# Corrigir Líder Geral e Sublíder para dropdown multi-select
+# Corrigir sidebar Tax: ocultar completamente e mover toggle para header
 
 ## Problema
 
-Os campos "Líder Geral" e "Sublíder" ainda estão renderizados como tabelas inline com checkboxes (sempre visíveis). O plano anterior de usar `Popover + Command` (dropdown colapsável) não foi aplicado.
+Quando a sidebar é colapsada, ela encolhe para `w-16` (modo ícones) e o botão de toggle fica posicionado dentro dela. O usuário quer que ao colapsar, a sidebar desapareça **completamente** e o botão para reabri-la fique no header superior, à esquerda.
 
-## Alteração em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+## Alterações
 
-### 1. Adicionar imports
+### 1. `FiscalSidebar.tsx`
 
-Adicionar `ChevronsUpDown, Check` do lucide-react, e importar `Popover, PopoverTrigger, PopoverContent` e `Command, CommandInput, CommandList, CommandItem, CommandEmpty`.
+- Mudar o comportamento: quando `isCollapsed = true`, a sidebar fica com `w-0` e `overflow-hidden` (totalmente oculta), em vez de `w-16`
+- Remover o botão de toggle de dentro da sidebar
+- Expor o estado `isCollapsed` e `setIsCollapsed` para o componente pai (via props ou via contexto)
+- Opção mais simples: **extrair o estado para o `FiscalLayout`** e passar `isCollapsed`/`onToggle` como props para `FiscalSidebar`
 
-### 2. Substituir tabelas por dropdowns (linhas ~1032-1142)
+### 2. `FiscalLayout.tsx`
 
-Trocar as duas tabelas de checkboxes por componentes `Popover + Command`:
+- Gerenciar o estado `isCollapsed` aqui
+- Passar `isCollapsed` e `onToggle` para `FiscalSidebar`
+- No header, quando `isCollapsed = true`, mostrar um botão com ícone `Menu` (ou `ChevronRight`) à esquerda do título para reabrir a sidebar
+- Manter o botão de colapsar (ChevronLeft) dentro da sidebar quando ela estiver aberta
 
-- **Trigger**: botão `variant="outline"` mostrando badges dos selecionados ou placeholder
-- **Content**: `Command` com `CommandInput` para busca e `CommandList` com items clicáveis
-- Clicar em um item alterna seleção (toggle) sem fechar o dropdown
-- Ícone `Check` visível nos itens selecionados
-
-Mesmo padrão para ambos os campos (Líder Geral com `lideres`/`leader_ids`, Sublíder com `sublideres`/`sublider_ids`).
-
-## Arquivo impactado
+### Arquivos impactados
 
 | Arquivo | Alteração |
 |---|---|
-| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Imports + substituir tabelas por Popover+Command dropdown |
+| `src/components/equipe/fiscal/FiscalSidebar.tsx` | Receber `isCollapsed`/`onToggle` via props; quando colapsado, renderizar `w-0 overflow-hidden`; remover botão toggle interno |
+| `src/components/equipe/fiscal/FiscalLayout.tsx` | Gerenciar estado `isCollapsed`; adicionar botão toggle no header à esquerda |
 
