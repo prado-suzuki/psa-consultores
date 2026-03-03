@@ -1,25 +1,31 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Corrigir Líder Geral e Sublíder para dropdown multi-select
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Problema
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+Os campos "Líder Geral" e "Sublíder" ainda estão renderizados como tabelas inline com checkboxes (sempre visíveis). O plano anterior de usar `Popover + Command` (dropdown colapsável) não foi aplicado.
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+## Alteração em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-### 4. Acesso automático por membership
-- Coluna `page_categories text[]` em `estrutura_areas`
-- `usePageAccess.ts` verifica membership na estrutura + categoria da página
-- UI multi-select de categorias no form de área (EstruturaManager)
-- Categoria `geral` → qualquer team_member tem acesso automático
-- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
+### 1. Adicionar imports
 
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
+Adicionar `ChevronsUpDown, Check` do lucide-react, e importar `Popover, PopoverTrigger, PopoverContent` e `Command, CommandInput, CommandList, CommandItem, CommandEmpty`.
+
+### 2. Substituir tabelas por dropdowns (linhas ~1032-1142)
+
+Trocar as duas tabelas de checkboxes por componentes `Popover + Command`:
+
+- **Trigger**: botão `variant="outline"` mostrando badges dos selecionados ou placeholder
+- **Content**: `Command` com `CommandInput` para busca e `CommandList` com items clicáveis
+- Clicar em um item alterna seleção (toggle) sem fechar o dropdown
+- Ícone `Check` visível nos itens selecionados
+
+Mesmo padrão para ambos os campos (Líder Geral com `lideres`/`leader_ids`, Sublíder com `sublideres`/`sublider_ids`).
+
+## Arquivo impactado
+
+| Arquivo | Alteração |
+|---|---|
+| `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | Imports + substituir tabelas por Popover+Command dropdown |
+
