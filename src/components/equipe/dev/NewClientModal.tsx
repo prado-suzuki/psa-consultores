@@ -425,6 +425,8 @@ export default function NewClientModal({
     ...produtoSegmentoOptions,
     { value: "__outro__", label: "Outro (personalizado)" },
   ], [produtoSegmentoOptions]);
+
+  const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
     return profiles
       .filter((p: any) => liderIds.has(p.id))
