@@ -84,55 +84,57 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {weekDays.map(day => (
-          <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-            {day}
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 gap-1 min-w-[700px]">
+          {weekDays.map(day => (
+            <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+              {day}
+            </div>
+          ))}
 
-        {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-          <div key={`empty-${i}`} className="aspect-square" />
-        ))}
+          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+            <div key={`empty-${i}`} className="aspect-square" />
+          ))}
 
-        {days.map(day => {
-          const dayDeliverables = getDeliverablesForDate(day);
-          const isToday = isSameDay(day, today);
+          {days.map(day => {
+            const dayDeliverables = getDeliverablesForDate(day);
+            const isToday = isSameDay(day, today);
 
-          return (
-            <button
-              key={day.toISOString()}
-              onClick={() => dayDeliverables.length > 0 && setSelectedDate(day)}
-              className={cn(
-                "min-h-[80px] sm:min-h-[100px] p-1 border rounded-lg transition-colors flex flex-col items-start overflow-hidden",
-                isToday && "border-emerald-500 bg-emerald-50",
-                dayDeliverables.length > 0 && "hover:bg-muted/50 cursor-pointer",
-                dayDeliverables.length === 0 && "cursor-default",
-                selectedDate && isSameDay(day, selectedDate) && "ring-2 ring-emerald-500"
-              )}
-            >
-              <span className={cn(
-                "text-sm font-medium",
-                isToday && "text-emerald-700"
-              )}>
-                {format(day, 'd')}
-              </span>
-              {dayDeliverables.length > 0 && (
-                <div className="flex flex-col gap-0.5 mt-1 w-full">
-                  {dayDeliverables.slice(0, 2).map(d => (
-                    <div key={d.id} className="flex items-center gap-1 w-full">
-                      <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[d.status] || 'bg-slate-400')} />
-                      <span className="text-[10px] leading-tight truncate">{d.title}</span>
-                    </div>
-                  ))}
-                  {dayDeliverables.length > 2 && (
-                    <span className="text-[10px] text-muted-foreground pl-2">+{dayDeliverables.length - 2} mais</span>
-                  )}
-                </div>
-              )}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => dayDeliverables.length > 0 && setSelectedDate(day)}
+                className={cn(
+                  "min-h-[80px] sm:min-h-[100px] p-1 border rounded-lg transition-colors flex flex-col items-start overflow-hidden",
+                  isToday && "border-emerald-500 bg-emerald-50",
+                  dayDeliverables.length > 0 && "hover:bg-muted/50 cursor-pointer",
+                  dayDeliverables.length === 0 && "cursor-default",
+                  selectedDate && isSameDay(day, selectedDate) && "ring-2 ring-emerald-500"
+                )}
+              >
+                <span className={cn(
+                  "text-sm font-medium",
+                  isToday && "text-emerald-700"
+                )}>
+                  {format(day, 'd')}
+                </span>
+                {dayDeliverables.length > 0 && (
+                  <div className="flex flex-col gap-0.5 mt-1 w-full">
+                    {dayDeliverables.slice(0, 2).map(d => (
+                      <div key={d.id} className="flex items-center gap-1 w-full">
+                        <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[d.status] || 'bg-slate-400')} />
+                        <span className="text-[10px] leading-tight truncate">{d.title}</span>
+                      </div>
+                    ))}
+                    {dayDeliverables.length > 2 && (
+                      <span className="text-[10px] text-muted-foreground pl-2">+{dayDeliverables.length - 2} mais</span>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <Sheet open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
