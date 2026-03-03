@@ -838,19 +838,19 @@ const EquipeControleAcessos = () => {
                   Páginas
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="users" 
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Usuários Estrutura
-                </TabsTrigger>
-                <TabsTrigger 
                   value="cadastros"
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                   onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
                 >
                   <Building2 className="h-4 w-4 mr-2" />
                   Cadastros Estrutura
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="users" 
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Usuários Estrutura
                 </TabsTrigger>
                 <TabsTrigger 
                   value="cadastros_clientes" 
