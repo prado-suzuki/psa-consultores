@@ -209,12 +209,22 @@ export default function EstruturaManager() {
 
   const saveCluster = async () => {
     if (!clusterForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    const empresaId = clusterForm.empresa_id || null;
+    // Auto-fill cost_center from empresa if empresa selected
+    let costCenter = clusterForm.cost_center || null;
+    if (empresaId) {
+      const emp = empresas.find(e => e.id === empresaId);
+      if (emp?.centro_custo_id) {
+        const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+        if (cc) costCenter = cc.codigo;
+      }
+    }
     if (editingCluster) {
-      const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: clusterForm.cost_center || null }).eq('id', editingCluster.id);
+      const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).eq('id', editingCluster.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
     } else {
-      const { error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: clusterForm.cost_center || null });
+      const { error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId });
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster criado');
     }
@@ -233,10 +243,10 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[] });
+  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [] }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [] }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
 
   const saveArea = async () => {
     if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
