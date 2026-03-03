@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, mustChangePassword, loading } = useAuth();
 
-  if (loading && !user) {
+  if (loading) {
     return null;
   }
 
