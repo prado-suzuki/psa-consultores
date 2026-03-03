@@ -250,12 +250,13 @@ export default function EstruturaManager() {
 
   const saveArea = async () => {
     if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    const ccId = areaForm.cost_center_id || null;
     if (editingArea) {
-      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories }).eq('id', editingArea.id);
+      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories, cost_center_id: ccId }).eq('id', editingArea.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
     } else {
-      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories });
+      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: ccId });
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
     }
