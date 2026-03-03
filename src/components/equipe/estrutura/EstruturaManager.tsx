@@ -532,6 +532,34 @@ export default function EstruturaManager() {
                 ))}
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Categorias de Páginas</Label>
+              <p className="text-xs text-slate-500">Membros desta área terão acesso às páginas dessas categorias.</p>
+              <div className="flex flex-wrap gap-2">
+                {['dev', 'rotina', 'tax', 'projetos', 'fiscal', 'osg', 'board', 'gestao', 'geral'].map(cat => {
+                  const selected = areaForm.page_categories.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setAreaForm(f => ({
+                        ...f,
+                        page_categories: selected
+                          ? f.page_categories.filter(c => c !== cat)
+                          : [...f.page_categories, cat]
+                      }))}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        selected
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAreaDialog(false)}>Cancelar</Button>
