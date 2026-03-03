@@ -35,11 +35,15 @@ const GestaoAcessos = () => {
       case 'admin':
         return <Badge className="bg-red-100 text-red-700 border-0">Admin</Badge>;
       case 'team_member':
-        return <Badge className="bg-blue-100 text-blue-700 border-0">Equipe</Badge>;
+        return <Badge className="bg-blue-100 text-blue-700 border-0">Membro</Badge>;
       case 'lider':
-        return <Badge className="bg-amber-100 text-amber-700 border-0">Líder Responsável</Badge>;
+        return <Badge className="bg-amber-100 text-amber-700 border-0">Líder Geral</Badge>;
+      case 'sublider':
+        return <Badge className="bg-orange-100 text-orange-700 border-0">Sublíder</Badge>;
       case 'client':
         return <Badge className="bg-slate-100 text-slate-600 border-0">Cliente</Badge>;
+      case 'timecliente':
+        return <Badge className="bg-cyan-100 text-cyan-700 border-0">Time Cliente</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
@@ -49,7 +53,10 @@ const GestaoAcessos = () => {
     total: usersWithRoles?.length || 0,
     admins: usersWithRoles?.filter(u => u.roles.includes('admin')).length || 0,
     teamMembers: usersWithRoles?.filter(u => u.roles.includes('team_member')).length || 0,
+    lideres: usersWithRoles?.filter(u => u.roles.includes('lider')).length || 0,
+    sublideres: usersWithRoles?.filter(u => u.roles.includes('sublider')).length || 0,
     clients: usersWithRoles?.filter(u => u.roles.includes('client')).length || 0,
+    timeClientes: usersWithRoles?.filter(u => u.roles.includes('timecliente')).length || 0,
   };
 
   return (
@@ -106,8 +113,11 @@ const GestaoAcessos = () => {
                   <TableHead className="text-slate-600">Email</TableHead>
                   <TableHead className="text-slate-600">Permissões</TableHead>
                   <TableHead className="text-center text-slate-600">Admin</TableHead>
-                  <TableHead className="text-center text-slate-600">Equipe</TableHead>
-                  <TableHead className="text-center text-slate-600">Cliente</TableHead>
+                   <TableHead className="text-center text-slate-600">Membro</TableHead>
+                   <TableHead className="text-center text-slate-600">Líder</TableHead>
+                   <TableHead className="text-center text-slate-600">Sublíder</TableHead>
+                   <TableHead className="text-center text-slate-600">Cliente</TableHead>
+                   <TableHead className="text-center text-slate-600">Time Cliente</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,7 +154,28 @@ const GestaoAcessos = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-center">
+                      {user.roles.includes('lider') ? (
+                        <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.roles.includes('sublider') ? (
+                        <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
                       {user.roles.includes('client') ? (
+                        <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.roles.includes('timecliente') ? (
                         <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
                       ) : (
                         <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
@@ -164,7 +195,7 @@ const GestaoAcessos = () => {
           <CardTitle className="text-base text-slate-700">Legenda de Permissões</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="p-4 border border-slate-200 rounded-lg bg-slate-50">
               <div className="flex items-center gap-2 mb-2">
                 {getRoleBadge('admin')}
@@ -183,10 +214,34 @@ const GestaoAcessos = () => {
             </div>
             <div className="p-4 border border-slate-200 rounded-lg bg-slate-50">
               <div className="flex items-center gap-2 mb-2">
+                {getRoleBadge('lider')}
+              </div>
+              <p className="text-sm text-slate-600">
+                Visibilidade global de projetos e tarefas em todas as áreas.
+              </p>
+            </div>
+            <div className="p-4 border border-slate-200 rounded-lg bg-slate-50">
+              <div className="flex items-center gap-2 mb-2">
+                {getRoleBadge('sublider')}
+              </div>
+              <p className="text-sm text-slate-600">
+                Apoio à liderança com visibilidade ampliada na sua área.
+              </p>
+            </div>
+            <div className="p-4 border border-slate-200 rounded-lg bg-slate-50">
+              <div className="flex items-center gap-2 mb-2">
                 {getRoleBadge('client')}
               </div>
               <p className="text-sm text-slate-600">
                 Acesso ao portal do cliente: abertura e acompanhamento de chamados.
+              </p>
+            </div>
+            <div className="p-4 border border-slate-200 rounded-lg bg-slate-50">
+              <div className="flex items-center gap-2 mb-2">
+                {getRoleBadge('timecliente')}
+              </div>
+              <p className="text-sm text-slate-600">
+                Membro da equipe do cliente com acesso restrito ao portal.
               </p>
             </div>
           </div>

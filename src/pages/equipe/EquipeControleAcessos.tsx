@@ -1107,9 +1107,11 @@ const EquipeControleAcessos = () => {
                               <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
                               {[
                                 { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
-                                { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
-{ value: 'lider', label: 'Líder Responsável', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
+                                { value: 'team_member', label: 'Membro', desc: 'Acesso às áreas da equipe' },
+                                { value: 'lider', label: 'Líder Geral', desc: 'Visibilidade global de projetos e tarefas' },
+                                { value: 'sublider', label: 'Sublíder', desc: 'Apoio à liderança com visibilidade ampliada' },
                                 { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
+                                { value: 'timecliente', label: 'Time Cliente', desc: 'Membro da equipe do cliente' },
                               ].map((role) => (
                                 <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
                                   <Checkbox
@@ -1235,12 +1237,16 @@ const EquipeControleAcessos = () => {
                                       ? 'border-red-200 text-red-600 bg-red-50'
                                       : role === 'lider'
                                       ? 'border-amber-200 text-amber-600 bg-amber-50'
+                                      : role === 'sublider'
+                                      ? 'border-orange-200 text-orange-600 bg-orange-50'
                                       : role === 'team_member'
                                       ? 'border-teal-200 text-teal-600 bg-teal-50'
+                                      : role === 'timecliente'
+                                      ? 'border-cyan-200 text-cyan-600 bg-cyan-50'
                                       : 'border-slate-200 text-slate-600 bg-slate-50'
                                   }`}
                                 >
-                                  {{ admin: 'Admin', team_member: 'Equipe', lider: 'Líder Responsável', client: 'Cliente' }[role] || role}
+                                  {{ admin: 'Admin', team_member: 'Membro', lider: 'Líder Geral', sublider: 'Sublíder', client: 'Cliente', timecliente: 'Time Cliente' }[role] || role}
                                 </Badge>
                               ))}
                             </div>
@@ -1468,9 +1474,11 @@ const EquipeControleAcessos = () => {
                 <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
                 {[
                   { value: 'admin', label: 'Administrador', desc: 'Acesso total ao sistema' },
-                  { value: 'team_member', label: 'Membro da Equipe', desc: 'Acesso às áreas da equipe' },
-                  { value: 'lider', label: 'Líder Responsável', desc: 'Acesso a todos os projetos e tarefas de todas as áreas' },
+                  { value: 'team_member', label: 'Membro', desc: 'Acesso às áreas da equipe' },
+                  { value: 'lider', label: 'Líder Geral', desc: 'Visibilidade global de projetos e tarefas' },
+                  { value: 'sublider', label: 'Sublíder', desc: 'Apoio à liderança com visibilidade ampliada' },
                   { value: 'client', label: 'Cliente', desc: 'Acesso ao portal do cliente' },
+                  { value: 'timecliente', label: 'Time Cliente', desc: 'Membro da equipe do cliente' },
                 ].map((role) => (
                   <div key={role.value} className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100">
                     <Checkbox

@@ -35,9 +35,15 @@ const AdminAcessos = () => {
       case 'admin':
         return <Badge className="bg-red-100 text-red-700 border-0">Admin</Badge>;
       case 'team_member':
-        return <Badge className="bg-blue-100 text-blue-700 border-0">Equipe</Badge>;
+        return <Badge className="bg-blue-100 text-blue-700 border-0">Membro</Badge>;
+      case 'lider':
+        return <Badge className="bg-amber-100 text-amber-700 border-0">Líder Geral</Badge>;
+      case 'sublider':
+        return <Badge className="bg-orange-100 text-orange-700 border-0">Sublíder</Badge>;
       case 'client':
         return <Badge className="bg-slate-100 text-slate-600 border-0">Cliente</Badge>;
+      case 'timecliente':
+        return <Badge className="bg-cyan-100 text-cyan-700 border-0">Time Cliente</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
