@@ -1,25 +1,31 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Registrar página "Clientes TAX" nas permissões
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Problema
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+A nova página `/equipe/tax/projetos/clientes` não foi adicionada ao array `PROTECTED_PAGES` em `src/config/protectedPages.ts`. Esse array é a fonte de verdade que sincroniza com a tabela `page_permissions` no banco. Sem essa entrada, a página não aparece na listagem de permissões em "Usuários Estrutura".
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+## Correção
 
-### 4. Acesso automático por membership
-- Coluna `page_categories text[]` em `estrutura_areas`
-- `usePageAccess.ts` verifica membership na estrutura + categoria da página
-- UI multi-select de categorias no form de área (EstruturaManager)
-- Categoria `geral` → qualquer team_member tem acesso automático
-- Chamados: membros veem apenas os atribuídos a eles (filtro existente)
+Adicionar uma entrada em `src/config/protectedPages.ts`, na seção TEX PAGES, com categoria `tax`:
 
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
+```typescript
+{
+  page_path: '/equipe/tax/projetos/clientes',
+  page_name: 'Tax Clientes',
+  page_description: 'Cadastros de clientes da área Tax',
+  category: 'tax',
+  requires_admin: false,
+  requires_team_member: true,
+},
+```
+
+Nenhuma outra alteração necessária — o hook `useSyncProtectedPages` sincroniza automaticamente novas entradas com o banco.
+
+## Arquivo
+
+| Arquivo | Alteração |
+|---|---|
+| `src/config/protectedPages.ts` | Nova entrada para `/equipe/tax/projetos/clientes` |
+
