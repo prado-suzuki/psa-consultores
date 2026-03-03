@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { User } from 'lucide-react';
+import { User, Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
+import { Button } from '@/components/ui/button';
 
 interface FiscalLayoutProps {
   children: React.ReactNode;
@@ -11,17 +13,23 @@ interface FiscalLayoutProps {
 
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
   const { user } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
     <div className="h-screen bg-slate-50 flex w-full overflow-hidden">
       {/* Sidebar */}
-      <FiscalSidebar />
+      <FiscalSidebar isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-14 bg-white border-b border-slate-200/60 px-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
+            {isCollapsed && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsCollapsed(false)}>
+                <Menu className="h-4 w-4" />
+              </Button>
+            )}
             <div>
               <h1 className="font-semibold text-slate-900">{title}</h1>
               {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}

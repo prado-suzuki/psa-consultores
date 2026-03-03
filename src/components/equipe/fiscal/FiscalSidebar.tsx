@@ -81,12 +81,16 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-export const FiscalSidebar = () => {
+interface FiscalSidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-   const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
 
   const isActive = (path?: string) => {
     if (!path) return false;
