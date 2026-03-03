@@ -1,19 +1,18 @@
 
-# Integração Estrutura → Módulos (Migrar e Deprecar)
 
-## ✅ Concluído
+# Reordenar abas em Controle de Acessos
 
-### 1. Migration SQL
-- Coluna `estrutura_area_id` (UUID, nullable, FK → `estrutura_areas`) adicionada em `catalog_clients`
+## Ordem atual
+1. Páginas → 2. Usuários Estrutura → 3. Cadastros Estrutura → 4. Cadastros Clientes
 
-### 2. Hook `useUserEstrutura`
-- `src/hooks/useUserEstrutura.ts` — resolve equipes, áreas e clusters do usuário logado via `estrutura_equipe_membros`
+## Nova ordem
+1. **Páginas** → 2. **Cadastros Estrutura** → 3. **Usuários Estrutura** → 4. **Cadastros Clientes**
 
-### 3. UI — Mapeamento no Controle de Acessos
-- Select "Vincular à Estrutura Organizacional" no dialog de criar/editar área interna (`catalog_clients`)
-- Admin faz o mapeamento uma vez por área
+## Alteração
 
-## Próximas etapas (fora de escopo)
-- Usar `useUserEstrutura` nos dashboards para filtro automático por área/cluster
-- Substituir referências diretas a `catalog_clients` nos outros módulos
-- Permissões de acesso baseadas na estrutura organizacional
+**`src/pages/equipe/EquipeControleAcessos.tsx`** — linhas 840-861:
+- Trocar a posição dos `TabsTrigger` de "cadastros" (Cadastros Estrutura) com "users" (Usuários Estrutura)
+- Os blocos `TabsContent` não precisam ser reordenados pois são renderizados por `value`, não por posição
+
+Apenas reordenação visual, sem mudança de lógica.
+
