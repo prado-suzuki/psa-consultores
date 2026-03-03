@@ -1,12 +1,12 @@
 
 
-# Renomear sub-aba "Cadastros Clientes" → "Cadastros Estrutura"
+# Renomear sub-aba "Cadastros" → "Cadastros Estrutura"
+
+Agora entendi — existem duas abas de cadastros: **"Cadastros"** (value=`cadastros`) e **"Cadastros Clientes"** (value=`cadastros_clientes`). A que precisa ser renomeada é a **"Cadastros"**.
 
 ## Alteração em `src/pages/equipe/EquipeControleAcessos.tsx`
 
-1. **Linha 840**: Trocar o texto `Cadastros Clientes` para `Cadastros Estrutura`
-2. **Linha 836**: Renomear o value de `cadastros_clientes` para `cadastros_estrutura`
-3. **Linha 1491**: Atualizar o `TabsContent` value correspondente de `cadastros_clientes` para `cadastros_estrutura`
+- **Linha 833**: Trocar o texto `Cadastros` para `Cadastros Estrutura` no TabsTrigger com value `cadastros`
 
-Apenas renomeação de texto e values internos. Nenhum outro arquivo afetado.
+Apenas uma alteração de label. Nenhum value interno ou outro arquivo precisa ser modificado.
 
