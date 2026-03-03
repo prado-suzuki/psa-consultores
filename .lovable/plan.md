@@ -1,37 +1,48 @@
 
 
-# Correção: Erro de chave duplicada ao alterar responsável do projeto
+# Correção: F5 redireciona para "/" mesmo estando logado
 
-## Problema
-O `delete` na linha 458 não verifica erros — se falhar (por RLS ou timing), o `insert` gera conflito de chave única. Afeta alguns usuários e outros não.
+## Diagnóstico
 
-## Alterações em `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+O problema está nas route guards (`ProtectedRoute`, `AdminRoute`, `TeamRoute`). Todas usam esta lógica:
 
-### 1. Edição (linha 458) — Verificar erro do delete
 ```typescript
-// DE:
-await supabase.from('tax_project_members').delete().eq('project_id', id);
-
-// PARA:
-const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
-if (delError) throw delError;
+if (loading && !user) return null;  // só espera se loading E sem user
+if (!user) return <Navigate to="/auth" />;  // redireciona se sem user
 ```
 
-### 2. Edição (linha 472) — Usar upsert na edição
+O problema: existe uma janela onde `loading` se torna `false` antes de `user` ser populado (race condition entre `onAuthStateChange` e `initializeAuth`). Nesse momento, a guarda vê `loading=false` + `user=null` e redireciona imediatamente para `/auth` ou `/`.
+
+## Solução
+
+Alterar as três route guards para esperar **enquanto loading estiver true**, independente do estado de `user`:
+
+### Arquivo: `src/components/auth/ProtectedRoute.tsx`
 ```typescript
 // DE:
-const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+if (loading && !user) return null;
 
 // PARA:
-const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+if (loading) return null;
 ```
 
-### 3. Edição (linha 371) — Usar upsert na criação
+### Arquivo: `src/components/auth/AdminRoute.tsx`
 ```typescript
 // DE:
-const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+if (loading && !user) return null;
 
 // PARA:
-const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id', ignoreDuplicates: true });
+if (loading) return null;
 ```
+
+### Arquivo: `src/components/auth/TeamRoute.tsx`
+```typescript
+// DE:
+if (loading && !user) return null;
+
+// PARA:
+if (loading) return null;
+```
+
+Três edições simples, uma linha cada. O `loading` só se torna `false` após `initializeAuth` completar (que já popula `user` e roles), eliminando a race condition.
 
