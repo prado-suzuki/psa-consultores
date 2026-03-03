@@ -28,6 +28,7 @@ interface Area {
   name: string;
   color: string | null;
   is_active: boolean;
+  page_categories: string[];
 }
 
 interface AreaLider {
@@ -187,19 +188,19 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '' });
+  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[] });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [] }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [] }); setAreaDialog(true); };
 
   const saveArea = async () => {
     if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editingArea) {
-      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color }).eq('id', editingArea.id);
+      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories }).eq('id', editingArea.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
     } else {
-      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id });
+      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories });
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
     }
@@ -529,6 +530,34 @@ export default function EstruturaManager() {
                     onClick={() => setAreaForm(f => ({ ...f, color: c }))}
                   />
                 ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Categorias de Páginas</Label>
+              <p className="text-xs text-slate-500">Membros desta área terão acesso às páginas dessas categorias.</p>
+              <div className="flex flex-wrap gap-2">
+                {['dev', 'rotina', 'tax', 'projetos', 'fiscal', 'osg', 'board', 'gestao', 'geral'].map(cat => {
+                  const selected = areaForm.page_categories.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setAreaForm(f => ({
+                        ...f,
+                        page_categories: selected
+                          ? f.page_categories.filter(c => c !== cat)
+                          : [...f.page_categories, cat]
+                      }))}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        selected
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
