@@ -800,7 +800,7 @@ const FiscalProjetosCadastro = () => {
                       <TableCell className="text-sm text-slate-600">
                         {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
                             <Pencil className="h-4 w-4" />
