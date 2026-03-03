@@ -225,6 +225,20 @@ const EquipeControleAcessos = () => {
     },
   });
 
+  // Fetch estrutura_areas for mapping select
+  const { data: estruturaAreas = [] } = useQuery({
+    queryKey: ['estrutura-areas-for-mapping'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_areas')
+        .select('id, name, color')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; name: string; color: string | null }[];
+    },
+  });
+
   // Toggle page active status
   const togglePageMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
