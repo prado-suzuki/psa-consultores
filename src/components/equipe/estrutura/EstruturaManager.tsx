@@ -19,6 +19,22 @@ interface Cluster {
   id: string;
   name: string;
   cost_center: string | null;
+  empresa_id: string | null;
+  is_active: boolean;
+}
+
+interface EmpresaFat {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  centro_custo_id: string | null;
+  is_active: boolean;
+}
+
+interface CentroCusto {
+  id: string;
+  codigo: string;
+  nome: string;
   is_active: boolean;
 }
 
@@ -29,6 +45,7 @@ interface Area {
   color: string | null;
   is_active: boolean;
   page_categories: string[];
+  cost_center_id: string | null;
 }
 
 interface AreaLider {
@@ -146,6 +163,25 @@ export default function EstruturaManager() {
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
+  // Empresas and Centros de Custo for correlation
+  const { data: empresas = [] } = useQuery({
+    queryKey: ['empresas_faturamento'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('empresas_faturamento').select('*').eq('is_active', true).order('nome');
+      if (error) throw error;
+      return data as EmpresaFat[];
+    },
+  });
+
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ['centros_custo'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('centros_custo').select('*').eq('is_active', true).order('codigo');
+      if (error) throw error;
+      return data as CentroCusto[];
+    },
+  });
+
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ['estrutura-clusters'] });
     qc.invalidateQueries({ queryKey: ['estrutura-areas'] });
@@ -154,22 +190,41 @@ export default function EstruturaManager() {
     qc.invalidateQueries({ queryKey: ['estrutura-membros'] });
   };
 
+  // Helper to get CC name from empresa
+  const getEmpresaCcLabel = (empresaId: string | null) => {
+    if (!empresaId) return null;
+    const emp = empresas.find(e => e.id === empresaId);
+    if (!emp?.centro_custo_id) return null;
+    const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+    return cc ? `${cc.codigo} - ${cc.nome}` : null;
+  };
+
   // ─── Cluster CRUD ─────────────────────────────────────────────────
   const [clusterDialog, setClusterDialog] = useState(false);
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
-  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '' });
+  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '', empresa_id: '' });
 
-  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '' }); setClusterDialog(true); };
-  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '' }); setClusterDialog(true); };
+  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '', empresa_id: '' }); setClusterDialog(true); };
+  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
 
   const saveCluster = async () => {
     if (!clusterForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    const empresaId = clusterForm.empresa_id || null;
+    // Auto-fill cost_center from empresa if empresa selected
+    let costCenter = clusterForm.cost_center || null;
+    if (empresaId) {
+      const emp = empresas.find(e => e.id === empresaId);
+      if (emp?.centro_custo_id) {
+        const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+        if (cc) costCenter = cc.codigo;
+      }
+    }
     if (editingCluster) {
-      const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: clusterForm.cost_center || null }).eq('id', editingCluster.id);
+      const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).eq('id', editingCluster.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
     } else {
-      const { error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: clusterForm.cost_center || null });
+      const { error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId });
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster criado');
     }
@@ -188,19 +243,20 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[] });
+  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [] }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [] }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
 
   const saveArea = async () => {
     if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
+    const ccId = areaForm.cost_center_id || null;
     if (editingArea) {
-      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories }).eq('id', editingArea.id);
+      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories, cost_center_id: ccId }).eq('id', editingArea.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
     } else {
-      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories });
+      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: ccId });
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
     }
@@ -321,7 +377,13 @@ export default function EstruturaManager() {
                     <Network className="h-5 w-5 text-teal-600 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-900">{cluster.name}</div>
-                      {cluster.cost_center && (
+                      {cluster.empresa_id && (
+                        <div className="text-xs text-slate-500">
+                          Empresa: {empresas.find(e => e.id === cluster.empresa_id)?.nome || '—'}
+                          {getEmpresaCcLabel(cluster.empresa_id) && ` • CC: ${getEmpresaCcLabel(cluster.empresa_id)}`}
+                        </div>
+                      )}
+                      {!cluster.empresa_id && cluster.cost_center && (
                         <div className="text-xs text-slate-500">Centro de Custo: {cluster.cost_center}</div>
                       )}
                     </div>
@@ -497,8 +559,24 @@ export default function EstruturaManager() {
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
             <div className="space-y-2">
-              <Label>Centro de Custo</Label>
-              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" />
+              <Label>Empresa / Faturamento</Label>
+              <Select value={clusterForm.empresa_id} onValueChange={(val) => setClusterForm(f => ({ ...f, empresa_id: val === '_none' ? '' : val }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhuma</SelectItem>
+                  {empresas.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {clusterForm.empresa_id && getEmpresaCcLabel(clusterForm.empresa_id) && (
+                <p className="text-xs text-slate-500">Centro de Custo: {getEmpresaCcLabel(clusterForm.empresa_id)}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo (manual)</Label>
+              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" disabled={!!clusterForm.empresa_id} />
+              {clusterForm.empresa_id && <p className="text-xs text-slate-400">Preenchido automaticamente pela empresa</p>}
             </div>
           </div>
           <DialogFooter>
@@ -559,6 +637,19 @@ export default function EstruturaManager() {
                   );
                 })}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo (opcional)</Label>
+              <p className="text-xs text-slate-500">Pode ser diferente do centro de custo do cluster/empresa.</p>
+              <Select value={areaForm.cost_center_id} onValueChange={(val) => setAreaForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}>
+                <SelectTrigger><SelectValue placeholder="Herdar do cluster" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Herdar do cluster</SelectItem>
+                  {centrosCusto.map(cc => (
+                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

@@ -123,7 +123,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                     {dayDeliverables.slice(0, 2).map(d => (
                       <div key={d.id} className="flex items-center gap-1 w-full">
                         <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[d.status] || 'bg-slate-400')} />
-                        <span className="text-[10px] leading-tight truncate">{d.title}</span>
+                        <span className="text-[10px] leading-tight line-clamp-2 break-words">{d.title}</span>
                       </div>
                     ))}
                     {dayDeliverables.length > 2 && (

@@ -103,7 +103,7 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
         return (
           <div
             key={column.status}
-            className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-lg overflow-visible"
+            className="flex-shrink-0 w-[340px] flex flex-col bg-muted/30 rounded-lg overflow-visible"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, column.status)}
           >
@@ -146,20 +146,20 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
                             </button>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
+                            <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-3 break-words">
                               {task.title}
                             </h4>
                             {task.project?.name && (
-                              <span className="text-xs text-blue-600 mb-1 block truncate">{task.project.name}</span>
+                              <span className="text-xs text-blue-600 mb-1 block break-words line-clamp-2">{task.project.name}</span>
                             )}
                             <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>{task.assigned_to_name || 'Não atribuído'}</span>
-                              <span>{formatDueDate(task.due_date)}</span>
+                              <span className="break-words">{task.assigned_to_name || 'Não atribuído'}</span>
+                              <span className="flex-shrink-0 ml-1">{formatDueDate(task.due_date)}</span>
                             </div>
                             {(task as any).contribuinte?.nome_razao_social && (
                               <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-                                <Building2 className="h-3 w-3" />
-                                <span className="truncate">{(task as any).contribuinte.nome_razao_social}</span>
+                                <Building2 className="h-3 w-3 flex-shrink-0" />
+                                <span className="break-words line-clamp-2">{(task as any).contribuinte.nome_razao_social}</span>
                               </div>
                             )}
                             <div className="flex items-center justify-end mt-2">
