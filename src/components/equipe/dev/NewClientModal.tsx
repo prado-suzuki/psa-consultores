@@ -413,7 +413,18 @@ export default function NewClientModal({
     },
   });
 
-  const lideres = useMemo(() => {
+  const { data: produtoSegmentoOptions = [] } = useQuery({
+    queryKey: ["produto_segmento"],
+    queryFn: async () => {
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
+      return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
+    },
+  });
+
+  const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
+    ...produtoSegmentoOptions,
+    { value: "__outro__", label: "Outro (personalizado)" },
+  ], [produtoSegmentoOptions]);
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
     return profiles
       .filter((p: any) => liderIds.has(p.id))
