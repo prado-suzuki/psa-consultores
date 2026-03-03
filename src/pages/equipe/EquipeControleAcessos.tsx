@@ -56,6 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { GestaoClientesContent } from '@/pages/equipe/dev/GestaoClientes';
 
 
 interface PagePermission {
@@ -1651,6 +1652,11 @@ const EquipeControleAcessos = () => {
                     </div>
                   );
                 })()}
+              </TabsContent>
+
+              {/* Cadastros Clientes Tab */}
+              <TabsContent value="cadastros_clientes" className="space-y-4">
+                <GestaoClientesContent />
               </TabsContent>
             </Tabs>
 
