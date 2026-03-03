@@ -840,6 +840,13 @@ const EquipeControleAcessos = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Clientes
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="cadastros_clientes" 
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Cadastros Clientes
+                </TabsTrigger>
               </TabsList>
 
               {/* Pages Tab */}
