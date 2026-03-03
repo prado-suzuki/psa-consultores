@@ -69,16 +69,7 @@ const TIPO_PARTICIPANTE_OPTIONS = [
   "Outros",
 ];
 
-const EMPRESA_FATURAMENTO_OPTIONS = [
-  "PRADO ADVOGADOS",
-  "PSA CONSULTORES",
-  "PRADO SUZUKI",
-  "PROFITTO",
-  "PROTENUN",
-  "PSA ADM JUDICIAL",
-  "PSA AUDITORES",
-  "PSA NORTE",
-];
+// EMPRESA_FATURAMENTO_OPTIONS is now loaded from the database (empresas_faturamento table)
 
 const SITUACAO_PROJETO_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
@@ -418,6 +409,18 @@ export default function NewClientModal({
     queryFn: async () => {
       const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
       return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
+    },
+  });
+
+  const { data: EMPRESA_FATURAMENTO_OPTIONS = [] } = useQuery({
+    queryKey: ["empresas_faturamento_options"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas_faturamento")
+        .select("id, nome")
+        .eq("is_active", true)
+        .order("nome");
+      return (data || []).map((e: any) => e.nome as string);
     },
   });
 
