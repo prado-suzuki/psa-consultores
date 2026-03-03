@@ -60,8 +60,8 @@ const menuItems: MenuItem[] = [
         path: '/equipe/tax/projetos/clientes'
       },
       {
-        id: 'cadastro-projetos',
-        label: 'Cadastro',
+      id: 'entregas-projetos',
+        label: 'Entregas',
         icon: FolderKanban,
         path: '/equipe/tax/projetos/cadastro'
        },
