@@ -237,10 +237,163 @@ function ProdutoSegmentoTab() {
   );
 }
 
-/* ── Serviços Prestados (tax_categorias — mesma tabela, interface separada) ── */
+/* ── Serviços Prestados (tax_categorias + área da estrutura) ── */
 
 function ServicosTab() {
-  return <CategoriasTab />;
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [nome, setNome] = useState('');
+  const [areaId, setAreaId] = useState<string>('');
+
+  const { data: areas = [] } = useQuery({
+    queryKey: ['estrutura_areas_list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_areas')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['tax_categorias_servicos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tax_categorias')
+        .select('id, nome, estrutura_area_id, estrutura_areas(name)')
+        .order('nome');
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        nome: string;
+        estrutura_area_id: string | null;
+        estrutura_areas: { name: string } | null;
+      }>;
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!nome.trim()) throw new Error('Nome obrigatório');
+      const payload: any = {
+        nome: nome.trim(),
+        estrutura_area_id: areaId || null,
+      };
+      if (editId) {
+        const { error } = await supabase.from('tax_categorias').update(payload).eq('id', editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('tax_categorias').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tax_categorias_servicos'] });
+      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
+      qc.invalidateQueries({ queryKey: ['tax_categorias_services'] });
+      setOpen(false);
+      toast.success(editId ? 'Serviço atualizado' : 'Serviço criado');
+    },
+    onError: (e: any) => toast.error(e.message || 'Erro ao salvar'),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('tax_categorias').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tax_categorias_servicos'] });
+      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
+      qc.invalidateQueries({ queryKey: ['tax_categorias_services'] });
+      toast.success('Serviço excluído');
+    },
+    onError: (e: any) => {
+      if (e.code === '23503') toast.error('Não é possível excluir: serviço em uso');
+      else toast.error('Erro ao excluir');
+    },
+  });
+
+  const openCreate = () => { setEditId(null); setNome(''); setAreaId(''); setOpen(true); };
+  const openEdit = (item: typeof items[0]) => {
+    setEditId(item.id);
+    setNome(item.nome);
+    setAreaId(item.estrutura_area_id || '');
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-slate-500">{items.length} serviços cadastrados</p>
+        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
+      </div>
+      <Card className="border-slate-200/60">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Área</TableHead>
+              <TableHead className="w-24">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
+            ) : items.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">Nenhum serviço</TableCell></TableRow>
+            ) : items.map(item => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.nome}</TableCell>
+                <TableCell>
+                  {item.estrutura_areas?.name ? (
+                    <Badge variant="secondary">{item.estrutura_areas.name}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => { if (confirm(`Excluir "${item.nome}"?`)) remove.mutate(item.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{editId ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
+            <div>
+              <Label>Área</Label>
+              <Select value={areaId} onValueChange={setAreaId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma área..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhuma</SelectItem>
+                  {areas.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>{save.isPending ? 'Salvando...' : 'Salvar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 /* ── Centros de Custo ────────────────────────────────────────── */

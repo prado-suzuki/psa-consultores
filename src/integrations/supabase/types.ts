@@ -3331,18 +3331,29 @@ export type Database = {
       }
       tax_categorias: {
         Row: {
+          estrutura_area_id: string | null
           id: string
           nome: string
         }
         Insert: {
+          estrutura_area_id?: string | null
           id?: string
           nome: string
         }
         Update: {
+          estrutura_area_id?: string | null
           id?: string
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tax_categorias_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tax_project_categorias: {
         Row: {
