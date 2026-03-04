@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,9 +11,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
+import { MonthRangePicker, monthRangeToDateStrings, type MonthRange } from '@/components/ui/month-range-picker';
 import { Switch } from '@/components/ui/switch';
-import { Upload, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, FileSpreadsheet, X } from 'lucide-react';
+
+const ALLOWED_EXTENSIONS = ['.xlsx', '.xls'];
+
+function isValidFile(file: File): boolean {
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+  return ALLOWED_EXTENSIONS.includes(ext);
+}
 
 interface UploadBalanceteModalProps {
   open: boolean;
@@ -26,13 +33,14 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
-  const [periodoInicio, setPeriodoInicio] = useState<{ month: number; year: number } | null>(null);
-  const [periodoFim, setPeriodoFim] = useState<{ month: number; year: number } | null>(null);
+  const [periodo, setPeriodo] = useState<MonthRange | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
   const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch clientes
   const { data: clientes } = useQuery({
@@ -117,14 +125,39 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     }
   };
 
+  const handleFileSelect = (selectedFile: File) => {
+    if (!isValidFile(selectedFile)) {
+      toast({ title: 'Formato inválido', description: 'Apenas arquivos .xlsx e .xls são aceitos.', variant: 'destructive' });
+      return;
+    }
+    setFile(selectedFile);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) handleFileSelect(droppedFile);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+  };
+
   const resetForm = () => {
     setClienteId('');
     setContribuinteId('');
-    setPeriodoInicio(null);
-    setPeriodoFim(null);
+    setPeriodo(null);
     setFile(null);
     setDetalhamento(null);
     setShowDetalhamentoPrompt(false);
+    setDragging(false);
   };
 
   const handleClose = (value: boolean) => {
@@ -133,17 +166,18 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   };
 
   const handleSubmit = async () => {
-    if (!contribuinteId || !periodoInicio || !periodoFim || !file || detalhamento === null) {
+    if (!contribuinteId || !periodo || !file || detalhamento === null) {
       toast({ title: 'Preencha todos os campos', variant: 'destructive' });
       return;
     }
 
     setSubmitting(true);
     try {
+      const dates = monthRangeToDateStrings(periodo);
       const formData = new FormData();
       formData.append('id_contribuinte', contribuinteId);
-      formData.append('periodo_inicio', monthYearToDateString(periodoInicio, 'start'));
-      formData.append('periodo_fim', monthYearToDateString(periodoFim, 'end'));
+      formData.append('periodo_inicio', dates.start);
+      formData.append('periodo_fim', dates.end);
       formData.append('adicionado_por', user?.email || '');
       formData.append('detalhamento', String(detalhamento));
       formData.append('file', file);
@@ -173,115 +207,136 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     }
   };
 
-  const isValid = contribuinteId && periodoInicio && periodoFim && file && detalhamento !== null;
+  const isValid = contribuinteId && periodo && file && detalhamento !== null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Novo Balancete</DialogTitle>
-          <DialogDescription>Selecione o contribuinte, período e o arquivo para upload.</DialogDescription>
+          <DialogDescription>Arraste o arquivo e preencha os dados para upload.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Cliente */}
-          <div className="space-y-2">
-            <Label>Cliente</Label>
-            <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-              <SelectContent>
-                {clientes?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Contribuinte */}
-          <div className="space-y-2">
-            <Label>Contribuinte</Label>
-            <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o contribuinte" /></SelectTrigger>
-              <SelectContent>
-                {contribuintes?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Detalhamento - prompt de primeira vez */}
-          {showDetalhamentoPrompt && contribuinteId && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-800">
-                  O balancete deste contribuinte possui detalhamento?
-                </p>
-              </div>
-              <div className="flex gap-2 ml-6">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={savingConfig}
-                  onClick={() => handleDetalhamentoChoice(true)}
-                  className="text-xs"
-                >
-                  Sim
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={savingConfig}
-                  onClick={() => handleDetalhamentoChoice(false)}
-                  className="text-xs"
-                >
-                  Não
-                </Button>
-                {savingConfig && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              </div>
-            </div>
-          )}
-
-          {/* Detalhamento - switch normal */}
-          {detalhamento !== null && contribuinteId && (
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <Label htmlFor="detalhamento-switch" className="text-sm">Detalhamento</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{detalhamento ? 'Sim' : 'Não'}</span>
-                <Switch
-                  id="detalhamento-switch"
-                  checked={detalhamento}
-                  onCheckedChange={setDetalhamento}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Período Início */}
-          <div className="space-y-2">
-            <Label>Período Início</Label>
-            <MonthYearPicker value={periodoInicio} onChange={setPeriodoInicio} placeholder="Mês/Ano início" />
-          </div>
-
-          {/* Período Fim */}
-          <div className="space-y-2">
-            <Label>Período Fim</Label>
-            <MonthYearPicker value={periodoFim} onChange={setPeriodoFim} placeholder="Mês/Ano fim" />
-          </div>
-
-          {/* Arquivo */}
-          <div className="space-y-2">
-            <Label>Arquivo (.xlsx, .xls)</Label>
-            <div className="relative">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 py-2">
+          {/* Left — Drop zone */}
+          <div className="md:col-span-5">
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => fileInputRef.current?.click()}
+              className={`
+                flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer
+                transition-colors h-full min-h-[280px]
+                ${dragging ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50'}
+                ${file ? 'border-teal-300 bg-teal-50/30' : ''}
+              `}
+            >
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                  e.target.value = '';
+                }}
               />
+              {file ? (
+                <div className="flex flex-col items-center gap-3 px-4 text-center">
+                  <FileSpreadsheet className="h-12 w-12 text-teal-500" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 break-all">{file.name}</p>
+                    <p className="text-xs text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1"
+                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  >
+                    <X className="h-3 w-3" />
+                    Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 px-4 text-center">
+                  <Upload className="h-10 w-10 text-slate-300" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Arraste o arquivo aqui</p>
+                    <p className="text-xs text-slate-400 mt-1">ou clique para selecionar</p>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2">.xlsx ou .xls</p>
+                </div>
+              )}
             </div>
-            {file && <p className="text-xs text-slate-500">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>}
+          </div>
+
+          {/* Right — Form fields */}
+          <div className="md:col-span-7 space-y-4">
+            {/* Cliente */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-600">Cliente</Label>
+              <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
+                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Contribuinte */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-600">Contribuinte</Label>
+              <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
+                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                  <SelectValue placeholder="Selecione o contribuinte" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contribuintes?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Detalhamento prompt */}
+            {showDetalhamentoPrompt && contribuinteId && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-800">O balancete deste contribuinte possui detalhamento?</p>
+                </div>
+                <div className="flex gap-2 ml-6">
+                  <Button size="sm" variant="outline" disabled={savingConfig} onClick={() => handleDetalhamentoChoice(true)} className="text-xs">Sim</Button>
+                  <Button size="sm" variant="outline" disabled={savingConfig} onClick={() => handleDetalhamentoChoice(false)} className="text-xs">Não</Button>
+                  {savingConfig && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+              </div>
+            )}
+
+            {/* Detalhamento switch */}
+            {detalhamento !== null && contribuinteId && (
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                <Label htmlFor="detalhamento-switch" className="text-sm text-slate-600">Detalhamento</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{detalhamento ? 'Sim' : 'Não'}</span>
+                  <Switch id="detalhamento-switch" checked={detalhamento} onCheckedChange={setDetalhamento} />
+                </div>
+              </div>
+            )}
+
+            {/* Período */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-600">Período</Label>
+              <MonthRangePicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
+            </div>
           </div>
         </div>
 

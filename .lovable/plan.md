@@ -1,48 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-# Redesign do Modal de Upload + Ajustes na Página de Balancetes
+## ✅ Corrigido
 
-## Resumo das mudanças
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-4 alterações principais em 2 arquivos + 1 novo componente.
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
----
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-### 1. Novo componente: `MonthRangePicker` (`src/components/ui/month-range-picker.tsx`)
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-Picker de intervalo de meses em um único campo. Exibe grid 4x3 de meses com navegação de ano. Ao clicar no primeiro mês, define `start`; ao clicar no segundo, define `end`. Se clicar o mesmo mês duas vezes, start = end. Exibe no botão "Jan/2025 — Mar/2025". Usado tanto no modal quanto no filtro da página principal.
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
----
-
-### 2. Redesign do Modal (`UploadBalanceteModal.tsx`)
-
-Layout side-by-side em tela maior (`sm:max-w-4xl`):
-
-- **Lado esquerdo (~45%)**: Card grande com zona de drag-and-drop para arquivo. Ícone centralizado de upload, texto "Arraste o arquivo aqui ou clique para selecionar", borda tracejada `border-dashed`. Aceita apenas `.xlsx` e `.xls` — validação no `accept` do input e verificação programática no `onChange` e `onDrop` (rejeita arquivos com extensão diferente com toast de erro).
-- **Lado direito (~55%)**: Campos empilhados — Cliente, Contribuinte, Detalhamento (prompt/switch), Período (usando o novo `MonthRangePicker` unificado).
-- Footer com botões Cancelar e Enviar.
-
----
-
-### 3. Ajustes na página principal (`ControleBalancetes.tsx`)
-
-**Botão "Novo Balancete"**: Mover do card de resultados para a barra de ações do filtro, no canto esquerdo (`justify-between` no flex). Fica alinhado horizontalmente com "Limpar filtros" e "Buscar" que ficam à direita.
-
-**Tabela — novas colunas**:
-- Coluna `#` (primeira coluna): número sequencial da linha (index + 1), para ordenação visual básica.
-- Coluna `Linhas` (antes de Ações): exibe `b.qtd_linhas` ou `b.total_linhas` da API (campo do payload de resposta). Se o campo não existir, exibe "—".
-
-**Período unificado no filtro**: Substituir o `MonthYearPicker` único por `MonthRangePicker`, enviando `dt_ini` e `dt_fim` separados na query.
-
-**colSpan**: Atualizar de 4 para 6 nos estados loading/vazio.
-
----
-
-### Arquivos alterados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/ui/month-range-picker.tsx` | **Novo** — componente de seleção de intervalo de meses |
-| `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx` | Redesign layout side-by-side + drag-and-drop + MonthRangePicker + validação de formato |
-| `src/pages/equipe/dev/ControleBalancetes.tsx` | Mover botão, trocar picker, adicionar colunas # e Linhas |
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
