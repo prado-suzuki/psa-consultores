@@ -16,108 +16,6 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 
-/* ── Categorias (tax_categorias) ─────────────────────────────── */
-
-function CategoriasTab() {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [nome, setNome] = useState('');
-
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['tax_categorias'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('tax_categorias').select('id, nome').order('nome');
-      if (error) throw error;
-      console.log('tax_categorias data:', data);
-      return (data || []) as { id: string; nome: string }[];
-    },
-  });
-
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!nome.trim()) throw new Error('Nome obrigatório');
-      if (editId) {
-        const { error } = await supabase.from('tax_categorias').update({ nome: nome.trim() }).eq('id', editId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('tax_categorias').insert({ nome: nome.trim() });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
-      setOpen(false);
-      toast.success(editId ? 'Categoria atualizada' : 'Categoria criada');
-    },
-    onError: (e: any) => toast.error(e.message || 'Erro ao salvar'),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tax_categorias').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
-      toast.success('Categoria excluída');
-    },
-    onError: (e: any) => {
-      if (e.code === '23503') toast.error('Não é possível excluir: categoria em uso');
-      else toast.error('Erro ao excluir');
-    },
-  });
-
-  const openCreate = () => { setEditId(null); setNome(''); setOpen(true); };
-  const openEdit = (item: { id: string; nome: string }) => { setEditId(item.id); setNome(item.nome); setOpen(true); };
-
-  return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{items.length} categorias cadastradas</p>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
-      </div>
-      <Card className="border-slate-200/60">
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Nome</TableHead><TableHead className="w-24">Ações</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={2} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
-            ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={2} className="text-center py-8 text-slate-400">Nenhuma categoria</TableCell></TableRow>
-            ) : items.map(item => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.nome}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => { if (confirm(`Excluir "${item.nome}"?`)) remove.mutate(item.id); }}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{editId ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending}>{save.isPending ? 'Salvando...' : 'Salvar'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
 /* ── Produto / Segmento (produto_segmento) ───────────────────── */
 
 interface ProdutoSegmento { id: string; codigo: string; nome: string; is_active: boolean; }
@@ -678,14 +576,11 @@ export default function CadastroCategorias() {
     <Card className="bg-white border-slate-200/60 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base text-slate-900">Cadastro de Categorias</CardTitle>
-        <p className="text-sm text-slate-500">Gerencie categorias, tipos de produto/segmento, serviços prestados, centros de custo e empresas.</p>
+        <p className="text-sm text-slate-500">Gerencie tipos de produto/segmento, serviços prestados, centros de custo e empresas.</p>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="categorias">
+        <Tabs defaultValue="servicos">
           <TabsList className="bg-slate-100 border border-slate-200 mb-4 flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="categorias" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
-              Categorias
-            </TabsTrigger>
             <TabsTrigger value="produto_segmento" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
               Produto/Segmento
             </TabsTrigger>
@@ -700,7 +595,6 @@ export default function CadastroCategorias() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="categorias"><CategoriasTab /></TabsContent>
           <TabsContent value="produto_segmento"><ProdutoSegmentoTab /></TabsContent>
           <TabsContent value="servicos"><ServicosTab /></TabsContent>
           <TabsContent value="centros_custo"><CentroCustoTab /></TabsContent>
