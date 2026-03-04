@@ -173,20 +173,20 @@ const ControleBalancetes = () => {
   return (
     <DevLayout title="Controle de Balancetes" subtitle="Upload e consulta de balancetes contábeis">
       {/* Filters Card */}
-      <Card className="mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg text-primary">
+      <Card className="mb-8 rounded-2xl border-slate-200 shadow-sm">
+        <CardHeader className="pb-2 p-6 md:p-8 md:pb-4">
+          <CardTitle className="flex items-center gap-2.5">
             <Filter className="h-5 w-5 text-teal-600" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+            <span className="uppercase text-xs tracking-widest font-bold text-slate-600">Filtros de Busca</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-6 md:px-8 md:pb-8 pt-0">
           <div className="grid grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Cliente</Label>
+              <Label className="text-sm font-medium text-slate-600">Cliente</Label>
               <Select value={clienteId} onValueChange={(v) => {setClienteId(v);setContribuinteId('');}}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger className="h-11 rounded-lg border-slate-200">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,9 +199,9 @@ const ControleBalancetes = () => {
 
             {/* Contribuinte */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Contribuinte</Label>
+              <Label className="text-sm font-medium text-slate-600">Contribuinte</Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger className="h-11 rounded-lg border-slate-200">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,20 +214,20 @@ const ControleBalancetes = () => {
 
             {/* Período */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Período</Label>
+              <Label className="text-sm font-medium text-slate-600">Período</Label>
               <MonthYearPicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
             </div>
           </div>
 
           {/* Action footer */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
+          <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
             {hasFilters &&
-            <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-300 hover:bg-red-50">
+            <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-200 hover:bg-red-50 rounded-lg">
                 <Eraser className="h-4 w-4" />
                 Limpar filtros
               </Button>
             }
-            <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white py-[20px] px-[15px] my-[5px] mx-px">
+            <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg py-2.5 px-5">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Buscar
             </Button>
@@ -236,39 +236,39 @@ const ControleBalancetes = () => {
       </Card>
 
       {/* Results Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-lg">Balancetes</CardTitle>
-          <Button onClick={() => setModalOpen(true)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+      <Card className="rounded-2xl border-slate-200 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 md:px-8">
+          <CardTitle className="text-lg font-semibold text-slate-800">Balancetes</CardTitle>
+          <Button onClick={() => setModalOpen(true)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg">
             <Plus className="h-4 w-4" />
             Novo Balancete
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 pt-0 md:px-8 md:pb-8">
           <div className="overflow-x-auto w-full">
             <Table className="text-xs">
-              <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700">
-                <TableRow>
-                  <TableHead>Período Início</TableHead>
-                  <TableHead>Período Fim</TableHead>
-                  <TableHead>Adicionado por</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
+              <TableHeader>
+                <TableRow className="border-slate-100 hover:bg-transparent">
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Início</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Fim</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Adicionado por</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ?
-                <TableRow>
-                   <TableCell colSpan={4} className="text-center py-12 text-slate-400">
-                      <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-teal-500" />
-                      <p className="text-sm font-medium">Buscando balancetes...</p>
+                <TableRow className="hover:bg-transparent">
+                   <TableCell colSpan={4} className="text-center py-16 text-slate-400">
+                      <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin text-teal-500" />
+                      <p className="text-sm font-medium text-slate-500">Buscando balancetes...</p>
                     </TableCell>
                   </TableRow> :
                 balancetes.length > 0 ?
                 balancetes.map((b) =>
-                <TableRow key={b.id}>
-                      <TableCell>{formatDate(b.periodo_inicio)}</TableCell>
-                      <TableCell>{formatDate(b.periodo_fim)}</TableCell>
-                      <TableCell>{b.adicionado_por || '-'}</TableCell>
+                <TableRow key={b.id} className="border-slate-100 hover:bg-slate-50/60">
+                      <TableCell className="text-slate-700">{formatDate(b.periodo_inicio)}</TableCell>
+                      <TableCell className="text-slate-700">{formatDate(b.periodo_fim)}</TableCell>
+                      <TableCell className="text-slate-700">{b.adicionado_por || '-'}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider>
@@ -277,7 +277,7 @@ const ControleBalancetes = () => {
                                 <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 rounded-lg hover:bg-teal-50"
                               disabled={downloading[b.id] === 'download'}
                               onClick={() => handleBlobDownload(b.id, 'download', 'download')}>
                               
@@ -295,7 +295,7 @@ const ControleBalancetes = () => {
                                 <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 rounded-lg hover:bg-blue-50"
                               disabled={downloading[b.id] === 'export'}
                               onClick={() => handleBlobDownload(b.id, 'export-excel', 'export')}>
                               
@@ -312,14 +312,14 @@ const ControleBalancetes = () => {
                     </TableRow>
                 ) :
 
-                <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-slate-400">
-                      <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-                      <p className="text-sm font-medium">
+                <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={4} className="text-center py-16 text-slate-400">
+                      <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                      <p className="text-sm font-medium text-slate-500">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
                       </p>
                       {!searched &&
-                    <p className="text-xs mt-1">Ou clique em "+ Novo Balancete" para enviar um arquivo</p>
+                    <p className="text-xs mt-1.5 text-slate-400">Ou clique em "+ Novo Balancete" para enviar um arquivo</p>
                     }
                     </TableCell>
                   </TableRow>
