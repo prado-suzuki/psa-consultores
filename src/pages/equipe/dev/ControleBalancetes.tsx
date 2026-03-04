@@ -12,6 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MonthRangePicker, monthRangeToDateStrings, type MonthRange } from '@/components/ui/month-range-picker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2 } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 
@@ -42,6 +46,8 @@ const ControleBalancetes = () => {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [downloading, setDownloading] = useState<Record<string, 'download' | 'export' | null>>({});
+  const [confirmDownload, setConfirmDownload] = useState<string | null>(null);
+  const [confirmExport, setConfirmExport] = useState<string | null>(null);
 
   // Fetch clientes
   const { data: clientes } = useQuery({
@@ -289,7 +295,7 @@ const ControleBalancetes = () => {
                                   size="icon"
                                   className="h-8 w-8 rounded-lg hover:bg-teal-50"
                                   disabled={downloading[b.id] === 'download'}
-                                  onClick={() => handleBlobDownload(b.id, 'download', 'download')}
+                                  onClick={() => setConfirmDownload(b.id)}
                                 >
                                   {downloading[b.id] === 'download' ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -309,7 +315,7 @@ const ControleBalancetes = () => {
                                   size="icon"
                                   className="h-8 w-8 rounded-lg hover:bg-blue-50"
                                   disabled={downloading[b.id] === 'export'}
-                                  onClick={() => handleBlobDownload(b.id, 'export-excel', 'export')}
+                                  onClick={() => setConfirmExport(b.id)}
                                 >
                                   {downloading[b.id] === 'export' ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -345,6 +351,34 @@ const ControleBalancetes = () => {
       </Card>
 
       <UploadBalanceteModal open={modalOpen} onOpenChange={handleModalClose} />
+
+      {/* Confirm Download */}
+      <AlertDialog open={!!confirmDownload} onOpenChange={() => setConfirmDownload(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Baixar arquivo original</AlertDialogTitle>
+            <AlertDialogDescription>Deseja baixar o arquivo original deste balancete?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700" onClick={() => { if (confirmDownload) handleBlobDownload(confirmDownload, 'download', 'download'); setConfirmDownload(null); }}>Baixar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Export */}
+      <AlertDialog open={!!confirmExport} onOpenChange={() => setConfirmExport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exportar movimentos</AlertDialogTitle>
+            <AlertDialogDescription>Deseja exportar os movimentos deste balancete em Excel?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-blue-600 hover:bg-blue-700" onClick={() => { if (confirmExport) handleBlobDownload(confirmExport, 'export-excel', 'export'); setConfirmExport(null); }}>Exportar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DevLayout>
   );
 };

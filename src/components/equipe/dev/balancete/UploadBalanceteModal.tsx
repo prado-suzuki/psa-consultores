@@ -8,6 +8,10 @@ import { toast } from '@/hooks/use-toast';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,6 +44,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch clientes
@@ -158,6 +163,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     setDetalhamento(null);
     setShowDetalhamentoPrompt(false);
     setDragging(false);
+    setShowConfirm(false);
   };
 
   const handleClose = (value: boolean) => {
@@ -210,6 +216,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const isValid = contribuinteId && periodo && file && detalhamento !== null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
@@ -342,12 +349,33 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!isValid || submitting} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+          <Button onClick={() => setShowConfirm(true)} disabled={!isValid || submitting} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Enviar
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Confirm upload */}
+    <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar envio do balancete</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p><strong>Contribuinte:</strong> {contribuintes?.find(c => c.id === contribuinteId)?.nome_razao_social}</p>
+              {periodo && <p><strong>Período:</strong> {`${String(periodo.start.month + 1).padStart(2, '0')}/${periodo.start.year} — ${String(periodo.end.month + 1).padStart(2, '0')}/${periodo.end.year}`}</p>}
+              {file && <p><strong>Arquivo:</strong> {file.name}</p>}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction className="bg-teal-600 hover:bg-teal-700" onClick={() => { setShowConfirm(false); handleSubmit(); }}>Confirmar</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
