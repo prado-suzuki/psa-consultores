@@ -131,9 +131,10 @@ function ProdutoSegmentoTab() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['produto_segmento'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('produto_segmento').select('*').order('codigo');
+      const { data, error } = await supabase.from('produto_segmento').select('id, codigo, nome, is_active').order('codigo');
       if (error) throw error;
-      return data as ProdutoSegmento[];
+      console.log('produto_segmento data:', data);
+      return (data || []) as ProdutoSegmento[];
     },
   });
 
@@ -203,8 +204,8 @@ function ProdutoSegmentoTab() {
               <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-400">Nenhum item</TableCell></TableRow>
             ) : items.map(item => (
               <TableRow key={item.id}>
-                <TableCell><Badge variant="outline" className="font-mono">{item.codigo}</Badge></TableCell>
-                <TableCell className="font-medium">{item.nome}</TableCell>
+                <TableCell><Badge variant="outline" className="font-mono">{item.codigo || '—'}</Badge></TableCell>
+                <TableCell className="font-medium">{item.nome || '(sem nome)'}</TableCell>
                 <TableCell>
                   <Switch checked={item.is_active} onCheckedChange={() => toggleActive.mutate(item)} />
                 </TableCell>
