@@ -3271,11 +3271,36 @@ export default function NewClientModal({
                                               </SelectTrigger>
                                               <SelectContent>
                                                 <SelectItem value="__none__">Selecione...</SelectItem>
-                                                {catalogServices.map((svc: any) => (
-                                                  <SelectItem key={svc.id} value={svc.id}>
-                                                    {svc.nome}
-                                                  </SelectItem>
-                                                ))}
+                                                {(() => {
+                                                  const withArea = catalogServices.filter((s: any) => s.estrutura_areas?.name);
+                                                  const withoutArea = catalogServices.filter((s: any) => !s.estrutura_areas?.name);
+                                                  const areaGroups = withArea.reduce((acc: Record<string, any[]>, s: any) => {
+                                                    const aName = s.estrutura_areas.name;
+                                                    if (!acc[aName]) acc[aName] = [];
+                                                    acc[aName].push(s);
+                                                    return acc;
+                                                  }, {} as Record<string, any[]>);
+                                                  return (
+                                                    <>
+                                                      {Object.entries(areaGroups).sort(([a],[b]) => a.localeCompare(b)).map(([areaName, svcs]) => (
+                                                        <SelectGroup key={areaName}>
+                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{areaName}</SelectLabel>
+                                                          {(svcs as any[]).map((svc: any) => (
+                                                            <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                          ))}
+                                                        </SelectGroup>
+                                                      ))}
+                                                      {withoutArea.length > 0 && (
+                                                        <SelectGroup>
+                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem área</SelectLabel>
+                                                          {withoutArea.map((svc: any) => (
+                                                            <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                          ))}
+                                                        </SelectGroup>
+                                                      )}
+                                                    </>
+                                                  );
+                                                })()}
                                               </SelectContent>
                                             </Select>
                                             <Button
@@ -3629,11 +3654,36 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {catalogServices.map((svc: any) => (
-                                        <SelectItem key={svc.id} value={svc.id}>
-                                          {svc.nome}
-                                        </SelectItem>
-                                      ))}
+                                      {(() => {
+                                        const withArea = catalogServices.filter((s: any) => s.estrutura_areas?.name);
+                                        const withoutArea = catalogServices.filter((s: any) => !s.estrutura_areas?.name);
+                                        const areaGroups = withArea.reduce((acc: Record<string, any[]>, s: any) => {
+                                          const aName = s.estrutura_areas.name;
+                                          if (!acc[aName]) acc[aName] = [];
+                                          acc[aName].push(s);
+                                          return acc;
+                                        }, {} as Record<string, any[]>);
+                                        return (
+                                          <>
+                                            {Object.entries(areaGroups).sort(([a],[b]) => a.localeCompare(b)).map(([areaName, svcs]) => (
+                                              <SelectGroup key={areaName}>
+                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">{areaName}</SelectLabel>
+                                                {(svcs as any[]).map((svc: any) => (
+                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                ))}
+                                              </SelectGroup>
+                                            ))}
+                                            {withoutArea.length > 0 && (
+                                              <SelectGroup>
+                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem área</SelectLabel>
+                                                {withoutArea.map((svc: any) => (
+                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                ))}
+                                              </SelectGroup>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                     </SelectContent>
                                   </Select>
                                   <Button
