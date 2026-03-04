@@ -1,30 +1,22 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+# Checkbox de seleção + botões bulk no header da tabela
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+## Alterações em `src/pages/equipe/dev/ControleBalancetes.tsx`
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+1. **Estado de seleção**: Adicionar `selectedIds` como `Set<string>` para rastrear balancetes selecionados.
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+2. **Coluna de checkbox** (primeira coluna, antes de `#`):
+   - Header: checkbox "selecionar todos" (usando `Checkbox` do Radix, mesmo padrão do `ConsultaXMLs.tsx`)
+   - Body: checkbox individual por linha, toggle no `selectedIds`
+   - `COL_COUNT` atualizado de 6 para 7
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+3. **Botões bulk no header do card de resultados**: Ao lado do título "Balancetes", adicionar dois botões:
+   - **"Baixar arquivo original"** (ícone Download, teal) — desabilitado quando `selectedIds.size === 0`. Ao clicar, itera sobre os IDs selecionados e chama `handleBlobDownload` para cada um com endpoint `download`.
+   - **"Exportar movimentos"** (ícone FileDown, blue) — mesmo comportamento, endpoint `export-excel`.
+   - Ambos exibem badge com contagem de selecionados (ex: `(3)`).
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+4. **Helpers**: `allSelected` memo (todos da página selecionados), `handleToggleAll`, `handleToggleItem` — mesmo padrão do ConsultaXMLs.
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+5. **Import**: Adicionar `Checkbox` de `@/components/ui/checkbox` e `useMemo`.
+
