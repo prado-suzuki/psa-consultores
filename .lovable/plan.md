@@ -1,44 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-# Simplificação da Consulta de XMLs
+## ✅ Corrigido
 
-## Resumo
-Remover seleção múltipla/checkbox e botão global "Baixar XMLs". Adicionar coluna "Ações" com download individual por linha. Ajustar paginação e adicionar aviso no modal de exportação.
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-## Alterações em `src/pages/equipe/dev/ConsultaXMLs.tsx`
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-### 1. Remover imports e estados de seleção
-- Remover import de `JSZip` (linha 41) e `Checkbox` (linha 17)
-- Remover estados: `selectedKeys`, `shouldAutoSelect`, `isDownloadingXml` (linhas 211-213)
-- Remover funções: `getAllCurrentKeys`, `allSelected`, `handleToggleItem`, `handleToggleAll` (linhas 444-483)
-- Remover `handleDownloadXml` inteira (linhas 529-605)
-- Remover `setShouldAutoSelect(true)` do `handleSearch` (linha 522)
-- Remover `useEffect` de auto-seleção (linhas 430-441)
-- Remover `setSelectedKeys(new Set())` do `handleClearFilters` (linha 242)
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-### 2. Remover botão global "Baixar XMLs" da barra de ações
-- Remover o bloco do botão "Baixar XMLs" (linhas 884-895)
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-### 3. Remover coluna Checkbox das tabelas NFe e CTe
-- **NFe header**: remover `<TableHead>` com Checkbox (linhas 980-986)
-- **NFe body**: remover `<TableCell>` com Checkbox em cada row (linhas 1047-1052) e nos skeletons (linhas 1001-1003)
-- **CTe header**: remover `<TableHead>` com Checkbox (linhas 1093-1098)
-- **CTe body**: remover `<TableCell>` com Checkbox em cada row (linhas 1164-1168) e nos skeletons (linhas 1115-1117)
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-### 4. Adicionar coluna "Ações" com download individual
-- Adicionar nova função `handleDownloadSingleXml(chave, docType)` que faz GET para `/api/v1/query/download/{docType}/xml/{chave}`, recebe o XML e dispara download do arquivo `.xml`
-- Adicionar estado `downloadingKey` para mostrar spinner no botão sendo baixado
-- **NFe**: adicionar `<TableHead className="text-right">Ações</TableHead>` no final do header, e `<TableCell>` com botão ghost+ícone Download com tooltip "Baixar XML original" no final de cada row
-- **CTe**: idem
-
-### 5. Ajustar indicador de paginação
-- Linha 1206: mudar texto de `Página {currentPage} de {totalPages}` para incluir contagem real:
-  `Exibindo {tipoDocumento === 'nfe' ? nfeRecords.length : cteRecords.length} de {totalRecords} arquivos • Página {currentPage} de {totalPages}`
-
-## Alterações em `src/components/equipe/dev/ExportDialog.tsx`
-
-### 6. Aviso no modal de exportação
-- Na `DialogDescription` (linha 591), adicionar abaixo do texto existente um aviso com ícone Info:
-  `"A exportação em Excel engloba todos os arquivos carregados no filtro atual, e não apenas os visíveis nesta página."`
-- Importar `Info` de `lucide-react` (já importado no ConsultaXMLs, adicionar no ExportDialog)
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend

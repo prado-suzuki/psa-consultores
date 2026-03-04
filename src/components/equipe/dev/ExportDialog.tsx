@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Download, Loader2, Save, Trash2, Star, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
+import { Download, Loader2, Save, Trash2, Star, CheckSquare, Square, FileSpreadsheet, Info } from 'lucide-react';
 import { useExportProfiles, ExportProfile } from '@/hooks/useExportProfiles';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -590,6 +590,10 @@ export function ExportDialog({
             <DialogDescription>
               {totalRecords} registro(s) serão exportados • Período: {dataInicio} a {dataFim}
             </DialogDescription>
+            <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-sm text-slate-700">
+              <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <span>A exportação em Excel engloba todos os arquivos carregados no filtro atual, e não apenas os visíveis nesta página.</span>
+            </div>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">

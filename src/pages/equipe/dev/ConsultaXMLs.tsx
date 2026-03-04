@@ -14,7 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search,
   FileText,
@@ -38,7 +37,6 @@ import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, TABLE_NAMES } from "@/config/api";
-import JSZip from "jszip";
 
 const DEFAULT_DATA_INICIO = "2024-01-01";
 const DEFAULT_DATA_FIM = "2026-01-31";
@@ -208,9 +206,7 @@ const ConsultaXMLs = () => {
   const [destinatario, setDestinatario] = useState("");
   const [chaveAcesso, setChaveAcesso] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
-  const [isDownloadingXml, setIsDownloadingXml] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [shouldAutoSelect, setShouldAutoSelect] = useState(false);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
@@ -239,7 +235,6 @@ const ConsultaXMLs = () => {
     setChaveAcesso("");
     setSearchTriggered(false);
     setCurrentPage(1);
-    setSelectedKeys(new Set());
     toast({
       title: "Filtros limpos",
       description: "Todos os filtros foram resetados para os valores padrão",
@@ -295,7 +290,6 @@ const ConsultaXMLs = () => {
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
         .order("nome_razao_social");
 
-      // Filtrar por cliente se selecionado (e não for "all")
       if (selectedCliente && selectedCliente !== "all") {
         query = query.eq("cliente_id", selectedCliente);
       }
@@ -318,14 +312,12 @@ const ConsultaXMLs = () => {
     },
   });
 
-  // Auto-selecionar contribuinte quando há apenas um
   useEffect(() => {
     if (selectedCliente && contribuintes && contribuintes.length === 1 && !selectedContribuinte) {
       setSelectedContribuinte(contribuintes[0].id);
     }
   }, [selectedCliente, contribuintes, selectedContribuinte]);
 
-  // Buscar NFe
   const {
     data: nfeData,
     isLoading: loadingNfe,
@@ -349,7 +341,6 @@ const ConsultaXMLs = () => {
       if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
-
       const response = await fetchWithAuth(url, { method: "GET" });
 
       if (!response.ok) {
@@ -366,7 +357,6 @@ const ConsultaXMLs = () => {
     },
   });
 
-  // Buscar CT-e
   const {
     data: cteData,
     isLoading: loadingCte,
@@ -390,7 +380,6 @@ const ConsultaXMLs = () => {
       if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
-
       const response = await fetchWithAuth(url, { method: "GET" });
 
       if (!response.ok) {
@@ -416,7 +405,6 @@ const ConsultaXMLs = () => {
   const totalRecords = tipoDocumento === "nfe" ? nfeData?.total || 0 : cteData?.total || 0;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
-  // Toast de erro automático
   useEffect(() => {
     if (error) {
       toast({
@@ -426,61 +414,6 @@ const ConsultaXMLs = () => {
       });
     }
   }, [error]);
-
-  // Auto-selecionar todos quando os dados carregam (apenas na primeira busca)
-  useEffect(() => {
-    if (!shouldAutoSelect) return;
-    
-    if (tipoDocumento === "nfe" && nfeRecords.length > 0) {
-      setSelectedKeys(new Set(nfeRecords.map(r => r.chave_nfe)));
-    } else if (tipoDocumento === "cte" && cteRecords.length > 0) {
-      setSelectedKeys(new Set(cteRecords.map(r => r.chave_cte)));
-    }
-    
-    setShouldAutoSelect(false);
-  }, [nfeRecords, cteRecords, tipoDocumento, shouldAutoSelect]);
-
-  // Funções auxiliares de seleção
-  const getAllCurrentKeys = (): string[] => {
-    if (tipoDocumento === "nfe") {
-      return nfeRecords.map(r => r.chave_nfe);
-    }
-    return cteRecords.map(r => r.chave_cte);
-  };
-
-  const allSelected = useMemo(() => {
-    const keys = getAllCurrentKeys();
-    return keys.length > 0 && keys.every(key => selectedKeys.has(key));
-  }, [selectedKeys, nfeRecords, cteRecords, tipoDocumento]);
-
-  const handleToggleItem = (key: string) => {
-    setSelectedKeys(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
-
-  const handleToggleAll = () => {
-    const keys = getAllCurrentKeys();
-    if (allSelected) {
-      setSelectedKeys(prev => {
-        const newSet = new Set(prev);
-        keys.forEach(key => newSet.delete(key));
-        return newSet;
-      });
-    } else {
-      setSelectedKeys(prev => {
-        const newSet = new Set(prev);
-        keys.forEach(key => newSet.add(key));
-        return newSet;
-      });
-    }
-  };
 
   const formatCNPJ = (cnpj: string) => {
     if (!cnpj) return "-";
@@ -519,88 +452,48 @@ const ConsultaXMLs = () => {
   const handleSearch = () => {
     setCurrentPage(1);
     setSearchTriggered(true);
-    setShouldAutoSelect(true);
-    // Se já foi triggered antes, forçar refetch
     if (searchTriggered) {
       refetch();
     }
   };
 
-  const handleDownloadXml = async () => {
-    if (selectedKeys.size === 0) {
-      toast({
-        title: "Nenhum item selecionado",
-        description: "Selecione pelo menos um documento para baixar",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsDownloadingXml(true);
-    
-    const docType = tipoDocumento === "nfe" ? "nfe" : "cte";
-    const keysArray = Array.from(selectedKeys);
-    const zip = new JSZip();
-    let successCount = 0;
-    let errorCount = 0;
-
+  const handleDownloadSingleXml = async (chave: string, docType: "nfe" | "cte") => {
+    setDownloadingKey(chave);
     try {
-      for (const chave of keysArray) {
-        try {
-          const url = `${API_BASE_URL}/api/v1/query/download/${docType}/xml/${encodeURIComponent(chave)}`;
-          
-          const response = await fetchWithAuth(url, {
-            method: "GET",
-            headers: { "Accept": "application/xml" }
-          });
+      const url = `${API_BASE_URL}/api/v1/query/download/${docType}/xml/${encodeURIComponent(chave)}`;
+      const response = await fetchWithAuth(url, {
+        method: "GET",
+        headers: { "Accept": "application/xml" },
+      });
 
-          if (!response.ok) {
-            errorCount++;
-            console.error(`Erro ao baixar XML ${chave}: ${response.status}`);
-            continue;
-          }
-
-          const xmlContent = await response.text();
-          zip.file(`${chave}.xml`, xmlContent);
-          successCount++;
-          
-        } catch (err) {
-          errorCount++;
-          console.error(`Erro ao baixar XML ${chave}:`, err);
-        }
+      if (!response.ok) {
+        throw new Error(`Erro ao baixar XML: ${response.status}`);
       }
 
-      if (successCount > 0) {
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const downloadUrl = window.URL.createObjectURL(zipBlob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = `xmls_${docType}_${new Date().toISOString().split('T')[0]}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(downloadUrl);
+      const xmlContent = await response.text();
+      const blob = new Blob([xmlContent], { type: "application/xml" });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `${chave}.xml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
 
-        toast({
-          title: "Download concluído",
-          description: `${successCount} XML(s) no arquivo ZIP${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`,
-        });
-      } else {
-        toast({
-          title: "Erro no download",
-          description: "Não foi possível baixar nenhum XML",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Erro geral ao baixar XMLs:", error);
+      toast({
+        title: "Download concluído",
+        description: "XML baixado com sucesso.",
+      });
+    } catch (err) {
+      console.error("Erro ao baixar XML:", err);
       toast({
         title: "Erro no download",
-        description: (error as Error).message,
+        description: (err as Error).message,
         variant: "destructive",
       });
     } finally {
-      setIsDownloadingXml(false);
+      setDownloadingKey(null);
     }
   };
 
@@ -881,18 +774,6 @@ const ConsultaXMLs = () => {
                   Limpar filtros
                 </Button>
               )}
-              <Button
-                variant="outline"
-                onClick={handleDownloadXml}
-                disabled={isLoading || isDownloadingXml || selectedKeys.size === 0}
-              >
-                {isDownloadingXml ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                Baixar XMLs {selectedKeys.size > 0 && `(${selectedKeys.size})`}
-              </Button>
               <ExportDialog
                 data={tipoDocumento === "nfe" ? nfeRecords : []}
                 cteData={tipoDocumento === "cte" ? cteRecords : []}
@@ -977,13 +858,6 @@ const ConsultaXMLs = () => {
                     <Table className="min-w-[950px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[40px]">
-                            <Checkbox
-                              checked={allSelected}
-                              onCheckedChange={handleToggleAll}
-                              aria-label="Selecionar todos"
-                            />
-                          </TableHead>
                           <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                           <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                           <TableHead className="whitespace-nowrap">Chave de Acesso</TableHead>
@@ -992,15 +866,13 @@ const ConsultaXMLs = () => {
                           <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
                           <TableHead className="whitespace-nowrap">Produtos</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {isLoading ? (
                           [...Array(5)].map((_, i) => (
                             <TableRow key={`skeleton-nfe-${i}`}>
-                              <TableCell>
-                                <Skeleton className="h-4 w-4" />
-                              </TableCell>
                               <TableCell>
                                 <Skeleton className="h-5 w-28" />
                               </TableCell>
@@ -1025,11 +897,14 @@ const ConsultaXMLs = () => {
                               <TableCell>
                                 <Skeleton className="h-5 w-16" />
                               </TableCell>
+                              <TableCell className="text-right">
+                                <Skeleton className="h-8 w-8 ml-auto" />
+                              </TableCell>
                             </TableRow>
                           ))
                         ) : nfeRecords.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center py-12">
+                            <TableCell colSpan={9} className="text-center py-12">
                               <div className="flex flex-col items-center gap-3">
                                 <FileX2 className="h-12 w-12 text-amber-400" />
                                 <div>
@@ -1044,12 +919,6 @@ const ConsultaXMLs = () => {
                         ) : (
                           nfeRecords.map((record) => (
                             <TableRow key={record.chave_nfe}>
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedKeys.has(record.chave_nfe)}
-                                  onCheckedChange={() => handleToggleItem(record.chave_nfe)}
-                                />
-                              </TableCell>
                               <TableCell className="font-mono text-sm whitespace-nowrap">
                                 {formatCNPJ(record.emit.CNPJ)}
                               </TableCell>
@@ -1081,6 +950,28 @@ const ConsultaXMLs = () => {
                               <TableCell>
                                 <Badge variant="outline">{record.contItens} item(s)</Badge>
                               </TableCell>
+                              <TableCell className="text-right">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        disabled={downloadingKey === record.chave_nfe}
+                                        onClick={() => handleDownloadSingleXml(record.chave_nfe, "nfe")}
+                                      >
+                                        {downloadingKey === record.chave_nfe ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Download className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Baixar XML original</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
@@ -1090,13 +981,6 @@ const ConsultaXMLs = () => {
                     <Table className="min-w-[1050px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[40px]">
-                            <Checkbox
-                              checked={allSelected}
-                              onCheckedChange={handleToggleAll}
-                              aria-label="Selecionar todos"
-                            />
-                          </TableHead>
                           <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
                           <TableHead className="whitespace-nowrap">Razão Social</TableHead>
                           <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
@@ -1106,15 +990,13 @@ const ConsultaXMLs = () => {
                           <TableHead className="whitespace-nowrap">Número</TableHead>
                           <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {isLoading ? (
                           [...Array(5)].map((_, i) => (
                             <TableRow key={`skeleton-cte-${i}`}>
-                              <TableCell>
-                                <Skeleton className="h-4 w-4" />
-                              </TableCell>
                               <TableCell>
                                 <Skeleton className="h-5 w-28" />
                               </TableCell>
@@ -1142,6 +1024,9 @@ const ConsultaXMLs = () => {
                               <TableCell>
                                 <Skeleton className="h-5 w-24" />
                               </TableCell>
+                              <TableCell className="text-right">
+                                <Skeleton className="h-8 w-8 ml-auto" />
+                              </TableCell>
                             </TableRow>
                           ))
                         ) : cteRecords.length === 0 ? (
@@ -1161,12 +1046,6 @@ const ConsultaXMLs = () => {
                         ) : (
                           cteRecords.map((record) => (
                             <TableRow key={record.chave_cte}>
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedKeys.has(record.chave_cte)}
-                                  onCheckedChange={() => handleToggleItem(record.chave_cte)}
-                                />
-                              </TableCell>
                               <TableCell className="font-mono text-sm whitespace-nowrap">
                                 {formatCNPJ(record.emit.CNPJ || "")}
                               </TableCell>
@@ -1192,6 +1071,28 @@ const ConsultaXMLs = () => {
                               <TableCell className="text-right font-medium whitespace-nowrap">
                                 {formatCurrency(record.vTPrest)}
                               </TableCell>
+                              <TableCell className="text-right">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        disabled={downloadingKey === record.chave_cte}
+                                        onClick={() => handleDownloadSingleXml(record.chave_cte, "cte")}
+                                      >
+                                        {downloadingKey === record.chave_cte ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Download className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Baixar XML original</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
@@ -1204,7 +1105,7 @@ const ConsultaXMLs = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between p-4 border-t">
                     <span className="text-sm text-muted-foreground">
-                      Página {currentPage} de {totalPages}
+                      Exibindo {tipoDocumento === "nfe" ? nfeRecords.length : cteRecords.length} de {totalRecords} arquivos • Página {currentPage} de {totalPages}
                     </span>
                     <div className="flex gap-2">
                       <Button
