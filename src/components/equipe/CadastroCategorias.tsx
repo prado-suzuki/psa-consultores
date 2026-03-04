@@ -27,9 +27,10 @@ function CategoriasTab() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['tax_categorias'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('tax_categorias').select('*').order('nome');
+      const { data, error } = await supabase.from('tax_categorias').select('id, nome').order('nome');
       if (error) throw error;
-      return data as { id: string; nome: string }[];
+      console.log('tax_categorias data:', data);
+      return (data || []) as { id: string; nome: string }[];
     },
   });
 
