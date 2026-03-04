@@ -275,10 +275,10 @@ function ServicosTab() {
             <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
             <div>
               <Label>Área</Label>
-              <Select value={areaId} onValueChange={setAreaId}>
+              <Select value={areaId || "none"} onValueChange={(v) => setAreaId(v === "none" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma área..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {areas.map(a => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
