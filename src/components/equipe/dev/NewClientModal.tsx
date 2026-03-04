@@ -399,7 +399,10 @@ export default function NewClientModal({
   const { data: catalogServices = [] } = useQuery({
     queryKey: ["tax_categorias_services"],
     queryFn: async () => {
-      const { data } = await supabase.from("tax_categorias").select("id, nome").order("nome");
+      const { data } = await supabase
+        .from("tax_categorias")
+        .select("id, nome, estrutura_area_id, estrutura_areas(name)")
+        .order("nome");
       return data || [];
     },
   });
