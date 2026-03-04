@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TABLE_NAMES, getApiUrl } from '@/config/api';
@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2 } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 interface Balancete {
   id: string;
@@ -32,7 +34,7 @@ interface Balancete {
   [key: string]: unknown;
 }
 
-const COL_COUNT = 6;
+const COL_COUNT = 7;
 
 const ControleBalancetes = () => {
   const { fetchWithAuth } = useApiAuth();
@@ -48,6 +50,31 @@ const ControleBalancetes = () => {
   const [downloading, setDownloading] = useState<Record<string, 'download' | 'export' | null>>({});
   const [confirmDownload, setConfirmDownload] = useState<string | null>(null);
   const [confirmExport, setConfirmExport] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const allSelected = useMemo(() => balancetes.length > 0 && balancetes.every(b => selectedIds.has(b.id)), [balancetes, selectedIds]);
+
+  const handleToggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(balancetes.map(b => b.id)));
+    }
+  };
+
+  const handleToggleItem = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkAction = async (endpoint: 'download' | 'export-excel', type: 'download' | 'export') => {
+    for (const id of selectedIds) {
+      await handleBlobDownload(id, endpoint, type);
+    }
+  };
 
   // Fetch clientes
   const { data: clientes } = useQuery({
@@ -84,6 +111,7 @@ const ControleBalancetes = () => {
     setPeriodo(null);
     setBalancetes([]);
     setSearched(false);
+    setSelectedIds(new Set());
   };
 
   const handleSearch = useCallback(async (overrideContribuinteId?: string) => {
@@ -251,14 +279,41 @@ const ControleBalancetes = () => {
 
       {/* Results Card */}
       <Card className="rounded-2xl border-slate-200 shadow-sm">
-        <CardHeader className="p-6 md:px-8">
+        <CardHeader className="p-6 md:px-8 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold text-slate-800">Balancetes</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-teal-700 border-teal-200 hover:bg-teal-50"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction('download', 'download')}
+            >
+              <Download className="h-4 w-4" />
+              Baixar original
+              {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction('export-excel', 'export')}
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar movimentos
+              {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-6 pt-0 md:px-8 md:pb-8">
           <div className="overflow-x-auto w-full">
             <Table className="text-xs">
               <TableHeader>
                 <TableRow className="border-slate-100 hover:bg-transparent">
+                  <TableHead className="w-10">
+                    <Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" />
+                  </TableHead>
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-12">#</TableHead>
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Início</TableHead>
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Fim</TableHead>
@@ -278,6 +333,9 @@ const ControleBalancetes = () => {
                 ) : balancetes.length > 0 ? (
                   balancetes.map((b, index) => (
                     <TableRow key={b.id} className="border-slate-100 hover:bg-slate-50/60">
+                      <TableCell>
+                        <Checkbox checked={selectedIds.has(b.id)} onCheckedChange={() => handleToggleItem(b.id)} aria-label={`Selecionar balancete ${index + 1}`} />
+                      </TableCell>
                       <TableCell className="text-slate-400 font-medium">{index + 1}</TableCell>
                       <TableCell className="text-slate-700">{formatDate(b.periodo_inicio)}</TableCell>
                       <TableCell className="text-slate-700">{formatDate(b.periodo_fim)}</TableCell>
