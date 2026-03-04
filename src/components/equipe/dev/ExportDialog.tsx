@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Download, Loader2, Save, Trash2, Star, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
+import { Download, Loader2, Save, Trash2, Star, CheckSquare, Square, FileSpreadsheet, Info } from 'lucide-react';
 import { useExportProfiles, ExportProfile } from '@/hooks/useExportProfiles';
 import { toast } from '@/hooks/use-toast';
 import {
