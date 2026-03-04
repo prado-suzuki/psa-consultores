@@ -613,22 +613,11 @@ export function ExportDialog({
                   <SelectContent>
                     <SelectItem value="__none__">Nenhum</SelectItem>
                     {profiles.map(profile => (
-                      <SelectItem key={profile.id} value={profile.id} className="pr-10 group relative">
+                      <SelectItem key={profile.id} value={profile.id}>
                         <span className="flex items-center gap-2">
                           {profile.is_default && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                           {profile.name}
                         </span>
-                        <button
-                          type="button"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            setDeleteConfirmId(profile.id);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </button>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -644,15 +633,25 @@ export function ExportDialog({
                 </Button>
 
                 {selectedProfileId && (
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
-                    onClick={handleToggleDefault}
-                    disabled={setDefaultProfile.isPending}
-                  >
-                    <Star className={`h-4 w-4 ${isSelectedProfileDefault ? 'text-yellow-500 fill-yellow-500' : ''}`} />
-                    <span className="text-[10px] leading-tight">Favoritar</span>
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px]"
+                      onClick={handleToggleDefault}
+                      disabled={setDefaultProfile.isPending}
+                    >
+                      <Star className={`h-4 w-4 ${isSelectedProfileDefault ? 'text-yellow-500 fill-yellow-500' : ''}`} />
+                      <span className="text-[10px] leading-tight">Favoritar</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex flex-col items-center justify-center h-auto py-1.5 px-2 gap-0.5 min-w-[48px] text-destructive hover:text-destructive"
+                      onClick={() => setDeleteConfirmId(selectedProfileId)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="text-[10px] leading-tight">Excluir</span>
+                    </Button>
+                  </>
                 )}
               </div>
 
