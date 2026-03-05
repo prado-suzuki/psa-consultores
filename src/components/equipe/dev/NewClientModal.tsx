@@ -346,6 +346,12 @@ export default function NewClientModal({
   >("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showDraftWarning, setShowDraftWarning] = useState(false);
+  const [draftWarningContext, setDraftWarningContext] = useState<{
+    action: "save" | "navigate";
+    targetTab?: typeof activeTab;
+    pendingTabs: string[];
+  } | null>(null);
 
   // Inline expand/edit states
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
@@ -370,11 +376,90 @@ export default function NewClientModal({
   const isLastTab = currentTabIndex === tabOrder.length - 1;
   const isFirstTab = currentTabIndex === 0;
 
+  // --- Draft detection helpers ---
+  const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
+  const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
+  const hasDraftContractData = () => !!(draftContract.ordem_servico?.trim() || (draftContract.valor_projeto && draftContract.valor_projeto > 0));
+
+  const getDraftPendingTabs = (): string[] => {
+    const tabs: string[] = [];
+    if (hasDraftEntityData()) tabs.push("Contribuintes");
+    if (hasDraftParticipantData()) tabs.push("Participantes");
+    if (hasDraftContractData()) tabs.push("OS");
+    return tabs;
+  };
+
+  const tabLabelToKey: Record<string, typeof activeTab> = {
+    "Contribuintes": "contribuintes",
+    "Participantes": "participantes",
+    "OS": "contratos",
+  };
+
+  const checkDraftAndNavigate = (targetTab: typeof activeTab) => {
+    const pendingTabs = getDraftPendingTabs();
+    // Only warn about the current tab's draft
+    const currentTabDraft =
+      (activeTab === "contribuintes" && hasDraftEntityData()) ||
+      (activeTab === "participantes" && hasDraftParticipantData()) ||
+      (activeTab === "contratos" && hasDraftContractData());
+
+    if (currentTabDraft) {
+      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "participantes" ? "Participantes" : "OS";
+      setDraftWarningContext({ action: "navigate", targetTab, pendingTabs: [currentPending] });
+      setShowDraftWarning(true);
+      return;
+    }
+    setActiveTab(targetTab);
+  };
+
   const handleNext = () => {
-    if (!isLastTab) setActiveTab(tabOrder[currentTabIndex + 1]);
+    if (!isLastTab) checkDraftAndNavigate(tabOrder[currentTabIndex + 1]);
   };
   const handleBack = () => {
-    if (!isFirstTab) setActiveTab(tabOrder[currentTabIndex - 1]);
+    if (!isFirstTab) checkDraftAndNavigate(tabOrder[currentTabIndex - 1]);
+  };
+
+  const handleTabClick = (tab: typeof activeTab) => {
+    if (tab === activeTab) return;
+    if (isReadOnly) {
+      setActiveTab(tab);
+      return;
+    }
+    checkDraftAndNavigate(tab);
+  };
+
+  const clearCurrentDraft = () => {
+    if (activeTab === "contribuintes") {
+      setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
+    } else if (activeTab === "participantes") {
+      setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
+    } else if (activeTab === "contratos") {
+      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", servicos_contratados: [], centros_custo: [] });
+    }
+  };
+
+  const handleDraftWarningContinue = () => {
+    if (!draftWarningContext) return;
+    clearCurrentDraft();
+    if (draftWarningContext.action === "navigate" && draftWarningContext.targetTab) {
+      setActiveTab(draftWarningContext.targetTab);
+    } else if (draftWarningContext.action === "save") {
+      setShowDraftWarning(false);
+      setDraftWarningContext(null);
+      executeSave();
+      return;
+    }
+    setShowDraftWarning(false);
+    setDraftWarningContext(null);
+  };
+
+  const handleDraftWarningGoBack = () => {
+    if (draftWarningContext?.pendingTabs[0]) {
+      const key = tabLabelToKey[draftWarningContext.pendingTabs[0]];
+      if (key) setActiveTab(key);
+    }
+    setShowDraftWarning(false);
+    setDraftWarningContext(null);
   };
 
   const isEditing = !!editingClienteId;
@@ -1098,7 +1183,17 @@ export default function NewClientModal({
   };
 
   // --- FINAL SAVE ---
-  const handleSave = async () => {
+  const handleSave = () => {
+    const pendingTabs = getDraftPendingTabs();
+    if (pendingTabs.length > 0) {
+      setDraftWarningContext({ action: "save", pendingTabs });
+      setShowDraftWarning(true);
+      return;
+    }
+    executeSave();
+  };
+
+  const executeSave = async () => {
     if (!clientData.nome.trim()) {
       toast.error("Nome do cliente é obrigatório");
       return;
@@ -1399,7 +1494,7 @@ export default function NewClientModal({
             <>
               <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+                onValueChange={(v) => handleTabClick(v as typeof activeTab)}
                 className="flex-1 flex flex-col overflow-hidden"
               >
                 {/* Pill Tabs — Stich style */}
@@ -3984,6 +4079,29 @@ export default function NewClientModal({
               onClick={resetAndClose}
             >
               Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Draft not added warning AlertDialog */}
+      <AlertDialog open={showDraftWarning} onOpenChange={setShowDraftWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
+              {draftWarningContext?.action === "save"
+                ? " Deseja salvar mesmo assim ou voltar para adicioná-los?"
+                : " Deseja continuar sem adicionar ou voltar para adicioná-los?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDraftWarningGoBack}>
+              Voltar e adicionar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDraftWarningContinue}>
+              {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
