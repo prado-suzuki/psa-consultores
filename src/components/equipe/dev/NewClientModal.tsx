@@ -4083,6 +4083,29 @@ export default function NewClientModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Draft not added warning AlertDialog */}
+      <AlertDialog open={showDraftWarning} onOpenChange={setShowDraftWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
+              {draftWarningContext?.action === "save"
+                ? " Deseja salvar mesmo assim ou voltar para adicioná-los?"
+                : " Deseja continuar sem adicionar ou voltar para adicioná-los?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDraftWarningGoBack}>
+              Voltar e adicionar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDraftWarningContinue}>
+              {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
