@@ -415,6 +415,19 @@ export default function NewClientModal({
     },
   });
 
+  const { data: CENTRO_CUSTO_OPTIONS = [] } = useQuery({
+    queryKey: ["centros_custo_options"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centros_custo")
+        .select("id, codigo, nome")
+        .eq("is_active", true)
+        .order("codigo");
+      return (data || []).map((e: any) => ({ codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
+    },
+  });
+
+  // Keep backward compat: flat string array for empresa_faturamento checkboxes in Dados do Cliente tab
   const { data: EMPRESA_FATURAMENTO_OPTIONS = [] } = useQuery({
     queryKey: ["empresas_faturamento_options"],
     queryFn: async () => {
@@ -3365,13 +3378,13 @@ export default function NewClientModal({
                                                 }}
                                               >
                                                 <SelectTrigger className="h-8 flex-1">
-                                                  <SelectValue placeholder="Empresa / Faturamento" />
+                                                  <SelectValue placeholder="Centro de Custo" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                   <SelectItem value="__none__">Selecione...</SelectItem>
-                                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                                    <SelectItem key={emp} value={emp}>
-                                                      {emp}
+                                                  {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
+                                                    <SelectItem key={cc_opt.codigo} value={cc_opt.label}>
+                                                      {cc_opt.label}
                                                     </SelectItem>
                                                   ))}
                                                 </SelectContent>
@@ -3739,13 +3752,13 @@ export default function NewClientModal({
                                     }}
                                   >
                                     <SelectTrigger className="h-8 flex-1">
-                                      <SelectValue placeholder="Empresa / Faturamento" />
+                                      <SelectValue placeholder="Centro de Custo" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                        <SelectItem key={emp} value={emp}>
-                                          {emp}
+                                      {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
+                                        <SelectItem key={cc_opt.codigo} value={cc_opt.label}>
+                                          {cc_opt.label}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
