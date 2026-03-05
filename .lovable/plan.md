@@ -1,19 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-# Exibir botão "Salvar Alterações" em todas as abas
+## ✅ Corrigido
 
-## Problema
-O botão de salvar só aparece na última aba. O usuário precisa navegar até o final para salvar.
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-## Solução
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-**Arquivo:** `src/components/equipe/dev/NewClientModal.tsx` (linhas 4041-4058)
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-Alterar o bloco de botões no footer para exibir **ambos** os botões (Avançar e Salvar) quando não for a última aba, e apenas o Salvar na última aba:
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-- Quando `!isLastTab`: mostrar botão "Avançar" E botão "Salvar Alterações" lado a lado
-- Quando `isLastTab`: mostrar apenas botão "Salvar Alterações" (como já está)
-- Manter o botão "Cancelar" sempre visível
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-O botão Salvar terá estilo secundário (outline com cor teal) nas abas intermediárias para dar destaque visual ao "Avançar", e estilo primário na última aba.
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
