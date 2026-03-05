@@ -78,6 +78,18 @@ interface NFeRecord {
   };
 }
 
+interface CTeActor {
+  CNPJ: string | null;
+  CPF: string | null;
+  IE: string | null;
+  xNome: string;
+  xFant: string | null;
+  UF: string;
+  cMun: number;
+  xMun?: string | null;
+  ISUF?: string | null;
+}
+
 interface CTeRecord {
   chave_cte: string;
   cCT: number;
@@ -99,25 +111,8 @@ interface CTeRecord {
   vRec: number;
   vCarga: number | null;
   proPred: string | null;
-  emit: {
-    CNPJ: string | null;
-    CPF: string | null;
-    IE: string | null;
-    xNome: string;
-    xFant: string | null;
-    UF: string;
-    cMun: number;
-  };
-  dest: {
-    CNPJ: string | null;
-    CPF: string | null;
-    IE: string | null;
-    xNome: string;
-    xFant: string | null;
-    UF: string;
-    cMun: number;
-    ISUF: string | null;
-  };
+  emit: CTeActor;
+  dest: CTeActor;
   tomador: {
     toma: number;
     CNPJ: string | null;
@@ -126,6 +121,7 @@ interface CTeRecord {
     xNome: string;
     UF: string;
     cMun: number;
+    xMun?: string | null;
   };
   icms: {
     CST: string;
@@ -147,15 +143,13 @@ interface CTeRecord {
     tpMed: string;
     qCarga: number;
   }>;
-  rems: Array<{
-    CNPJ: string | null;
-    CPF: string | null;
-    IE: string | null;
-    xNome: string;
-    xFant: string | null;
-    UF: string;
-    cMun: number;
-  }>;
+  // Array actors
+  rems?: CTeActor[];
+  rem?: CTeActor;
+  expeds?: CTeActor[];
+  exped?: CTeActor;
+  recebs?: CTeActor[];
+  receb?: CTeActor;
 }
 
 interface ExportDialogProps {
@@ -173,6 +167,13 @@ interface ExportDialogProps {
   destinatario?: string;
 }
 
+// Mapeamento de atores que podem vir como array (plural) ou objeto (singular)
+const ACTOR_ARRAY_MAP: Record<string, string> = {
+  rem: 'rems',
+  exped: 'expeds',
+  receb: 'recebs',
+};
+
 // Função para acessar valores aninhados (suporta até 3 níveis: produtos.PIS.vPIS)
 const getNestedValue = (obj: any, path: string): any => {
   const parts = path.split('.');
@@ -180,11 +181,9 @@ const getNestedValue = (obj: any, path: string): any => {
   // Tratamento especial para campos de produtos - ANTES do loop
   if (parts[0] === 'produtos' && Array.isArray(obj.produtos)) {
     if (parts.length === 1) {
-      // Apenas "produtos" - retornar contagem ou vazio
       return obj.produtos.length > 0 ? `${obj.produtos.length} item(s)` : '-';
     }
     if (parts.length === 2) {
-      // produtos.xProd, produtos.NCM, etc.
       const propName = parts[1];
       const values = obj.produtos.map((p: any) => {
         const val = p[propName];
@@ -193,7 +192,6 @@ const getNestedValue = (obj: any, path: string): any => {
       return values.length > 0 ? values.join('; ') : '-';
     }
     if (parts.length === 3) {
-      // produtos.PIS.vPIS, produtos.COFINS.CST, etc.
       const subObj = parts[1];
       const propName = parts[2];
       const values = obj.produtos.map((p: any) => {
@@ -206,6 +204,36 @@ const getNestedValue = (obj: any, path: string): any => {
       }).filter((v: string) => v !== '');
       return values.length > 0 ? values.join('; ') : '-';
     }
+  }
+
+  // Tratamento para atores que podem vir como array (rems, expeds, recebs) ou objeto (rem, exped, receb)
+  const actorKey = parts[0];
+  const pluralKey = ACTOR_ARRAY_MAP[actorKey];
+  if (pluralKey && parts.length >= 2) {
+    const fieldName = parts.slice(1).join('.');
+    // Tentar objeto singular primeiro
+    if (obj[actorKey] && typeof obj[actorKey] === 'object' && !Array.isArray(obj[actorKey])) {
+      let current: any = obj[actorKey];
+      for (const p of parts.slice(1)) {
+        if (current === null || current === undefined) return '';
+        current = current[p];
+      }
+      return current ?? '';
+    }
+    // Tentar array plural
+    const arr = obj[pluralKey];
+    if (Array.isArray(arr) && arr.length > 0) {
+      const values = arr.map((item: any) => {
+        let current: any = item;
+        for (const p of parts.slice(1)) {
+          if (current === null || current === undefined) return '';
+          current = current[p];
+        }
+        return current !== null && current !== undefined ? String(current) : '';
+      }).filter((v: string) => v !== '');
+      return values.length > 0 ? values.join('; ') : '';
+    }
+    return '';
   }
   
   // Navegação padrão para campos não-produtos
