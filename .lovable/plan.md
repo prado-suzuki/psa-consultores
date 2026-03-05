@@ -1,30 +1,23 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+# Corrigir dropdown "Distribuição de Receita" para usar Centros de Custo
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+## Problema
+O campo "Distribuição de Receita (Centros de Custo)" no modal de cadastro de cliente (`NewClientModal.tsx`) está carregando opções da tabela `empresas_faturamento` ao invés da tabela `centros_custo`. O dropdown mostra nomes de empresas (ex: "PSA CONSULTORES") quando deveria mostrar centros de custo.
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+## Solução
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+**Arquivo:** `src/components/equipe/dev/NewClientModal.tsx`
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+1. **Adicionar query para centros de custo** -- criar uma nova query que busca da tabela `centros_custo` (registros ativos, ordenados por código), retornando `id`, `codigo` e `nome`.
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+2. **Substituir as opções nos dois blocos de "Distribuição de Receita":**
+   - Bloco de edição de contrato (linha ~3370): trocar `EMPRESA_FATURAMENTO_OPTIONS` por opções de `centros_custo`
+   - Bloco de novo contrato (linha ~3746): mesma substituição
+   - O label do item no dropdown passará a mostrar `codigo - nome` do centro de custo
+   - O valor armazenado em `cc.empresa` passará a ser o código ou nome do centro de custo (mantendo compatibilidade com o campo JSON existente)
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+3. **Atualizar placeholder** do `SelectTrigger` de "Empresa / Faturamento" para "Centro de Custo".
+
+Nenhuma alteração de schema é necessária -- a tabela `centros_custo` já existe com os campos `id`, `codigo`, `nome`, `is_active`.
+
