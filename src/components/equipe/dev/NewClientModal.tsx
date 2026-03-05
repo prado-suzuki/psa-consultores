@@ -1141,15 +1141,13 @@ export default function NewClientModal({
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
-        ...(isProductionEnvironment && {
-          empresa_faturamento: clientData.empresa_faturamento,
-          tipo_produto_segmento: produtoFinal || null,
-          tipo_produto_segmento_custom:
-            clientData.tipo_produto_segmento === "__outro__"
-              ? clientData.tipo_produto_segmento_custom.trim() || null
-              : null,
-          regiao: clientData.regiao || null,
-        }),
+        empresa_faturamento: clientData.empresa_faturamento,
+        tipo_produto_segmento: produtoFinal || null,
+        tipo_produto_segmento_custom:
+          clientData.tipo_produto_segmento === "__outro__"
+            ? clientData.tipo_produto_segmento_custom.trim() || null
+            : null,
+        regiao: clientData.regiao || null,
       };
 
       let clienteId: string;
@@ -1198,21 +1196,17 @@ export default function NewClientModal({
           setor: e.setor || null,
           simples_nacional:
             e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
-          ...(isProductionEnvironment
-            ? {
-                telefone: e.telefone || null,
-                nome_fantasia: e.nome_fantasia || null,
-                situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
-                cep: e.cep || null,
-                logradouro: e.logradouro || null,
-                numero: e.numero || null,
-                complemento: e.complemento || null,
-                bairro: e.bairro || null,
-                municipio: e.municipio || null,
-                uf: e.uf || null,
-                contribuinte_faturamento: e.contribuinte_faturamento ?? false,
-              }
-            : {}),
+          telefone: e.telefone || null,
+          nome_fantasia: e.nome_fantasia || null,
+          situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
+          cep: e.cep || null,
+          logradouro: e.logradouro || null,
+          numero: e.numero || null,
+          complemento: e.complemento || null,
+          bairro: e.bairro || null,
+          municipio: e.municipio || null,
+          uf: e.uf || null,
+          contribuinte_faturamento: e.contribuinte_faturamento ?? false,
         }));
         const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
         if (contribError) throw contribError;
@@ -1225,11 +1219,9 @@ export default function NewClientModal({
           cargo: p.cargo || null,
           email: p.email || null,
           telefone: p.telefone || null,
-          ...(isProductionEnvironment && {
-            tipo_participante: p.tipo_participante || null,
-            observacoes: p.observacoes || null,
-            acesso_chamados: p.acesso_chamados ?? false,
-          }),
+          tipo_participante: p.tipo_participante || null,
+          observacoes: p.observacoes || null,
+          acesso_chamados: p.acesso_chamados ?? false,
         }));
         const { error: partError } = await (supabase.from(participanteTable) as any).insert(partPayload);
         if (partError) throw partError;
@@ -1255,9 +1247,16 @@ export default function NewClientModal({
               }
             : {
                 numero_contrato: c.ordem_servico || null,
+                data_emissao: c.data_emissao || null,
                 data_inicio: c.data_inicio_projeto || null,
                 data_fim: c.data_fim_projeto || null,
                 valor_fixo: c.valor_projeto || 0,
+                valor_reembolso_km: c.valor_reembolso_km || 0,
+                valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+                situacao: c.situacao_projeto || "em_andamento",
+                observacoes: c.observacoes_projeto || null,
+                servicos_contratados: c.servicos_contratados || [],
+                centros_custo: c.centros_custo || [],
               }),
         }));
         const { error: osError } = await (supabase.from(ordemServicoTable) as any).insert(osPayload);
@@ -1278,11 +1277,9 @@ export default function NewClientModal({
             categoria: (clienteResult as any).categoria ?? null,
             created_at: clienteResult.created_at,
             updated_at: clienteResult.updated_at,
-            ...(isProductionEnvironment && {
-              empresa_faturamento: clientData.empresa_faturamento,
-              tipo_produto_segmento: (clienteResult as any).tipo_produto_segmento ?? null,
-              regiao: (clienteResult as any).regiao ?? null,
-            }),
+            empresa_faturamento: clientData.empresa_faturamento,
+            tipo_produto_segmento: (clienteResult as any).tipo_produto_segmento ?? null,
+            regiao: (clienteResult as any).regiao ?? null,
           },
         ],
       });
