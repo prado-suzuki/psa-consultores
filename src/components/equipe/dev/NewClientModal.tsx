@@ -1183,7 +1183,17 @@ export default function NewClientModal({
   };
 
   // --- FINAL SAVE ---
-  const handleSave = async () => {
+  const handleSave = () => {
+    const pendingTabs = getDraftPendingTabs();
+    if (pendingTabs.length > 0) {
+      setDraftWarningContext({ action: "save", pendingTabs });
+      setShowDraftWarning(true);
+      return;
+    }
+    executeSave();
+  };
+
+  const executeSave = async () => {
     if (!clientData.nome.trim()) {
       toast.error("Nome do cliente é obrigatório");
       return;
