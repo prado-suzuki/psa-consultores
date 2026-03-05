@@ -106,6 +106,7 @@ export const CTE_COLUMNS: ColumnConfig[] = [
   { id: 'emit.IE', label: 'IE Emitente', group: 'Emitente' },
   { id: 'emit.UF', label: 'UF Emitente', group: 'Emitente' },
   { id: 'emit.cMun', label: 'Cód. Mun. Emitente', group: 'Emitente' },
+  { id: 'emit.xMun', label: 'Município Emitente', group: 'Emitente' },
   // Destinatário
   { id: 'dest.CNPJ', label: 'CNPJ Destinatário', group: 'Destinatário' },
   { id: 'dest.CPF', label: 'CPF Destinatário', group: 'Destinatário' },
@@ -114,6 +115,7 @@ export const CTE_COLUMNS: ColumnConfig[] = [
   { id: 'dest.IE', label: 'IE Destinatário', group: 'Destinatário' },
   { id: 'dest.UF', label: 'UF Destinatário', group: 'Destinatário' },
   { id: 'dest.cMun', label: 'Cód. Mun. Destinatário', group: 'Destinatário' },
+  { id: 'dest.xMun', label: 'Município Destinatário', group: 'Destinatário' },
   { id: 'dest.ISUF', label: 'ISUF Destinatário', group: 'Destinatário' },
   // Remetente
   { id: 'rem.CNPJ', label: 'CNPJ Remetente', group: 'Remetente' },
@@ -123,6 +125,25 @@ export const CTE_COLUMNS: ColumnConfig[] = [
   { id: 'rem.IE', label: 'IE Remetente', group: 'Remetente' },
   { id: 'rem.UF', label: 'UF Remetente', group: 'Remetente' },
   { id: 'rem.cMun', label: 'Cód. Mun. Remetente', group: 'Remetente' },
+  { id: 'rem.xMun', label: 'Município Remetente', group: 'Remetente' },
+  // Expedidor
+  { id: 'exped.CNPJ', label: 'CNPJ Expedidor', group: 'Expedidor' },
+  { id: 'exped.CPF', label: 'CPF Expedidor', group: 'Expedidor' },
+  { id: 'exped.IE', label: 'IE Expedidor', group: 'Expedidor' },
+  { id: 'exped.xNome', label: 'Razão Social Expedidor', group: 'Expedidor' },
+  { id: 'exped.xFant', label: 'Nome Fantasia Expedidor', group: 'Expedidor' },
+  { id: 'exped.UF', label: 'UF Expedidor', group: 'Expedidor' },
+  { id: 'exped.cMun', label: 'Cód. Mun. Expedidor', group: 'Expedidor' },
+  { id: 'exped.xMun', label: 'Município Expedidor', group: 'Expedidor' },
+  // Recebedor
+  { id: 'receb.CNPJ', label: 'CNPJ Recebedor', group: 'Recebedor' },
+  { id: 'receb.CPF', label: 'CPF Recebedor', group: 'Recebedor' },
+  { id: 'receb.IE', label: 'IE Recebedor', group: 'Recebedor' },
+  { id: 'receb.xNome', label: 'Razão Social Recebedor', group: 'Recebedor' },
+  { id: 'receb.xFant', label: 'Nome Fantasia Recebedor', group: 'Recebedor' },
+  { id: 'receb.UF', label: 'UF Recebedor', group: 'Recebedor' },
+  { id: 'receb.cMun', label: 'Cód. Mun. Recebedor', group: 'Recebedor' },
+  { id: 'receb.xMun', label: 'Município Recebedor', group: 'Recebedor' },
   // Tomador
   { id: 'tomador.toma', label: 'Indicador Tomador', group: 'Tomador' },
   { id: 'tomador.CNPJ', label: 'CNPJ Tomador', group: 'Tomador' },
@@ -131,6 +152,7 @@ export const CTE_COLUMNS: ColumnConfig[] = [
   { id: 'tomador.IE', label: 'IE Tomador', group: 'Tomador' },
   { id: 'tomador.UF', label: 'UF Tomador', group: 'Tomador' },
   { id: 'tomador.cMun', label: 'Cód. Mun. Tomador', group: 'Tomador' },
+  { id: 'tomador.xMun', label: 'Município Tomador', group: 'Tomador' },
   // ICMS
   { id: 'icms.CST', label: 'CST ICMS', group: 'ICMS' },
   { id: 'icms.vBC', label: 'Base Cálculo ICMS', group: 'ICMS' },
@@ -175,6 +197,8 @@ export const CTE_COLUMN_GROUPS = [
   'Emitente',
   'Destinatário',
   'Remetente',
+  'Expedidor',
+  'Recebedor',
   'Tomador',
   'ICMS',
   'Info Adicionais',
