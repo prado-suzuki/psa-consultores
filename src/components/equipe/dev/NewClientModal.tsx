@@ -1494,7 +1494,7 @@ export default function NewClientModal({
             <>
               <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+                onValueChange={(v) => handleTabClick(v as typeof activeTab)}
                 className="flex-1 flex flex-col overflow-hidden"
               >
                 {/* Pill Tabs — Stich style */}
