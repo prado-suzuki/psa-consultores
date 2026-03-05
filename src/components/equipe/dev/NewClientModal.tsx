@@ -346,6 +346,12 @@ export default function NewClientModal({
   >("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showDraftWarning, setShowDraftWarning] = useState(false);
+  const [draftWarningContext, setDraftWarningContext] = useState<{
+    action: "save" | "navigate";
+    targetTab?: typeof activeTab;
+    pendingTabs: string[];
+  } | null>(null);
 
   // Inline expand/edit states
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
