@@ -1,30 +1,44 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+# Aviso de dados não adicionados à lista
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+## Problema
+O usuário pode preencher campos em Contribuintes, Participantes ou OS, mas esquecer de clicar "Adicionar à Lista". Os dados do formulário draft são perdidos silenciosamente ao salvar ou navegar entre abas.
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+## Solução
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+**Arquivo:** `src/components/equipe/dev/NewClientModal.tsx`
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+### 1. Criar funções de detecção de draft preenchido
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+Três funções helper que verificam se o draft de cada aba tem dados significativos preenchidos:
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+- `hasDraftEntityData()` — verifica se `draftEntity` tem `nome_razao_social` ou `cpf_cnpj` preenchido
+- `hasDraftParticipantData()` — verifica se `draftParticipant` tem `nome` preenchido
+- `hasDraftContractData()` — verifica se `draftContract` tem `ordem_servico` ou `valor_projeto > 0` preenchido
+
+### 2. Adicionar estado para o modal de aviso
+
+- `showDraftWarning` (boolean) — controla a visibilidade do AlertDialog de aviso
+- `draftWarningContext` — armazena qual ação disparou o aviso (`"save"` ou `"navigate"`) e a aba destino, para continuar a ação após confirmação
+
+### 3. Interceptar `handleSave`
+
+Antes de executar o save, verificar as três funções. Se alguma retornar `true`, exibir um AlertDialog listando quais abas têm dados não adicionados (ex: "Contribuintes, OS"), com opções:
+- **"Voltar e adicionar"** — fecha o alerta e navega para a aba correspondente
+- **"Salvar mesmo assim"** — descarta os drafts e prossegue com o save normal
+
+### 4. Interceptar navegação entre abas (handleNext, handleBack, clique direto na tab)
+
+Ao sair de uma aba que tem draft preenchido, exibir o mesmo aviso com opções:
+- **"Voltar e adicionar"** — cancela a navegação
+- **"Continuar sem adicionar"** — limpa o draft e navega
+
+### 5. AlertDialog de aviso
+
+Reutilizar o componente `AlertDialog` já importado. Mensagem dinâmica indicando quais abas têm dados pendentes.
+
+### Abrangência
+
+Como o `NewClientModal` é compartilhado entre Tax (`FiscalCadastrosClientes` → `GestaoClientesContent`) e a ferramenta de Gestão de Clientes (`GestaoClientes`), a alteração em um único arquivo (`NewClientModal.tsx`) cobre ambas as áreas automaticamente.
+
