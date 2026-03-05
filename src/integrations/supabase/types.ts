@@ -296,12 +296,16 @@ export type Database = {
           ativo: boolean | null
           categoria: string | null
           created_at: string
+          empresa_faturamento: string[] | null
           fixo: string | null
           id: string
           municipio: string | null
           nome: string
+          regiao: string | null
           setor_cliente: string | null
           telefone: string | null
+          tipo_produto_segmento: string | null
+          tipo_produto_segmento_custom: string | null
           uf: string | null
           updated_at: string
         }
@@ -309,12 +313,16 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
+          empresa_faturamento?: string[] | null
           fixo?: string | null
           id?: string
           municipio?: string | null
           nome: string
+          regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
+          tipo_produto_segmento?: string | null
+          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -322,12 +330,16 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
+          empresa_faturamento?: string[] | null
           fixo?: string | null
           id?: string
           municipio?: string | null
           nome?: string
+          regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
+          tipo_produto_segmento?: string | null
+          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -434,39 +446,60 @@ export type Database = {
       contrato_dev: {
         Row: {
           aliquota_contrato: number | null
+          centros_custo: Json | null
           created_at: string | null
+          data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
           id_cliente: string
           id_contrato: string
           numero_contrato: string | null
+          observacoes: string | null
+          servicos_contratados: Json | null
+          situacao: string | null
           tipo_contrato: string | null
           updated_at: string | null
           valor_fixo: number | null
+          valor_reembolso_km: number | null
+          valor_reembolso_refeicao: number | null
         }
         Insert: {
           aliquota_contrato?: number | null
+          centros_custo?: Json | null
           created_at?: string | null
+          data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id_cliente: string
           id_contrato?: string
           numero_contrato?: string | null
+          observacoes?: string | null
+          servicos_contratados?: Json | null
+          situacao?: string | null
           tipo_contrato?: string | null
           updated_at?: string | null
           valor_fixo?: number | null
+          valor_reembolso_km?: number | null
+          valor_reembolso_refeicao?: number | null
         }
         Update: {
           aliquota_contrato?: number | null
+          centros_custo?: Json | null
           created_at?: string | null
+          data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id_cliente?: string
           id_contrato?: string
           numero_contrato?: string | null
+          observacoes?: string | null
+          servicos_contratados?: Json | null
+          situacao?: string | null
           tipo_contrato?: string | null
           updated_at?: string | null
           valor_fixo?: number | null
+          valor_reembolso_km?: number | null
+          valor_reembolso_refeicao?: number | null
         }
         Relationships: [
           {
@@ -587,42 +620,75 @@ export type Database = {
       }
       contribuinte_dev: {
         Row: {
+          bairro: string | null
+          cep: string | null
           cliente_id: string
           cod_cnae: string | null
+          complemento: string | null
+          contribuinte_faturamento: boolean | null
           cpf_cnpj: string | null
           created_at: string
           id: string
           inscricao_estadual: string | null
+          logradouro: string | null
+          municipio: string | null
+          nome_fantasia: string | null
           nome_razao_social: string
+          numero: string | null
           setor: string | null
           simples_nacional: boolean | null
+          situacao_inscricao_estadual: string | null
+          telefone: string | null
           tipo_pessoa: string
+          uf: string | null
           updated_at: string
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
           cliente_id: string
           cod_cnae?: string | null
+          complemento?: string | null
+          contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          nome_fantasia?: string | null
           nome_razao_social: string
+          numero?: string | null
           setor?: string | null
           simples_nacional?: boolean | null
+          situacao_inscricao_estadual?: string | null
+          telefone?: string | null
           tipo_pessoa: string
+          uf?: string | null
           updated_at?: string
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
           cliente_id?: string
           cod_cnae?: string | null
+          complemento?: string | null
+          contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          nome_fantasia?: string | null
           nome_razao_social?: string
+          numero?: string | null
           setor?: string | null
           simples_nacional?: boolean | null
+          situacao_inscricao_estadual?: string | null
+          telefone?: string | null
           tipo_pessoa?: string
+          uf?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1832,33 +1898,42 @@ export type Database = {
       }
       participante_dev: {
         Row: {
+          acesso_chamados: boolean | null
           cargo: string | null
           created_at: string | null
           email: string | null
           id_cliente: string
           id_participante: string
           nome: string
+          observacoes: string | null
           telefone: string | null
+          tipo_participante: string | null
           updated_at: string | null
         }
         Insert: {
+          acesso_chamados?: boolean | null
           cargo?: string | null
           created_at?: string | null
           email?: string | null
           id_cliente: string
           id_participante?: string
           nome: string
+          observacoes?: string | null
           telefone?: string | null
+          tipo_participante?: string | null
           updated_at?: string | null
         }
         Update: {
+          acesso_chamados?: boolean | null
           cargo?: string | null
           created_at?: string | null
           email?: string | null
           id_cliente?: string
           id_participante?: string
           nome?: string
+          observacoes?: string | null
           telefone?: string | null
+          tipo_participante?: string | null
           updated_at?: string | null
         }
         Relationships: [
