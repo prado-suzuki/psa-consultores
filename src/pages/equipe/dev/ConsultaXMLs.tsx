@@ -74,7 +74,7 @@ interface NFeRecord {
 }
 
 // Interfaces CT-e
-interface CTeEmit {
+interface CTeActor {
   CNPJ: string | null;
   CPF: string | null;
   IE: string | null;
@@ -82,17 +82,8 @@ interface CTeEmit {
   xFant: string | null;
   UF: string;
   cMun: number;
-}
-
-interface CTeDest {
-  CNPJ: string | null;
-  CPF: string | null;
-  IE: string | null;
-  xNome: string;
-  xFant: string | null;
-  UF: string;
-  cMun: number;
-  ISUF: string | null;
+  xMun?: string | null;
+  ISUF?: string | null;
 }
 
 interface CTeTomador {
@@ -103,6 +94,7 @@ interface CTeTomador {
   xNome: string;
   UF: string;
   cMun: number;
+  xMun?: string | null;
 }
 
 interface CTeICMS {
@@ -143,17 +135,8 @@ interface CTeRecord {
   vRec: number;
   vCarga: number | null;
   proPred: string | null;
-  emit: CTeEmit;
-  dest: CTeDest;
-  rems: Array<{
-    CNPJ: string | null;
-    CPF: string | null;
-    IE: string | null;
-    xNome: string;
-    xFant: string | null;
-    UF: string;
-    cMun: number;
-  }>;
+  emit: CTeActor;
+  dest: CTeActor;
   tomador: CTeTomador;
   icms: CTeICMS;
   infAdic: {
@@ -162,6 +145,13 @@ interface CTeRecord {
   };
   docs_nfe: string[];
   medidas: CTeMedida[];
+  // Array actors (may come as singular object or plural array)
+  rems?: CTeActor[];
+  rem?: CTeActor;
+  expeds?: CTeActor[];
+  exped?: CTeActor;
+  recebs?: CTeActor[];
+  receb?: CTeActor;
 }
 
 interface NFeApiResponse {
