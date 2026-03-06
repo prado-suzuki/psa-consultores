@@ -981,28 +981,8 @@ export default function NewClientModal({
 
   // --- OS HANDLERS ---
   const addContract = () => {
-    if (!draftContract.ordem_servico.trim()) {
-      toast.error("Número da OS é obrigatório");
-      return;
-    }
-    if (!draftContract.data_emissao) {
-      toast.error("Data de Emissão é obrigatória");
-      return;
-    }
-    if (!draftContract.data_inicio_projeto) {
-      toast.error("Data de Início é obrigatória");
-      return;
-    }
-    if (draftContract.valor_projeto <= 0) {
-      toast.error("Valor do Projeto deve ser maior que zero");
-      return;
-    }
-    if (draftContract.valor_reembolso_km === undefined || draftContract.valor_reembolso_km === null) {
-      toast.error("Reembolso por km é obrigatório (pode ser 0)");
-      return;
-    }
-    if (draftContract.valor_reembolso_refeicao === undefined || draftContract.valor_reembolso_refeicao === null) {
-      toast.error("Reembolso refeição é obrigatório (pode ser 0)");
+    if (draftContract.servicos_contratados.length === 0) {
+      toast.error("Adicione pelo menos um Serviço Contratado");
       return;
     }
 
@@ -3215,7 +3195,7 @@ export default function NewClientModal({
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Ordem de Serviço *
+                                            Ordem de Serviço
                                           </Label>
                                           <Input
                                             value={ec.ordem_servico || ""}
@@ -3227,7 +3207,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Data de Emissão *
+                                            Data de Emissão
                                           </Label>
                                           <div className="mt-1">
                                             <DateFieldWithInput
@@ -3238,7 +3218,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Data Início *
+                                            Data Início
                                           </Label>
                                           <div className="mt-1">
                                             <DateFieldWithInput
@@ -3262,7 +3242,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Valor do Projeto (R$) *
+                                            Valor do Projeto (R$)
                                           </Label>
                                           <div className="mt-1">
                                             <CurrencyField
@@ -3273,7 +3253,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Situação do Projeto *
+                                            Situação do Projeto
                                           </Label>
                                           <div className="mt-1">
                                             <Select
@@ -3297,7 +3277,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Reembolso por KM (R$) *
+                                            Reembolso por KM (R$)
                                           </Label>
                                           <div className="mt-1">
                                             <CurrencyField
@@ -3308,7 +3288,7 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Reembolso Refeição (R$) *
+                                            Reembolso Refeição (R$)
                                           </Label>
                                           <div className="mt-1">
                                             <CurrencyField
@@ -3597,7 +3577,7 @@ export default function NewClientModal({
                               {/* Ordem de Serviço */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Ordem de Serviço *
+                                  Ordem de Serviço
                                 </Label>
                                 <Input
                                   value={draftContract.ordem_servico}
@@ -3611,7 +3591,7 @@ export default function NewClientModal({
                               {/* Data de Emissão */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Data de Emissão *
+                                   Data de Emissão
                                 </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
@@ -3623,7 +3603,7 @@ export default function NewClientModal({
                               {/* Data Início */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Data Início *
+                                   Data Início
                                 </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
@@ -3647,7 +3627,7 @@ export default function NewClientModal({
                               {/* Valor do Projeto */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Valor do Projeto (R$) *
+                                   Valor do Projeto (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
@@ -3659,7 +3639,7 @@ export default function NewClientModal({
                               {/* Situação do Projeto */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Situação do Projeto *
+                                   Situação do Projeto
                                 </Label>
                                 <div className="mt-1">
                                   <Select
@@ -3682,7 +3662,7 @@ export default function NewClientModal({
                               {/* Reembolso por KM */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Reembolso por KM (R$) *
+                                   Reembolso por KM (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
@@ -3694,7 +3674,7 @@ export default function NewClientModal({
                               {/* Reembolso Refeição */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Reembolso Refeição (R$) *
+                                   Reembolso Refeição (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
