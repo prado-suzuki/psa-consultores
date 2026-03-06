@@ -1,30 +1,52 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+# Correção: Projetos e tarefas invisíveis para líderes no Tax
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+## Diagnóstico
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+As políticas RLS atuais de SELECT em `tax_projects` são:
+1. **Admin vê tudo** -- `has_role('admin')`
+2. **Criador vê os próprios** -- `created_by = auth.uid()`
+3. **Membro vê se estiver em tax_project_members** -- `is_project_member(auth.uid(), id)`
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+**Falta uma política para `lider` ver todos os projetos.** Líderes como Felipe, Washington e Ricardo só veem projetos onde são membros explícitos ou criadores.
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+Para `fiscal_tasks`, a política de SELECT para membros exige `is_project_member` mesmo para líderes, limitando a visibilidade.
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+## Correção
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+Uma migration SQL para:
+
+1. **Adicionar política SELECT em `tax_projects`** para `lider` ver todos os projetos
+2. **Atualizar política SELECT em `fiscal_tasks`** para que `lider` veja todas as tarefas (sem exigir membership)
+
+```sql
+-- 1. Líderes veem todos os projetos
+CREATE POLICY "Leaders can view all tax_projects"
+  ON public.tax_projects FOR SELECT
+  TO public
+  USING (has_role(auth.uid(), 'lider'::app_role));
+
+-- 2. Corrigir fiscal_tasks: separar lider da checagem de membership
+DROP POLICY "Members can view their project fiscal_tasks" ON public.fiscal_tasks;
+
+CREATE POLICY "Leaders can view all fiscal_tasks"
+  ON public.fiscal_tasks FOR SELECT
+  TO authenticated
+  USING (has_role(auth.uid(), 'lider'::app_role));
+
+CREATE POLICY "Members can view their project fiscal_tasks"
+  ON public.fiscal_tasks FOR SELECT
+  TO authenticated
+  USING (
+    has_role(auth.uid(), 'team_member'::app_role)
+    AND (project_id IS NULL OR is_project_member(auth.uid(), project_id))
+  );
+```
+
+## Impacto
+- **0 alterações de código** -- apenas RLS
+- Líderes (Felipe, Washington, Ricardo) passarão a ver todos os projetos e tarefas
+- Team members continuam vendo apenas os projetos em que são membros
+- Admins permanecem com visão total
+
