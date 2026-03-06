@@ -98,6 +98,8 @@ const FiscalProjetosCadastro = () => {
   const { logAction } = useAuditLog();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
+  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
@@ -236,10 +238,10 @@ const FiscalProjetosCadastro = () => {
 
   // Fetch external clients
   const { data: externalClients = [] } = useQuery({
-    queryKey: ['external-clients-tax'],
+    queryKey: ['external-clients-tax', clienteTable],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('cliente')
+        .from(clienteTable)
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
         .order('nome');
@@ -250,11 +252,11 @@ const FiscalProjetosCadastro = () => {
 
   // Fetch contribuintes filtered by selected client
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes-for-project', formData.external_client_id],
+    queryKey: ['contribuintes-for-project', contribuinteTable, formData.external_client_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
       const { data, error } = await supabase
-        .from('contribuinte')
+        .from(contribuinteTable)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', formData.external_client_id)
         .order('nome_razao_social');
@@ -314,7 +316,7 @@ const FiscalProjetosCadastro = () => {
 
   // Fetch projects with area join
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['fiscal-projects-tax-area'],
+    queryKey: ['fiscal-projects-tax-area', clienteTable, contribuinteTable],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tax_projects')
@@ -322,13 +324,39 @@ const FiscalProjetosCadastro = () => {
           *,
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          external_client:cliente!tax_projects_external_client_id_fkey(id, nome),
-          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome),
-          contribuinte:contribuinte!tax_projects_contribuinte_id_fkey(id, nome_razao_social)
+          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
         `)
         .order('name');
       if (error) throw error;
-      return data;
+
+      // Resolve external_client and contribuinte names via environment-aware tables
+      const clientIds = [...new Set((data || []).filter(p => p.external_client_id).map(p => p.external_client_id as string))];
+      const contribIds = [...new Set((data || []).filter(p => p.contribuinte_id).map(p => p.contribuinte_id as string))];
+
+      const clientMap: Record<string, string> = {};
+      const contribMap: Record<string, string> = {};
+
+      if (clientIds.length > 0) {
+        const { data: clients } = await supabase
+          .from(clienteTable)
+          .select('id, nome')
+          .in('id', clientIds);
+        (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
+      }
+
+      if (contribIds.length > 0) {
+        const { data: contribs } = await supabase
+          .from(contribuinteTable)
+          .select('id, nome_razao_social')
+          .in('id', contribIds);
+        (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
+      }
+
+      return (data || []).map(p => ({
+        ...p,
+        external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
+        contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
+      }));
     },
   });
 

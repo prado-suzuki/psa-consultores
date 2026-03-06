@@ -49,6 +49,7 @@ import {
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { isProductionEnvironment } from '@/config/api';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -91,6 +92,8 @@ export const TaskModal = ({
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
+  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
+  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const createTask = useCreateFiscalTask();
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
@@ -113,10 +116,10 @@ export const TaskModal = ({
 
   // Fetch clients
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-tasks'],
+    queryKey: ['clients-for-tasks', clienteTable],
     queryFn: async () => {
       const { data } = await supabase
-        .from('cliente')
+        .from(clienteTable)
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
@@ -157,11 +160,11 @@ export const TaskModal = ({
 
   // Fetch contribuintes filtered by selected client
   const { data: contribuintesTask = [] } = useQuery({
-    queryKey: ['contribuintes-for-task', watchedClientId],
+    queryKey: ['contribuintes-for-task', contribuinteTable, watchedClientId],
     queryFn: async () => {
       if (!watchedClientId) return [];
       const { data } = await supabase
-        .from('contribuinte')
+        .from(contribuinteTable)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', watchedClientId)
         .order('nome_razao_social');
