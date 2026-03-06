@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -19,9 +19,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+      console.error('Missing environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey,
+        hasAnonKey: !!supabaseAnonKey,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Erro de configuração do servidor' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
@@ -68,12 +80,61 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Clean up dependent records before deleting auth user
+    // These tables reference profiles.id which references auth.users.id
+    const cleanupTables = [
+      { table: 'user_page_access', column: 'user_id' },
+      { table: 'user_page_access', column: 'granted_by' },
+      { table: 'user_roles', column: 'user_id' },
+      { table: 'estrutura_area_lideres', column: 'user_id' },
+      { table: 'estrutura_equipe_membros', column: 'user_id' },
+      { table: 'daily_standups', column: 'user_id' },
+      { table: 'client_visible_projects', column: 'user_id' },
+      { table: 'deliverable_attachments', column: 'uploaded_by' },
+    ];
+
+    for (const { table, column } of cleanupTables) {
+      const { error } = await supabaseAdmin
+        .from(table)
+        .delete()
+        .eq(column, user_id);
+      
+      if (error) {
+        console.warn(`Warning: Failed to clean ${table}.${column}:`, error.message);
+        // Continue cleanup, don't fail on non-critical tables
+      }
+    }
+
+    // Nullify references that shouldn't cascade delete
+    const nullifyTables = [
+      { table: 'estrutura_equipes', column: 'sublider_id' },
+      { table: 'fiscal_tasks', column: 'assigned_to' },
+      { table: 'fiscal_tasks', column: 'created_by' },
+      { table: 'fiscal_task_comments', column: 'user_id' },
+      { table: 'documents', column: 'uploaded_by' },
+    ];
+
+    for (const { table, column } of nullifyTables) {
+      const { error } = await supabaseAdmin
+        .from(table)
+        .update({ [column]: null })
+        .eq(column, user_id);
+      
+      if (error) {
+        console.warn(`Warning: Failed to nullify ${table}.${column}:`, error.message);
+      }
+    }
+
+    // Delete profile (this should cascade from auth.users, but let's be explicit)
+    await supabaseAdmin.from('profiles').delete().eq('id', user_id);
+
+    // Now delete the auth user
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
       console.error('Delete user error:', deleteError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao excluir usuário' }),
+        JSON.stringify({ error: `Erro ao excluir usuário: ${deleteError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
