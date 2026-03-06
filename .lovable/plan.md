@@ -1,30 +1,36 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+# Botão de exclusão de cliente na tabela de Gestão de Clientes
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+## Problema
+Não há forma de excluir um cliente pela interface. O usuário quer um botão de excluir em cada linha da tabela, com confirmação antes de executar.
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+## Solução
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+**Arquivo:** `src/pages/equipe/dev/GestaoClientes.tsx`
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+### 1. Adicionar coluna "Ações" na tabela
+- Nova `TableHead` no header: "Ações"
+- Nova `TableCell` em cada linha com um botão de ícone `Trash2` (vermelho)
+- O clique no botão de excluir usa `e.stopPropagation()` para não abrir o modal de edição
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+### 2. Estado para controle do AlertDialog
+- `deletingCliente`: armazena `{ id, nome }` do cliente selecionado para exclusão
+- Quando preenchido, exibe o `AlertDialog` de confirmação
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+### 3. AlertDialog de confirmação
+- Título: "Excluir cliente"
+- Descrição: "Tem certeza que deseja excluir o cliente **{nome}**? Esta ação não pode ser desfeita."
+- Botão "Cancelar" e botão "Excluir" (destructive)
+
+### 4. Lógica de exclusão
+- Deletar registros dependentes da tabela de contribuintes (`contribuinteTable`) com `cliente_id` igual ao cliente
+- Deletar registros dependentes das tabelas de contratos/OS vinculadas ao cliente
+- Deletar o cliente da tabela `clienteTable`
+- Invalidar queries e exibir toast de sucesso
+- Respeita a variável `isProductionEnvironment` para apontar às tabelas corretas
+
+### Imports adicionais
+- `Trash2` (já usado em outros lugares do projeto)
+- `AlertDialog` e componentes relacionados
+
