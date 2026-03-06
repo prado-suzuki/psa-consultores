@@ -339,6 +339,18 @@ const FiscalProjetosCadastro = () => {
           .select('id, nome')
           .in('id', clientIds);
         (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
+
+        // Fallback: IDs not found in dev table → try production table
+        if (!isProductionEnvironment) {
+          const missingClientIds = clientIds.filter(id => !clientMap[id]);
+          if (missingClientIds.length > 0) {
+            const { data: fallback } = await supabase
+              .from('cliente')
+              .select('id, nome')
+              .in('id', missingClientIds);
+            (fallback || []).forEach(c => { clientMap[c.id] = c.nome; });
+          }
+        }
       }
 
       if (contribIds.length > 0) {
@@ -347,6 +359,18 @@ const FiscalProjetosCadastro = () => {
           .select('id, nome_razao_social')
           .in('id', contribIds);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
+
+        // Fallback: IDs not found in dev table → try production table
+        if (!isProductionEnvironment) {
+          const missingContribIds = contribIds.filter(id => !contribMap[id]);
+          if (missingContribIds.length > 0) {
+            const { data: fallback } = await supabase
+              .from('contribuinte')
+              .select('id, nome_razao_social')
+              .in('id', missingContribIds);
+            (fallback || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
+          }
+        }
       }
 
       return (data || []).map(p => ({
