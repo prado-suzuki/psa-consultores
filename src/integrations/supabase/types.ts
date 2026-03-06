@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      area_servicos: {
+        Row: {
+          area_id: string
+          id: string
+          servico_id: string
+        }
+        Insert: {
+          area_id: string
+          id?: string
+          servico_id: string
+        }
+        Update: {
+          area_id?: string
+          id?: string
+          servico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_area_categorias_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "tax_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_area_categorias_categoria_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -1383,7 +1416,6 @@ export type Database = {
         Row: {
           assigned_to: string | null
           assigned_to_name: string | null
-          categoria_id: string | null
           category: Database["public"]["Enums"]["fiscal_task_category"]
           client_id: string | null
           contribuinte_id: string | null
@@ -1404,6 +1436,7 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          servico_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["fiscal_task_status"]
           tags: string[] | null
@@ -1413,7 +1446,6 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           assigned_to_name?: string | null
-          categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
           contribuinte_id?: string | null
@@ -1434,6 +1466,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          servico_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
@@ -1443,7 +1476,6 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           assigned_to_name?: string | null
-          categoria_id?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
           client_id?: string | null
           contribuinte_id?: string | null
@@ -1464,6 +1496,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          servico_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
@@ -1487,9 +1520,9 @@ export type Database = {
           },
           {
             foreignKeyName: "fiscal_tasks_categoria_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["servico_id"]
             isOneToOne: false
-            referencedRelation: "tax_categorias"
+            referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
           },
           {
@@ -2559,6 +2592,39 @@ export type Database = {
           },
         ]
       }
+      project_servicos: {
+        Row: {
+          id: string
+          project_id: string
+          servico_id: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          servico_id: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          servico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_project_categorias_categoria_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_project_categorias_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "tax_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_work_packages: {
         Row: {
           area: Database["public"]["Enums"]["work_package_area"]
@@ -2950,6 +3016,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contrato_dev"
             referencedColumns: ["id_contrato"]
+          },
+        ]
+      }
+      servicos_prestados: {
+        Row: {
+          cluster_id: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          cluster_id?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_prestados_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3356,39 +3448,6 @@ export type Database = {
           },
         ]
       }
-      tax_area_categorias: {
-        Row: {
-          area_id: string
-          categoria_id: string
-          id: string
-        }
-        Insert: {
-          area_id: string
-          categoria_id: string
-          id?: string
-        }
-        Update: {
-          area_id?: string
-          categoria_id?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_area_categorias_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "tax_areas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_area_categorias_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "tax_categorias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tax_areas: {
         Row: {
           id: string
@@ -3403,65 +3462,6 @@ export type Database = {
           nome?: string
         }
         Relationships: []
-      }
-      tax_categorias: {
-        Row: {
-          estrutura_area_id: string | null
-          id: string
-          nome: string
-        }
-        Insert: {
-          estrutura_area_id?: string | null
-          id?: string
-          nome: string
-        }
-        Update: {
-          estrutura_area_id?: string | null
-          id?: string
-          nome?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_categorias_estrutura_area_id_fkey"
-            columns: ["estrutura_area_id"]
-            isOneToOne: false
-            referencedRelation: "estrutura_areas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tax_project_categorias: {
-        Row: {
-          categoria_id: string
-          id: string
-          project_id: string
-        }
-        Insert: {
-          categoria_id: string
-          id?: string
-          project_id: string
-        }
-        Update: {
-          categoria_id?: string
-          id?: string
-          project_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_project_categorias_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "tax_categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_project_categorias_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "tax_projects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       tax_project_members: {
         Row: {
