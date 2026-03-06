@@ -482,11 +482,11 @@ export default function NewClientModal({
   });
 
   const { data: catalogServices = [] } = useQuery({
-    queryKey: ["tax_categorias_services"],
+    queryKey: ["servicos_prestados_services"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("tax_categorias")
-        .select("id, nome, estrutura_area_id, estrutura_areas(name)")
+      const { data } = await (supabase
+        .from("servicos_prestados" as any)
+        .select("id, nome, cluster_id, estrutura_clusters(name)") as any)
         .order("nome");
       return data || [];
     },
@@ -3357,28 +3357,28 @@ export default function NewClientModal({
                                               <SelectContent>
                                                 <SelectItem value="__none__">Selecione...</SelectItem>
                                                 {(() => {
-                                                  const withArea = catalogServices.filter((s: any) => s.estrutura_areas?.name);
-                                                  const withoutArea = catalogServices.filter((s: any) => !s.estrutura_areas?.name);
-                                                  const areaGroups = withArea.reduce((acc: Record<string, any[]>, s: any) => {
-                                                    const aName = s.estrutura_areas.name;
-                                                    if (!acc[aName]) acc[aName] = [];
-                                                    acc[aName].push(s);
+                                                  const withCluster = catalogServices.filter((s: any) => s.estrutura_clusters?.name);
+                                                  const withoutCluster = catalogServices.filter((s: any) => !s.estrutura_clusters?.name);
+                                                  const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
+                                                    const cName = s.estrutura_clusters.name;
+                                                    if (!acc[cName]) acc[cName] = [];
+                                                    acc[cName].push(s);
                                                     return acc;
                                                   }, {} as Record<string, any[]>);
                                                   return (
                                                     <>
-                                                      {Object.entries(areaGroups).sort(([a],[b]) => a.localeCompare(b)).map(([areaName, svcs]) => (
-                                                        <SelectGroup key={areaName}>
-                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{areaName}</SelectLabel>
+                                                      {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                                        <SelectGroup key={clusterName}>
+                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
                                                           {(svcs as any[]).map((svc: any) => (
                                                             <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                                           ))}
                                                         </SelectGroup>
                                                       ))}
-                                                      {withoutArea.length > 0 && (
+                                                      {withoutCluster.length > 0 && (
                                                         <SelectGroup>
-                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem área</SelectLabel>
-                                                          {withoutArea.map((svc: any) => (
+                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+                                                          {withoutCluster.map((svc: any) => (
                                                             <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                                           ))}
                                                         </SelectGroup>
@@ -3739,29 +3739,29 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {(() => {
-                                        const withArea = catalogServices.filter((s: any) => s.estrutura_areas?.name);
-                                        const withoutArea = catalogServices.filter((s: any) => !s.estrutura_areas?.name);
-                                        const areaGroups = withArea.reduce((acc: Record<string, any[]>, s: any) => {
-                                          const aName = s.estrutura_areas.name;
-                                          if (!acc[aName]) acc[aName] = [];
-                                          acc[aName].push(s);
+                                       {(() => {
+                                        const withCluster = catalogServices.filter((s: any) => s.estrutura_clusters?.name);
+                                        const withoutCluster = catalogServices.filter((s: any) => !s.estrutura_clusters?.name);
+                                        const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
+                                          const cName = s.estrutura_clusters.name;
+                                          if (!acc[cName]) acc[cName] = [];
+                                          acc[cName].push(s);
                                           return acc;
                                         }, {} as Record<string, any[]>);
                                         return (
                                           <>
-                                            {Object.entries(areaGroups).sort(([a],[b]) => a.localeCompare(b)).map(([areaName, svcs]) => (
-                                              <SelectGroup key={areaName}>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">{areaName}</SelectLabel>
+                                            {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                              <SelectGroup key={clusterName}>
+                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
                                                 {(svcs as any[]).map((svc: any) => (
                                                   <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                                 ))}
                                               </SelectGroup>
                                             ))}
-                                            {withoutArea.length > 0 && (
+                                            {withoutCluster.length > 0 && (
                                               <SelectGroup>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem área</SelectLabel>
-                                                {withoutArea.map((svc: any) => (
+                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+                                                {withoutCluster.map((svc: any) => (
                                                   <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                                 ))}
                                               </SelectGroup>

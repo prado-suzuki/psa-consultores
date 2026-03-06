@@ -66,7 +66,7 @@ const taskSchema = z.object({
   parent_task_id: z.string().optional(),
   project_id: z.string().min(1, 'Projeto é obrigatório'),
   client_id: z.string().optional(),
-  categoria_id: z.string().optional(),
+  servico_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0').optional().or(z.literal('')),
   tags: z.array(z.string()).optional(),
@@ -186,17 +186,16 @@ export const TaskModal = ({
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
     : parentTasks;
 
-  // Fetch categories linked to the selected project
+  // Fetch servicos linked to the selected project
   const { data: categorias = [] } = useQuery({
-    queryKey: ['fiscal-task-categorias', watchedProjectId],
+    queryKey: ['fiscal-task-servicos', watchedProjectId],
     queryFn: async () => {
       if (!watchedProjectId) return [];
-      const { data } = await supabase
-        .from('tax_project_categorias')
-        .select('categoria_id, categoria:tax_categorias(id, nome)')
+      const { data } = await (supabase.from('project_servicos' as any) as any)
+        .select('servico_id, servico:servicos_prestados(id, nome)')
         .eq('project_id', watchedProjectId);
       return (data || [])
-        .map((r: any) => r.categoria)
+        .map((r: any) => r.servico)
         .filter(Boolean) as { id: string; nome: string }[];
     },
     enabled: open && !!watchedProjectId,
@@ -212,8 +211,8 @@ export const TaskModal = ({
     if (prevProjectIdRef.current === watchedProjectId) return;
     prevProjectIdRef.current = watchedProjectId;
 
-    if (form.getValues('categoria_id') !== undefined) {
-      form.setValue('categoria_id', undefined);
+    if (form.getValues('servico_id') !== undefined) {
+      form.setValue('servico_id', undefined);
     }
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
@@ -251,7 +250,7 @@ export const TaskModal = ({
         parent_task_id: task.parent_task_id || undefined,
         project_id: task.project_id || '',
         client_id: task.client_id || undefined,
-        categoria_id: task.categoria_id || undefined,
+        servico_id: task.servico_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
         tags: task.tags || [],
@@ -276,7 +275,7 @@ export const TaskModal = ({
           parent_task_id: defaultParentId || undefined,
           project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
-          categoria_id: undefined,
+          servico_id: undefined,
           tags: [],
         });
       }
@@ -311,7 +310,7 @@ export const TaskModal = ({
       parent_task_id: values.parent_task_id,
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
-      categoria_id: values.categoria_id || undefined,
+      servico_id: values.servico_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
       tags: values.tags && values.tags.length > 0 ? values.tags : undefined,
@@ -444,25 +443,25 @@ export const TaskModal = ({
               )}
             />
 
-            {/* 2. Categoria (condicional) */}
+            {/* 2. Serviço (condicional) */}
             {watchedProjectId && (
               <FormField
                 control={form.control}
-                name="categoria_id"
+                name="servico_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoria</FormLabel>
+                    <FormLabel>Serviço</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
                       value={field.value || '_none'}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a categoria" />
+                          <SelectValue placeholder="Selecione o serviço" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="_none">Nenhuma</SelectItem>
+                        <SelectItem value="_none">Nenhum</SelectItem>
                         {categorias.map((c) => (
                           <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                         ))}
