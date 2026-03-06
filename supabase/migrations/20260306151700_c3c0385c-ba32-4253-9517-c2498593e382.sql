@@ -1,0 +1,1 @@
+ALTER TABLE public.tax_projects ADD CONSTRAINT tax_projects_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.estrutura_areas(id);
