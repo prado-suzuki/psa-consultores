@@ -1,30 +1,43 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+## Diagnóstico
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+Confirmado: **nenhum** `area_id` nos `tax_projects` corresponde a IDs válidos em `tax_areas`. Todos apontam para `estrutura_areas`:
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+| estrutura_areas ID | Nome | tax_areas ID correspondente |
+|---|---|---|
+| `fd2eab19...` | Fixos | `7089d134...` (Fixos) |
+| `201bb999...` | Levantamento de Crédito | `55448e04...` (Levantamento de Credito) |
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+São 11 projetos afetados (7 Fixos, 4 Levantamento de Crédito).
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+## Plano de Execução
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+### 1. Migration SQL (única)
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+Passos na migration:
+
+1. **Migrar os dados** — UPDATE `tax_projects` para substituir os IDs de `estrutura_areas` pelos IDs correspondentes em `tax_areas` (match por nome)
+2. **DROP** a FK `tax_projects_area_id_fkey`
+3. **Recriar FK** `tax_projects.area_id → tax_areas(id) ON DELETE SET NULL`
+
+```sql
+-- Step 1: Remap area_id values
+UPDATE tax_projects SET area_id = '7089d134-5874-4061-a860-05376aa8e02a'
+WHERE area_id = 'fd2eab19-e37e-4ddb-9570-5e839d3bfe5e';
+
+UPDATE tax_projects SET area_id = '55448e04-d9ea-4fd7-bde8-7396fdb01376'
+WHERE area_id = '201bb999-85c8-437b-bd44-201720833cda';
+
+-- Step 2: Drop old FK
+ALTER TABLE tax_projects DROP CONSTRAINT tax_projects_area_id_fkey;
+
+-- Step 3: Create correct FK
+ALTER TABLE tax_projects ADD CONSTRAINT tax_projects_area_id_fkey
+  FOREIGN KEY (area_id) REFERENCES tax_areas(id) ON DELETE SET NULL;
+```
+
+### 2. Código — sem alterações
+
+O frontend (`FiscalProjetosCadastro.tsx`) já usa `tax_areas!tax_projects_area_id_fkey` no join. Após a migration, o join será válido e os projetos aparecerão corretamente.
+
