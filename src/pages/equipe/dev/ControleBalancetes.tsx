@@ -20,6 +20,7 @@ import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Load
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface Balancete {
   id: string;
@@ -220,7 +221,7 @@ const ControleBalancetes = () => {
           <div className="grid grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Cliente</Label>
+              <Label className="text-sm font-medium text-slate-600">Cliente <RequiredMark /></Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
                 <SelectTrigger className="h-11 rounded-lg border-slate-200">
                   <SelectValue placeholder="Selecione o cliente" />
