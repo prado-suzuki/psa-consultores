@@ -1,1 +1,0 @@
-ALTER TABLE public.tax_projects DROP CONSTRAINT tax_projects_area_id_fkey;
