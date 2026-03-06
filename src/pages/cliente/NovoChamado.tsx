@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, X } from 'lucide-react';
 import { z } from 'zod';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const ticketSchema = z.object({
   title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres').max(100, 'Título deve ter no máximo 100 caracteres'),
@@ -164,7 +165,7 @@ export default function NovoChamado() {
 
           <form onSubmit={handleSubmit} className="space-y-6 bg-background p-8 rounded-lg shadow-sm">
             <div className="space-y-2">
-              <Label htmlFor="title">Título do Chamado *</Label>
+              <Label htmlFor="title">Título do Chamado <RequiredMark /></Label>
               <Input
                 id="title"
                 placeholder="Descreva brevemente o assunto"
@@ -178,7 +179,7 @@ export default function NovoChamado() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Departamento * (Para qual área é sua dúvida?)</Label>
+              <Label htmlFor="department">Departamento <RequiredMark /> (Para qual área é sua dúvida?)</Label>
               <Select 
                 value={form.department} 
                 onValueChange={(value) => setForm({ ...form, department: value })}
@@ -201,7 +202,7 @@ export default function NovoChamado() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="priority">Prioridade *</Label>
+              <Label htmlFor="priority">Prioridade <RequiredMark /></Label>
               <Select value={form.priority} onValueChange={(value) => setForm({ ...form, priority: value })}>
                 <SelectTrigger>
                   <SelectValue />
@@ -216,7 +217,7 @@ export default function NovoChamado() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição Detalhada *</Label>
+              <Label htmlFor="description">Descrição Detalhada <RequiredMark /></Label>
               <Textarea
                 id="description"
                 placeholder="Descreva seu problema ou solicitação com o máximo de detalhes possível"

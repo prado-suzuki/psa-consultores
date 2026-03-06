@@ -8,6 +8,7 @@ import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logo from '@/assets/logo-psa.png';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const resetSchema = z.object({
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
@@ -116,7 +117,7 @@ export default function ResetPassword() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="new-password" className="text-gray-300">Nova Senha</Label>
+            <Label htmlFor="new-password" className="text-gray-300">Nova Senha <RequiredMark /></Label>
             <div className="relative">
               <Input
                 id="new-password"
@@ -138,7 +139,7 @@ export default function ResetPassword() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-password" className="text-gray-300">Confirmar Senha</Label>
+            <Label htmlFor="confirm-password" className="text-gray-300">Confirmar Senha <RequiredMark /></Label>
             <Input
               id="confirm-password"
               type={showPassword ? 'text' : 'password'}

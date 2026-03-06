@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const situacaoSchema = z.object({
   nr_proc_per: z.string().min(1, 'PER é obrigatório'),
@@ -211,7 +212,7 @@ export function SituacaoFormModal({
               name="nr_proc_per"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>PER</FormLabel>
+                  <FormLabel>PER <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -236,7 +237,7 @@ export function SituacaoFormModal({
               name="situacao"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Situação</FormLabel>
+                  <FormLabel>Situação <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>

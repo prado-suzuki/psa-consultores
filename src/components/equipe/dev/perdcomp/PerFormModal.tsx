@@ -44,6 +44,7 @@ import { Loader2, CalendarIcon, Search } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { RequiredMark } from '@/components/ui/required-mark';
 import {
   Command,
   CommandEmpty,
@@ -448,7 +449,7 @@ export function PerFormModal({
               name="id_contribuinte"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contribuinte</FormLabel>
+                  <FormLabel>Contribuinte <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -553,7 +554,7 @@ export function PerFormModal({
               name="numero_processo_per"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número do Processo</FormLabel>
+                  <FormLabel>Número do Processo <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -579,7 +580,7 @@ export function PerFormModal({
                 name="exercicio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Exercício</FormLabel>
+                    <FormLabel>Exercício <RequiredMark /></FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -593,7 +594,7 @@ export function PerFormModal({
                 name="tri_exercicio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trimestre</FormLabel>
+                    <FormLabel>Trimestre <RequiredMark /></FormLabel>
                     <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                       <FormControl>
                         <SelectTrigger>
@@ -623,7 +624,7 @@ export function PerFormModal({
                 
                 return (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Data Solicitada</FormLabel>
+                    <FormLabel>Data Solicitada <RequiredMark /></FormLabel>
                     <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -671,7 +672,7 @@ export function PerFormModal({
               name="tp_credito"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Crédito</FormLabel>
+                  <FormLabel>Tipo de Crédito <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -693,7 +694,7 @@ export function PerFormModal({
               name="vlr_credito"
               render={() => (
                 <FormItem>
-                  <FormLabel>Valor do Crédito</FormLabel>
+                  <FormLabel>Valor do Crédito <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input
                       value={currencyDisplay}
