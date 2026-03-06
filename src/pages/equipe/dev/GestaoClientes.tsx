@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import NewClientModal from "@/components/equipe/dev/NewClientModal";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
