@@ -3552,6 +3552,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tax_projects_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tax_projects_contribuinte_id_fkey"
             columns: ["contribuinte_id"]
             isOneToOne: false
