@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Upload, X, FileText } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface Profile {
   id: string;
@@ -228,7 +229,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="client" className="text-slate-700">Cliente *</Label>
+            <Label htmlFor="client" className="text-slate-700">Cliente <RequiredMark /></Label>
             <Select
               value={formData.user_id}
               onValueChange={(v) => setFormData({ ...formData, user_id: v })}
@@ -247,7 +248,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-slate-700">Título *</Label>
+            <Label htmlFor="title" className="text-slate-700">Título <RequiredMark /></Label>
             <Input
               id="title"
               value={formData.title}
@@ -258,7 +259,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-700">Descrição *</Label>
+            <Label htmlFor="description" className="text-slate-700">Descrição <RequiredMark /></Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -271,7 +272,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-700">Departamento *</Label>
+              <Label className="text-slate-700">Departamento <RequiredMark /></Label>
               <Select
                 value={formData.department}
                 onValueChange={(v) => setFormData({ ...formData, department: v })}

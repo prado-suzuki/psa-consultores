@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
  import { Plus, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface Sprint {
   id: string;
@@ -465,7 +466,7 @@ const EquipeSprints = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-700">Nome da Sprint *</Label>
+                <Label htmlFor="name" className="text-gray-700">Nome da Sprint <RequiredMark /></Label>
                 <Input
                   id="name"
                   value={newSprint.name}
@@ -487,7 +488,7 @@ const EquipeSprints = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start_date" className="text-gray-700">Data Início *</Label>
+                  <Label htmlFor="start_date" className="text-gray-700">Data Início <RequiredMark /></Label>
                   <Input
                     id="start_date"
                     type="date"
@@ -498,7 +499,7 @@ const EquipeSprints = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="end_date" className="text-gray-700">Data Fim *</Label>
+                  <Label htmlFor="end_date" className="text-gray-700">Data Fim <RequiredMark /></Label>
                   <Input
                     id="end_date"
                     type="date"

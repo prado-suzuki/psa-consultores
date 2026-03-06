@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface JobRole {
   id: string;
@@ -291,7 +292,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Nome do Processo *</Label>
+              <Label>Nome do Processo <RequiredMark /></Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}

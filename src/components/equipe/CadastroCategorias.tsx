@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 /* ── Produto / Segmento (produto_segmento) ───────────────────── */
 
@@ -124,8 +125,8 @@ function ProdutoSegmentoTab() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editId ? 'Editar Produto/Segmento' : 'Novo Produto/Segmento'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Código</Label><Input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Ex: ASO" maxLength={10} className="font-mono uppercase" /></div>
-            <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Auditoria Pessoa Jurídica" /></div>
+            <div><Label>Código <RequiredMark /></Label><Input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Ex: ASO" maxLength={10} className="font-mono uppercase" /></div>
+            <div><Label>Nome <RequiredMark /></Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Auditoria Pessoa Jurídica" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -270,7 +271,7 @@ function ServicosTab() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editId ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
+            <div><Label>Nome <RequiredMark /></Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
             <div>
               <Label>Cluster</Label>
               <Select value={clusterId || "none"} onValueChange={(v) => setClusterId(v === "none" ? "" : v)}>
@@ -404,8 +405,8 @@ function CentroCustoTab() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editId ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Código</Label><Input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Ex: CC-001" maxLength={20} className="font-mono uppercase" /></div>
-            <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Tributário SP" /></div>
+            <div><Label>Código <RequiredMark /></Label><Input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Ex: CC-001" maxLength={20} className="font-mono uppercase" /></div>
+            <div><Label>Nome <RequiredMark /></Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Tributário SP" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -542,7 +543,7 @@ function EmpresaFaturamentoTab() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editId ? 'Editar Empresa' : 'Nova Empresa'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nome *</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: PSA Consultores" /></div>
+            <div><Label>Nome <RequiredMark /></Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: PSA Consultores" /></div>
             <div><Label>CNPJ</Label><Input value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="Ex: 00.000.000/0001-00" /></div>
             <div>
               <Label>Centro de Custo</Label>

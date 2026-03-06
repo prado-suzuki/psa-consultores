@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { useToast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface TeamMember {
   id: string;
@@ -122,7 +123,7 @@ const EquipeRotinas = () => {
             </DialogHeader>
             <form onSubmit={handleCreateRoutine} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="routine-title">Título *</Label>
+                <Label htmlFor="routine-title">Título <RequiredMark /></Label>
                 <Input
                   id="routine-title"
                   placeholder="Nome da rotina"

@@ -24,6 +24,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface Task {
   id: string;
@@ -403,7 +404,7 @@ const EquipeTarefas = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Título *</Label>
+                  <Label className="text-gray-700">Título <RequiredMark /></Label>
                   <Input
                     value={editTask.title}
                     onChange={(e) => setEditTask({ ...editTask, title: e.target.value })}
