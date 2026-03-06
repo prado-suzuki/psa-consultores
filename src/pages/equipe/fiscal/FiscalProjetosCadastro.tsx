@@ -119,17 +119,16 @@ const FiscalProjetosCadastro = () => {
     member_ids: [] as string[],
   });
 
-  // Fetch estrutura_areas (replacing tax_areas)
+  // Fetch tax_areas (FK correta para tax_projects.area_id)
   const { data: taxAreas = [] } = useQuery({
-    queryKey: ['estrutura-areas-for-projects'],
+    queryKey: ['tax-areas-for-projects'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('estrutura_areas')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
+        .from('tax_areas')
+        .select('id, nome')
+        .order('nome');
       if (error) throw error;
-      return (data || []).map(a => ({ id: a.id, nome: a.name })) as TaxArea[];
+      return data as TaxArea[];
     },
   });
 
