@@ -370,7 +370,7 @@ function CentroCustoTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-24">Código</TableHead>
+              <TableHead className="w-40">Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead className="w-24">Status</TableHead>
               <TableHead className="w-24">Ações</TableHead>
