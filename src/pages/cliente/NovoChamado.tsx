@@ -89,7 +89,6 @@ export default function NovoChamado() {
       ticketSchema.parse(form);
       setLoading(true);
 
-      // TODO: remover assigned_to hardcoded após testes
       const { data: ticketData, error } = await supabase.from('tickets').insert({
         user_id: user?.id,
         title: form.title,
@@ -97,7 +96,6 @@ export default function NovoChamado() {
         description: form.description,
         priority: form.priority,
         status: 'aberto',
-        assigned_to: '0a58af80-e2d4-4a7d-bbd1-0a532b71e3e6', // alexandre.silva@psaconsultores.com.br (teste)
       }).select().single();
 
       if (error) throw error;
