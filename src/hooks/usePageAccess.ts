@@ -15,7 +15,7 @@ export function usePageAccess(pagePath: string) {
   const { user, isAdmin, isTeamMember, loading: authLoading } = useAuth();
 
   const { data: hasAccess, isLoading } = useQuery({
-    queryKey: ['page-access', user?.id, pagePath],
+    queryKey: ['page-access', user?.id, pagePath, isAdmin, isTeamMember],
     queryFn: async () => {
       if (!user) return false;
       if (isAdmin) return true;
