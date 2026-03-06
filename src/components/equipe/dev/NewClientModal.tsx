@@ -981,28 +981,8 @@ export default function NewClientModal({
 
   // --- OS HANDLERS ---
   const addContract = () => {
-    if (!draftContract.ordem_servico.trim()) {
-      toast.error("Número da OS é obrigatório");
-      return;
-    }
-    if (!draftContract.data_emissao) {
-      toast.error("Data de Emissão é obrigatória");
-      return;
-    }
-    if (!draftContract.data_inicio_projeto) {
-      toast.error("Data de Início é obrigatória");
-      return;
-    }
-    if (draftContract.valor_projeto <= 0) {
-      toast.error("Valor do Projeto deve ser maior que zero");
-      return;
-    }
-    if (draftContract.valor_reembolso_km === undefined || draftContract.valor_reembolso_km === null) {
-      toast.error("Reembolso por km é obrigatório (pode ser 0)");
-      return;
-    }
-    if (draftContract.valor_reembolso_refeicao === undefined || draftContract.valor_reembolso_refeicao === null) {
-      toast.error("Reembolso refeição é obrigatório (pode ser 0)");
+    if (draftContract.servicos_contratados.length === 0) {
+      toast.error("Adicione pelo menos um Serviço Contratado");
       return;
     }
 
