@@ -112,11 +112,11 @@ function useLookupMaps(): LookupMaps {
     },
   });
 
-  const { data: categorias = {} } = useQuery({
-    queryKey: ['audit-lookup-categorias'],
+  const { data: servicos = {} } = useQuery({
+    queryKey: ['audit-lookup-servicos'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('tax_categorias' as any)
+        .from('servicos_prestados' as any)
         .select('id, nome');
       return buildMap((data as any[])?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
@@ -132,7 +132,7 @@ function useLookupMaps(): LookupMaps {
     },
   });
 
-  return { profiles, projects, areas, clients, contribuintes, categorias, tasks };
+  return { profiles, projects, areas, clients, contribuintes, servicos, tasks };
 }
 
 export const AuditLogTable = ({ area }: AuditLogTableProps) => {

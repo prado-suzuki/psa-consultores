@@ -91,7 +91,7 @@ interface TaxCategoria {
 interface TaxAreaCategoria {
   id: string;
   area_id: string;
-  categoria_id: string;
+  servico_id: string;
 }
 
 const FiscalProjetosCadastro = () => {
@@ -132,12 +132,11 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch tax_categorias
+  // Fetch servicos_prestados
   const { data: taxCategorias = [] } = useQuery({
-    queryKey: ['tax-categorias'],
+    queryKey: ['servicos-prestados'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tax_categorias')
+      const { data, error } = await (supabase.from('servicos_prestados' as any) as any)
         .select('id, nome')
         .order('nome');
       if (error) throw error;
@@ -163,13 +162,12 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch tax_area_categorias (links)
+  // Fetch area_servicos (links)
   const { data: areaCategoryLinks = [] } = useQuery({
-    queryKey: ['tax-area-categorias'],
+    queryKey: ['area-servicos'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tax_area_categorias')
-        .select('id, area_id, categoria_id');
+      const { data, error } = await (supabase.from('area_servicos' as any) as any)
+        .select('id, area_id, servico_id');
       if (error) throw error;
       return data as TaxAreaCategoria[];
     },
@@ -374,17 +372,16 @@ const FiscalProjetosCadastro = () => {
     enabled: !!editingProject?.id,
   });
 
-  // Fetch project categories when editing
+  // Fetch project servicos when editing
   const { data: currentProjectCategories = [] } = useQuery({
-    queryKey: ['tax-project-categorias', editingProject?.id],
+    queryKey: ['project-servicos', editingProject?.id],
     queryFn: async () => {
       if (!editingProject?.id) return [];
-      const { data, error } = await supabase
-        .from('tax_project_categorias')
-        .select('categoria_id')
+      const { data, error } = await (supabase.from('project_servicos' as any) as any)
+        .select('servico_id')
         .eq('project_id', editingProject.id);
       if (error) throw error;
-      return data;
+      return data as { servico_id: string }[];
     },
     enabled: !!editingProject?.id,
   });
@@ -397,7 +394,7 @@ const FiscalProjetosCadastro = () => {
     if (!formData.area_id) return [];
     const validCategoryIds = areaCategoryLinks
       .filter(link => link.area_id === formData.area_id)
-      .map(link => link.categoria_id);
+      .map(link => link.servico_id);
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
 
@@ -435,7 +432,7 @@ const FiscalProjetosCadastro = () => {
   // When editing, load current categories into form
   useEffect(() => {
     if (editingProject && currentProjectCategories.length > 0) {
-      const catIds = currentProjectCategories.map(c => c.categoria_id);
+      const catIds = currentProjectCategories.map((c: any) => c.servico_id);
       setFormData(prev => ({ ...prev, category_ids: catIds }));
     }
   }, [editingProject, currentProjectCategories]);
@@ -458,13 +455,13 @@ const FiscalProjetosCadastro = () => {
       }).select('id').single();
       if (error) throw error;
 
-      // Insert project categories
+      // Insert project servicos
       if (data.category_ids.length > 0) {
         const categoryRows = data.category_ids.map(catId => ({
           project_id: project.id,
-          categoria_id: catId,
+          servico_id: catId,
         }));
-        const { error: catError } = await supabase.from('tax_project_categorias').insert(categoryRows);
+        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(categoryRows);
         if (catError) throw catError;
       }
 
@@ -525,7 +522,7 @@ const FiscalProjetosCadastro = () => {
           if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
         }
         // Compare category_ids arrays
-        const oldCatIds = currentProjectCategories.map(c => c.categoria_id).sort();
+        const oldCatIds = currentProjectCategories.map((c: any) => c.servico_id).sort();
         const newCatIds = [...data.category_ids].sort();
         if (JSON.stringify(oldCatIds) !== JSON.stringify(newCatIds)) {
           changedFields.category_ids = { old: oldCatIds, new: newCatIds };
@@ -559,14 +556,14 @@ const FiscalProjetosCadastro = () => {
         .eq('id', id);
       if (error) throw error;
 
-      // Replace project categories: delete all, re-insert
-      await supabase.from('tax_project_categorias').delete().eq('project_id', id);
+      // Replace project servicos: delete all, re-insert
+      await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id);
       if (data.category_ids.length > 0) {
         const categoryRows = data.category_ids.map(catId => ({
           project_id: id,
-          categoria_id: catId,
+          servico_id: catId,
         }));
-        const { error: catError } = await supabase.from('tax_project_categorias').insert(categoryRows);
+        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(categoryRows);
         if (catError) throw catError;
       }
 

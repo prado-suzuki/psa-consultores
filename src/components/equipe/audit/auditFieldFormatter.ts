@@ -24,7 +24,7 @@ const FIELD_LABELS: Record<string, string> = {
   external_client_id: 'Cliente Externo',
   contribuinte_id: 'Contribuinte',
   parent_task_id: 'Tarefa Pai',
-  categoria_id: 'Categoria do Projeto',
+  servico_id: 'Serviço Prestado',
   is_recurring: 'Recorrente',
   recurrence_type: 'Tipo de Recorrência',
   department: 'Departamento',
@@ -90,7 +90,7 @@ const UUID_FIELDS: Record<string, string> = {
   client_id: 'clients',
   external_client_id: 'clients',
   contribuinte_id: 'contribuintes',
-  categoria_id: 'categorias',
+  servico_id: 'servicos',
   parent_task_id: 'tasks',
   performed_by: 'profiles',
 };
@@ -98,7 +98,7 @@ const UUID_FIELDS: Record<string, string> = {
 // Fields whose array values contain UUIDs to resolve
 const UUID_ARRAY_FIELDS: Record<string, string> = {
   member_ids: 'profiles',
-  category_ids: 'categorias',
+  category_ids: 'servicos',
 };
 
 // Fields that contain dates
@@ -122,7 +122,7 @@ export interface LookupMaps {
   areas: Record<string, string>;
   clients: Record<string, string>;
   contribuintes: Record<string, string>;
-  categorias: Record<string, string>;
+  servicos: Record<string, string>;
   tasks: Record<string, string>;
 }
 
