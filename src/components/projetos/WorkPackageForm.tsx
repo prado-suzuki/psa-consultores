@@ -35,6 +35,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { RequiredMark } from '@/components/ui/required-mark';
 import {
   STATUS_CONFIG,
   TYPE_CONFIG,
@@ -251,7 +252,7 @@ export function WorkPackageForm({
               rules={{ required: 'Título é obrigatório' }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Título *</FormLabel>
+                  <FormLabel>Título <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input placeholder="Digite o título..." {...field} />
                   </FormControl>
@@ -286,7 +287,7 @@ export function WorkPackageForm({
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo *</FormLabel>
+                    <FormLabel>Tipo <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -312,7 +313,7 @@ export function WorkPackageForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status *</FormLabel>
+                    <FormLabel>Status <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -338,7 +339,7 @@ export function WorkPackageForm({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prioridade *</FormLabel>
+                    <FormLabel>Prioridade <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -364,7 +365,7 @@ export function WorkPackageForm({
                 name="area"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Área *</FormLabel>
+                    <FormLabel>Área <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>

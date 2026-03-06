@@ -50,6 +50,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -389,7 +390,7 @@ export const TaskModal = ({
                 name="project_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Projeto <span className="text-destructive">*</span></FormLabel>
+                    <FormLabel>Projeto <RequiredMark /></FormLabel>
                     <Select 
                       onValueChange={(v) => field.onChange(v === '_none' ? '' : v)} 
                       value={field.value || '_none'}
@@ -479,7 +480,7 @@ export const TaskModal = ({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Título *</FormLabel>
+                  <FormLabel>Título <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input placeholder="Título da tarefa" {...field} />
                   </FormControl>
@@ -514,7 +515,7 @@ export const TaskModal = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>Status <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -540,7 +541,7 @@ export const TaskModal = ({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prioridade</FormLabel>
+                    <FormLabel>Prioridade <RequiredMark /></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>

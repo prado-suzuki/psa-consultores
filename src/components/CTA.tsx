@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Nome é obrigatório"),
@@ -99,7 +100,7 @@ export const CTA = () => {
                     <FormItem>
                       <FormControl>
                         <Input 
-                          placeholder="Seu nome" 
+                          placeholder="Seu nome *" 
                           className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                           {...field} 
                         />
@@ -118,7 +119,7 @@ export const CTA = () => {
                         <FormControl>
                           <Input 
                             type="email" 
-                            placeholder="Email" 
+                            placeholder="Email *" 
                             className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                             {...field} 
                           />
@@ -135,7 +136,7 @@ export const CTA = () => {
                         <FormControl>
                           <Input 
                             type="tel" 
-                            placeholder="Telefone" 
+                            placeholder="Telefone *" 
                             className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                             {...field} 
                           />
@@ -153,7 +154,7 @@ export const CTA = () => {
                     <FormItem>
                       <FormControl>
                         <Textarea 
-                          placeholder="Sua mensagem" 
+                          placeholder="Sua mensagem *" 
                           className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 min-h-[120px]"
                           {...field} 
                         />

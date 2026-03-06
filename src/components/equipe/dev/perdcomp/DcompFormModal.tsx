@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 // Normaliza o formato de mês/ano para o banco de dados (YYYY-MM -> YYYY-MM-01)
 const normalizeMesAno = (value: string): string => {
@@ -284,7 +285,7 @@ export function DcompFormModal({
               name="nr_documento"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número do Documento</FormLabel>
+                  <FormLabel>Número do Documento <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -306,7 +307,7 @@ export function DcompFormModal({
               name="nr_per_orig"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>PER de Origem</FormLabel>
+                  <FormLabel>PER de Origem <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -363,7 +364,7 @@ export function DcompFormModal({
               name="mes_ano_exercicio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mês/Ano Exercício</FormLabel>
+                  <FormLabel>Mês/Ano Exercício <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input type="month" {...field} />
                   </FormControl>
@@ -377,7 +378,7 @@ export function DcompFormModal({
               name="dt_envio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data de Envio</FormLabel>
+                  <FormLabel>Data de Envio <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -391,7 +392,7 @@ export function DcompFormModal({
               name="imposto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imposto</FormLabel>
+                  <FormLabel>Imposto <RequiredMark /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -419,7 +420,7 @@ export function DcompFormModal({
               name="vlr_compensado"
               render={() => (
                 <FormItem>
-                  <FormLabel>Valor Compensado (R$)</FormLabel>
+                  <FormLabel>Valor Compensado (R$) <RequiredMark /></FormLabel>
                   <FormControl>
                     <Input
                       type="text"

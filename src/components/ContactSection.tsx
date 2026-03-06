@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import logoPsa from "@/assets/logo-psa.png";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 const servicoOptions = [
   { value: "consultoria_tributaria", label: "Consultoria Tributária" },
@@ -213,7 +214,7 @@ export const ContactSection = () => {
               {/* Nome */}
               <div className="space-y-2">
                 <Label htmlFor="nome_completo" className="text-foreground font-medium">
-                  Nome Completo *
+                  Nome Completo <RequiredMark />
                 </Label>
                 <Input
                   id="nome_completo"
@@ -232,7 +233,7 @@ export const ContactSection = () => {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-foreground font-medium">
-                  Email *
+                  Email <RequiredMark />
                 </Label>
                 <Input
                   id="email"
@@ -292,7 +293,7 @@ export const ContactSection = () => {
               {/* Serviço de Interesse */}
               <div className="space-y-2">
                 <Label className="text-foreground font-medium">
-                  Serviço de Interesse *
+                  Serviço de Interesse <RequiredMark />
                 </Label>
                 <Select
                   value={formData.servico_interesse}
