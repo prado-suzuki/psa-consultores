@@ -134,7 +134,6 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     setLoading(true);
     try {
       // Create the ticket
-      // TODO: remover assigned_to hardcoded após testes
       const { data: ticket, error: ticketError } = await supabase
         .from('tickets')
         .insert({
@@ -145,7 +144,6 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
           user_id: formData.user_id,
           status: 'aberto',
           activity_status: 'aguardando_resposta',
-          assigned_to: '0a58af80-e2d4-4a7d-bbd1-0a532b71e3e6', // alexandre.silva@psaconsultores.com.br (teste)
         })
         .select()
         .single();
