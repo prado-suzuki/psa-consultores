@@ -48,6 +48,7 @@ import { parseDate } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
@@ -1523,7 +1524,7 @@ export default function NewClientModal({
                         {/* 1. Nome */}
                         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                            Nome do Cliente / Grupo *
+                            Nome do Cliente / Grupo <RequiredMark />
                           </Label>
                           <Input
                             autoFocus={!isReadOnly}
@@ -2744,7 +2745,7 @@ export default function NewClientModal({
                                         {/* Nome */}
                                         <div className="flex flex-row items-center gap-4">
                                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Nome *
+                                             Nome <RequiredMark />
                                           </Label>
                                           <div className="flex-1">
                                             <Input
@@ -2902,7 +2903,7 @@ export default function NewClientModal({
                               {/* Nome */}
                               <div className="flex flex-row items-center gap-4">
                                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Nome *
+                                   Nome <RequiredMark />
                                 </Label>
                                 <div className="flex-1">
                                   <Input

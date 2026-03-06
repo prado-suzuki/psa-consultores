@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { ArrowLeft, Save } from 'lucide-react';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface Sprint {
   id: string;
@@ -187,7 +188,7 @@ const EquipeNovaTarefa = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title" className="text-gray-700">Título *</Label>
+                  <Label htmlFor="title" className="text-gray-700">Título <RequiredMark /></Label>
                   <Input
                     id="title"
                     value={form.title}
@@ -199,7 +200,7 @@ const EquipeNovaTarefa = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Cluster *</Label>
+                  <Label className="text-gray-700">Cluster <RequiredMark /></Label>
                   <Select 
                     value={form.cluster} 
                     onValueChange={(value) => setForm({ ...form, cluster: value })}

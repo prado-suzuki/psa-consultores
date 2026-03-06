@@ -34,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import { UserPlus, MoreHorizontal, Search, Shield, ShieldOff, UserCheck, UserX, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 interface UserWithRoles {
   id: string;
@@ -284,7 +285,7 @@ export default function EquipeUsuarios() {
                 <form onSubmit={handleCreateUser} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="first_name">Nome *</Label>
+                      <Label htmlFor="first_name">Nome <RequiredMark /></Label>
                       <Input
                         id="first_name"
                         value={newUser.first_name}
@@ -293,7 +294,7 @@ export default function EquipeUsuarios() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="last_name">Sobrenome *</Label>
+                      <Label htmlFor="last_name">Sobrenome <RequiredMark /></Label>
                       <Input
                         id="last_name"
                         value={newUser.last_name}
@@ -303,7 +304,7 @@ export default function EquipeUsuarios() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">Email <RequiredMark /></Label>
                     <Input
                       id="email"
                       type="email"
@@ -313,7 +314,7 @@ export default function EquipeUsuarios() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Senha Temporária *</Label>
+                    <Label htmlFor="password">Senha Temporária <RequiredMark /></Label>
                     <div className="relative">
                       <Input
                         id="password"

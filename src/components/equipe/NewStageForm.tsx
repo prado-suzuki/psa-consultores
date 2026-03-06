@@ -8,6 +8,7 @@
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
  import { toast } from '@/hooks/use-toast';
  import { Plus, Save, X, Loader2 } from 'lucide-react';
+ import { RequiredMark } from '@/components/ui/required-mark';
  
  interface NewStageFormProps {
    processId: string;
@@ -99,7 +100,7 @@
        <CardContent className="space-y-4">
          <div className="grid grid-cols-2 gap-4">
            <div className="col-span-2">
-             <Label htmlFor="new-stage-name">Nome da Etapa *</Label>
+             <Label htmlFor="new-stage-name">Nome da Etapa <RequiredMark /></Label>
              <Input
                id="new-stage-name"
                value={form.name}

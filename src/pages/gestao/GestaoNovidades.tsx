@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, Eye, EyeOff, Newspaper, Building2, Scale, Briefcase, Trophy, Sparkles, Loader2, ImageIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { RequiredMark } from '@/components/ui/required-mark';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -301,7 +302,7 @@ const GestaoNovidades = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label>Categoria <RequiredMark /></Label>
                   <Select 
                     value={formData.categoria} 
                     onValueChange={(v) => setFormData({ ...formData, categoria: v as typeof formData.categoria })}
@@ -333,7 +334,7 @@ const GestaoNovidades = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Título</Label>
+                <Label>Título <RequiredMark /></Label>
                 <Input
                   value={formData.titulo}
                   onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
@@ -344,7 +345,7 @@ const GestaoNovidades = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Descrição</Label>
+                  <Label>Descrição <RequiredMark /></Label>
                   <div className="flex gap-2">
                     {formData.texto_original && (
                       <Button 
