@@ -1297,7 +1297,7 @@ const EquipeControleAcessos = () => {
                             Gerencie as permissões individuais de acesso às páginas
                           </CardDescription>
                         </div>
-                        {selectedUser && selectedUser.id !== user?.id && (
+                        {selectedUser && (
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -1308,15 +1308,17 @@ const EquipeControleAcessos = () => {
                               <Pencil className="h-4 w-4 mr-1" />
                               Editar
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsDeleteOpen(true)}
-                              className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
+                            {selectedUser.id !== user?.id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsDeleteOpen(true)}
+                                className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
