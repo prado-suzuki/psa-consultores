@@ -1,66 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-# Auditoria de roteamento de tabelas por ambiente
+## ✅ Corrigido
 
-## Ocorrências encontradas
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-| # | Arquivo | Tabela | Tipo | Linha |
-|---|---------|--------|------|-------|
-| 1 | `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | `cliente` | `.from()` | 242 |
-| 2 | `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | `contribuinte` | `.from()` | 257 |
-| 3 | `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | `cliente` | Join FK | 325 |
-| 4 | `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | `contribuinte` | Join FK | 327 |
-| 5 | `src/components/equipe/fiscal/tasks/TaskModal.tsx` | `cliente` | `.from()` | 119 |
-| 6 | `src/components/equipe/fiscal/tasks/TaskModal.tsx` | `contribuinte` | `.from()` | 164 |
-| 7 | `src/components/equipe/fiscal/tasks/TaskFilters.tsx` | `cliente` | `.from()` | 59 |
-| 8 | `src/components/equipe/fiscal/tasks/TaskFilters.tsx` | `contribuinte` | `.from()` | 72 |
-| 9 | `src/components/equipe/audit/AuditLogTable.tsx` | `cliente` | `.from()` | 96 |
-| 10 | `src/components/equipe/audit/AuditLogTable.tsx` | `contribuinte` | `.from()` | 106 |
-| 11 | `src/pages/equipe/EquipeProjetos.tsx` | `cliente` | `.from()` | 398 |
-| 12 | `src/components/equipe/fiscal/FiscalClients.tsx` | `cliente` | `.from()` | Já roteado |
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-**Nota:** `FiscalClients.tsx` já faz o roteamento corretamente. Os demais 11 pontos precisam de correção.
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
----
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-## Plano de alterações por arquivo
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-### 1. `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
-- `isProductionEnvironment` já importado (linha 3)
-- Adicionar `clienteTable` e `contribuinteTable` no início do componente
-- **Linha 242**: `.from('cliente')` → `.from(clienteTable)`; queryKey incluir `clienteTable`
-- **Linha 257**: `.from('contribuinte')` → `.from(contribuinteTable)`; queryKey incluir `contribuinteTable`
-- **Linhas 325-327**: Remover joins `external_client:cliente!...` e `contribuinte:contribuinte!...` do select. Após obter os projetos, coletar IDs únicos e fazer 2 lookups separados via `clienteTable` / `contribuinteTable`. Montar maps `id→nome` e injetar nos objetos de projeto
-- QueryKey da listagem: incluir `clienteTable, contribuinteTable`
-
-### 2. `src/components/equipe/fiscal/tasks/TaskModal.tsx`
-- Adicionar import de `isProductionEnvironment` de `@/config/api`
-- Criar `clienteTable` e `contribuinteTable` no início do componente
-- **Linha 119**: `.from('cliente')` → `.from(clienteTable)`; queryKey: `['clients-for-tasks', clienteTable]`
-- **Linha 164**: `.from('contribuinte')` → `.from(contribuinteTable)`; queryKey: `['contribuintes-for-task', contribuinteTable, watchedClientId]`
-
-### 3. `src/components/equipe/fiscal/tasks/TaskFilters.tsx`
-- Adicionar import de `isProductionEnvironment`
-- Criar `clienteTable` e `contribuinteTable`
-- **Linha 59**: `.from('cliente')` → `.from(clienteTable)`; queryKey: `['clients-for-task-filters', clienteTable]`
-- **Linha 72**: `.from('contribuinte')` → `.from(contribuinteTable)`; queryKey: `['contribuintes-for-task-filters', contribuinteTable, filters.clientId]`
-
-### 4. `src/components/equipe/audit/AuditLogTable.tsx`
-- Adicionar import de `isProductionEnvironment`
-- Criar `clienteTable` e `contribuinteTable` dentro de `useLookupMaps`
-- **Linha 96**: `.from('cliente')` → `.from(clienteTable)`; queryKey: `['audit-lookup-clients', clienteTable]`
-- **Linha 106**: `.from('contribuinte')` → `.from(contribuinteTable)`; queryKey: `['audit-lookup-contribuintes', contribuinteTable]`
-
-### 5. `src/pages/equipe/EquipeProjetos.tsx`
-- Adicionar import de `isProductionEnvironment`
-- Criar `clienteTable` dentro do componente
-- **Linha 398**: `.from('cliente')` → `.from(clienteTable)`
-
----
-
-## Resumo
-- **5 arquivos** a alterar
-- **11 queries** a corrigir (6 de `cliente`, 4 de `contribuinte`, 1 join duplo)
-- **1 arquivo** já correto (`FiscalClients.tsx`)
-- Nenhuma alteração de banco de dados
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
