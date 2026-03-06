@@ -3577,7 +3577,7 @@ export default function NewClientModal({
                               {/* Ordem de Serviço */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Ordem de Serviço *
+                                  Ordem de Serviço
                                 </Label>
                                 <Input
                                   value={draftContract.ordem_servico}
@@ -3591,7 +3591,7 @@ export default function NewClientModal({
                               {/* Data de Emissão */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Data de Emissão *
+                                   Data de Emissão
                                 </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
@@ -3603,7 +3603,7 @@ export default function NewClientModal({
                               {/* Data Início */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Data Início *
+                                   Data Início
                                 </Label>
                                 <div className="mt-1">
                                   <DateFieldWithInput
@@ -3627,7 +3627,7 @@ export default function NewClientModal({
                               {/* Valor do Projeto */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Valor do Projeto (R$) *
+                                   Valor do Projeto (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
@@ -3639,7 +3639,7 @@ export default function NewClientModal({
                               {/* Situação do Projeto */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Situação do Projeto *
+                                   Situação do Projeto
                                 </Label>
                                 <div className="mt-1">
                                   <Select
@@ -3662,7 +3662,7 @@ export default function NewClientModal({
                               {/* Reembolso por KM */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Reembolso por KM (R$) *
+                                   Reembolso por KM (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
@@ -3674,7 +3674,7 @@ export default function NewClientModal({
                               {/* Reembolso Refeição */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Reembolso Refeição (R$) *
+                                   Reembolso Refeição (R$)
                                 </Label>
                                 <div className="mt-1">
                                   <CurrencyField
