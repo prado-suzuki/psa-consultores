@@ -137,20 +137,20 @@ function ProdutoSegmentoTab() {
   );
 }
 
-/* ── Serviços Prestados (tax_categorias + área da estrutura) ── */
+/* ── Serviços Prestados (servicos_prestados + cluster) ── */
 
 function ServicosTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [nome, setNome] = useState('');
-  const [areaId, setAreaId] = useState<string>('');
+  const [clusterId, setClusterId] = useState<string>('');
 
-  const { data: areas = [] } = useQuery({
-    queryKey: ['estrutura_areas_list'],
+  const { data: clusters = [] } = useQuery({
+    queryKey: ['estrutura_clusters_list'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('estrutura_areas')
+        .from('estrutura_clusters')
         .select('id, name')
         .eq('is_active', true)
         .order('name');
@@ -160,18 +160,18 @@ function ServicosTab() {
   });
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['tax_categorias_servicos'],
+    queryKey: ['servicos_prestados'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tax_categorias')
-        .select('id, nome, estrutura_area_id, estrutura_areas(name)')
+      const { data, error } = await (supabase
+        .from('servicos_prestados' as any)
+        .select('id, nome, cluster_id, estrutura_clusters(name)') as any)
         .order('nome');
       if (error) throw error;
       return (data || []) as Array<{
         id: string;
         nome: string;
-        estrutura_area_id: string | null;
-        estrutura_areas: { name: string } | null;
+        cluster_id: string | null;
+        estrutura_clusters: { name: string } | null;
       }>;
     },
   });
@@ -181,20 +181,19 @@ function ServicosTab() {
       if (!nome.trim()) throw new Error('Nome obrigatório');
       const payload: any = {
         nome: nome.trim(),
-        estrutura_area_id: areaId || null,
+        cluster_id: clusterId || null,
       };
       if (editId) {
-        const { error } = await supabase.from('tax_categorias').update(payload).eq('id', editId);
+        const { error } = await (supabase.from('servicos_prestados' as any) as any).update(payload).eq('id', editId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('tax_categorias').insert(payload);
+        const { error } = await (supabase.from('servicos_prestados' as any) as any).insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tax_categorias_servicos'] });
-      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
-      qc.invalidateQueries({ queryKey: ['tax_categorias_services'] });
+      qc.invalidateQueries({ queryKey: ['servicos_prestados'] });
+      qc.invalidateQueries({ queryKey: ['servicos_prestados_services'] });
       setOpen(false);
       toast.success(editId ? 'Serviço atualizado' : 'Serviço criado');
     },
@@ -203,13 +202,12 @@ function ServicosTab() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tax_categorias').delete().eq('id', id);
+      const { error } = await (supabase.from('servicos_prestados' as any) as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tax_categorias_servicos'] });
-      qc.invalidateQueries({ queryKey: ['tax_categorias'] });
-      qc.invalidateQueries({ queryKey: ['tax_categorias_services'] });
+      qc.invalidateQueries({ queryKey: ['servicos_prestados'] });
+      qc.invalidateQueries({ queryKey: ['servicos_prestados_services'] });
       toast.success('Serviço excluído');
     },
     onError: (e: any) => {
@@ -218,11 +216,11 @@ function ServicosTab() {
     },
   });
 
-  const openCreate = () => { setEditId(null); setNome(''); setAreaId(''); setOpen(true); };
+  const openCreate = () => { setEditId(null); setNome(''); setClusterId(''); setOpen(true); };
   const openEdit = (item: typeof items[0]) => {
     setEditId(item.id);
     setNome(item.nome);
-    setAreaId(item.estrutura_area_id || '');
+    setClusterId(item.cluster_id || '');
     setOpen(true);
   };
 
@@ -237,7 +235,7 @@ function ServicosTab() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Área</TableHead>
+              <TableHead>Cluster</TableHead>
               <TableHead className="w-24">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -250,8 +248,8 @@ function ServicosTab() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.nome}</TableCell>
                 <TableCell>
-                  {item.estrutura_areas?.name ? (
-                    <Badge variant="secondary">{item.estrutura_areas.name}</Badge>
+                  {item.estrutura_clusters?.name ? (
+                    <Badge variant="secondary">{item.estrutura_clusters.name}</Badge>
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>
                   )}
@@ -274,13 +272,13 @@ function ServicosTab() {
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Consultoria Tributária" /></div>
             <div>
-              <Label>Área</Label>
-              <Select value={areaId || "none"} onValueChange={(v) => setAreaId(v === "none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione uma área..." /></SelectTrigger>
+              <Label>Cluster</Label>
+              <Select value={clusterId || "none"} onValueChange={(v) => setClusterId(v === "none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione um cluster..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {areas.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
