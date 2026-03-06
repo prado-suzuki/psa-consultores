@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { EFDArquivo } from '@/types/efd';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 // Mapeamento de COD_FIN para ECD
 const COD_FIN_MAP: Record<number, string> = {
@@ -337,7 +338,7 @@ const ConsultaECD = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /></label>
               <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
                 <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">

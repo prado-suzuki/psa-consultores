@@ -48,6 +48,7 @@ import { PerDetailModal } from "@/components/equipe/dev/perdcomp/PerDetailModal"
 import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -755,7 +756,7 @@ export default function ControlePerdcomp() {
 
             {/* Contribuinte - 3 colunas */}
             <div className="col-span-12 md:col-span-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte <RequiredMark /></label>
               <Select
                 value={contribuinteId}
                 onValueChange={setContribuinteId}

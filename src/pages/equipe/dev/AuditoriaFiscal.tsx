@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { API_BASE_URL, isProductionEnvironment } from "@/config/api";
 import { cn } from "@/lib/utils";
+import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -705,7 +706,7 @@ const AuditoriaFiscal = () => {
             {/* Cliente */}
             <div className="md:col-span-3">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Cliente
+                Cliente <RequiredMark />
               </label>
               <Select
                 value={selectedCliente}

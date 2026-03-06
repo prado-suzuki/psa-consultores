@@ -37,6 +37,7 @@ import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, TABLE_NAMES } from "@/config/api";
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const DEFAULT_DATA_INICIO = "2024-01-01";
 const DEFAULT_DATA_FIM = "2026-01-31";
@@ -512,7 +513,7 @@ const ConsultaXMLs = () => {
             {/* Grid de Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /></label>
                 <Select
                   value={selectedCliente}
                   onValueChange={(value) => {
@@ -546,7 +547,7 @@ const ConsultaXMLs = () => {
                 </Select>
               </div>
               <div className="md:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /></label>
                 {errorContribuintes ? (
                   <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
                     {(errorContribuintes as Error).message}
