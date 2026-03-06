@@ -3555,7 +3555,7 @@ export type Database = {
             foreignKeyName: "tax_projects_area_id_fkey"
             columns: ["area_id"]
             isOneToOne: false
-            referencedRelation: "estrutura_areas"
+            referencedRelation: "tax_areas"
             referencedColumns: ["id"]
           },
           {
