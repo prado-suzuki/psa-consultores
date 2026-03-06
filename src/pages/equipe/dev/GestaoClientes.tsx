@@ -17,6 +17,7 @@ import NewClientModal from "@/components/equipe/dev/NewClientModal";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
+const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -37,7 +38,9 @@ const GestaoClientes = () => {
   // Modal de cadastro completo (usado para criar, editar e visualizar)
   const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
   const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState(false); // true = readOnly (clique na tabela), false = edição
+  const [viewMode, setViewMode] = useState(false);
+  const [deletingCliente, setDeletingCliente] = useState<{ id: string; nome: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -166,6 +169,26 @@ const GestaoClientes = () => {
     setNomeRazaoSocial("");
     setSearched(false);
     setCurrentPage(1);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingCliente) return;
+    setIsDeleting(true);
+    try {
+      await supabase.from(contribuinteTable).delete().eq("cliente_id", deletingCliente.id);
+      await supabase.from(ordemServicoTable as any).delete().eq("id_cliente", deletingCliente.id);
+      const { error } = await supabase.from(clienteTable).delete().eq("id", deletingCliente.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
+      queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
+      toast({ title: "Cliente excluído", description: `O cliente "${deletingCliente.nome}" foi removido.` });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setDeletingCliente(null);
+    }
   };
 
   const handleClienteClick = (cliente: { id: string }) => {
@@ -349,7 +372,8 @@ const GestaoClientes = () => {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
@@ -365,6 +389,19 @@ const GestaoClientes = () => {
                     <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                     <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
                     <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
+                    <TableCell className="px-4 py-3.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -405,6 +442,29 @@ const GestaoClientes = () => {
         editingClienteId={editingClienteId}
         readOnly={viewMode}
       />
+
+      {/* AlertDialog de confirmação de exclusão */}
+      <AlertDialog open={!!deletingCliente} onOpenChange={(open) => { if (!open) setDeletingCliente(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cliente <strong>{deletingCliente?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 
