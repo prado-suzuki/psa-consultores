@@ -489,7 +489,7 @@ const ConsultaXMLs = () => {
   };
 
   return (
-    <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais">
+    <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/">
       <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
         {/* Alerta de Instruções */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">

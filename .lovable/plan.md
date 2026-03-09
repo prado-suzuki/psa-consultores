@@ -1,49 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-## Plan: Add SOP manual links to page headers
+## ✅ Corrigido
 
-### What changes
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-**Single file:** `src/components/equipe/dev/DevLayout.tsx`
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-Add an optional `sopUrl` prop to `DevLayout`. When provided, render it inline next to the subtitle text with a separator, green link text, and an external link icon.
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-**Line 263** changes from:
-```tsx
-{subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
-```
-to:
-```tsx
-{subtitle && (
-  <p className="text-sm text-slate-500">
-    {subtitle}
-    {sopUrl && (
-      <>
-        <span className="mx-2">|</span>
-        <a href={sopUrl} target="_blank" rel="noopener noreferrer"
-           className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1">
-          Acessar SOP desta ferramenta
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      </>
-    )}
-  </p>
-)}
-```
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-Then pass `sopUrl` from the three pages:
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-| File | `sopUrl` value |
-|------|---------------|
-| `ConsultaXMLs.tsx` | `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/` |
-| `AuditoriaFiscal.tsx` | `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/` |
-| `ConsultaEFD.tsx` | `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/` |
-
-### Summary of touched files
-1. `DevLayout.tsx` — add `sopUrl?` prop + render logic + `ExternalLink` import
-2. `ConsultaXMLs.tsx` — add `sopUrl` prop to `<DevLayout>`
-3. `AuditoriaFiscal.tsx` — add `sopUrl` prop to `<DevLayout>`
-4. `ConsultaEFD.tsx` — add `sopUrl` prop to `<DevLayout>`
-
-No database or backend changes needed.
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
