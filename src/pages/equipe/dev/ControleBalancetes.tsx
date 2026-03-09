@@ -336,10 +336,10 @@ const ControleBalancetes = () => {
               variant="outline"
               size="sm"
               className="gap-2 text-teal-700 border-teal-200 hover:bg-teal-50"
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || downloading['__bulk__'] === 'download'}
               onClick={() => handleBulkAction('batch-download', 'download')}
             >
-              <Download className="h-4 w-4" />
+              {downloading['__bulk__'] === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Baixar original
               {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
             </Button>
@@ -347,10 +347,10 @@ const ControleBalancetes = () => {
               variant="outline"
               size="sm"
               className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || downloading['__bulk__'] === 'export'}
               onClick={() => handleBulkAction('batch-export-excel', 'export')}
             >
-              <FileDown className="h-4 w-4" />
+              {downloading['__bulk__'] === 'export' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
               Exportar movimentos
               {selectedIds.size > 0 && <Badge variant="secondary" className="ml-1 text-xs">{selectedIds.size}</Badge>}
             </Button>
