@@ -71,9 +71,58 @@ const ControleBalancetes = () => {
     });
   };
 
-  const handleBulkAction = async (endpoint: 'download' | 'export-excel', type: 'download' | 'export') => {
-    for (const id of selectedIds) {
-      await handleBlobDownload(id, endpoint, type);
+  const handleBulkAction = async (endpoint: 'batch-download' | 'batch-export-excel', type: 'download' | 'export') => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const bulkKey = '__bulk__';
+    setDownloading((prev) => ({ ...prev, [bulkKey]: type }));
+    try {
+      const response = await fetchWithAuth(getApiUrl(`/api/v1/contabil/balancetes/${endpoint}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_balancetes: ids }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const detail = errorData?.detail;
+        const message = typeof detail === 'object' && detail?.error_message
+          ? detail.error_message
+          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
+        throw new Error(message);
+      }
+
+      const filesFound = response.headers.get('X-Files-Found');
+      const filesMissing = response.headers.get('X-Files-Missing');
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = endpoint === 'batch-download' ? 'balancetes_originais.zip' : 'balancetes_export.zip';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match?.[1]) filename = match[1].replace(/['"]/g, '');
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      if (filesFound || filesMissing) {
+        toast({
+          title: 'Download concluído',
+          description: `Arquivos encontrados: ${filesFound ?? '?'} | Faltantes: ${filesMissing ?? '0'}`,
+        });
+      }
+    } catch (err: any) {
+      toast({ title: type === 'download' ? 'Erro ao baixar arquivos' : 'Erro ao exportar Excel', description: err.message, variant: 'destructive' });
+    } finally {
+      setDownloading((prev) => ({ ...prev, [bulkKey]: null }));
     }
   };
 
@@ -288,7 +337,7 @@ const ControleBalancetes = () => {
               size="sm"
               className="gap-2 text-teal-700 border-teal-200 hover:bg-teal-50"
               disabled={selectedIds.size === 0}
-              onClick={() => handleBulkAction('download', 'download')}
+              onClick={() => handleBulkAction('batch-download', 'download')}
             >
               <Download className="h-4 w-4" />
               Baixar original
@@ -299,7 +348,7 @@ const ControleBalancetes = () => {
               size="sm"
               className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
               disabled={selectedIds.size === 0}
-              onClick={() => handleBulkAction('export-excel', 'export')}
+              onClick={() => handleBulkAction('batch-export-excel', 'export')}
             >
               <FileDown className="h-4 w-4" />
               Exportar movimentos
