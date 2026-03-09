@@ -63,7 +63,7 @@ const navItemsAfterSped: NavItem[] = [
   { icon: Database, label: 'Gerenciar dados', path: '/equipe/dev/gerenciar-dados' },
 ];
 
-export const DevLayout = ({ children, title, subtitle, headerActions }: DevLayoutProps) => {
+export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
