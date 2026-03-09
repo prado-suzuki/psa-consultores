@@ -337,7 +337,7 @@ const ControleBalancetes = () => {
               size="sm"
               className="gap-2 text-teal-700 border-teal-200 hover:bg-teal-50"
               disabled={selectedIds.size === 0}
-              onClick={() => handleBulkAction('batch-download', 'download')}
+              onClick={() => handleBulkAction('batch-ad', 'download')}
             >
               <Download className="h-4 w-4" />
               Baixar original
@@ -348,7 +348,7 @@ const ControleBalancetes = () => {
               size="sm"
               className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
               disabled={selectedIds.size === 0}
-              onClick={() => handleBulkAcbatch-tion('export-excel', 'export')}
+              onClick={() => handleBulkAcbatch-tion('batch--excel', 'export')}
             >
               <FileDown className="h-4 w-4" />
               Exportar movimentos
