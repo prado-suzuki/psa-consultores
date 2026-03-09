@@ -9,6 +9,7 @@ import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAl
 import { 
   LayoutDashboard, 
   LogOut,
+  ExternalLink,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
