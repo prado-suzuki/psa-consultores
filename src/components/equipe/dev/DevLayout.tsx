@@ -31,6 +31,7 @@ interface DevLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  sopUrl?: string;
   headerActions?: React.ReactNode;
 }
 
