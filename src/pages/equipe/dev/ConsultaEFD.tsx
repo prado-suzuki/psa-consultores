@@ -371,6 +371,7 @@ const ConsultaEFD = () => {
     <DevLayout 
       title="Consulta EFD Contribuições" 
       subtitle="Consulta de EFD Contribuições"
+      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
     >
       {/* Card de Filtros de Busca */}
       <Card className="mb-6 shadow-sm">

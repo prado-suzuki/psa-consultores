@@ -262,7 +262,21 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             </Button>
             <div>
               <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              {subtitle && (
+                <p className="text-sm text-slate-500 flex items-center gap-0 flex-wrap">
+                  {subtitle}
+                  {sopUrl && (
+                    <>
+                      <span className="mx-2">|</span>
+                      <a href={sopUrl} target="_blank" rel="noopener noreferrer"
+                         className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-medium">
+                        Acessar SOP desta ferramenta
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

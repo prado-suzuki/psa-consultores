@@ -690,7 +690,7 @@ const AuditoriaFiscal = () => {
   const isLoading = isLoadingItems || isLoadingClassificacoes;
 
   return (
-    <DevLayout title="DIFAL Inteligente" subtitle="Auditoria e classificação fiscal de produtos">
+    <DevLayout title="DIFAL Inteligente" subtitle="Auditoria e classificação fiscal de produtos" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/">
       {/* Filtros */}
       <Card className="mb-6 border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
