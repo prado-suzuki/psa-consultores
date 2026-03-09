@@ -248,7 +248,9 @@ const ControleBalancetes = () => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     try {
-      return new Date(dateStr).toLocaleDateString('pt-BR');
+      // Append T00:00:00 to avoid UTC midnight shifting to previous day in BR timezone
+      const normalized = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`;
+      return new Date(normalized).toLocaleDateString('pt-BR');
     } catch {
       return dateStr;
     }
