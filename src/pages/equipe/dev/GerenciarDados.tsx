@@ -467,9 +467,91 @@ Empresa ABC;Filial ABC Norte;PJ;12345678000280;123456790;4711302;Varejo;true`}
 
         {/* Carga PER/DCOMP */}
         <CargaPerdcompCSV />
+
+        {/* Debug: Teste API Cloud Run */}
+        <DebugApiCard />
       </div>
     </DevLayout>
   );
 };
+
+/* ── Bloco de Debug (movido do Dashboard Dev) ── */
+function DebugApiCard() {
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const testApiHealth = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setTestResult({ error: 'Usuário não autenticado' });
+        return;
+      }
+      const response = await fetch(getApiUrl('/auth_health'), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      setTestResult({ status: response.status, ok: response.ok, data });
+    } catch (error: any) {
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const copyJwt = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      navigator.clipboard.writeText(session.access_token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <Card className="border-amber-300 border-2 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <CardTitle className="text-lg">Debug: Teste API Cloud Run</CardTitle>
+        </div>
+        <CardDescription>Temporário — Remover depois dos testes</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-3 mb-4">
+          <Button onClick={testApiHealth} disabled={testLoading} className="gap-2">
+            <Zap className="h-4 w-4" />
+            {testLoading ? 'Testando...' : 'Testar API JWT'}
+          </Button>
+          <Button variant="outline" onClick={copyJwt} className="gap-2">
+            {copied ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copiado!' : 'Copiar JWT'}
+          </Button>
+        </div>
+
+        {testResult && (
+          <div className={`p-4 rounded-lg font-mono text-sm ${
+            testResult.error
+              ? 'bg-red-50 border border-red-200 text-red-800'
+              : testResult.ok
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                : 'bg-amber-50 border border-amber-200 text-amber-800'
+          }`}>
+            <pre className="whitespace-pre-wrap overflow-auto">
+              {JSON.stringify(testResult, null, 2)}
+            </pre>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default GerenciarDados;
