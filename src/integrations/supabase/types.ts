@@ -276,6 +276,7 @@ export type Database = {
           categoria: string | null
           created_at: string
           empresa_faturamento: string[] | null
+          excluido: boolean
           fixo: string | null
           id: string
           municipio: string | null
@@ -293,6 +294,7 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           empresa_faturamento?: string[] | null
+          excluido?: boolean
           fixo?: string | null
           id?: string
           municipio?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           empresa_faturamento?: string[] | null
+          excluido?: boolean
           fixo?: string | null
           id?: string
           municipio?: string | null
@@ -330,6 +333,7 @@ export type Database = {
           categoria: string | null
           created_at: string
           empresa_faturamento: string[] | null
+          excluido: boolean
           fixo: string | null
           id: string
           municipio: string | null
@@ -347,6 +351,7 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           empresa_faturamento?: string[] | null
+          excluido?: boolean
           fixo?: string | null
           id?: string
           municipio?: string | null
@@ -364,6 +369,7 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           empresa_faturamento?: string[] | null
+          excluido?: boolean
           fixo?: string | null
           id?: string
           municipio?: string | null

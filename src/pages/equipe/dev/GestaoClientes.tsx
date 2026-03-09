@@ -58,6 +58,7 @@ const GestaoClientes = () => {
         .from(clienteTable)
         .select("id, nome")
         .not("nome", "is", null)
+        .eq("excluido", false)
         .order("nome");
 
       if (error) throw error;
@@ -122,7 +123,7 @@ const GestaoClientes = () => {
         if (filteredClienteIds.length === 0) return [];
       }
 
-      let clienteQuery = supabase.from(clienteTable).select("*");
+      let clienteQuery = supabase.from(clienteTable).select("*").eq("excluido", false);
 
       if (clienteId && clienteId !== "__todos__") {
         clienteQuery = clienteQuery.eq("id", clienteId);
@@ -175,9 +176,7 @@ const GestaoClientes = () => {
     if (!deletingCliente) return;
     setIsDeleting(true);
     try {
-      await supabase.from(contribuinteTable).delete().eq("cliente_id", deletingCliente.id);
-      await supabase.from(ordemServicoTable as any).delete().eq("id_cliente", deletingCliente.id);
-      const { error } = await supabase.from(clienteTable).delete().eq("id", deletingCliente.id);
+      const { error } = await supabase.from(clienteTable).update({ excluido: true } as any).eq("id", deletingCliente.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
