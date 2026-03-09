@@ -58,6 +58,7 @@ const GestaoClientes = () => {
         .from(clienteTable)
         .select("id, nome")
         .not("nome", "is", null)
+        .eq("excluido", false)
         .order("nome");
 
       if (error) throw error;
