@@ -13,11 +13,15 @@ import {
   Trash2, 
   AlertTriangle, 
   CheckCircle2, 
+  CheckCircle,
   FileSpreadsheet,
   Database,
   Loader2,
-  Info
+  Info,
+  Zap,
+  Copy,
 } from 'lucide-react';
+import { getApiUrl } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
