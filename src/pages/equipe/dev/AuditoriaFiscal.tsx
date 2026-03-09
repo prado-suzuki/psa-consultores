@@ -443,7 +443,7 @@ const AuditoriaFiscal = () => {
 
       setPendingDecisionsCount(count || 0);
       setSearchTriggered(true);
-      setStatusFilter("pending"); // Pré-selecionar Pendentes ao buscar
+      setStatusFilter("all"); // Buscar todos inicialmente, filtro fica nos cards
 
       toast({
         title: existingSession ? "Sessão atualizada" : "Sessão iniciada",
