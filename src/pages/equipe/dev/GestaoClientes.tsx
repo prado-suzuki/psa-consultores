@@ -123,7 +123,7 @@ const GestaoClientes = () => {
         if (filteredClienteIds.length === 0) return [];
       }
 
-      let clienteQuery = supabase.from(clienteTable).select("*");
+      let clienteQuery = supabase.from(clienteTable).select("*").eq("excluido", false);
 
       if (clienteId && clienteId !== "__todos__") {
         clienteQuery = clienteQuery.eq("id", clienteId);
