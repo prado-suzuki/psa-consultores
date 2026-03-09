@@ -1,50 +1,30 @@
 
+# Varredura 360 — Correções Aplicadas
 
-## Refatoracao: Dashboard Dev -> Hub de Trabalho
+## ✅ Corrigido
 
-### Arquivos alterados
+### 1. protectedPages.ts — Alinhamento com rotas reais
+- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
+- Corrigido `/gestao/novidades` → `/gestao`
+- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
+- Corrigido typo `TEX` → `TAX`
 
-**1. `src/pages/equipe/dev/GerenciarDados.tsx`** — Adicionar bloco Debug ao final
-- Mover todo o bloco de Debug (estado `testLoading`, `testResult`, `copied`, funcoes `testApiHealth`, `copyJwt`, e o JSX do Card amarelo) para o final desta pagina, abaixo da secao de PERDCOMPs/Template CSV.
-- Importar `Zap`, `Copy`, `CheckCircle`, `AlertCircle` do lucide e `getApiUrl`.
+### 2. AuthContext.tsx — Project ID dinâmico
+- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
 
-**2. `src/pages/equipe/dev/DevDashboard.tsx`** — Reescrever completamente
-- Remover: bloco Debug, MetricCards de estatisticas, Quick Access Cards antigos, Tools List do banco.
-- Remover queries `tools` e `tool_access`, e estados de debug.
+### 3. App.tsx — Import morto removido
+- Removido import não utilizado de `FiscalDemandasClientes`
 
-Nova estrutura do Dashboard:
+### 4. Auth — auto_confirm desativado
+- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
 
-```
-Secao 1: "Sessoes em Andamento"
-- Card de alerta com fundo suave (bg-amber-50 border-amber-200)
-- Dados mockados: 2 items exemplo
-  - { ferramenta: "DIFAL Inteligente", lastModified: "08/03/2026", desc: "3 auditorias pendentes" }
-  - { ferramenta: "EFD Contribuicoes", lastModified: "07/03/2026", desc: "Analise CNPJ 12.345..." }
-- Cada item: icone Clock, nome ferramenta, data, botao "Retomar trabalho"
+## ℹ️ Falsos positivos do relatório
+- `dotted-map` — usado em `BrazilMap.tsx`
+- `next-themes` — usado em `sonner.tsx`
+- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
+- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
 
-Secao 2: "Hub de Ferramentas"
-- Barra de pesquisa (Input com icone Search) para filtrar por nome
-- Grid 3 colunas (md:grid-cols-3) com cards para cada ferramenta:
-
-| Ferramenta | Rota | SOP URL |
-|---|---|---|
-| Consulta de XMLs | /equipe/dev/consulta-xmls | .../consulta-xmls/ |
-| DIFAL Inteligente | /equipe/dev/auditoria-fiscal | .../difal-inteligente/ |
-| EFD Contribuicoes | /equipe/dev/consulta-efd | .../efd-contribuicoes/ |
-| EFD ICMS | /equipe/dev/consulta-efd-icms | null |
-| ECD | /equipe/dev/consulta-ecd | null |
-| ECF | /equipe/dev/consulta-ecf | null |
-| Calculadora IBS/CBS | /equipe/dev/calculadora-ibs-cbs | null |
-| Controle PERDCOMP | /equipe/dev/controle-perdcomp | null |
-| Controle Balancetes | /equipe/dev/controle-balancetes | null |
-| Gerenciar dados | /equipe/dev/gerenciar-dados | null |
-
-- Cada card tera: icone colorido, nome, descricao curta, botao "Acessar Ferramenta", e link "Ler Manual (SOP)" (verde com ExternalLink icon) quando houver URL de manual.
-```
-
-### Resumo de arquivos
-1. `DevDashboard.tsx` — reescrita completa (Hub + Sessoes mockadas)
-2. `GerenciarDados.tsx` — adicionar bloco Debug no final
-
-Sem alteracoes de banco de dados.
-
+## 🔲 Pendente (decisão do usuário)
+- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
+- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
+- Leaked Password Protection — requer ativação manual no painel do backend
