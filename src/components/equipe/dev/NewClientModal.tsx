@@ -709,6 +709,7 @@ export default function NewClientModal({
           setEntities(
             contribs.map((c) => ({
               _id: Date.now() + Math.random(),
+              _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
               cpf_cnpj: c.cpf_cnpj || "",
               nome_razao_social: c.nome_razao_social || "",
