@@ -82,6 +82,7 @@ const SITUACAO_PROJETO_OPTIONS = [
 // Types for draft items
 interface DraftEntity {
   _id: number;
+  _dbId?: string;
   tipo_pessoa: string;
   cpf_cnpj: string;
   nome_razao_social: string;
@@ -105,6 +106,7 @@ interface DraftEntity {
 
 interface DraftParticipant {
   _id: number;
+  _dbId?: string;
   nome: string;
   tipo_participante: string;
   cargo: string;
@@ -116,6 +118,7 @@ interface DraftParticipant {
 
 interface DraftOrdemServico {
   _id: number;
+  _dbId?: string;
   ordem_servico: string;
   data_emissao: string;
   data_inicio_projeto: string;
