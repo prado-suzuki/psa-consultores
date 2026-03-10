@@ -37,11 +37,12 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const { user } = useAuth();
   const { fetchWithAuth } = useApiAuth();
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const lastUpload = stored ? JSON.parse(stored) : null;
-  const [clienteId, setClienteId] = useState(lastUpload?.clienteId || '');
-  const [contribuinteId, setContribuinteId] = useState(lastUpload?.contribuinteId || '');
-  const [periodo, setPeriodo] = useState<MonthRange | null>(null);
+  const [clienteId, setClienteId] = useState(() => {
+    try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).clienteId || '' : ''; } catch { return ''; }
+  });
+  const [contribuinteId, setContribuinteId] = useState(() => {
+    try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).contribuinteId || '' : ''; } catch { return ''; }
+  });
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
