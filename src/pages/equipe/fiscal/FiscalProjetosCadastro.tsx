@@ -495,6 +495,19 @@ const FiscalProjetosCadastro = () => {
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
 
+  // Auto-fill leader when area has exactly 1 leader (only on create)
+  useEffect(() => {
+    if (!estruturaAreaId || editingProject) return;
+    if (areaLiderIds.length === 1) {
+      setFormData(prev => {
+        if (prev.leader_ids.length === 0) {
+          return { ...prev, leader_ids: [areaLiderIds[0]] };
+        }
+        return prev;
+      });
+    }
+  }, [estruturaAreaId, areaLiderIds, editingProject]);
+
   // When editing, load current members — migrate roles based on current user_roles
   useEffect(() => {
     if (editingProject && currentProjectMembers.length > 0 && userRoles.length > 0) {
