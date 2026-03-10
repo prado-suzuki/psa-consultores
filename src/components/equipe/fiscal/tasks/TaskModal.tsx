@@ -115,69 +115,6 @@ export const TaskModal = ({
     enabled: open,
   });
 
-  // Resolve estrutura_area_id from the selected project's tax_area
-  const selectedProjectAreaId = useMemo(() => {
-    if (!watchedProjectId) return null;
-    const proj = projects.find(p => p.id === watchedProjectId);
-    return proj?.area_id || null;
-  }, [watchedProjectId, projects]);
-
-  const { data: estruturaAreaId } = useQuery({
-    queryKey: ['tax-area-estrutura', selectedProjectAreaId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tax_areas')
-        .select('estrutura_area_id')
-        .eq('id', selectedProjectAreaId!)
-        .single();
-      return data?.estrutura_area_id || null;
-    },
-    enabled: open && !!selectedProjectAreaId,
-  });
-
-  // Fetch all members belonging to the estrutura area (leaders + subliders + members)
-  const { data: areaMemberIds = [] } = useQuery({
-    queryKey: ['area-members-for-task', estruturaAreaId],
-    queryFn: async () => {
-      const ids = new Set<string>();
-
-      // Leaders
-      const { data: leaders } = await supabase
-        .from('estrutura_area_lideres')
-        .select('user_id')
-        .eq('area_id', estruturaAreaId!);
-      leaders?.forEach(l => ids.add(l.user_id));
-
-      // Teams in this area
-      const { data: equipes } = await supabase
-        .from('estrutura_equipes')
-        .select('id, sublider_id')
-        .eq('area_id', estruturaAreaId!)
-        .eq('is_active', true);
-
-      equipes?.forEach(e => {
-        if (e.sublider_id) ids.add(e.sublider_id);
-      });
-
-      const equipeIds = (equipes || []).map(e => e.id);
-      if (equipeIds.length > 0) {
-        const { data: membros } = await supabase
-          .from('estrutura_equipe_membros')
-          .select('user_id')
-          .in('equipe_id', equipeIds);
-        membros?.forEach(m => ids.add(m.user_id));
-      }
-
-      return Array.from(ids);
-    },
-    enabled: open && !!estruturaAreaId,
-  });
-
-  // Filtered team members for Responsável dropdown
-  const filteredTeamMembers = useMemo(() => {
-    if (!areaMemberIds.length) return teamMembers; // fallback: show all
-    return teamMembers.filter(m => areaMemberIds.includes(m.id));
-  }, [teamMembers, areaMemberIds]);
 
   // Fetch clients
   const { data: clients = [] } = useQuery({
