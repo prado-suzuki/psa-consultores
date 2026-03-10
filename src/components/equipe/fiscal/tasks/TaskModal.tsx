@@ -183,6 +183,11 @@ export const TaskModal = ({
     }
   }, [watchedClientId, form]);
 
+  const filteredProjects = useMemo(() => {
+    if (!watchedClientId) return projects;
+    return projects.filter(p => p.external_client_id === watchedClientId);
+  }, [projects, watchedClientId]);
+
   const filteredParentTasks = watchedProjectId
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
     : parentTasks;
