@@ -1,22 +1,34 @@
 
 
-## Análise: O fix já está implementado
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-Após inspecionar o código atual de `FiscalProjetosCadastro.tsx`, **a correção `|| null` já está presente** em todos os pontos relevantes:
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-- **Criação** (linha 553): `contribuinte_id: data.contribuinte_id || null`
-- **Edição** (linha 654): `contribuinte_id: data.contribuinte_id || null`
-- Mesma lógica aplicada para `external_client_id`, `leader_id`, `area_id`, `objective`, etc.
+### Etapa 1 — Migration: adicionar coluna
 
-### Conclusão
+Criar uma migration com:
 
-O bug `tax_projects_contribuinte_id_fkey violated` **não deveria mais ocorrer** com o código atual. Se ainda está acontecendo, as possíveis causas são:
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+```
 
-1. **Cache do navegador** — o preview pode estar rodando uma versão anterior do código. Tente um hard refresh (Ctrl+Shift+R).
-2. **Outro formulário ou fluxo** — o erro pode estar vindo de outro componente que também insere em `tax_projects`.
-3. **Build não atualizado** — confirme que o build passou sem erros após as últimas edições.
+### Etapa 2 — Data update: popular mapeamentos
 
-### Recomendação
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-Reproduza o erro novamente e me envie o log do console ou o erro exato. Se o erro persistir, posso rastrear se há outro ponto de inserção em `tax_projects` que não tenha a coerção `|| null`.
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 

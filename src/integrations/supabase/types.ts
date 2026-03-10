@@ -3576,13 +3576,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tax_projects_contribuinte_id_fkey"
-            columns: ["contribuinte_id"]
-            isOneToOne: false
-            referencedRelation: "contribuinte"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tax_projects_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
