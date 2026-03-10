@@ -658,20 +658,22 @@ const FiscalProjetosCadastro = () => {
         .eq('id', id);
       if (error) throw error;
 
-      // Replace project servicos: delete all, re-insert
-      await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id);
+      // Upsert project servicos + remove stale ones
       if (data.category_ids.length > 0) {
         const categoryRows = data.category_ids.map(catId => ({
           project_id: id,
           servico_id: catId,
         }));
-        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(categoryRows);
-        if (catError) throw catError;
+        await (supabase.from('project_servicos' as any) as any).upsert(categoryRows, { onConflict: 'project_id,servico_id' });
+      }
+      // Remove servicos no longer selected
+      const oldCatIdsList = currentProjectCategories.map((c: any) => c.servico_id);
+      const removedCats = oldCatIdsList.filter((cid: string) => !data.category_ids.includes(cid));
+      if (removedCats.length > 0) {
+        await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id).in('servico_id', removedCats);
       }
 
-      // Replace project members: delete all, re-insert
-      const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
-      if (delError) throw delError;
+      // Upsert project members + remove stale ones
       const members: { project_id: string; user_id: string; role: string }[] = [];
       for (const uid of data.leader_ids) {
         members.push({ project_id: id, user_id: uid, role: 'leader' });
@@ -687,8 +689,15 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id' });
         if (membersError) throw membersError;
+      }
+      // Remove members no longer in the list
+      const newMemberUserIds = new Set(members.map(m => m.user_id));
+      const oldMemberUserIds = currentProjectMembers.map(m => m.user_id);
+      const removedMembers = oldMemberUserIds.filter(uid => !newMemberUserIds.has(uid));
+      if (removedMembers.length > 0) {
+        await supabase.from('tax_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
       }
 
       // Only log if something actually changed
