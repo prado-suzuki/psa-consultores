@@ -44,6 +44,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).contribuinteId || '' : ''; } catch { return ''; }
   });
   const [periodo, setPeriodo] = useState<MonthRange | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
   const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
