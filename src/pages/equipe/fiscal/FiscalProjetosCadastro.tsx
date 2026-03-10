@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign, Check, ChevronsUpDown, UsersRound } from 'lucide-react';
 import { isProductionEnvironment } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -81,6 +81,7 @@ interface ExternalClient {
 interface TaxArea {
   id: string;
   nome: string;
+  estrutura_area_id: string | null;
 }
 
 interface TaxCategoria {
@@ -125,7 +126,7 @@ const FiscalProjetosCadastro = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tax_areas')
-        .select('id, nome')
+        .select('id, nome, estrutura_area_id')
         .order('nome');
       if (error) throw error;
       return data as TaxArea[];
@@ -199,30 +200,94 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Filtered lists based on roles
+  // Derive estruturaAreaId from selected tax area
+  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
+  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+
+  // Fetch area leaders from estrutura_area_lideres
+  const { data: areaLiderIds = [] } = useQuery({
+    queryKey: ['area-lideres', estruturaAreaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_area_lideres')
+        .select('user_id')
+        .eq('area_id', estruturaAreaId!);
+      if (error) throw error;
+      return (data || []).map(d => d.user_id);
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Fetch area subleaders from estrutura_equipes
+  const { data: areaSubliderIds = [] } = useQuery({
+    queryKey: ['area-sublideres', estruturaAreaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_equipes')
+        .select('sublider_id')
+        .eq('area_id', estruturaAreaId!)
+        .not('sublider_id', 'is', null);
+      if (error) throw error;
+      return [...new Set((data || []).map(d => d.sublider_id!))];
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Fetch area members from estrutura_equipe_membros via equipes
+  const { data: areaMemberIds = [] } = useQuery({
+    queryKey: ['area-membros', estruturaAreaId],
+    queryFn: async () => {
+      // First get equipe ids for this area
+      const { data: equipes, error: eErr } = await supabase
+        .from('estrutura_equipes')
+        .select('id')
+        .eq('area_id', estruturaAreaId!);
+      if (eErr) throw eErr;
+      if (!equipes?.length) return [];
+      const { data: members, error: mErr } = await supabase
+        .from('estrutura_equipe_membros')
+        .select('user_id')
+        .in('equipe_id', equipes.map(e => e.id));
+      if (mErr) throw mErr;
+      return [...new Set((members || []).map(m => m.user_id))];
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Filtered lists based on roles + area structure
   const lideres = useMemo(() => {
     const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
-    return teamMembers.filter(m => liderIds.includes(m.id));
-  }, [teamMembers, userRoles]);
+    const allLideres = teamMembers.filter(m => liderIds.includes(m.id));
+    if (estruturaAreaId && areaLiderIds.length > 0) {
+      const selectedSet = new Set(formData.leader_ids);
+      const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
+      return filtered.length > 0 ? filtered : allLideres; // fallback
+    }
+    return allLideres;
+  }, [teamMembers, userRoles, estruturaAreaId, areaLiderIds, formData.leader_ids]);
 
   const sublideres = useMemo(() => {
-    const subliderIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
-    return teamMembers.filter(m => subliderIds.includes(m.id));
-  }, [teamMembers, userRoles]);
+    const subliderRoleIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
+    const allSublideres = teamMembers.filter(m => subliderRoleIds.includes(m.id));
+    if (estruturaAreaId && areaSubliderIds.length > 0) {
+      const selectedSet = new Set(formData.sublider_ids);
+      const filtered = allSublideres.filter(m => areaSubliderIds.includes(m.id) || selectedSet.has(m.id));
+      return filtered.length > 0 ? filtered : allSublideres; // fallback
+    }
+    return allSublideres;
+  }, [teamMembers, userRoles, estruturaAreaId, areaSubliderIds, formData.sublider_ids]);
 
-  // Fetch members filtered by selected subliders' teams
+  // Fetch members filtered by selected subliders' teams (only used when no estruturaAreaId)
   const { data: filteredMemberIds = [] } = useQuery({
     queryKey: ['sublider-team-members', formData.sublider_ids],
     queryFn: async () => {
       if (formData.sublider_ids.length === 0) return [];
-      // Get teams where sublider_id is one of the selected subliders
       const { data: teams, error: tErr } = await supabase
         .from('estrutura_equipes')
         .select('id')
         .in('sublider_id', formData.sublider_ids);
       if (tErr) throw tErr;
       if (!teams?.length) return [];
-      // Get members of those teams
       const { data: members, error: mErr } = await supabase
         .from('estrutura_equipe_membros')
         .select('user_id')
@@ -230,7 +295,7 @@ const FiscalProjetosCadastro = () => {
       if (mErr) throw mErr;
       return [...new Set((members || []).map(m => m.user_id))];
     },
-    enabled: formData.sublider_ids.length > 0,
+    enabled: !estruturaAreaId && formData.sublider_ids.length > 0,
   });
 
   // Fetch external clients
@@ -422,13 +487,26 @@ const FiscalProjetosCadastro = () => {
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
 
-  // Clear category_ids only when area changes by user action (not on initial edit load)
+  // Clear fields when area changes by user action
   useEffect(() => {
     if (prevAreaId && formData.area_id && prevAreaId !== formData.area_id) {
-      setFormData(prev => ({ ...prev, category_ids: [] }));
+      setFormData(prev => ({ ...prev, leader_ids: [], sublider_ids: [], member_ids: [], category_ids: [] }));
     }
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
+
+  // Auto-fill leader when area has exactly 1 leader (only on create)
+  useEffect(() => {
+    if (!estruturaAreaId || editingProject) return;
+    if (areaLiderIds.length === 1) {
+      setFormData(prev => {
+        if (prev.leader_ids.length === 0) {
+          return { ...prev, leader_ids: [areaLiderIds[0]] };
+        }
+        return prev;
+      });
+    }
+  }, [estruturaAreaId, areaLiderIds, editingProject]);
 
   // When editing, load current members — migrate roles based on current user_roles
   useEffect(() => {
@@ -580,20 +658,22 @@ const FiscalProjetosCadastro = () => {
         .eq('id', id);
       if (error) throw error;
 
-      // Replace project servicos: delete all, re-insert
-      await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id);
+      // Upsert project servicos + remove stale ones
       if (data.category_ids.length > 0) {
         const categoryRows = data.category_ids.map(catId => ({
           project_id: id,
           servico_id: catId,
         }));
-        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(categoryRows);
-        if (catError) throw catError;
+        await (supabase.from('project_servicos' as any) as any).upsert(categoryRows, { onConflict: 'project_id,servico_id' });
+      }
+      // Remove servicos no longer selected
+      const oldCatIdsList = currentProjectCategories.map((c: any) => c.servico_id);
+      const removedCats = oldCatIdsList.filter((cid: string) => !data.category_ids.includes(cid));
+      if (removedCats.length > 0) {
+        await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id).in('servico_id', removedCats);
       }
 
-      // Replace project members: delete all, re-insert
-      const { error: delError } = await supabase.from('tax_project_members').delete().eq('project_id', id);
-      if (delError) throw delError;
+      // Upsert project members + remove stale ones
       const members: { project_id: string; user_id: string; role: string }[] = [];
       for (const uid of data.leader_ids) {
         members.push({ project_id: id, user_id: uid, role: 'leader' });
@@ -609,8 +689,15 @@ const FiscalProjetosCadastro = () => {
         }
       }
       if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
+        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id' });
         if (membersError) throw membersError;
+      }
+      // Remove members no longer in the list
+      const newMemberUserIds = new Set(members.map(m => m.user_id));
+      const oldMemberUserIds = currentProjectMembers.map(m => m.user_id);
+      const removedMembers = oldMemberUserIds.filter(uid => !newMemberUserIds.has(uid));
+      if (removedMembers.length > 0) {
+        await supabase.from('tax_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
       }
 
       // Only log if something actually changed
@@ -753,11 +840,21 @@ const FiscalProjetosCadastro = () => {
   const availableMembers = useMemo(() => {
     const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
     const selectedSet = new Set(formData.member_ids);
+
+    if (estruturaAreaId) {
+      // Area-based: show all members of the area
+      if (areaMemberIds.length === 0 && selectedSet.size === 0) return [];
+      return teamMembers.filter(
+        m => !excludeIds.has(m.id) && (areaMemberIds.includes(m.id) || selectedSet.has(m.id))
+      );
+    }
+
+    // Legacy: sublider-based filtering
     if (formData.sublider_ids.length === 0 && selectedSet.size === 0) return [];
     return teamMembers.filter(
       m => !excludeIds.has(m.id) && (filteredMemberIds.includes(m.id) || selectedSet.has(m.id))
     );
-  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds]);
+  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds, estruturaAreaId, areaMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -1200,10 +1297,35 @@ const FiscalProjetosCadastro = () => {
 
                 {/* Membros do Projeto (multi-select dropdown) */}
                 <div>
-                  <Label>Membros do Projeto</Label>
-                  {formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
+                  <div className="flex items-center justify-between">
+                    <Label>Membros do Projeto</Label>
+                    {estruturaAreaId && areaMemberIds.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                        onClick={() => {
+                          const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+                          const eligibleIds = areaMemberIds.filter(id => !excludeIds.has(id));
+                          setFormData(prev => ({
+                            ...prev,
+                            member_ids: [...new Set([...prev.member_ids, ...eligibleIds])],
+                          }));
+                        }}
+                      >
+                        <UsersRound className="h-3.5 w-3.5" />
+                        Incluir todos da área
+                      </Button>
+                    )}
+                  </div>
+                  {!estruturaAreaId && formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
                       Selecione ao menos um sublíder para ver os membros disponíveis.
+                    </p>
+                  ) : estruturaAreaId && areaMemberIds.length === 0 && formData.member_ids.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Nenhum membro encontrado na estrutura desta área.
                     </p>
                   ) : (
                     <Popover>
