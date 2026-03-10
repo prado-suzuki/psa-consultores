@@ -741,6 +741,7 @@ export default function NewClientModal({
           setParticipants(
             parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
+              _dbId: p.id || p.id_participante,
               nome: p.nome || "",
               tipo_participante: p.tipo_participante || "",
               cargo: p.cargo || "",
