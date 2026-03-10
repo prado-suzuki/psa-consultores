@@ -1,34 +1,46 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Adicionar `cluster_id` em `produto_segmento` e filtro por empresa na aba OS
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
-
-### Etapa 1 — Migration: adicionar coluna
-
-Criar uma migration com:
+### Etapa 1 — Migration
 
 ```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+ALTER TABLE public.produto_segmento
+ADD COLUMN cluster_id uuid REFERENCES public.estrutura_clusters(id) ON DELETE SET NULL;
 ```
 
-### Etapa 2 — Data update: popular mapeamentos
+### Etapa 2 — Data update (insert tool)
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+```sql
+UPDATE public.produto_segmento SET cluster_id = 'b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3'
+WHERE codigo IN ('PTR', 'ACF', 'RRT', 'RTJ', 'DTB', 'EDP', 'RSC', 'REA', 'ADJ');
+```
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+Demais produtos ficam com `NULL`.
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+### Etapa 3 — Frontend (`NewClientModal.tsx`)
+
+**3a. Buscar clusters para o Select:**
+- Nova query `estrutura_clusters` buscando `id, name` ordenado por `name`
+
+**3b. Adicionar Select "Empresa/Cluster" na aba OS:**
+- Posicionar **acima** do bloco "Serviços Contratados" (tanto no formulário de draft quanto no de edição inline)
+- Opções: clusters carregados + fallback "Todos"
+- Estado: novo campo no `draftContract` e `editingContractData` → algo como `cluster_filter` (apenas UI, não persiste no banco)
+
+**3c. Filtrar `catalogServices` pelo cluster selecionado:**
+- Quando um cluster é selecionado, filtrar `catalogServices` por `cluster_id === selectedCluster`
+- Se nenhum selecionado, mostrar todos (comportamento atual)
+- Aplicar filtro nos 3 locais que renderizam o Select de serviços:
+  1. Formulário de nova OS (~linha 3786)
+  2. Edição inline de OS existente (~linha 3403)
+  3. Exibição de badges de serviços (sem alteração — badges mostram o que foi salvo)
+
+**3d. NÃO limpar serviços ao trocar cluster:**
+- O filtro afeta apenas as opções disponíveis no dropdown, não remove seleções existentes
 
 ### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
+- Nenhuma alteração de RLS
 - Nenhuma alteração em outras tabelas
+- O campo `cluster_filter` é apenas estado de UI — não é salvo no banco
 
