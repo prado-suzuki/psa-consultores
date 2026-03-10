@@ -1525,6 +1525,11 @@ const FiscalProjetosCadastro = () => {
                               >
                                 <Check className={`mr-2 h-4 w-4 ${formData.category_ids.includes(category.id) ? 'opacity-100' : 'opacity-0'}`} />
                                 {category.nome}
+                                {suggestedSet.has(category.id) && (
+                                  <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0 hover:bg-emerald-100">
+                                    Contratado
+                                  </Badge>
+                                )}
                               </CommandItem>
                             ))}
                           </CommandGroup>
