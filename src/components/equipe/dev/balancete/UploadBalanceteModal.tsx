@@ -161,8 +161,6 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   };
 
   const resetForm = () => {
-    setClienteId('');
-    setContribuinteId('');
     setPeriodo(null);
     setFile(null);
     setDetalhamento(null);
