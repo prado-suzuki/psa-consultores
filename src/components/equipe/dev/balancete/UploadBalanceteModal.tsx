@@ -83,11 +83,13 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     enabled: open && !!clienteId,
   });
 
-  // Fetch config when contribuinte changes
+  // Fetch config when contribuinte changes or modal opens
   useEffect(() => {
-    if (!contribuinteId) {
-      setDetalhamento(null);
-      setShowDetalhamentoPrompt(false);
+    if (!open || !contribuinteId) {
+      if (!contribuinteId) {
+        setDetalhamento(null);
+        setShowDetalhamentoPrompt(false);
+      }
       return;
     }
 
@@ -115,7 +117,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     };
 
     fetchConfig();
-  }, [contribuinteId]);
+  }, [contribuinteId, open]);
 
   const handleDetalhamentoChoice = async (value: boolean) => {
     setSavingConfig(true);
