@@ -31,12 +31,16 @@ interface UploadBalanceteModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const STORAGE_KEY = 'last-balancete-upload';
+
 export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModalProps) => {
   const { user } = useAuth();
   const { fetchWithAuth } = useApiAuth();
 
-  const [clienteId, setClienteId] = useState('');
-  const [contribuinteId, setContribuinteId] = useState('');
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const lastUpload = stored ? JSON.parse(stored) : null;
+  const [clienteId, setClienteId] = useState(lastUpload?.clienteId || '');
+  const [contribuinteId, setContribuinteId] = useState(lastUpload?.contribuinteId || '');
   const [periodo, setPeriodo] = useState<MonthRange | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
