@@ -174,14 +174,22 @@ export const TaskModal = ({
     enabled: open && !!watchedClientId,
   });
 
-  // Clear contribuinte when client changes (only on user action, not during reset)
+  // Clear contribuinte and project when client changes (only on user action, not during reset)
   useEffect(() => {
     if (isResettingRef.current) return;
     const current = form.getValues('contribuinte_id');
     if (current !== undefined) {
       form.setValue('contribuinte_id', undefined);
     }
-  }, [watchedClientId, form]);
+    // Clear project if it doesn't belong to the new client
+    const currentProject = form.getValues('project_id');
+    if (currentProject && watchedClientId) {
+      const proj = projects.find(p => p.id === currentProject);
+      if (proj && proj.external_client_id !== watchedClientId) {
+        form.setValue('project_id', '');
+      }
+    }
+  }, [watchedClientId, form, projects]);
 
   const filteredProjects = useMemo(() => {
     if (!watchedClientId) return projects;
