@@ -818,11 +818,21 @@ const FiscalProjetosCadastro = () => {
   const availableMembers = useMemo(() => {
     const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
     const selectedSet = new Set(formData.member_ids);
+
+    if (estruturaAreaId) {
+      // Area-based: show all members of the area
+      if (areaMemberIds.length === 0 && selectedSet.size === 0) return [];
+      return teamMembers.filter(
+        m => !excludeIds.has(m.id) && (areaMemberIds.includes(m.id) || selectedSet.has(m.id))
+      );
+    }
+
+    // Legacy: sublider-based filtering
     if (formData.sublider_ids.length === 0 && selectedSet.size === 0) return [];
     return teamMembers.filter(
       m => !excludeIds.has(m.id) && (filteredMemberIds.includes(m.id) || selectedSet.has(m.id))
     );
-  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds]);
+  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds, estruturaAreaId, areaMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
