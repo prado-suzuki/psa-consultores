@@ -101,19 +101,20 @@ export const TaskModal = ({
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
 
-  // Fetch projects for Tax area
+  // Fetch projects for Tax area (include area_id for member filtering)
   const { data: projects = [] } = useQuery({
     queryKey: ['fiscal-projects-for-tasks'],
     queryFn: async () => {
       const { data } = await supabase
         .from('tax_projects')
-        .select('id, name, external_client_id')
+        .select('id, name, external_client_id, area_id')
         .eq('status', 'active')
         .order('name');
       return data || [];
     },
     enabled: open,
   });
+
 
   // Fetch clients
   const { data: clients = [] } = useQuery({
@@ -158,6 +159,65 @@ export const TaskModal = ({
 
   const watchedProjectId = form.watch('project_id');
   const watchedClientId = form.watch('client_id');
+
+  // Resolve estrutura_area_id from the selected project's tax_area
+  const selectedProjectAreaId = useMemo(() => {
+    if (!watchedProjectId) return null;
+    const proj = projects.find(p => p.id === watchedProjectId);
+    return proj?.area_id || null;
+  }, [watchedProjectId, projects]);
+
+  const { data: estruturaAreaId } = useQuery({
+    queryKey: ['tax-area-estrutura', selectedProjectAreaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tax_areas')
+        .select('estrutura_area_id')
+        .eq('id', selectedProjectAreaId!)
+        .single();
+      return data?.estrutura_area_id || null;
+    },
+    enabled: open && !!selectedProjectAreaId,
+  });
+
+  // Fetch all members belonging to the estrutura area
+  const { data: areaMemberIds = [] } = useQuery({
+    queryKey: ['area-members-for-task', estruturaAreaId],
+    queryFn: async () => {
+      const ids = new Set<string>();
+
+      const { data: leaders } = await supabase
+        .from('estrutura_area_lideres')
+        .select('user_id')
+        .eq('area_id', estruturaAreaId!);
+      leaders?.forEach(l => ids.add(l.user_id));
+
+      const { data: equipes } = await supabase
+        .from('estrutura_equipes')
+        .select('id, sublider_id')
+        .eq('area_id', estruturaAreaId!)
+        .eq('is_active', true);
+      equipes?.forEach(e => { if (e.sublider_id) ids.add(e.sublider_id); });
+
+      const equipeIds = (equipes || []).map(e => e.id);
+      if (equipeIds.length > 0) {
+        const { data: membros } = await supabase
+          .from('estrutura_equipe_membros')
+          .select('user_id')
+          .in('equipe_id', equipeIds);
+        membros?.forEach(m => ids.add(m.user_id));
+      }
+
+      return Array.from(ids);
+    },
+    enabled: open && !!estruturaAreaId,
+  });
+
+  // Filtered team members for Responsável dropdown
+  const filteredTeamMembers = useMemo(() => {
+    if (!areaMemberIds.length) return teamMembers;
+    return teamMembers.filter(m => areaMemberIds.includes(m.id));
+  }, [teamMembers, areaMemberIds]);
 
   // Fetch contribuintes filtered by selected client
   const { data: contribuintesTask = [] } = useQuery({
@@ -231,7 +291,13 @@ export const TaskModal = ({
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
-  }, [watchedProjectId, form, defaultParentId]);
+    // Clear assignee if not in the new area's member list
+    const currentAssignee = form.getValues('assigned_to');
+    if (currentAssignee && areaMemberIds.length > 0 && !areaMemberIds.includes(currentAssignee)) {
+      form.setValue('assigned_to', undefined);
+      form.setValue('assigned_to_name', undefined);
+    }
+  }, [watchedProjectId, form, defaultParentId, areaMemberIds]);
 
   // Effect B: Auto-fill client from project (runs when projects load or project changes)
   useEffect(() => {
@@ -615,7 +681,7 @@ export const TaskModal = ({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="_none">Nenhum</SelectItem>
-                      {teamMembers.map(member => (
+                      {filteredTeamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>

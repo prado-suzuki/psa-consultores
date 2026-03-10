@@ -1,42 +1,34 @@
 
 
-## Plano: Filtrar responsável pela área do projeto selecionado
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-### Problema
-O dropdown de "Responsável" no TaskModal mostra todos os membros da equipe, sem filtrar pela área do projeto selecionado.
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-### Alteração em `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+### Etapa 1 — Migration: adicionar coluna
 
-1. **Alterar query de projetos** para incluir `area_id`:
-   ```ts
-   .select('id, name, external_client_id, area_id')
-   ```
+Criar uma migration com:
 
-2. **Nova query: buscar `estrutura_area_id` da `tax_areas`** com base no `area_id` do projeto selecionado:
-   ```ts
-   const selectedProject = projects.find(p => p.id === watchedProjectId);
-   const projectAreaId = selectedProject?.area_id;
-   ```
-   Query em `tax_areas` para obter `estrutura_area_id` do `area_id`.
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+```
 
-3. **Nova query: buscar membros da área** (reutilizando o padrão de FiscalProjetosCadastro):
-   - Buscar líderes de `estrutura_area_lideres`
-   - Buscar sublíderes de `estrutura_equipes`
-   - Buscar membros de `estrutura_equipe_membros` via equipes da área
-   - Unir todos em um Set de IDs
+### Etapa 2 — Data update: popular mapeamentos
 
-4. **Filtrar `teamMembers`** no dropdown de Responsável:
-   ```ts
-   const filteredTeamMembers = useMemo(() => {
-     if (!areaMemberSet.size) return teamMembers; // fallback
-     return teamMembers.filter(m => areaMemberSet.has(m.id));
-   }, [teamMembers, areaMemberSet]);
-   ```
-   Usar `filteredTeamMembers` no Select de Responsável (linha 618) em vez de `teamMembers`.
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-5. **Limpar responsável ao trocar projeto** se o responsável atual não pertencer à nova área.
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
 
-### Regras
-- Se o projeto não tiver `area_id` ou a área não tiver `estrutura_area_id`, fallback para todos os membros (comportamento atual)
-- Nenhuma alteração de banco
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 
