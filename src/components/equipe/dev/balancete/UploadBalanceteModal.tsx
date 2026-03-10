@@ -207,6 +207,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         throw new Error(message);
       }
 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ clienteId, contribuinteId }));
       toast({ title: 'Balancete enviado com sucesso!' });
       handleClose(false);
     } catch (err: any) {
