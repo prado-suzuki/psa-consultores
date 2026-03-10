@@ -101,7 +101,6 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
       ...filters, 
       clientId: value === 'all' ? undefined : value,
       contribuinteId: undefined,
-      projectId: undefined,
     });
   };
 
