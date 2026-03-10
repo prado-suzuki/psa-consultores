@@ -291,7 +291,13 @@ export const TaskModal = ({
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
-  }, [watchedProjectId, form, defaultParentId]);
+    // Clear assignee if not in the new area's member list
+    const currentAssignee = form.getValues('assigned_to');
+    if (currentAssignee && areaMemberIds.length > 0 && !areaMemberIds.includes(currentAssignee)) {
+      form.setValue('assigned_to', undefined);
+      form.setValue('assigned_to_name', undefined);
+    }
+  }, [watchedProjectId, form, defaultParentId, areaMemberIds]);
 
   // Effect B: Auto-fill client from project (runs when projects load or project changes)
   useEffect(() => {
