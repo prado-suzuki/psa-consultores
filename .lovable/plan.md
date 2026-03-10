@@ -1,26 +1,34 @@
 
 
-## Plano: Filtrar projetos pelo cliente selecionado no TaskModal
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-### O que muda
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-No `TaskModal.tsx`, 3 alterações simples:
+### Etapa 1 — Migration: adicionar coluna
 
-1. **`filteredProjects` via `useMemo`** — filtra `projects` pelo `watchedClientId`. Se nenhum cliente selecionado, mostra todos.
+Criar uma migration com:
 
-```ts
-const filteredProjects = useMemo(() => {
-  if (!watchedClientId) return projects;
-  return projects.filter(p => p.external_client_id === watchedClientId);
-}, [projects, watchedClientId]);
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
 ```
 
-2. **`useEffect` para limpar `project_id`** — quando o cliente muda e o projeto atual não pertence ao novo cliente, limpa a seleção.
+### Etapa 2 — Data update: popular mapeamentos
 
-3. **Dropdown de projetos (linha 405)** — trocar `projects` por `filteredProjects`.
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-### Arquivo alterado
-- `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
 
-Nenhuma alteração de banco ou RLS.
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 
