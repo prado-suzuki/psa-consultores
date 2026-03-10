@@ -1,30 +1,34 @@
 
-# Varredura 360 — Correções Aplicadas
 
-## ✅ Corrigido
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-### 1. protectedPages.ts — Alinhamento com rotas reais
-- Removidos paths fantasma: `/equipe/projetos/fiscal/dashboard`, `/equipe/projetos/fixos/dashboard`, `/equipe/projetos/dashboard`, `/equipe/projetos/demandas`
-- Corrigido `/gestao/novidades` → `/gestao`
-- Adicionadas 5 páginas dev faltantes: `consulta-ecd`, `consulta-ecf`, `gestao-clientes`, `calculadora-ibs-cbs`, `controle-balancetes`
-- Corrigido typo `TEX` → `TAX`
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-### 2. AuthContext.tsx — Project ID dinâmico
-- Substituído hardcoded `sb-zwoainzzqhudmmknuycq-auth-token` por template literal usando `import.meta.env.VITE_SUPABASE_PROJECT_ID`
+### Etapa 1 — Migration: adicionar coluna
 
-### 3. App.tsx — Import morto removido
-- Removido import não utilizado de `FiscalDemandasClientes`
+Criar uma migration com:
 
-### 4. Auth — auto_confirm desativado
-- Confirmado que `auto_confirm_email = false` nas configurações de autenticação
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+```
 
-## ℹ️ Falsos positivos do relatório
-- `dotted-map` — usado em `BrazilMap.tsx`
-- `next-themes` — usado em `sonner.tsx`
-- Imports de `FiscalSidebar.tsx` — todos usados (Calculator, ChevronLeft, ArrowLeft)
-- RLS permissiva — única policy `USING true` é INSERT em `contatos` (formulário público, intencional)
+### Etapa 2 — Data update: popular mapeamentos
 
-## 🔲 Pendente (decisão do usuário)
-- Páginas órfãs (EquipeUsuarios, AdminUsuarios, etc.) — remover ou criar rotas?
-- Edge functions com `verify_jwt = false` — validação JWT já é feita em código (ex: create-team-member), mas config.toml poderia refletir isso
-- Leaked Password Protection — requer ativação manual no painel do backend
+Usar a ferramenta de inserção/update (não migration) para executar:
+
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
+
