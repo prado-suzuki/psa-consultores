@@ -496,6 +496,18 @@ export default function NewClientModal({
     },
   });
 
+  const { data: allClusters = [] } = useQuery({
+    queryKey: ["estrutura_clusters_for_os_filter"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("estrutura_clusters")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      return data || [];
+    },
+  });
+
   const { data: produtoSegmentoOptions = [] } = useQuery({
     queryKey: ["produto_segmento"],
     queryFn: async () => {
