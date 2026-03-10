@@ -82,6 +82,7 @@ const SITUACAO_PROJETO_OPTIONS = [
 // Types for draft items
 interface DraftEntity {
   _id: number;
+  _dbId?: string;
   tipo_pessoa: string;
   cpf_cnpj: string;
   nome_razao_social: string;
@@ -105,6 +106,7 @@ interface DraftEntity {
 
 interface DraftParticipant {
   _id: number;
+  _dbId?: string;
   nome: string;
   tipo_participante: string;
   cargo: string;
@@ -116,6 +118,7 @@ interface DraftParticipant {
 
 interface DraftOrdemServico {
   _id: number;
+  _dbId?: string;
   ordem_servico: string;
   data_emissao: string;
   data_inicio_projeto: string;
@@ -706,6 +709,7 @@ export default function NewClientModal({
           setEntities(
             contribs.map((c) => ({
               _id: Date.now() + Math.random(),
+              _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
               cpf_cnpj: c.cpf_cnpj || "",
               nome_razao_social: c.nome_razao_social || "",
@@ -737,6 +741,7 @@ export default function NewClientModal({
           setParticipants(
             parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
+              _dbId: p.id || p.id_participante,
               nome: p.nome || "",
               tipo_participante: p.tipo_participante || "",
               cargo: p.cargo || "",
@@ -756,6 +761,7 @@ export default function NewClientModal({
           setContracts(
             existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
+              _dbId: isProductionEnvironment ? os.id : os.id_contrato,
               ordem_servico: (isProductionEnvironment ? os.numero_os : os.numero_contrato) || "",
               data_emissao: os.data_emissao || "",
               data_inicio_projeto: os.data_inicio || "",
@@ -1240,16 +1246,31 @@ export default function NewClientModal({
         clienteId = editingClienteId!;
         clienteResult = updated;
 
-        await supabase.from(contribuinteTable).delete().eq("cliente_id", clienteId);
-
-        const { data: existingOS } = await (supabase.from(ordemServicoTable) as any)
-          .select(isProductionEnvironment ? "id" : "id_contrato")
-          .eq("id_cliente", clienteId);
-        if (existingOS && existingOS.length > 0) {
-          await (supabase.from(ordemServicoTable) as any).delete().eq("id_cliente", clienteId);
+        // --- Contribuintes: update existentes, insert novos, delete removidos ---
+        const currentContribDbIds = entities.filter(e => e._dbId).map(e => e._dbId!);
+        const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId);
+        const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
+        if (removedContribIds.length > 0) {
+          await supabase.from(contribuinteTable).delete().in("id", removedContribIds);
         }
 
-        await (supabase.from(participanteTable) as any).delete().eq("id_cliente", clienteId);
+        // --- Participantes: update existentes, insert novos, delete removidos ---
+        const partIdField = isProductionEnvironment ? "id" : "id_participante";
+        const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
+        const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId);
+        const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
+        if (removedPartIds.length > 0) {
+          await (supabase.from(participanteTable) as any).delete().in(partIdField, removedPartIds);
+        }
+
+        // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---
+        const osIdField = isProductionEnvironment ? "id" : "id_contrato";
+        const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
+        const { data: dbOS } = await (supabase.from(ordemServicoTable) as any).select(osIdField).eq("id_cliente", clienteId);
+        const removedOsIds = (dbOS || []).map((o: any) => o[osIdField]).filter((id: string) => !currentOsDbIds.includes(id));
+        if (removedOsIds.length > 0) {
+          await (supabase.from(ordemServicoTable) as any).delete().in(osIdField, removedOsIds);
+        }
       } else {
         const { data: newCliente, error: clienteError } = await supabase
           .from(clienteTable)
@@ -1261,82 +1282,104 @@ export default function NewClientModal({
         clienteResult = newCliente;
       }
 
-      if (entities.length > 0) {
-        const contribPayload = entities.map((e) => ({
-          cliente_id: clienteId,
-          tipo_pessoa: e.tipo_pessoa,
-          cpf_cnpj: e.cpf_cnpj || null,
-          nome_razao_social: e.nome_razao_social,
-          inscricao_estadual: e.inscricao_estadual || null,
-          cod_cnae: e.cod_cnae || null,
-          setor: e.setor || null,
-          simples_nacional:
-            e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
-          telefone: e.telefone || null,
-          nome_fantasia: e.nome_fantasia || null,
-          situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
-          cep: e.cep || null,
-          logradouro: e.logradouro || null,
-          numero: e.numero || null,
-          complemento: e.complemento || null,
-          bairro: e.bairro || null,
-          municipio: e.municipio || null,
-          uf: e.uf || null,
-          contribuinte_faturamento: e.contribuinte_faturamento ?? false,
-        }));
-        const { error: contribError } = await supabase.from(contribuinteTable).insert(contribPayload);
-        if (contribError) throw contribError;
+      // --- Persistir contribuintes (update ou insert) ---
+      const buildContribFields = (e: DraftEntity) => ({
+        cliente_id: clienteId,
+        tipo_pessoa: e.tipo_pessoa,
+        cpf_cnpj: e.cpf_cnpj || null,
+        nome_razao_social: e.nome_razao_social,
+        inscricao_estadual: e.inscricao_estadual || null,
+        cod_cnae: e.cod_cnae || null,
+        setor: e.setor || null,
+        simples_nacional:
+          e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
+        telefone: e.telefone || null,
+        nome_fantasia: e.nome_fantasia || null,
+        situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
+        cep: e.cep || null,
+        logradouro: e.logradouro || null,
+        numero: e.numero || null,
+        complemento: e.complemento || null,
+        bairro: e.bairro || null,
+        municipio: e.municipio || null,
+        uf: e.uf || null,
+        contribuinte_faturamento: e.contribuinte_faturamento ?? false,
+      });
+
+      for (const e of entities) {
+        if (e._dbId) {
+          const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from(contribuinteTable).insert(buildContribFields(e));
+          if (error) throw error;
+        }
       }
 
-      if (participants.length > 0) {
-        const partPayload = participants.map((p) => ({
-          id_cliente: clienteId,
-          nome: p.nome,
-          cargo: p.cargo || null,
-          email: p.email || null,
-          telefone: p.telefone || null,
-          tipo_participante: p.tipo_participante || null,
-          observacoes: p.observacoes || null,
-          acesso_chamados: p.acesso_chamados ?? false,
-        }));
-        const { error: partError } = await (supabase.from(participanteTable) as any).insert(partPayload);
-        if (partError) throw partError;
+      // --- Persistir participantes (update ou insert) ---
+      const buildPartFields = (p: DraftParticipant) => ({
+        id_cliente: clienteId,
+        nome: p.nome,
+        cargo: p.cargo || null,
+        email: p.email || null,
+        telefone: p.telefone || null,
+        tipo_participante: p.tipo_participante || null,
+        observacoes: p.observacoes || null,
+        acesso_chamados: p.acesso_chamados ?? false,
+      });
+
+      for (const p of participants) {
+        const pIdField = isProductionEnvironment ? "id" : "id_participante";
+        if (p._dbId) {
+          const { error } = await (supabase.from(participanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from(participanteTable) as any).insert(buildPartFields(p));
+          if (error) throw error;
+        }
       }
 
-      // Persistir ordens de serviço no banco
-      if (contracts.length > 0) {
-        const osPayload = contracts.map((c) => ({
-          id_cliente: clienteId,
-          ...(isProductionEnvironment
-            ? {
-                numero_os: c.ordem_servico || null,
-                data_emissao: c.data_emissao || null,
-                data_inicio: c.data_inicio_projeto || null,
-                data_fim: c.data_fim_projeto || null,
-                valor_projeto: c.valor_projeto || 0,
-                valor_reembolso_km: c.valor_reembolso_km || 0,
-                valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-                situacao: c.situacao_projeto || "em_andamento",
-                observacoes: c.observacoes_projeto || null,
-                servicos_contratados: c.servicos_contratados || [],
-                centros_custo: c.centros_custo || [],
-              }
-            : {
-                numero_contrato: c.ordem_servico || null,
-                data_emissao: c.data_emissao || null,
-                data_inicio: c.data_inicio_projeto || null,
-                data_fim: c.data_fim_projeto || null,
-                valor_fixo: c.valor_projeto || 0,
-                valor_reembolso_km: c.valor_reembolso_km || 0,
-                valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-                situacao: c.situacao_projeto || "em_andamento",
-                observacoes: c.observacoes_projeto || null,
-                servicos_contratados: c.servicos_contratados || [],
-                centros_custo: c.centros_custo || [],
-              }),
-        }));
-        const { error: osError } = await (supabase.from(ordemServicoTable) as any).insert(osPayload);
-        if (osError) throw osError;
+      // --- Persistir ordens de serviço (update ou insert) ---
+      const buildOsFields = (c: DraftOrdemServico) => ({
+        id_cliente: clienteId,
+        ...(isProductionEnvironment
+          ? {
+              numero_os: c.ordem_servico || null,
+              data_emissao: c.data_emissao || null,
+              data_inicio: c.data_inicio_projeto || null,
+              data_fim: c.data_fim_projeto || null,
+              valor_projeto: c.valor_projeto || 0,
+              valor_reembolso_km: c.valor_reembolso_km || 0,
+              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+              situacao: c.situacao_projeto || "em_andamento",
+              observacoes: c.observacoes_projeto || null,
+              servicos_contratados: c.servicos_contratados || [],
+              centros_custo: c.centros_custo || [],
+            }
+          : {
+              numero_contrato: c.ordem_servico || null,
+              data_emissao: c.data_emissao || null,
+              data_inicio: c.data_inicio_projeto || null,
+              data_fim: c.data_fim_projeto || null,
+              valor_fixo: c.valor_projeto || 0,
+              valor_reembolso_km: c.valor_reembolso_km || 0,
+              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+              situacao: c.situacao_projeto || "em_andamento",
+              observacoes: c.observacoes_projeto || null,
+              servicos_contratados: c.servicos_contratados || [],
+              centros_custo: c.centros_custo || [],
+            }),
+      });
+
+      for (const c of contracts) {
+        const cIdField = isProductionEnvironment ? "id" : "id_contrato";
+        if (c._dbId) {
+          const { error } = await (supabase.from(ordemServicoTable) as any).update(buildOsFields(c)).eq(cIdField, c._dbId);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from(ordemServicoTable) as any).insert(buildOsFields(c));
+          if (error) throw error;
+        }
       }
 
       syncCadastrosToDW({
