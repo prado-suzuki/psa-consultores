@@ -373,6 +373,44 @@ const FiscalProjetosCadastro = () => {
     enabled: !!formData.external_client_id,
   });
 
+  // Fetch suggested category IDs based on client's active OS → produto_servico mapping
+  const { data: suggestedCategoryIds = [] } = useQuery({
+    queryKey: ['suggested-categories', formData.external_client_id, ordemServicoTable],
+    queryFn: async () => {
+      if (!formData.external_client_id) return [];
+
+      // 1. Buscar OS ativas do cliente
+      const { data: osData } = await supabase
+        .from(ordemServicoTable)
+        .select('servicos_contratados')
+        .eq('id_cliente', formData.external_client_id)
+        .eq('situacao', 'em_andamento');
+
+      if (!osData?.length) return [];
+
+      // 2. Extrair UUIDs de produto_segmento do JSONB
+      const produtoIds = [...new Set(
+        osData.flatMap((os: any) => {
+          const sc = os.servicos_contratados;
+          return Array.isArray(sc) ? sc : [];
+        })
+      )];
+
+      if (!produtoIds.length) return [];
+
+      // 3. Buscar mapeamento produto → serviço
+      const { data: mappings } = await supabase
+        .from('produto_servico' as any)
+        .select('servico_prestado_id')
+        .in('produto_segmento_id', produtoIds);
+
+      return [...new Set((mappings || []).map((m: any) => m.servico_prestado_id))];
+    },
+    enabled: !!formData.external_client_id,
+  });
+
+  const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
+
   // Helper to get OS id regardless of environment
   const getOsId = (os: any): string => isProductionEnvironment ? os.id : os.id_contrato;
   const getOsLabel = (os: any): string => isProductionEnvironment ? (os.numero_os || 'Sem número') : (os.numero_contrato || 'Sem número');
