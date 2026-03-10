@@ -415,7 +415,7 @@ export const TaskModal = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="_none">Nenhum</SelectItem>
-                        {projects.map((p) => (
+                        {filteredProjects.map((p) => (
                           <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>
