@@ -761,6 +761,7 @@ export default function NewClientModal({
           setContracts(
             existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
+              _dbId: isProductionEnvironment ? os.id : os.id_contrato,
               ordem_servico: (isProductionEnvironment ? os.numero_os : os.numero_contrato) || "",
               data_emissao: os.data_emissao || "",
               data_inicio_projeto: os.data_inicio || "",
