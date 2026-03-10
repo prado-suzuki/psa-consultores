@@ -610,6 +610,18 @@ export default function NewClientModal({
 
   // Section 4 - OS (Ordem de Serviço)
   const [contracts, setContracts] = useState<DraftContract[]>([]);
+  const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
+  const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
+
+  const filteredCatalogServices = useMemo(() => {
+    if (osClusterFilter === "__all__") return catalogServices;
+    return catalogServices.filter((s: any) => s.cluster_id === osClusterFilter);
+  }, [catalogServices, osClusterFilter]);
+
+  const filteredEditCatalogServices = useMemo(() => {
+    if (osEditClusterFilter === "__all__") return catalogServices;
+    return catalogServices.filter((s: any) => s.cluster_id === osEditClusterFilter);
+  }, [catalogServices, osEditClusterFilter]);
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
