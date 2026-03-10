@@ -298,9 +298,10 @@ const FiscalProjetosCadastro = () => {
     enabled: !estruturaAreaId && formData.sublider_ids.length > 0,
   });
 
-  // Fetch external clients
+  // Fetch external clients (with fallback to other environment table)
+  const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
   const { data: externalClients = [] } = useQuery({
-    queryKey: ['external-clients-tax', clienteTable],
+    queryKey: ['external-clients-tax', clienteTable, editingProject?.external_client_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(clienteTable)
@@ -308,13 +309,27 @@ const FiscalProjetosCadastro = () => {
         .eq('ativo', true)
         .order('nome');
       if (error) throw error;
-      return data as ExternalClient[];
+      const list = data as ExternalClient[];
+
+      // Fallback: if editing and the client ID is not in the current env table, fetch from the other
+      const editClientId = editingProject?.external_client_id;
+      if (editClientId && !list.some(c => c.id === editClientId)) {
+        const { data: fallback } = await supabase
+          .from(fallbackClienteTable)
+          .select('id, nome, setor_cliente')
+          .eq('id', editClientId)
+          .maybeSingle();
+        if (fallback) list.push(fallback as ExternalClient);
+      }
+
+      return list;
     },
   });
 
-  // Fetch contribuintes filtered by selected client
+  // Fetch contribuintes filtered by selected client (with fallback)
+  const fallbackContribuinteTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes-for-project', contribuinteTable, formData.external_client_id],
+    queryKey: ['contribuintes-for-project', contribuinteTable, formData.external_client_id, editingProject?.contribuinte_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
       const { data, error } = await supabase
@@ -323,7 +338,19 @@ const FiscalProjetosCadastro = () => {
         .eq('cliente_id', formData.external_client_id)
         .order('nome_razao_social');
       if (error) throw error;
-      return data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
+      let list = data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
+
+      // Fallback: if no results, try the other environment table
+      if (list.length === 0) {
+        const { data: fallback } = await supabase
+          .from(fallbackContribuinteTable)
+          .select('id, nome_razao_social, cpf_cnpj')
+          .eq('cliente_id', formData.external_client_id)
+          .order('nome_razao_social');
+        if (fallback?.length) list = fallback as typeof list;
+      }
+
+      return list;
     },
     enabled: !!formData.external_client_id,
   });
