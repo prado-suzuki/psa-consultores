@@ -720,7 +720,7 @@ export default function ControlePerdcomp() {
   };
 
   return (
-    <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP">
+    <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/">
       {/* Filters Card */}
       <Card className="mb-6">
         <CardHeader className="pb-4">
