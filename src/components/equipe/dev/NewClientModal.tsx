@@ -496,6 +496,18 @@ export default function NewClientModal({
     },
   });
 
+  const { data: allClusters = [] } = useQuery({
+    queryKey: ["estrutura_clusters_for_os_filter"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("estrutura_clusters")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      return data || [];
+    },
+  });
+
   const { data: produtoSegmentoOptions = [] } = useQuery({
     queryKey: ["produto_segmento"],
     queryFn: async () => {
@@ -598,6 +610,18 @@ export default function NewClientModal({
 
   // Section 4 - OS (Ordem de Serviço)
   const [contracts, setContracts] = useState<DraftContract[]>([]);
+  const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
+  const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
+
+  const filteredCatalogServices = useMemo(() => {
+    if (osClusterFilter === "__all__") return catalogServices;
+    return catalogServices.filter((s: any) => s.cluster_id === osClusterFilter);
+  }, [catalogServices, osClusterFilter]);
+
+  const filteredEditCatalogServices = useMemo(() => {
+    if (osEditClusterFilter === "__all__") return catalogServices;
+    return catalogServices.filter((s: any) => s.cluster_id === osEditClusterFilter);
+  }, [catalogServices, osEditClusterFilter]);
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
@@ -3363,6 +3387,21 @@ export default function NewClientModal({
                                       </div>
                                       {/* Serviços Contratados (inline edit) */}
                                       <div className="border border-dashed rounded-lg p-3 mt-1">
+                                        {/* Filtro por Empresa/Cluster */}
+                                        <div className="mb-3">
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+                                          <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
+                                            <SelectTrigger className="h-8 mt-1">
+                                              <SelectValue placeholder="Todas as empresas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__all__">Todas as empresas</SelectItem>
+                                              {allClusters.map((c: any) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
                                         <div className="flex items-center justify-between mb-2">
                                           <h5 className="text-xs font-bold text-muted-foreground uppercase">
                                             Serviços Contratados
@@ -3401,8 +3440,9 @@ export default function NewClientModal({
                                               <SelectContent>
                                                 <SelectItem value="__none__">Selecione...</SelectItem>
                                                 {(() => {
-                                                  const withCluster = catalogServices.filter((s: any) => s.estrutura_clusters?.name);
-                                                  const withoutCluster = catalogServices.filter((s: any) => !s.estrutura_clusters?.name);
+                                                  const source = filteredEditCatalogServices;
+                                                  const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                                  const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
                                                   const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
                                                     const cName = s.estrutura_clusters.name;
                                                     if (!acc[cName]) acc[cName] = [];
@@ -3746,6 +3786,21 @@ export default function NewClientModal({
 
                             {/* Serviços Contratados */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
+                              {/* Filtro por Empresa/Cluster */}
+                              <div className="mb-3">
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+                                <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
+                                  <SelectTrigger className="h-8 mt-1">
+                                    <SelectValue placeholder="Todas as empresas" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__all__">Todas as empresas</SelectItem>
+                                    {allClusters.map((c: any) => (
+                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                               <div className="flex items-center justify-between mb-2">
                                 <h5 className="text-xs font-bold text-muted-foreground uppercase">
                                   Serviços Contratados
@@ -3784,8 +3839,9 @@ export default function NewClientModal({
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
                                        {(() => {
-                                        const withCluster = catalogServices.filter((s: any) => s.estrutura_clusters?.name);
-                                        const withoutCluster = catalogServices.filter((s: any) => !s.estrutura_clusters?.name);
+                                        const source = filteredCatalogServices;
+                                        const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                        const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
                                         const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
                                           const cName = s.estrutura_clusters.name;
                                           if (!acc[cName]) acc[cName] = [];
