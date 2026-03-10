@@ -1,34 +1,60 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Criar mapeamento produto_segmento ↔ servicos_prestados
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
-
-### Etapa 1 — Migration: adicionar coluna
-
-Criar uma migration com:
+### Etapa 1 — Migration: criar tabela `produto_servico`
 
 ```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+CREATE TABLE public.produto_servico (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  produto_segmento_id uuid NOT NULL REFERENCES public.produto_segmento(id) ON DELETE CASCADE,
+  servico_prestado_id uuid NOT NULL REFERENCES public.servicos_prestados(id) ON DELETE CASCADE,
+  UNIQUE(produto_segmento_id, servico_prestado_id)
+);
+
+ALTER TABLE public.produto_servico ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can view produto_servico"
+  ON public.produto_servico FOR SELECT
+  TO authenticated USING (true);
+
+CREATE POLICY "Admins can manage produto_servico"
+  ON public.produto_servico FOR ALL
+  TO authenticated USING (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+  );
 ```
 
-### Etapa 2 — Data update: popular mapeamentos
+A policy de admin usa query direta em `user_roles` em vez de `has_role()`. Recomendo trocar por `public.has_role(auth.uid(), 'admin')` para manter consistência com o restante do projeto e evitar problemas de recursão RLS futuros. Fora isso, a estrutura está correta.
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+### Etapa 2 — Popular 31 vínculos via INSERT
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+Usar a ferramenta de inserção (não migration) para executar INSERTs com subqueries que resolvem os UUIDs dinamicamente:
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+```sql
+INSERT INTO public.produto_servico (produto_segmento_id, servico_prestado_id)
+VALUES
+  ((SELECT id FROM produto_segmento WHERE codigo = 'PTR'), (SELECT id FROM servicos_prestados WHERE nome = 'Planejamento Tributário')),
+  ((SELECT id FROM produto_segmento WHERE codigo = 'ACF'), (SELECT id FROM servicos_prestados WHERE nome = 'Diagnóstico Contábil e Tributário')),
+  -- ... demais 29 linhas
+ON CONFLICT (produto_segmento_id, servico_prestado_id) DO NOTHING;
+```
 
-### O que NÃO será feito
+Total: 31 vínculos cobrindo 9 produtos (PTR, ACF, RRT, RTJ, DTB, EDP, RSC, REA, ADJ). Os demais produtos ficam sem vínculo por enquanto.
 
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+### Etapa 3 — Nenhuma alteração no frontend
+
+Integração no formulário será feita em prompt separado.
+
+### Observação técnica
+
+Sugiro ajustar a policy de admin para usar `has_role()`:
+
+```sql
+CREATE POLICY "Admins can manage produto_servico"
+  ON public.produto_servico FOR ALL
+  TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+```
+
+Isso segue o padrão SECURITY DEFINER já estabelecido no projeto.
 
