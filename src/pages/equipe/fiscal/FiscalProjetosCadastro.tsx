@@ -487,10 +487,10 @@ const FiscalProjetosCadastro = () => {
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
 
-  // Clear category_ids only when area changes by user action (not on initial edit load)
+  // Clear fields when area changes by user action
   useEffect(() => {
     if (prevAreaId && formData.area_id && prevAreaId !== formData.area_id) {
-      setFormData(prev => ({ ...prev, category_ids: [] }));
+      setFormData(prev => ({ ...prev, leader_ids: [], sublider_ids: [], member_ids: [], category_ids: [] }));
     }
     setPrevAreaId(formData.area_id);
   }, [formData.area_id]);
