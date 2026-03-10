@@ -3387,6 +3387,21 @@ export default function NewClientModal({
                                       </div>
                                       {/* Serviços Contratados (inline edit) */}
                                       <div className="border border-dashed rounded-lg p-3 mt-1">
+                                        {/* Filtro por Empresa/Cluster */}
+                                        <div className="mb-3">
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+                                          <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
+                                            <SelectTrigger className="h-8 mt-1">
+                                              <SelectValue placeholder="Todas as empresas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__all__">Todas as empresas</SelectItem>
+                                              {allClusters.map((c: any) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
                                         <div className="flex items-center justify-between mb-2">
                                           <h5 className="text-xs font-bold text-muted-foreground uppercase">
                                             Serviços Contratados
@@ -3425,8 +3440,9 @@ export default function NewClientModal({
                                               <SelectContent>
                                                 <SelectItem value="__none__">Selecione...</SelectItem>
                                                 {(() => {
-                                                  const withCluster = catalogServices.filter((s: any) => s.estrutura_clusters?.name);
-                                                  const withoutCluster = catalogServices.filter((s: any) => !s.estrutura_clusters?.name);
+                                                  const source = filteredEditCatalogServices;
+                                                  const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                                  const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
                                                   const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
                                                     const cName = s.estrutura_clusters.name;
                                                     if (!acc[cName]) acc[cName] = [];
