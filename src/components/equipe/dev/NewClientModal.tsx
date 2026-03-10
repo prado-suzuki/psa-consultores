@@ -1381,7 +1381,6 @@ export default function NewClientModal({
           if (error) throw error;
         }
       }
-      }
 
       syncCadastrosToDW({
         clientes: [
