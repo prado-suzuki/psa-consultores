@@ -81,6 +81,7 @@ interface ExternalClient {
 interface TaxArea {
   id: string;
   nome: string;
+  estrutura_area_id: string | null;
 }
 
 interface TaxCategoria {
