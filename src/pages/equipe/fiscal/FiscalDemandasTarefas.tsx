@@ -59,12 +59,16 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
   });
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['tax-projects-for-filter'],
+    queryKey: ['tax-projects-for-filter', filters.clientId],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('tax_projects')
         .select('id, name')
         .order('name');
+      if (filters.clientId) {
+        query = query.eq('external_client_id', filters.clientId);
+      }
+      const { data } = await query;
       return data || [];
     },
   });
