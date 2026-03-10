@@ -1,30 +1,34 @@
 
 
-## Plano: Persistir cliente/contribuinte do último upload
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-Após um upload bem-sucedido, salvar `clienteId` e `contribuinteId` em `localStorage`. Ao abrir o modal, inicializar os estados com esses valores salvos.
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-### Alterações em `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx`
+### Etapa 1 — Migration: adicionar coluna
 
-1. **Constante de chave localStorage:**
-   ```ts
-   const STORAGE_KEY = 'last-balancete-upload';
-   ```
+Criar uma migration com:
 
-2. **Inicialização dos estados** — substituir `useState('')` por função que lê do localStorage:
-   ```ts
-   const stored = localStorage.getItem(STORAGE_KEY);
-   const lastUpload = stored ? JSON.parse(stored) : null;
-   const [clienteId, setClienteId] = useState(lastUpload?.clienteId || '');
-   const [contribuinteId, setContribuinteId] = useState(lastUpload?.contribuinteId || '');
-   ```
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+```
 
-3. **Salvar após upload bem-sucedido** — dentro do `handleSubmit`, logo após o toast de sucesso, gravar:
-   ```ts
-   localStorage.setItem(STORAGE_KEY, JSON.stringify({ clienteId, contribuinteId }));
-   ```
+### Etapa 2 — Data update: popular mapeamentos
 
-4. **resetForm** — NÃO limpar clienteId/contribuinteId no reset (para que ao reabrir o modal, os valores persistam). Limpar apenas `periodo`, `file`, `detalhamento`, `dragging`, `showConfirm`.
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-Nenhuma outra alteração necessária — o `useEffect` de `contribuinteId` já dispara a busca de config de detalhamento automaticamente, e a query de contribuintes já é filtrada pelo `clienteId`.
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 

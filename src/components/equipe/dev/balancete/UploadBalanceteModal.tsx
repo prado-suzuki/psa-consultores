@@ -31,12 +31,18 @@ interface UploadBalanceteModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const STORAGE_KEY = 'last-balancete-upload';
+
 export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModalProps) => {
   const { user } = useAuth();
   const { fetchWithAuth } = useApiAuth();
 
-  const [clienteId, setClienteId] = useState('');
-  const [contribuinteId, setContribuinteId] = useState('');
+  const [clienteId, setClienteId] = useState(() => {
+    try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).clienteId || '' : ''; } catch { return ''; }
+  });
+  const [contribuinteId, setContribuinteId] = useState(() => {
+    try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).contribuinteId || '' : ''; } catch { return ''; }
+  });
   const [periodo, setPeriodo] = useState<MonthRange | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -156,8 +162,6 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   };
 
   const resetForm = () => {
-    setClienteId('');
-    setContribuinteId('');
     setPeriodo(null);
     setFile(null);
     setDetalhamento(null);
@@ -204,6 +208,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         throw new Error(message);
       }
 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ clienteId, contribuinteId }));
       toast({ title: 'Balancete enviado com sucesso!' });
       handleClose(false);
     } catch (err: any) {
