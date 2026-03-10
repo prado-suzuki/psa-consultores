@@ -2446,6 +2446,39 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_servico: {
+        Row: {
+          id: string
+          produto_segmento_id: string
+          servico_prestado_id: string
+        }
+        Insert: {
+          id?: string
+          produto_segmento_id: string
+          servico_prestado_id: string
+        }
+        Update: {
+          id?: string
+          produto_segmento_id?: string
+          servico_prestado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_servico_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_servico_servico_prestado_id_fkey"
+            columns: ["servico_prestado_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company: string | null
