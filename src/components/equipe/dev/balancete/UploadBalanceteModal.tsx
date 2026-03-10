@@ -43,7 +43,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const [contribuinteId, setContribuinteId] = useState(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).contribuinteId || '' : ''; } catch { return ''; }
   });
-  const [file, setFile] = useState<File | null>(null);
+  const [periodo, setPeriodo] = useState<MonthRange | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
   const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
