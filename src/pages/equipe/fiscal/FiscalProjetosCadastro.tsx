@@ -126,7 +126,7 @@ const FiscalProjetosCadastro = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tax_areas')
-        .select('id, nome')
+        .select('id, nome, estrutura_area_id')
         .order('nome');
       if (error) throw error;
       return data as TaxArea[];
