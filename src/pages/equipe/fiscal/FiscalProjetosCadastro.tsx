@@ -62,6 +62,7 @@ interface Project {
   responsible_id: string | null;
   leader_id: string | null;
   external_client_id: string | null;
+  contribuinte_id: string | null;
   area_id: string | null;
   objective: string | null;
 }
