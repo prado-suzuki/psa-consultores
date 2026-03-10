@@ -200,30 +200,94 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Filtered lists based on roles
+  // Derive estruturaAreaId from selected tax area
+  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
+  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+
+  // Fetch area leaders from estrutura_area_lideres
+  const { data: areaLiderIds = [] } = useQuery({
+    queryKey: ['area-lideres', estruturaAreaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_area_lideres')
+        .select('user_id')
+        .eq('area_id', estruturaAreaId!);
+      if (error) throw error;
+      return (data || []).map(d => d.user_id);
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Fetch area subleaders from estrutura_equipes
+  const { data: areaSubliderIds = [] } = useQuery({
+    queryKey: ['area-sublideres', estruturaAreaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_equipes')
+        .select('sublider_id')
+        .eq('area_id', estruturaAreaId!)
+        .not('sublider_id', 'is', null);
+      if (error) throw error;
+      return [...new Set((data || []).map(d => d.sublider_id!))];
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Fetch area members from estrutura_equipe_membros via equipes
+  const { data: areaMemberIds = [] } = useQuery({
+    queryKey: ['area-membros', estruturaAreaId],
+    queryFn: async () => {
+      // First get equipe ids for this area
+      const { data: equipes, error: eErr } = await supabase
+        .from('estrutura_equipes')
+        .select('id')
+        .eq('area_id', estruturaAreaId!);
+      if (eErr) throw eErr;
+      if (!equipes?.length) return [];
+      const { data: members, error: mErr } = await supabase
+        .from('estrutura_equipe_membros')
+        .select('user_id')
+        .in('equipe_id', equipes.map(e => e.id));
+      if (mErr) throw mErr;
+      return [...new Set((members || []).map(m => m.user_id))];
+    },
+    enabled: !!estruturaAreaId,
+  });
+
+  // Filtered lists based on roles + area structure
   const lideres = useMemo(() => {
     const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
-    return teamMembers.filter(m => liderIds.includes(m.id));
-  }, [teamMembers, userRoles]);
+    const allLideres = teamMembers.filter(m => liderIds.includes(m.id));
+    if (estruturaAreaId && areaLiderIds.length > 0) {
+      const selectedSet = new Set(formData.leader_ids);
+      const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
+      return filtered.length > 0 ? filtered : allLideres; // fallback
+    }
+    return allLideres;
+  }, [teamMembers, userRoles, estruturaAreaId, areaLiderIds, formData.leader_ids]);
 
   const sublideres = useMemo(() => {
-    const subliderIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
-    return teamMembers.filter(m => subliderIds.includes(m.id));
-  }, [teamMembers, userRoles]);
+    const subliderRoleIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
+    const allSublideres = teamMembers.filter(m => subliderRoleIds.includes(m.id));
+    if (estruturaAreaId && areaSubliderIds.length > 0) {
+      const selectedSet = new Set(formData.sublider_ids);
+      const filtered = allSublideres.filter(m => areaSubliderIds.includes(m.id) || selectedSet.has(m.id));
+      return filtered.length > 0 ? filtered : allSublideres; // fallback
+    }
+    return allSublideres;
+  }, [teamMembers, userRoles, estruturaAreaId, areaSubliderIds, formData.sublider_ids]);
 
-  // Fetch members filtered by selected subliders' teams
+  // Fetch members filtered by selected subliders' teams (only used when no estruturaAreaId)
   const { data: filteredMemberIds = [] } = useQuery({
     queryKey: ['sublider-team-members', formData.sublider_ids],
     queryFn: async () => {
       if (formData.sublider_ids.length === 0) return [];
-      // Get teams where sublider_id is one of the selected subliders
       const { data: teams, error: tErr } = await supabase
         .from('estrutura_equipes')
         .select('id')
         .in('sublider_id', formData.sublider_ids);
       if (tErr) throw tErr;
       if (!teams?.length) return [];
-      // Get members of those teams
       const { data: members, error: mErr } = await supabase
         .from('estrutura_equipe_membros')
         .select('user_id')
@@ -231,7 +295,7 @@ const FiscalProjetosCadastro = () => {
       if (mErr) throw mErr;
       return [...new Set((members || []).map(m => m.user_id))];
     },
-    enabled: formData.sublider_ids.length > 0,
+    enabled: !estruturaAreaId && formData.sublider_ids.length > 0,
   });
 
   // Fetch external clients
