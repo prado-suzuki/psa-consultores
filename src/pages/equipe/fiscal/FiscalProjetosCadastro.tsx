@@ -1288,10 +1288,35 @@ const FiscalProjetosCadastro = () => {
 
                 {/* Membros do Projeto (multi-select dropdown) */}
                 <div>
-                  <Label>Membros do Projeto</Label>
-                  {formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
+                  <div className="flex items-center justify-between">
+                    <Label>Membros do Projeto</Label>
+                    {estruturaAreaId && areaMemberIds.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                        onClick={() => {
+                          const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+                          const eligibleIds = areaMemberIds.filter(id => !excludeIds.has(id));
+                          setFormData(prev => ({
+                            ...prev,
+                            member_ids: [...new Set([...prev.member_ids, ...eligibleIds])],
+                          }));
+                        }}
+                      >
+                        <UsersRound className="h-3.5 w-3.5" />
+                        Incluir todos da área
+                      </Button>
+                    )}
+                  </div>
+                  {!estruturaAreaId && formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
                       Selecione ao menos um sublíder para ver os membros disponíveis.
+                    </p>
+                  ) : estruturaAreaId && areaMemberIds.length === 0 && formData.member_ids.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Nenhum membro encontrado na estrutura desta área.
                     </p>
                   ) : (
                     <Popover>
