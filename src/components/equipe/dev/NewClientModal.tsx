@@ -1355,6 +1355,7 @@ export default function NewClientModal({
           .single();
         if (clienteError) throw clienteError;
         clienteId = newCliente.id;
+        createdClienteId = newCliente.id;
         clienteResult = newCliente;
       }
 
