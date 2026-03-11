@@ -3516,13 +3516,13 @@ export default function NewClientModal({
                                             variant="outline"
                                             className="gap-1 text-xs"
                                             onClick={() =>
-                                              setEditingContractData({
-                                                ...ec,
+                                              setEditingContractData(prev => prev ? ({
+                                                ...prev,
                                                 distribuicao_receita: [
-                                                  ...((ec as any).distribuicao_receita || []),
+                                                  ...((prev as any).distribuicao_receita || []),
                                                   { id_centro_custo: "", percentual_rateio: 0 },
                                                 ],
-                                              } as any)
+                                              } as any) : prev)
                                             }
                                           >
                                             <Plus size={12} /> Adicionar
