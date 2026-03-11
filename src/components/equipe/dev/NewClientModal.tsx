@@ -1902,16 +1902,20 @@ export default function NewClientModal({
                                           <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
                                         )}
                                         <FieldPair label="Telefone" value={ent.telefone} />
-                                        <FieldPair
-                                          label="Inscrição Estadual"
-                                          value={
-                                            ent.situacao_inscricao_estadual === "isento"
-                                              ? "Isento"
-                                              : ent.situacao_inscricao_estadual === "nao"
-                                                ? "Não"
-                                                : ent.inscricao_estadual || "—"
-                                          }
-                                        />
+                                        {/* Inscrições Estaduais */}
+                                        <div className="col-span-2 md:col-span-3">
+                                          <span className="text-[10px] font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {(inscricoesMap[ent._dbId || String(ent._id)] || []).length > 0
+                                              ? (inscricoesMap[ent._dbId || String(ent._id)] || []).map((ie) => (
+                                                  <Badge key={ie._tempId} variant="secondary" className="text-xs">
+                                                    {ie.uf} — {ie.situacao === "isento" ? "Isento" : ie.situacao === "nao" ? "Não inscrito" : ie.numero_ie || "—"}
+                                                  </Badge>
+                                                ))
+                                              : <span className="text-sm text-muted-foreground">Nenhuma IE cadastrada</span>
+                                            }
+                                          </div>
+                                        </div>
                         {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
                         {ent.tipo_pessoa === "PJ" && ent.atividade_principal && (
                           <FieldPair label="Atividade Principal" value={ent.atividade_principal} />
