@@ -860,6 +860,7 @@ export default function NewClientModal({
       if (saved.entities) setEntities(saved.entities);
       if (saved.participants) setParticipants(saved.participants);
       if (saved.contracts) setContracts(saved.contracts);
+      if (saved.inscricoesMap) setInscricoesMap(saved.inscricoesMap);
     }
   }, [open, isEditing]);
 
