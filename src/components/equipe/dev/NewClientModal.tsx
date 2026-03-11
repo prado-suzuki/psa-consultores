@@ -1507,8 +1507,9 @@ export default function NewClientModal({
       valor_reembolso_refeicao: 0,
       situacao_projeto: "em_andamento",
       observacoes_projeto: "",
-      servicos_contratados: [],
-      centros_custo: [],
+      id_servico: "",
+      id_produto_segmento: "",
+      distribuicao_receita: [],
     });
     setDraftParticipant({
       nome: "",
