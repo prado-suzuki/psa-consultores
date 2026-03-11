@@ -3266,7 +3266,7 @@ export default function NewClientModal({
                                             <div className="flex flex-wrap gap-2 mt-1">
                                               {cont.distribuicao_receita.map(
                                                 (cc, idx) => {
-                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.codigo === cc.id_centro_custo);
+                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.id === cc.id_centro_custo);
                                                   return (
                                                     <Badge key={idx} variant="outline" className="text-xs">
                                                       {ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%
