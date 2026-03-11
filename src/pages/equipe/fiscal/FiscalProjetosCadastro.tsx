@@ -374,36 +374,31 @@ const FiscalProjetosCadastro = () => {
 
   // Fetch suggested category IDs based on client's active OS → produto_servico mapping
   const { data: suggestedCategoryIds = [] } = useQuery({
-    queryKey: ['suggested-categories', formData.external_client_id, ordemServicoTable],
+    queryKey: ['suggested-categories', formData.external_client_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
 
-      // 1. Buscar OS ativas do cliente
-      const { data: osData } = await supabase
-        .from(ordemServicoTable)
-        .select('servicos_contratados')
+      // 1. Buscar OS ativas do cliente com id_servico
+      const { data: osData } = await (supabase
+        .from('ordem_servico' as any) as any)
+        .select('id_servico')
         .eq('id_cliente', formData.external_client_id)
         .eq('situacao', 'em_andamento');
 
       if (!osData?.length) return [];
 
-      // 2. Extrair UUIDs de produto_segmento do JSONB
-      const produtoIds = [...new Set(
-        osData.flatMap((os: any) => {
-          const sc = os.servicos_contratados;
-          return Array.isArray(sc) ? sc : [];
-        })
+      // 2. Extrair UUIDs de serviço direto (campo único, não mais JSONB)
+      const servicoIds = [...new Set(
+        osData
+          .map((os: any) => os.id_servico)
+          .filter(Boolean)
       )];
 
-      if (!produtoIds.length) return [];
+      if (!servicoIds.length) return [];
 
-      // 3. Buscar mapeamento produto → serviço
-      const { data: mappings } = await supabase
-        .from('produto_servico' as any)
-        .select('servico_prestado_id')
-        .in('produto_segmento_id', produtoIds);
-
-      return [...new Set((mappings || []).map((m: any) => m.servico_prestado_id))];
+      // 3. Buscar mapeamento produto → serviço (retornar os serviço IDs diretamente)
+      // Since id_servico already points to servicos_prestados, return them directly
+      return servicoIds;
     },
     enabled: !!formData.external_client_id,
   });
