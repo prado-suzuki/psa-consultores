@@ -592,6 +592,7 @@ export default function NewClientModal({
     nome_fantasia: "",
     situacao_inscricao_estadual: "",
     inscricao_estadual: "",
+    inscricoes_estaduais: [],
     cod_cnae: "",
     setor: "Indústria",
     simples_nacional: "",
