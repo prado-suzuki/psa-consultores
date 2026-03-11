@@ -975,7 +975,8 @@ export default function NewClientModal({
       }
     }
 
-  setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
+  const ies = draftEntity.inscricoes_estaduais || [];
+  setEntities([...entities, { ...draftEntity, inscricao_estadual: ies[0]?.ie || "", _id: Date.now() + Math.random() } as DraftEntity]);
     setDraftEntity({
       tipo_pessoa: "PJ",
       cpf_cnpj: "",
@@ -983,6 +984,7 @@ export default function NewClientModal({
       nome_fantasia: "",
       situacao_inscricao_estadual: "",
       inscricao_estadual: "",
+      inscricoes_estaduais: [],
       cod_cnae: "",
       setor: "Indústria",
       simples_nacional: "",
