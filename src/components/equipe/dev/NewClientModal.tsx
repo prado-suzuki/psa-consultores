@@ -69,7 +69,7 @@ const TIPO_PARTICIPANTE_OPTIONS = [
   "Outros",
 ];
 
-// EMPRESA_FATURAMENTO_OPTIONS is now loaded from the database (empresas_faturamento table)
+
 
 const SITUACAO_PROJETO_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
@@ -541,7 +541,7 @@ export default function NewClientModal({
     },
   });
 
-  // EMPRESA_FATURAMENTO_OPTIONS removed - no longer used in client form
+  
 
   const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
     ...produtoSegmentoOptions,
@@ -1230,7 +1230,7 @@ export default function NewClientModal({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  // toggleEmpresaFaturamento removed - no longer used
+  
 
   // --- FINAL SAVE ---
   const handleSave = () => {
@@ -3236,35 +3236,43 @@ export default function NewClientModal({
                                             <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
                                           </div>
                                         )}
-                                        {(cont as any).servicos_contratados?.length > 0 && (
+                                        {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Serviços Contratados
+                                              Serviço Contratado
                                             </p>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {(cont as any).servicos_contratados.map((svcId: string) => {
-                                                const svc = catalogServices.find((s: any) => s.id === svcId);
-                                                return (
-                                                  <Badge key={svcId} variant="secondary" className="text-xs">
-                                                    {svc?.nome || svcId}
-                                                  </Badge>
-                                                );
-                                              })}
-                                            </div>
+                                            <Badge variant="secondary" className="text-xs mt-1">
+                                              {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
+                                            </Badge>
                                           </div>
                                         )}
-                                        {(cont as any).centros_custo?.length > 0 && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Centros de Custo
+                                              Tipo de Produto/Segmento
+                                            </p>
+                                            <Badge variant="outline" className="text-xs mt-1">
+                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
+                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
+                                                : cont.id_produto_segmento}
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        {cont.distribuicao_receita?.length > 0 && (
+                                          <div className="col-span-2 md:col-span-3">
+                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                                              Distribuição de Receita
                                             </p>
                                             <div className="flex flex-wrap gap-2 mt-1">
-                                              {(cont as any).centros_custo.map(
-                                                (cc: { empresa: string; percentual: number }, idx: number) => (
-                                                  <Badge key={idx} variant="outline" className="text-xs">
-                                                    {cc.empresa}: {cc.percentual}%
-                                                  </Badge>
-                                                ),
+                                              {cont.distribuicao_receita.map(
+                                                (cc, idx) => {
+                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.codigo === cc.id_centro_custo);
+                                                  return (
+                                                    <Badge key={idx} variant="outline" className="text-xs">
+                                                      {ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%
+                                                    </Badge>
+                                                  );
+                                                },
                                               )}
                                             </div>
                                           </div>
@@ -3403,7 +3411,7 @@ export default function NewClientModal({
                                           className="min-h-[60px]"
                                         />
                                       </div>
-                                      {/* Serviços Contratados (inline edit) */}
+                                      {/* Serviço Contratado (inline edit - único) */}
                                       <div className="border border-dashed rounded-lg p-3 mt-1">
                                         {/* Filtro por Empresa/Cluster */}
                                         <div className="mb-3">
@@ -3420,97 +3428,83 @@ export default function NewClientModal({
                                             </SelectContent>
                                           </Select>
                                         </div>
-                                        <div className="flex items-center justify-between mb-2">
-                                          <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                            Serviços Contratados
-                                          </h5>
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="gap-1 text-xs"
-                                            onClick={() =>
-                                              setEditingContractData({
-                                                ...ec,
-                                                servicos_contratados: [...((ec as any).servicos_contratados || []), ""],
-                                              } as any)
-                                            }
-                                          >
-                                            <Plus size={12} /> Adicionar
-                                          </Button>
-                                        </div>
-                                        {((ec as any).servicos_contratados || []).map((svcId: string, idx: number) => (
-                                          <div key={idx} className="flex items-center gap-2 mt-1">
-                                            <Select
-                                              value={svcId || "__none__"}
-                                              onValueChange={(v) => {
-                                                const updated = [...((ec as any).servicos_contratados || [])];
-                                                updated[idx] = v === "__none__" ? "" : v;
-                                                setEditingContractData({
-                                                  ...ec,
-                                                  servicos_contratados: updated,
-                                                } as any);
-                                              }}
-                                            >
-                                              <SelectTrigger className="h-8 flex-1">
-                                                <SelectValue placeholder="Selecione..." />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                                {(() => {
-                                                  const source = filteredEditCatalogServices;
-                                                  const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                                  const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                                  const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                                    const cName = s.estrutura_clusters.name;
-                                                    if (!acc[cName]) acc[cName] = [];
-                                                    acc[cName].push(s);
-                                                    return acc;
-                                                  }, {} as Record<string, any[]>);
-                                                  return (
-                                                    <>
-                                                      {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
-                                                        <SelectGroup key={clusterName}>
-                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                                          {(svcs as any[]).map((svc: any) => (
-                                                            <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                          ))}
-                                                        </SelectGroup>
+                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                          Serviço Contratado *
+                                        </h5>
+                                        <Select
+                                          value={(ec as any).id_servico || "__none__"}
+                                          onValueChange={(v) =>
+                                            setEditingContractData({
+                                              ...ec,
+                                              id_servico: v === "__none__" ? "" : v,
+                                            } as any)
+                                          }
+                                        >
+                                          <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Selecione um serviço..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {(() => {
+                                              const source = filteredEditCatalogServices;
+                                              const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                              const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
+                                              const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
+                                                const cName = s.estrutura_clusters.name;
+                                                if (!acc[cName]) acc[cName] = [];
+                                                acc[cName].push(s);
+                                                return acc;
+                                              }, {} as Record<string, any[]>);
+                                              return (
+                                                <>
+                                                  {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                                    <SelectGroup key={clusterName}>
+                                                      <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
+                                                      {(svcs as any[]).map((svc: any) => (
+                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                                       ))}
-                                                      {withoutCluster.length > 0 && (
-                                                        <SelectGroup>
-                                                          <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                                          {withoutCluster.map((svc: any) => (
-                                                            <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                          ))}
-                                                        </SelectGroup>
-                                                      )}
-                                                    </>
-                                                  );
-                                                })()}
-                                              </SelectContent>
-                                            </Select>
-                                            <Button
-                                              type="button"
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-8 w-8 shrink-0 text-destructive"
-                                              onClick={() => {
-                                                const updated = ((ec as any).servicos_contratados || []).filter(
-                                                  (_: any, i: number) => i !== idx,
-                                                );
-                                                setEditingContractData({
-                                                  ...ec,
-                                                  servicos_contratados: updated,
-                                                } as any);
-                                              }}
-                                            >
-                                              <X size={14} />
-                                            </Button>
-                                          </div>
-                                        ))}
+                                                    </SelectGroup>
+                                                  ))}
+                                                  {withoutCluster.length > 0 && (
+                                                    <SelectGroup>
+                                                      <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+                                                      {withoutCluster.map((svc: any) => (
+                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                      ))}
+                                                    </SelectGroup>
+                                                  )}
+                                                </>
+                                              );
+                                            })()}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
-                                      {/* Centros de Custo (inline edit) */}
+                                      {/* Tipo de Produto/Segmento (inline edit) */}
+                                      <div className="border border-dashed rounded-lg p-3 mt-1">
+                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                          Tipo de Produto/Segmento
+                                        </h5>
+                                        <Select
+                                          value={(ec as any).id_produto_segmento || "__none__"}
+                                          onValueChange={(v) =>
+                                            setEditingContractData({
+                                              ...ec,
+                                              id_produto_segmento: v === "__none__" ? "" : v,
+                                            } as any)
+                                          }
+                                        >
+                                          <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__none__">Selecione...</SelectItem>
+                                            {produtoSegmentoFullOptions.map((p) => (
+                                              <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      {/* Distribuição de Receita (inline edit) */}
                                       <div className="border border-dashed rounded-lg p-3 mt-1">
                                         <div className="flex items-center justify-between mb-2">
                                           <h5 className="text-xs font-bold text-muted-foreground uppercase">
@@ -3524,9 +3518,9 @@ export default function NewClientModal({
                                             onClick={() =>
                                               setEditingContractData({
                                                 ...ec,
-                                                centros_custo: [
-                                                  ...((ec as any).centros_custo || []),
-                                                  { empresa: "", percentual: 0 },
+                                                distribuicao_receita: [
+                                                  ...((ec as any).distribuicao_receita || []),
+                                                  { id_centro_custo: "", percentual_rateio: 0 },
                                                 ],
                                               } as any)
                                             }
@@ -3534,20 +3528,20 @@ export default function NewClientModal({
                                             <Plus size={12} /> Adicionar
                                           </Button>
                                         </div>
-                                        {((ec as any).centros_custo || []).map(
-                                          (cc: { empresa: string; percentual: number }, idx: number) => (
+                                        {((ec as any).distribuicao_receita || []).map(
+                                          (cc: { id_centro_custo: string; percentual_rateio: number }, idx: number) => (
                                             <div key={idx} className="flex items-center gap-2 mt-1">
                                               <Select
-                                                value={cc.empresa || "__none__"}
+                                                value={cc.id_centro_custo || "__none__"}
                                                 onValueChange={(v) => {
-                                                  const updated = [...((ec as any).centros_custo || [])];
+                                                  const updated = [...((ec as any).distribuicao_receita || [])];
                                                   updated[idx] = {
                                                     ...updated[idx],
-                                                    empresa: v === "__none__" ? "" : v,
+                                                    id_centro_custo: v === "__none__" ? "" : v,
                                                   };
                                                   setEditingContractData({
                                                     ...ec,
-                                                    centros_custo: updated,
+                                                    distribuicao_receita: updated,
                                                   } as any);
                                                 }}
                                               >
@@ -3557,7 +3551,7 @@ export default function NewClientModal({
                                                 <SelectContent>
                                                   <SelectItem value="__none__">Selecione...</SelectItem>
                                                   {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                                    <SelectItem key={cc_opt.codigo} value={cc_opt.label}>
+                                                    <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
                                                       {cc_opt.label}
                                                     </SelectItem>
                                                   ))}
@@ -3568,16 +3562,16 @@ export default function NewClientModal({
                                                   type="number"
                                                   min={0}
                                                   max={100}
-                                                  value={cc.percentual || ""}
+                                                  value={cc.percentual_rateio || ""}
                                                   onChange={(e) => {
-                                                    const updated = [...((ec as any).centros_custo || [])];
+                                                    const updated = [...((ec as any).distribuicao_receita || [])];
                                                     updated[idx] = {
                                                       ...updated[idx],
-                                                      percentual: parseFloat(e.target.value) || 0,
+                                                      percentual_rateio: parseFloat(e.target.value) || 0,
                                                     };
                                                     setEditingContractData({
                                                       ...ec,
-                                                      centros_custo: updated,
+                                                      distribuicao_receita: updated,
                                                     } as any);
                                                   }}
                                                   className="h-8 w-20 text-right"
@@ -3591,12 +3585,12 @@ export default function NewClientModal({
                                                 variant="ghost"
                                                 className="h-8 w-8 shrink-0 text-destructive"
                                                 onClick={() => {
-                                                  const updated = ((ec as any).centros_custo || []).filter(
+                                                  const updated = ((ec as any).distribuicao_receita || []).filter(
                                                     (_: any, i: number) => i !== idx,
                                                   );
                                                   setEditingContractData({
                                                     ...ec,
-                                                    centros_custo: updated,
+                                                    distribuicao_receita: updated,
                                                   } as any);
                                                 }}
                                               >
@@ -3605,10 +3599,10 @@ export default function NewClientModal({
                                             </div>
                                           ),
                                         )}
-                                        {((ec as any).centros_custo || []).length > 0 &&
+                                        {((ec as any).distribuicao_receita || []).length > 0 &&
                                           (() => {
-                                            const total = ((ec as any).centros_custo || []).reduce(
-                                              (acc: number, cc: any) => acc + (cc.percentual || 0),
+                                            const total = ((ec as any).distribuicao_receita || []).reduce(
+                                              (acc: number, cc: any) => acc + (cc.percentual_rateio || 0),
                                               0,
                                             );
                                             return (
