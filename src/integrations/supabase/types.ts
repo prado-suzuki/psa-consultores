@@ -562,6 +562,7 @@ export type Database = {
           created_at: string
           id: string
           inscricao_estadual: string | null
+          inscricoes_estaduais: Json | null
           logradouro: string | null
           municipio: string | null
           nome_fantasia: string | null
@@ -586,6 +587,7 @@ export type Database = {
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          inscricoes_estaduais?: Json | null
           logradouro?: string | null
           municipio?: string | null
           nome_fantasia?: string | null
@@ -610,6 +612,7 @@ export type Database = {
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          inscricoes_estaduais?: Json | null
           logradouro?: string | null
           municipio?: string | null
           nome_fantasia?: string | null
@@ -669,6 +672,7 @@ export type Database = {
           created_at: string
           id: string
           inscricao_estadual: string | null
+          inscricoes_estaduais: Json | null
           logradouro: string | null
           municipio: string | null
           nome_fantasia: string | null
@@ -693,6 +697,7 @@ export type Database = {
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          inscricoes_estaduais?: Json | null
           logradouro?: string | null
           municipio?: string | null
           nome_fantasia?: string | null
@@ -717,6 +722,7 @@ export type Database = {
           created_at?: string
           id?: string
           inscricao_estadual?: string | null
+          inscricoes_estaduais?: Json | null
           logradouro?: string | null
           municipio?: string | null
           nome_fantasia?: string | null
