@@ -1502,6 +1502,8 @@ export default function NewClientModal({
     setEntities([]);
     setParticipants([]);
     setContracts([]);
+    setInscricoesMap({});
+    setDraftInscricoes([]);
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
