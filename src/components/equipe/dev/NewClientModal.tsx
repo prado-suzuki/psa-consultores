@@ -3564,15 +3564,13 @@ export default function NewClientModal({
                                                   max={100}
                                                   value={cc.percentual_rateio || ""}
                                                   onChange={(e) => {
-                                                    const updated = [...((ec as any).distribuicao_receita || [])];
-                                                    updated[idx] = {
-                                                      ...updated[idx],
-                                                      percentual_rateio: parseFloat(e.target.value) || 0,
-                                                    };
-                                                    setEditingContractData({
-                                                      ...ec,
-                                                      distribuicao_receita: updated,
-                                                    } as any);
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setEditingContractData(prev => {
+                                                      if (!prev) return prev;
+                                                      const updated = [...((prev as any).distribuicao_receita || [])];
+                                                      updated[idx] = { ...updated[idx], percentual_rateio: val };
+                                                      return { ...prev, distribuicao_receita: updated } as any;
+                                                    });
                                                   }}
                                                   className="h-8 w-20 text-right"
                                                   placeholder="%"
