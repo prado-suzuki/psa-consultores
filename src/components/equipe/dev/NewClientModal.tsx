@@ -640,8 +640,9 @@ export default function NewClientModal({
     valor_reembolso_refeicao: 0,
     situacao_projeto: "em_andamento",
     observacoes_projeto: "",
-    servicos_contratados: [] as string[],
-    centros_custo: [] as Array<{ empresa: string; percentual: number }>,
+    id_servico: "",
+    id_produto_segmento: "",
+    distribuicao_receita: [] as Array<{ id_centro_custo: string; percentual_rateio: number }>,
   });
 
   // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
