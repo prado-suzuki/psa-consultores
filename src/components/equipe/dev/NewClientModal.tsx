@@ -1345,10 +1345,10 @@ export default function NewClientModal({
 
         // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---
         const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
-        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId);
+        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
         const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
-          await (supabase.from("ordem_servico" as any) as any).delete().in("id", removedOsIds);
+          await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
         }
       } else {
         const { data: newCliente, error: clienteError } = await supabase

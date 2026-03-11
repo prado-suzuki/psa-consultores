@@ -386,7 +386,8 @@ const FiscalProjetosCadastro = () => {
         .from('ordem_servico' as any) as any)
         .select('id_servico')
         .eq('id_cliente', formData.external_client_id)
-        .eq('situacao', 'em_andamento');
+        .eq('situacao', 'em_andamento')
+        .eq('excluido', false);
 
       if (!osData?.length) return [];
 
