@@ -3381,6 +3381,33 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
+                                        {/* Tipo de Produto/Segmento (inline edit) */}
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Tipo de Produto/Segmento
+                                          </Label>
+                                          <div className="mt-1">
+                                            <Select
+                                              value={(ec as any).id_produto_segmento || "__none__"}
+                                              onValueChange={(v) =>
+                                                setEditingContractData({
+                                                  ...ec,
+                                                  id_produto_segmento: v === "__none__" ? "" : v,
+                                                } as any)
+                                              }
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Selecione..." />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                                {produtoSegmentoFullOptions.map((p) => (
+                                                  <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Valor do Projeto (R$)
@@ -3523,31 +3550,6 @@ export default function NewClientModal({
                                                 </>
                                               );
                                             })()}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      {/* Tipo de Produto/Segmento (inline edit) */}
-                                      <div className="border border-dashed rounded-lg p-3 mt-1">
-                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
-                                          Tipo de Produto/Segmento
-                                        </h5>
-                                        <Select
-                                          value={(ec as any).id_produto_segmento || "__none__"}
-                                          onValueChange={(v) =>
-                                            setEditingContractData({
-                                              ...ec,
-                                              id_produto_segmento: v === "__none__" ? "" : v,
-                                            } as any)
-                                          }
-                                        >
-                                          <SelectTrigger className="h-8">
-                                            <SelectValue placeholder="Selecione..." />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Selecione...</SelectItem>
-                                            {produtoSegmentoFullOptions.map((p) => (
-                                              <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
-                                            ))}
                                           </SelectContent>
                                         </Select>
                                       </div>
