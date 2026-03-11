@@ -3302,10 +3302,16 @@ export default function NewClientModal({
                                           label="Data Fim"
                                           value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"}
                                         />
-                                        <FieldPair
-                                          label="Valor do Projeto"
-                                          value={formatCurrencyDisplay(cont.valor_projeto)}
-                                        />
+                                        {cont.id_produto_segmento && (
+                                          <FieldPair
+                                            label="Tipo de Produto/Segmento"
+                                            value={
+                                              produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
+                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
+                                                : "—"
+                                            }
+                                          />
+                                        )}
                                         <FieldPair
                                           label="Situação do Projeto"
                                           value={
@@ -3315,6 +3321,10 @@ export default function NewClientModal({
                                           }
                                         />
                                         <FieldPair
+                                          label="Valor do Projeto"
+                                          value={formatCurrencyDisplay(cont.valor_projeto)}
+                                        />
+                                        <FieldPair
                                           label="Reembolso por KM"
                                           value={formatCurrencyDisplay(cont.valor_reembolso_km)}
                                         />
@@ -3322,9 +3332,17 @@ export default function NewClientModal({
                                           label="Reembolso Refeição"
                                           value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
                                         />
-                                        {(cont as any).observacoes_projeto && (
+                                        {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
-                                            <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
+                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                                              Empresa
+                                            </p>
+                                            <span className="text-sm">
+                                              {(() => {
+                                                const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
+                                                return (svc as any)?.estrutura_clusters?.name || "—";
+                                              })()}
+                                            </span>
                                           </div>
                                         )}
                                         {cont.id_servico && (
@@ -3334,18 +3352,6 @@ export default function NewClientModal({
                                             </p>
                                             <Badge variant="secondary" className="text-xs mt-1">
                                               {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
-                                            </Badge>
-                                          </div>
-                                        )}
-                                        {cont.id_produto_segmento && (
-                                          <div className="col-span-2 md:col-span-3">
-                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Tipo de Produto/Segmento
-                                            </p>
-                                            <Badge variant="outline" className="text-xs mt-1">
-                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
-                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
-                                                : cont.id_produto_segmento}
                                             </Badge>
                                           </div>
                                         )}
@@ -3366,6 +3372,11 @@ export default function NewClientModal({
                                                 },
                                               )}
                                             </div>
+                                          </div>
+                                        )}
+                                        {(cont as any).observacoes_projeto && (
+                                          <div className="col-span-2 md:col-span-3">
+                                            <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
                                           </div>
                                         )}
                                       </div>
