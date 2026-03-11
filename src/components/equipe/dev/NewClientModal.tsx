@@ -3719,7 +3719,7 @@ export default function NewClientModal({
                                 <Input
                                   value={draftContract.ordem_servico}
                                   onChange={(e) =>
-                                    setDraftContract({ ...draftContract, ordem_servico: e.target.value })
+                                    setDraftContract(prev => ({ ...prev, ordem_servico: e.target.value }))
                                   }
                                   placeholder="Ex: 001/2025"
                                   className="h-8 mt-1"
@@ -3733,7 +3733,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_emissao}
-                                    onChange={(v) => setDraftContract({ ...draftContract, data_emissao: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))}
                                   />
                                 </div>
                               </div>
@@ -3745,7 +3745,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_inicio_projeto}
-                                    onChange={(v) => setDraftContract({ ...draftContract, data_inicio_projeto: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_inicio_projeto: v }))}
                                   />
                                 </div>
                               </div>
@@ -3757,7 +3757,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_fim_projeto}
-                                    onChange={(v) => setDraftContract({ ...draftContract, data_fim_projeto: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_fim_projeto: v }))}
                                   />
                                 </div>
                               </div>
@@ -3769,7 +3769,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_projeto}
-                                    onChange={(v) => setDraftContract({ ...draftContract, valor_projeto: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
                                   />
                                 </div>
                               </div>
@@ -3781,7 +3781,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <Select
                                     value={draftContract.situacao_projeto}
-                                    onValueChange={(v) => setDraftContract({ ...draftContract, situacao_projeto: v })}
+                                    onValueChange={(v) => setDraftContract(prev => ({ ...prev, situacao_projeto: v }))}
                                   >
                                     <SelectTrigger className="h-8">
                                       <SelectValue placeholder="Selecione..." />
@@ -3804,7 +3804,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_reembolso_km}
-                                    onChange={(v) => setDraftContract({ ...draftContract, valor_reembolso_km: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_reembolso_km: v }))}
                                   />
                                 </div>
                               </div>
@@ -3817,7 +3817,7 @@ export default function NewClientModal({
                                   <CurrencyField
                                     value={draftContract.valor_reembolso_refeicao}
                                     onChange={(v) =>
-                                      setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })
+                                      setDraftContract(prev => ({ ...prev, valor_reembolso_refeicao: v }))
                                     }
                                   />
                                 </div>
@@ -3830,7 +3830,7 @@ export default function NewClientModal({
                               <Textarea
                                 value={draftContract.observacoes_projeto}
                                 onChange={(e) =>
-                                  setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })
+                                  setDraftContract(prev => ({ ...prev, observacoes_projeto: e.target.value }))
                                 }
                                 placeholder="Insira observações relevantes sobre o projeto..."
                                 className="min-h-[80px]"
@@ -3860,7 +3860,7 @@ export default function NewClientModal({
                               <Select
                                 value={draftContract.id_servico || "__none__"}
                                 onValueChange={(v) =>
-                                  setDraftContract({ ...draftContract, id_servico: v === "__none__" ? "" : v })
+                                  setDraftContract(prev => ({ ...prev, id_servico: v === "__none__" ? "" : v }))
                                 }
                               >
                                 <SelectTrigger className="h-8">
@@ -3911,7 +3911,7 @@ export default function NewClientModal({
                               <Select
                                 value={draftContract.id_produto_segmento || "__none__"}
                                 onValueChange={(v) =>
-                                  setDraftContract({ ...draftContract, id_produto_segmento: v === "__none__" ? "" : v })
+                                  setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))
                                 }
                               >
                                 <SelectTrigger className="h-8">

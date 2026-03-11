@@ -1,39 +1,34 @@
 
 
-## Análise: Centro de Custo não persiste na OS
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-### Causa raiz
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-Todas as chamadas `setDraftContract` dos campos simples (ordem_servico, data_emissao, valor_projeto, id_servico, situacao_projeto, etc.) usam a forma **não-funcional**:
+### Etapa 1 — Migration: adicionar coluna
 
-```js
-setDraftContract({ ...draftContract, ordem_servico: e.target.value })
+Criar uma migration com:
+
+```sql
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
 ```
 
-Enquanto os handlers de `distribuicao_receita` já foram corrigidos para a forma funcional (`prev => ...`).
+### Etapa 2 — Data update: popular mapeamentos
 
-O problema: quando o usuário seleciona um centro de custo (atualizado corretamente via `prev =>`), e depois altera **qualquer outro campo** do formulário de OS (ex: observações, valor, datas), o `setDraftContract({ ...draftContract, ... })` usa o closure stale que ainda contém a `distribuicao_receita` **antiga** (com `id_centro_custo: ""`), sobrescrevendo a seleção feita.
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-O warning "Select is changing from uncontrolled to controlled" confirma que o `value` do Select alterna entre estados porque o dado é sobrescrito.
+| tax_areas.id | estrutura_area_id |
+|---|---|
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
 
-### Correção
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
 
-**Arquivo:** `src/components/equipe/dev/NewClientModal.tsx`
+### O que NÃO será feito
 
-Converter **todas** as chamadas `setDraftContract({ ...draftContract, campo: valor })` para a forma funcional `setDraftContract(prev => ({ ...prev, campo: valor }))`. São aproximadamente 15 ocorrências nos campos:
-
-- `ordem_servico` (linha ~3722)
-- `data_emissao` (linha ~3736)
-- `data_inicio_projeto` (linha ~3748)
-- `data_fim_projeto` (linha ~3760)
-- `valor_projeto` (linha ~3772)
-- `situacao_projeto` (linha ~3784)
-- `valor_reembolso_km` (linha ~3807)
-- `valor_reembolso_refeicao` (linha ~3820)
-- `observacoes_projeto` (linha ~3833)
-- `id_servico` (linha ~3863)
-- `id_produto_segmento` (linha ~3914)
-- Reset no `handleClearSection` (linha ~454)
-
-Isso garante que nenhuma alteração em um campo sobrescreva mudanças feitas em outro campo (incluindo a `distribuicao_receita`).
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 
