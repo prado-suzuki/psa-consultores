@@ -541,7 +541,7 @@ export default function NewClientModal({
     },
   });
 
-  // EMPRESA_FATURAMENTO_OPTIONS removed - no longer used in client form
+  
 
   const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
     ...produtoSegmentoOptions,
