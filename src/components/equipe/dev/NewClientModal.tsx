@@ -1328,7 +1328,7 @@ export default function NewClientModal({
         const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
-          await supabase.from(contribuinteTable).delete().in("id", removedContribIds);
+          await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);
         }
 
         // --- Participantes: update existentes, insert novos, delete removidos ---
