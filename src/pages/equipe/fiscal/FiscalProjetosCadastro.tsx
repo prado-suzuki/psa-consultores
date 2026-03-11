@@ -406,9 +406,9 @@ const FiscalProjetosCadastro = () => {
   const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
 
   // Helper to get OS id regardless of environment
-  const getOsId = (os: any): string => isProductionEnvironment ? os.id : os.id_contrato;
-  const getOsLabel = (os: any): string => isProductionEnvironment ? (os.numero_os || 'Sem número') : (os.numero_contrato || 'Sem número');
-  const getOsValue = (os: any): number | null => isProductionEnvironment ? os.valor_projeto : os.valor_fixo;
+  const getOsId = (os: any): string => os.id;
+  const getOsLabel = (os: any): string => os.numero_os || 'Sem número';
+  const getOsValue = (os: any): number | null => os.valor_projeto;
 
   // State for selected OS
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);

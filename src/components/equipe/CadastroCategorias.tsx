@@ -589,15 +589,11 @@ export default function CadastroCategorias() {
             <TabsTrigger value="centros_custo" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
               Centros de Custo
             </TabsTrigger>
-            <TabsTrigger value="empresas" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
-              Empresa / Faturamento
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="produto_segmento"><ProdutoSegmentoTab /></TabsContent>
           <TabsContent value="servicos"><ServicosTab /></TabsContent>
           <TabsContent value="centros_custo"><CentroCustoTab /></TabsContent>
-          <TabsContent value="empresas"><EmpresaFaturamentoTab /></TabsContent>
         </Tabs>
       </CardContent>
     </Card>

@@ -17,7 +17,6 @@ import NewClientModal from "@/components/equipe/dev/NewClientModal";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
-const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
 const ITEMS_PER_PAGE = 10;
 
