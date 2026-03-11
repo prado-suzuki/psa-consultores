@@ -1358,12 +1358,42 @@ export default function NewClientModal({
       });
 
       for (const e of entities) {
+        let contribId = e._dbId;
         if (e._dbId) {
           const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from(contribuinteTable).insert(buildContribFields(e));
+          const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
           if (error) throw error;
+          contribId = newContrib.id;
+        }
+
+        // Persist inscricoes estaduais
+        const entityKey = e._dbId || String(e._id);
+        const ies = inscricoesMap[entityKey] || [];
+        if (contribId) {
+          const { data: existingIEs } = await (supabase as any)
+            .from("inscricao_contribuinte")
+            .select("id")
+            .eq("contribuinte_id", contribId);
+          const currentDbIds = ies.filter(ie => ie._dbId).map(ie => ie._dbId!);
+          const removedIds = (existingIEs || []).map((r: any) => r.id).filter((id: string) => !currentDbIds.includes(id));
+          if (removedIds.length > 0) {
+            await (supabase as any).from("inscricao_contribuinte").delete().in("id", removedIds);
+          }
+          for (const ie of ies) {
+            const iePayload = {
+              contribuinte_id: contribId,
+              situacao: ie.situacao,
+              numero_ie: ie.situacao === "sim" ? (ie.numero_ie || null) : null,
+              uf: ie.uf,
+            };
+            if (ie._dbId) {
+              await (supabase as any).from("inscricao_contribuinte").update(iePayload).eq("id", ie._dbId);
+            } else {
+              await (supabase as any).from("inscricao_contribuinte").insert(iePayload);
+            }
+          }
         }
       }
 
