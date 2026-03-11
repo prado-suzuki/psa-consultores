@@ -3890,6 +3890,12 @@ export default function NewClientModal({
                                 </SelectContent>
                               </Select>
                             </div>
+                            {/* Distribuição de Receita (Centros de Custo) */}
+                            <div className="mt-4 border border-dashed rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
+                                  Distribuição de Receita (Centros de Custo)
+                                </h5>
                                 <Button
                                   type="button"
                                   size="sm"
@@ -3898,26 +3904,26 @@ export default function NewClientModal({
                                   onClick={() =>
                                     setDraftContract({
                                       ...draftContract,
-                                      centros_custo: [...draftContract.centros_custo, { empresa: "", percentual: 0 }],
+                                      distribuicao_receita: [...draftContract.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
                                     })
                                   }
                                 >
                                   <Plus size={12} /> Adicionar Centro de Custo
                                 </Button>
                               </div>
-                              {draftContract.centros_custo.length === 0 && (
+                              {draftContract.distribuicao_receita.length === 0 && (
                                 <p className="text-xs text-muted-foreground italic">
                                   Nenhum centro de custo adicionado.
                                 </p>
                               )}
-                              {draftContract.centros_custo.map((cc, idx) => (
+                              {draftContract.distribuicao_receita.map((cc, idx) => (
                                 <div key={idx} className="flex items-center gap-2 mt-2">
                                   <Select
-                                    value={cc.empresa || "__none__"}
+                                    value={cc.id_centro_custo || "__none__"}
                                     onValueChange={(v) => {
-                                      const updated = [...draftContract.centros_custo];
-                                      updated[idx] = { ...updated[idx], empresa: v === "__none__" ? "" : v };
-                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                      const updated = [...draftContract.distribuicao_receita];
+                                      updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
+                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                     }}
                                   >
                                     <SelectTrigger className="h-8 flex-1">
@@ -3926,7 +3932,7 @@ export default function NewClientModal({
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
                                       {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                        <SelectItem key={cc_opt.codigo} value={cc_opt.label}>
+                                        <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
                                           {cc_opt.label}
                                         </SelectItem>
                                       ))}
@@ -3937,14 +3943,14 @@ export default function NewClientModal({
                                       type="number"
                                       min={0}
                                       max={100}
-                                      value={cc.percentual || ""}
+                                      value={cc.percentual_rateio || ""}
                                       onChange={(e) => {
-                                        const updated = [...draftContract.centros_custo];
+                                        const updated = [...draftContract.distribuicao_receita];
                                         updated[idx] = {
                                           ...updated[idx],
-                                          percentual: parseFloat(e.target.value) || 0,
+                                          percentual_rateio: parseFloat(e.target.value) || 0,
                                         };
-                                        setDraftContract({ ...draftContract, centros_custo: updated });
+                                        setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                       }}
                                       className="h-8 w-20 text-right"
                                       placeholder="%"
@@ -3957,17 +3963,17 @@ export default function NewClientModal({
                                     variant="ghost"
                                     className="h-8 w-8 shrink-0 text-destructive"
                                     onClick={() => {
-                                      const updated = draftContract.centros_custo.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                      const updated = draftContract.distribuicao_receita.filter((_, i) => i !== idx);
+                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                     }}
                                   >
                                     <X size={14} />
                                   </Button>
                                 </div>
                               ))}
-                              {draftContract.centros_custo.length > 0 &&
+                              {draftContract.distribuicao_receita.length > 0 &&
                                 (() => {
-                                  const total = draftContract.centros_custo.reduce((acc, cc) => acc + cc.percentual, 0);
+                                  const total = draftContract.distribuicao_receita.reduce((acc, cc) => acc + cc.percentual_rateio, 0);
                                   const faltam = 100 - total;
                                   return (
                                     <p
