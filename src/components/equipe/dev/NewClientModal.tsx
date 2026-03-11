@@ -3925,9 +3925,9 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                        <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
-                                          {cc_opt.label}
+                                       {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
+                                         <SelectItem key={cc_opt.id} value={cc_opt.id}>
+                                           {cc_opt.label}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
