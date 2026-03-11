@@ -3941,12 +3941,12 @@ export default function NewClientModal({
                                       max={100}
                                       value={cc.percentual_rateio || ""}
                                       onChange={(e) => {
-                                        const updated = [...draftContract.distribuicao_receita];
-                                        updated[idx] = {
-                                          ...updated[idx],
-                                          percentual_rateio: parseFloat(e.target.value) || 0,
-                                        };
-                                        setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setDraftContract(prev => {
+                                          const updated = [...prev.distribuicao_receita];
+                                          updated[idx] = { ...updated[idx], percentual_rateio: val };
+                                          return { ...prev, distribuicao_receita: updated };
+                                        });
                                       }}
                                       className="h-8 w-20 text-right"
                                       placeholder="%"
