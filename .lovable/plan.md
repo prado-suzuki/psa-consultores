@@ -1,34 +1,33 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Mover número da OS para o título e reorganizar grid
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Alterações em `src/components/equipe/dev/NewClientModal.tsx`
 
-### Etapa 1 — Migration: adicionar coluna
+**1. Modo Leitura (~3291-3292)**
+- Remover `<FieldPair label="Ordem de Serviço" .../>` da grid
+- O número já aparece no header do accordion (`OS {cont.ordem_servico}`) — sem alteração necessária lá
 
-Criar uma migration com:
+**2. Modo Edição (~3386-3401)**
+- Alterar título de `"Dados da OS"` para `"Dados da OS — {ec.ordem_servico}"`
+- Remover o bloco do campo OS (Label + Input disabled, linhas ~3392-3401)
+- Primeira linha do grid fica: Data de Emissão | Data Início
+- Segunda linha: Data Fim | Tipo de Produto/Segmento
+- Terceira linha: Situação do Projeto | Valor do Projeto
+- Quarta linha: Reembolso KM | Reembolso Refeição
+- Remover o `<div />` vazio que existia após Valor do Projeto
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+**3. Modo Criação/Draft (~3764-3780)**
+- Alterar título de `"Dados da OS"` para `"Dados da OS — {draftContract.ordem_servico || '(nova)'}"` — mas como o draft não terá número até o `addContract`, exibir apenas `"Nova OS"`
+- Remover o bloco do campo OS (Label + Input disabled com "Gerando...", linhas ~3771-3780)
+- Primeira linha do grid fica: Data de Emissão | Data Início
+- Segunda linha: Data Fim | Tipo de Produto/Segmento
+- Terceira linha: Situação do Projeto | Valor do Projeto
+- Quarta linha: Reembolso KM | Reembolso Refeição
 
-### Etapa 2 — Data update: popular mapeamentos
+**4. Lógica `addContract()` (~1107-1115)**
+- Já está correto: gera o número via `await generateNextOsNumber()` antes de adicionar. Sem alteração necessária.
 
-Usar a ferramenta de inserção/update (não migration) para executar:
-
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
-
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+**5. Remover estado "Gerando..."**
+- Nenhum uso restante após remoção do campo — nada mais a limpar.
 
