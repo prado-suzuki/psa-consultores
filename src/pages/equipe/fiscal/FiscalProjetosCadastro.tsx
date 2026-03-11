@@ -337,6 +337,7 @@ const FiscalProjetosCadastro = () => {
         .from(contribuinteTable)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', formData.external_client_id)
+        .eq('excluido', false)
         .order('nome_razao_social');
       if (error) throw error;
       let list = data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
