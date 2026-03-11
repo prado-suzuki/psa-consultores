@@ -105,6 +105,19 @@ interface DraftEntity {
   atividade_principal: string;
 }
 
+interface InscricaoIE {
+  _tempId: number;
+  _dbId?: string;
+  situacao: string;
+  numero_ie: string;
+  uf: string;
+}
+
+const UF_STATES = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
+];
+
 interface DraftParticipant {
   _id: number;
   _dbId?: string;
