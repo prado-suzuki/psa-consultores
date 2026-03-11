@@ -3534,15 +3534,15 @@ export default function NewClientModal({
                                               <Select
                                                 value={cc.id_centro_custo || "__none__"}
                                                 onValueChange={(v) => {
-                                                  const updated = [...((ec as any).distribuicao_receita || [])];
-                                                  updated[idx] = {
-                                                    ...updated[idx],
-                                                    id_centro_custo: v === "__none__" ? "" : v,
-                                                  };
-                                                  setEditingContractData({
-                                                    ...ec,
-                                                    distribuicao_receita: updated,
-                                                  } as any);
+                                                  setEditingContractData(prev => {
+                                                    if (!prev) return prev;
+                                                    const updated = [...((prev as any).distribuicao_receita || [])];
+                                                    updated[idx] = {
+                                                      ...updated[idx],
+                                                      id_centro_custo: v === "__none__" ? "" : v,
+                                                    };
+                                                    return { ...prev, distribuicao_receita: updated } as any;
+                                                  });
                                                 }}
                                               >
                                                 <SelectTrigger className="h-8 flex-1">
