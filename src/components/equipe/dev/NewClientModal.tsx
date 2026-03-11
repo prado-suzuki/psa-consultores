@@ -1230,7 +1230,7 @@ export default function NewClientModal({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  // toggleEmpresaFaturamento removed - no longer used
+  
 
   // --- FINAL SAVE ---
   const handleSave = () => {
