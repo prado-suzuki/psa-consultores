@@ -3860,7 +3860,7 @@ export default function NewClientModal({
                               <Select
                                 value={draftContract.id_servico || "__none__"}
                                 onValueChange={(v) =>
-                                  setDraftContract({ ...draftContract, id_servico: v === "__none__" ? "" : v })
+                                  setDraftContract(prev => ({ ...prev, id_servico: v === "__none__" ? "" : v }))
                                 }
                               >
                                 <SelectTrigger className="h-8">
