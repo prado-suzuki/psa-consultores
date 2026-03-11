@@ -348,6 +348,7 @@ const FiscalProjetosCadastro = () => {
           .from(fallbackContribuinteTable)
           .select('id, nome_razao_social, cpf_cnpj')
           .eq('cliente_id', formData.external_client_id)
+          .eq('excluido', false)
           .order('nome_razao_social');
         if (fallback?.length) list = fallback as typeof list;
       }
