@@ -1151,16 +1151,11 @@ const FiscalProjetosCadastro = () => {
                                 </span>
                               )}
                             </div>
-                            {isProductionEnvironment && os.servicos_contratados && (
+                            {os.id_servico && (
                               <div className="mt-2 flex flex-wrap gap-1">
-                                {(Array.isArray(os.servicos_contratados)
-                                  ? os.servicos_contratados
-                                  : typeof os.servicos_contratados === 'object'
-                                    ? Object.keys(os.servicos_contratados)
-                                    : []
-                                ).map((s: string, i: number) => (
-                                  <Badge key={i} variant="secondary" className="text-xs font-normal">{s}</Badge>
-                                ))}
+                                <Badge variant="secondary" className="text-xs font-normal">
+                                  {os.id_servico}
+                                </Badge>
                               </div>
                             )}
                           </div>
