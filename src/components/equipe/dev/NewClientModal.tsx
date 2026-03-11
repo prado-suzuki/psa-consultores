@@ -3761,19 +3761,17 @@ export default function NewClientModal({
                               Dados da OS
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Ordem de Serviço */}
+                              {/* Ordem de Serviço — auto-gerada */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                   Ordem de Serviço
                                 </Label>
-                                <Input
-                                  value={draftContract.ordem_servico}
-                                  onChange={(e) =>
-                                    setDraftContract(prev => ({ ...prev, ordem_servico: e.target.value }))
-                                  }
-                                  placeholder="Ex: 001/2025"
-                                  className="h-8 mt-1"
-                                />
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="secondary" className="h-8 px-3 text-sm font-mono">
+                                    {draftContract.ordem_servico || "Auto"}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">Gerada automaticamente</span>
+                                </div>
                               </div>
                               {/* Data de Emissão */}
                               <div>
