@@ -1104,13 +1104,17 @@ export default function NewClientModal({
   };
 
   // --- OS HANDLERS ---
-  const addContract = () => {
+  const addContract = async () => {
     if (!draftContract.id_servico) {
       toast.error("Selecione um Serviço Contratado");
       return;
     }
 
-    setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
+    // Auto-generate OS number
+    const osNumber = await generateNextOsNumber(contracts);
+    const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as DraftContract;
+
+    setContracts([...contracts, newContract]);
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
