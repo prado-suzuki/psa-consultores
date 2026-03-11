@@ -3781,7 +3781,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <Select
                                     value={draftContract.situacao_projeto}
-                                    onValueChange={(v) => setDraftContract({ ...draftContract, situacao_projeto: v })}
+                                    onValueChange={(v) => setDraftContract(prev => ({ ...prev, situacao_projeto: v }))}
                                   >
                                     <SelectTrigger className="h-8">
                                       <SelectValue placeholder="Selecione..." />
