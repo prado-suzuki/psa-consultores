@@ -3959,8 +3959,10 @@ export default function NewClientModal({
                                     variant="ghost"
                                     className="h-8 w-8 shrink-0 text-destructive"
                                     onClick={() => {
-                                      const updated = draftContract.distribuicao_receita.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                      setDraftContract(prev => ({
+                                        ...prev,
+                                        distribuicao_receita: prev.distribuicao_receita.filter((_, i) => i !== idx),
+                                      }));
                                     }}
                                   >
                                     <X size={14} />
