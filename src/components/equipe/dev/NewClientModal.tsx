@@ -105,6 +105,19 @@ interface DraftEntity {
   atividade_principal: string;
 }
 
+interface InscricaoIE {
+  _tempId: number;
+  _dbId?: string;
+  situacao: string;
+  numero_ie: string;
+  uf: string;
+}
+
+const UF_STATES = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
+];
+
 interface DraftParticipant {
   _id: number;
   _dbId?: string;
@@ -637,6 +650,10 @@ export default function NewClientModal({
     centros_custo: [] as Array<{ empresa: string; percentual: number }>,
   });
 
+  // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
+  const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
+  const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
+
   // --- Unsaved changes detection ---
   const initialSnapshotRef = useRef<string | null>(null);
 
@@ -757,6 +774,32 @@ export default function NewClientModal({
               atividade_principal: "",
             })),
           );
+        }
+
+        // Load inscricoes estaduais
+        if (contribs && contribs.length > 0) {
+          const contribIds = contribs.map(c => c.id);
+          const { data: inscricoes } = await (supabase as any)
+            .from("inscricao_contribuinte")
+            .select("*")
+            .in("contribuinte_id", contribIds);
+          if (inscricoes) {
+            const map: Record<string, InscricaoIE[]> = {};
+            for (const ie of inscricoes as any[]) {
+              const key = ie.contribuinte_id as string;
+              if (!map[key]) map[key] = [];
+              map[key].push({
+                _tempId: Date.now() + Math.random(),
+                _dbId: ie.id,
+                situacao: ie.situacao || "sim",
+                numero_ie: ie.numero_ie || "",
+                uf: ie.uf || "",
+              });
+            }
+            setInscricoesMap(map);
+          } else {
+            setInscricoesMap({});
+          }
         }
 
         const { data: parts } = await (supabase.from(participanteTable) as any)
@@ -921,13 +964,16 @@ export default function NewClientModal({
       return;
     }
 
-    if (!draftEntity.situacao_inscricao_estadual) {
-      toast.error("Informe a situação da inscrição estadual");
-      return;
-    }
-    if (draftEntity.situacao_inscricao_estadual === "sim" && !draftEntity.inscricao_estadual?.trim()) {
-      toast.error("Informe o número da inscrição estadual");
-      return;
+    // Validate inscricoes estaduais
+    for (const ie of draftInscricoes) {
+      if (!ie.uf) {
+        toast.error("Selecione a UF para todas as inscrições estaduais");
+        return;
+      }
+      if (ie.situacao === "sim" && !ie.numero_ie?.trim()) {
+        toast.error(`Informe o número da IE para o estado ${ie.uf}`);
+        return;
+      }
     }
 
     if (draftEntity.tipo_pessoa === "PJ") {
@@ -941,7 +987,13 @@ export default function NewClientModal({
       }
     }
 
-  setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
+  const newEntityId = Date.now() + Math.random();
+  setEntities([...entities, { ...draftEntity, _id: newEntityId } as DraftEntity]);
+  // Move draft inscricoes to map
+  if (draftInscricoes.length > 0) {
+    setInscricoesMap(prev => ({ ...prev, [String(newEntityId)]: [...draftInscricoes] }));
+    setDraftInscricoes([]);
+  }
     setDraftEntity({
       tipo_pessoa: "PJ",
       cpf_cnpj: "",
@@ -1332,12 +1384,42 @@ export default function NewClientModal({
       });
 
       for (const e of entities) {
+        let contribId = e._dbId;
         if (e._dbId) {
           const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from(contribuinteTable).insert(buildContribFields(e));
+          const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
           if (error) throw error;
+          contribId = newContrib.id;
+        }
+
+        // Persist inscricoes estaduais
+        const entityKey = e._dbId || String(e._id);
+        const ies = inscricoesMap[entityKey] || [];
+        if (contribId) {
+          const { data: existingIEs } = await (supabase as any)
+            .from("inscricao_contribuinte")
+            .select("id")
+            .eq("contribuinte_id", contribId);
+          const currentDbIds = ies.filter(ie => ie._dbId).map(ie => ie._dbId!);
+          const removedIds = (existingIEs || []).map((r: any) => r.id).filter((id: string) => !currentDbIds.includes(id));
+          if (removedIds.length > 0) {
+            await (supabase as any).from("inscricao_contribuinte").delete().in("id", removedIds);
+          }
+          for (const ie of ies) {
+            const iePayload = {
+              contribuinte_id: contribId,
+              situacao: ie.situacao,
+              numero_ie: ie.situacao === "sim" ? (ie.numero_ie || null) : null,
+              uf: ie.uf,
+            };
+            if (ie._dbId) {
+              await (supabase as any).from("inscricao_contribuinte").update(iePayload).eq("id", ie._dbId);
+            } else {
+              await (supabase as any).from("inscricao_contribuinte").insert(iePayload);
+            }
+          }
         }
       }
 
@@ -1446,6 +1528,8 @@ export default function NewClientModal({
     setEntities([]);
     setParticipants([]);
     setContracts([]);
+    setInscricoesMap({});
+    setDraftInscricoes([]);
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
@@ -1844,16 +1928,20 @@ export default function NewClientModal({
                                           <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
                                         )}
                                         <FieldPair label="Telefone" value={ent.telefone} />
-                                        <FieldPair
-                                          label="Inscrição Estadual"
-                                          value={
-                                            ent.situacao_inscricao_estadual === "isento"
-                                              ? "Isento"
-                                              : ent.situacao_inscricao_estadual === "nao"
-                                                ? "Não"
-                                                : ent.inscricao_estadual || "—"
-                                          }
-                                        />
+                                        {/* Inscrições Estaduais */}
+                                        <div className="col-span-2 md:col-span-3">
+                                          <span className="text-[10px] font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {(inscricoesMap[ent._dbId || String(ent._id)] || []).length > 0
+                                              ? (inscricoesMap[ent._dbId || String(ent._id)] || []).map((ie) => (
+                                                  <Badge key={ie._tempId} variant="secondary" className="text-xs">
+                                                    {ie.uf} — {ie.situacao === "isento" ? "Isento" : ie.situacao === "nao" ? "Não inscrito" : ie.numero_ie || "—"}
+                                                  </Badge>
+                                                ))
+                                              : <span className="text-sm text-muted-foreground">Nenhuma IE cadastrada</span>
+                                            }
+                                          </div>
+                                        </div>
                         {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
                         {ent.tipo_pessoa === "PJ" && ent.atividade_principal && (
                           <FieldPair label="Atividade Principal" value={ent.atividade_principal} />
@@ -1988,51 +2076,87 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
-                                        {/* Inscrição Estadual */}
-                                        <div className="flex flex-row items-center gap-4">
-                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                            Inscrição Estadual
-                                          </Label>
-                                          <div className="flex-1">
-                                            <Select
-                                              value={ed.situacao_inscricao_estadual || undefined}
-                                              onValueChange={(v) =>
-                                                setEditingEntityData({
-                                                  ...ed,
-                                                  situacao_inscricao_estadual: v,
-                                                  inscricao_estadual: v !== "sim" ? "" : ed.inscricao_estadual || "",
-                                                })
-                                              }
+                                        {/* Inscrições Estaduais */}
+                                        <div className="border border-dashed rounded-lg p-3">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1 text-xs"
+                                              onClick={() => {
+                                                const key = ent._dbId || String(ent._id);
+                                                setInscricoesMap(prev => ({
+                                                  ...prev,
+                                                  [key]: [...(prev[key] || []), { _tempId: Date.now() + Math.random(), situacao: "sim", numero_ie: "", uf: "" }],
+                                                }));
+                                              }}
                                             >
-                                              <SelectTrigger className="h-8 max-w-xs">
-                                                <SelectValue placeholder="Selecione..." />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="sim">Sim</SelectItem>
-                                                <SelectItem value="nao">Não</SelectItem>
-                                                <SelectItem value="isento">Isento</SelectItem>
-                                              </SelectContent>
-                                            </Select>
+                                              <Plus size={12} /> Adicionar IE
+                                            </Button>
                                           </div>
-                                        </div>
-                                        {/* Nº IE */}
-                                        {ed.situacao_inscricao_estadual === "sim" && (
-                                          <div className="flex flex-row items-center gap-4">
-                                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                              Nº IE
-                                            </Label>
-                                            <div className="flex-1">
-                                              <Input
-                                                value={ed.inscricao_estadual || ""}
-                                                onChange={(e) =>
-                                                  setEditingEntityData({ ...ed, inscricao_estadual: e.target.value })
-                                                }
-                                                maxLength={15}
-                                                className="h-8"
-                                              />
+                                          {(inscricoesMap[ent._dbId || String(ent._id)] || []).map((ie, ieIdx) => (
+                                            <div key={ie._tempId} className="flex items-center gap-2 mt-1">
+                                              <Select value={ie.uf || undefined} onValueChange={(v) => {
+                                                const key = ent._dbId || String(ent._id);
+                                                setInscricoesMap(prev => {
+                                                  const list = [...(prev[key] || [])];
+                                                  list[ieIdx] = { ...list[ieIdx], uf: v };
+                                                  return { ...prev, [key]: list };
+                                                });
+                                              }}>
+                                                <SelectTrigger className="h-8 w-24 shrink-0"><SelectValue placeholder="UF" /></SelectTrigger>
+                                                <SelectContent>
+                                                  {UF_STATES.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                                                </SelectContent>
+                                              </Select>
+                                              <Select value={ie.situacao || undefined} onValueChange={(v) => {
+                                                const key = ent._dbId || String(ent._id);
+                                                setInscricoesMap(prev => {
+                                                  const list = [...(prev[key] || [])];
+                                                  list[ieIdx] = { ...list[ieIdx], situacao: v, numero_ie: v !== "sim" ? "" : list[ieIdx].numero_ie };
+                                                  return { ...prev, [key]: list };
+                                                });
+                                              }}>
+                                                <SelectTrigger className="h-8 w-28 shrink-0"><SelectValue placeholder="Situação" /></SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="sim">Sim</SelectItem>
+                                                  <SelectItem value="nao">Não</SelectItem>
+                                                  <SelectItem value="isento">Isento</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                              {ie.situacao === "sim" && (
+                                                <Input
+                                                  value={ie.numero_ie}
+                                                  onChange={(e) => {
+                                                    const key = ent._dbId || String(ent._id);
+                                                    setInscricoesMap(prev => {
+                                                      const list = [...(prev[key] || [])];
+                                                      list[ieIdx] = { ...list[ieIdx], numero_ie: e.target.value };
+                                                      return { ...prev, [key]: list };
+                                                    });
+                                                  }}
+                                                  placeholder="Nº IE"
+                                                  maxLength={15}
+                                                  className="h-8 flex-1"
+                                                />
+                                              )}
+                                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => {
+                                                const key = ent._dbId || String(ent._id);
+                                                setInscricoesMap(prev => ({
+                                                  ...prev,
+                                                  [key]: (prev[key] || []).filter((_, i) => i !== ieIdx),
+                                                }));
+                                              }}>
+                                                <X size={14} />
+                                              </Button>
                                             </div>
-                                          </div>
-                                        )}
+                                          ))}
+                                          {(inscricoesMap[ent._dbId || String(ent._id)] || []).length === 0 && (
+                                            <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada.</p>
+                                          )}
+                                        </div>
                                         {/* CNAE */}
                                         {ed.tipo_pessoa === "PJ" && (
                                           <div className="flex flex-row items-center gap-4">
@@ -2372,52 +2496,74 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Inscrição Estadual */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Inscrição Estadual *
-                                </Label>
-                                <div className="flex-1">
-                                  <Select
-                                    value={draftEntity.situacao_inscricao_estadual || undefined}
-                                    onValueChange={(v) =>
-                                      setDraftEntity({
-                                        ...draftEntity,
-                                        situacao_inscricao_estadual: v,
-                                        inscricao_estadual: v !== "sim" ? "" : draftEntity.inscricao_estadual || "",
-                                      })
-                                    }
+                              {/* Inscrições Estaduais */}
+                              <div className="border border-dashed rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 text-xs"
+                                    onClick={() => setDraftInscricoes(prev => [...prev, { _tempId: Date.now() + Math.random(), situacao: "sim", numero_ie: "", uf: "" }])}
                                   >
-                                    <SelectTrigger className="h-8 max-w-xs">
-                                      <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="sim">Sim</SelectItem>
-                                      <SelectItem value="nao">Não</SelectItem>
-                                      <SelectItem value="isento">Isento</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                    <Plus size={12} /> Adicionar IE
+                                  </Button>
                                 </div>
-                              </div>
-                              {/* Nº IE */}
-                              {draftEntity.situacao_inscricao_estadual === "sim" && (
-                                <div className="flex flex-row items-center gap-4">
-                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Nº IE *
-                                  </Label>
-                                  <div className="flex-1">
-                                    <Input
-                                      value={draftEntity.inscricao_estadual || ""}
-                                      onChange={(e) =>
-                                        setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })
-                                      }
-                                      placeholder="Nº Inscrição"
-                                      maxLength={15}
-                                      className="h-8"
-                                    />
+                                {draftInscricoes.map((ie, ieIdx) => (
+                                  <div key={ie._tempId} className="flex items-center gap-2 mt-1">
+                                    <Select value={ie.uf || undefined} onValueChange={(v) => {
+                                      setDraftInscricoes(prev => {
+                                        const list = [...prev];
+                                        list[ieIdx] = { ...list[ieIdx], uf: v };
+                                        return list;
+                                      });
+                                    }}>
+                                      <SelectTrigger className="h-8 w-24 shrink-0"><SelectValue placeholder="UF" /></SelectTrigger>
+                                      <SelectContent>
+                                        {UF_STATES.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                    <Select value={ie.situacao || undefined} onValueChange={(v) => {
+                                      setDraftInscricoes(prev => {
+                                        const list = [...prev];
+                                        list[ieIdx] = { ...list[ieIdx], situacao: v, numero_ie: v !== "sim" ? "" : list[ieIdx].numero_ie };
+                                        return list;
+                                      });
+                                    }}>
+                                      <SelectTrigger className="h-8 w-28 shrink-0"><SelectValue placeholder="Situação" /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="sim">Sim</SelectItem>
+                                        <SelectItem value="nao">Não</SelectItem>
+                                        <SelectItem value="isento">Isento</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    {ie.situacao === "sim" && (
+                                      <Input
+                                        value={ie.numero_ie}
+                                        onChange={(e) => {
+                                          setDraftInscricoes(prev => {
+                                            const list = [...prev];
+                                            list[ieIdx] = { ...list[ieIdx], numero_ie: e.target.value };
+                                            return list;
+                                          });
+                                        }}
+                                        placeholder="Nº IE"
+                                        maxLength={15}
+                                        className="h-8 flex-1"
+                                      />
+                                    )}
+                                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => {
+                                      setDraftInscricoes(prev => prev.filter((_, i) => i !== ieIdx));
+                                    }}>
+                                      <X size={14} />
+                                    </Button>
                                   </div>
-                                </div>
-                              )}
+                                ))}
+                                {draftInscricoes.length === 0 && (
+                                  <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada. Clique em "Adicionar IE" para incluir.</p>
+                                )}
+                              </div>
                               {/* CNAE */}
                               {draftEntity.tipo_pessoa === "PJ" && (
                                 <div className="flex flex-row items-center gap-4">

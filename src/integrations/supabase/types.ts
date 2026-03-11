@@ -1699,6 +1699,36 @@ export type Database = {
           },
         ]
       }
+      inscricao_contribuinte: {
+        Row: {
+          contribuinte_id: string
+          created_at: string | null
+          id: string
+          numero_ie: string | null
+          situacao: string
+          uf: string
+          updated_at: string | null
+        }
+        Insert: {
+          contribuinte_id: string
+          created_at?: string | null
+          id?: string
+          numero_ie?: string | null
+          situacao?: string
+          uf: string
+          updated_at?: string | null
+        }
+        Update: {
+          contribuinte_id?: string
+          created_at?: string | null
+          id?: string
+          numero_ie?: string | null
+          situacao?: string
+          uf?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       job_roles: {
         Row: {
           category: string | null
