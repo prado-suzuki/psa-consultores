@@ -1230,16 +1230,7 @@ export default function NewClientModal({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  // --- Multi-select helpers ---
-  const toggleEmpresaFaturamento = (emp: string) => {
-    setClientData((prev) => {
-      const arr = prev.empresa_faturamento;
-      return {
-        ...prev,
-        empresa_faturamento: arr.includes(emp) ? arr.filter((e) => e !== emp) : [...arr, emp],
-      };
-    });
-  };
+  // toggleEmpresaFaturamento removed - no longer used
 
   // --- FINAL SAVE ---
   const handleSave = () => {
