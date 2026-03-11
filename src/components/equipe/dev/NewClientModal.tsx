@@ -3719,7 +3719,7 @@ export default function NewClientModal({
                                 <Input
                                   value={draftContract.ordem_servico}
                                   onChange={(e) =>
-                                    setDraftContract({ ...draftContract, ordem_servico: e.target.value })
+                                    setDraftContract(prev => ({ ...prev, ordem_servico: e.target.value }))
                                   }
                                   placeholder="Ex: 001/2025"
                                   className="h-8 mt-1"
