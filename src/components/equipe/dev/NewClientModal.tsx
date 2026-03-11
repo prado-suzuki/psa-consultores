@@ -961,7 +961,13 @@ export default function NewClientModal({
       }
     }
 
-  setEntities([...entities, { ...draftEntity, _id: Date.now() + Math.random() } as DraftEntity]);
+  const newEntityId = Date.now() + Math.random();
+  setEntities([...entities, { ...draftEntity, _id: newEntityId } as DraftEntity]);
+  // Move draft inscricoes to map
+  if (draftInscricoes.length > 0) {
+    setInscricoesMap(prev => ({ ...prev, [String(newEntityId)]: [...draftInscricoes] }));
+    setDraftInscricoes([]);
+  }
     setDraftEntity({
       tipo_pessoa: "PJ",
       cpf_cnpj: "",
