@@ -1,34 +1,54 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Melhorar visual do campo OS e reorganizar layout
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### 1. Campo "Ordem de Serviço" — novo visual (draft mode, ~linha 3762-3773)
 
-### Etapa 1 — Migration: adicionar coluna
+Substituir o Badge "Auto" + texto "Gerada automaticamente" por um `Input` desabilitado com fundo suave (`bg-blue-50 border-blue-200`), exibindo o número real (`draftContract.ordem_servico`) ou "Gerando..." se vazio.
 
-Criar uma migration com:
+### 2. Reorganizar campos — modo criação (draft, ~linhas 3761-3973)
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+Nova ordem dentro do grid `grid-cols-2`:
 
-### Etapa 2 — Data update: popular mapeamentos
+| Linha | Coluna 1 | Coluna 2 |
+|---|---|---|
+| 1 | Ordem de Serviço (readonly) | Data de Emissão |
+| 2 | Data Início | Data Fim |
+| 3 | Tipo de Produto/Segmento | Situação do Projeto |
+| 4 | Valor do Projeto (R$) | *(vazio)* |
+| 5 | Reembolso por KM (R$) | Reembolso Refeição (R$) |
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+Após o grid (full-width):
+- **Empresa** (mover de dentro do bloco Serviço Contratado para campo separado acima)
+- **Serviço Contratado**
+- **Observações** (mover para o final, depois de Distribuição de Receita)
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+Mover **Tipo de Produto/Segmento** do bloco separado (`border-dashed`, ~3952-3973) para dentro do grid principal na linha 3.
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+### 3. Reorganizar campos — modo edição (~linhas 3380-3530)
 
-### O que NÃO será feito
+Mesma ordem do draft:
+1. OS (disabled) | Data Emissão
+2. Data Início | Data Fim
+3. Tipo de Produto/Segmento | Situação do Projeto
+4. Valor do Projeto | *(vazio)*
+5. Reembolso KM | Reembolso Refeição
+6. Empresa
+7. Serviço Contratado
+8. Observações (mover para o final)
 
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+### 4. Reorganizar campos — modo leitura (~linhas 3291-3370)
+
+Reordenar os `FieldPair` na mesma sequência:
+1. OS, Data Emissão, Data Início, Data Fim
+2. Tipo de Produto/Segmento, Situação do Projeto
+3. Valor do Projeto
+4. Reembolso KM, Reembolso Refeição
+5. Empresa (exibir nome do cluster do serviço selecionado)
+6. Serviço Contratado
+7. Observações (por último)
+
+### Arquivo alterado
+
+- `src/components/equipe/dev/NewClientModal.tsx`
 
