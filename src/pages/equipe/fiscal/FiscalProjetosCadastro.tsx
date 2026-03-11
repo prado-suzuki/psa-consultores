@@ -357,13 +357,12 @@ const FiscalProjetosCadastro = () => {
   });
 
   // Fetch OS/contratos for selected client
-  const ordemServicoTable = isProductionEnvironment ? 'ordem_servico' : 'contrato_dev';
   const { data: clienteOS = [] } = useQuery({
-    queryKey: ['cliente-os', formData.external_client_id, ordemServicoTable],
+    queryKey: ['cliente-os', formData.external_client_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
-      const { data, error } = await supabase
-        .from(ordemServicoTable)
+      const { data, error } = await (supabase
+        .from('ordem_servico' as any) as any)
         .select('*')
         .eq('id_cliente', formData.external_client_id)
         .order('created_at', { ascending: false });
@@ -375,36 +374,31 @@ const FiscalProjetosCadastro = () => {
 
   // Fetch suggested category IDs based on client's active OS → produto_servico mapping
   const { data: suggestedCategoryIds = [] } = useQuery({
-    queryKey: ['suggested-categories', formData.external_client_id, ordemServicoTable],
+    queryKey: ['suggested-categories', formData.external_client_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
 
-      // 1. Buscar OS ativas do cliente
-      const { data: osData } = await supabase
-        .from(ordemServicoTable)
-        .select('servicos_contratados')
+      // 1. Buscar OS ativas do cliente com id_servico
+      const { data: osData } = await (supabase
+        .from('ordem_servico' as any) as any)
+        .select('id_servico')
         .eq('id_cliente', formData.external_client_id)
         .eq('situacao', 'em_andamento');
 
       if (!osData?.length) return [];
 
-      // 2. Extrair UUIDs de produto_segmento do JSONB
-      const produtoIds = [...new Set(
-        osData.flatMap((os: any) => {
-          const sc = os.servicos_contratados;
-          return Array.isArray(sc) ? sc : [];
-        })
+      // 2. Extrair UUIDs de serviço direto (campo único, não mais JSONB)
+      const servicoIds = [...new Set(
+        osData
+          .map((os: any) => os.id_servico)
+          .filter(Boolean)
       )];
 
-      if (!produtoIds.length) return [];
+      if (!servicoIds.length) return [];
 
-      // 3. Buscar mapeamento produto → serviço
-      const { data: mappings } = await supabase
-        .from('produto_servico' as any)
-        .select('servico_prestado_id')
-        .in('produto_segmento_id', produtoIds);
-
-      return [...new Set((mappings || []).map((m: any) => m.servico_prestado_id))];
+      // 3. Buscar mapeamento produto → serviço (retornar os serviço IDs diretamente)
+      // Since id_servico already points to servicos_prestados, return them directly
+      return servicoIds;
     },
     enabled: !!formData.external_client_id,
   });
@@ -412,9 +406,9 @@ const FiscalProjetosCadastro = () => {
   const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
 
   // Helper to get OS id regardless of environment
-  const getOsId = (os: any): string => isProductionEnvironment ? os.id : os.id_contrato;
-  const getOsLabel = (os: any): string => isProductionEnvironment ? (os.numero_os || 'Sem número') : (os.numero_contrato || 'Sem número');
-  const getOsValue = (os: any): number | null => isProductionEnvironment ? os.valor_projeto : os.valor_fixo;
+  const getOsId = (os: any): string => os.id;
+  const getOsLabel = (os: any): string => os.numero_os || 'Sem número';
+  const getOsValue = (os: any): number | null => os.valor_projeto;
 
   // State for selected OS
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);

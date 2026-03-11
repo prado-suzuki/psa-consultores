@@ -275,7 +275,6 @@ export type Database = {
           ativo: boolean | null
           categoria: string | null
           created_at: string
-          empresa_faturamento: string[] | null
           excluido: boolean
           fixo: string | null
           id: string
@@ -284,8 +283,6 @@ export type Database = {
           regiao: string | null
           setor_cliente: string | null
           telefone: string | null
-          tipo_produto_segmento: string | null
-          tipo_produto_segmento_custom: string | null
           uf: string | null
           updated_at: string
         }
@@ -293,7 +290,6 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
-          empresa_faturamento?: string[] | null
           excluido?: boolean
           fixo?: string | null
           id?: string
@@ -302,8 +298,6 @@ export type Database = {
           regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
-          tipo_produto_segmento?: string | null
-          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -311,7 +305,6 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
-          empresa_faturamento?: string[] | null
           excluido?: boolean
           fixo?: string | null
           id?: string
@@ -320,8 +313,6 @@ export type Database = {
           regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
-          tipo_produto_segmento?: string | null
-          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -332,7 +323,6 @@ export type Database = {
           ativo: boolean | null
           categoria: string | null
           created_at: string
-          empresa_faturamento: string[] | null
           excluido: boolean
           fixo: string | null
           id: string
@@ -341,8 +331,6 @@ export type Database = {
           regiao: string | null
           setor_cliente: string | null
           telefone: string | null
-          tipo_produto_segmento: string | null
-          tipo_produto_segmento_custom: string | null
           uf: string | null
           updated_at: string
         }
@@ -350,7 +338,6 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
-          empresa_faturamento?: string[] | null
           excluido?: boolean
           fixo?: string | null
           id?: string
@@ -359,8 +346,6 @@ export type Database = {
           regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
-          tipo_produto_segmento?: string | null
-          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -368,7 +353,6 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
-          empresa_faturamento?: string[] | null
           excluido?: boolean
           fixo?: string | null
           id?: string
@@ -377,8 +361,6 @@ export type Database = {
           regiao?: string | null
           setor_cliente?: string | null
           telefone?: string | null
-          tipo_produto_segmento?: string | null
-          tipo_produto_segmento_custom?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -434,121 +416,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      contrato: {
-        Row: {
-          aliquota_contrato: number | null
-          created_at: string | null
-          data_fim: string | null
-          data_inicio: string | null
-          id_cliente: string
-          id_contrato: string
-          numero_contrato: string | null
-          tipo_contrato: string | null
-          updated_at: string | null
-          valor_fixo: number | null
-        }
-        Insert: {
-          aliquota_contrato?: number | null
-          created_at?: string | null
-          data_fim?: string | null
-          data_inicio?: string | null
-          id_cliente: string
-          id_contrato?: string
-          numero_contrato?: string | null
-          tipo_contrato?: string | null
-          updated_at?: string | null
-          valor_fixo?: number | null
-        }
-        Update: {
-          aliquota_contrato?: number | null
-          created_at?: string | null
-          data_fim?: string | null
-          data_inicio?: string | null
-          id_cliente?: string
-          id_contrato?: string
-          numero_contrato?: string | null
-          tipo_contrato?: string | null
-          updated_at?: string | null
-          valor_fixo?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_contrato_cliente"
-            columns: ["id_cliente"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contrato_dev: {
-        Row: {
-          aliquota_contrato: number | null
-          centros_custo: Json | null
-          created_at: string | null
-          data_emissao: string | null
-          data_fim: string | null
-          data_inicio: string | null
-          id_cliente: string
-          id_contrato: string
-          numero_contrato: string | null
-          observacoes: string | null
-          servicos_contratados: Json | null
-          situacao: string | null
-          tipo_contrato: string | null
-          updated_at: string | null
-          valor_fixo: number | null
-          valor_reembolso_km: number | null
-          valor_reembolso_refeicao: number | null
-        }
-        Insert: {
-          aliquota_contrato?: number | null
-          centros_custo?: Json | null
-          created_at?: string | null
-          data_emissao?: string | null
-          data_fim?: string | null
-          data_inicio?: string | null
-          id_cliente: string
-          id_contrato?: string
-          numero_contrato?: string | null
-          observacoes?: string | null
-          servicos_contratados?: Json | null
-          situacao?: string | null
-          tipo_contrato?: string | null
-          updated_at?: string | null
-          valor_fixo?: number | null
-          valor_reembolso_km?: number | null
-          valor_reembolso_refeicao?: number | null
-        }
-        Update: {
-          aliquota_contrato?: number | null
-          centros_custo?: Json | null
-          created_at?: string | null
-          data_emissao?: string | null
-          data_fim?: string | null
-          data_inicio?: string | null
-          id_cliente?: string
-          id_contrato?: string
-          numero_contrato?: string | null
-          observacoes?: string | null
-          servicos_contratados?: Json | null
-          situacao?: string | null
-          tipo_contrato?: string | null
-          updated_at?: string | null
-          valor_fixo?: number | null
-          valor_reembolso_km?: number | null
-          valor_reembolso_refeicao?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contrato_dev_id_cliente_fkey"
-            columns: ["id_cliente"]
-            isOneToOne: false
-            referencedRelation: "cliente_dev"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       contribuinte: {
         Row: {
@@ -1032,6 +899,45 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: []
+      }
+      distribuicao_receita: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_centro_custo: string
+          id_ordem_servico: string
+          percentual_rateio: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_centro_custo: string
+          id_ordem_servico: string
+          percentual_rateio?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_centro_custo?: string
+          id_ordem_servico?: string
+          percentual_rateio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribuicao_receita_id_centro_custo_fkey"
+            columns: ["id_centro_custo"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribuicao_receita_id_ordem_servico_fkey"
+            columns: ["id_ordem_servico"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -1824,16 +1730,16 @@ export type Database = {
       }
       ordem_servico: {
         Row: {
-          centros_custo: Json | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
           id: string
           id_cliente: string
+          id_produto_segmento: string | null
+          id_servico: string | null
           numero_os: string | null
           observacoes: string | null
-          servicos_contratados: Json | null
           situacao: string | null
           updated_at: string | null
           valor_projeto: number | null
@@ -1841,16 +1747,16 @@ export type Database = {
           valor_reembolso_refeicao: number | null
         }
         Insert: {
-          centros_custo?: Json | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id?: string
           id_cliente: string
+          id_produto_segmento?: string | null
+          id_servico?: string | null
           numero_os?: string | null
           observacoes?: string | null
-          servicos_contratados?: Json | null
           situacao?: string | null
           updated_at?: string | null
           valor_projeto?: number | null
@@ -1858,23 +1764,38 @@ export type Database = {
           valor_reembolso_refeicao?: number | null
         }
         Update: {
-          centros_custo?: Json | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
           id?: string
           id_cliente?: string
+          id_produto_segmento?: string | null
+          id_servico?: string | null
           numero_os?: string | null
           observacoes?: string | null
-          servicos_contratados?: Json | null
           situacao?: string | null
           updated_at?: string | null
           valor_projeto?: number | null
           valor_reembolso_km?: number | null
           valor_reembolso_refeicao?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ordem_servico_id_produto_segmento_fkey"
+            columns: ["id_produto_segmento"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordem_servico_id_servico_fkey"
+            columns: ["id_servico"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       page_permissions: {
         Row: {
@@ -3002,89 +2923,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      servico: {
-        Row: {
-          created_at: string | null
-          descricao: string | null
-          id_catalog_client: string | null
-          id_contrato: string
-          id_servico: string
-          updated_at: string | null
-          valor: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          descricao?: string | null
-          id_catalog_client?: string | null
-          id_contrato: string
-          id_servico?: string
-          updated_at?: string | null
-          valor?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          descricao?: string | null
-          id_catalog_client?: string | null
-          id_contrato?: string
-          id_servico?: string
-          updated_at?: string | null
-          valor?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_servico_catalog_client"
-            columns: ["id_catalog_client"]
-            isOneToOne: false
-            referencedRelation: "catalog_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_servico_contrato"
-            columns: ["id_contrato"]
-            isOneToOne: false
-            referencedRelation: "contrato"
-            referencedColumns: ["id_contrato"]
-          },
-        ]
-      }
-      servico_dev: {
-        Row: {
-          created_at: string | null
-          descricao: string | null
-          id_catalog_client: string | null
-          id_contrato: string
-          id_servico: string
-          updated_at: string | null
-          valor: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          descricao?: string | null
-          id_catalog_client?: string | null
-          id_contrato: string
-          id_servico?: string
-          updated_at?: string | null
-          valor?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          descricao?: string | null
-          id_catalog_client?: string | null
-          id_contrato?: string
-          id_servico?: string
-          updated_at?: string | null
-          valor?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "servico_dev_id_contrato_fkey"
-            columns: ["id_contrato"]
-            isOneToOne: false
-            referencedRelation: "contrato_dev"
-            referencedColumns: ["id_contrato"]
           },
         ]
       }

@@ -54,8 +54,6 @@ import { RequiredMark } from "@/components/ui/required-mark";
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
-const contratoTable = isProductionEnvironment ? "contrato" : "contrato_dev";
-const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
@@ -142,8 +140,9 @@ interface DraftOrdemServico {
   valor_reembolso_refeicao: number;
   situacao_projeto: string;
   observacoes_projeto: string;
-  servicos_contratados: string[];
-  centros_custo: Array<{ empresa: string; percentual: number }>;
+  id_servico: string;
+  id_produto_segmento: string;
+  distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
 }
 
 /** @deprecated Use DraftOrdemServico */
@@ -452,7 +451,7 @@ export default function NewClientModal({
     } else if (activeTab === "participantes") {
       setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
     } else if (activeTab === "contratos") {
-      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", servicos_contratados: [], centros_custo: [] });
+      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
     }
   };
 
@@ -542,23 +541,21 @@ export default function NewClientModal({
     },
   });
 
-  // Keep backward compat: flat string array for empresa_faturamento checkboxes in Dados do Cliente tab
-  const { data: EMPRESA_FATURAMENTO_OPTIONS = [] } = useQuery({
-    queryKey: ["empresas_faturamento_options"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("empresas_faturamento")
-        .select("id, nome")
-        .eq("is_active", true)
-        .order("nome");
-      return (data || []).map((e: any) => e.nome as string);
-    },
-  });
+  // EMPRESA_FATURAMENTO_OPTIONS removed - no longer used in client form
 
   const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
     ...produtoSegmentoOptions,
     { value: "__outro__", label: "Outro (personalizado)" },
   ], [produtoSegmentoOptions]);
+
+  // produto_segmento options with ID for OS-level linking
+  const { data: produtoSegmentoFullOptions = [] } = useQuery({
+    queryKey: ["produto_segmento_full"],
+    queryFn: async () => {
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
+      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean }>;
+    },
+  });
 
   const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
@@ -577,9 +574,6 @@ export default function NewClientModal({
     municipio: "",
     uf: "",
     setor_cliente: "",
-    tipo_produto_segmento: "",
-    tipo_produto_segmento_custom: "",
-    empresa_faturamento: [] as string[],
     regiao: "",
   };
 
@@ -646,8 +640,9 @@ export default function NewClientModal({
     valor_reembolso_refeicao: 0,
     situacao_projeto: "em_andamento",
     observacoes_projeto: "",
-    servicos_contratados: [] as string[],
-    centros_custo: [] as Array<{ empresa: string; percentual: number }>,
+    id_servico: "",
+    id_produto_segmento: "",
+    distribuicao_receita: [] as Array<{ id_centro_custo: string; percentual_rateio: number }>,
   });
 
   // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
@@ -718,15 +713,6 @@ export default function NewClientModal({
       try {
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const rawEmpresa = (cli as any).empresa_faturamento;
-          const empresaArr = Array.isArray(rawEmpresa)
-            ? rawEmpresa
-            : typeof rawEmpresa === "string" && rawEmpresa
-              ? rawEmpresa
-                  .split(",")
-                  .map((s: string) => s.trim())
-                  .filter(Boolean)
-              : [];
           setClientData({
             nome: cli.nome || "",
             categoria: (cli as any).categoria || "Bronze",
@@ -736,9 +722,6 @@ export default function NewClientModal({
             municipio: cli.municipio || "",
             uf: cli.uf || "",
             setor_cliente: cli.setor_cliente || "",
-            tipo_produto_segmento: (cli as any).tipo_produto_segmento || "",
-            tipo_produto_segmento_custom: (cli as any).tipo_produto_segmento_custom || "",
-            empresa_faturamento: empresaArr,
             regiao: (cli as any).regiao || "",
           });
         }
@@ -822,25 +805,36 @@ export default function NewClientModal({
         }
 
         // Carregar ordens de serviço do banco
-        const { data: existingOS } = await (supabase.from(ordemServicoTable) as any)
+        const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
           .select("*")
           .eq("id_cliente", editingClienteId);
         if (existingOS && existingOS.length > 0) {
+          // Also load distribuicao_receita for each OS
+          const osIds = existingOS.map((os: any) => os.id);
+          const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
+            .select("*")
+            .in("id_ordem_servico", osIds);
+          const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
+          (distData || []).forEach((d: any) => {
+            if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
+            distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
+          });
           setContracts(
             existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
-              _dbId: isProductionEnvironment ? os.id : os.id_contrato,
-              ordem_servico: (isProductionEnvironment ? os.numero_os : os.numero_contrato) || "",
+              _dbId: os.id,
+              ordem_servico: os.numero_os || "",
               data_emissao: os.data_emissao || "",
               data_inicio_projeto: os.data_inicio || "",
               data_fim_projeto: os.data_fim || "",
-              valor_projeto: (isProductionEnvironment ? os.valor_projeto : os.valor_fixo) || 0,
+              valor_projeto: os.valor_projeto || 0,
               valor_reembolso_km: os.valor_reembolso_km || 0,
               valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
               situacao_projeto: os.situacao || "em_andamento",
               observacoes_projeto: os.observacoes || "",
-              servicos_contratados: os.servicos_contratados || [],
-              centros_custo: os.centros_custo || [],
+              id_servico: os.id_servico || "",
+              id_produto_segmento: os.id_produto_segmento || "",
+              distribuicao_receita: distMap[os.id] || [],
             })),
           );
         } else {
@@ -1065,8 +1059,8 @@ export default function NewClientModal({
 
   // --- OS HANDLERS ---
   const addContract = () => {
-    if (draftContract.servicos_contratados.length === 0) {
-      toast.error("Adicione pelo menos um Serviço Contratado");
+    if (!draftContract.id_servico) {
+      toast.error("Selecione um Serviço Contratado");
       return;
     }
 
@@ -1081,8 +1075,9 @@ export default function NewClientModal({
       valor_reembolso_refeicao: 0,
       situacao_projeto: "em_andamento",
       observacoes_projeto: "",
-      servicos_contratados: [],
-      centros_custo: [],
+      id_servico: "",
+      id_produto_segmento: "",
+      distribuicao_receita: [],
     });
   };
 
@@ -1235,16 +1230,7 @@ export default function NewClientModal({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  // --- Multi-select helpers ---
-  const toggleEmpresaFaturamento = (emp: string) => {
-    setClientData((prev) => {
-      const arr = prev.empresa_faturamento;
-      return {
-        ...prev,
-        empresa_faturamento: arr.includes(emp) ? arr.filter((e) => e !== emp) : [...arr, emp],
-      };
-    });
-  };
+  // toggleEmpresaFaturamento removed - no longer used
 
   // --- FINAL SAVE ---
   const handleSave = () => {
@@ -1267,16 +1253,8 @@ export default function NewClientModal({
       toast.error("Área do negócio é obrigatória");
       return;
     }
-    if (!clientData.tipo_produto_segmento) {
-      toast.error("Tipo de produto/segmento é obrigatório");
-      return;
-    }
-    if (clientData.tipo_produto_segmento === "__outro__" && !clientData.tipo_produto_segmento_custom.trim()) {
-      toast.error("Informe o nome do produto/segmento personalizado");
-      return;
-    }
-    if (clientData.empresa_faturamento.length === 0) {
-      toast.error("Empresa / Faturamento é obrigatória");
+    if (!clientData.regiao) {
+      toast.error("Região é obrigatória");
       return;
     }
     if (!clientData.regiao) {
@@ -1286,11 +1264,6 @@ export default function NewClientModal({
 
     setSaving(true);
     try {
-      const produtoFinal =
-        clientData.tipo_produto_segmento === "__outro__"
-          ? clientData.tipo_produto_segmento_custom.trim()
-          : clientData.tipo_produto_segmento;
-
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -1300,12 +1273,6 @@ export default function NewClientModal({
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
-        empresa_faturamento: clientData.empresa_faturamento,
-        tipo_produto_segmento: produtoFinal || null,
-        tipo_produto_segmento_custom:
-          clientData.tipo_produto_segmento === "__outro__"
-            ? clientData.tipo_produto_segmento_custom.trim() || null
-            : null,
         regiao: clientData.regiao || null,
       };
 
@@ -1341,12 +1308,11 @@ export default function NewClientModal({
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---
-        const osIdField = isProductionEnvironment ? "id" : "id_contrato";
         const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
-        const { data: dbOS } = await (supabase.from(ordemServicoTable) as any).select(osIdField).eq("id_cliente", clienteId);
-        const removedOsIds = (dbOS || []).map((o: any) => o[osIdField]).filter((id: string) => !currentOsDbIds.includes(id));
+        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId);
+        const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
-          await (supabase.from(ordemServicoTable) as any).delete().in(osIdField, removedOsIds);
+          await (supabase.from("ordem_servico" as any) as any).delete().in("id", removedOsIds);
         }
       } else {
         const { data: newCliente, error: clienteError } = await supabase
@@ -1446,46 +1412,49 @@ export default function NewClientModal({
         }
       }
 
-      // --- Persistir ordens de serviço (update ou insert) ---
+      // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita ---
       const buildOsFields = (c: DraftOrdemServico) => ({
         id_cliente: clienteId,
-        ...(isProductionEnvironment
-          ? {
-              numero_os: c.ordem_servico || null,
-              data_emissao: c.data_emissao || null,
-              data_inicio: c.data_inicio_projeto || null,
-              data_fim: c.data_fim_projeto || null,
-              valor_projeto: c.valor_projeto || 0,
-              valor_reembolso_km: c.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-              situacao: c.situacao_projeto || "em_andamento",
-              observacoes: c.observacoes_projeto || null,
-              servicos_contratados: c.servicos_contratados || [],
-              centros_custo: c.centros_custo || [],
-            }
-          : {
-              numero_contrato: c.ordem_servico || null,
-              data_emissao: c.data_emissao || null,
-              data_inicio: c.data_inicio_projeto || null,
-              data_fim: c.data_fim_projeto || null,
-              valor_fixo: c.valor_projeto || 0,
-              valor_reembolso_km: c.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-              situacao: c.situacao_projeto || "em_andamento",
-              observacoes: c.observacoes_projeto || null,
-              servicos_contratados: c.servicos_contratados || [],
-              centros_custo: c.centros_custo || [],
-            }),
+        numero_os: c.ordem_servico || null,
+        data_emissao: c.data_emissao || null,
+        data_inicio: c.data_inicio_projeto || null,
+        data_fim: c.data_fim_projeto || null,
+        valor_projeto: c.valor_projeto || 0,
+        valor_reembolso_km: c.valor_reembolso_km || 0,
+        valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+        situacao: c.situacao_projeto || "em_andamento",
+        observacoes: c.observacoes_projeto || null,
+        id_servico: c.id_servico || null,
+        id_produto_segmento: c.id_produto_segmento || null,
       });
 
       for (const c of contracts) {
-        const cIdField = isProductionEnvironment ? "id" : "id_contrato";
+        let osId = c._dbId;
         if (c._dbId) {
-          const { error } = await (supabase.from(ordemServicoTable) as any).update(buildOsFields(c)).eq(cIdField, c._dbId);
+          const { error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId);
           if (error) throw error;
         } else {
-          const { error } = await (supabase.from(ordemServicoTable) as any).insert(buildOsFields(c));
+          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
           if (error) throw error;
+          osId = newOs.id;
+        }
+
+        // Persist distribuicao_receita: delete all then insert
+        if (osId) {
+          await (supabase.from("distribuicao_receita" as any) as any).delete().eq("id_ordem_servico", osId);
+          if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
+            const distPayload = c.distribuicao_receita
+              .filter(d => d.id_centro_custo)
+              .map(d => ({
+                id_ordem_servico: osId,
+                id_centro_custo: d.id_centro_custo,
+                percentual_rateio: d.percentual_rateio || 0,
+              }));
+            if (distPayload.length > 0) {
+              const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(distPayload);
+              if (distError) throw distError;
+            }
+          }
         }
       }
 
@@ -1503,8 +1472,6 @@ export default function NewClientModal({
             categoria: (clienteResult as any).categoria ?? null,
             created_at: clienteResult.created_at,
             updated_at: clienteResult.updated_at,
-            empresa_faturamento: clientData.empresa_faturamento,
-            tipo_produto_segmento: (clienteResult as any).tipo_produto_segmento ?? null,
             regiao: (clienteResult as any).regiao ?? null,
           },
         ],
@@ -1540,8 +1507,9 @@ export default function NewClientModal({
       valor_reembolso_refeicao: 0,
       situacao_projeto: "em_andamento",
       observacoes_projeto: "",
-      servicos_contratados: [],
-      centros_custo: [],
+      id_servico: "",
+      id_produto_segmento: "",
+      distribuicao_receita: [],
     });
     setDraftParticipant({
       nome: "",
@@ -3141,114 +3109,6 @@ export default function NewClientModal({
                   </TabsContent>
 
                   <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
-                    {/* Classificação do Cliente (dados do cliente, não da OS) */}
-                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden mb-4">
-                      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="text-sm font-bold text-foreground">Classificação do Cliente</h3>
-                      </div>
-                      <div className="px-4 py-3 space-y-3">
-                        {/* Tipo de produto/segmento */}
-                        <div className="flex flex-col gap-1">
-                          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                            <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                              Tipo de produto/segmento *
-                            </Label>
-                            <Select
-                              disabled={isReadOnly}
-                              value={clientData.tipo_produto_segmento || "__none__"}
-                              onValueChange={(v) =>
-                                setClientData({
-                                  ...clientData,
-                                  tipo_produto_segmento: v === "__none__" ? "" : v,
-                                  tipo_produto_segmento_custom:
-                                    v !== "__outro__" ? "" : clientData.tipo_produto_segmento_custom,
-                                })
-                              }
-                            >
-                              <SelectTrigger className="flex-1 h-8">
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {PRODUTO_SEGMENTO_OPTIONS.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {clientData.tipo_produto_segmento === "__outro__" && (
-                            <div className="md:ml-[12.75rem] md:pl-3">
-                              <Input
-                                disabled={isReadOnly}
-                                className="h-8"
-                                value={clientData.tipo_produto_segmento_custom}
-                                onChange={(e) =>
-                                  setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })
-                                }
-                                placeholder="Nome do novo produto/segmento"
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Empresa / Faturamento */}
-                        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                            Empresa / Faturamento *
-                          </Label>
-                          <div className="flex-1">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  disabled={isReadOnly}
-                                  className={cn(
-                                    "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
-                                    clientData.empresa_faturamento.length === 0 && "text-muted-foreground",
-                                  )}
-                                >
-                                  {clientData.empresa_faturamento.length > 0
-                                    ? clientData.empresa_faturamento.map((emp) => (
-                                        <Badge key={emp} variant="secondary" className="text-xs gap-1">
-                                          {emp}
-                                          {!isReadOnly && (
-                                            <X
-                                              className="h-3 w-3 cursor-pointer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleEmpresaFaturamento(emp);
-                                              }}
-                                            />
-                                          )}
-                                        </Badge>
-                                      ))
-                                    : "Selecione..."}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-64 p-2" align="start">
-                                <div className="flex flex-col gap-1">
-                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                    <label
-                                      key={emp}
-                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                                    >
-                                      <Checkbox
-                                        checked={clientData.empresa_faturamento.includes(emp)}
-                                        onCheckedChange={() => toggleEmpresaFaturamento(emp)}
-                                      />
-                                      {emp}
-                                    </label>
-                                  ))}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
                     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
                       <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
                         <h3 className="text-sm font-bold text-foreground">
@@ -3942,7 +3802,7 @@ export default function NewClientModal({
                               />
                             </div>
 
-                            {/* Serviços Contratados */}
+                            {/* Serviço Contratado (único) */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
                               {/* Filtro por Empresa/Cluster */}
                               <div className="mb-3">
@@ -3959,92 +3819,77 @@ export default function NewClientModal({
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="flex items-center justify-between mb-2">
-                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                  Serviços Contratados
-                                </h5>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 text-xs"
-                                  onClick={() =>
-                                    setDraftContract({
-                                      ...draftContract,
-                                      servicos_contratados: [...draftContract.servicos_contratados, ""],
-                                    })
-                                  }
-                                >
-                                  <Plus size={12} /> Adicionar Serviço
-                                </Button>
-                              </div>
-                              {draftContract.servicos_contratados.length === 0 && (
-                                <p className="text-xs text-muted-foreground italic">Nenhum serviço adicionado.</p>
-                              )}
-                              {draftContract.servicos_contratados.map((svcId, idx) => (
-                                <div key={idx} className="flex items-center gap-2 mt-2">
-                                  <Select
-                                    value={svcId || "__none__"}
-                                    onValueChange={(v) => {
-                                      const updated = [...draftContract.servicos_contratados];
-                                      updated[idx] = v === "__none__" ? "" : v;
-                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-8 flex-1">
-                                      <SelectValue placeholder="Selecione um serviço..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Selecione...</SelectItem>
-                                       {(() => {
-                                        const source = filteredCatalogServices;
-                                        const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                        const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                        const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                          const cName = s.estrutura_clusters.name;
-                                          if (!acc[cName]) acc[cName] = [];
-                                          acc[cName].push(s);
-                                          return acc;
-                                        }, {} as Record<string, any[]>);
-                                        return (
-                                          <>
-                                            {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
-                                              <SelectGroup key={clusterName}>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                                {(svcs as any[]).map((svc: any) => (
-                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                ))}
-                                              </SelectGroup>
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                Serviço Contratado *
+                              </h5>
+                              <Select
+                                value={draftContract.id_servico || "__none__"}
+                                onValueChange={(v) =>
+                                  setDraftContract({ ...draftContract, id_servico: v === "__none__" ? "" : v })
+                                }
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Selecione um serviço..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {(() => {
+                                    const source = filteredCatalogServices;
+                                    const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                    const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
+                                    const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
+                                      const cName = s.estrutura_clusters.name;
+                                      if (!acc[cName]) acc[cName] = [];
+                                      acc[cName].push(s);
+                                      return acc;
+                                    }, {} as Record<string, any[]>);
+                                    return (
+                                      <>
+                                        {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                          <SelectGroup key={clusterName}>
+                                            <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
+                                            {(svcs as any[]).map((svc: any) => (
+                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                             ))}
-                                            {withoutCluster.length > 0 && (
-                                              <SelectGroup>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                                {withoutCluster.map((svc: any) => (
-                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                ))}
-                                              </SelectGroup>
-                                            )}
-                                          </>
-                                        );
-                                      })()}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 shrink-0 text-destructive"
-                                    onClick={() => {
-                                      const updated = draftContract.servicos_contratados.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                    }}
-                                  >
-                                    <X size={14} />
-                                  </Button>
-                                </div>
-                              ))}
+                                          </SelectGroup>
+                                        ))}
+                                        {withoutCluster.length > 0 && (
+                                          <SelectGroup>
+                                            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+                                            {withoutCluster.map((svc: any) => (
+                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                            ))}
+                                          </SelectGroup>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </SelectContent>
+                              </Select>
                             </div>
 
+                            {/* Tipo de Produto/Segmento (agora na OS) */}
+                            <div className="mt-4 border border-dashed rounded-lg p-4">
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                Tipo de Produto/Segmento
+                              </h5>
+                              <Select
+                                value={draftContract.id_produto_segmento || "__none__"}
+                                onValueChange={(v) =>
+                                  setDraftContract({ ...draftContract, id_produto_segmento: v === "__none__" ? "" : v })
+                                }
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {produtoSegmentoFullOptions.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             {/* Distribuição de Receita (Centros de Custo) */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
                               <div className="flex items-center justify-between mb-2">
@@ -4059,26 +3904,26 @@ export default function NewClientModal({
                                   onClick={() =>
                                     setDraftContract({
                                       ...draftContract,
-                                      centros_custo: [...draftContract.centros_custo, { empresa: "", percentual: 0 }],
+                                      distribuicao_receita: [...draftContract.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
                                     })
                                   }
                                 >
                                   <Plus size={12} /> Adicionar Centro de Custo
                                 </Button>
                               </div>
-                              {draftContract.centros_custo.length === 0 && (
+                              {draftContract.distribuicao_receita.length === 0 && (
                                 <p className="text-xs text-muted-foreground italic">
                                   Nenhum centro de custo adicionado.
                                 </p>
                               )}
-                              {draftContract.centros_custo.map((cc, idx) => (
+                              {draftContract.distribuicao_receita.map((cc, idx) => (
                                 <div key={idx} className="flex items-center gap-2 mt-2">
                                   <Select
-                                    value={cc.empresa || "__none__"}
+                                    value={cc.id_centro_custo || "__none__"}
                                     onValueChange={(v) => {
-                                      const updated = [...draftContract.centros_custo];
-                                      updated[idx] = { ...updated[idx], empresa: v === "__none__" ? "" : v };
-                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                      const updated = [...draftContract.distribuicao_receita];
+                                      updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
+                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                     }}
                                   >
                                     <SelectTrigger className="h-8 flex-1">
@@ -4087,7 +3932,7 @@ export default function NewClientModal({
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
                                       {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                        <SelectItem key={cc_opt.codigo} value={cc_opt.label}>
+                                        <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
                                           {cc_opt.label}
                                         </SelectItem>
                                       ))}
@@ -4098,14 +3943,14 @@ export default function NewClientModal({
                                       type="number"
                                       min={0}
                                       max={100}
-                                      value={cc.percentual || ""}
+                                      value={cc.percentual_rateio || ""}
                                       onChange={(e) => {
-                                        const updated = [...draftContract.centros_custo];
+                                        const updated = [...draftContract.distribuicao_receita];
                                         updated[idx] = {
                                           ...updated[idx],
-                                          percentual: parseFloat(e.target.value) || 0,
+                                          percentual_rateio: parseFloat(e.target.value) || 0,
                                         };
-                                        setDraftContract({ ...draftContract, centros_custo: updated });
+                                        setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                       }}
                                       className="h-8 w-20 text-right"
                                       placeholder="%"
@@ -4118,17 +3963,17 @@ export default function NewClientModal({
                                     variant="ghost"
                                     className="h-8 w-8 shrink-0 text-destructive"
                                     onClick={() => {
-                                      const updated = draftContract.centros_custo.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, centros_custo: updated });
+                                      const updated = draftContract.distribuicao_receita.filter((_, i) => i !== idx);
+                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
                                     }}
                                   >
                                     <X size={14} />
                                   </Button>
                                 </div>
                               ))}
-                              {draftContract.centros_custo.length > 0 &&
+                              {draftContract.distribuicao_receita.length > 0 &&
                                 (() => {
-                                  const total = draftContract.centros_custo.reduce((acc, cc) => acc + cc.percentual, 0);
+                                  const total = draftContract.distribuicao_receita.reduce((acc, cc) => acc + cc.percentual_rateio, 0);
                                   const faltam = 100 - total;
                                   return (
                                     <p
