@@ -1740,6 +1740,7 @@ export type Database = {
           data_emissao: string | null
           data_fim: string | null
           data_inicio: string | null
+          excluido: boolean
           id: string
           id_cliente: string
           id_produto_segmento: string | null
@@ -1757,6 +1758,7 @@ export type Database = {
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
+          excluido?: boolean
           id?: string
           id_cliente: string
           id_produto_segmento?: string | null
@@ -1774,6 +1776,7 @@ export type Database = {
           data_emissao?: string | null
           data_fim?: string | null
           data_inicio?: string | null
+          excluido?: boolean
           id?: string
           id_cliente?: string
           id_produto_segmento?: string | null
