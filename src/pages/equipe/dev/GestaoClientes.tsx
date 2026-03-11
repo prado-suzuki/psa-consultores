@@ -73,6 +73,7 @@ const GestaoClientes = () => {
         .from(contribuinteTable)
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
+        .eq("excluido", false)
         .order("nome_razao_social");
 
       if (clienteId && clienteId !== "__todos__") {
