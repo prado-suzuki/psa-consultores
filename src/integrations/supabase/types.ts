@@ -427,6 +427,7 @@ export type Database = {
           contribuinte_faturamento: boolean | null
           cpf_cnpj: string | null
           created_at: string
+          excluido: boolean
           id: string
           inscricao_estadual: string | null
           logradouro: string | null
@@ -451,6 +452,7 @@ export type Database = {
           contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          excluido?: boolean
           id?: string
           inscricao_estadual?: string | null
           logradouro?: string | null
@@ -475,6 +477,7 @@ export type Database = {
           contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          excluido?: boolean
           id?: string
           inscricao_estadual?: string | null
           logradouro?: string | null
@@ -534,6 +537,7 @@ export type Database = {
           contribuinte_faturamento: boolean | null
           cpf_cnpj: string | null
           created_at: string
+          excluido: boolean
           id: string
           inscricao_estadual: string | null
           logradouro: string | null
@@ -558,6 +562,7 @@ export type Database = {
           contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          excluido?: boolean
           id?: string
           inscricao_estadual?: string | null
           logradouro?: string | null
@@ -582,6 +587,7 @@ export type Database = {
           contribuinte_faturamento?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          excluido?: boolean
           id?: string
           inscricao_estadual?: string | null
           logradouro?: string | null
