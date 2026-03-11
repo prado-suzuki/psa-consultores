@@ -1,34 +1,21 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Mover campos de cliente para exibição na aba OS (sem mudar tabela)
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+Alteração puramente de UI — nenhuma migration, nenhuma mudança de banco.
 
-### Etapa 1 — Migration: adicionar coluna
+### Arquivo: `src/components/equipe/dev/NewClientModal.tsx`
 
-Criar uma migration com:
+**1. Remover os dois campos da aba "Dados do Cliente"**
+- Remover linhas ~1728-1826 (bloco "Tipo de produto/segmento" + bloco "Empresa / Faturamento")
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+**2. Inserir no topo da aba "contratos", antes da section de OS**
+- Adicionar um bloco separado visualmente (card próprio com header "Dados Comerciais do Cliente" ou similar) entre a abertura do `TabsContent value="contratos"` (linha 3093) e a `section` de OS (linha 3094)
+- Usar uma `section` com `bg-card rounded-xl border shadow-sm` e header distinto (ex: ícone + "Classificação do Cliente") para deixar claro que são dados do cliente, não da OS
+- Manter exatamente o mesmo markup e bindings (`clientData.tipo_produto_segmento`, `clientData.empresa_faturamento`, `toggleEmpresaFaturamento`)
+- Separar visualmente com `mb-4` entre este bloco e a section de OS abaixo
 
-### Etapa 2 — Data update: popular mapeamentos
-
-Usar a ferramenta de inserção/update (não migration) para executar:
-
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
-
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+**3. Sem alterações em:**
+- Estado, lógica de save/load, validação, queries, banco de dados
+- Os campos continuam salvos na tabela de cliente como hoje
 
