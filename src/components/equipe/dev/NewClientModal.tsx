@@ -140,8 +140,9 @@ interface DraftOrdemServico {
   valor_reembolso_refeicao: number;
   situacao_projeto: string;
   observacoes_projeto: string;
-  servicos_contratados: string[];
-  centros_custo: Array<{ empresa: string; percentual: number }>;
+  id_servico: string;
+  id_produto_segmento: string;
+  distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
 }
 
 /** @deprecated Use DraftOrdemServico */
