@@ -71,6 +71,46 @@ const TIPO_PARTICIPANTE_OPTIONS = [
 
 
 
+// --- Auto-generate OS number (XXX/AAAA) ---
+const generateNextOsNumber = async (localContracts: DraftOrdemServico[]): Promise<string> => {
+  const year = new Date().getFullYear();
+  const suffix = `/${year}`;
+
+  // Query ALL OS for the current year (including excluido=true) to never reuse a number
+  const { data } = await (supabase.from("ordem_servico" as any) as any)
+    .select("numero_os")
+    .like("numero_os", `%${suffix}`)
+    .order("numero_os", { ascending: false })
+    .limit(1000);
+
+  let maxSeq = 0;
+
+  // Check DB records
+  if (data && data.length > 0) {
+    for (const row of data) {
+      const match = (row.numero_os as string)?.match(/^(\d+)\//);
+      if (match) {
+        const seq = parseInt(match[1], 10);
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    }
+  }
+
+  // Check local (unsaved) contracts in the same session
+  for (const c of localContracts) {
+    if (c.ordem_servico?.endsWith(suffix)) {
+      const match = c.ordem_servico.match(/^(\d+)\//);
+      if (match) {
+        const seq = parseInt(match[1], 10);
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    }
+  }
+
+  const next = (maxSeq + 1).toString().padStart(3, "0");
+  return `${next}${suffix}`;
+};
+
 const SITUACAO_PROJETO_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
   { value: "concluido", label: "Concluído" },
@@ -396,7 +436,7 @@ export default function NewClientModal({
   // --- Draft detection helpers ---
   const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
   const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
-  const hasDraftContractData = () => !!(draftContract.ordem_servico?.trim() || (draftContract.valor_projeto && draftContract.valor_projeto > 0));
+  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim());
 
   const getDraftPendingTabs = (): string[] => {
     const tabs: string[] = [];
@@ -1064,13 +1104,17 @@ export default function NewClientModal({
   };
 
   // --- OS HANDLERS ---
-  const addContract = () => {
+  const addContract = async () => {
     if (!draftContract.id_servico) {
       toast.error("Selecione um Serviço Contratado");
       return;
     }
 
-    setContracts([...contracts, { ...draftContract, _id: Date.now() + Math.random() } as DraftContract]);
+    // Auto-generate OS number
+    const osNumber = await generateNextOsNumber(contracts);
+    const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as DraftContract;
+
+    setContracts([...contracts, newContract]);
     setDraftContract({
       ordem_servico: "",
       data_emissao: "",
@@ -3340,10 +3384,8 @@ export default function NewClientModal({
                                           </Label>
                                           <Input
                                             value={ec.ordem_servico || ""}
-                                            onChange={(e) =>
-                                              setEditingContractData({ ...ec, ordem_servico: e.target.value })
-                                            }
-                                            className="h-8 mt-1"
+                                            disabled
+                                            className="h-8 mt-1 bg-muted"
                                           />
                                         </div>
                                         <div>
@@ -3717,19 +3759,17 @@ export default function NewClientModal({
                               Dados da OS
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Ordem de Serviço */}
+                              {/* Ordem de Serviço — auto-gerada */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                   Ordem de Serviço
                                 </Label>
-                                <Input
-                                  value={draftContract.ordem_servico}
-                                  onChange={(e) =>
-                                    setDraftContract(prev => ({ ...prev, ordem_servico: e.target.value }))
-                                  }
-                                  placeholder="Ex: 001/2025"
-                                  className="h-8 mt-1"
-                                />
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="secondary" className="h-8 px-3 text-sm font-mono">
+                                    {draftContract.ordem_servico || "Auto"}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">Gerada automaticamente</span>
+                                </div>
                               </div>
                               {/* Data de Emissão */}
                               <div>
