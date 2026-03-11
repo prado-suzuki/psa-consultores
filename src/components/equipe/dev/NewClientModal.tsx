@@ -2470,52 +2470,74 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Inscrição Estadual */}
-                              <div className="flex flex-row items-center gap-4">
-                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                  Inscrição Estadual *
-                                </Label>
-                                <div className="flex-1">
-                                  <Select
-                                    value={draftEntity.situacao_inscricao_estadual || undefined}
-                                    onValueChange={(v) =>
-                                      setDraftEntity({
-                                        ...draftEntity,
-                                        situacao_inscricao_estadual: v,
-                                        inscricao_estadual: v !== "sim" ? "" : draftEntity.inscricao_estadual || "",
-                                      })
-                                    }
+                              {/* Inscrições Estaduais */}
+                              <div className="border border-dashed rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 text-xs"
+                                    onClick={() => setDraftInscricoes(prev => [...prev, { _tempId: Date.now() + Math.random(), situacao: "sim", numero_ie: "", uf: "" }])}
                                   >
-                                    <SelectTrigger className="h-8 max-w-xs">
-                                      <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="sim">Sim</SelectItem>
-                                      <SelectItem value="nao">Não</SelectItem>
-                                      <SelectItem value="isento">Isento</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                    <Plus size={12} /> Adicionar IE
+                                  </Button>
                                 </div>
-                              </div>
-                              {/* Nº IE */}
-                              {draftEntity.situacao_inscricao_estadual === "sim" && (
-                                <div className="flex flex-row items-center gap-4">
-                                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                                    Nº IE *
-                                  </Label>
-                                  <div className="flex-1">
-                                    <Input
-                                      value={draftEntity.inscricao_estadual || ""}
-                                      onChange={(e) =>
-                                        setDraftEntity({ ...draftEntity, inscricao_estadual: e.target.value })
-                                      }
-                                      placeholder="Nº Inscrição"
-                                      maxLength={15}
-                                      className="h-8"
-                                    />
+                                {draftInscricoes.map((ie, ieIdx) => (
+                                  <div key={ie._tempId} className="flex items-center gap-2 mt-1">
+                                    <Select value={ie.uf || undefined} onValueChange={(v) => {
+                                      setDraftInscricoes(prev => {
+                                        const list = [...prev];
+                                        list[ieIdx] = { ...list[ieIdx], uf: v };
+                                        return list;
+                                      });
+                                    }}>
+                                      <SelectTrigger className="h-8 w-24 shrink-0"><SelectValue placeholder="UF" /></SelectTrigger>
+                                      <SelectContent>
+                                        {UF_STATES.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                    <Select value={ie.situacao || undefined} onValueChange={(v) => {
+                                      setDraftInscricoes(prev => {
+                                        const list = [...prev];
+                                        list[ieIdx] = { ...list[ieIdx], situacao: v, numero_ie: v !== "sim" ? "" : list[ieIdx].numero_ie };
+                                        return list;
+                                      });
+                                    }}>
+                                      <SelectTrigger className="h-8 w-28 shrink-0"><SelectValue placeholder="Situação" /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="sim">Sim</SelectItem>
+                                        <SelectItem value="nao">Não</SelectItem>
+                                        <SelectItem value="isento">Isento</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    {ie.situacao === "sim" && (
+                                      <Input
+                                        value={ie.numero_ie}
+                                        onChange={(e) => {
+                                          setDraftInscricoes(prev => {
+                                            const list = [...prev];
+                                            list[ieIdx] = { ...list[ieIdx], numero_ie: e.target.value };
+                                            return list;
+                                          });
+                                        }}
+                                        placeholder="Nº IE"
+                                        maxLength={15}
+                                        className="h-8 flex-1"
+                                      />
+                                    )}
+                                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => {
+                                      setDraftInscricoes(prev => prev.filter((_, i) => i !== ieIdx));
+                                    }}>
+                                      <X size={14} />
+                                    </Button>
                                   </div>
-                                </div>
-                              )}
+                                ))}
+                                {draftInscricoes.length === 0 && (
+                                  <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada. Clique em "Adicionar IE" para incluir.</p>
+                                )}
+                              </div>
                               {/* CNAE */}
                               {draftEntity.tipo_pessoa === "PJ" && (
                                 <div className="flex flex-row items-center gap-4">
