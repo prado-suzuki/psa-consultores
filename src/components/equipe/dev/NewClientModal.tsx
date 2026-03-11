@@ -1264,11 +1264,6 @@ export default function NewClientModal({
 
     setSaving(true);
     try {
-      const produtoFinal =
-        clientData.tipo_produto_segmento === "__outro__"
-          ? clientData.tipo_produto_segmento_custom.trim()
-          : clientData.tipo_produto_segmento;
-
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -1278,12 +1273,6 @@ export default function NewClientModal({
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
-        empresa_faturamento: clientData.empresa_faturamento,
-        tipo_produto_segmento: produtoFinal || null,
-        tipo_produto_segmento_custom:
-          clientData.tipo_produto_segmento === "__outro__"
-            ? clientData.tipo_produto_segmento_custom.trim() || null
-            : null,
         regiao: clientData.regiao || null,
       };
 
