@@ -3236,35 +3236,43 @@ export default function NewClientModal({
                                             <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
                                           </div>
                                         )}
-                                        {(cont as any).servicos_contratados?.length > 0 && (
+                                        {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Serviços Contratados
+                                              Serviço Contratado
                                             </p>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {(cont as any).servicos_contratados.map((svcId: string) => {
-                                                const svc = catalogServices.find((s: any) => s.id === svcId);
-                                                return (
-                                                  <Badge key={svcId} variant="secondary" className="text-xs">
-                                                    {svc?.nome || svcId}
-                                                  </Badge>
-                                                );
-                                              })}
-                                            </div>
+                                            <Badge variant="secondary" className="text-xs mt-1">
+                                              {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
+                                            </Badge>
                                           </div>
                                         )}
-                                        {(cont as any).centros_custo?.length > 0 && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Centros de Custo
+                                              Tipo de Produto/Segmento
+                                            </p>
+                                            <Badge variant="outline" className="text-xs mt-1">
+                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
+                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
+                                                : cont.id_produto_segmento}
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        {cont.distribuicao_receita?.length > 0 && (
+                                          <div className="col-span-2 md:col-span-3">
+                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                                              Distribuição de Receita
                                             </p>
                                             <div className="flex flex-wrap gap-2 mt-1">
-                                              {(cont as any).centros_custo.map(
-                                                (cc: { empresa: string; percentual: number }, idx: number) => (
-                                                  <Badge key={idx} variant="outline" className="text-xs">
-                                                    {cc.empresa}: {cc.percentual}%
-                                                  </Badge>
-                                                ),
+                                              {cont.distribuicao_receita.map(
+                                                (cc, idx) => {
+                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.codigo === cc.id_centro_custo);
+                                                  return (
+                                                    <Badge key={idx} variant="outline" className="text-xs">
+                                                      {ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%
+                                                    </Badge>
+                                                  );
+                                                },
                                               )}
                                             </div>
                                           </div>
