@@ -817,7 +817,8 @@ export default function NewClientModal({
           const osIds = existingOS.map((os: any) => os.id);
           const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("*")
-            .in("id_ordem_servico", osIds);
+            .in("id_ordem_servico", osIds)
+            .eq("excluido", false);
           const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
           (distData || []).forEach((d: any) => {
             if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
@@ -1478,7 +1479,7 @@ export default function NewClientModal({
 
         // Persist distribuicao_receita: delete all then insert
         if (osId) {
-          await (supabase.from("distribuicao_receita" as any) as any).delete().eq("id_ordem_servico", osId);
+          await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
           if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
             const distPayload = c.distribuicao_receita
               .filter(d => d.id_centro_custo)
