@@ -1412,46 +1412,49 @@ export default function NewClientModal({
         }
       }
 
-      // --- Persistir ordens de serviço (update ou insert) ---
+      // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita ---
       const buildOsFields = (c: DraftOrdemServico) => ({
         id_cliente: clienteId,
-        ...(isProductionEnvironment
-          ? {
-              numero_os: c.ordem_servico || null,
-              data_emissao: c.data_emissao || null,
-              data_inicio: c.data_inicio_projeto || null,
-              data_fim: c.data_fim_projeto || null,
-              valor_projeto: c.valor_projeto || 0,
-              valor_reembolso_km: c.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-              situacao: c.situacao_projeto || "em_andamento",
-              observacoes: c.observacoes_projeto || null,
-              servicos_contratados: c.servicos_contratados || [],
-              centros_custo: c.centros_custo || [],
-            }
-          : {
-              numero_contrato: c.ordem_servico || null,
-              data_emissao: c.data_emissao || null,
-              data_inicio: c.data_inicio_projeto || null,
-              data_fim: c.data_fim_projeto || null,
-              valor_fixo: c.valor_projeto || 0,
-              valor_reembolso_km: c.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-              situacao: c.situacao_projeto || "em_andamento",
-              observacoes: c.observacoes_projeto || null,
-              servicos_contratados: c.servicos_contratados || [],
-              centros_custo: c.centros_custo || [],
-            }),
+        numero_os: c.ordem_servico || null,
+        data_emissao: c.data_emissao || null,
+        data_inicio: c.data_inicio_projeto || null,
+        data_fim: c.data_fim_projeto || null,
+        valor_projeto: c.valor_projeto || 0,
+        valor_reembolso_km: c.valor_reembolso_km || 0,
+        valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+        situacao: c.situacao_projeto || "em_andamento",
+        observacoes: c.observacoes_projeto || null,
+        id_servico: c.id_servico || null,
+        id_produto_segmento: c.id_produto_segmento || null,
       });
 
       for (const c of contracts) {
-        const cIdField = isProductionEnvironment ? "id" : "id_contrato";
+        let osId = c._dbId;
         if (c._dbId) {
-          const { error } = await (supabase.from(ordemServicoTable) as any).update(buildOsFields(c)).eq(cIdField, c._dbId);
+          const { error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId);
           if (error) throw error;
         } else {
-          const { error } = await (supabase.from(ordemServicoTable) as any).insert(buildOsFields(c));
+          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
           if (error) throw error;
+          osId = newOs.id;
+        }
+
+        // Persist distribuicao_receita: delete all then insert
+        if (osId) {
+          await (supabase.from("distribuicao_receita" as any) as any).delete().eq("id_ordem_servico", osId);
+          if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
+            const distPayload = c.distribuicao_receita
+              .filter(d => d.id_centro_custo)
+              .map(d => ({
+                id_ordem_servico: osId,
+                id_centro_custo: d.id_centro_custo,
+                percentual_rateio: d.percentual_rateio || 0,
+              }));
+            if (distPayload.length > 0) {
+              const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(distPayload);
+              if (distError) throw distError;
+            }
+          }
         }
       }
 
