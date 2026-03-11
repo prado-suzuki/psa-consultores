@@ -1,34 +1,35 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Reverter alterações no banco
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Estado atual confirmado
+- `produto_segmento.cluster_id` (UUID, FK) — **EXISTE**
+- `contribuinte.inscricoes_estaduais` (JSONB) — **EXISTE**  
+- `contribuinte_dev.inscricoes_estaduais` (JSONB) — **EXISTE**
 
-### Etapa 1 — Migration: adicionar coluna
+### Etapa 1 — Migration de reversão
 
-Criar uma migration com:
+Remover ambas as colunas adicionadas:
 
 ```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+-- Remover cluster_id de produto_segmento
+ALTER TABLE public.produto_segmento
+DROP COLUMN IF EXISTS cluster_id;
+
+-- Remover inscricoes_estaduais de contribuinte
+ALTER TABLE public.contribuinte
+DROP COLUMN IF EXISTS inscricoes_estaduais;
+
+-- Remover inscricoes_estaduais de contribuinte_dev  
+ALTER TABLE public.contribuinte_dev
+DROP COLUMN IF EXISTS inscricoes_estaduais;
 ```
 
-### Etapa 2 — Data update: popular mapeamentos
+**Impacto:** Perde-se o mapeamento de produtos para clusters e quaisquer dados de múltiplas IEs já inseridos no novo formato.
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+### Etapa 2 — Reversão do frontend
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+Para reverter o `NewClientModal.tsx` (remover filtro de empresa/cluster e campos de múltiplas IEs), use o **History tab** do projeto para restaurar a versão anterior do arquivo.
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+Aprovar para executar a migration de DROP COLUMN?
 
