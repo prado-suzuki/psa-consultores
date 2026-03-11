@@ -1349,7 +1349,8 @@ export default function NewClientModal({
         tipo_pessoa: e.tipo_pessoa,
         cpf_cnpj: e.cpf_cnpj || null,
         nome_razao_social: e.nome_razao_social,
-        inscricao_estadual: e.inscricao_estadual || null,
+        inscricao_estadual: (e.inscricoes_estaduais && e.inscricoes_estaduais.length > 0 ? e.inscricoes_estaduais[0].ie : e.inscricao_estadual) || null,
+        inscricoes_estaduais: e.inscricoes_estaduais && e.inscricoes_estaduais.length > 0 ? e.inscricoes_estaduais : [],
         cod_cnae: e.cod_cnae || null,
         setor: e.setor || null,
         simples_nacional:
