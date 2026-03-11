@@ -3516,13 +3516,13 @@ export default function NewClientModal({
                                             variant="outline"
                                             className="gap-1 text-xs"
                                             onClick={() =>
-                                              setEditingContractData({
-                                                ...ec,
+                                              setEditingContractData(prev => prev ? ({
+                                                ...prev,
                                                 distribuicao_receita: [
-                                                  ...((ec as any).distribuicao_receita || []),
+                                                  ...((prev as any).distribuicao_receita || []),
                                                   { id_centro_custo: "", percentual_rateio: 0 },
                                                 ],
-                                              } as any)
+                                              } as any) : prev)
                                             }
                                           >
                                             <Plus size={12} /> Adicionar
@@ -3534,15 +3534,15 @@ export default function NewClientModal({
                                               <Select
                                                 value={cc.id_centro_custo || "__none__"}
                                                 onValueChange={(v) => {
-                                                  const updated = [...((ec as any).distribuicao_receita || [])];
-                                                  updated[idx] = {
-                                                    ...updated[idx],
-                                                    id_centro_custo: v === "__none__" ? "" : v,
-                                                  };
-                                                  setEditingContractData({
-                                                    ...ec,
-                                                    distribuicao_receita: updated,
-                                                  } as any);
+                                                  setEditingContractData(prev => {
+                                                    if (!prev) return prev;
+                                                    const updated = [...((prev as any).distribuicao_receita || [])];
+                                                    updated[idx] = {
+                                                      ...updated[idx],
+                                                      id_centro_custo: v === "__none__" ? "" : v,
+                                                    };
+                                                    return { ...prev, distribuicao_receita: updated } as any;
+                                                  });
                                                 }}
                                               >
                                                 <SelectTrigger className="h-8 flex-1">
@@ -3564,15 +3564,13 @@ export default function NewClientModal({
                                                   max={100}
                                                   value={cc.percentual_rateio || ""}
                                                   onChange={(e) => {
-                                                    const updated = [...((ec as any).distribuicao_receita || [])];
-                                                    updated[idx] = {
-                                                      ...updated[idx],
-                                                      percentual_rateio: parseFloat(e.target.value) || 0,
-                                                    };
-                                                    setEditingContractData({
-                                                      ...ec,
-                                                      distribuicao_receita: updated,
-                                                    } as any);
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setEditingContractData(prev => {
+                                                      if (!prev) return prev;
+                                                      const updated = [...((prev as any).distribuicao_receita || [])];
+                                                      updated[idx] = { ...updated[idx], percentual_rateio: val };
+                                                      return { ...prev, distribuicao_receita: updated } as any;
+                                                    });
                                                   }}
                                                   className="h-8 w-20 text-right"
                                                   placeholder="%"
@@ -3585,13 +3583,13 @@ export default function NewClientModal({
                                                 variant="ghost"
                                                 className="h-8 w-8 shrink-0 text-destructive"
                                                 onClick={() => {
-                                                  const updated = ((ec as any).distribuicao_receita || []).filter(
-                                                    (_: any, i: number) => i !== idx,
-                                                  );
-                                                  setEditingContractData({
-                                                    ...ec,
-                                                    distribuicao_receita: updated,
-                                                  } as any);
+                                                  setEditingContractData(prev => {
+                                                    if (!prev) return prev;
+                                                    const updated = ((prev as any).distribuicao_receita || []).filter(
+                                                      (_: any, i: number) => i !== idx,
+                                                    );
+                                                    return { ...prev, distribuicao_receita: updated } as any;
+                                                  });
                                                 }}
                                               >
                                                 <X size={14} />
@@ -3896,10 +3894,10 @@ export default function NewClientModal({
                                   variant="outline"
                                   className="gap-1 text-xs"
                                   onClick={() =>
-                                    setDraftContract({
-                                      ...draftContract,
-                                      distribuicao_receita: [...draftContract.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
-                                    })
+                                    setDraftContract(prev => ({
+                                      ...prev,
+                                      distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
+                                    }))
                                   }
                                 >
                                   <Plus size={12} /> Adicionar Centro de Custo
@@ -3915,9 +3913,11 @@ export default function NewClientModal({
                                   <Select
                                     value={cc.id_centro_custo || "__none__"}
                                     onValueChange={(v) => {
-                                      const updated = [...draftContract.distribuicao_receita];
-                                      updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
-                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                      setDraftContract(prev => {
+                                        const updated = [...prev.distribuicao_receita];
+                                        updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
+                                        return { ...prev, distribuicao_receita: updated };
+                                      });
                                     }}
                                   >
                                     <SelectTrigger className="h-8 flex-1">
@@ -3939,12 +3939,12 @@ export default function NewClientModal({
                                       max={100}
                                       value={cc.percentual_rateio || ""}
                                       onChange={(e) => {
-                                        const updated = [...draftContract.distribuicao_receita];
-                                        updated[idx] = {
-                                          ...updated[idx],
-                                          percentual_rateio: parseFloat(e.target.value) || 0,
-                                        };
-                                        setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setDraftContract(prev => {
+                                          const updated = [...prev.distribuicao_receita];
+                                          updated[idx] = { ...updated[idx], percentual_rateio: val };
+                                          return { ...prev, distribuicao_receita: updated };
+                                        });
                                       }}
                                       className="h-8 w-20 text-right"
                                       placeholder="%"
@@ -3957,8 +3957,10 @@ export default function NewClientModal({
                                     variant="ghost"
                                     className="h-8 w-8 shrink-0 text-destructive"
                                     onClick={() => {
-                                      const updated = draftContract.distribuicao_receita.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                      setDraftContract(prev => ({
+                                        ...prev,
+                                        distribuicao_receita: prev.distribuicao_receita.filter((_, i) => i !== idx),
+                                      }));
                                     }}
                                   >
                                     <X size={14} />
