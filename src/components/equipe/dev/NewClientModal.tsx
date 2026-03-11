@@ -3830,7 +3830,7 @@ export default function NewClientModal({
                               <Textarea
                                 value={draftContract.observacoes_projeto}
                                 onChange={(e) =>
-                                  setDraftContract({ ...draftContract, observacoes_projeto: e.target.value })
+                                  setDraftContract(prev => ({ ...prev, observacoes_projeto: e.target.value }))
                                 }
                                 placeholder="Insira observações relevantes sobre o projeto..."
                                 className="min-h-[80px]"
