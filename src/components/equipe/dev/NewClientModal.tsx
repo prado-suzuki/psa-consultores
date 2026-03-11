@@ -802,7 +802,7 @@ export default function NewClientModal({
           }
         }
 
-
+        const { data: parts } = await (supabase.from(participanteTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId);
         if (parts) {
