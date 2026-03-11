@@ -3802,7 +3802,7 @@ export default function NewClientModal({
                               />
                             </div>
 
-                            {/* Serviços Contratados */}
+                            {/* Serviço Contratado (único) */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
                               {/* Filtro por Empresa/Cluster */}
                               <div className="mb-3">
@@ -3819,98 +3819,77 @@ export default function NewClientModal({
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="flex items-center justify-between mb-2">
-                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                  Serviços Contratados
-                                </h5>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 text-xs"
-                                  onClick={() =>
-                                    setDraftContract({
-                                      ...draftContract,
-                                      servicos_contratados: [...draftContract.servicos_contratados, ""],
-                                    })
-                                  }
-                                >
-                                  <Plus size={12} /> Adicionar Serviço
-                                </Button>
-                              </div>
-                              {draftContract.servicos_contratados.length === 0 && (
-                                <p className="text-xs text-muted-foreground italic">Nenhum serviço adicionado.</p>
-                              )}
-                              {draftContract.servicos_contratados.map((svcId, idx) => (
-                                <div key={idx} className="flex items-center gap-2 mt-2">
-                                  <Select
-                                    value={svcId || "__none__"}
-                                    onValueChange={(v) => {
-                                      const updated = [...draftContract.servicos_contratados];
-                                      updated[idx] = v === "__none__" ? "" : v;
-                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-8 flex-1">
-                                      <SelectValue placeholder="Selecione um serviço..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Selecione...</SelectItem>
-                                       {(() => {
-                                        const source = filteredCatalogServices;
-                                        const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                        const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                        const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                          const cName = s.estrutura_clusters.name;
-                                          if (!acc[cName]) acc[cName] = [];
-                                          acc[cName].push(s);
-                                          return acc;
-                                        }, {} as Record<string, any[]>);
-                                        return (
-                                          <>
-                                            {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
-                                              <SelectGroup key={clusterName}>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                                {(svcs as any[]).map((svc: any) => (
-                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                ))}
-                                              </SelectGroup>
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                Serviço Contratado *
+                              </h5>
+                              <Select
+                                value={draftContract.id_servico || "__none__"}
+                                onValueChange={(v) =>
+                                  setDraftContract({ ...draftContract, id_servico: v === "__none__" ? "" : v })
+                                }
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Selecione um serviço..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {(() => {
+                                    const source = filteredCatalogServices;
+                                    const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
+                                    const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
+                                    const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
+                                      const cName = s.estrutura_clusters.name;
+                                      if (!acc[cName]) acc[cName] = [];
+                                      acc[cName].push(s);
+                                      return acc;
+                                    }, {} as Record<string, any[]>);
+                                    return (
+                                      <>
+                                        {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                          <SelectGroup key={clusterName}>
+                                            <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
+                                            {(svcs as any[]).map((svc: any) => (
+                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
                                             ))}
-                                            {withoutCluster.length > 0 && (
-                                              <SelectGroup>
-                                                <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                                {withoutCluster.map((svc: any) => (
-                                                  <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
-                                                ))}
-                                              </SelectGroup>
-                                            )}
-                                          </>
-                                        );
-                                      })()}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 shrink-0 text-destructive"
-                                    onClick={() => {
-                                      const updated = draftContract.servicos_contratados.filter((_, i) => i !== idx);
-                                      setDraftContract({ ...draftContract, servicos_contratados: updated });
-                                    }}
-                                  >
-                                    <X size={14} />
-                                  </Button>
-                                </div>
-                              ))}
+                                          </SelectGroup>
+                                        ))}
+                                        {withoutCluster.length > 0 && (
+                                          <SelectGroup>
+                                            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+                                            {withoutCluster.map((svc: any) => (
+                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                            ))}
+                                          </SelectGroup>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </SelectContent>
+                              </Select>
                             </div>
 
-                            {/* Distribuição de Receita (Centros de Custo) */}
+                            {/* Tipo de Produto/Segmento (agora na OS) */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h5 className="text-xs font-bold text-muted-foreground uppercase">
-                                  Distribuição de Receita (Centros de Custo)
-                                </h5>
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                Tipo de Produto/Segmento
+                              </h5>
+                              <Select
+                                value={draftContract.id_produto_segmento || "__none__"}
+                                onValueChange={(v) =>
+                                  setDraftContract({ ...draftContract, id_produto_segmento: v === "__none__" ? "" : v })
+                                }
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Selecione...</SelectItem>
+                                  {produtoSegmentoFullOptions.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                                 <Button
                                   type="button"
                                   size="sm"
