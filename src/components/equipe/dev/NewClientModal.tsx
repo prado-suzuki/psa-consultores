@@ -3817,7 +3817,7 @@ export default function NewClientModal({
                                   <CurrencyField
                                     value={draftContract.valor_reembolso_refeicao}
                                     onChange={(v) =>
-                                      setDraftContract({ ...draftContract, valor_reembolso_refeicao: v })
+                                      setDraftContract(prev => ({ ...prev, valor_reembolso_refeicao: v }))
                                     }
                                   />
                                 </div>
