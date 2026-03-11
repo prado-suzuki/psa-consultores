@@ -1,34 +1,40 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Soft delete na tabela `ordem_servico`
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
-
-### Etapa 1 — Migration: adicionar coluna
-
-Criar uma migration com:
+### Passo 1 — Migration SQL
 
 ```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+ALTER TABLE public.ordem_servico
+  ADD COLUMN IF NOT EXISTS excluido boolean NOT NULL DEFAULT false;
 ```
 
-### Etapa 2 — Data update: popular mapeamentos
+Não é necessário UPDATE explícito — `DEFAULT false` cobre registros existentes.
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+---
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+### Passo 2 — Queries de leitura (adicionar `.eq("excluido", false)`)
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+| Arquivo | Linha aprox. | Query |
+|---|---|---|
+| `NewClientModal.tsx` | ~811 | Carrega OS ao abrir para edição |
+| `NewClientModal.tsx` | ~1347 | Detecta OS removidas durante o save |
+| `FiscalProjetosCadastro.tsx` | ~367 | Lista OS do cliente (query `cliente-os`) |
+| `FiscalProjetosCadastro.tsx` | ~385 | Busca OS ativas para sugerir categorias |
 
-### O que NÃO será feito
+---
 
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+### Passo 3 — Substituir `.delete()` por `.update({ excluido: true })`
+
+| Arquivo | Linha aprox. | Alteração |
+|---|---|---|
+| `NewClientModal.tsx` | ~1350 | `.delete().in("id", removedOsIds)` → `.update({ excluido: true }).in("id", removedOsIds)` |
+
+A tabela `distribuicao_receita` continua com delete físico (delete + re-insert), pois são registros filhos sem necessidade de histórico próprio.
+
+---
+
+### Passo 4 — RLS
+
+Sem alteração — filtro aplicado no lado da aplicação, seguindo o padrão das demais tabelas.
 
