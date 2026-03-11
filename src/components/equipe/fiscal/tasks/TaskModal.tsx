@@ -228,6 +228,7 @@ export const TaskModal = ({
         .from(contribuinteTable)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', watchedClientId)
+        .eq('excluido', false)
         .order('nome_razao_social');
       return data || [];
     },

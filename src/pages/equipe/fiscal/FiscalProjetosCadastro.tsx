@@ -337,6 +337,7 @@ const FiscalProjetosCadastro = () => {
         .from(contribuinteTable)
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', formData.external_client_id)
+        .eq('excluido', false)
         .order('nome_razao_social');
       if (error) throw error;
       let list = data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
@@ -347,6 +348,7 @@ const FiscalProjetosCadastro = () => {
           .from(fallbackContribuinteTable)
           .select('id, nome_razao_social, cpf_cnpj')
           .eq('cliente_id', formData.external_client_id)
+          .eq('excluido', false)
           .order('nome_razao_social');
         if (fallback?.length) list = fallback as typeof list;
       }
@@ -482,7 +484,8 @@ const FiscalProjetosCadastro = () => {
         const { data: contribs } = await supabase
           .from(contribuinteTable)
           .select('id, nome_razao_social')
-          .in('id', contribIds);
+          .in('id', contribIds)
+          .eq('excluido', false);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
 
         // Fallback: IDs not found in dev table → try production table

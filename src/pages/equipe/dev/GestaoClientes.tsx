@@ -73,6 +73,7 @@ const GestaoClientes = () => {
         .from(contribuinteTable)
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
+        .eq("excluido", false)
         .order("nome_razao_social");
 
       if (clienteId && clienteId !== "__todos__") {
@@ -110,7 +111,7 @@ const GestaoClientes = () => {
       let filteredClienteIds: string[] | null = null;
 
       if (hasContribuinteFilters) {
-        let contribuinteQuery = supabase.from(contribuinteTable).select("cliente_id");
+        let contribuinteQuery = supabase.from(contribuinteTable).select("cliente_id").eq("excluido", false);
 
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq("nome_razao_social", nomeRazaoSocial);
 

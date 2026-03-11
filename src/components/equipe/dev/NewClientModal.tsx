@@ -730,7 +730,8 @@ export default function NewClientModal({
         const { data: contribs } = await supabase
           .from(contribuinteTable)
           .select("*")
-          .eq("cliente_id", editingClienteId);
+          .eq("cliente_id", editingClienteId)
+          .eq("excluido", false);
         if (contribs) {
           setEntities(
             contribs.map((c) => ({
@@ -1325,7 +1326,7 @@ export default function NewClientModal({
 
         // --- Contribuintes: update existentes, insert novos, delete removidos ---
         const currentContribDbIds = entities.filter(e => e._dbId).map(e => e._dbId!);
-        const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId);
+        const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
           await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);

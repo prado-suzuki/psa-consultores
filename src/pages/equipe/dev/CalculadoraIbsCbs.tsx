@@ -152,6 +152,7 @@ const CalculadoraIbsCbs = () => {
         .from(contribuinteTable)
         .select("id, nome_razao_social, cpf_cnpj")
         .eq("cliente_id", selectedCliente)
+        .eq("excluido", false)
         .order("nome_razao_social");
 
       if (error) throw error;
