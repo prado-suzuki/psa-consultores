@@ -909,6 +909,7 @@ export type Database = {
       distribuicao_receita: {
         Row: {
           created_at: string | null
+          excluido: boolean
           id: string
           id_centro_custo: string
           id_ordem_servico: string
@@ -916,6 +917,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          excluido?: boolean
           id?: string
           id_centro_custo: string
           id_ordem_servico: string
@@ -923,6 +925,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          excluido?: boolean
           id?: string
           id_centro_custo?: string
           id_ordem_servico?: string

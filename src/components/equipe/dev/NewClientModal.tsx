@@ -1479,7 +1479,7 @@ export default function NewClientModal({
 
         // Persist distribuicao_receita: delete all then insert
         if (osId) {
-          await (supabase.from("distribuicao_receita" as any) as any).delete().eq("id_ordem_servico", osId);
+          await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
           if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
             const distPayload = c.distribuicao_receita
               .filter(d => d.id_centro_custo)
