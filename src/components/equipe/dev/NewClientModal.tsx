@@ -938,13 +938,16 @@ export default function NewClientModal({
       return;
     }
 
-    if (!draftEntity.situacao_inscricao_estadual) {
-      toast.error("Informe a situação da inscrição estadual");
-      return;
-    }
-    if (draftEntity.situacao_inscricao_estadual === "sim" && !draftEntity.inscricao_estadual?.trim()) {
-      toast.error("Informe o número da inscrição estadual");
-      return;
+    // Validate inscricoes estaduais
+    for (const ie of draftInscricoes) {
+      if (!ie.uf) {
+        toast.error("Selecione a UF para todas as inscrições estaduais");
+        return;
+      }
+      if (ie.situacao === "sim" && !ie.numero_ie?.trim()) {
+        toast.error(`Informe o número da IE para o estado ${ie.uf}`);
+        return;
+      }
     }
 
     if (draftEntity.tipo_pessoa === "PJ") {
