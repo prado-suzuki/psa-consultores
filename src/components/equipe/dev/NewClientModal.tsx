@@ -3289,7 +3289,6 @@ export default function NewClientModal({
                                         </AlertDialog>
                                       </div>
                                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                                        <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
                                         <FieldPair
                                           label="Data Emissão"
                                           value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
