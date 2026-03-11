@@ -80,6 +80,16 @@ const SITUACAO_PROJETO_OPTIONS = [
 ];
 
 // Types for draft items
+const UF_OPTIONS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
+  "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
+
+interface IEEntry {
+  ie: string;
+  uf: string;
+}
+
 interface DraftEntity {
   _id: number;
   _dbId?: string;
@@ -89,6 +99,7 @@ interface DraftEntity {
   nome_fantasia: string;
   situacao_inscricao_estadual: string;
   inscricao_estadual: string;
+  inscricoes_estaduais: IEEntry[];
   cod_cnae: string;
   setor: string;
   simples_nacional: string;
