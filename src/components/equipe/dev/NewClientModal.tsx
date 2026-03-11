@@ -789,7 +789,8 @@ export default function NewClientModal({
 
         const { data: parts } = await (supabase.from(participanteTable) as any)
           .select("*")
-          .eq("id_cliente", editingClienteId);
+          .eq("id_cliente", editingClienteId)
+          .eq("excluido", false);
         if (parts) {
           setParticipants(
             parts.map((p: any) => ({
@@ -1335,10 +1336,10 @@ export default function NewClientModal({
         // --- Participantes: update existentes, insert novos, delete removidos ---
         const partIdField = isProductionEnvironment ? "id" : "id_participante";
         const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
-        const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId);
+        const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          await (supabase.from(participanteTable) as any).delete().in(partIdField, removedPartIds);
+          await (supabase.from(participanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---

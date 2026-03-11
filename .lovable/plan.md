@@ -1,69 +1,34 @@
 
 
-## Plano: Soft delete na tabela `participante` e `participante_dev`
+## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
 
-### Escopo
+Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
 
-Apenas o arquivo `NewClientModal.tsx` faz queries à tabela `participante`/`participante_dev`. Não há outros componentes afetados.
+### Etapa 1 — Migration: adicionar coluna
 
----
-
-### Passo 1 — Migration SQL
-
-Adicionar coluna `excluido boolean NOT NULL DEFAULT false` em ambas as tabelas:
+Criar uma migration com:
 
 ```sql
-ALTER TABLE public.participante
-  ADD COLUMN IF NOT EXISTS excluido boolean NOT NULL DEFAULT false;
-
-ALTER TABLE public.participante_dev
-  ADD COLUMN IF NOT EXISTS excluido boolean NOT NULL DEFAULT false;
+ALTER TABLE public.tax_areas
+ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
 ```
 
-Não é necessário UPDATE explícito — o `DEFAULT false` cobre registros existentes.
+### Etapa 2 — Data update: popular mapeamentos
 
----
+Usar a ferramenta de inserção/update (não migration) para executar:
 
-### Passo 2 — Queries de leitura (`NewClientModal.tsx`)
-
-**Linha ~790** — query que carrega participantes ao abrir para edição:
-```js
-.select("*").eq("id_cliente", editingClienteId)
-```
-Adicionar `.eq("excluido", false)`.
-
-**Linha ~1338** — query que detecta participantes removidos durante o save:
-```js
-.select(partIdField).eq("id_cliente", clienteId)
-```
-Adicionar `.eq("excluido", false)` para não considerar já-excluídos.
-
----
-
-### Passo 3 — Substituir `.delete()` por `.update({ excluido: true })`
-
-**Linha ~1341**:
-```js
-// De:
-await (supabase.from(participanteTable) as any).delete().in(partIdField, removedPartIds);
-// Para:
-await (supabase.from(participanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
-```
-
----
-
-### Passo 4 — RLS
-
-As policies de SELECT existentes (`"Team members can view participante"` e `"Admins can manage participante"`) não filtram por `excluido`. Como o filtro já é aplicado no lado da aplicação (passo 2) e adicionar condição na policy `FOR ALL` do admin poderia impedir o próprio update de `excluido`, **não será necessário alterar RLS** — seguindo o mesmo padrão já usado em `cliente` e `contribuinte`.
-
----
-
-### Resumo de alterações
-
-| Arquivo | Alteração |
+| tax_areas.id | estrutura_area_id |
 |---|---|
-| Migration SQL | Adicionar coluna `excluido` em `participante` e `participante_dev` |
-| `NewClientModal.tsx` (~linha 791) | Adicionar `.eq("excluido", false)` na query de carregamento |
-| `NewClientModal.tsx` (~linha 1338) | Adicionar `.eq("excluido", false)` na query de detecção de removidos |
-| `NewClientModal.tsx` (~linha 1341) | Trocar `.delete()` por `.update({ excluido: true })` |
+| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
+| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
+| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+
+As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+
+### O que NÃO será feito
+
+- Nenhuma alteração de RLS ou policies
+- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+- Nenhuma alteração no frontend
+- Nenhuma alteração em outras tabelas
 
