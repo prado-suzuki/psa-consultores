@@ -3289,7 +3289,6 @@ export default function NewClientModal({
                                         </AlertDialog>
                                       </div>
                                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                                        <FieldPair label="Ordem de Serviço" value={cont.ordem_servico} />
                                         <FieldPair
                                           label="Data Emissão"
                                           value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
@@ -3386,19 +3385,9 @@ export default function NewClientModal({
                                   {isExpanded && isEditingThis && ec && (
                                     <div className="px-4 pb-4 border-t pt-3">
                                       <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">
-                                        Dados da OS
+                                        Dados da OS — {ec.ordem_servico}
                                       </h5>
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Ordem de Serviço
-                                          </Label>
-                                          <Input
-                                            value={ec.ordem_servico || ""}
-                                            disabled
-                                            className="h-8 mt-1 bg-accent/50 border-accent font-mono"
-                                          />
-                                        </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Data de Emissão
@@ -3764,20 +3753,10 @@ export default function NewClientModal({
                         {!isReadOnly && (
                           <div className="bg-muted/50 rounded-lg border p-4">
                             <h4 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">
-                              Dados da OS
+                              Nova OS
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* L1: OS (readonly) | Data Emissão */}
-                              <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Ordem de Serviço
-                                </Label>
-                                <Input
-                                  value={draftContract.ordem_servico || "Gerando..."}
-                                  disabled
-                                  className="h-8 mt-1 bg-accent/50 border-accent font-mono"
-                                />
-                              </div>
+                              {/* L1: Data Emissão | Data Início */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data de Emissão
@@ -3789,7 +3768,7 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* L2: Data Início | Data Fim */}
+                              {/* L2: Data Fim | Tipo Produto/Segmento */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data Início
