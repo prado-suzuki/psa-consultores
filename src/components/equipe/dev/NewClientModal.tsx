@@ -730,7 +730,8 @@ export default function NewClientModal({
         const { data: contribs } = await supabase
           .from(contribuinteTable)
           .select("*")
-          .eq("cliente_id", editingClienteId);
+          .eq("cliente_id", editingClienteId)
+          .eq("excluido", false);
         if (contribs) {
           setEntities(
             contribs.map((c) => ({
