@@ -445,7 +445,7 @@ export default function NewClientModal({
 
   const clearCurrentDraft = () => {
     if (activeTab === "contribuintes") {
-      setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
+      setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", inscricoes_estaduais: [], cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
     } else if (activeTab === "participantes") {
       setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
     } else if (activeTab === "contratos") {
