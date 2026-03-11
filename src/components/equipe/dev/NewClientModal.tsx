@@ -548,6 +548,15 @@ export default function NewClientModal({
     { value: "__outro__", label: "Outro (personalizado)" },
   ], [produtoSegmentoOptions]);
 
+  // produto_segmento options with ID for OS-level linking
+  const { data: produtoSegmentoFullOptions = [] } = useQuery({
+    queryKey: ["produto_segmento_full"],
+    queryFn: async () => {
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
+      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean }>;
+    },
+  });
+
   const lideres = useMemo(() => {
     const liderIds = new Set(userRoles.map((r: any) => r.user_id));
     return profiles
