@@ -537,7 +537,7 @@ export default function NewClientModal({
         .select("id, codigo, nome")
         .eq("is_active", true)
         .order("codigo");
-      return (data || []).map((e: any) => ({ codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
+      return (data || []).map((e: any) => ({ id: e.id as string, codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
     },
   });
 
