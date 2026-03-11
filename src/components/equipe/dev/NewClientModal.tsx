@@ -3768,7 +3768,7 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* L2: Data Início | Data Fim */}
+                              {/* L2: Data Fim | Tipo Produto/Segmento */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data Início
