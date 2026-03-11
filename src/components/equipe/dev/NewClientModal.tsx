@@ -805,25 +805,36 @@ export default function NewClientModal({
         }
 
         // Carregar ordens de serviço do banco
-        const { data: existingOS } = await (supabase.from(ordemServicoTable) as any)
+        const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
           .select("*")
           .eq("id_cliente", editingClienteId);
         if (existingOS && existingOS.length > 0) {
+          // Also load distribuicao_receita for each OS
+          const osIds = existingOS.map((os: any) => os.id);
+          const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
+            .select("*")
+            .in("id_ordem_servico", osIds);
+          const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
+          (distData || []).forEach((d: any) => {
+            if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
+            distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
+          });
           setContracts(
             existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
-              _dbId: isProductionEnvironment ? os.id : os.id_contrato,
-              ordem_servico: (isProductionEnvironment ? os.numero_os : os.numero_contrato) || "",
+              _dbId: os.id,
+              ordem_servico: os.numero_os || "",
               data_emissao: os.data_emissao || "",
               data_inicio_projeto: os.data_inicio || "",
               data_fim_projeto: os.data_fim || "",
-              valor_projeto: (isProductionEnvironment ? os.valor_projeto : os.valor_fixo) || 0,
+              valor_projeto: os.valor_projeto || 0,
               valor_reembolso_km: os.valor_reembolso_km || 0,
               valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
               situacao_projeto: os.situacao || "em_andamento",
               observacoes_projeto: os.observacoes || "",
-              servicos_contratados: os.servicos_contratados || [],
-              centros_custo: os.centros_custo || [],
+              id_servico: os.id_servico || "",
+              id_produto_segmento: os.id_produto_segmento || "",
+              distribuicao_receita: distMap[os.id] || [],
             })),
           );
         } else {
