@@ -54,8 +54,6 @@ import { RequiredMark } from "@/components/ui/required-mark";
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
-const contratoTable = isProductionEnvironment ? "contrato" : "contrato_dev";
-const ordemServicoTable = isProductionEnvironment ? "ordem_servico" : "contrato_dev";
 
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
