@@ -541,18 +541,7 @@ export default function NewClientModal({
     },
   });
 
-  // Keep backward compat: flat string array for empresa_faturamento checkboxes in Dados do Cliente tab
-  const { data: EMPRESA_FATURAMENTO_OPTIONS = [] } = useQuery({
-    queryKey: ["empresas_faturamento_options"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("empresas_faturamento")
-        .select("id, nome")
-        .eq("is_active", true)
-        .order("nome");
-      return (data || []).map((e: any) => e.nome as string);
-    },
-  });
+  // EMPRESA_FATURAMENTO_OPTIONS removed - no longer used in client form
 
   const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
     ...produtoSegmentoOptions,
