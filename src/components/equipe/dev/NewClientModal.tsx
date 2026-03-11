@@ -1472,8 +1472,6 @@ export default function NewClientModal({
             categoria: (clienteResult as any).categoria ?? null,
             created_at: clienteResult.created_at,
             updated_at: clienteResult.updated_at,
-            empresa_faturamento: clientData.empresa_faturamento,
-            tipo_produto_segmento: (clienteResult as any).tipo_produto_segmento ?? null,
             regiao: (clienteResult as any).regiao ?? null,
           },
         ],
