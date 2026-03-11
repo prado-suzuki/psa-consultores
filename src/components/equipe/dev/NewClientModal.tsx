@@ -650,6 +650,10 @@ export default function NewClientModal({
     centros_custo: [] as Array<{ empresa: string; percentual: number }>,
   });
 
+  // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
+  const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
+  const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
+
   // --- Unsaved changes detection ---
   const initialSnapshotRef = useRef<string | null>(null);
 
