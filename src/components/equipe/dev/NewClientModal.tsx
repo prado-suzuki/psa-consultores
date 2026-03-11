@@ -40,6 +40,7 @@ import {
   Save,
   Copy,
   CalendarIcon,
+  Tag,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1725,105 +1726,8 @@ export default function NewClientModal({
                           </Select>
                         </div>
 
-                        {/* 7. Tipo de produto/segmento */}
-                        <div className="flex flex-col gap-1">
-                          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                            <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                              Tipo de produto/segmento *
-                            </Label>
-                            <Select
-                              disabled={isReadOnly}
-                              value={clientData.tipo_produto_segmento || "__none__"}
-                              onValueChange={(v) =>
-                                setClientData({
-                                  ...clientData,
-                                  tipo_produto_segmento: v === "__none__" ? "" : v,
-                                  tipo_produto_segmento_custom:
-                                    v !== "__outro__" ? "" : clientData.tipo_produto_segmento_custom,
-                                })
-                              }
-                            >
-                              <SelectTrigger className="flex-1 h-8">
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {PRODUTO_SEGMENTO_OPTIONS.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {clientData.tipo_produto_segmento === "__outro__" && (
-                            <div className="md:ml-[12.75rem] md:pl-3">
-                              <Input
-                                disabled={isReadOnly}
-                                className="h-8"
-                                value={clientData.tipo_produto_segmento_custom}
-                                onChange={(e) =>
-                                  setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })
-                                }
-                                placeholder="Nome do novo produto/segmento"
-                              />
-                            </div>
-                          )}
-                        </div>
 
-                        {/* 8. Empresa / Faturamento (Multi-select) */}
-                        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
-                            Empresa / Faturamento *
-                          </Label>
-                          <div className="flex-1">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  disabled={isReadOnly}
-                                  className={cn(
-                                    "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
-                                    clientData.empresa_faturamento.length === 0 && "text-muted-foreground",
-                                  )}
-                                >
-                                  {clientData.empresa_faturamento.length > 0
-                                    ? clientData.empresa_faturamento.map((emp) => (
-                                        <Badge key={emp} variant="secondary" className="text-xs gap-1">
-                                          {emp}
-                                          {!isReadOnly && (
-                                            <X
-                                              className="h-3 w-3 cursor-pointer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleEmpresaFaturamento(emp);
-                                              }}
-                                            />
-                                          )}
-                                        </Badge>
-                                      ))
-                                    : "Selecione..."}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-64 p-2" align="start">
-                                <div className="flex flex-col gap-1">
-                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
-                                    <label
-                                      key={emp}
-                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                                    >
-                                      <Checkbox
-                                        checked={clientData.empresa_faturamento.includes(emp)}
-                                        onCheckedChange={() => toggleEmpresaFaturamento(emp)}
-                                      />
-                                      {emp}
-                                    </label>
-                                  ))}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
+
                       </div>
                     </section>
                   </TabsContent>
@@ -3091,6 +2995,114 @@ export default function NewClientModal({
                   </TabsContent>
 
                   <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
+                    {/* Classificação do Cliente (dados do cliente, não da OS) */}
+                    <section className="bg-card rounded-xl border shadow-sm overflow-hidden mb-4">
+                      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-bold text-foreground">Classificação do Cliente</h3>
+                      </div>
+                      <div className="px-4 py-3 space-y-3">
+                        {/* Tipo de produto/segmento */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                            <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                              Tipo de produto/segmento *
+                            </Label>
+                            <Select
+                              disabled={isReadOnly}
+                              value={clientData.tipo_produto_segmento || "__none__"}
+                              onValueChange={(v) =>
+                                setClientData({
+                                  ...clientData,
+                                  tipo_produto_segmento: v === "__none__" ? "" : v,
+                                  tipo_produto_segmento_custom:
+                                    v !== "__outro__" ? "" : clientData.tipo_produto_segmento_custom,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="flex-1 h-8">
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {PRODUTO_SEGMENTO_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {clientData.tipo_produto_segmento === "__outro__" && (
+                            <div className="md:ml-[12.75rem] md:pl-3">
+                              <Input
+                                disabled={isReadOnly}
+                                className="h-8"
+                                value={clientData.tipo_produto_segmento_custom}
+                                onChange={(e) =>
+                                  setClientData({ ...clientData, tipo_produto_segmento_custom: e.target.value })
+                                }
+                                placeholder="Nome do novo produto/segmento"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Empresa / Faturamento */}
+                        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">
+                            Empresa / Faturamento *
+                          </Label>
+                          <div className="flex-1">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  disabled={isReadOnly}
+                                  className={cn(
+                                    "w-full h-auto min-h-8 justify-start text-left font-normal flex flex-wrap gap-1 py-1.5",
+                                    clientData.empresa_faturamento.length === 0 && "text-muted-foreground",
+                                  )}
+                                >
+                                  {clientData.empresa_faturamento.length > 0
+                                    ? clientData.empresa_faturamento.map((emp) => (
+                                        <Badge key={emp} variant="secondary" className="text-xs gap-1">
+                                          {emp}
+                                          {!isReadOnly && (
+                                            <X
+                                              className="h-3 w-3 cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleEmpresaFaturamento(emp);
+                                              }}
+                                            />
+                                          )}
+                                        </Badge>
+                                      ))
+                                    : "Selecione..."}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-2" align="start">
+                                <div className="flex flex-col gap-1">
+                                  {EMPRESA_FATURAMENTO_OPTIONS.map((emp) => (
+                                    <label
+                                      key={emp}
+                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                                    >
+                                      <Checkbox
+                                        checked={clientData.empresa_faturamento.includes(emp)}
+                                        onCheckedChange={() => toggleEmpresaFaturamento(emp)}
+                                      />
+                                      {emp}
+                                    </label>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
                     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
                       <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
                         <h3 className="text-sm font-bold text-foreground">
