@@ -810,7 +810,8 @@ export default function NewClientModal({
         // Carregar ordens de serviço do banco
         const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
           .select("*")
-          .eq("id_cliente", editingClienteId);
+          .eq("id_cliente", editingClienteId)
+          .eq("excluido", false);
         if (existingOS && existingOS.length > 0) {
           // Also load distribuicao_receita for each OS
           const osIds = existingOS.map((os: any) => os.id);
