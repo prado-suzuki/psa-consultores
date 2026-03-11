@@ -713,15 +713,6 @@ export default function NewClientModal({
       try {
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const rawEmpresa = (cli as any).empresa_faturamento;
-          const empresaArr = Array.isArray(rawEmpresa)
-            ? rawEmpresa
-            : typeof rawEmpresa === "string" && rawEmpresa
-              ? rawEmpresa
-                  .split(",")
-                  .map((s: string) => s.trim())
-                  .filter(Boolean)
-              : [];
           setClientData({
             nome: cli.nome || "",
             categoria: (cli as any).categoria || "Bronze",
@@ -731,9 +722,6 @@ export default function NewClientModal({
             municipio: cli.municipio || "",
             uf: cli.uf || "",
             setor_cliente: cli.setor_cliente || "",
-            tipo_produto_segmento: (cli as any).tipo_produto_segmento || "",
-            tipo_produto_segmento_custom: (cli as any).tipo_produto_segmento_custom || "",
-            empresa_faturamento: empresaArr,
             regiao: (cli as any).regiao || "",
           });
         }
