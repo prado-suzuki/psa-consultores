@@ -693,8 +693,9 @@ export default function NewClientModal({
       entities,
       participants,
       contracts,
+      inscricoesMap,
     }),
-    [clientData, entities, participants, contracts],
+    [clientData, entities, participants, contracts, inscricoesMap],
   );
   const draftEnabled = open && !isEditing;
   const { restore: restoreDraft, clear: clearDraft } = useDraftPersistence(
