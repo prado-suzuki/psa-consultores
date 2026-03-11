@@ -484,7 +484,8 @@ const FiscalProjetosCadastro = () => {
         const { data: contribs } = await supabase
           .from(contribuinteTable)
           .select('id, nome_razao_social')
-          .in('id', contribIds);
+          .in('id', contribIds)
+          .eq('excluido', false);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
 
         // Fallback: IDs not found in dev table → try production table

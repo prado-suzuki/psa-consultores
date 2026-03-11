@@ -107,7 +107,8 @@ function useLookupMaps(): LookupMaps {
     queryFn: async () => {
       const { data } = await supabase
         .from(contribuinteTable)
-        .select('id, nome_razao_social');
+        .select('id, nome_razao_social')
+        .eq('excluido', false);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
     },
   });

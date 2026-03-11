@@ -75,6 +75,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
         .from(contribuinteTable)
         .select('id, nome_razao_social')
         .eq('cliente_id', filters.clientId)
+        .eq('excluido', false)
         .order('nome_razao_social');
       return data || [];
     },
