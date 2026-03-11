@@ -3769,7 +3769,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <CurrencyField
                                     value={draftContract.valor_projeto}
-                                    onChange={(v) => setDraftContract({ ...draftContract, valor_projeto: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
                                   />
                                 </div>
                               </div>
