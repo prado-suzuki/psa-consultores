@@ -3915,9 +3915,11 @@ export default function NewClientModal({
                                   <Select
                                     value={cc.id_centro_custo || "__none__"}
                                     onValueChange={(v) => {
-                                      const updated = [...draftContract.distribuicao_receita];
-                                      updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
-                                      setDraftContract({ ...draftContract, distribuicao_receita: updated });
+                                      setDraftContract(prev => {
+                                        const updated = [...prev.distribuicao_receita];
+                                        updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v };
+                                        return { ...prev, distribuicao_receita: updated };
+                                      });
                                     }}
                                   >
                                     <SelectTrigger className="h-8 flex-1">
