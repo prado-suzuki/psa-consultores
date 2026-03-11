@@ -3583,13 +3583,13 @@ export default function NewClientModal({
                                                 variant="ghost"
                                                 className="h-8 w-8 shrink-0 text-destructive"
                                                 onClick={() => {
-                                                  const updated = ((ec as any).distribuicao_receita || []).filter(
-                                                    (_: any, i: number) => i !== idx,
-                                                  );
-                                                  setEditingContractData({
-                                                    ...ec,
-                                                    distribuicao_receita: updated,
-                                                  } as any);
+                                                  setEditingContractData(prev => {
+                                                    if (!prev) return prev;
+                                                    const updated = ((prev as any).distribuicao_receita || []).filter(
+                                                      (_: any, i: number) => i !== idx,
+                                                    );
+                                                    return { ...prev, distribuicao_receita: updated } as any;
+                                                  });
                                                 }}
                                               >
                                                 <X size={14} />
