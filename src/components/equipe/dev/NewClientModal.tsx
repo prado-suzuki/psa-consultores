@@ -1339,7 +1339,7 @@ export default function NewClientModal({
         const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          await (supabase.from(participanteTable) as any).delete().in(partIdField, removedPartIds);
+          await (supabase.from(participanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---

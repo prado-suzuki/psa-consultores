@@ -1848,6 +1848,7 @@ export type Database = {
           cargo: string | null
           created_at: string | null
           email: string | null
+          excluido: boolean
           id_cliente: string
           id_participante: string
           nome: string
@@ -1861,6 +1862,7 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
+          excluido?: boolean
           id_cliente: string
           id_participante?: string
           nome: string
@@ -1874,6 +1876,7 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
+          excluido?: boolean
           id_cliente?: string
           id_participante?: string
           nome?: string
@@ -1898,6 +1901,7 @@ export type Database = {
           cargo: string | null
           created_at: string | null
           email: string | null
+          excluido: boolean
           id_cliente: string
           id_participante: string
           nome: string
@@ -1911,6 +1915,7 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
+          excluido?: boolean
           id_cliente: string
           id_participante?: string
           nome: string
@@ -1924,6 +1929,7 @@ export type Database = {
           cargo?: string | null
           created_at?: string | null
           email?: string | null
+          excluido?: boolean
           id_cliente?: string
           id_participante?: string
           nome?: string
