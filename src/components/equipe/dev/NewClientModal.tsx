@@ -743,30 +743,40 @@ export default function NewClientModal({
           .eq("cliente_id", editingClienteId);
         if (contribs) {
           setEntities(
-            contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: c.id,
-              tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: c.cpf_cnpj || "",
-              nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: (c as any).nome_fantasia || "",
-              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
-              inscricao_estadual: c.inscricao_estadual || "",
-              cod_cnae: c.cod_cnae || "",
-              setor: c.setor || "",
-              simples_nacional:
-                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
-              telefone: (c as any).telefone || "",
-              cep: (c as any).cep || "",
-              logradouro: (c as any).logradouro || "",
-              numero: (c as any).numero || "",
-              complemento: (c as any).complemento || "",
-              bairro: (c as any).bairro || "",
-              municipio: (c as any).municipio || "",
-              uf: (c as any).uf || "",
-              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
-              atividade_principal: "",
-            })),
+            contribs.map((c) => {
+              const rawIEs = (c as any).inscricoes_estaduais;
+              let ies: IEEntry[] = [];
+              if (Array.isArray(rawIEs) && rawIEs.length > 0) {
+                ies = rawIEs.map((item: any) => ({ ie: item.ie || "", uf: item.uf || "" }));
+              } else if ((c as any).situacao_inscricao_estadual === "sim" && c.inscricao_estadual) {
+                ies = [{ ie: c.inscricao_estadual, uf: (c as any).uf || "" }];
+              }
+              return {
+                _id: Date.now() + Math.random(),
+                _dbId: c.id,
+                tipo_pessoa: c.tipo_pessoa || "PJ",
+                cpf_cnpj: c.cpf_cnpj || "",
+                nome_razao_social: c.nome_razao_social || "",
+                nome_fantasia: (c as any).nome_fantasia || "",
+                situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
+                inscricao_estadual: c.inscricao_estadual || "",
+                inscricoes_estaduais: ies,
+                cod_cnae: c.cod_cnae || "",
+                setor: c.setor || "",
+                simples_nacional:
+                  c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
+                telefone: (c as any).telefone || "",
+                cep: (c as any).cep || "",
+                logradouro: (c as any).logradouro || "",
+                numero: (c as any).numero || "",
+                complemento: (c as any).complemento || "",
+                bairro: (c as any).bairro || "",
+                municipio: (c as any).municipio || "",
+                uf: (c as any).uf || "",
+                contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
+                atividade_principal: "",
+              };
+            }),
           );
         }
 
