@@ -3733,7 +3733,7 @@ export default function NewClientModal({
                                 <div className="mt-1">
                                   <DateFieldWithInput
                                     value={draftContract.data_emissao}
-                                    onChange={(v) => setDraftContract({ ...draftContract, data_emissao: v })}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))}
                                   />
                                 </div>
                               </div>
