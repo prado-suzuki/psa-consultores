@@ -776,7 +776,33 @@ export default function NewClientModal({
           );
         }
 
-        const { data: parts } = await (supabase.from(participanteTable) as any)
+        // Load inscricoes estaduais
+        if (contribs && contribs.length > 0) {
+          const contribIds = contribs.map(c => c.id);
+          const { data: inscricoes } = await (supabase as any)
+            .from("inscricao_contribuinte")
+            .select("*")
+            .in("contribuinte_id", contribIds);
+          if (inscricoes) {
+            const map: Record<string, InscricaoIE[]> = {};
+            for (const ie of inscricoes as any[]) {
+              const key = ie.contribuinte_id as string;
+              if (!map[key]) map[key] = [];
+              map[key].push({
+                _tempId: Date.now() + Math.random(),
+                _dbId: ie.id,
+                situacao: ie.situacao || "sim",
+                numero_ie: ie.numero_ie || "",
+                uf: ie.uf || "",
+              });
+            }
+            setInscricoesMap(map);
+          } else {
+            setInscricoesMap({});
+          }
+        }
+
+
           .select("*")
           .eq("id_cliente", editingClienteId);
         if (parts) {
