@@ -1259,12 +1259,43 @@ export default function NewClientModal({
       toast.error("Região é obrigatória");
       return;
     }
-    if (!clientData.regiao) {
-      toast.error("Região é obrigatória");
-      return;
+
+    // --- Pre-validation: distribuicao_receita UUIDs and percentage sums ---
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    for (const c of contracts) {
+      if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
+        for (const d of c.distribuicao_receita) {
+          if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
+            toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
+            return;
+          }
+        }
+        const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
+        if (Math.abs(totalPercent - 100) > 0.01) {
+          toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
+          return;
+        }
+      }
+    }
+
+    // --- Duplicate name check (only on creation) ---
+    if (!isEditing) {
+      const { data: existing } = await supabase
+        .from(clienteTable)
+        .select("id, nome")
+        .eq("nome", clientData.nome.trim())
+        .eq("excluido", false)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        const confirmed = window.confirm(
+          `Já existe um cliente com o nome "${clientData.nome.trim()}". Deseja cadastrar mesmo assim?`
+        );
+        if (!confirmed) return;
+      }
     }
 
     setSaving(true);
+    let createdClienteId: string | null = null;
     try {
       const clientPayload = {
         nome: clientData.nome.trim(),
