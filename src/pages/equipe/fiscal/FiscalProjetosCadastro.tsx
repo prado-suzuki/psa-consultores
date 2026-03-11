@@ -367,6 +367,7 @@ const FiscalProjetosCadastro = () => {
         .from('ordem_servico' as any) as any)
         .select('*')
         .eq('id_cliente', formData.external_client_id)
+        .eq('excluido', false)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
