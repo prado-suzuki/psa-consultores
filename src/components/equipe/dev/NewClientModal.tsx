@@ -537,7 +537,7 @@ export default function NewClientModal({
         .select("id, codigo, nome")
         .eq("is_active", true)
         .order("codigo");
-      return (data || []).map((e: any) => ({ codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
+      return (data || []).map((e: any) => ({ id: e.id as string, codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
     },
   });
 
@@ -3266,7 +3266,7 @@ export default function NewClientModal({
                                             <div className="flex flex-wrap gap-2 mt-1">
                                               {cont.distribuicao_receita.map(
                                                 (cc, idx) => {
-                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.codigo === cc.id_centro_custo);
+                                                  const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.id === cc.id_centro_custo);
                                                   return (
                                                     <Badge key={idx} variant="outline" className="text-xs">
                                                       {ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%
@@ -3550,9 +3550,9 @@ export default function NewClientModal({
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                   <SelectItem value="__none__">Selecione...</SelectItem>
-                                                  {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                                    <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
-                                                      {cc_opt.label}
+                                                   {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
+                                                     <SelectItem key={cc_opt.id} value={cc_opt.id}>
+                                                       {cc_opt.label}
                                                     </SelectItem>
                                                   ))}
                                                 </SelectContent>
@@ -3925,9 +3925,9 @@ export default function NewClientModal({
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
-                                        <SelectItem key={cc_opt.codigo} value={cc_opt.codigo}>
-                                          {cc_opt.label}
+                                       {CENTRO_CUSTO_OPTIONS.map((cc_opt) => (
+                                         <SelectItem key={cc_opt.id} value={cc_opt.id}>
+                                           {cc_opt.label}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
