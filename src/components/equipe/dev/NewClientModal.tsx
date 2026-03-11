@@ -1518,6 +1518,15 @@ export default function NewClientModal({
       toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
       resetAndClose();
     } catch (error: any) {
+      // Rollback: delete newly created client (CASCADE removes children)
+      if (createdClienteId) {
+        try {
+          await supabase.from(clienteTable).delete().eq("id", createdClienteId);
+          console.log("[rollback] Cliente removido:", createdClienteId);
+        } catch (rollbackErr) {
+          console.error("[rollback] Falha ao remover cliente:", rollbackErr);
+        }
+      }
       toast.error(`Erro ao ${isEditing ? "atualizar" : "cadastrar"} cliente: ` + error.message);
     } finally {
       setSaving(false);
