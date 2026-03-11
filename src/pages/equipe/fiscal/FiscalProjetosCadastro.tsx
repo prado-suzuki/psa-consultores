@@ -357,13 +357,12 @@ const FiscalProjetosCadastro = () => {
   });
 
   // Fetch OS/contratos for selected client
-  const ordemServicoTable = isProductionEnvironment ? 'ordem_servico' : 'contrato_dev';
   const { data: clienteOS = [] } = useQuery({
-    queryKey: ['cliente-os', formData.external_client_id, ordemServicoTable],
+    queryKey: ['cliente-os', formData.external_client_id],
     queryFn: async () => {
       if (!formData.external_client_id) return [];
-      const { data, error } = await supabase
-        .from(ordemServicoTable)
+      const { data, error } = await (supabase
+        .from('ordem_servico' as any) as any)
         .select('*')
         .eq('id_cliente', formData.external_client_id)
         .order('created_at', { ascending: false });
