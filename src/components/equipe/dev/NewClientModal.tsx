@@ -3302,10 +3302,16 @@ export default function NewClientModal({
                                           label="Data Fim"
                                           value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"}
                                         />
-                                        <FieldPair
-                                          label="Valor do Projeto"
-                                          value={formatCurrencyDisplay(cont.valor_projeto)}
-                                        />
+                                        {cont.id_produto_segmento && (
+                                          <FieldPair
+                                            label="Tipo de Produto/Segmento"
+                                            value={
+                                              produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
+                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
+                                                : "—"
+                                            }
+                                          />
+                                        )}
                                         <FieldPair
                                           label="Situação do Projeto"
                                           value={
@@ -3315,6 +3321,10 @@ export default function NewClientModal({
                                           }
                                         />
                                         <FieldPair
+                                          label="Valor do Projeto"
+                                          value={formatCurrencyDisplay(cont.valor_projeto)}
+                                        />
+                                        <FieldPair
                                           label="Reembolso por KM"
                                           value={formatCurrencyDisplay(cont.valor_reembolso_km)}
                                         />
@@ -3322,9 +3332,17 @@ export default function NewClientModal({
                                           label="Reembolso Refeição"
                                           value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
                                         />
-                                        {(cont as any).observacoes_projeto && (
+                                        {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
-                                            <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
+                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                                              Empresa
+                                            </p>
+                                            <span className="text-sm">
+                                              {(() => {
+                                                const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
+                                                return (svc as any)?.estrutura_clusters?.name || "—";
+                                              })()}
+                                            </span>
                                           </div>
                                         )}
                                         {cont.id_servico && (
@@ -3334,18 +3352,6 @@ export default function NewClientModal({
                                             </p>
                                             <Badge variant="secondary" className="text-xs mt-1">
                                               {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
-                                            </Badge>
-                                          </div>
-                                        )}
-                                        {cont.id_produto_segmento && (
-                                          <div className="col-span-2 md:col-span-3">
-                                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Tipo de Produto/Segmento
-                                            </p>
-                                            <Badge variant="outline" className="text-xs mt-1">
-                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)
-                                                ? `${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.codigo} - ${produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)!.nome}`
-                                                : cont.id_produto_segmento}
                                             </Badge>
                                           </div>
                                         )}
@@ -3368,6 +3374,11 @@ export default function NewClientModal({
                                             </div>
                                           </div>
                                         )}
+                                        {(cont as any).observacoes_projeto && (
+                                          <div className="col-span-2 md:col-span-3">
+                                            <FieldPair label="Observações" value={(cont as any).observacoes_projeto} />
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -3385,7 +3396,7 @@ export default function NewClientModal({
                                           <Input
                                             value={ec.ordem_servico || ""}
                                             disabled
-                                            className="h-8 mt-1 bg-muted"
+                                            className="h-8 mt-1 bg-accent/50 border-accent font-mono"
                                           />
                                         </div>
                                         <div>
@@ -3423,7 +3434,6 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
-                                        {/* Tipo de Produto/Segmento (inline edit) */}
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Tipo de Produto/Segmento
@@ -3452,17 +3462,6 @@ export default function NewClientModal({
                                         </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Valor do Projeto (R$)
-                                          </Label>
-                                          <div className="mt-1">
-                                            <CurrencyField
-                                              value={ec.valor_projeto || 0}
-                                              onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
-                                            />
-                                          </div>
-                                        </div>
-                                        <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Situação do Projeto
                                           </Label>
                                           <div className="mt-1">
@@ -3485,6 +3484,18 @@ export default function NewClientModal({
                                             </Select>
                                           </div>
                                         </div>
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Valor do Projeto (R$)
+                                          </Label>
+                                          <div className="mt-1">
+                                            <CurrencyField
+                                              value={ec.valor_projeto || 0}
+                                              onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
+                                            />
+                                          </div>
+                                        </div>
+                                        <div />
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Reembolso por KM (R$)
@@ -3510,43 +3521,24 @@ export default function NewClientModal({
                                           </div>
                                         </div>
                                       </div>
-                                      {/* Observações */}
                                       <div className="mt-4">
-                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
-                                          Observações
-                                        </h5>
-                                        <Textarea
-                                          value={(ec as any).observacoes_projeto || ""}
-                                          onChange={(e) =>
-                                            setEditingContractData({
-                                              ...ec,
-                                              observacoes_projeto: e.target.value,
-                                            } as any)
-                                          }
-                                          placeholder="Insira observações relevantes sobre o projeto..."
-                                          className="min-h-[60px]"
-                                        />
+                                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+                                        <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
+                                          <SelectTrigger className="h-8 mt-1">
+                                            <SelectValue placeholder="Todas as empresas" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__all__">Todas as empresas</SelectItem>
+                                            {allClusters.map((c: any) => (
+                                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
-                                      {/* Serviço Contratado (inline edit - único) */}
-                                      <div className="border border-dashed rounded-lg p-3 mt-1">
-                                        {/* Filtro por Empresa/Cluster */}
-                                        <div className="mb-3">
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
-                                          <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
-                                            <SelectTrigger className="h-8 mt-1">
-                                              <SelectValue placeholder="Todas as empresas" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__all__">Todas as empresas</SelectItem>
-                                              {allClusters.map((c: any) => (
-                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                      <div className="mt-4">
+                                        <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                           Serviço Contratado *
-                                        </h5>
+                                        </Label>
                                         <Select
                                           value={(ec as any).id_servico || "__none__"}
                                           onValueChange={(v) =>
@@ -3556,7 +3548,7 @@ export default function NewClientModal({
                                             } as any)
                                           }
                                         >
-                                          <SelectTrigger className="h-8">
+                                          <SelectTrigger className="h-8 mt-1">
                                             <SelectValue placeholder="Selecione um serviço..." />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -3595,8 +3587,7 @@ export default function NewClientModal({
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      {/* Distribuição de Receita (inline edit) */}
-                                      <div className="border border-dashed rounded-lg p-3 mt-1">
+                                      <div className="border border-dashed rounded-lg p-3 mt-4">
                                         <div className="flex items-center justify-between mb-2">
                                           <h5 className="text-xs font-bold text-muted-foreground uppercase">
                                             Distribuição de Receita (Centros de Custo)
@@ -3713,6 +3704,23 @@ export default function NewClientModal({
                                             );
                                           })()}
                                       </div>
+                                      {/* Observações (por último) */}
+                                      <div className="mt-4">
+                                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                                          Observações
+                                        </h5>
+                                        <Textarea
+                                          value={(ec as any).observacoes_projeto || ""}
+                                          onChange={(e) =>
+                                            setEditingContractData({
+                                              ...ec,
+                                              observacoes_projeto: e.target.value,
+                                            } as any)
+                                          }
+                                          placeholder="Insira observações relevantes sobre o projeto..."
+                                          className="min-h-[60px]"
+                                        />
+                                      </div>
                                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                                         <Button size="sm" variant="outline" onClick={cancelEditContract}>
                                           Cancelar
@@ -3759,19 +3767,17 @@ export default function NewClientModal({
                               Dados da OS
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Ordem de Serviço — auto-gerada */}
+                              {/* L1: OS (readonly) | Data Emissão */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                   Ordem de Serviço
                                 </Label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge variant="secondary" className="h-8 px-3 text-sm font-mono">
-                                    {draftContract.ordem_servico || "Auto"}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">Gerada automaticamente</span>
-                                </div>
+                                <Input
+                                  value={draftContract.ordem_servico || "Gerando..."}
+                                  disabled
+                                  className="h-8 mt-1 bg-accent/50 border-accent font-mono"
+                                />
                               </div>
-                              {/* Data de Emissão */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data de Emissão
@@ -3783,7 +3789,7 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Data Início */}
+                              {/* L2: Data Início | Data Fim */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data Início
@@ -3795,7 +3801,6 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Data Fim */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                   Data Fim
@@ -3807,19 +3812,30 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Valor do Projeto */}
+                              {/* L3: Tipo Produto/Segmento | Situação */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                   Valor do Projeto (R$)
+                                  Tipo de Produto/Segmento
                                 </Label>
                                 <div className="mt-1">
-                                  <CurrencyField
-                                    value={draftContract.valor_projeto}
-                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
-                                  />
+                                  <Select
+                                    value={draftContract.id_produto_segmento || "__none__"}
+                                    onValueChange={(v) =>
+                                      setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
+                                      {produtoSegmentoFullOptions.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
-                              {/* Situação do Projeto */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Situação do Projeto
@@ -3842,7 +3858,20 @@ export default function NewClientModal({
                                   </Select>
                                 </div>
                               </div>
-                              {/* Reembolso por KM */}
+                              {/* L4: Valor do Projeto */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                   Valor do Projeto (R$)
+                                </Label>
+                                <div className="mt-1">
+                                  <CurrencyField
+                                    value={draftContract.valor_projeto}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
+                                  />
+                                </div>
+                              </div>
+                              <div />
+                              {/* L5: Reembolsos */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Reembolso por KM (R$)
@@ -3854,7 +3883,6 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Reembolso Refeição */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Reembolso Refeição (R$)
@@ -3870,46 +3898,34 @@ export default function NewClientModal({
                               </div>
                             </div>
 
-                            {/* Observações */}
+                            {/* L6: Empresa */}
                             <div className="mt-4">
-                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
-                              <Textarea
-                                value={draftContract.observacoes_projeto}
-                                onChange={(e) =>
-                                  setDraftContract(prev => ({ ...prev, observacoes_projeto: e.target.value }))
-                                }
-                                placeholder="Insira observações relevantes sobre o projeto..."
-                                className="min-h-[80px]"
-                              />
+                              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+                              <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
+                                <SelectTrigger className="h-8 mt-1">
+                                  <SelectValue placeholder="Todas as empresas" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__all__">Todas as empresas</SelectItem>
+                                  {allClusters.map((c: any) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
 
-                            {/* Serviço Contratado (único) */}
-                            <div className="mt-4 border border-dashed rounded-lg p-4">
-                              {/* Filtro por Empresa/Cluster */}
-                              <div className="mb-3">
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
-                                <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
-                                  <SelectTrigger className="h-8 mt-1">
-                                    <SelectValue placeholder="Todas as empresas" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__all__">Todas as empresas</SelectItem>
-                                    {allClusters.map((c: any) => (
-                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                            {/* L7: Serviço Contratado */}
+                            <div className="mt-4">
+                              <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                 Serviço Contratado *
-                              </h5>
+                              </Label>
                               <Select
                                 value={draftContract.id_servico || "__none__"}
                                 onValueChange={(v) =>
                                   setDraftContract(prev => ({ ...prev, id_servico: v === "__none__" ? "" : v }))
                                 }
                               >
-                                <SelectTrigger className="h-8">
+                                <SelectTrigger className="h-8 mt-1">
                                   <SelectValue placeholder="Selecione um serviço..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -3949,28 +3965,6 @@ export default function NewClientModal({
                               </Select>
                             </div>
 
-                            {/* Tipo de Produto/Segmento (agora na OS) */}
-                            <div className="mt-4 border border-dashed rounded-lg p-4">
-                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">
-                                Tipo de Produto/Segmento
-                              </h5>
-                              <Select
-                                value={draftContract.id_produto_segmento || "__none__"}
-                                onValueChange={(v) =>
-                                  setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))
-                                }
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Selecione...</SelectItem>
-                                  {produtoSegmentoFullOptions.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
                             {/* Distribuição de Receita (Centros de Custo) */}
                             <div className="mt-4 border border-dashed rounded-lg p-4">
                               <div className="flex items-center justify-between mb-2">
@@ -4078,6 +4072,19 @@ export default function NewClientModal({
                                     </p>
                                   );
                                 })()}
+                            </div>
+
+                            {/* L8: Observações (por último) */}
+                            <div className="mt-4">
+                              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
+                              <Textarea
+                                value={draftContract.observacoes_projeto}
+                                onChange={(e) =>
+                                  setDraftContract(prev => ({ ...prev, observacoes_projeto: e.target.value }))
+                                }
+                                placeholder="Insira observações relevantes sobre o projeto..."
+                                className="min-h-[80px]"
+                              />
                             </div>
 
                             <div className="flex justify-end mt-4 pt-2 border-t">
