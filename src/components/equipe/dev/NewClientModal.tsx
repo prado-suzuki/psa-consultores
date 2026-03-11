@@ -3384,10 +3384,8 @@ export default function NewClientModal({
                                           </Label>
                                           <Input
                                             value={ec.ordem_servico || ""}
-                                            onChange={(e) =>
-                                              setEditingContractData({ ...ec, ordem_servico: e.target.value })
-                                            }
-                                            className="h-8 mt-1"
+                                            disabled
+                                            className="h-8 mt-1 bg-muted"
                                           />
                                         </div>
                                         <div>
