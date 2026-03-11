@@ -40,6 +40,7 @@ import {
   Save,
   Copy,
   CalendarIcon,
+  Tag,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
