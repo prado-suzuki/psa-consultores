@@ -1308,12 +1308,11 @@ export default function NewClientModal({
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---
-        const osIdField = isProductionEnvironment ? "id" : "id_contrato";
         const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
-        const { data: dbOS } = await (supabase.from(ordemServicoTable) as any).select(osIdField).eq("id_cliente", clienteId);
-        const removedOsIds = (dbOS || []).map((o: any) => o[osIdField]).filter((id: string) => !currentOsDbIds.includes(id));
+        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId);
+        const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
-          await (supabase.from(ordemServicoTable) as any).delete().in(osIdField, removedOsIds);
+          await (supabase.from("ordem_servico" as any) as any).delete().in("id", removedOsIds);
         }
       } else {
         const { data: newCliente, error: clienteError } = await supabase
