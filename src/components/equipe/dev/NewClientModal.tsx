@@ -3896,10 +3896,10 @@ export default function NewClientModal({
                                   variant="outline"
                                   className="gap-1 text-xs"
                                   onClick={() =>
-                                    setDraftContract({
-                                      ...draftContract,
-                                      distribuicao_receita: [...draftContract.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
-                                    })
+                                    setDraftContract(prev => ({
+                                      ...prev,
+                                      distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }],
+                                    }))
                                   }
                                 >
                                   <Plus size={12} /> Adicionar Centro de Custo
