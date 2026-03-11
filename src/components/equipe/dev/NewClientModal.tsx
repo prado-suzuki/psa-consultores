@@ -574,9 +574,6 @@ export default function NewClientModal({
     municipio: "",
     uf: "",
     setor_cliente: "",
-    tipo_produto_segmento: "",
-    tipo_produto_segmento_custom: "",
-    empresa_faturamento: [] as string[],
     regiao: "",
   };
 
