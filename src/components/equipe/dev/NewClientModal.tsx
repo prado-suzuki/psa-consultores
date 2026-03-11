@@ -69,7 +69,7 @@ const TIPO_PARTICIPANTE_OPTIONS = [
   "Outros",
 ];
 
-// EMPRESA_FATURAMENTO_OPTIONS is now loaded from the database (empresas_faturamento table)
+
 
 const SITUACAO_PROJETO_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
