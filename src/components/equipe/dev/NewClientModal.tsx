@@ -1253,16 +1253,8 @@ export default function NewClientModal({
       toast.error("Área do negócio é obrigatória");
       return;
     }
-    if (!clientData.tipo_produto_segmento) {
-      toast.error("Tipo de produto/segmento é obrigatório");
-      return;
-    }
-    if (clientData.tipo_produto_segmento === "__outro__" && !clientData.tipo_produto_segmento_custom.trim()) {
-      toast.error("Informe o nome do produto/segmento personalizado");
-      return;
-    }
-    if (clientData.empresa_faturamento.length === 0) {
-      toast.error("Empresa / Faturamento é obrigatória");
+    if (!clientData.regiao) {
+      toast.error("Região é obrigatória");
       return;
     }
     if (!clientData.regiao) {
