@@ -1,34 +1,48 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Persistência local com salvamento único no final
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Contexto
 
-### Etapa 1 — Migration: adicionar coluna
+Atualmente, o `executeSave` persiste cliente, contribuintes, participantes e OS diretamente no banco em sequência. Se qualquer passo falha, os anteriores já foram commitados, causando registros órfãos e duplicatas.
 
-Criar uma migration com:
+### Mudança principal
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+Todo o fluxo de "Adicionar" dentro do modal (contribuinte, participante, OS) permanece **apenas em estado local** (arrays `entities`, `participants`, `contracts` — que já existem). A persistência no banco só acontece quando o usuário clica no botão final "Salvar Cliente".
 
-### Etapa 2 — Data update: popular mapeamentos
+### O que muda
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+**1. Rollback automático em caso de erro (criação)**
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+No `executeSave`, quando `!isEditing` e ocorrer erro após inserir o cliente:
+- Deletar o `clienteId` recém-criado (CASCADE remove filhos)
+- Isso previne registros órfãos
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
+**2. Validação prévia antes de qualquer INSERT**
 
-### O que NÃO será feito
+Antes de iniciar o `executeSave`:
+- Validar que todas as OS possuem `distribuicao_receita` com `id_centro_custo` não-vazio (UUID válido)
+- Validar que a soma dos percentuais de cada OS é 100%
+- Se inválido, mostrar toast e abortar sem tocar no banco
 
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+**3. Cache local via `useDraftPersistence` (já existe)**
+
+O hook `useDraftPersistence` já salva rascunho em `sessionStorage` com debounce de 500ms. O que será ajustado:
+- Incluir `entities`, `participants`, `contracts` e `inscricoesMap` no objeto persistido pelo draft
+- Atualmente o draft provavelmente só persiste `clientData` — expandir para todo o estado do modal
+- Isso garante que o usuário não perde progresso ao trocar de aba ou fechar acidentalmente, sem salvar campo a campo no banco
+
+**4. Verificação de duplicidade por nome**
+
+Antes do insert, consultar `clienteTable` por `nome = clientData.nome.trim()` e `excluido = false`. Se existir, exibir confirmação antes de prosseguir.
+
+### Arquivo alterado
+
+`src/components/equipe/dev/NewClientModal.tsx`
+
+### O que NÃO muda
+
+- O fluxo de edição (`isEditing`) continua com upsert/update seletivo
+- Os arrays locais `entities`, `participants`, `contracts` já funcionam como cache — o botão "Adicionar à lista" já só adiciona ao array local
+- A estrutura de tabs e navegação do modal permanece igual
 
