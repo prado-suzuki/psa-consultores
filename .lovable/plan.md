@@ -1,34 +1,17 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Diagnóstico: Demora no número da OS
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Causa
 
-### Etapa 1 — Migration: adicionar coluna
+Ao clicar "Adicionar OS à Lista", a função `addContract` faz uma query assíncrona (`generateNextOsNumber`) ao banco antes de adicionar a OS à lista. Durante esse tempo (~200-500ms), **não há nenhum feedback visual** — o botão não muda de estado, não há spinner. Isso faz parecer que está travado.
 
-Criar uma migration com:
+### Solução
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+1. Adicionar um estado `isAddingContract` (boolean) ao componente
+2. No `addContract`, setar `true` antes da query e `false` depois
+3. No botão "Adicionar OS à Lista" (~linha 4072), usar `disabled={isAddingContract}` e exibir um spinner/texto "Adicionando..." enquanto `isAddingContract === true`
 
-### Etapa 2 — Data update: popular mapeamentos
-
-Usar a ferramenta de inserção/update (não migration) para executar:
-
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
-
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+### Arquivo alterado
+- `src/components/equipe/dev/NewClientModal.tsx`
 
