@@ -496,6 +496,28 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
+  const getOsSituacaoBadge = (situacao: string | null) => {
+    if (!situacao) return null;
+    switch (situacao) {
+      case 'em_andamento':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Em Andamento</Badge>;
+      case 'concluida':
+        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Concluída</Badge>;
+      case 'pendente':
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Pendente</Badge>;
+      case 'cancelada':
+        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Cancelada</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">{situacao}</Badge>;
+    }
+  };
+
+  const getServicoName = (servicoId: string | null): string | null => {
+    if (!servicoId) return null;
+    const cat = taxCategorias.find(c => c.id === servicoId);
+    return cat?.nome || null;
+  };
+
   const getAreaLabel = (project: any) => {
     if (project.area_ref) return project.area_ref.nome;
     return '-';
