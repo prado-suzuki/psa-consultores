@@ -109,7 +109,7 @@ export const TaskModal = ({
   const { data: taxAreas = [] } = useTaxAreas();
 
   // Resolve estrutura_area_id from the selected project's tax_area
-  const watchedProjectId = useFormWatch('project_id');
+  const watchedProjectId = form.watch('project_id') as string | undefined;
   
   const selectedProjectAreaId = useMemo(() => {
     if (!watchedProjectId) return null;
