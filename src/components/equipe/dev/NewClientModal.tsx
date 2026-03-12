@@ -1993,7 +1993,15 @@ export default function NewClientModal({
                                           <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />
                                         )}
                                         <FieldPair label="Telefone" value={ent.telefone} />
-                                        {/* Inscrições Estaduais */}
+                                        {/* Situação Inscrição Estadual */}
+                                        <FieldPair label="Possui Inscrição Estadual?" value={
+                                          ent.situacao_inscricao_estadual === "sim" ? "Sim"
+                                            : ent.situacao_inscricao_estadual === "nao" ? "Não"
+                                            : ent.situacao_inscricao_estadual === "isento" ? "Isento"
+                                            : "—"
+                                        } />
+                                        {/* Inscrições Estaduais - só exibe se "sim" */}
+                                        {ent.situacao_inscricao_estadual === "sim" && (
                                         <div className="col-span-2 md:col-span-3">
                                           <span className="text-[10px] font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
                                           <div className="flex flex-wrap gap-1 mt-1">
@@ -2007,6 +2015,7 @@ export default function NewClientModal({
                                             }
                                           </div>
                                         </div>
+                                        )}
                         {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
                         {ent.tipo_pessoa === "PJ" && ent.atividade_principal && (
                           <FieldPair label="Atividade Principal" value={ent.atividade_principal} />
@@ -2141,7 +2150,33 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
-                                        {/* Inscrições Estaduais */}
+                                        {/* Possui Inscrição Estadual? */}
+                                        <div className="flex flex-row items-center gap-4">
+                                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                            Possui Inscrição Estadual?
+                                          </Label>
+                                          <div className="flex-1">
+                                            <Select
+                                              value={ed.situacao_inscricao_estadual || undefined}
+                                              onValueChange={(v) => {
+                                                setEditingEntityData({ ...ed, situacao_inscricao_estadual: v });
+                                                if (v !== "sim") {
+                                                  const key = ent._dbId || String(ent._id);
+                                                  setInscricoesMap(prev => ({ ...prev, [key]: [] }));
+                                                }
+                                              }}
+                                            >
+                                              <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="sim">Sim</SelectItem>
+                                                <SelectItem value="nao">Não</SelectItem>
+                                                <SelectItem value="isento">Isento</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        {/* Inscrições Estaduais - condicional */}
+                                        {ed.situacao_inscricao_estadual === "sim" && (
                                         <div className="border border-dashed rounded-lg p-3">
                                           <div className="flex items-center justify-between mb-2">
                                             <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
@@ -2222,6 +2257,7 @@ export default function NewClientModal({
                                             <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada.</p>
                                           )}
                                         </div>
+                                        )}
                                         {/* CNAE */}
                                         {ed.tipo_pessoa === "PJ" && (
                                           <div className="flex flex-row items-center gap-4">
@@ -2561,7 +2597,32 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* Inscrições Estaduais */}
+                              {/* Possui Inscrição Estadual? */}
+                              <div className="flex flex-row items-center gap-4">
+                                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+                                  Possui Inscrição Estadual?
+                                </Label>
+                                <div className="flex-1">
+                                  <Select
+                                    value={draftEntity.situacao_inscricao_estadual || undefined}
+                                    onValueChange={(v) => {
+                                      setDraftEntity(prev => ({ ...prev, situacao_inscricao_estadual: v }));
+                                      if (v !== "sim") {
+                                        setDraftInscricoes([]);
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="sim">Sim</SelectItem>
+                                      <SelectItem value="nao">Não</SelectItem>
+                                      <SelectItem value="isento">Isento</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              {/* Inscrições Estaduais - condicional */}
+                              {draftEntity.situacao_inscricao_estadual === "sim" && (
                               <div className="border border-dashed rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
@@ -2629,6 +2690,7 @@ export default function NewClientModal({
                                   <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada. Clique em "Adicionar IE" para incluir.</p>
                                 )}
                               </div>
+                              )}
                               {/* CNAE */}
                               {draftEntity.tipo_pessoa === "PJ" && (
                                 <div className="flex flex-row items-center gap-4">
