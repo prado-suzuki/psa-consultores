@@ -118,56 +118,11 @@ const FiscalProjetosCadastro = () => {
   const updateProject = useUpdateTaxProject();
   const deleteProjectMut = useDeleteTaxProject();
 
-  // ── Queries que permanecem inline (contextuais) ──────────────────────
-
-  // Fetch servicos_prestados
-  const { data: taxCategorias = [] } = useQuery({
-    queryKey: ['servicos-prestados'],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from('servicos_prestados' as any) as any)
-        .select('id, nome')
-        .order('nome');
-      if (error) throw error;
-      return data as TaxCategoria[];
-    },
-  });
-
-  // Fetch area_servicos (links)
-  const { data: areaCategoryLinks = [] } = useQuery({
-    queryKey: ['area-servicos'],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from('area_servicos' as any) as any)
-        .select('id, area_id, servico_id');
-      if (error) throw error;
-      return data as TaxAreaCategoria[];
-    },
-  });
-
-  // Fetch team members (profiles_safe)
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['team-members-profiles-safe'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      if (error) throw error;
-      return data as Profile[];
-    },
-  });
-
-  // Fetch user roles for filtering leaders vs team members
-  const { data: userRoles = [] } = useQuery({
-    queryKey: ['user-roles-lider-team'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('role', ['lider', 'team_member', 'sublider']);
-      if (error) throw error;
-      return data as { user_id: string; role: string }[];
-    },
-  });
+  // ── Queries centralizadas via hooks ────────────────────────────────────
+  const { data: taxCategorias = [] } = useServicosPrestados();
+  const { data: areaCategoryLinks = [] } = useAreaServicos();
+  const { data: teamMembers = [] } = useTeamProfilesSafe();
+  const { data: userRoles = [] } = useTeamRolesForProjects();
 
   // Filtered lists based on roles + area structure
   const lideres = useMemo(() => {
@@ -192,105 +147,21 @@ const FiscalProjetosCadastro = () => {
     return allSublideres;
   }, [teamMembers, userRoles, estruturaAreaId, areaSubliderIds, formData.sublider_ids]);
 
-  // Fetch members filtered by selected subliders' teams (only used when no estruturaAreaId)
-  const { data: filteredMemberIds = [] } = useQuery({
-    queryKey: ['sublider-team-members', formData.sublider_ids],
-    queryFn: async () => {
-      if (formData.sublider_ids.length === 0) return [];
-      const { data: teams, error: tErr } = await supabase
-        .from('estrutura_equipes')
-        .select('id')
-        .in('sublider_id', formData.sublider_ids);
-      if (tErr) throw tErr;
-      if (!teams?.length) return [];
-      const { data: members, error: mErr } = await supabase
-        .from('estrutura_equipe_membros')
-        .select('user_id')
-        .in('equipe_id', teams.map(t => t.id));
-      if (mErr) throw mErr;
-      return [...new Set((members || []).map(m => m.user_id))];
-    },
-    enabled: !estruturaAreaId && formData.sublider_ids.length > 0,
-  });
+  const { data: filteredMemberIds = [] } = useSubliderTeamMembers(
+    formData.sublider_ids,
+    !estruturaAreaId && formData.sublider_ids.length > 0,
+  );
+  const { data: externalClients = [] } = useExternalClients(editingProject?.external_client_id);
+  const { data: contribuintes = [] } = useContribuintes(
+    formData.external_client_id || null,
+    editingProject?.contribuinte_id,
+  );
+  const { data: clienteOS = [] } = useClienteOrdens(formData.external_client_id || null);
 
-  // Fetch external clients (with fallback to other environment table)
-  const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-  const { data: externalClients = [] } = useQuery({
-    queryKey: ['external-clients-tax', clienteTable, editingProject?.external_client_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from(clienteTable)
-        .select('id, nome, setor_cliente')
-        .eq('ativo', true)
-        .order('nome');
-      if (error) throw error;
-      const list = data as ExternalClient[];
-
-      const editClientId = editingProject?.external_client_id;
-      if (editClientId && !list.some(c => c.id === editClientId)) {
-        const { data: fallback } = await supabase
-          .from(fallbackClienteTable)
-          .select('id, nome, setor_cliente')
-          .eq('id', editClientId)
-          .maybeSingle();
-        if (fallback) list.push(fallback as ExternalClient);
-      }
-
-      return list;
-    },
-  });
-
-  // Fetch contribuintes filtered by selected client (with fallback)
-  const fallbackContribuinteTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes-for-project', contribuinteTable, formData.external_client_id, editingProject?.contribuinte_id],
-    queryFn: async () => {
-      if (!formData.external_client_id) return [];
-      const { data, error } = await supabase
-        .from(contribuinteTable)
-        .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', formData.external_client_id)
-        .eq('excluido', false)
-        .order('nome_razao_social');
-      if (error) throw error;
-      let list = data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
-
-      if (list.length === 0) {
-        const { data: fallback } = await supabase
-          .from(fallbackContribuinteTable)
-          .select('id, nome_razao_social, cpf_cnpj')
-          .eq('cliente_id', formData.external_client_id)
-          .eq('excluido', false)
-          .order('nome_razao_social');
-        if (fallback?.length) list = fallback as typeof list;
-      }
-
-      return list;
-    },
-    enabled: !!formData.external_client_id,
-  });
-
-  // Fetch OS/contratos for selected client
-  const { data: clienteOS = [] } = useQuery({
-    queryKey: ['cliente-os', formData.external_client_id],
-    queryFn: async () => {
-      if (!formData.external_client_id) return [];
-      const { data, error } = await (supabase
-        .from('ordem_servico' as any) as any)
-        .select('*')
-        .eq('id_cliente', formData.external_client_id)
-        .eq('excluido', false)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!formData.external_client_id,
-  });
-
-  // Helper to get OS id regardless of environment
-  const getOsId = (os: any): string => os.id;
-  const getOsLabel = (os: any): string => os.numero_os || 'Sem número';
-  const getOsValue = (os: any): number | null => os.valor_projeto;
+  // Helper to get OS fields via typed interface
+  const getOsId = (os: OrdemServico): string => os.id;
+  const getOsLabel = (os: OrdemServico): string => os.numero_os || 'Sem número';
+  const getOsValue = (os: OrdemServico): number | null => os.valor_projeto;
 
   // State for selected OS
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);

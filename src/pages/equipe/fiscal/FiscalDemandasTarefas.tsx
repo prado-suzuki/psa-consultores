@@ -43,30 +43,8 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
    const { data: tasks = [], isLoading } = useFiscalTasks(filters);
    const deleteTask = useDeleteFiscalTask();
  
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['team-members-for-tasks'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      return (data || []).map(p => ({
-        id: p.id,
-        name: `${p.first_name} ${p.last_name}`,
-      }));
-    },
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ['tax-projects-for-filter'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tax_projects')
-        .select('id, name')
-        .order('name');
-      return data || [];
-    },
-  });
+  const { data: teamMembers = [] } = useTeamMembersForTasks();
+  const { data: projects = [] } = useTaxProjectsForFilter();
  
   const handleEditTask = (task: FiscalTask) => {
     setSelectedTask(task);

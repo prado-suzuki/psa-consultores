@@ -16,25 +16,7 @@ import { useFiscalClientsList } from '@/hooks/useFiscalClients';
 export function FiscalClients() {
   const [search, setSearch] = useState('');
 
-  const { data: clients, isLoading } = useQuery<Cliente[]>({
-    queryKey: ['empresa-clients'],
-    queryFn: async () => {
-      const { data, error } = isProductionEnvironment
-        ? await supabase
-            .from('cliente')
-            .select('*')
-            .eq('ativo', true)
-            .order('nome')
-        : await supabase
-            .from('cliente_dev')
-            .select('*')
-            .eq('ativo', true)
-            .order('nome');
-      
-      if (error) throw error;
-      return data as Cliente[];
-    },
-  });
+  const { data: clients, isLoading } = useFiscalClientsList();
 
   const filteredClients = clients?.filter(client =>
     client.nome.toLowerCase().includes(search.toLowerCase()) ||
