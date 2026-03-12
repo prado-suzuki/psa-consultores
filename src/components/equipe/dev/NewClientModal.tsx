@@ -1388,7 +1388,7 @@ export default function NewClientModal({
         }
 
         // --- Participantes: update existentes, insert novos, delete removidos ---
-        const partIdField = isProductionEnvironment ? "id" : "id_participante";
+        const partIdField = "id_participante";
         const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
         const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
@@ -1492,7 +1492,7 @@ export default function NewClientModal({
       });
 
       for (const p of participants) {
-        const pIdField = isProductionEnvironment ? "id" : "id_participante";
+        const pIdField = "id_participante";
         if (p._dbId) {
           const { error } = await (supabase.from(participanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
           if (error) throw error;
