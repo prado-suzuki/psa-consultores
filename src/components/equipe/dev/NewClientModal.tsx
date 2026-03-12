@@ -394,6 +394,7 @@ export default function NewClientModal({
   readOnly = false,
 }: NewClientModalProps) {
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
