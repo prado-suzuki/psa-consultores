@@ -1139,9 +1139,11 @@ const FiscalProjetosCadastro = () => {
                   </Popover>
                 )}
               </div>
+              {/* Bottom padding so last fields aren't hidden behind footer */}
+              <div className="pb-4" />
             </div>
           </ScrollArea>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4 mt-0">
             <Button variant="outline" onClick={handleCloseModal}>
               Cancelar
             </Button>
