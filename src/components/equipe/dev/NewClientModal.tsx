@@ -3475,7 +3475,8 @@ export default function NewClientModal({
                                             </Select>
                                           </div>
                                         </div>
-                                        <div>
+                                        {/* L4: Valor do Projeto */}
+                                        <div className="col-span-2">
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Valor do Projeto (R$)
                                           </Label>
@@ -3486,7 +3487,7 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
-                                        <div />
+                                        {/* L5: Reembolsos lado a lado */}
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Reembolso por KM (R$)
