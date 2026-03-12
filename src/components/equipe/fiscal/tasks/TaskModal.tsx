@@ -104,6 +104,22 @@ export const TaskModal = ({
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
 
+  const [tagInput, setTagInput] = useState('');
+  const [showDraftNotice, setShowDraftNotice] = useState(false);
+
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      status: 'todo',
+      priority: 'medium',
+      is_recurring: false,
+      category: 'task',
+      tags: [],
+    },
+  });
+
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: projects = [] } = useTaxProjectsList(true);
   const { data: taxAreas = [] } = useTaxAreas();
@@ -140,27 +156,6 @@ export const TaskModal = ({
     },
     enabled: open,
   });
-
-  const [tagInput, setTagInput] = useState('');
-  const [showDraftNotice, setShowDraftNotice] = useState(false);
-
-  const form = useForm<TaskFormValues>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      status: 'todo',
-      priority: 'medium',
-      is_recurring: false,
-      category: 'task',
-      tags: [],
-    },
-  });
-
-  // We need a helper since we use form.watch before form is fully initialized in the closure
-  function useFormWatch(field: keyof TaskFormValues) {
-    return form.watch(field) as string | undefined;
-  }
 
   // Draft persistence – only active for new tasks (not editing)
   const watchedValues = form.watch();
