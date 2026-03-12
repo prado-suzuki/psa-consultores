@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  useWPTeamMembers,
+  useWPClients,
+  useWPProjects,
+  useWPParentPackages,
+} from '@/hooks/useWorkPackageFormData';
 import {
   Dialog,
   DialogContent,
