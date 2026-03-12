@@ -138,7 +138,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
       </div>
 
       <Sheet open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>
               {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
@@ -171,7 +171,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                             {statusLabels[d.status] || d.status}
                           </Badge>
                         </div>
-                        <p className="font-medium text-sm truncate">{d.title}</p>
+                        <p className="font-medium text-sm break-words">{d.title}</p>
                         {d.profile && (
                           <p className="text-xs text-muted-foreground mt-1">
                             {d.profile.first_name} {d.profile.last_name}
