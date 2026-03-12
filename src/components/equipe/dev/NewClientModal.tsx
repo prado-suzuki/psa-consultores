@@ -398,6 +398,7 @@ export default function NewClientModal({
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [isAddingContract, setIsAddingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
   >("cliente");
@@ -1110,25 +1111,30 @@ export default function NewClientModal({
       return;
     }
 
-    // Auto-generate OS number
-    const osNumber = await generateNextOsNumber(contracts);
-    const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as DraftContract;
+    setIsAddingContract(true);
+    try {
+      // Auto-generate OS number
+      const osNumber = await generateNextOsNumber(contracts);
+      const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as DraftContract;
 
-    setContracts([...contracts, newContract]);
-    setDraftContract({
-      ordem_servico: "",
-      data_emissao: "",
-      data_inicio_projeto: "",
-      data_fim_projeto: "",
-      valor_projeto: 0,
-      valor_reembolso_km: 0,
-      valor_reembolso_refeicao: 0,
-      situacao_projeto: "em_andamento",
-      observacoes_projeto: "",
-      id_servico: "",
-      id_produto_segmento: "",
-      distribuicao_receita: [],
-    });
+      setContracts([...contracts, newContract]);
+      setDraftContract({
+        ordem_servico: "",
+        data_emissao: "",
+        data_inicio_projeto: "",
+        data_fim_projeto: "",
+        valor_projeto: 0,
+        valor_reembolso_km: 0,
+        valor_reembolso_refeicao: 0,
+        situacao_projeto: "em_andamento",
+        observacoes_projeto: "",
+        id_servico: "",
+        id_produto_segmento: "",
+        distribuicao_receita: [],
+      });
+    } finally {
+      setIsAddingContract(false);
+    }
   };
 
   // --- INLINE EDIT HELPERS ---
@@ -4069,8 +4075,8 @@ export default function NewClientModal({
                             </div>
 
                             <div className="flex justify-end mt-4 pt-2 border-t">
-                              <Button onClick={addContract} className="gap-2">
-                                Adicionar OS à Lista
+                              <Button onClick={addContract} disabled={isAddingContract} className="gap-2">
+                                {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}
                               </Button>
                             </div>
                           </div>
