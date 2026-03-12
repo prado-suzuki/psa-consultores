@@ -1,34 +1,75 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Corrigir RLS de `tax_project_members` e `project_servicos`
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Políticas existentes
 
-### Etapa 1 — Migration: adicionar coluna
+**`tax_project_members`** (4 políticas):
+- `ALL` → apenas `admin`
+- `SELECT` → `is_project_member(auth.uid(), project_id)`
+- `INSERT` → `team_member`, `admin`
+- `DELETE` → `team_member`, `admin`
+- **UPDATE → inexistente** ← causa do erro
 
-Criar uma migration com:
+Lacunas: `lider` e `sublider` ausentes em INSERT/DELETE.
+
+**`project_servicos`** (6 políticas, com duplicatas):
+- `SELECT` × 2 → `admin`, `team_member`, `lider`
+- `INSERT` × 2 → uma com `admin/lider`, outra com `admin/team_member/lider`
+- `DELETE` × 2 → uma com `admin/lider`, outra com `admin/team_member/lider`
+- **UPDATE → inexistente** ← potencial erro futuro
+
+Lacuna: `sublider` ausente em todas; duplicatas a limpar.
+
+---
+
+### Migração SQL (uma única migration)
+
+**1. `tax_project_members`** — adicionar UPDATE e harmonizar INSERT/DELETE:
 
 ```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
+-- Dropar INSERT e DELETE antigos (sem lider/sublider)
+DROP POLICY "Team members can insert project members" ON public.tax_project_members;
+DROP POLICY "Team members can delete project members" ON public.tax_project_members;
+
+-- INSERT com todos os roles
+CREATE POLICY "Team can insert tax_project_members"
+  ON public.tax_project_members FOR INSERT
+  WITH CHECK (
+    has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'lider')
+    OR has_role(auth.uid(), 'sublider') OR has_role(auth.uid(), 'team_member')
+  );
+
+-- UPDATE (novo)
+CREATE POLICY "Team can update tax_project_members"
+  ON public.tax_project_members FOR UPDATE
+  USING (...mesmos 4 roles...)
+  WITH CHECK (...mesmos 4 roles...);
+
+-- DELETE com todos os roles
+CREATE POLICY "Team can delete tax_project_members"
+  ON public.tax_project_members FOR DELETE
+  USING (...mesmos 4 roles...);
 ```
 
-### Etapa 2 — Data update: popular mapeamentos
+**2. `project_servicos`** — limpar duplicatas, adicionar UPDATE, incluir `sublider`:
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+```sql
+-- Dropar as 4 políticas duplicadas de INSERT e DELETE
+DROP POLICY "admin_lider_insert_project_servicos" ...;
+DROP POLICY "Team and lider can insert tax_project_categorias" ...;
+DROP POLICY "admin_lider_delete_project_servicos" ...;
+DROP POLICY "Team and lider can delete tax_project_categorias" ...;
+-- Dropar SELECT duplicado
+DROP POLICY "team_lider_select_project_servicos" ...;
+DROP POLICY "Team and lider can view tax_project_categorias" ...;
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+-- Recriar SELECT, INSERT, UPDATE, DELETE — todos com admin/lider/sublider/team_member
+```
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
+### O que NÃO será alterado
+- Nenhuma policy de `tax_projects` ou `fiscal_tasks`
 - Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+- A policy `ALL` de admin em `tax_project_members` permanece (é superset)
+- A policy `SELECT` por membership em `tax_project_members` permanece
 
