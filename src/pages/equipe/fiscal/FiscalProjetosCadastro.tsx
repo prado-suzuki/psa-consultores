@@ -669,7 +669,6 @@ const FiscalProjetosCadastro = () => {
             <div className="space-y-6">
               {/* 1. Cliente */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Cliente</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <Label>Cliente *</Label>
