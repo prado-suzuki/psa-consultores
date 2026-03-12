@@ -753,11 +753,6 @@ const FiscalProjetosCadastro = () => {
                                   Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
                                 </span>
                               )}
-                              {getOsValue(os) != null && (
-                                <span className="flex items-center gap-1">
-                                  {Number(getOsValue(os)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                </span>
-                              )}
                             </div>
                             {(() => {
                               const servicoName = getServicoName(os.id_servico);

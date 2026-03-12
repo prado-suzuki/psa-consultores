@@ -1,12 +1,14 @@
 
 
-## Plano: Remover valor da OS do card
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-Remover a exibição do valor monetário do card da OS, mantendo apenas:
-- Serviço vinculado (badge)
-- Datas de início e fim
+### Alterações realizadas
 
-**Arquivo**: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-**Alteração**: Remover o bloco que exibe `getOsValue(os)` (linhas 756-760), deixando apenas as datas e o badge de serviço.
-
+Nenhuma alteração em banco, RLS ou outras tabelas.
