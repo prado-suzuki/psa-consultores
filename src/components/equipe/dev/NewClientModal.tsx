@@ -3323,14 +3323,16 @@ export default function NewClientModal({
                                           label="Valor do Projeto"
                                           value={formatCurrencyDisplay(cont.valor_projeto)}
                                         />
-                                        <FieldPair
-                                          label="Reembolso por KM"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_km)}
-                                        />
-                                        <FieldPair
-                                          label="Reembolso Refeição"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
-                                        />
+                                        <div className="col-span-2 grid grid-cols-2 gap-4">
+                                          <FieldPair
+                                            label="Reembolso por KM"
+                                            value={formatCurrencyDisplay(cont.valor_reembolso_km)}
+                                          />
+                                          <FieldPair
+                                            label="Reembolso Refeição"
+                                            value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
+                                          />
+                                        </div>
                                         {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
