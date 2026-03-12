@@ -3890,19 +3890,7 @@ export default function NewClientModal({
                               Nova OS
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* L1: Data Emissão | Data Início */}
-                              <div>
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                   Data de Emissão
-                                </Label>
-                                <div className="mt-1">
-                                  <DateFieldWithInput
-                                    value={draftContract.data_emissao}
-                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))}
-                                  />
-                                </div>
-                              </div>
-                              {/* L2: Data Fim | Tipo Produto/Segmento */}
+                              {/* L1: Data Início | Data Fim */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Data Início
@@ -3925,7 +3913,18 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              {/* L3: Tipo Produto/Segmento | Situação */}
+                              {/* L2: Data de Emissão | Tipo Produto/Segmento */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                   Data de Emissão
+                                </Label>
+                                <div className="mt-1">
+                                  <DateFieldWithInput
+                                    value={draftContract.data_emissao}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))}
+                                  />
+                                </div>
+                              </div>
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                   Tipo de Produto/Segmento
@@ -3949,6 +3948,18 @@ export default function NewClientModal({
                                   </Select>
                                 </div>
                               </div>
+                              {/* L3: Valor do Projeto | Situação do Projeto */}
+                              <div>
+                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                   Valor do Projeto (R$)
+                                </Label>
+                                <div className="mt-1">
+                                  <CurrencyField
+                                    value={draftContract.valor_projeto}
+                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
+                                  />
+                                </div>
+                              </div>
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Situação do Projeto
@@ -3969,18 +3980,6 @@ export default function NewClientModal({
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                </div>
-                              </div>
-                              {/* L4: Valor do Projeto */}
-                              <div className="col-span-2">
-                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                   Valor do Projeto (R$)
-                                </Label>
-                                <div className="mt-1">
-                                  <CurrencyField
-                                    value={draftContract.valor_projeto}
-                                    onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))}
-                                  />
                                 </div>
                               </div>
                               {/* L5: Reembolsos lado a lado */}
