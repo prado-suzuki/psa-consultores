@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
+import { useTaxAreas } from '@/hooks/useTaxAreas';
 
 const PIE_COLORS: Record<string, string> = {
   backlog: '#94a3b8',
@@ -50,13 +51,7 @@ const FiscalDashboard = () => {
     },
   });
 
-  const { data: areas = [] } = useQuery({
-    queryKey: ['fiscal-dash-areas'],
-    queryFn: async () => {
-      const { data } = await supabase.from('tax_areas').select('id, nome');
-      return data || [];
-    },
-  });
+  const { data: areas = [] } = useTaxAreas();
 
   const { data: members = [] } = useQuery({
     queryKey: ['fiscal-dash-members'],
@@ -179,7 +174,6 @@ const FiscalDashboard = () => {
 
         {/* LINE 2 — 3 Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pie: Tasks by Status */}
           <Card className="border-slate-200/60">
             <CardHeader><CardTitle className="text-sm font-medium text-slate-900">Tarefas por Status</CardTitle></CardHeader>
             <CardContent>
@@ -198,7 +192,6 @@ const FiscalDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Bar: Hours by Project */}
           <Card className="border-slate-200/60">
             <CardHeader><CardTitle className="text-sm font-medium text-slate-900">Horas Est. por Projeto</CardTitle></CardHeader>
             <CardContent>
@@ -218,7 +211,6 @@ const FiscalDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Bar: Hours by Client */}
           <Card className="border-slate-200/60">
             <CardHeader><CardTitle className="text-sm font-medium text-slate-900">Horas Est. por Cliente</CardTitle></CardHeader>
             <CardContent>
@@ -241,7 +233,6 @@ const FiscalDashboard = () => {
 
         {/* LINE 3 — 2 Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Overdue Tasks */}
           <Card className="border-slate-200/60">
             <CardHeader><CardTitle className="text-sm font-medium text-slate-900">Tarefas Atrasadas</CardTitle></CardHeader>
             <CardContent>
@@ -274,7 +265,6 @@ const FiscalDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Workload by Member */}
           <Card className="border-slate-200/60">
             <CardHeader><CardTitle className="text-sm font-medium text-slate-900">Carga por Membro</CardTitle></CardHeader>
             <CardContent>
