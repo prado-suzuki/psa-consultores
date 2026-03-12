@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, DollarSign, Check, ChevronsUpDown, UsersRound } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound } from 'lucide-react';
 import { isProductionEnvironment } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -496,6 +496,28 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
+  const getOsSituacaoBadge = (situacao: string | null) => {
+    if (!situacao) return null;
+    switch (situacao) {
+      case 'em_andamento':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Em Andamento</Badge>;
+      case 'concluida':
+        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Concluída</Badge>;
+      case 'pendente':
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Pendente</Badge>;
+      case 'cancelada':
+        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Cancelada</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">{situacao}</Badge>;
+    }
+  };
+
+  const getServicoName = (servicoId: string | null): string | null => {
+    if (!servicoId) return null;
+    const cat = taxCategorias.find(c => c.id === servicoId);
+    return cat?.nome || null;
+  };
+
   const getAreaLabel = (project: any) => {
     if (project.area_ref) return project.area_ref.nome;
     return '-';
@@ -637,17 +659,16 @@ const FiscalProjetosCadastro = () => {
 
       {/* Create/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingProject ? 'Editar Projeto' : 'Novo Projeto'}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
+          <ScrollArea className="flex-1 min-h-0 pr-4">
             <div className="space-y-6">
               {/* 1. Cliente */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Cliente</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <Label>Cliente *</Label>
@@ -707,9 +728,9 @@ const FiscalProjetosCadastro = () => {
                           <div
                             key={osId}
                             onClick={() => setSelectedOsId(osId)}
-                            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
                               isSelected
-                                ? 'border-emerald-400 bg-emerald-50/60 ring-1 ring-emerald-200'
+                                ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
                                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
                             }`}
                           >
@@ -717,11 +738,7 @@ const FiscalProjetosCadastro = () => {
                               <span className="font-medium text-sm">
                                 OS: {getOsLabel(os)}
                               </span>
-                              {isProductionEnvironment && os.situacao && (
-                                <Badge variant="outline" className="text-xs">
-                                  {os.situacao}
-                                </Badge>
-                              )}
+                              {getOsSituacaoBadge(os.situacao)}
                             </div>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                               {os.data_inicio && (
@@ -738,25 +755,27 @@ const FiscalProjetosCadastro = () => {
                               )}
                               {getOsValue(os) != null && (
                                 <span className="flex items-center gap-1">
-                                  <DollarSign className="h-3 w-3" />
                                   {Number(getOsValue(os)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </span>
                               )}
                             </div>
-                            {os.id_servico && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                <Badge variant="secondary" className="text-xs font-normal">
-                                  {os.id_servico}
-                                </Badge>
-                              </div>
-                            )}
+                            {(() => {
+                              const servicoName = getServicoName(os.id_servico);
+                              return servicoName ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  <Badge variant="secondary" className="text-xs font-normal">
+                                    {servicoName}
+                                  </Badge>
+                                </div>
+                              ) : null;
+                            })()}
                           </div>
                         );
                       })}
                       <p className="text-xs text-muted-foreground">
                         {clienteOS.length > 1
-                          ? 'Clique em uma OS para usar suas datas como sugestão.'
-                          : 'OS selecionada automaticamente. Datas sugeridas no formulário abaixo.'}
+                          ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.`
+                          : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}
                       </p>
                     </div>
                   )}
@@ -1120,9 +1139,11 @@ const FiscalProjetosCadastro = () => {
                   </Popover>
                 )}
               </div>
+              {/* Bottom padding so last fields aren't hidden behind footer */}
+              <div className="pb-4" />
             </div>
           </ScrollArea>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4 mt-0">
             <Button variant="outline" onClick={handleCloseModal}>
               Cancelar
             </Button>
