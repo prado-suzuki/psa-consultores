@@ -1,34 +1,20 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Diagnóstico: Erro "Could not find 'empresa_faturamento' column of 'cliente'"
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### Causa raiz
 
-### Etapa 1 — Migration: adicionar coluna
+A coluna `empresa_faturamento` foi **adicionada** na migração `20260302...` e depois **removida** na migração `20260311...`. O código atual (ambiente de teste) já foi limpo e **não referencia mais essa coluna em lugar nenhum**.
 
-Criar uma migration com:
+O erro ocorreu no **ambiente publicado (Live)**. Isso significa que a versão publicada do código ainda contém referências à coluna `empresa_faturamento`, mas o schema do banco Live já aplicou a migração que a removeu — ou vice-versa: o schema ainda tem a coluna mas o PostgREST cache está desatualizado.
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+### O que está acontecendo
 
-### Etapa 2 — Data update: popular mapeamentos
+O erro `"Could not find the 'empresa_faturamento' column of 'cliente' in the schema cache"` é emitido pelo PostgREST quando o código tenta ler ou gravar uma coluna que não existe no schema atual do banco.
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+### Solução
 
-| tax_areas.id | estrutura_area_id |
-|---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+**Republicar o projeto.** O código atual no ambiente de teste já está correto (sem referências a `empresa_faturamento`). Ao publicar novamente, o código limpo será deployado no ambiente Live, resolvendo o problema.
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+Não há alteração de código necessária — o problema é exclusivamente uma defasagem entre o código publicado (antigo) e o schema do banco (atualizado).
 
