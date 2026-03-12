@@ -3323,14 +3323,16 @@ export default function NewClientModal({
                                           label="Valor do Projeto"
                                           value={formatCurrencyDisplay(cont.valor_projeto)}
                                         />
-                                        <FieldPair
-                                          label="Reembolso por KM"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_km)}
-                                        />
-                                        <FieldPair
-                                          label="Reembolso Refeição"
-                                          value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
-                                        />
+                                        <div className="col-span-2 grid grid-cols-2 gap-4">
+                                          <FieldPair
+                                            label="Reembolso por KM"
+                                            value={formatCurrencyDisplay(cont.valor_reembolso_km)}
+                                          />
+                                          <FieldPair
+                                            label="Reembolso Refeição"
+                                            value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
+                                          />
+                                        </div>
                                         {cont.id_servico && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
@@ -3473,7 +3475,8 @@ export default function NewClientModal({
                                             </Select>
                                           </div>
                                         </div>
-                                        <div>
+                                        {/* L4: Valor do Projeto */}
+                                        <div className="col-span-2">
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Valor do Projeto (R$)
                                           </Label>
@@ -3484,7 +3487,7 @@ export default function NewClientModal({
                                             />
                                           </div>
                                         </div>
-                                        <div />
+                                        {/* L5: Reembolsos lado a lado */}
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Reembolso por KM (R$)
@@ -3838,7 +3841,7 @@ export default function NewClientModal({
                                 </div>
                               </div>
                               {/* L4: Valor do Projeto */}
-                              <div>
+                              <div className="col-span-2">
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Valor do Projeto (R$)
                                 </Label>
@@ -3849,8 +3852,7 @@ export default function NewClientModal({
                                   />
                                 </div>
                               </div>
-                              <div />
-                              {/* L5: Reembolsos */}
+                              {/* L5: Reembolsos lado a lado */}
                               <div>
                                 <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                    Reembolso por KM (R$)
