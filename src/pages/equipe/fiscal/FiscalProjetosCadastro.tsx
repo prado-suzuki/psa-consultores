@@ -741,6 +741,12 @@ const FiscalProjetosCadastro = () => {
                               {getOsSituacaoBadge(os.situacao)}
                             </div>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                              {os.data_emissao && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Emissão: {format(new Date(os.data_emissao + 'T00:00:00'), 'dd/MM/yyyy')}
+                                </span>
+                              )}
                               {os.data_inicio && (
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
