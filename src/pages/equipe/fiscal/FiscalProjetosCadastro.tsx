@@ -72,28 +72,6 @@ import {
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 import { useServicosContratados } from '@/hooks/useServicosContratados';
 
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface ExternalClient {
-  id: string;
-  nome: string;
-  setor_cliente: string | null;
-}
-
-interface TaxCategoria {
-  id: string;
-  nome: string;
-}
-
-interface TaxAreaCategoria {
-  id: string;
-  area_id: string;
-  servico_id: string;
-}
 
 const FiscalProjetosCadastro = () => {
   const { user } = useAuth();
