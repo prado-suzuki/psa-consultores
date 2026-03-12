@@ -3419,16 +3419,16 @@ export default function NewClientModal({
                                       </div>
                                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                                         <FieldPair
-                                          label="Data Emissão"
-                                          value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
-                                        />
-                                        <FieldPair
                                           label="Data Início"
                                           value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"}
                                         />
                                         <FieldPair
                                           label="Data Fim"
                                           value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"}
+                                        />
+                                        <FieldPair
+                                          label="Data Emissão"
+                                          value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
                                         />
                                         {cont.id_produto_segmento && (
                                           <FieldPair
@@ -3441,16 +3441,16 @@ export default function NewClientModal({
                                           />
                                         )}
                                         <FieldPair
+                                          label="Valor do Projeto"
+                                          value={formatCurrencyDisplay(cont.valor_projeto)}
+                                        />
+                                        <FieldPair
                                           label="Situação do Projeto"
                                           value={
                                             SITUACAO_PROJETO_OPTIONS.find(
                                               (o) => o.value === (cont as any).situacao_projeto,
                                             )?.label || "—"
                                           }
-                                        />
-                                        <FieldPair
-                                          label="Valor do Projeto"
-                                          value={formatCurrencyDisplay(cont.valor_projeto)}
                                         />
                                         <div className="col-span-2 grid grid-cols-2 gap-4">
                                           <FieldPair
