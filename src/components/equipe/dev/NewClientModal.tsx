@@ -3519,17 +3519,7 @@ export default function NewClientModal({
                                         Dados da OS — {ec.ordem_servico}
                                       </h5>
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Data de Emissão
-                                          </Label>
-                                          <div className="mt-1">
-                                            <DateFieldWithInput
-                                              value={ec.data_emissao || ""}
-                                              onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })}
-                                            />
-                                          </div>
-                                        </div>
+                                        {/* L1: Data Início | Data Fim */}
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Data Início
@@ -3551,6 +3541,18 @@ export default function NewClientModal({
                                             <DateFieldWithInput
                                               value={ec.data_fim_projeto || ""}
                                               onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })}
+                                            />
+                                          </div>
+                                        </div>
+                                        {/* L2: Data de Emissão | Tipo Produto/Segmento */}
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Data de Emissão
+                                          </Label>
+                                          <div className="mt-1">
+                                            <DateFieldWithInput
+                                              value={ec.data_emissao || ""}
+                                              onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })}
                                             />
                                           </div>
                                         </div>
@@ -3580,6 +3582,18 @@ export default function NewClientModal({
                                             </Select>
                                           </div>
                                         </div>
+                                        {/* L3: Valor do Projeto | Situação do Projeto */}
+                                        <div>
+                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                            Valor do Projeto (R$)
+                                          </Label>
+                                          <div className="mt-1">
+                                            <CurrencyField
+                                              value={ec.valor_projeto || 0}
+                                              onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
+                                            />
+                                          </div>
+                                        </div>
                                         <div>
                                           <Label className="text-xs font-semibold uppercase text-muted-foreground">
                                             Situação do Projeto
@@ -3602,18 +3616,6 @@ export default function NewClientModal({
                                                 ))}
                                               </SelectContent>
                                             </Select>
-                                          </div>
-                                        </div>
-                                        {/* L4: Valor do Projeto */}
-                                        <div className="col-span-2">
-                                          <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                            Valor do Projeto (R$)
-                                          </Label>
-                                          <div className="mt-1">
-                                            <CurrencyField
-                                              value={ec.valor_projeto || 0}
-                                              onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })}
-                                            />
                                           </div>
                                         </div>
                                         {/* L5: Reembolsos lado a lado */}
