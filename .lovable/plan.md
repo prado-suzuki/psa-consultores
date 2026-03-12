@@ -1,27 +1,14 @@
 
 
-# Plano: Remover siglas de setor do dropdown de clientes
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-## Problema
+### Alterações realizadas
 
-Na linha 685 de `FiscalProjetosCadastro.tsx`, o dropdown de clientes exibe:
-```
-{client.nome} {client.setor_cliente && `(${client.setor_cliente})`}
-```
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-O campo `setor_cliente` contém códigos internos como `REV`, `DIV` — siglas sem significado para o usuário. Exemplo: **"Barralcool (REV)"**, **"DK Transportes (DIV)"**.
-
-## Correção
-
-Remover a exibição de `setor_cliente` do `SelectItem`, deixando apenas `client.nome`. Mesma linha, alteração mínima:
-
-```tsx
-// De:
-{client.nome} {client.setor_cliente && `(${client.setor_cliente})`}
-
-// Para:
-{client.nome}
-```
-
-**Arquivo**: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`, linha 685.
-
+Nenhuma alteração em banco, RLS ou outras tabelas.
