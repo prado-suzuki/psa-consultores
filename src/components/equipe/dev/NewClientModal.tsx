@@ -1492,7 +1492,7 @@ export default function NewClientModal({
       });
 
       for (const p of participants) {
-        const pIdField = isProductionEnvironment ? "id" : "id_participante";
+        const pIdField = "id_participante";
         if (p._dbId) {
           const { error } = await (supabase.from(participanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
           if (error) throw error;
