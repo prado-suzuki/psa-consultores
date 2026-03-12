@@ -138,7 +138,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
       </div>
 
       <Sheet open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>
               {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
