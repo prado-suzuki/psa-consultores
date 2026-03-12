@@ -759,13 +759,16 @@ const FiscalProjetosCadastro = () => {
                                 </span>
                               )}
                             </div>
-                            {os.id_servico && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                <Badge variant="secondary" className="text-xs font-normal">
-                                  {os.id_servico}
-                                </Badge>
-                              </div>
-                            )}
+                            {(() => {
+                              const servicoName = getServicoName(os.id_servico);
+                              return servicoName ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  <Badge variant="secondary" className="text-xs font-normal">
+                                    {servicoName}
+                                  </Badge>
+                                </div>
+                              ) : null;
+                            })()}
                           </div>
                         );
                       })}
