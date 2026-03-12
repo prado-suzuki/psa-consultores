@@ -3,8 +3,7 @@
  import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
  import { Button } from '@/components/ui/button';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { useQuery } from '@tanstack/react-query';
- import { supabase } from '@/integrations/supabase/client';
+ import { useTeamMembersForTasks, useTaxProjectsForFilter } from '@/hooks/useTaxReferenceData';
  import { 
    useFiscalTasks, 
    useDeleteFiscalTask,
