@@ -738,11 +738,7 @@ const FiscalProjetosCadastro = () => {
                               <span className="font-medium text-sm">
                                 OS: {getOsLabel(os)}
                               </span>
-                              {isProductionEnvironment && os.situacao && (
-                                <Badge variant="outline" className="text-xs">
-                                  {os.situacao}
-                                </Badge>
-                              )}
+                              {getOsSituacaoBadge(os.situacao)}
                             </div>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                               {os.data_inicio && (
