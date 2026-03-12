@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { isProductionEnvironment } from "@/config/api";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
@@ -393,6 +394,7 @@ export default function NewClientModal({
   readOnly = false,
 }: NewClientModalProps) {
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
@@ -1569,6 +1571,65 @@ export default function NewClientModal({
       queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
+
+      // ─── Audit logs ───────────────────────────────────────────
+      const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
+      logAction({
+        area: 'dev',
+        entity_type: 'cliente',
+        entity_id: auditClienteId,
+        entity_name: clientData.nome.trim(),
+        action: isEditing ? 'updated' : 'created',
+      });
+
+      // Log contribuintes
+      for (const e of entities) {
+        logAction({
+          area: 'dev',
+          entity_type: 'contribuinte',
+          entity_id: e._dbId || auditClienteId,
+          entity_name: e.nome_razao_social,
+          action: e._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log participantes
+      for (const p of participants) {
+        logAction({
+          area: 'dev',
+          entity_type: 'participante',
+          entity_id: p._dbId || auditClienteId,
+          entity_name: p.nome,
+          action: p._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log ordens de serviço
+      for (const c of contracts) {
+        logAction({
+          area: 'dev',
+          entity_type: 'ordem_servico',
+          entity_id: c._dbId || auditClienteId,
+          entity_name: c.ordem_servico || '(sem número)',
+          action: c._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log summary for edits
+      if (isEditing) {
+        logAction({
+          area: 'dev',
+          entity_type: 'cliente',
+          entity_id: auditClienteId,
+          entity_name: clientData.nome.trim(),
+          action: 'updated',
+          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} participantes, ${contracts.length} OS`,
+        });
+      }
+
       toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
       resetAndClose();
     } catch (error: any) {

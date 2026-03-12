@@ -2,9 +2,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCallback } from 'react';
 
+type AuditArea = 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
+
+type AuditEntityType =
+  | 'project' | 'task' | 'subtask'
+  | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
+  | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
+  | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
+
 interface AuditLogEntry {
-  area: 'tax' | 'osg';
-  entity_type: 'project' | 'task' | 'subtask';
+  area: AuditArea;
+  entity_type: AuditEntityType;
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
