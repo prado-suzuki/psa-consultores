@@ -774,8 +774,8 @@ const FiscalProjetosCadastro = () => {
                       })}
                       <p className="text-xs text-muted-foreground">
                         {clienteOS.length > 1
-                          ? 'Clique em uma OS para usar suas datas como sugestão.'
-                          : 'OS selecionada automaticamente. Datas sugeridas no formulário abaixo.'}
+                          ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.`
+                          : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}
                       </p>
                     </div>
                   )}
