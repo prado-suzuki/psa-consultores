@@ -1,34 +1,74 @@
 
 
-## Plano: Conectar tax_areas com estrutura_areas (Etapas 1 e 2)
+## Plano: Adicionar useAuditLog + substituir confirm() em 3 componentes
 
-Escopo restrito conforme solicitado — apenas duas operações, nenhuma alteração em RLS, permissões ou outras tabelas.
+### 1. Expandir tipos do useAuditLog
 
-### Etapa 1 — Migration: adicionar coluna
+O hook atual aceita apenas `area: 'tax' | 'osg'` e `entity_type: 'project' | 'task' | 'subtask'`. Precisa suportar os novos domínios:
 
-Criar uma migration com:
+**`src/hooks/useAuditLog.ts`**:
+- `area`: adicionar `'estrutura'`, `'cadastros'`, `'dev'`
+- `entity_type`: adicionar `'cluster'`, `'area'`, `'equipe'`, `'membro'`, `'lider'`, `'produto_segmento'`, `'servico'`, `'centro_custo'`, `'empresa'`, `'cliente'`, `'contribuinte'`, `'participante'`, `'ordem_servico'`
 
-```sql
-ALTER TABLE public.tax_areas
-ADD COLUMN estrutura_area_id uuid REFERENCES public.estrutura_areas(id) ON DELETE SET NULL;
-```
+---
 
-### Etapa 2 — Data update: popular mapeamentos
+### 2. EstruturaManager.tsx (~724 linhas)
 
-Usar a ferramenta de inserção/update (não migration) para executar:
+**Auditoria** — adicionar `logAction` em 10 operações CUD:
+- `saveCluster` (create/update)
+- `deleteCluster`
+- `saveArea` (create/update)
+- `deleteArea`
+- `setAreaLider` (update)
+- `saveEquipe` (create/update)
+- `deleteEquipe`
+- `addMembro` (create)
+- `removeMembro` (delete)
 
-| tax_areas.id | estrutura_area_id |
+**Substituir confirm()** — 3 ocorrências (linhas 236, 268, 312):
+- Adicionar estado `deleteConfirm: { type, id, label }` + um `AlertDialog` no JSX
+- `deleteCluster`, `deleteArea`, `deleteEquipe` passam a abrir o dialog em vez de chamar `confirm()`
+
+---
+
+### 3. CadastroCategorias.tsx (~601 linhas, 4 sub-tabs)
+
+**Auditoria** — adicionar `logAction` nos `onSuccess` das mutations de cada tab:
+- `ProdutoSegmentoTab`: save (create/update), remove, toggleActive
+- `ServicosTab`: save (create/update), remove
+- `CentroCustoTab`: save (create/update), remove, toggleActive
+- `EmpresaFaturamentoTab`: save (create/update), remove, toggleActive
+
+**Substituir confirm()** — 4 ocorrências (linhas 115, 261, 395, 533):
+- Cada sub-tab ganha estado `deleteTarget` + `AlertDialog` no JSX
+
+**Desafio**: o hook `useAuditLog` usa `useAuth` internamente, mas as sub-tabs são componentes internos. Solução: chamar `useAuditLog()` no componente-pai `CadastroCategorias` e passar `logAction` via props para cada tab. Alternativa mais simples: chamar `useAuditLog()` dentro de cada sub-tab (são componentes React válidos).
+
+---
+
+### 4. NewClientModal.tsx (~4338 linhas)
+
+**Auditoria** — adicionar `logAction` na função `handleSave` (que já é centralizada):
+- Log ao criar/editar cliente
+- Log ao criar/editar contribuintes
+- Log ao criar/editar participantes
+- Log ao criar/editar ordens de serviço
+- Log ao soft-delete (excluido=true) de contribuintes, participantes, OS
+
+O `area` será `'dev'` para este componente.
+
+Este componente já usa `AlertDialog` (importado na linha 9), então **não precisa substituir confirm()**.
+
+---
+
+### Resumo de alterações por arquivo
+
+| Arquivo | Alterações |
 |---|---|
-| `7089d134-5874-4061-a860-05376aa8e02a` | `fd2eab19-e37e-4ddb-9570-5e839d3bfe5e` |
-| `161b52a9-2986-4f56-82cc-9c831f28aa1d` | `5c71affa-59d5-4dfe-bb78-50764a27f1f1` |
-| `55448e04-d9ea-4fd7-bde8-7396fdb01376` | `201bb999-85c8-437b-bd44-201720833cda` |
+| `useAuditLog.ts` | Expandir union types de `area` e `entity_type` |
+| `EstruturaManager.tsx` | +import useAuditLog, +import AlertDialog, +logAction em 10 ops, +estado deleteConfirm, +AlertDialog JSX, -3x confirm() |
+| `CadastroCategorias.tsx` | +import useAuditLog, +import AlertDialog, +logAction em ~12 ops, +estado deleteTarget por tab, +AlertDialog JSX, -4x confirm() |
+| `NewClientModal.tsx` | +import useAuditLog, +logAction em handleSave (~8 pontos de log) |
 
-As demais áreas (Societário, Estudos e Pesquisas) ficam com `NULL`.
-
-### O que NÃO será feito
-
-- Nenhuma alteração de RLS ou policies
-- Nenhuma alteração em `tax_projects.area_id` (continua apontando para `tax_areas`)
-- Nenhuma alteração no frontend
-- Nenhuma alteração em outras tabelas
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
