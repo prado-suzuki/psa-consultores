@@ -171,7 +171,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                             {statusLabels[d.status] || d.status}
                           </Badge>
                         </div>
-                        <p className="font-medium text-sm truncate">{d.title}</p>
+                        <p className="font-medium text-sm break-words">{d.title}</p>
                         {d.profile && (
                           <p className="text-xs text-muted-foreground mt-1">
                             {d.profile.first_name} {d.profile.last_name}
