@@ -1573,7 +1573,7 @@ export default function NewClientModal({
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
 
       // ─── Audit logs ───────────────────────────────────────────
-      const clienteId = isEditing ? editingClienteId! : createdClienteId!;
+      const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
       logAction({
         area: 'dev',
         entity_type: 'cliente',
