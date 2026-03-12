@@ -755,7 +755,6 @@ const FiscalProjetosCadastro = () => {
                               )}
                               {getOsValue(os) != null && (
                                 <span className="flex items-center gap-1">
-                                  <DollarSign className="h-3 w-3" />
                                   {Number(getOsValue(os)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </span>
                               )}
