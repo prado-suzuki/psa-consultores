@@ -75,8 +75,6 @@ import { useServicosContratados } from '@/hooks/useServicosContratados';
 
 const FiscalProjetosCadastro = () => {
   const { user } = useAuth();
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
