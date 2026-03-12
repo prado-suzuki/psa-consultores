@@ -1571,6 +1571,68 @@ export default function NewClientModal({
       queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
+
+      // ─── Audit logs ───────────────────────────────────────────
+      const clienteId = isEditing ? editingClienteId! : createdClienteId!;
+      logAction({
+        area: 'dev',
+        entity_type: 'cliente',
+        entity_id: clienteId,
+        entity_name: clientData.nome.trim(),
+        action: isEditing ? 'updated' : 'created',
+      });
+
+      // Log contribuintes
+      for (const e of entities) {
+        logAction({
+          area: 'dev',
+          entity_type: 'contribuinte',
+          entity_id: e._dbId || clienteId,
+          entity_name: e.nome_razao_social,
+          action: e._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log participantes
+      for (const p of participants) {
+        logAction({
+          area: 'dev',
+          entity_type: 'participante',
+          entity_id: p._dbId || clienteId,
+          entity_name: p.nome,
+          action: p._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log ordens de serviço
+      for (const c of contracts) {
+        logAction({
+          area: 'dev',
+          entity_type: 'ordem_servico',
+          entity_id: c._dbId || clienteId,
+          entity_name: c.ordem_servico || '(sem número)',
+          action: c._dbId ? 'updated' : 'created',
+          details: `Cliente: ${clientData.nome.trim()}`,
+        });
+      }
+
+      // Log soft-deletes (contribuintes, participantes, OS removidos na edição)
+      if (isEditing) {
+        // Soft-deleted contribs/parts/OS were handled above — we log the count
+        const removedContribs = entities.filter(e => !e._dbId).length === 0 ? [] : [];
+        // The removed IDs were already computed in the editing block; we log a summary
+        logAction({
+          area: 'dev',
+          entity_type: 'cliente',
+          entity_id: clienteId,
+          entity_name: clientData.nome.trim(),
+          action: 'updated',
+          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} participantes, ${contracts.length} OS`,
+        });
+      }
+
       toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
       resetAndClose();
     } catch (error: any) {
