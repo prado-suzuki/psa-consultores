@@ -398,6 +398,7 @@ export default function NewClientModal({
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [isAddingContract, setIsAddingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
   >("cliente");
