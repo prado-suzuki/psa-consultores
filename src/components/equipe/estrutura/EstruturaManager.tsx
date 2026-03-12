@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuditLog } from '@/hooks/useAuditLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,74 +10,20 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import {
-  Plus, Trash2, Pencil, Building2, Users, ChevronRight, Network, UserCheck, X
+  Plus, Trash2, Pencil, Building2, Users, Network, UserCheck, X
 } from 'lucide-react';
+import {
+  useEstruturaClusters, useEstruturaAreas, useEstruturaLideres,
+  useEstruturaEquipes, useEstruturaMembros, useEstruturaEmpresas,
+  useEstruturaCentrosCusto, useEstruturaMutations,
+  type Cluster, type Area, type Equipe,
+} from '@/hooks/useEstruturaManager';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-interface Cluster {
-  id: string;
-  name: string;
-  cost_center: string | null;
-  empresa_id: string | null;
-  is_active: boolean;
-}
-
-interface EmpresaFat {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  centro_custo_id: string | null;
-  is_active: boolean;
-}
-
-interface CentroCusto {
-  id: string;
-  codigo: string;
-  nome: string;
-  is_active: boolean;
-}
-
-interface Area {
-  id: string;
-  cluster_id: string;
-  name: string;
-  color: string | null;
-  is_active: boolean;
-  page_categories: string[];
-  cost_center_id: string | null;
-}
-
-interface AreaLider {
-  id: string;
-  area_id: string;
-  user_id: string;
-}
-
-interface Equipe {
-  id: string;
-  area_id: string;
-  name: string;
-  sublider_id: string | null;
-  is_active: boolean;
-}
-
-interface EquipeMembro {
-  id: string;
-  equipe_id: string;
-  user_id: string;
-}
-
 interface Profile {
   id: string;
   first_name: string | null;
@@ -127,90 +72,26 @@ interface DeleteConfirmState {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export default function EstruturaManager() {
-  const qc = useQueryClient();
-  const { logAction } = useAuditLog();
-
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null);
 
-  // Data queries
-  const { data: clusters = [], isLoading: loadingClusters } = useQuery({
-    queryKey: ['estrutura-clusters'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_clusters').select('*').order('name');
-      if (error) throw error;
-      return data as Cluster[];
-    },
-  });
+  // Data queries from hooks
+  const { data: clusters = [], isLoading: loadingClusters } = useEstruturaClusters();
+  const { data: areas = [] } = useEstruturaAreas();
+  const { data: lideres = [] } = useEstruturaLideres();
+  const { data: equipes = [] } = useEstruturaEquipes();
+  const { data: membros = [] } = useEstruturaMembros();
+  const { data: empresas = [] } = useEstruturaEmpresas();
+  const { data: centrosCusto = [] } = useEstruturaCentrosCusto();
 
-  const { data: areas = [] } = useQuery({
-    queryKey: ['estrutura-areas'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_areas').select('*').order('name');
-      if (error) throw error;
-      return data as Area[];
-    },
-  });
-
-  const { data: lideres = [] } = useQuery({
-    queryKey: ['estrutura-lideres'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_area_lideres').select('*');
-      if (error) throw error;
-      return data as AreaLider[];
-    },
-  });
-
-  const { data: equipes = [] } = useQuery({
-    queryKey: ['estrutura-equipes'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_equipes').select('*').order('name');
-      if (error) throw error;
-      return data as Equipe[];
-    },
-  });
-
-  const { data: membros = [] } = useQuery({
-    queryKey: ['estrutura-membros'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_equipe_membros').select('*');
-      if (error) throw error;
-      return data as EquipeMembro[];
-    },
-  });
+  // Mutations from hook
+  const mutations = useEstruturaMutations();
 
   const { data: liderProfiles = [] } = useProfiles('lider');
   const { data: memberProfiles = [] } = useProfiles('team_member');
   const allProfiles = [...liderProfiles, ...memberProfiles].filter(
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
-
-  // Empresas and Centros de Custo for correlation
-  const { data: empresas = [] } = useQuery({
-    queryKey: ['empresas_faturamento'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('empresas_faturamento').select('*').eq('is_active', true).order('nome');
-      if (error) throw error;
-      return data as EmpresaFat[];
-    },
-  });
-
-  const { data: centrosCusto = [] } = useQuery({
-    queryKey: ['centros_custo'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('centros_custo').select('*').eq('is_active', true).order('codigo');
-      if (error) throw error;
-      return data as CentroCusto[];
-    },
-  });
-
-  const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ['estrutura-clusters'] });
-    qc.invalidateQueries({ queryKey: ['estrutura-areas'] });
-    qc.invalidateQueries({ queryKey: ['estrutura-lideres'] });
-    qc.invalidateQueries({ queryKey: ['estrutura-equipes'] });
-    qc.invalidateQueries({ queryKey: ['estrutura-membros'] });
-  };
 
   // Helper to get CC name from empresa
   const getEmpresaCcLabel = (empresaId: string | null) => {
@@ -230,7 +111,6 @@ export default function EstruturaManager() {
   const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
 
   const saveCluster = async () => {
-    if (!clusterForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     const empresaId = clusterForm.empresa_id || null;
     let costCenter = clusterForm.cost_center || null;
     if (empresaId) {
@@ -240,32 +120,12 @@ export default function EstruturaManager() {
         if (cc) costCenter = cc.codigo;
       }
     }
-    if (editingCluster) {
-      const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).eq('id', editingCluster.id);
-      if (error) { toast.error(error.message); return; }
-      toast.success('Cluster atualizado');
-      logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: editingCluster.id, entity_name: clusterForm.name, action: 'updated', changed_fields: { name: { old: editingCluster.name, new: clusterForm.name }, empresa_id: { old: editingCluster.empresa_id, new: empresaId } } });
-    } else {
-      const { data, error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).select('id').single();
-      if (error) { toast.error(error.message); return; }
-      toast.success('Cluster criado');
-      logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: data.id, entity_name: clusterForm.name, action: 'created' });
-    }
+    await mutations.saveCluster({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }, editingCluster);
     setClusterDialog(false);
-    invalidateAll();
   };
 
   const confirmDeleteCluster = (cluster: Cluster) => {
     setDeleteConfirm({ type: 'cluster', id: cluster.id, label: cluster.name });
-  };
-
-  const executeDeleteCluster = async (id: string) => {
-    const cluster = clusters.find(c => c.id === id);
-    const { error } = await supabase.from('estrutura_clusters').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Cluster excluído');
-    logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: id, entity_name: cluster?.name || id, action: 'deleted' });
-    invalidateAll();
   };
 
   // ─── Area CRUD ────────────────────────────────────────────────────
@@ -277,48 +137,19 @@ export default function EstruturaManager() {
   const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
 
   const saveArea = async () => {
-    if (!areaForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    const ccId = areaForm.cost_center_id || null;
-    if (editingArea) {
-      const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories, cost_center_id: ccId }).eq('id', editingArea.id);
-      if (error) { toast.error(error.message); return; }
-      toast.success('Área atualizada');
-      logAction({ area: 'estrutura', entity_type: 'area', entity_id: editingArea.id, entity_name: areaForm.name, action: 'updated', changed_fields: { name: { old: editingArea.name, new: areaForm.name }, color: { old: editingArea.color, new: areaForm.color }, page_categories: { old: editingArea.page_categories, new: areaForm.page_categories } } });
-    } else {
-      const { data, error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: ccId }).select('id').single();
-      if (error) { toast.error(error.message); return; }
-      toast.success('Área criada');
-      logAction({ area: 'estrutura', entity_type: 'area', entity_id: data.id, entity_name: areaForm.name, action: 'created' });
-    }
+    await mutations.saveArea({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: areaForm.cost_center_id || null }, editingArea);
     setAreaDialog(false);
-    invalidateAll();
   };
 
   const confirmDeleteArea = (area: Area) => {
     setDeleteConfirm({ type: 'area', id: area.id, label: area.name });
   };
 
-  const executeDeleteArea = async (id: string) => {
-    const area = areas.find(a => a.id === id);
-    const { error } = await supabase.from('estrutura_areas').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Área excluída');
-    logAction({ area: 'estrutura', entity_type: 'area', entity_id: id, entity_name: area?.name || id, action: 'deleted' });
-    invalidateAll();
-  };
-
   // ─── Lider ────────────────────────────────────────────────────────
-  const setAreaLider = async (areaId: string, userId: string | null) => {
+  const handleSetAreaLider = async (areaId: string, userId: string | null) => {
     const oldLider = lideres.find(l => l.area_id === areaId);
-    await supabase.from('estrutura_area_lideres').delete().eq('area_id', areaId);
-    if (userId) {
-      const { error } = await supabase.from('estrutura_area_lideres').insert({ area_id: areaId, user_id: userId });
-      if (error) { toast.error(error.message); return; }
-    }
-    toast.success('Líder atualizado');
     const area = areas.find(a => a.id === areaId);
-    logAction({ area: 'estrutura', entity_type: 'lider', entity_id: areaId, entity_name: area?.name || areaId, action: 'updated', changed_fields: { user_id: { old: oldLider?.user_id || null, new: userId } } });
-    invalidateAll();
+    await mutations.setAreaLider(areaId, userId, area?.name || areaId, oldLider?.user_id || null);
   };
 
   // ─── Equipe CRUD ──────────────────────────────────────────────────
@@ -330,55 +161,25 @@ export default function EstruturaManager() {
   const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, sublider_id: e.sublider_id || '' }); setEquipeDialog(true); };
 
   const saveEquipe = async () => {
-    if (!equipeForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    const payload = { name: equipeForm.name, sublider_id: equipeForm.sublider_id || null, area_id: equipeForm.area_id };
-    if (editingEquipe) {
-      const { error } = await supabase.from('estrutura_equipes').update({ name: payload.name, sublider_id: payload.sublider_id }).eq('id', editingEquipe.id);
-      if (error) { toast.error(error.message); return; }
-      toast.success('Equipe atualizada');
-      logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: editingEquipe.id, entity_name: equipeForm.name, action: 'updated', changed_fields: { name: { old: editingEquipe.name, new: equipeForm.name }, sublider_id: { old: editingEquipe.sublider_id, new: payload.sublider_id } } });
-    } else {
-      const { data, error } = await supabase.from('estrutura_equipes').insert(payload).select('id').single();
-      if (error) { toast.error(error.message); return; }
-      toast.success('Equipe criada');
-      logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: data.id, entity_name: equipeForm.name, action: 'created' });
-    }
+    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, sublider_id: equipeForm.sublider_id || null }, editingEquipe);
     setEquipeDialog(false);
-    invalidateAll();
   };
 
   const confirmDeleteEquipe = (equipe: Equipe) => {
     setDeleteConfirm({ type: 'equipe', id: equipe.id, label: equipe.name });
   };
 
-  const executeDeleteEquipe = async (id: string) => {
-    const equipe = equipes.find(e => e.id === id);
-    const { error } = await supabase.from('estrutura_equipes').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Equipe excluída');
-    logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: id, entity_name: equipe?.name || id, action: 'deleted' });
-    invalidateAll();
-  };
-
   // ─── Membros ──────────────────────────────────────────────────────
-  const addMembro = async (equipeId: string, userId: string) => {
-    const { data, error } = await supabase.from('estrutura_equipe_membros').insert({ equipe_id: equipeId, user_id: userId }).select('id').single();
-    if (error) { toast.error(error.message); return; }
-    toast.success('Membro adicionado');
+  const handleAddMembro = async (equipeId: string, userId: string) => {
     const equipe = equipes.find(e => e.id === equipeId);
     const profile = allProfiles.find(p => p.id === userId);
-    logAction({ area: 'estrutura', entity_type: 'membro', entity_id: data.id, entity_name: profile ? profileLabel(profile) : userId, action: 'created', details: `Adicionado à equipe ${equipe?.name || equipeId}` });
-    invalidateAll();
+    await mutations.addMembro(equipeId, userId, equipe?.name || equipeId, profile ? profileLabel(profile) : userId);
   };
 
-  const removeMembro = async (id: string) => {
+  const handleRemoveMembro = async (id: string) => {
     const membro = membros.find(m => m.id === id);
-    const { error } = await supabase.from('estrutura_equipe_membros').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Membro removido');
     const profile = membro ? allProfiles.find(p => p.id === membro.user_id) : null;
-    logAction({ area: 'estrutura', entity_type: 'membro', entity_id: id, entity_name: profile ? profileLabel(profile) : id, action: 'deleted' });
-    invalidateAll();
+    await mutations.removeMembro(id, profile ? profileLabel(profile) : id);
   };
 
   // ─── Handle delete confirmation ───────────────────────────────────
@@ -386,9 +187,16 @@ export default function EstruturaManager() {
     if (!deleteConfirm) return;
     const { type, id } = deleteConfirm;
     setDeleteConfirm(null);
-    if (type === 'cluster') await executeDeleteCluster(id);
-    else if (type === 'area') await executeDeleteArea(id);
-    else if (type === 'equipe') await executeDeleteEquipe(id);
+    if (type === 'cluster') {
+      const cluster = clusters.find(c => c.id === id);
+      if (cluster) await mutations.deleteCluster(cluster);
+    } else if (type === 'area') {
+      const area = areas.find(a => a.id === id);
+      if (area) await mutations.deleteArea(area);
+    } else if (type === 'equipe') {
+      const equipe = equipes.find(e => e.id === id);
+      if (equipe) await mutations.deleteEquipe(equipe);
+    }
   };
 
   const getDeleteMessage = () => {
@@ -524,7 +332,7 @@ export default function EstruturaManager() {
                                     <Label className="text-xs text-slate-600 shrink-0">Líder Responsável:</Label>
                                     <Select
                                       value={areaLider?.user_id || ''}
-                                      onValueChange={(val) => setAreaLider(area.id, val || null)}
+                                      onValueChange={(val) => handleSetAreaLider(area.id, val || null)}
                                     >
                                       <SelectTrigger className="h-8 text-xs max-w-[250px]">
                                         <SelectValue placeholder="Selecionar líder..." />
@@ -584,7 +392,7 @@ export default function EstruturaManager() {
                                                 return (
                                                   <Badge key={m.id} variant="secondary" className="text-xs gap-1 pr-1">
                                                     {profile ? profileLabel(profile) : m.user_id.slice(0, 8)}
-                                                    <button onClick={() => removeMembro(m.id)} className="hover:text-destructive ml-0.5">
+                                                    <button onClick={() => handleRemoveMembro(m.id)} className="hover:text-destructive ml-0.5">
                                                       <X className="h-3 w-3" />
                                                     </button>
                                                   </Badge>
@@ -594,7 +402,7 @@ export default function EstruturaManager() {
 
                                             {/* Add member */}
                                             {availableMembers.length > 0 && (
-                                              <Select onValueChange={(val) => addMembro(equipe.id, val)}>
+                                              <Select onValueChange={(val) => handleAddMembro(equipe.id, val)}>
                                                 <SelectTrigger className="h-7 text-xs max-w-[220px]">
                                                   <SelectValue placeholder="+ Adicionar membro..." />
                                                 </SelectTrigger>
