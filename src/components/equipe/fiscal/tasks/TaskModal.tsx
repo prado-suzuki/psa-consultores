@@ -104,20 +104,28 @@ export const TaskModal = ({
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
 
-  // Fetch projects for Tax area (include area_id for member filtering)
-  const { data: projects = [] } = useQuery({
-    queryKey: ['fiscal-projects-for-tasks'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tax_projects')
-        .select('id, name, external_client_id, area_id')
-        .eq('status', 'active')
-        .order('name');
-      return data || [];
-    },
-    enabled: open,
-  });
+  // ── Hooks centralizados ──────────────────────────────────────────────
+  const { data: projects = [] } = useTaxProjectsList(true);
+  const { data: taxAreas = [] } = useTaxAreas();
 
+  // Resolve estrutura_area_id from the selected project's tax_area
+  const watchedProjectId = useFormWatch('project_id');
+  
+  const selectedProjectAreaId = useMemo(() => {
+    if (!watchedProjectId) return null;
+    const proj = projects.find(p => p.id === watchedProjectId);
+    return proj?.area_id || null;
+  }, [watchedProjectId, projects]);
+
+  const estruturaAreaId = useMemo(() => {
+    if (!selectedProjectAreaId) return null;
+    const area = taxAreas.find(a => a.id === selectedProjectAreaId);
+    return area?.estrutura_area_id || null;
+  }, [selectedProjectAreaId, taxAreas]);
+
+  const { allMemberIds: areaMemberIds } = useEstruturaArea(estruturaAreaId);
+
+  // ── Queries que permanecem inline ────────────────────────────────────
 
   // Fetch clients
   const { data: clients = [] } = useQuery({
@@ -132,7 +140,6 @@ export const TaskModal = ({
     },
     enabled: open,
   });
-
 
   const [tagInput, setTagInput] = useState('');
   const [showDraftNotice, setShowDraftNotice] = useState(false);
@@ -150,6 +157,11 @@ export const TaskModal = ({
     },
   });
 
+  // We need a helper since we use form.watch before form is fully initialized in the closure
+  function useFormWatch(field: keyof TaskFormValues) {
+    return form.watch(field) as string | undefined;
+  }
+
   // Draft persistence – only active for new tasks (not editing)
   const watchedValues = form.watch();
   const draftEnabled = open && !isEditing;
@@ -160,61 +172,7 @@ export const TaskModal = ({
     user?.id,
   );
 
-  const watchedProjectId = form.watch('project_id');
   const watchedClientId = form.watch('client_id');
-
-  // Resolve estrutura_area_id from the selected project's tax_area
-  const selectedProjectAreaId = useMemo(() => {
-    if (!watchedProjectId) return null;
-    const proj = projects.find(p => p.id === watchedProjectId);
-    return proj?.area_id || null;
-  }, [watchedProjectId, projects]);
-
-  const { data: estruturaAreaId } = useQuery({
-    queryKey: ['tax-area-estrutura', selectedProjectAreaId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tax_areas')
-        .select('estrutura_area_id')
-        .eq('id', selectedProjectAreaId!)
-        .single();
-      return data?.estrutura_area_id || null;
-    },
-    enabled: open && !!selectedProjectAreaId,
-  });
-
-  // Fetch all members belonging to the estrutura area
-  const { data: areaMemberIds = [] } = useQuery({
-    queryKey: ['area-members-for-task', estruturaAreaId],
-    queryFn: async () => {
-      const ids = new Set<string>();
-
-      const { data: leaders } = await supabase
-        .from('estrutura_area_lideres')
-        .select('user_id')
-        .eq('area_id', estruturaAreaId!);
-      leaders?.forEach(l => ids.add(l.user_id));
-
-      const { data: equipes } = await supabase
-        .from('estrutura_equipes')
-        .select('id, sublider_id')
-        .eq('area_id', estruturaAreaId!)
-        .eq('is_active', true);
-      equipes?.forEach(e => { if (e.sublider_id) ids.add(e.sublider_id); });
-
-      const equipeIds = (equipes || []).map(e => e.id);
-      if (equipeIds.length > 0) {
-        const { data: membros } = await supabase
-          .from('estrutura_equipe_membros')
-          .select('user_id')
-          .in('equipe_id', equipeIds);
-        membros?.forEach(m => ids.add(m.user_id));
-      }
-
-      return Array.from(ids);
-    },
-    enabled: open && !!estruturaAreaId,
-  });
 
   // Filtered team members for Responsável dropdown
   const filteredTeamMembers = useMemo(() => {
@@ -245,7 +203,6 @@ export const TaskModal = ({
     if (current !== undefined) {
       form.setValue('contribuinte_id', undefined);
     }
-    // Clear project if it doesn't belong to the new client
     const currentProject = form.getValues('project_id');
     if (currentProject && watchedClientId) {
       const proj = projects.find(p => p.id === currentProject);
@@ -341,7 +298,6 @@ export const TaskModal = ({
       });
     } else {
       isResettingRef.current = true;
-      // Try to restore draft first
       const draft = restoreDraft();
       if (draft && draft.title) {
         form.reset(draft);
@@ -938,11 +894,8 @@ export const TaskModal = ({
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit"
-                disabled={createTask.isPending || updateTask.isPending}
-              >
-                {isEditing ? 'Salvar' : 'Criar Tarefa'}
+              <Button type="submit" disabled={createTask.isPending || updateTask.isPending}>
+                {isEditing ? 'Salvar' : 'Criar'}
               </Button>
             </div>
           </form>

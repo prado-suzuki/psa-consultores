@@ -45,27 +45,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { useAuditLog } from '@/hooks/useAuditLog';
-
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-  responsible_id: string | null;
-  leader_id: string | null;
-  external_client_id: string | null;
-  contribuinte_id: string | null;
-  area_id: string | null;
-  objective: string | null;
-}
+import { useTaxAreas } from '@/hooks/useTaxAreas';
+import {
+  useTaxProjects,
+  useProjectMembers,
+  useProjectServicos,
+  useProjectHours,
+  useCreateTaxProject,
+  useUpdateTaxProject,
+  useDeleteTaxProject,
+  TaxProject,
+} from '@/hooks/useTaxProjects';
+import { useEstruturaArea } from '@/hooks/useEstruturaArea';
+import { useServicosContratados } from '@/hooks/useServicosContratados';
 
 interface Profile {
   id: string;
@@ -77,12 +73,6 @@ interface ExternalClient {
   id: string;
   nome: string;
   setor_cliente: string | null;
-}
-
-interface TaxArea {
-  id: string;
-  nome: string;
-  estrutura_area_id: string | null;
 }
 
 interface TaxCategoria {
@@ -97,13 +87,11 @@ interface TaxAreaCategoria {
 }
 
 const FiscalProjetosCadastro = () => {
-  const { logAction } = useAuditLog();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
   const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -121,18 +109,31 @@ const FiscalProjetosCadastro = () => {
     member_ids: [] as string[],
   });
 
-  // Fetch tax_areas (FK correta para tax_projects.area_id)
-  const { data: taxAreas = [] } = useQuery({
-    queryKey: ['tax-areas-for-projects'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tax_areas')
-        .select('id, nome, estrutura_area_id')
-        .order('nome');
-      if (error) throw error;
-      return data as TaxArea[];
-    },
-  });
+  // ── Hooks centralizados ──────────────────────────────────────────────
+  const { data: taxAreas = [] } = useTaxAreas();
+  const { data: projects = [], isLoading } = useTaxProjects();
+  const { data: projectHours = {} } = useProjectHours();
+  const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
+  const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
+
+  // Derive estruturaAreaId from selected tax area
+  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
+  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+
+  const {
+    liderIds: areaLiderIds,
+    subliderIds: areaSubliderIds,
+    memberIds: areaMemberIds,
+  } = useEstruturaArea(estruturaAreaId);
+
+  const { suggestedCategoryIds } = useServicosContratados(formData.external_client_id || null);
+  const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
+
+  const createProject = useCreateTaxProject();
+  const updateProject = useUpdateTaxProject();
+  const deleteProjectMut = useDeleteTaxProject();
+
+  // ── Queries que permanecem inline (contextuais) ──────────────────────
 
   // Fetch servicos_prestados
   const { data: taxCategorias = [] } = useQuery({
@@ -143,24 +144,6 @@ const FiscalProjetosCadastro = () => {
         .order('nome');
       if (error) throw error;
       return data as TaxCategoria[];
-    },
-  });
-
-  // Fetch aggregated estimated hours per project from fiscal_tasks
-  const { data: projectHours = {} } = useQuery({
-    queryKey: ['fiscal-project-hours'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fiscal_tasks')
-        .select('project_id, estimated_hours');
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      (data || []).forEach((t: any) => {
-        if (t.project_id && t.estimated_hours) {
-          map[t.project_id] = (map[t.project_id] || 0) + t.estimated_hours;
-        }
-      });
-      return map;
     },
   });
 
@@ -175,7 +158,7 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Fetch team members (profiles_safe - accessible to all team members)
+  // Fetch team members (profiles_safe)
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members-profiles-safe'],
     queryFn: async () => {
@@ -201,60 +184,6 @@ const FiscalProjetosCadastro = () => {
     },
   });
 
-  // Derive estruturaAreaId from selected tax area
-  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
-  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
-
-  // Fetch area leaders from estrutura_area_lideres
-  const { data: areaLiderIds = [] } = useQuery({
-    queryKey: ['area-lideres', estruturaAreaId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_area_lideres')
-        .select('user_id')
-        .eq('area_id', estruturaAreaId!);
-      if (error) throw error;
-      return (data || []).map(d => d.user_id);
-    },
-    enabled: !!estruturaAreaId,
-  });
-
-  // Fetch area subleaders from estrutura_equipes
-  const { data: areaSubliderIds = [] } = useQuery({
-    queryKey: ['area-sublideres', estruturaAreaId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_equipes')
-        .select('sublider_id')
-        .eq('area_id', estruturaAreaId!)
-        .not('sublider_id', 'is', null);
-      if (error) throw error;
-      return [...new Set((data || []).map(d => d.sublider_id!))];
-    },
-    enabled: !!estruturaAreaId,
-  });
-
-  // Fetch area members from estrutura_equipe_membros via equipes
-  const { data: areaMemberIds = [] } = useQuery({
-    queryKey: ['area-membros', estruturaAreaId],
-    queryFn: async () => {
-      // First get equipe ids for this area
-      const { data: equipes, error: eErr } = await supabase
-        .from('estrutura_equipes')
-        .select('id')
-        .eq('area_id', estruturaAreaId!);
-      if (eErr) throw eErr;
-      if (!equipes?.length) return [];
-      const { data: members, error: mErr } = await supabase
-        .from('estrutura_equipe_membros')
-        .select('user_id')
-        .in('equipe_id', equipes.map(e => e.id));
-      if (mErr) throw mErr;
-      return [...new Set((members || []).map(m => m.user_id))];
-    },
-    enabled: !!estruturaAreaId,
-  });
-
   // Filtered lists based on roles + area structure
   const lideres = useMemo(() => {
     const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
@@ -262,7 +191,7 @@ const FiscalProjetosCadastro = () => {
     if (estruturaAreaId && areaLiderIds.length > 0) {
       const selectedSet = new Set(formData.leader_ids);
       const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
-      return filtered.length > 0 ? filtered : allLideres; // fallback
+      return filtered.length > 0 ? filtered : allLideres;
     }
     return allLideres;
   }, [teamMembers, userRoles, estruturaAreaId, areaLiderIds, formData.leader_ids]);
@@ -273,7 +202,7 @@ const FiscalProjetosCadastro = () => {
     if (estruturaAreaId && areaSubliderIds.length > 0) {
       const selectedSet = new Set(formData.sublider_ids);
       const filtered = allSublideres.filter(m => areaSubliderIds.includes(m.id) || selectedSet.has(m.id));
-      return filtered.length > 0 ? filtered : allSublideres; // fallback
+      return filtered.length > 0 ? filtered : allSublideres;
     }
     return allSublideres;
   }, [teamMembers, userRoles, estruturaAreaId, areaSubliderIds, formData.sublider_ids]);
@@ -312,7 +241,6 @@ const FiscalProjetosCadastro = () => {
       if (error) throw error;
       const list = data as ExternalClient[];
 
-      // Fallback: if editing and the client ID is not in the current env table, fetch from the other
       const editClientId = editingProject?.external_client_id;
       if (editClientId && !list.some(c => c.id === editClientId)) {
         const { data: fallback } = await supabase
@@ -342,7 +270,6 @@ const FiscalProjetosCadastro = () => {
       if (error) throw error;
       let list = data as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
 
-      // Fallback: if no results, try the other environment table
       if (list.length === 0) {
         const { data: fallback } = await supabase
           .from(fallbackContribuinteTable)
@@ -375,40 +302,6 @@ const FiscalProjetosCadastro = () => {
     enabled: !!formData.external_client_id,
   });
 
-  // Fetch suggested category IDs based on client's active OS → produto_servico mapping
-  const { data: suggestedCategoryIds = [] } = useQuery({
-    queryKey: ['suggested-categories', formData.external_client_id],
-    queryFn: async () => {
-      if (!formData.external_client_id) return [];
-
-      // 1. Buscar OS ativas do cliente com id_servico
-      const { data: osData } = await (supabase
-        .from('ordem_servico' as any) as any)
-        .select('id_servico')
-        .eq('id_cliente', formData.external_client_id)
-        .eq('situacao', 'em_andamento')
-        .eq('excluido', false);
-
-      if (!osData?.length) return [];
-
-      // 2. Extrair UUIDs de serviço direto (campo único, não mais JSONB)
-      const servicoIds = [...new Set(
-        osData
-          .map((os: any) => os.id_servico)
-          .filter(Boolean)
-      )];
-
-      if (!servicoIds.length) return [];
-
-      // 3. Buscar mapeamento produto → serviço (retornar os serviço IDs diretamente)
-      // Since id_servico already points to servicos_prestados, return them directly
-      return servicoIds;
-    },
-    enabled: !!formData.external_client_id,
-  });
-
-  const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
-
   // Helper to get OS id regardless of environment
   const getOsId = (os: any): string => os.id;
   const getOsLabel = (os: any): string => os.numero_os || 'Sem número';
@@ -439,106 +332,6 @@ const FiscalProjetosCadastro = () => {
       end_date: prev.end_date || (os as any).data_fim || '',
     }));
   }, [selectedOsId]);
-
-  // Fetch projects with area join
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['fiscal-projects-tax-area', clienteTable, contribuinteTable],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tax_projects')
-        .select(`
-          *,
-          responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
-          leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
-        `)
-        .order('name');
-      if (error) throw error;
-
-      // Resolve external_client and contribuinte names via environment-aware tables
-      const clientIds = [...new Set((data || []).filter(p => p.external_client_id).map(p => p.external_client_id as string))];
-      const contribIds = [...new Set((data || []).filter(p => p.contribuinte_id).map(p => p.contribuinte_id as string))];
-
-      const clientMap: Record<string, string> = {};
-      const contribMap: Record<string, string> = {};
-
-      if (clientIds.length > 0) {
-        const { data: clients } = await supabase
-          .from(clienteTable)
-          .select('id, nome')
-          .in('id', clientIds);
-        (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
-
-        // Fallback: IDs not found in dev table → try production table
-        if (!isProductionEnvironment) {
-          const missingClientIds = clientIds.filter(id => !clientMap[id]);
-          if (missingClientIds.length > 0) {
-            const { data: fallback } = await supabase
-              .from('cliente')
-              .select('id, nome')
-              .in('id', missingClientIds);
-            (fallback || []).forEach(c => { clientMap[c.id] = c.nome; });
-          }
-        }
-      }
-
-      if (contribIds.length > 0) {
-        const { data: contribs } = await supabase
-          .from(contribuinteTable)
-          .select('id, nome_razao_social')
-          .in('id', contribIds)
-          .eq('excluido', false);
-        (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-
-        // Fallback: IDs not found in dev table → try production table
-        if (!isProductionEnvironment) {
-          const missingContribIds = contribIds.filter(id => !contribMap[id]);
-          if (missingContribIds.length > 0) {
-            const { data: fallback } = await supabase
-              .from('contribuinte')
-              .select('id, nome_razao_social')
-              .in('id', missingContribIds);
-            (fallback || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-          }
-        }
-      }
-
-      return (data || []).map(p => ({
-        ...p,
-        external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
-        contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
-      }));
-    },
-  });
-
-  // Fetch project members when editing
-  const { data: currentProjectMembers = [] } = useQuery({
-    queryKey: ['tax-project-members', editingProject?.id],
-    queryFn: async () => {
-      if (!editingProject?.id) return [];
-      const { data, error } = await supabase
-        .from('tax_project_members')
-        .select('user_id, role')
-        .eq('project_id', editingProject.id);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!editingProject?.id,
-  });
-
-  // Fetch project servicos when editing
-  const { data: currentProjectCategories = [] } = useQuery({
-    queryKey: ['project-servicos', editingProject?.id],
-    queryFn: async () => {
-      if (!editingProject?.id) return [];
-      const { data, error } = await (supabase.from('project_servicos' as any) as any)
-        .select('servico_id')
-        .eq('project_id', editingProject.id);
-      if (error) throw error;
-      return data as { servico_id: string }[];
-    },
-    enabled: !!editingProject?.id,
-  });
 
   // Track previous area_id to detect user-driven changes
   const [prevAreaId, setPrevAreaId] = useState('');
@@ -604,209 +397,6 @@ const FiscalProjetosCadastro = () => {
     }
   }, [editingProject, currentProjectCategories]);
 
-  const createProject = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { data: project, error } = await supabase.from('tax_projects').insert({
-        name: data.name,
-        description: data.description || null,
-        status: data.status,
-        start_date: data.start_date || null,
-        end_date: data.end_date || null,
-        responsible_id: data.leader_ids[0] || null,
-        leader_id: data.leader_ids[0] || null,
-        external_client_id: data.external_client_id || null,
-        contribuinte_id: data.contribuinte_id || null,
-        area_id: data.area_id || null,
-        objective: data.objective || null,
-        created_by: user?.id || null,
-      }).select('id').single();
-      if (error) throw error;
-
-      // Insert project servicos
-      if (data.category_ids.length > 0) {
-        const categoryRows = data.category_ids.map(catId => ({
-          project_id: project.id,
-          servico_id: catId,
-        }));
-        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(categoryRows);
-        if (catError) throw catError;
-      }
-
-      // Insert project members
-      const members: { project_id: string; user_id: string; role: string }[] = [];
-      for (const uid of data.leader_ids) {
-        members.push({ project_id: project.id, user_id: uid, role: 'leader' });
-      }
-      for (const uid of data.sublider_ids) {
-        if (!members.some(m => m.user_id === uid)) {
-          members.push({ project_id: project.id, user_id: uid, role: 'sublider' });
-        }
-      }
-      for (const uid of data.member_ids) {
-        if (!members.some(m => m.user_id === uid)) {
-          members.push({ project_id: project.id, user_id: uid, role: 'member' });
-        }
-      }
-      if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').insert(members);
-        if (membersError) throw membersError;
-      }
-
-      await logAction({
-        area: 'tax', entity_type: 'project', entity_id: project.id,
-        entity_name: data.name, action: 'created',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
-      toast.success('Projeto criado com sucesso');
-      handleCloseModal();
-    },
-    onError: (error) => {
-      toast.error('Erro ao criar projeto: ' + error.message);
-    },
-  });
-
-  const updateProject = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
-      const changedFields: Record<string, { old: unknown; new: unknown }> = {};
-      if (editingProject) {
-        const ep = editingProject as any;
-        const comparisons: [string, unknown, unknown][] = [
-          ['name', ep.name, data.name],
-          ['status', ep.status, data.status],
-          ['start_date', ep.start_date || null, data.start_date || null],
-          ['end_date', ep.end_date || null, data.end_date || null],
-          ['area_id', ep.area_id || null, data.area_id || null],
-          ['description', ep.description || null, data.description || null],
-          ['responsible_id', ep.responsible_id || null, data.leader_ids[0] || null],
-          ['leader_id', ep.leader_id || null, data.leader_ids[0] || null],
-          ['external_client_id', ep.external_client_id || null, data.external_client_id || null],
-          ['contribuinte_id', ep.contribuinte_id || null, data.contribuinte_id || null],
-          ['objective', ep.objective || null, data.objective || null],
-        ];
-        for (const [field, oldVal, newVal] of comparisons) {
-          if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
-        }
-        // Compare category_ids arrays
-        const oldCatIds = currentProjectCategories.map((c: any) => c.servico_id).sort();
-        const newCatIds = [...data.category_ids].sort();
-        if (JSON.stringify(oldCatIds) !== JSON.stringify(newCatIds)) {
-          changedFields.category_ids = { old: oldCatIds, new: newCatIds };
-        }
-        // Compare member_ids arrays
-        const oldMemberIds = currentProjectMembers
-          .filter(m => m.role === 'member')
-          .map(m => m.user_id)
-          .sort();
-        const newMemberIds = [...data.member_ids].sort();
-        if (JSON.stringify(oldMemberIds) !== JSON.stringify(newMemberIds)) {
-          changedFields.member_ids = { old: oldMemberIds, new: newMemberIds };
-        }
-      }
-
-      const { error } = await supabase
-        .from('tax_projects')
-        .update({
-          name: data.name,
-          description: data.description || null,
-          status: data.status,
-          start_date: data.start_date || null,
-          end_date: data.end_date || null,
-          responsible_id: data.leader_ids[0] || null,
-          leader_id: data.leader_ids[0] || null,
-          external_client_id: data.external_client_id || null,
-          contribuinte_id: data.contribuinte_id || null,
-          area_id: data.area_id || null,
-          objective: data.objective || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
-
-      // Upsert project servicos + remove stale ones
-      if (data.category_ids.length > 0) {
-        const categoryRows = data.category_ids.map(catId => ({
-          project_id: id,
-          servico_id: catId,
-        }));
-        await (supabase.from('project_servicos' as any) as any).upsert(categoryRows, { onConflict: 'project_id,servico_id' });
-      }
-      // Remove servicos no longer selected
-      const oldCatIdsList = currentProjectCategories.map((c: any) => c.servico_id);
-      const removedCats = oldCatIdsList.filter((cid: string) => !data.category_ids.includes(cid));
-      if (removedCats.length > 0) {
-        await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id).in('servico_id', removedCats);
-      }
-
-      // Upsert project members + remove stale ones
-      const members: { project_id: string; user_id: string; role: string }[] = [];
-      for (const uid of data.leader_ids) {
-        members.push({ project_id: id, user_id: uid, role: 'leader' });
-      }
-      for (const uid of data.sublider_ids) {
-        if (!members.some(m => m.user_id === uid)) {
-          members.push({ project_id: id, user_id: uid, role: 'sublider' });
-        }
-      }
-      for (const uid of data.member_ids) {
-        if (!members.some(m => m.user_id === uid)) {
-          members.push({ project_id: id, user_id: uid, role: 'member' });
-        }
-      }
-      if (members.length > 0) {
-        const { error: membersError } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id' });
-        if (membersError) throw membersError;
-      }
-      // Remove members no longer in the list
-      const newMemberUserIds = new Set(members.map(m => m.user_id));
-      const oldMemberUserIds = currentProjectMembers.map(m => m.user_id);
-      const removedMembers = oldMemberUserIds.filter(uid => !newMemberUserIds.has(uid));
-      if (removedMembers.length > 0) {
-        await supabase.from('tax_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
-      }
-
-      // Only log if something actually changed
-      if (Object.keys(changedFields).length > 0) {
-        await logAction({
-          area: 'tax', entity_type: 'project', entity_id: id,
-          entity_name: data.name, action: 'updated',
-          changed_fields: changedFields,
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
-      queryClient.invalidateQueries({ queryKey: ['tax-project-members'] });
-      queryClient.invalidateQueries({ queryKey: ['tax-project-categorias'] });
-      toast.success('Projeto atualizado');
-      handleCloseModal();
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar: ' + error.message);
-    },
-  });
-
-  const deleteProject = useMutation({
-    mutationFn: async (id: string) => {
-      const project = projects.find((p: any) => p.id === id);
-      const { error } = await supabase.from('tax_projects').delete().eq('id', id);
-      if (error) throw error;
-
-      await logAction({
-        area: 'tax', entity_type: 'project', entity_id: id,
-        entity_name: project?.name || 'Projeto excluído', action: 'deleted',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fiscal-projects-tax-area'] });
-      toast.success('Projeto excluído');
-      setDeleteProjectId(null);
-    },
-    onError: (error) => {
-      toast.error('Erro ao excluir: ' + error.message);
-    },
-  });
-
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
@@ -858,9 +448,18 @@ const FiscalProjetosCadastro = () => {
       return;
     }
     if (editingProject) {
-      updateProject.mutate({ id: editingProject.id, ...formData });
+      updateProject.mutate(
+        {
+          id: editingProject.id,
+          data: formData,
+          oldProject: editingProject,
+          oldMembers: currentProjectMembers,
+          oldCategoryIds: currentProjectCategories.map((c: any) => c.servico_id),
+        },
+        { onSuccess: handleCloseModal }
+      );
     } else {
-      createProject.mutate(formData);
+      createProject.mutate(formData, { onSuccess: handleCloseModal });
     }
   };
 
@@ -907,14 +506,12 @@ const FiscalProjetosCadastro = () => {
     const selectedSet = new Set(formData.member_ids);
 
     if (estruturaAreaId) {
-      // Area-based: show all members of the area
       if (areaMemberIds.length === 0 && selectedSet.size === 0) return [];
       return teamMembers.filter(
         m => !excludeIds.has(m.id) && (areaMemberIds.includes(m.id) || selectedSet.has(m.id))
       );
     }
 
-    // Legacy: sublider-based filtering
     if (formData.sublider_ids.length === 0 && selectedSet.size === 0) return [];
     return teamMembers.filter(
       m => !excludeIds.has(m.id) && (filteredMemberIds.includes(m.id) || selectedSet.has(m.id))
@@ -947,40 +544,37 @@ const FiscalProjetosCadastro = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
+                  <TableHead>Projeto</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Contribuinte</TableHead>
                   <TableHead>Área</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Término</TableHead>
-                  <TableHead>Horas Est.</TableHead>
+                  <TableHead>Horas</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-500">
-                      Carregando...
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      Carregando projetos...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-500">
-                      Nenhum projeto cadastrado
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      Nenhum projeto cadastrado.
                     </TableCell>
                   </TableRow>
                 ) : (
                   projects.map((project: any) => (
                     <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                       <TableCell>
-                        <div>
+                        <div className="flex items-center gap-2">
+                          <FolderKanban className="h-4 w-4 text-emerald-600" />
                           <span className="font-medium">{project.name}</span>
-                          {project.objective && (
-                            <p className="text-xs text-slate-500 truncate max-w-xs">{project.objective}</p>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -989,13 +583,6 @@ const FiscalProjetosCadastro = () => {
                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
                             <span className="text-sm">{project.external_client.nome}</span>
                           </div>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {project.contribuinte ? (
-                          <span className="text-sm">{project.contribuinte.nome_razao_social}</span>
                         ) : (
                           <span className="text-slate-400">-</span>
                         )}
@@ -1562,7 +1149,15 @@ const FiscalProjetosCadastro = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteProjectId && deleteProject.mutate(deleteProjectId)}
+              onClick={() => {
+                if (deleteProjectId) {
+                  const project = projects.find((p: any) => p.id === deleteProjectId);
+                  deleteProjectMut.mutate(
+                    { id: deleteProjectId, name: project?.name || 'Projeto excluído' },
+                    { onSuccess: () => setDeleteProjectId(null) }
+                  );
+                }
+              }}
               className="bg-red-600 hover:bg-red-700"
             >
               Excluir
