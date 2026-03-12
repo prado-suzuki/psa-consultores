@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  useWPTeamMembers,
+  useWPClients,
+  useWPProjects,
+  useWPParentPackages,
+} from '@/hooks/useWorkPackageFormData';
 import {
   Dialog,
   DialogContent,
@@ -109,59 +113,11 @@ export function WorkPackageForm({
   const draftEnabled = open && !isEditing;
   const { restore, clear } = useDraftPersistence('wp-form-draft', watchedValues, draftEnabled, user?.id);
 
-  // Load team members
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['team-members-select'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Load clients
-  const { data: clients = [] } = useQuery({
-    queryKey: ['catalog-clients-select'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('catalog_clients')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Load projects
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects-select'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Load parent work packages (phases and epics only)
-  const { data: parentPackages = [] } = useQuery({
-    queryKey: ['parent-packages-select'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_work_packages')
-        .select('id, code, title, type')
-        .in('type', ['fase', 'epico'])
-        .order('code');
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Load reference data via hooks
+  const { data: teamMembers = [] } = useWPTeamMembers();
+  const { data: clients = [] } = useWPClients();
+  const { data: projects = [] } = useWPProjects();
+  const { data: parentPackages = [] } = useWPParentPackages();
 
   useEffect(() => {
     if (initialData) {
