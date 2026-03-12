@@ -180,12 +180,12 @@ const FiscalProjetosCadastro = () => {
   // Auto-fill dates from selected OS (only on create)
   useEffect(() => {
     if (!selectedOsId || editingProject) return;
-    const os = clienteOS.find((o: any) => getOsId(o) === selectedOsId);
+    const os = clienteOS.find((o) => getOsId(o) === selectedOsId);
     if (!os) return;
     setFormData(prev => ({
       ...prev,
-      start_date: prev.start_date || (os as any).data_inicio || '',
-      end_date: prev.end_date || (os as any).data_fim || '',
+      start_date: prev.start_date || os.data_inicio || '',
+      end_date: prev.end_date || os.data_fim || '',
     }));
   }, [selectedOsId]);
 
