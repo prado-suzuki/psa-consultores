@@ -1,48 +1,87 @@
 
 
-# Análise: RLS e Queries Inline em FiscalProjetosCadastro.tsx
+# Plano: Refatoração de Débito Técnico (TAX e PROJETOS)
 
-## Resultado da Investigação
+## Achados Reais da Investigação
 
-### Problema 1 (RLS): JÁ RESOLVIDO
+### Problema 1 — Queries Inline
 
-Ambas as tabelas **já possuem políticas de UPDATE** para todos os papéis necessários:
+| Arquivo | Queries Inline | Status |
+|---|---|---|
+| `FiscalProjetosCadastro.tsx` | 9 queries (servicos_prestados, area_servicos, profiles_safe, user_roles, sublider-team-members, external-clients, contribuintes, cliente-os, estrutura) | Violação confirmada |
+| `FiscalDemandasTarefas.tsx` | 2 queries (team-members-for-tasks, tax-projects-for-filter) | Violação confirmada |
+| `FiscalClients.tsx` | 1 query (empresa-clients) | Violação confirmada |
+| `FiscalDemandasClientes.tsx` | 0 queries — é apenas wrapper que renderiza `<FiscalClients />` | Falso positivo |
 
-**`tax_project_members`** — possui 5 políticas:
-- `Admins can manage tax_project_members` (ALL)
-- `Members can view their project members` (SELECT)
-- `Team can insert tax_project_members` (INSERT) — admin, lider, sublider, team_member
-- **`Team can update tax_project_members` (UPDATE)** — admin, lider, sublider, team_member ✅
-- `Team can delete tax_project_members` (DELETE) — admin, lider, sublider, team_member
+### Problema 2 — `as any`
 
-**`project_servicos`** — possui 4 políticas:
-- SELECT, INSERT, **UPDATE** ✅, DELETE — todas para admin, lider, sublider, team_member
-
-**Nenhuma alteração SQL é necessária.** Os upserts já são suportados pelas políticas existentes.
-
----
-
-### Problema 2 (Queries Inline): JÁ RESOLVIDO
-
-Todas as mutations (create, update, delete de projetos + membros + serviços) **já residem no hook `useTaxProjects.ts`**. O componente consome:
-- `useCreateTaxProject()`, `useUpdateTaxProject()`, `useDeleteTaxProject()` — mutations via hook ✅
-- `useProjectMembers()`, `useProjectServicos()`, `useProjectHours()` — queries via hook ✅
-
-As queries inline restantes no componente são **dados de referência contextuais** (não são mutations CUD):
-- `servicos_prestados` — catálogo de serviços (dropdown)
-- `area_servicos` — links entre áreas e serviços (filtro)
-- `profiles_safe` — lista de usuários (dropdowns)
-- `user_roles` — papéis para filtrar líderes/sublíderes/membros
-- `estrutura_equipes` / `estrutura_equipe_membros` — filtragem de membros por sublíder
-
-Estas são queries de **leitura pura para dados de referência**, categoria tolerada conforme o `AI_CONTEXT.md`:
-> "Exceções toleradas: queries inline com useQuery em páginas de listagem simples."
+| Arquivo | Ocorrências |
+|---|---|
+| `FiscalProjetosCadastro.tsx` | 21 — tabelas não tipadas: `servicos_prestados`, `area_servicos`, `ordem_servico` + casts em objetos OS |
+| `WorkPackageDetail.tsx`, `WorkPackageForm.tsx`, `WorkPackageList.tsx`, `FiscalClients.tsx` | **0 ocorrências** — falso positivo do relatório |
 
 ---
 
-## Conclusão
+## Plano de Correção
 
-**Ambos os problemas descritos já foram corrigidos em iterações anteriores.** Não há alterações pendentes de SQL (RLS) nem refatoração de código necessária. O sistema está em conformidade com as regras do `AI_CONTEXT.md`.
+### Etapa 1: Criar `src/hooks/useTaxReferenceData.ts`
 
-Se o erro `new row violates row-level security policy` ainda estiver ocorrendo, a causa seria outra — por exemplo, a política de **SELECT** em `tax_project_members` que exige `is_project_member()`, o que pode bloquear o retorno do upsert para membros novos. Se esse for o caso, posso investigar esse cenário específico.
+Hook novo que centraliza as 9 queries de referência de `FiscalProjetosCadastro.tsx`:
+
+- `useServicosPrestados()` — catálogo `servicos_prestados`
+- `useAreaServicos()` — links `area_servicos`
+- `useTeamProfilesSafe()` — `profiles_safe` com nomes
+- `useTeamRolesForProjects()` — `user_roles` filtrado
+- `useSubliderTeamMembers(subliderIds)` — membros das equipes
+- `useExternalClients(editingClientId?)` — clientes com fallback cross-env
+- `useContribuintes(clientId, editingContribuinteId?)` — contribuintes com fallback
+- `useClienteOrdens(clientId)` — ordens de serviço
+
+Todos os `as any` nestas queries receberão comentário justificativo:
+```typescript
+// as any: tabela 'servicos_prestados' ausente do schema tipado gerado
+```
+
+Os casts `(os as any).data_inicio` serão substituídos por interface local `OrdemServico`.
+
+### Etapa 2: Criar `src/hooks/useFiscalClients.ts`
+
+Hook novo com `useFiscalClientsList()` extraído de `FiscalClients.tsx`. Inclui a interface `Cliente` e a lógica de seleção de tabela prod/dev.
+
+### Etapa 3: Atualizar `FiscalDemandasTarefas.tsx`
+
+As 2 queries inline serão substituídas por:
+- `useTeamProfilesSafe()` do novo `useTaxReferenceData.ts`
+- Query de `tax_projects` — adicionar `useTaxProjectsForFilter()` ao mesmo hook ou reutilizar `useTaxProjects` existente
+
+### Etapa 4: Atualizar componentes consumidores
+
+- **`FiscalProjetosCadastro.tsx`** — substituir 9 `useQuery` + `supabase` pelos hooks de `useTaxReferenceData`, remover imports de `useQuery` e `supabase`
+- **`FiscalClients.tsx`** — substituir `useQuery` pelo `useFiscalClientsList()`
+- **`FiscalDemandasTarefas.tsx`** — substituir 2 `useQuery` pelos hooks novos
+
+### Etapa 5: `WorkPackageForm.tsx` (4 queries inline)
+
+Criar `src/hooks/useWorkPackageFormData.ts` com:
+- `useWPTeamMembers()` — profiles para dropdown
+- `useWPClients()` — catalog_clients
+- `useWPProjects()` — projects
+- `useWPParentPackages()` — work packages pai
+
+Atualizar `WorkPackageForm.tsx` para consumir o novo hook.
+
+---
+
+## Resumo de Arquivos
+
+| Ação | Arquivo |
+|---|---|
+| **Criar** | `src/hooks/useTaxReferenceData.ts` |
+| **Criar** | `src/hooks/useFiscalClients.ts` |
+| **Criar** | `src/hooks/useWorkPackageFormData.ts` |
+| **Editar** | `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` |
+| **Editar** | `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx` |
+| **Editar** | `src/components/equipe/fiscal/FiscalClients.tsx` |
+| **Editar** | `src/components/projetos/WorkPackageForm.tsx` |
+| **Ignorar** | `FiscalDemandasClientes.tsx` (wrapper sem queries), `WorkPackageDetail.tsx`, `WorkPackageList.tsx` (sem violações) |
 
