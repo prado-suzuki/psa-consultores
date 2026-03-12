@@ -682,7 +682,7 @@ const FiscalProjetosCadastro = () => {
                       <SelectContent>
                         {externalClients.map(client => (
                           <SelectItem key={client.id} value={client.id}>
-                            {client.nome} {client.setor_cliente && `(${client.setor_cliente})`}
+                            {client.nome}
                           </SelectItem>
                         ))}
                       </SelectContent>
