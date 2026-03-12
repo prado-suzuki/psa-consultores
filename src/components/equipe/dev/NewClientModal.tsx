@@ -4075,8 +4075,8 @@ export default function NewClientModal({
                             </div>
 
                             <div className="flex justify-end mt-4 pt-2 border-t">
-                              <Button onClick={addContract} className="gap-2">
-                                Adicionar OS à Lista
+                              <Button onClick={addContract} disabled={isAddingContract} className="gap-2">
+                                {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}
                               </Button>
                             </div>
                           </div>
