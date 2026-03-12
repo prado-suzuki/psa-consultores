@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Pencil, Building2, Users, ChevronRight, Network, UserCheck, X
@@ -107,9 +118,20 @@ function profileLabel(p: Profile) {
   return name || p.email || p.id.slice(0, 8);
 }
 
+// ─── Delete confirmation state ─────────────────────────────────────────
+interface DeleteConfirmState {
+  type: 'cluster' | 'area' | 'equipe';
+  id: string;
+  label: string;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────
 export default function EstruturaManager() {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null);
 
   // Data queries
   const { data: clusters = [], isLoading: loadingClusters } = useQuery({
@@ -210,7 +232,6 @@ export default function EstruturaManager() {
   const saveCluster = async () => {
     if (!clusterForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     const empresaId = clusterForm.empresa_id || null;
-    // Auto-fill cost_center from empresa if empresa selected
     let costCenter = clusterForm.cost_center || null;
     if (empresaId) {
       const emp = empresas.find(e => e.id === empresaId);
@@ -223,20 +244,27 @@ export default function EstruturaManager() {
       const { error } = await supabase.from('estrutura_clusters').update({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).eq('id', editingCluster.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
+      logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: editingCluster.id, entity_name: clusterForm.name, action: 'updated', changed_fields: { name: { old: editingCluster.name, new: clusterForm.name }, empresa_id: { old: editingCluster.empresa_id, new: empresaId } } });
     } else {
-      const { error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId });
+      const { data, error } = await supabase.from('estrutura_clusters').insert({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }).select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster criado');
+      logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: data.id, entity_name: clusterForm.name, action: 'created' });
     }
     setClusterDialog(false);
     invalidateAll();
   };
 
-  const deleteCluster = async (id: string) => {
-    if (!confirm('Excluir cluster e todas as áreas/equipes vinculadas?')) return;
+  const confirmDeleteCluster = (cluster: Cluster) => {
+    setDeleteConfirm({ type: 'cluster', id: cluster.id, label: cluster.name });
+  };
+
+  const executeDeleteCluster = async (id: string) => {
+    const cluster = clusters.find(c => c.id === id);
     const { error } = await supabase.from('estrutura_clusters').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Cluster excluído');
+    logAction({ area: 'estrutura', entity_type: 'cluster', entity_id: id, entity_name: cluster?.name || id, action: 'deleted' });
     invalidateAll();
   };
 
@@ -255,32 +283,41 @@ export default function EstruturaManager() {
       const { error } = await supabase.from('estrutura_areas').update({ name: areaForm.name, color: areaForm.color, page_categories: areaForm.page_categories, cost_center_id: ccId }).eq('id', editingArea.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
+      logAction({ area: 'estrutura', entity_type: 'area', entity_id: editingArea.id, entity_name: areaForm.name, action: 'updated', changed_fields: { name: { old: editingArea.name, new: areaForm.name }, color: { old: editingArea.color, new: areaForm.color }, page_categories: { old: editingArea.page_categories, new: areaForm.page_categories } } });
     } else {
-      const { error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: ccId });
+      const { data, error } = await supabase.from('estrutura_areas').insert({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: ccId }).select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
+      logAction({ area: 'estrutura', entity_type: 'area', entity_id: data.id, entity_name: areaForm.name, action: 'created' });
     }
     setAreaDialog(false);
     invalidateAll();
   };
 
-  const deleteArea = async (id: string) => {
-    if (!confirm('Excluir área e suas equipes?')) return;
+  const confirmDeleteArea = (area: Area) => {
+    setDeleteConfirm({ type: 'area', id: area.id, label: area.name });
+  };
+
+  const executeDeleteArea = async (id: string) => {
+    const area = areas.find(a => a.id === id);
     const { error } = await supabase.from('estrutura_areas').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Área excluída');
+    logAction({ area: 'estrutura', entity_type: 'area', entity_id: id, entity_name: area?.name || id, action: 'deleted' });
     invalidateAll();
   };
 
   // ─── Lider ────────────────────────────────────────────────────────
   const setAreaLider = async (areaId: string, userId: string | null) => {
-    // Remove existing
+    const oldLider = lideres.find(l => l.area_id === areaId);
     await supabase.from('estrutura_area_lideres').delete().eq('area_id', areaId);
     if (userId) {
       const { error } = await supabase.from('estrutura_area_lideres').insert({ area_id: areaId, user_id: userId });
       if (error) { toast.error(error.message); return; }
     }
     toast.success('Líder atualizado');
+    const area = areas.find(a => a.id === areaId);
+    logAction({ area: 'estrutura', entity_type: 'lider', entity_id: areaId, entity_name: area?.name || areaId, action: 'updated', changed_fields: { user_id: { old: oldLider?.user_id || null, new: userId } } });
     invalidateAll();
   };
 
@@ -299,36 +336,68 @@ export default function EstruturaManager() {
       const { error } = await supabase.from('estrutura_equipes').update({ name: payload.name, sublider_id: payload.sublider_id }).eq('id', editingEquipe.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe atualizada');
+      logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: editingEquipe.id, entity_name: equipeForm.name, action: 'updated', changed_fields: { name: { old: editingEquipe.name, new: equipeForm.name }, sublider_id: { old: editingEquipe.sublider_id, new: payload.sublider_id } } });
     } else {
-      const { error } = await supabase.from('estrutura_equipes').insert(payload);
+      const { data, error } = await supabase.from('estrutura_equipes').insert(payload).select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe criada');
+      logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: data.id, entity_name: equipeForm.name, action: 'created' });
     }
     setEquipeDialog(false);
     invalidateAll();
   };
 
-  const deleteEquipe = async (id: string) => {
-    if (!confirm('Excluir equipe e seus membros?')) return;
+  const confirmDeleteEquipe = (equipe: Equipe) => {
+    setDeleteConfirm({ type: 'equipe', id: equipe.id, label: equipe.name });
+  };
+
+  const executeDeleteEquipe = async (id: string) => {
+    const equipe = equipes.find(e => e.id === id);
     const { error } = await supabase.from('estrutura_equipes').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Equipe excluída');
+    logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: id, entity_name: equipe?.name || id, action: 'deleted' });
     invalidateAll();
   };
 
   // ─── Membros ──────────────────────────────────────────────────────
   const addMembro = async (equipeId: string, userId: string) => {
-    const { error } = await supabase.from('estrutura_equipe_membros').insert({ equipe_id: equipeId, user_id: userId });
+    const { data, error } = await supabase.from('estrutura_equipe_membros').insert({ equipe_id: equipeId, user_id: userId }).select('id').single();
     if (error) { toast.error(error.message); return; }
     toast.success('Membro adicionado');
+    const equipe = equipes.find(e => e.id === equipeId);
+    const profile = allProfiles.find(p => p.id === userId);
+    logAction({ area: 'estrutura', entity_type: 'membro', entity_id: data.id, entity_name: profile ? profileLabel(profile) : userId, action: 'created', details: `Adicionado à equipe ${equipe?.name || equipeId}` });
     invalidateAll();
   };
 
   const removeMembro = async (id: string) => {
+    const membro = membros.find(m => m.id === id);
     const { error } = await supabase.from('estrutura_equipe_membros').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Membro removido');
+    const profile = membro ? allProfiles.find(p => p.id === membro.user_id) : null;
+    logAction({ area: 'estrutura', entity_type: 'membro', entity_id: id, entity_name: profile ? profileLabel(profile) : id, action: 'deleted' });
     invalidateAll();
+  };
+
+  // ─── Handle delete confirmation ───────────────────────────────────
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const { type, id } = deleteConfirm;
+    setDeleteConfirm(null);
+    if (type === 'cluster') await executeDeleteCluster(id);
+    else if (type === 'area') await executeDeleteArea(id);
+    else if (type === 'equipe') await executeDeleteEquipe(id);
+  };
+
+  const getDeleteMessage = () => {
+    if (!deleteConfirm) return '';
+    switch (deleteConfirm.type) {
+      case 'cluster': return 'Excluir cluster e todas as áreas/equipes vinculadas?';
+      case 'area': return 'Excluir área e suas equipes?';
+      case 'equipe': return 'Excluir equipe e seus membros?';
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────
@@ -392,7 +461,7 @@ export default function EstruturaManager() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openClusterEdit(cluster)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteCluster(cluster.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => confirmDeleteCluster(cluster)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -442,7 +511,7 @@ export default function EstruturaManager() {
                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openAreaEdit(area)}>
                                       <Pencil className="h-3 w-3" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => deleteArea(area.id)}>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteArea(area)}>
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </div>
@@ -502,7 +571,7 @@ export default function EstruturaManager() {
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
                                                   <Pencil className="h-3 w-3" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => deleteEquipe(equipe.id)}>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteEquipe(equipe)}>
                                                   <Trash2 className="h-3 w-3" />
                                                 </Button>
                                               </div>
@@ -557,6 +626,26 @@ export default function EstruturaManager() {
           })}
         </Accordion>
       )}
+
+      {/* ─── Delete Confirmation AlertDialog ─────────────────────────── */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              {getDeleteMessage()}
+              <br />
+              <strong>{deleteConfirm?.label}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ─── Dialogs ─────────────────────────────────────────────────── */}
       {/* Cluster dialog */}
