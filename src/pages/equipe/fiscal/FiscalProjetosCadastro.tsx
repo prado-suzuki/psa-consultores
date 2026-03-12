@@ -728,9 +728,9 @@ const FiscalProjetosCadastro = () => {
                           <div
                             key={osId}
                             onClick={() => setSelectedOsId(osId)}
-                            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
                               isSelected
-                                ? 'border-emerald-400 bg-emerald-50/60 ring-1 ring-emerald-200'
+                                ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
                                 : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
                             }`}
                           >
