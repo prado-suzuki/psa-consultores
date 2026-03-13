@@ -612,6 +612,7 @@ export default function NewClientModal({
   );
 
   // Sync edit data into local state
+  useEffect(() => {
     if (!editData.clientData) return;
     setClientData(editData.clientData);
     setEntities(editData.entities);
