@@ -62,3 +62,13 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 
 Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
 Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
+| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.
+O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
