@@ -3784,6 +3784,24 @@ export default function NewClientModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate name warning */}
+      <AlertDialog open={showDuplicateNameAlert} onOpenChange={setShowDuplicateNameAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Nome duplicado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existe um cliente com o nome &quot;{clientData.nome.trim()}&quot;. Deseja cadastrar mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowDuplicateNameAlert(false); doSave(); }}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
