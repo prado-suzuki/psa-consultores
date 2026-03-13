@@ -124,6 +124,11 @@ const SITUACAO_PROJETO_OPTIONS = [
 
 // Types imported from @/types/clientForm
 
+const UF_STATES = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
+];
+
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
   const digits = value.replace(/\D/g, "");
