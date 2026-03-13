@@ -296,10 +296,10 @@ export default function NewClientModal({
   readOnly = false,
 }: NewClientModalProps) {
   const { user } = useAuth();
-  const { logAction } = useAuditLog();
   const { consultarCnpj, consultarCep } = useExternalConsults();
-  const queryClient = useQueryClient();
+  const { checkDuplicateName, saveClient } = useSaveClientTransaction();
   const [saving, setSaving] = useState(false);
+  const [showDuplicateNameAlert, setShowDuplicateNameAlert] = useState(false);
   
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
