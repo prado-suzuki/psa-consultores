@@ -199,6 +199,7 @@ const EquipeProcessos = () => {
    const [newProjectLink, setNewProjectLink] = useState({ project_id: '', impact_type: 'principal' });
    const [isAddingProjectLink, setIsAddingProjectLink] = useState(false);
    const [taskCount, setTaskCount] = useState<number>(0);
+   const [jobRoles, setJobRoles] = useState<{ id: string; name: string; level: string; category: string | null; hourly_rate: number }[]>([]);
 
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
