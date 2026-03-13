@@ -75,45 +75,7 @@ const TIPO_PARTICIPANTE_OPTIONS = [
 
 
 
-// --- Auto-generate OS number (XXX/AAAA) ---
-const generateNextOsNumber = async (localContracts: DraftOrdemServico[]): Promise<string> => {
-  const year = new Date().getFullYear();
-  const suffix = `/${year}`;
-
-  // Query ALL OS for the current year (including excluido=true) to never reuse a number
-  const { data } = await (supabase.from("ordem_servico" as any) as any)
-    .select("numero_os")
-    .like("numero_os", `%${suffix}`)
-    .order("numero_os", { ascending: false })
-    .limit(1000);
-
-  let maxSeq = 0;
-
-  // Check DB records
-  if (data && data.length > 0) {
-    for (const row of data) {
-      const match = (row.numero_os as string)?.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  // Check local (unsaved) contracts in the same session
-  for (const c of localContracts) {
-    if (c.ordem_servico?.endsWith(suffix)) {
-      const match = c.ordem_servico.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  const next = (maxSeq + 1).toString().padStart(3, "0");
-  return `${next}${suffix}`;
-};
+// generateNextOsNumber is now imported from useSaveClientTransaction
 
 const SITUACAO_PROJETO_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
