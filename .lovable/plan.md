@@ -72,3 +72,12 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 
 Nenhuma alteração em banco, RLS ou outras tabelas.
 O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
+
+## Plano: Fase 4 — Simplificar RLS policies (eliminar JOIN com tax_areas) — ✅ CONCLUÍDO
+
+| Policy | Tabela | Alteração |
+|---|---|---|
+| Members can view their tax_projects | `tax_projects` | Removido `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto |
+| Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
+
+Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
