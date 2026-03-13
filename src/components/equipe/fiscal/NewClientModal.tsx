@@ -162,19 +162,7 @@ const isoToMasked = (iso: string): string => {
   }
 };
 
-// Helper para sincronizar com DW
-const syncCadastrosToDW = (payload: any) => {
-  const environment = isProductionEnvironment ? "production" : "development";
-  supabase.functions
-    .invoke("sync-cadastros", {
-      body: { ...payload, environment },
-    })
-    .then(({ error }) => {
-      if (error) console.error("[sync-cadastros] Erro:", error.message);
-      else console.log("[sync-cadastros] Sync iniciado");
-    })
-    .catch((err) => console.error("[sync-cadastros] Erro:", err));
-};
+// syncCadastrosToDW moved to useSaveClientTransaction hook
 
 // --- Date field component ---
 const DateFieldWithInput = ({
