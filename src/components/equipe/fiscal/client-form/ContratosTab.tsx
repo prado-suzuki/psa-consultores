@@ -374,7 +374,9 @@ export function ContratosTab({
                             <span className="text-sm">
                               {(() => {
                                 const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
-                                return (svc as any)?.estrutura_clusters?.name || "—";
+                                const cluster = allClusters.find((c) => c.id === svc?.cluster_id);
+                                const emp = empresas.find((e) => e.id === cluster?.empresa_id);
+                                return emp?.nome || "—";
                               })()}
                             </span>
                           </div>
