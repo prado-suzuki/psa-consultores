@@ -727,7 +727,7 @@ export function ContribuintesTab({
               {/* Razão Social */}
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                  {draftEntity.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}
+                  {draftEntity.tipo_pessoa === "PF" ? <>Nome completo <RequiredMark /></> : <>Razão Social <RequiredMark /></>}
                 </Label>
                 <div className="flex-1">
                   <Input
