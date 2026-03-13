@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
  import { cn } from "@/lib/utils";
  import { toast } from "sonner";
-import { RequiredMark } from "@/components/ui/required-mark";
 import { formatCpfCnpj, formatCep, formatPhone } from "./client-form/constants";
 import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { ClienteTab } from "./client-form/ClienteTab";
