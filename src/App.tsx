@@ -48,7 +48,7 @@ import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import AuditoriaFiscal from "./pages/equipe/dev/AuditoriaFiscal";
 import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
-import GestaoClientes from "./pages/equipe/dev/GestaoClientes";
+import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
 import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";

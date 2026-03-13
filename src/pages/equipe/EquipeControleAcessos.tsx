@@ -58,7 +58,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { GestaoClientesContent } from '@/pages/equipe/dev/GestaoClientes';
+import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 
 
