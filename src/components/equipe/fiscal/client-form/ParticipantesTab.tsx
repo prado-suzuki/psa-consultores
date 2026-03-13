@@ -108,47 +108,49 @@ export function ParticipantesTab({
 
                   {isExpanded && !isEditingThis && (
                     <div className="px-4 pb-4 border-t pt-3">
-                      <div className="flex justify-end gap-2 mb-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 text-xs"
-                          onClick={() => onStartEdit(part)}
-                        >
-                          <Pencil size={12} /> Editar
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5 text-xs text-destructive hover:text-destructive"
-                            >
-                              <Trash2 size={12} /> Remover
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover participante</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => {
-                                  setParticipants((prev) => prev.filter((p) => p._id !== part._id));
-                                  setExpandedParticipantId(null);
-                                }}
+                      {!isReadOnly && (
+                        <div className="flex justify-end gap-2 mb-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs"
+                            onClick={() => onStartEdit(part)}
+                          >
+                            <Pencil size={12} /> Editar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-xs text-destructive hover:text-destructive"
                               >
-                                Remover
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                                <Trash2 size={12} /> Remover
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover participante</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => {
+                                    setParticipants((prev) => prev.filter((p) => p._id !== part._id));
+                                    setExpandedParticipantId(null);
+                                  }}
+                                >
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                         <FieldPair label="Nome" value={part.nome} />
                         <FieldPair label="Cargo/função" value={part.tipo_participante} />
