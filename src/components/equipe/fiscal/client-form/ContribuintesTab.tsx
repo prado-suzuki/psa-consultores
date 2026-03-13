@@ -523,12 +523,20 @@ export function ContribuintesTab({
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
                           <div className="flex-1">
-                            <Input
-                              value={ed.uf || ""}
-                              onChange={(e) => setEditingEntityData({ ...ed, uf: e.target.value })}
-                              maxLength={2}
-                              className="h-8 max-w-[120px]"
-                            />
+                            <Select
+                              value={ed.uf || "__none__"}
+                              onValueChange={(v) => setEditingEntityData({ ...ed, uf: v === "__none__" ? "" : v })}
+                            >
+                              <SelectTrigger className="h-8 max-w-[120px]">
+                                <SelectValue placeholder="UF" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {UF_STATES.map((uf) => (
+                                  <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                         {/* Município */}
@@ -574,7 +582,11 @@ export function ContribuintesTab({
                           <div className="flex-1">
                             <Input
                               value={ed.numero || ""}
-                              onChange={(e) => setEditingEntityData({ ...ed, numero: e.target.value })}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, "");
+                                setEditingEntityData({ ...ed, numero: digits });
+                              }}
+                              inputMode="numeric"
                               className="h-8 max-w-[120px]"
                             />
                           </div>
@@ -926,12 +938,20 @@ export function ContribuintesTab({
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
                 <div className="flex-1">
-                  <Input
-                    value={draftEntity.uf || ""}
-                    onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })}
-                    maxLength={2}
-                    className="h-8 max-w-[120px]"
-                  />
+                  <Select
+                    value={draftEntity.uf || "__none__"}
+                    onValueChange={(v) => setDraftEntity({ ...draftEntity, uf: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger className="h-8 max-w-[120px]">
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Selecione...</SelectItem>
+                      {UF_STATES.map((uf) => (
+                        <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               {/* Município */}
@@ -974,7 +994,11 @@ export function ContribuintesTab({
                 <div className="flex-1">
                   <Input
                     value={draftEntity.numero || ""}
-                    onChange={(e) => setDraftEntity({ ...draftEntity, numero: e.target.value })}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setDraftEntity({ ...draftEntity, numero: digits });
+                    }}
+                    inputMode="numeric"
                     placeholder="Nº"
                     className="h-8 max-w-[120px]"
                   />
