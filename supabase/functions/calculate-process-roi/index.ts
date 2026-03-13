@@ -100,13 +100,37 @@ serve(async (req) => {
       `)
       .eq("improvement_id", improvement_id);
 
+    // Buscar etapas do processo com job_roles para baseline automático
+    const { data: processStages } = await supabase
+      .from("process_stages")
+      .select(`
+        id, name, time_current, time_target, job_role_id,
+        job_role:job_roles(hourly_rate)
+      `)
+      .eq("process_id", improvement.process_id)
+      .not("job_role_id", "is", null);
+
+    // Helper: parse time strings to hours
+    const parseTimeToHours = (time: string | null): number => {
+      if (!time) return 0;
+      const t = time.trim().toLowerCase();
+      const match = t.match(/^([\d.,]+)\s*(h|hora|horas|min|minuto|minutos|dia|dias|d)?$/i);
+      if (!match) return 0;
+      const value = parseFloat(match[1].replace(",", "."));
+      if (isNaN(value)) return 0;
+      const unit = match[2] || "h";
+      if (unit.startsWith("min")) return value / 60;
+      if (unit.startsWith("dia") || unit === "d") return value * 8;
+      return value;
+    };
+
     // Calcular custos baseados nos membros da equipe
     let baselineCost = 0;
     let improvedCost = 0;
 
     if (teamMembers && teamMembers.length > 0) {
       teamMembers.forEach((member: any) => {
-        const hourlyRate = member.job_role?.hourly_rate || 50; // Default R$ 50/hora
+        const hourlyRate = member.job_role?.hourly_rate || 50;
         const monthlyCost = (member.hours_allocated || 0) * hourlyRate;
         
         if (member.is_baseline) {
@@ -115,8 +139,15 @@ serve(async (req) => {
           improvedCost += monthlyCost;
         }
       });
+    } else if (processStages && processStages.length > 0) {
+      // Fallback: use process stages as baseline source
+      processStages.forEach((stage: any) => {
+        const hourlyRate = stage.job_role?.hourly_rate || 50;
+        const hours = parseTimeToHours(stage.time_current);
+        baselineCost += hours * hourlyRate;
+      });
+      improvedCost = improvement.improved_cost_monthly || 0;
     } else {
-      // Usar valores fornecidos diretamente
       baselineCost = improvement.baseline_cost_monthly || 0;
       improvedCost = improvement.improved_cost_monthly || 0;
     }
