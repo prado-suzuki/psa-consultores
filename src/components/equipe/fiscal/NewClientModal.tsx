@@ -1054,43 +1054,39 @@ export default function NewClientModal({
         </DialogContent>
       </Dialog>
 
-      {/* Exit confirmation AlertDialog */}
-      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+      {/* Unified DLP AlertDialog */}
+      <AlertDialog open={!!interceptedAction} onOpenChange={(v) => { if (!v) dismiss(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
-            <AlertDialogDescription>Você tem dados não salvos. Deseja sair sem salvar?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={resetAndClose}
-            >
-              Sair
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Draft not added warning AlertDialog */}
-      <AlertDialog open={showDraftWarning} onOpenChange={setShowDraftWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
-              {draftWarningContext?.action === "save"
-                ? " Deseja salvar mesmo assim ou voltar para adicioná-los?"
-                : " Deseja continuar sem adicionar ou voltar para adicioná-los?"}
+            <AlertDialogTitle>
+              {interceptedAction?.type === "close" && pendingTabs.length === 0
+                ? "Dados não salvos"
+                : "Dados não adicionados à lista"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  {interceptedAction?.type === "close" && pendingTabs.length === 0
+                    ? "Você tem dados não salvos. Deseja sair sem salvar?"
+                    : "Existem dados preenchidos que não foram adicionados à lista. Deseja descartá-los?"}
+                </p>
+                {pendingTabs.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {pendingTabs.map((tab) => (
+                      <Badge key={tab} variant="secondary" className="text-xs">{tab}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDraftWarningGoBack}>
-              Voltar e adicionar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>
-              {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}
+            <AlertDialogCancel onClick={dismiss}>Voltar e Revisar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleGuardProceed}
+            >
+              Descartar e Prosseguir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
