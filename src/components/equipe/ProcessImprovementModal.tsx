@@ -61,11 +61,21 @@ interface ProcessImprovement {
   other_savings_monthly?: number;
 }
 
+interface ProcessStageInput {
+  id: string;
+  name: string;
+  responsible: string | null;
+  time_current: string | null;
+  time_target: string | null;
+  job_role_id: string | null;
+}
+
 interface ProcessImprovementModalProps {
   open: boolean;
   onClose: () => void;
   processId: string;
   processName: string;
+  processStages?: ProcessStageInput[];
   deliverableId?: string;
   projectId?: string;
   baselineData?: {
@@ -78,11 +88,30 @@ interface ProcessImprovementModalProps {
   onSaved?: () => void;
 }
 
+/** Parse time strings like "2h", "30min", "1 dia", "1.5h" into hours */
+function parseTimeToHours(time: string | null): number {
+  if (!time) return 0;
+  const t = time.trim().toLowerCase();
+  
+  // Match number + unit patterns
+  const match = t.match(/^([\d.,]+)\s*(h|hora|horas|min|minuto|minutos|dia|dias|d)?$/i);
+  if (!match) return 0;
+  
+  const value = parseFloat(match[1].replace(',', '.'));
+  if (isNaN(value)) return 0;
+  
+  const unit = match[2] || 'h';
+  if (unit.startsWith('min')) return value / 60;
+  if (unit.startsWith('dia') || unit === 'd') return value * 8;
+  return value; // default hours
+}
+
 export function ProcessImprovementModal({
   open,
   onClose,
   processId,
   processName,
+  processStages = [],
   deliverableId,
   projectId,
   baselineData,

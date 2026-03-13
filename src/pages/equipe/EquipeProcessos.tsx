@@ -1464,6 +1464,7 @@ const EquipeProcessos = () => {
         onClose={() => setIsImprovementModalOpen(false)}
         processId={selectedProcess?.id || ''}
         processName={selectedProcess?.name || ''}
+        processStages={processStages}
         baselineData={{
           time_spent_hours: (selectedProcess as any)?.time_spent_hours,
           cost_monthly: (selectedProcess as any)?.cost_monthly,
