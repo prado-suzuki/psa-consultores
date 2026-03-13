@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useClientFormOptions } from "@/hooks/useClientFormOptions";
 import { useClientEditData } from "@/hooks/useClientEditData";
 import { useExternalConsults } from "@/hooks/useExternalConsults";
 import { useSaveClientTransaction, generateNextOsNumber } from "@/hooks/useSaveClientTransaction";
+import { useDraftGuard } from "@/hooks/useDraftGuard";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
@@ -18,8 +19,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -71,13 +72,6 @@ export default function NewClientModal({
     "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
   >("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [showDraftWarning, setShowDraftWarning] = useState(false);
-  const [draftWarningContext, setDraftWarningContext] = useState<{
-    action: "save" | "navigate";
-    targetTab?: typeof activeTab;
-    pendingTabs: string[];
-  } | null>(null);
 
   // Inline expand/edit states
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
@@ -101,92 +95,6 @@ export default function NewClientModal({
   const currentTabIndex = tabOrder.indexOf(activeTab);
   const isLastTab = currentTabIndex === tabOrder.length - 1;
   const isFirstTab = currentTabIndex === 0;
-
-  // --- Draft detection helpers ---
-  const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
-  const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
-  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim());
-
-  const getDraftPendingTabs = (): string[] => {
-    const tabs: string[] = [];
-    if (hasDraftEntityData()) tabs.push("Contribuintes");
-    if (hasDraftParticipantData()) tabs.push("Participantes");
-    if (hasDraftContractData()) tabs.push("OS");
-    return tabs;
-  };
-
-  const tabLabelToKey: Record<string, typeof activeTab> = {
-    "Contribuintes": "contribuintes",
-    "Participantes": "participantes",
-    "OS": "contratos",
-  };
-
-  const checkDraftAndNavigate = (targetTab: typeof activeTab) => {
-    const pendingTabs = getDraftPendingTabs();
-    // Only warn about the current tab's draft
-    const currentTabDraft =
-      (activeTab === "contribuintes" && hasDraftEntityData()) ||
-      (activeTab === "participantes" && hasDraftParticipantData()) ||
-      (activeTab === "contratos" && hasDraftContractData());
-
-    if (currentTabDraft) {
-      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "participantes" ? "Participantes" : "OS";
-      setDraftWarningContext({ action: "navigate", targetTab, pendingTabs: [currentPending] });
-      setShowDraftWarning(true);
-      return;
-    }
-    setActiveTab(targetTab);
-  };
-
-  const handleNext = () => {
-    if (!isLastTab) checkDraftAndNavigate(tabOrder[currentTabIndex + 1]);
-  };
-  const handleBack = () => {
-    if (!isFirstTab) checkDraftAndNavigate(tabOrder[currentTabIndex - 1]);
-  };
-
-  const handleTabClick = (tab: typeof activeTab) => {
-    if (tab === activeTab) return;
-    if (isReadOnly) {
-      setActiveTab(tab);
-      return;
-    }
-    checkDraftAndNavigate(tab);
-  };
-
-  const clearCurrentDraft = () => {
-    if (activeTab === "contribuintes") {
-      setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
-    } else if (activeTab === "participantes") {
-      setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
-    } else if (activeTab === "contratos") {
-      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
-    }
-  };
-
-  const handleDraftWarningContinue = () => {
-    if (!draftWarningContext) return;
-    clearCurrentDraft();
-    if (draftWarningContext.action === "navigate" && draftWarningContext.targetTab) {
-      setActiveTab(draftWarningContext.targetTab);
-    } else if (draftWarningContext.action === "save") {
-      setShowDraftWarning(false);
-      setDraftWarningContext(null);
-      executeSave();
-      return;
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
-  };
-
-  const handleDraftWarningGoBack = () => {
-    if (draftWarningContext?.pendingTabs[0]) {
-      const key = tabLabelToKey[draftWarningContext.pendingTabs[0]];
-      if (key) setActiveTab(key);
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
-  };
 
   const isEditing = !!editingClienteId;
 
@@ -296,6 +204,67 @@ export default function NewClientModal({
     if (!initialSnapshotRef.current) return false;
     return currentSnapshot !== initialSnapshotRef.current;
   }, [currentSnapshot]);
+
+  // --- Draft detection helpers (stable references for useDraftGuard) ---
+  const hasDraftEntityData = useCallback(
+    () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim()),
+    [draftEntity.nome_razao_social, draftEntity.cpf_cnpj],
+  );
+  const hasDraftParticipantData = useCallback(
+    () => !!(draftParticipant.nome?.trim()),
+    [draftParticipant.nome],
+  );
+  const hasDraftContractData = useCallback(
+    () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim()),
+    [draftContract.valor_projeto, draftContract.id_servico],
+  );
+
+  // --- Unified DLP guard ---
+  const { interceptedAction, pendingTabs, guard, dismiss, proceed } = useDraftGuard({
+    activeTab,
+    hasDraftEntityData,
+    hasDraftParticipantData,
+    hasDraftContractData,
+    hasUnsavedChanges,
+  });
+
+  const clearAllDrafts = () => {
+    setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
+    setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
+    setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
+  };
+
+  const guardedNavigate = (targetTab: typeof activeTab) => {
+    if (guard({ type: "navigate", targetTab })) return false;
+    setActiveTab(targetTab);
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!isLastTab) guardedNavigate(tabOrder[currentTabIndex + 1]);
+  };
+  const handleBack = () => {
+    if (!isFirstTab) guardedNavigate(tabOrder[currentTabIndex - 1]);
+  };
+
+  const handleTabClick = (tab: typeof activeTab) => {
+    if (tab === activeTab) return;
+    if (isReadOnly) { setActiveTab(tab); return; }
+    guardedNavigate(tab);
+  };
+
+  const handleGuardProceed = () => {
+    const action = proceed();
+    if (!action) return;
+    clearAllDrafts();
+    if (action.type === "close") {
+      resetAndClose();
+    } else if (action.type === "navigate") {
+      setActiveTab(action.targetTab);
+    } else if (action.type === "save") {
+      executeSave();
+    }
+  };
 
   // Capture initial snapshot once loading completes
   useEffect(() => {
@@ -727,12 +696,7 @@ export default function NewClientModal({
 
   // --- FINAL SAVE ---
   const handleSave = () => {
-    const pendingTabs = getDraftPendingTabs();
-    if (pendingTabs.length > 0) {
-      setDraftWarningContext({ action: "save", pendingTabs });
-      setShowDraftWarning(true);
-      return;
-    }
+    if (guard({ type: "save" })) return;
     executeSave();
   };
 
@@ -838,17 +802,13 @@ export default function NewClientModal({
     });
     setActiveTab("cliente");
     setIsReadOnly(readOnly);
-    setShowExitConfirm(false);
     clearDraft();
     onOpenChange(false);
   };
 
   const handleAttemptClose = () => {
-    if (hasUnsavedChanges) {
-      setShowExitConfirm(true);
-    } else {
-      resetAndClose();
-    }
+    if (guard({ type: "close" })) return;
+    resetAndClose();
   };
 
   return (
@@ -1093,43 +1053,39 @@ export default function NewClientModal({
         </DialogContent>
       </Dialog>
 
-      {/* Exit confirmation AlertDialog */}
-      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+      {/* Unified DLP AlertDialog */}
+      <AlertDialog open={!!interceptedAction} onOpenChange={(v) => { if (!v) dismiss(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
-            <AlertDialogDescription>Você tem dados não salvos. Deseja sair sem salvar?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={resetAndClose}
-            >
-              Sair
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Draft not added warning AlertDialog */}
-      <AlertDialog open={showDraftWarning} onOpenChange={setShowDraftWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
-              {draftWarningContext?.action === "save"
-                ? " Deseja salvar mesmo assim ou voltar para adicioná-los?"
-                : " Deseja continuar sem adicionar ou voltar para adicioná-los?"}
+            <AlertDialogTitle>
+              {interceptedAction?.type === "close" && pendingTabs.length === 0
+                ? "Dados não salvos"
+                : "Dados não adicionados à lista"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  {interceptedAction?.type === "close" && pendingTabs.length === 0
+                    ? "Você tem dados não salvos. Deseja sair sem salvar?"
+                    : "Existem dados preenchidos que não foram adicionados à lista. Deseja descartá-los?"}
+                </p>
+                {pendingTabs.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {pendingTabs.map((tab) => (
+                      <Badge key={tab} variant="secondary" className="text-xs">{tab}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDraftWarningGoBack}>
-              Voltar e adicionar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>
-              {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}
+            <AlertDialogCancel onClick={dismiss}>Voltar e Revisar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleGuardProceed}
+            >
+              Descartar e Prosseguir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
