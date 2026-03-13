@@ -101,9 +101,8 @@ const FiscalProjetosCadastro = () => {
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
   const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
 
-  // Derive estruturaAreaId from selected tax area
-  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
-  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+  // taxAreas agora retorna estrutura_areas diretamente — id já é o de estrutura_areas
+  const estruturaAreaId = formData.area_id || null;
 
   const {
     liderIds: areaLiderIds,
@@ -196,7 +195,7 @@ const FiscalProjetosCadastro = () => {
   const filteredCategories = useMemo(() => {
     if (!formData.area_id) return [];
     const validCategoryIds = areaCategoryLinks
-      .filter(link => link.area_id === formData.area_id)
+      .filter(link => link.estrutura_area_id === formData.area_id)
       .map(link => link.servico_id);
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
@@ -266,7 +265,7 @@ const FiscalProjetosCadastro = () => {
         sublider_ids: [],
         external_client_id: project.external_client_id || '',
         contribuinte_id: project.contribuinte_id || '',
-        area_id: project.area_id || '',
+        area_id: project.estrutura_area_id || '',
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
@@ -375,7 +374,7 @@ const FiscalProjetosCadastro = () => {
   };
 
   const getAreaLabel = (project: any) => {
-    if (project.area_ref) return project.area_ref.nome;
+    if (project.area_ref) return project.area_ref.name;
     return '-';
   };
 
@@ -679,7 +678,7 @@ const FiscalProjetosCadastro = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {taxAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
+                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
