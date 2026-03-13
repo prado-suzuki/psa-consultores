@@ -369,7 +369,7 @@ export function ContratosTab({
                         {cont.id_servico && (
                           <div className="col-span-2 md:col-span-3">
                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                              Empresa
+                              Empresa/ Faturamento<br />
                             </p>
                             <span className="text-sm">
                               {(() => {
@@ -556,7 +556,7 @@ export function ContratosTab({
                       {/* Empresa filter for edit */}
                       <div className="mt-4">
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                          Empresa
+                          Empresa/ Faturamento<br />
                         </Label>
                         <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
                           <SelectTrigger className="h-8 mt-1">
@@ -823,7 +823,7 @@ export function ContratosTab({
 
             {/* Empresa filter for draft */}
             <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa/ Faturamento<br /></Label>
               <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
                 <SelectTrigger className="h-8 mt-1">
                   <SelectValue placeholder="Todas as empresas" />
