@@ -257,7 +257,7 @@ export const useUpdateTaxProject = () => {
         ['status', oldProject.status, data.status],
         ['start_date', oldProject.start_date || null, data.start_date || null],
         ['end_date', oldProject.end_date || null, data.end_date || null],
-        ['area_id', oldProject.area_id || null, data.area_id || null],
+        ['estrutura_area_id', oldProject.estrutura_area_id || null, data.area_id || null],
         ['description', oldProject.description || null, data.description || null],
         ['responsible_id', oldProject.responsible_id || null, data.leader_ids[0] || null],
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
