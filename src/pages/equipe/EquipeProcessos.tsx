@@ -117,6 +117,7 @@ interface ProcessStage {
   outputs: Json;
   systems: Json;
   related_projects: string[] | null;
+  job_role_id: string | null;
 }
 
 interface Project {
