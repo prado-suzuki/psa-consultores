@@ -720,13 +720,6 @@ export default function NewClientModal({
     toast.success("OS atualizada");
   };
 
-  // Field display helper
-  const FieldPair = ({ label, value }: { label: string; value: string | undefined }) => (
-    <div>
-      <span className="text-[10px] font-bold uppercase text-muted-foreground">{label}</span>
-      <div className="text-sm text-foreground">{value || "—"}</div>
-    </div>
-  );
 
   // --- Copy address from first entity ---
   const handleCopyFirstAddress = () => {
