@@ -43,15 +43,10 @@ import {
   ChevronDown,
   Save,
   Copy,
-  CalendarIcon,
-  Tag,
-} from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { parseDate } from "@/lib/dateUtils";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+   Tag,
+ } from "lucide-react";
+ import { cn } from "@/lib/utils";
+ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
 import {
