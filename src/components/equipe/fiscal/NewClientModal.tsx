@@ -481,9 +481,6 @@ export default function NewClientModal({
       toast.error("Nome é obrigatório");
       return;
     }
-    if (!draftParticipant.tipo_participante) {
-      toast.error("Tipo de Participante é obrigatório");
-      return;
     }
 
     if (!draftParticipant.email.trim()) {
