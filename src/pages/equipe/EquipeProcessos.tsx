@@ -1254,6 +1254,7 @@ const EquipeProcessos = () => {
                       <NewStageForm
                         processId={selectedProcess?.id || ''}
                         nextOrder={processStages.length + 1}
+                        jobRoles={jobRoles}
                         onCreated={() => {
                           setIsAddingStage(false);
                           if (selectedProcess) fetchProcessDetails(selectedProcess.id);
