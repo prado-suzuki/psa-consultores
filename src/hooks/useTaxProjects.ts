@@ -69,7 +69,7 @@ export const useTaxProjects = () => {
           *,
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
+          area_ref:estrutura_areas!tax_projects_estrutura_area_id_fkey(id, name)
         `)
         .order('name');
       if (error) throw error;
