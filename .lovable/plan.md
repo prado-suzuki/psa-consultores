@@ -1,76 +1,92 @@
 
 
-# Plano: ROI baseado em dados reais das etapas
 
-## Contexto
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-Atualmente, o modal "Avaliar Melhoria" pede que o usuário preencha manualmente o ANTES e o DEPOIS com cargos e horas. Porém, os dados do ANTES já existem nas etapas do processo (`process_stages`): cada etapa tem `responsible`, `time_current` e `time_target`. Esses dados não são aproveitados.
+### Alterações realizadas
 
-O campo `responsible` das etapas é texto livre (ex: "Analista Fiscal"), sem vínculo com `job_roles` — logo não há como calcular custo automaticamente.
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-## Mudanças necessárias
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-### 1. Banco de dados — Adicionar `job_role_id` em `process_stages`
+## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
 
-Adicionar uma coluna `job_role_id` (FK para `job_roles`) na tabela `process_stages`. Isso permite que cada etapa tenha um cargo com `hourly_rate` vinculado, além do texto livre `responsible`.
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
+| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
 
-```sql
-ALTER TABLE public.process_stages
-  ADD COLUMN job_role_id uuid REFERENCES public.job_roles(id);
-```
+## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
 
-### 2. `StageEditCard.tsx` — Dropdown de cargo na etapa
+| Arquivo | Alterações |
+|---|---|
+| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
+| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
+| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
 
-No formulário de edição de etapa, adicionar um `<Select>` de "Cargo/Função" populado com `job_roles`. O campo `responsible` (texto) continua para o nome da pessoa, e `job_role_id` vincula ao cargo com custo/hora.
+## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
 
-### 3. `NewStageForm.tsx` — Mesmo dropdown no formulário de nova etapa
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
+| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
 
-Adicionar o campo `job_role_id` no formulário de criação de etapa.
+## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
 
-### 4. `ProcessImprovementModal.tsx` — Auto-preencher BASELINE a partir das etapas
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
+| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
 
-Ao abrir o modal, buscar `process_stages` do processo com seus `job_role_id` e `time_current`. O lado ANTES (baseline) é preenchido automaticamente:
+## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
 
-- Cada etapa com `job_role_id` e `time_current` preenchidos vira um membro baseline
-- Parsear `time_current` (ex: "2h", "1 dia", "30min") para horas numéricas
-- Exibir como lista read-only mostrando: Etapa → Cargo → Horas → Custo
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
 
-O lado DEPOIS continua editável manualmente, mas pré-preenche com `time_target` das etapas quando disponível.
+Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-### 5. `ProcessImprovementModal.tsx` — Passar `processStages` como prop
+## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
 
-O componente pai (`EquipeProcessos.tsx`) já carrega as etapas em `processStages`. Passar como prop para o modal para evitar fetch duplicado.
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
 
-### 6. Edge Function `calculate-process-roi` — Buscar dados das etapas
+Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-Atualizar a edge function para, além dos `improvement_team_members`, buscar as etapas do processo e usar seus `job_role_id` + `time_current` como fonte primária do baseline quando disponível.
+## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
 
-## Fluxo revisado
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
+| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
 
-```text
-Etapas do Processo (dados existentes)
-  ├── Etapa 1: Responsável "João" | Cargo: Analista Fiscal (R$45/h) | Tempo: 2h
-  ├── Etapa 2: Responsável "Maria" | Cargo: Analista Fiscal (R$45/h) | Tempo: 1 dia (8h)  
-  └── Etapa 3: Responsável "João" | Cargo: Analista Fiscal (R$45/h) | Tempo: 4h
-                                        ↓
-                              Avaliar Melhoria
-                    ┌─────────────────┬──────────────────┐
-                    │  ANTES (auto)   │  DEPOIS (manual) │
-                    │  14h total      │  3h total        │
-                    │  R$ 630/mês     │  R$ 135/mês      │
-                    └─────────────────┴──────────────────┘
-                                        ↓
-                              ROI = 78% economia
-```
+Nenhuma alteração em banco, RLS ou outras tabelas.
+O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
 
-## Arquivos alterados
+## Plano: Fase 4 — Simplificar RLS policies (eliminar JOIN com tax_areas) — ✅ CONCLUÍDO
+
+| Policy | Tabela | Alteração |
+|---|---|---|
+| Members can view their tax_projects | `tax_projects` | Removido `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto |
+| Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
+
+Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
+
+## Plano: Unificar DLP em único AlertDialog inteligente — ✅ CONCLUÍDO
 
 | Arquivo | Alteração |
 |---|---|
-| Migration SQL | Adicionar `job_role_id` em `process_stages` |
-| `StageEditCard.tsx` | Adicionar select de `job_roles`, salvar `job_role_id` |
-| `NewStageForm.tsx` | Adicionar select de `job_roles` |
-| `ProcessImprovementModal.tsx` | Receber `stages` como prop, auto-preencher baseline, helper de parse de tempo |
-| `EquipeProcessos.tsx` | Passar `processStages` ao modal |
-| `calculate-process-roi/index.ts` | Buscar stages + job_roles para baseline automático |
+| `src/hooks/useDraftGuard.ts` | **Novo** — hook com estado `interceptedAction`, funções `guard`, `dismiss`, `proceed`, `pendingTabs` computado |
+| `src/components/equipe/fiscal/NewClientModal.tsx` | Removidos `showExitConfirm`, `showDraftWarning`, `draftWarningContext`, `checkDraftAndNavigate`, `handleDraftWarningContinue`, `handleDraftWarningGoBack`, `clearCurrentDraft`. Adicionado consumo do hook `useDraftGuard` + `guardedNavigate` + `handleGuardProceed`. 2 AlertDialogs substituídos por 1 único com Badges dinâmicas |
 
+Nenhuma alteração em banco, RLS ou outras tabelas.

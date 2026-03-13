@@ -1,0 +1,1 @@
+ALTER TABLE public.process_stages ADD COLUMN job_role_id uuid REFERENCES public.job_roles(id);

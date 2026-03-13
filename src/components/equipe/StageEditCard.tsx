@@ -12,31 +12,41 @@
  import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
  import { Json } from '@/integrations/supabase/types';
  
- interface ProcessStage {
-   id: string;
-   process_id: string | null;
-   name: string;
-   stage_order: number;
-   description: string | null;
-   responsible: string | null;
-   time_current: string | null;
-   time_target: string | null;
-   frequency: string | null;
-   volume: string | null;
-   automation_level: string | null;
-   inputs: Json;
-   outputs: Json;
-   systems: Json;
-   related_projects: string[] | null;
- }
- 
- interface StageEditCardProps {
-   stage: ProcessStage;
-   index: number;
-   totalStages: number;
-   onUpdate: () => void;
-   onDelete: () => void;
- }
+interface JobRole {
+  id: string;
+  name: string;
+  level: string;
+  category: string | null;
+  hourly_rate: number;
+}
+
+interface ProcessStage {
+  id: string;
+  process_id: string | null;
+  name: string;
+  stage_order: number;
+  description: string | null;
+  responsible: string | null;
+  time_current: string | null;
+  time_target: string | null;
+  frequency: string | null;
+  volume: string | null;
+  automation_level: string | null;
+  inputs: Json;
+  outputs: Json;
+  systems: Json;
+  related_projects: string[] | null;
+  job_role_id: string | null;
+}
+
+interface StageEditCardProps {
+  stage: ProcessStage;
+  index: number;
+  totalStages: number;
+  jobRoles: JobRole[];
+  onUpdate: () => void;
+  onDelete: () => void;
+}
  
  const AUTOMATION_LEVELS = [
    { value: 'none', label: 'Nenhuma', color: 'bg-gray-100 text-gray-600' },
@@ -46,20 +56,21 @@
    { value: 'critical', label: 'Crítica', color: 'bg-red-100 text-red-700' }
  ];
  
- export function StageEditCard({ stage, index, totalStages, onUpdate, onDelete }: StageEditCardProps) {
-   const [isEditing, setIsEditing] = useState(false);
-   const [saving, setSaving] = useState(false);
-   const [deleting, setDeleting] = useState(false);
-   const [form, setForm] = useState({
-     name: stage.name,
-     description: stage.description || '',
-     responsible: stage.responsible || '',
-     time_current: stage.time_current || '',
-     time_target: stage.time_target || '',
-     frequency: stage.frequency || '',
-     volume: stage.volume || '',
-     automation_level: stage.automation_level || 'none'
-   });
+export function StageEditCard({ stage, index, totalStages, jobRoles, onUpdate, onDelete }: StageEditCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [form, setForm] = useState({
+    name: stage.name,
+    description: stage.description || '',
+    responsible: stage.responsible || '',
+    time_current: stage.time_current || '',
+    time_target: stage.time_target || '',
+    frequency: stage.frequency || '',
+    volume: stage.volume || '',
+    automation_level: stage.automation_level || 'none',
+    job_role_id: stage.job_role_id || ''
+  });
  
    const getAutomationInfo = (level: string | null) => {
      return AUTOMATION_LEVELS.find(a => a.value === level) || AUTOMATION_LEVELS[0];
@@ -79,16 +90,17 @@
      try {
        const { error } = await supabase
          .from('process_stages')
-         .update({
-           name: form.name.trim(),
-           description: form.description.trim() || null,
-           responsible: form.responsible.trim() || null,
-           time_current: form.time_current.trim() || null,
-           time_target: form.time_target.trim() || null,
-           frequency: form.frequency.trim() || null,
-           volume: form.volume.trim() || null,
-           automation_level: form.automation_level === 'none' ? null : form.automation_level
-         })
+          .update({
+            name: form.name.trim(),
+            description: form.description.trim() || null,
+            responsible: form.responsible.trim() || null,
+            time_current: form.time_current.trim() || null,
+            time_target: form.time_target.trim() || null,
+            frequency: form.frequency.trim() || null,
+            volume: form.volume.trim() || null,
+            automation_level: form.automation_level === 'none' ? null : form.automation_level,
+            job_role_id: form.job_role_id || null
+          })
          .eq('id', stage.id);
  
        if (error) throw error;
@@ -139,16 +151,17 @@
    };
  
    const cancelEdit = () => {
-     setForm({
-       name: stage.name,
-       description: stage.description || '',
-       responsible: stage.responsible || '',
-       time_current: stage.time_current || '',
-       time_target: stage.time_target || '',
-       frequency: stage.frequency || '',
-       volume: stage.volume || '',
-       automation_level: stage.automation_level || 'none'
-     });
+    setForm({
+      name: stage.name,
+      description: stage.description || '',
+      responsible: stage.responsible || '',
+      time_current: stage.time_current || '',
+      time_target: stage.time_target || '',
+      frequency: stage.frequency || '',
+      volume: stage.volume || '',
+      automation_level: stage.automation_level || 'none',
+      job_role_id: stage.job_role_id || ''
+    });
      setIsEditing(false);
    };
  
@@ -196,24 +209,44 @@
                />
              </div>
  
-             <div>
-               <Label htmlFor={`stage-automation-${stage.id}`}>Nível de Automação</Label>
-               <Select
-                 value={form.automation_level}
-                 onValueChange={(v) => setForm({ ...form, automation_level: v })}
-               >
-                 <SelectTrigger id={`stage-automation-${stage.id}`}>
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {AUTOMATION_LEVELS.map(level => (
-                     <SelectItem key={level.value} value={level.value}>
-                       {level.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
+            <div>
+              <Label htmlFor={`stage-job-role-${stage.id}`}>Cargo/Função</Label>
+              <Select
+                value={form.job_role_id || 'none'}
+                onValueChange={(v) => setForm({ ...form, job_role_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger id={`stage-job-role-${stage.id}`}>
+                  <SelectValue placeholder="Selecionar cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {jobRoles.map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name} (R$ {role.hourly_rate}/h)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor={`stage-automation-${stage.id}`}>Nível de Automação</Label>
+              <Select
+                value={form.automation_level}
+                onValueChange={(v) => setForm({ ...form, automation_level: v })}
+              >
+                <SelectTrigger id={`stage-automation-${stage.id}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTOMATION_LEVELS.map(level => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
  
              <div>
                <Label htmlFor={`stage-time-current-${stage.id}`}>Tempo Atual</Label>

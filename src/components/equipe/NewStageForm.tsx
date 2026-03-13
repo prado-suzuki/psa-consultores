@@ -10,12 +10,21 @@
  import { Plus, Save, X, Loader2 } from 'lucide-react';
  import { RequiredMark } from '@/components/ui/required-mark';
  
- interface NewStageFormProps {
-   processId: string;
-   nextOrder: number;
-   onCreated: () => void;
-   onCancel: () => void;
- }
+interface JobRole {
+  id: string;
+  name: string;
+  level: string;
+  category: string | null;
+  hourly_rate: number;
+}
+
+interface NewStageFormProps {
+  processId: string;
+  nextOrder: number;
+  jobRoles: JobRole[];
+  onCreated: () => void;
+  onCancel: () => void;
+}
  
  const AUTOMATION_LEVELS = [
    { value: 'none', label: 'Nenhuma' },
@@ -25,18 +34,19 @@
    { value: 'critical', label: 'Crítica' }
  ];
  
- export function NewStageForm({ processId, nextOrder, onCreated, onCancel }: NewStageFormProps) {
-   const [saving, setSaving] = useState(false);
-   const [form, setForm] = useState({
-     name: '',
-     description: '',
-     responsible: '',
-     time_current: '',
-     time_target: '',
-     frequency: '',
-     volume: '',
-     automation_level: 'none'
-   });
+export function NewStageForm({ processId, nextOrder, jobRoles, onCreated, onCancel }: NewStageFormProps) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    responsible: '',
+    time_current: '',
+    time_target: '',
+    frequency: '',
+    volume: '',
+    automation_level: 'none',
+    job_role_id: ''
+  });
  
    const handleSave = async () => {
      if (!form.name.trim()) {
@@ -62,8 +72,9 @@
            time_target: form.time_target.trim() || null,
            frequency: form.frequency.trim() || null,
            volume: form.volume.trim() || null,
-           automation_level: form.automation_level === 'none' ? null : form.automation_level,
-           inputs: [],
+            automation_level: form.automation_level === 'none' ? null : form.automation_level,
+            job_role_id: form.job_role_id || null,
+            inputs: [],
            outputs: [],
            systems: []
          });
@@ -131,24 +142,44 @@
              />
            </div>
  
-           <div>
-             <Label htmlFor="new-stage-automation">Nível de Automação</Label>
-             <Select
-               value={form.automation_level}
-               onValueChange={(v) => setForm({ ...form, automation_level: v })}
-             >
-               <SelectTrigger id="new-stage-automation">
-                 <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-                 {AUTOMATION_LEVELS.map(level => (
-                   <SelectItem key={level.value} value={level.value}>
-                     {level.label}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-           </div>
+            <div>
+              <Label htmlFor="new-stage-job-role">Cargo/Função</Label>
+              <Select
+                value={form.job_role_id || 'none'}
+                onValueChange={(v) => setForm({ ...form, job_role_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger id="new-stage-job-role">
+                  <SelectValue placeholder="Selecionar cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {jobRoles.map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name} (R$ {role.hourly_rate}/h)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="new-stage-automation">Nível de Automação</Label>
+              <Select
+                value={form.automation_level}
+                onValueChange={(v) => setForm({ ...form, automation_level: v })}
+              >
+                <SelectTrigger id="new-stage-automation">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTOMATION_LEVELS.map(level => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
  
            <div>
              <Label htmlFor="new-stage-time-current">Tempo Atual</Label>
