@@ -1,44 +1,77 @@
 
 
+# Plano de Ação — Fase 6.1: Extração de Constantes e Utilitários de Formatação
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+## Objetivo
+Mover constantes de opções e funções de máscara/formatação do `NewClientModal.tsx` para um arquivo dedicado, sem alterar nenhum JSX ou lógica de componente.
 
-### Alterações realizadas
+## Análise do Arquivo Atual
+Identificadas no topo do arquivo (linhas 58-163):
 
-| Arquivo | Alterações |
-|---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
+| Item | Linhas | Tipo |
+|------|--------|------|
+| `clienteTable`, `contribuinteTable`, `participanteTable` | 58-60 | Constantes de ambiente |
+| `TIPO_PARTICIPANTE_OPTIONS` | 65-74 | Constante de opções |
+| `SITUACAO_PROJETO_OPTIONS` | 80-85 | Constante de opções |
+| `UF_STATES` | 89-92 | Constante de opções |
+| `formatCpfCnpj` | 95-110 | Função de máscara |
+| `formatCep` | 112-116 | Função de máscara |
+| `formatPhone` | 118-124 | Função de máscara |
+| `formatBRLInput` | 127-129 | Função de formatação |
+| `centsToValue` | 131 | Função utilitária |
+| `valueToCents` | 133 | Função utilitária |
+| `formatDateMask` | 136-141 | Função de máscara |
+| `parseDateMask` | 143-153 | Função de parsing |
+| `isoToMasked` | 155-163 | Função de conversão |
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
+## Passos de Execução
 
-## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
+### 1. Criar estrutura de diretório
+```
+src/components/equipe/fiscal/client-form/
+```
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
-| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
+### 2. Criar `src/components/equipe/fiscal/client-form/constants.ts`
 
-## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
+Conteúdo a incluir:
+- Todas as constantes de opções (`UF_STATES`, `TIPO_PARTICIPANTE_OPTIONS`, `SITUACAO_PROJETO_OPTIONS`)
+- Todas as funções de máscara e formatação (`formatCpfCnpj`, `formatCep`, `formatPhone`, `formatBRLInput`, `formatDateMask`, `parseDateMask`, `isoToMasked`)
+- Funções auxiliares de conversão de moeda (`centsToValue`, `valueToCents`)
 
-| Arquivo | Alterações |
-|---|---|
-| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
-| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
-| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
+### 3. Editar `NewClientModal.tsx`
 
-## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
+- **Remover** as definições das linhas 65-163 (constantes e funções)
+- **Adicionar** import no topo:
+```typescript
+import {
+  UF_STATES,
+  TIPO_PARTICIPANTE_OPTIONS,
+  SITUACAO_PROJETO_OPTIONS,
+  formatCpfCnpj,
+  formatCep,
+  formatPhone,
+  formatBRLInput,
+  centsToValue,
+  valueToCents,
+  formatDateMask,
+  parseDateMask,
+  isoToMasked,
+} from "./client-form/constants";
+```
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
-| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
+## Escopo Estritamente Protegido
 
-## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
+| NÃO Mover Agora | Razão |
+|-----------------|-------|
+| `DateFieldWithInput` (linhas 168-238) | É um componente React completo (futura Fase 6.2) |
+| `CurrencyField` (linhas 241-271) | É um componente React completo (futura Fase 6.2) |
+| `clienteTable`, `contribuinteTable`, `participanteTable` | Constantes de ambiente, podem ficar no arquivo principal |
+| Qualquer estado, handler ou lógica de aba | Mantido no orquestrador |
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
-| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
+## Resultado Esperado
+
+- `NewClientModal.tsx`: ~90 linhas removidas do topo
+- Novo arquivo `constants.ts`: ~100 linhas com exports nomeados
+- Funcionalidade idêntica: zero mudanças no comportamento do formulário
+- Base estabelecida para as próximas fases de extração de componentes visuais
+
