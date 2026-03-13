@@ -10,12 +10,21 @@
  import { Plus, Save, X, Loader2 } from 'lucide-react';
  import { RequiredMark } from '@/components/ui/required-mark';
  
- interface NewStageFormProps {
-   processId: string;
-   nextOrder: number;
-   onCreated: () => void;
-   onCancel: () => void;
- }
+interface JobRole {
+  id: string;
+  name: string;
+  level: string;
+  category: string | null;
+  hourly_rate: number;
+}
+
+interface NewStageFormProps {
+  processId: string;
+  nextOrder: number;
+  jobRoles: JobRole[];
+  onCreated: () => void;
+  onCancel: () => void;
+}
  
  const AUTOMATION_LEVELS = [
    { value: 'none', label: 'Nenhuma' },
