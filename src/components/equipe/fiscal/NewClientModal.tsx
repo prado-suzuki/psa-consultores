@@ -382,8 +382,6 @@ export default function NewClientModal({
     }
   }, [open, isEditing]);
 
-  const formatCurrencyDisplay = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   // --- ENTITY HANDLERS ---
   // --- CNPJ FETCH ---
