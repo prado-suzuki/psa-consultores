@@ -90,16 +90,17 @@ export function StageEditCard({ stage, index, totalStages, jobRoles, onUpdate, o
      try {
        const { error } = await supabase
          .from('process_stages')
-         .update({
-           name: form.name.trim(),
-           description: form.description.trim() || null,
-           responsible: form.responsible.trim() || null,
-           time_current: form.time_current.trim() || null,
-           time_target: form.time_target.trim() || null,
-           frequency: form.frequency.trim() || null,
-           volume: form.volume.trim() || null,
-           automation_level: form.automation_level === 'none' ? null : form.automation_level
-         })
+          .update({
+            name: form.name.trim(),
+            description: form.description.trim() || null,
+            responsible: form.responsible.trim() || null,
+            time_current: form.time_current.trim() || null,
+            time_target: form.time_target.trim() || null,
+            frequency: form.frequency.trim() || null,
+            volume: form.volume.trim() || null,
+            automation_level: form.automation_level === 'none' ? null : form.automation_level,
+            job_role_id: form.job_role_id || null
+          })
          .eq('id', stage.id);
  
        if (error) throw error;
