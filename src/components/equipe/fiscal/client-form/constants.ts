@@ -84,11 +84,14 @@ export const parseDateMask = (masked: string): string | null => {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 };
 
+// isoToMasked is in DateFieldWithInput.tsx (needs parseDate/format imports)
+// Kept here as a re-export-friendly signature for other consumers
+import { parseDate } from "@/lib/dateUtils";
+import { format } from "date-fns";
+
 export const isoToMasked = (iso: string): string => {
   if (!iso) return "";
   try {
-    const { parseDate } = require("@/lib/dateUtils");
-    const { format } = require("date-fns");
     const date = parseDate(iso);
     return format(date, "dd/MM/yyyy");
   } catch {
