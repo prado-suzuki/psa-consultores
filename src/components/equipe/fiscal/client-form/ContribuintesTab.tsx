@@ -486,7 +486,7 @@ export function ContribuintesTab({
                         {/* Simples Nacional */}
                         {ed.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional <RequiredMark /></Label>
                             <div className="flex-1">
                               <Select
                                 value={ed.simples_nacional || undefined}
