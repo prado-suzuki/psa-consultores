@@ -54,115 +54,24 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
+import {
+  UF_STATES,
+  TIPO_PARTICIPANTE_OPTIONS,
+  SITUACAO_PROJETO_OPTIONS,
+  formatCpfCnpj,
+  formatCep,
+  formatPhone,
+  formatBRLInput,
+  centsToValue,
+  valueToCents,
+  formatDateMask,
+  parseDateMask,
+  isoToMasked,
+} from "./client-form/constants";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
-
-// PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
-// with a static fallback for "Outro (personalizado)"
-
-const TIPO_PARTICIPANTE_OPTIONS = [
-  "Sócio/Proprietário",
-  "Contador",
-  "Advogado",
-  "Procurador",
-  "Representante Legal",
-  "Diretor/Gestor",
-  "Consultor Externo",
-  "Outros",
-];
-
-
-
-// generateNextOsNumber is now imported from useSaveClientTransaction
-
-const SITUACAO_PROJETO_OPTIONS = [
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluido", label: "Concluído" },
-  { value: "suspenso", label: "Suspenso" },
-  { value: "cancelado", label: "Cancelado" },
-];
-
-// Types imported from @/types/clientForm
-
-const UF_STATES = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
-  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
-];
-
-// --- Mask utilities ---
-const formatCpfCnpj = (value: string, tipo: string): string => {
-  const digits = value.replace(/\D/g, "");
-  if (tipo === "PF") {
-    const d = digits.slice(0, 11);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
-    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
-    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-  }
-  const d = digits.slice(0, 14);
-  if (d.length <= 2) return d;
-  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
-  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-};
-
-const formatCep = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-};
-
-const formatPhone = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : "";
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-};
-
-// --- Currency mask utilities (centavos approach) ---
-const formatBRLInput = (value: number): string => {
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const centsToValue = (cents: number): number => cents / 100;
-
-const valueToCents = (value: number): number => Math.round(value * 100);
-
-// --- Date mask utilities ---
-const formatDateMask = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
-  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
-};
-
-const parseDateMask = (masked: string): string | null => {
-  const d = masked.replace(/\D/g, "");
-  if (d.length !== 8) return null;
-  const day = parseInt(d.slice(0, 2));
-  const month = parseInt(d.slice(2, 4));
-  const year = parseInt(d.slice(4, 8));
-  if (year < 2000 || year > 2060) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-};
-
-const isoToMasked = (iso: string): string => {
-  if (!iso) return "";
-  try {
-    const date = parseDate(iso);
-    return format(date, "dd/MM/yyyy");
-  } catch {
-    return "";
-  }
-};
-
-// syncCadastrosToDW moved to useSaveClientTransaction hook
 
 // --- Date field component ---
 const DateFieldWithInput = ({
