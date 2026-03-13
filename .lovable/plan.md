@@ -1,44 +1,47 @@
 
 
+# Plano — Fase 6.3: Extração da Aba Faturamento
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+## Escopo
 
-### Alterações realizadas
+A aba Faturamento ocupa as linhas **3401–3495** (~95 linhas). É **puramente read-only** — exibe dados do primeiro contribuinte marcado como `contribuinte_faturamento` (ou o primeiro da lista). Não possui estados internos, handlers nem formulários editáveis.
 
-| Arquivo | Alterações |
-|---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
+## Arquivo a Criar
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
+**`src/components/equipe/fiscal/client-form/FaturamentoTab.tsx`**
 
-## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
+```typescript
+import { DraftEntity } from "@/types/clientForm";
+import { Building2 } from "lucide-react";
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
-| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
+interface FaturamentoTabProps {
+  entities: DraftEntity[];
+}
 
-## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
+export const FaturamentoTab = ({ entities }: FaturamentoTabProps) => {
+  const faturamentoEntity = entities.find(e => e.contribuinte_faturamento) || entities[0];
+  // ... JSX idêntico ao atual (empty state + grid de dados)
+};
+```
 
-| Arquivo | Alterações |
-|---|---|
-| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
-| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
-| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
+## Edição em `NewClientModal.tsx`
 
-## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
+1. **Adicionar import**:
+   ```typescript
+   import { FaturamentoTab } from "./client-form/FaturamentoTab";
+   ```
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
-| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
+2. **Substituir** linhas 3401–3495 (todo o `TabsContent value="faturamento"`) por:
+   ```tsx
+   <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
+     <FaturamentoTab entities={entities} />
+   </TabsContent>
+   ```
 
-## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
+## Resultado
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
-| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
+- ~90 linhas removidas do modal
+- 1 novo componente apresentacional sem estado próprio
+- Única prop: `entities: DraftEntity[]`
+- Zero mudança visual ou comportamental
+
