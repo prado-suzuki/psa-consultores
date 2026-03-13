@@ -31,16 +31,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus,
   X,
-  Trash2,
   Building2,
   Loader2,
   CheckCircle2,
   Pencil,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  Save,
-  Tag,
 } from "lucide-react";
  import { cn } from "@/lib/utils";
  import { toast } from "sonner";
