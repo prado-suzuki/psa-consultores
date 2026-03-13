@@ -701,7 +701,7 @@ export function ContribuintesTab({
               </div>
               {/* CPF/CNPJ */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ <RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative">
                     <Input
