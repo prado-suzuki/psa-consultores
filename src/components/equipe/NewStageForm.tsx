@@ -72,8 +72,9 @@ export function NewStageForm({ processId, nextOrder, jobRoles, onCreated, onCanc
            time_target: form.time_target.trim() || null,
            frequency: form.frequency.trim() || null,
            volume: form.volume.trim() || null,
-           automation_level: form.automation_level === 'none' ? null : form.automation_level,
-           inputs: [],
+            automation_level: form.automation_level === 'none' ? null : form.automation_level,
+            job_role_id: form.job_role_id || null,
+            inputs: [],
            outputs: [],
            systems: []
          });
