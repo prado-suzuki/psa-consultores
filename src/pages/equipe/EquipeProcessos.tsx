@@ -329,7 +329,18 @@ const EquipeProcessos = () => {
     fetchProcesses();
     fetchCatalogClients();
      fetchAllProjects();
+    fetchJobRoles();
   }, []);
+
+  const fetchJobRoles = async () => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .select('id, name, level, category, hourly_rate')
+      .eq('is_active', true)
+      .order('category')
+      .order('hourly_rate');
+    if (!error && data) setJobRoles(data);
+  };
 
    const fetchAllProjects = async () => {
      try {
