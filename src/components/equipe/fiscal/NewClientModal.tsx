@@ -122,75 +122,7 @@ const SITUACAO_PROJETO_OPTIONS = [
   { value: "cancelado", label: "Cancelado" },
 ];
 
-// Types for draft items
-interface DraftEntity {
-  _id: number;
-  _dbId?: string;
-  tipo_pessoa: string;
-  cpf_cnpj: string;
-  nome_razao_social: string;
-  nome_fantasia: string;
-  situacao_inscricao_estadual: string;
-  inscricao_estadual: string;
-  cod_cnae: string;
-  setor: string;
-  simples_nacional: string;
-  telefone: string;
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  municipio: string;
-  uf: string;
-  contribuinte_faturamento: boolean;
-  atividade_principal: string;
-}
-
-interface InscricaoIE {
-  _tempId: number;
-  _dbId?: string;
-  situacao: string;
-  numero_ie: string;
-  uf: string;
-}
-
-const UF_STATES = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
-  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
-];
-
-interface DraftParticipant {
-  _id: number;
-  _dbId?: string;
-  nome: string;
-  tipo_participante: string;
-  cargo: string;
-  email: string;
-  telefone: string;
-  observacoes: string;
-  acesso_chamados: boolean;
-}
-
-interface DraftOrdemServico {
-  _id: number;
-  _dbId?: string;
-  ordem_servico: string;
-  data_emissao: string;
-  data_inicio_projeto: string;
-  data_fim_projeto: string;
-  valor_projeto: number;
-  valor_reembolso_km: number;
-  valor_reembolso_refeicao: number;
-  situacao_projeto: string;
-  observacoes_projeto: string;
-  id_servico: string;
-  id_produto_segmento: string;
-  distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
-}
-
-/** @deprecated Use DraftOrdemServico */
-type DraftContract = DraftOrdemServico;
+// Types imported from @/types/clientForm
 
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
