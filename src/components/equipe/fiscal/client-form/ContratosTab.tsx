@@ -64,6 +64,7 @@ interface ContratosTabProps {
   filteredCatalogServices: any[];
   filteredEditCatalogServices: any[];
   empresas: Array<{ id: string; nome: string }>;
+  allClusters: Array<{ id: string; empresa_id?: string | null }>;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; label: string }>;
   isReadOnly: boolean;
