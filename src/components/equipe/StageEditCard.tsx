@@ -151,16 +151,17 @@ export function StageEditCard({ stage, index, totalStages, jobRoles, onUpdate, o
    };
  
    const cancelEdit = () => {
-     setForm({
-       name: stage.name,
-       description: stage.description || '',
-       responsible: stage.responsible || '',
-       time_current: stage.time_current || '',
-       time_target: stage.time_target || '',
-       frequency: stage.frequency || '',
-       volume: stage.volume || '',
-       automation_level: stage.automation_level || 'none'
-     });
+    setForm({
+      name: stage.name,
+      description: stage.description || '',
+      responsible: stage.responsible || '',
+      time_current: stage.time_current || '',
+      time_target: stage.time_target || '',
+      frequency: stage.frequency || '',
+      volume: stage.volume || '',
+      automation_level: stage.automation_level || 'none',
+      job_role_id: stage.job_role_id || ''
+    });
      setIsEditing(false);
    };
  
