@@ -137,7 +137,7 @@ export const ClienteTab = ({ clientData, setClientData, isReadOnly }: ClienteTab
         {/* 6. Região */}
         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-            Região *
+            Região <RequiredMark />
           </Label>
           <Select
             disabled={isReadOnly}

@@ -28,6 +28,7 @@ import {
 import { Plus, X, Trash2, Pencil, ChevronDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SITUACAO_PROJETO_OPTIONS, isoToMasked } from "./constants";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { DateFieldWithInput } from "./DateFieldWithInput";
 import { CurrencyField } from "./CurrencyField";
 
