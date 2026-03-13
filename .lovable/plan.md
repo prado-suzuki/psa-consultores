@@ -81,3 +81,12 @@ O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componente
 | Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
 
 Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
+
+## Plano: Unificar DLP em único AlertDialog inteligente — ✅ CONCLUÍDO
+
+| Arquivo | Alteração |
+|---|---|
+| `src/hooks/useDraftGuard.ts` | **Novo** — hook com estado `interceptedAction`, funções `guard`, `dismiss`, `proceed`, `pendingTabs` computado |
+| `src/components/equipe/fiscal/NewClientModal.tsx` | Removidos `showExitConfirm`, `showDraftWarning`, `draftWarningContext`, `checkDraftAndNavigate`, `handleDraftWarningContinue`, `handleDraftWarningGoBack`, `clearCurrentDraft`. Adicionado consumo do hook `useDraftGuard` + `guardedNavigate` + `handleGuardProceed`. 2 AlertDialogs substituídos por 1 único com Badges dinâmicas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.
