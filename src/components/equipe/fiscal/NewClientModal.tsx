@@ -336,6 +336,7 @@ export default function NewClientModal({
 }: NewClientModalProps) {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { consultarCnpj, consultarCep } = useExternalConsults();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   
