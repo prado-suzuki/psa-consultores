@@ -1,68 +1,74 @@
 
 
-# Plano — Fases 1 e 2: Bridge de area_servicos e tax_projects
 
-## Estado atual confirmado
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-- `area_servicos`: 51 registros, **sem** coluna `estrutura_area_id` (apenas `id`, `area_id`, `servico_id`)
-- `tax_projects`: 17 projetos com `area_id` populado, `estrutura_area_id` existe mas **todos NULL**
+### Alterações realizadas
 
-## Fase 1 — area_servicos (Migration SQL)
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-Uma única migration com 3 operações:
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-```sql
--- 1.1 Adicionar coluna
-ALTER TABLE area_servicos ADD COLUMN estrutura_area_id uuid;
+## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
 
--- 1.2 Popular via JOIN com tax_areas
-UPDATE area_servicos ars
-SET estrutura_area_id = ta.estrutura_area_id
-FROM tax_areas ta
-WHERE ta.id = ars.area_id;
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
+| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
 
--- 1.3 Adicionar FK
-ALTER TABLE area_servicos
-ADD CONSTRAINT area_servicos_estrutura_area_id_fkey
-FOREIGN KEY (estrutura_area_id) REFERENCES estrutura_areas(id) ON DELETE CASCADE;
-```
+## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
 
-Coluna `area_id` original **permanece** como backup.
+| Arquivo | Alterações |
+|---|---|
+| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
+| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
+| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
 
-## Fase 2 — tax_projects (Data UPDATE)
+## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
 
-Sem alteração de schema — apenas popular dados via insert tool:
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
+| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
 
-```sql
-UPDATE tax_projects tp
-SET estrutura_area_id = ta.estrutura_area_id
-FROM tax_areas ta
-WHERE ta.id = tp.area_id
-  AND tp.area_id IS NOT NULL
-  AND tp.estrutura_area_id IS NULL;
-```
+## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
 
-## Validação final
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
+| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
 
-```sql
-SELECT 'area_servicos' as tabela, COUNT(*) as total,
-       COUNT(estrutura_area_id) as populados,
-       COUNT(*) - COUNT(estrutura_area_id) as nulls
-FROM area_servicos
-UNION ALL
-SELECT 'tax_projects',
-       COUNT(*) FILTER (WHERE area_id IS NOT NULL),
-       COUNT(estrutura_area_id) FILTER (WHERE area_id IS NOT NULL),
-       COUNT(*) FILTER (WHERE area_id IS NOT NULL) - COUNT(estrutura_area_id) FILTER (WHERE area_id IS NOT NULL)
-FROM tax_projects;
-```
+## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
 
-Esperado: 0 nulls em ambas.
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
 
-## O que NÃO será feito
+Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-- Nenhum arquivo frontend alterado
-- Nenhuma coluna `area_id` removida
-- Nenhuma RLS policy alterada
-- Nenhuma FK existente removida
+## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
 
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
+
+Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
+| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.
+O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.

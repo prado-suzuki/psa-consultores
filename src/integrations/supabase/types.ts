@@ -50,20 +50,30 @@ export type Database = {
       area_servicos: {
         Row: {
           area_id: string
+          estrutura_area_id: string | null
           id: string
           servico_id: string
         }
         Insert: {
           area_id: string
+          estrutura_area_id?: string | null
           id?: string
           servico_id: string
         }
         Update: {
           area_id?: string
+          estrutura_area_id?: string | null
           id?: string
           servico_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "area_servicos_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tax_area_categorias_area_id_fkey"
             columns: ["area_id"]
