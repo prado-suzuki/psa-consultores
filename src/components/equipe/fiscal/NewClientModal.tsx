@@ -611,10 +611,7 @@ export default function NewClientModal({
     user?.id,
   );
 
-  // Load existing data when editing (via dedicated hook)
-  const editData = useClientEditData(editingClienteId ?? null, open && !!editingClienteId);
-
-  useEffect(() => {
+  // Sync edit data into local state
     if (!editData.clientData) return;
     setClientData(editData.clientData);
     setEntities(editData.entities);
