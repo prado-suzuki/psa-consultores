@@ -67,6 +67,7 @@ import { DateFieldWithInput } from "./client-form/DateFieldWithInput";
 import { CurrencyField } from "./client-form/CurrencyField";
 import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { ClienteTab } from "./client-form/ClienteTab";
+import { ParticipantesTab } from "./client-form/ParticipantesTab";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";

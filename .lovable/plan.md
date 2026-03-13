@@ -42,3 +42,13 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 |---|---|
 | `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
 | `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
+
+## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
+
+Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
