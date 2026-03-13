@@ -859,8 +859,13 @@ export function ContribuintesTab({
                   <div className="flex-1">
                     <Input
                       value={draftEntity.cod_cnae || ""}
-                      onChange={(e) => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })}
-                      placeholder="0000-0/00"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 7);
+                        setDraftEntity({ ...draftEntity, cod_cnae: digits });
+                      }}
+                      maxLength={7}
+                      inputMode="numeric"
+                      placeholder="0000000"
                       className="h-8 max-w-[200px]"
                     />
                   </div>
