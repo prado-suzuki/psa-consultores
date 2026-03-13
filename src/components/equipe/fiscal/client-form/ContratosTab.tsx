@@ -578,7 +578,7 @@ export function ContratosTab({
                       {/* Serviço for edit */}
                       <div className="mt-4">
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                          Serviço Contratado *
+                          Serviço Contratado <RequiredMark />
                         </Label>
                         <Select
                           value={(ec as any).id_servico || "__none__"}
