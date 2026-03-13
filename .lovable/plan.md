@@ -1,30 +1,68 @@
 
 
-# Análise — Coluna Bridge `tax_areas.estrutura_area_id`
+# Plano — Fases 1 e 2: Bridge de area_servicos e tax_projects
 
-## Situação Atual
+## Estado atual confirmado
 
-A coluna **já existe** e a FK `tax_areas_estrutura_area_id_fkey` já está criada. Dos 5 registros, **3 já estão populados** e **2 estão NULL**:
+- `area_servicos`: 51 registros, **sem** coluna `estrutura_area_id` (apenas `id`, `area_id`, `servico_id`)
+- `tax_projects`: 17 projetos com `area_id` populado, `estrutura_area_id` existe mas **todos NULL**
 
-| tax_area | estrutura_area_id | Status |
-|---|---|---|
-| Fixos | `fd2eab19...` | ✅ Populado |
-| Levantamento de Credito | `201bb999...` | ✅ Populado |
-| Pontuais | `5c71affa...` | ✅ Populado |
-| Estudos e Pesquisas | `nil` | ❌ NULL |
-| Societario | `nil` | ❌ NULL |
+## Fase 1 — area_servicos (Migration SQL)
 
-## Plano
-
-Apenas **2 UPDATEs** são necessários — nenhuma migration de schema:
+Uma única migration com 3 operações:
 
 ```sql
-UPDATE tax_areas SET estrutura_area_id = '947fc502-91cd-4fc2-8d88-76cd9d829754'
-WHERE id = '922774b9-ede8-4e0e-9709-7185a84a79c4';  -- Estudos e Pesquisas
+-- 1.1 Adicionar coluna
+ALTER TABLE area_servicos ADD COLUMN estrutura_area_id uuid;
 
-UPDATE tax_areas SET estrutura_area_id = 'a76d5f03-de4b-499d-9fb2-d9764b26422a'
-WHERE id = '26a6cdd4-ac56-4d4a-93bf-a32181f4f158';  -- Societario
+-- 1.2 Popular via JOIN com tax_areas
+UPDATE area_servicos ars
+SET estrutura_area_id = ta.estrutura_area_id
+FROM tax_areas ta
+WHERE ta.id = ars.area_id;
+
+-- 1.3 Adicionar FK
+ALTER TABLE area_servicos
+ADD CONSTRAINT area_servicos_estrutura_area_id_fkey
+FOREIGN KEY (estrutura_area_id) REFERENCES estrutura_areas(id) ON DELETE CASCADE;
 ```
 
-Nenhuma alteração de schema, frontend ou RLS é necessária. Aprove para executar os 2 UPDATEs.
+Coluna `area_id` original **permanece** como backup.
+
+## Fase 2 — tax_projects (Data UPDATE)
+
+Sem alteração de schema — apenas popular dados via insert tool:
+
+```sql
+UPDATE tax_projects tp
+SET estrutura_area_id = ta.estrutura_area_id
+FROM tax_areas ta
+WHERE ta.id = tp.area_id
+  AND tp.area_id IS NOT NULL
+  AND tp.estrutura_area_id IS NULL;
+```
+
+## Validação final
+
+```sql
+SELECT 'area_servicos' as tabela, COUNT(*) as total,
+       COUNT(estrutura_area_id) as populados,
+       COUNT(*) - COUNT(estrutura_area_id) as nulls
+FROM area_servicos
+UNION ALL
+SELECT 'tax_projects',
+       COUNT(*) FILTER (WHERE area_id IS NOT NULL),
+       COUNT(estrutura_area_id) FILTER (WHERE area_id IS NOT NULL),
+       COUNT(*) FILTER (WHERE area_id IS NOT NULL) - COUNT(estrutura_area_id) FILTER (WHERE area_id IS NOT NULL)
+FROM tax_projects;
+```
+
+Esperado: 0 nulls em ambas.
+
+## O que NÃO será feito
+
+- Nenhum arquivo frontend alterado
+- Nenhuma coluna `area_id` removida
+- Nenhuma RLS policy alterada
+- Nenhuma FK existente removida
 
