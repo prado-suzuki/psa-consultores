@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useClientFormOptions } from "@/hooks/useClientFormOptions";
 import { useClientEditData } from "@/hooks/useClientEditData";
+import { useExternalConsults } from "@/hooks/useExternalConsults";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
