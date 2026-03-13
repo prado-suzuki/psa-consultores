@@ -35,3 +35,10 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 |---|---|
 | `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
 | `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
+
+## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
+| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
