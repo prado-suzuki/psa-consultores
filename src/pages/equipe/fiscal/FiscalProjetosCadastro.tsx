@@ -265,7 +265,7 @@ const FiscalProjetosCadastro = () => {
         sublider_ids: [],
         external_client_id: project.external_client_id || '',
         contribuinte_id: project.contribuinte_id || '',
-        area_id: project.area_id || '',
+        area_id: project.estrutura_area_id || '',
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
