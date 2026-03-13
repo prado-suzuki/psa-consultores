@@ -191,7 +191,7 @@ export default function NewClientModal({
   const isEditing = !!editingClienteId;
 
   // Dictionary data from dedicated hook
-  const { lideres, catalogServices, allClusters, produtoSegmentoOptions, produtoSegmentoFullOptions, CENTRO_CUSTO_OPTIONS, PRODUTO_SEGMENTO_OPTIONS } = useClientFormOptions();
+  const { lideres, catalogServices, allClusters, empresas, produtoSegmentoOptions, produtoSegmentoFullOptions, CENTRO_CUSTO_OPTIONS, PRODUTO_SEGMENTO_OPTIONS } = useClientFormOptions();
 
   // Edit data from dedicated hook
   const editData = useClientEditData(editingClienteId ?? null, open && !!editingClienteId);
@@ -255,13 +255,16 @@ export default function NewClientModal({
 
   const filteredCatalogServices = useMemo(() => {
     if (osClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osClusterFilter);
-  }, [catalogServices, osClusterFilter]);
+    // osClusterFilter is now an empresa_id; find clusters belonging to that empresa
+    const clusterIds = new Set(allClusters.filter((c: any) => c.empresa_id === osClusterFilter).map((c: any) => c.id));
+    return catalogServices.filter((s: any) => clusterIds.has(s.cluster_id));
+  }, [catalogServices, osClusterFilter, allClusters]);
 
   const filteredEditCatalogServices = useMemo(() => {
     if (osEditClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osEditClusterFilter);
-  }, [catalogServices, osEditClusterFilter]);
+    const clusterIds = new Set(allClusters.filter((c: any) => c.empresa_id === osEditClusterFilter).map((c: any) => c.id));
+    return catalogServices.filter((s: any) => clusterIds.has(s.cluster_id));
+  }, [catalogServices, osEditClusterFilter, allClusters]);
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
@@ -1028,6 +1031,7 @@ export default function NewClientModal({
                       catalogServices={catalogServices}
                       filteredCatalogServices={filteredCatalogServices}
                       filteredEditCatalogServices={filteredEditCatalogServices}
+                      empresas={empresas}
                       allClusters={allClusters}
                       produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                       CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}

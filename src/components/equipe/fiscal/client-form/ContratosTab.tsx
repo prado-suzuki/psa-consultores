@@ -63,7 +63,8 @@ interface ContratosTabProps {
   catalogServices: any[];
   filteredCatalogServices: any[];
   filteredEditCatalogServices: any[];
-  allClusters: any[];
+  empresas: Array<{ id: string; nome: string }>;
+  allClusters: Array<{ id: string; empresa_id?: string | null }>;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; label: string }>;
   isReadOnly: boolean;
@@ -221,6 +222,7 @@ export function ContratosTab({
   catalogServices,
   filteredCatalogServices,
   filteredEditCatalogServices,
+  empresas,
   allClusters,
   produtoSegmentoFullOptions,
   CENTRO_CUSTO_OPTIONS,
@@ -372,7 +374,9 @@ export function ContratosTab({
                             <span className="text-sm">
                               {(() => {
                                 const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
-                                return (svc as any)?.estrutura_clusters?.name || "—";
+                                const cluster = allClusters.find((c) => c.id === svc?.cluster_id);
+                                const emp = empresas.find((e) => e.id === cluster?.empresa_id);
+                                return emp?.nome || "—";
                               })()}
                             </span>
                           </div>
@@ -560,9 +564,9 @@ export function ContratosTab({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="__all__">Todas as empresas</SelectItem>
-                            {allClusters.map((c: any) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
+                            {empresas.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>
+                                {e.nome}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -826,9 +830,9 @@ export function ContratosTab({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todas as empresas</SelectItem>
-                  {allClusters.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
+                  {empresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
