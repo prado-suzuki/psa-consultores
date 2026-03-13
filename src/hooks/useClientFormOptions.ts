@@ -35,10 +35,22 @@ export function useClientFormOptions() {
     queryFn: async () => {
       const { data } = await supabase
         .from("estrutura_clusters")
-        .select("id, name")
+        .select("id, name, empresa_id")
         .eq("is_active", true)
         .order("name");
       return data || [];
+    },
+  });
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas_faturamento_for_os"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas_faturamento")
+        .select("id, nome")
+        .eq("is_active", true)
+        .order("nome");
+      return (data || []) as Array<{ id: string; nome: string }>;
     },
   });
 
