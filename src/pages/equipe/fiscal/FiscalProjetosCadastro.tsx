@@ -409,7 +409,7 @@ const FiscalProjetosCadastro = () => {
               <p className="text-sm text-slate-500">{projects.length} projetos cadastrados</p>
             </div>
           </div>
-          <Button onClick={() => handleOpenModal()} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={() => handleOpenModal()} className="bg-teal-600 hover:bg-teal-700">
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
