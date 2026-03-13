@@ -82,11 +82,12 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 src/
 ├── pages/           → Páginas por módulo (equipe/, cliente/, admin/, gestao/, administracao/)
 ├── components/      → Componentes por domínio (equipe/fiscal/, equipe/dev/, ui/, etc.)
+│   └── equipe/fiscal/client-form/  → Abas e utilitários do NewClientModal (ver 3.5)
 ├── hooks/           → Custom hooks — ÚNICA camada permitida para data fetching
 ├── contexts/        → AuthContext — ÚNICO contexto global
 ├── config/          → api.ts (URLs/ambientes), protectedPages.ts (registro de rotas)
 ├── lib/             → Utilitários puros (dateUtils, selicCalculator, markdownRenderer, etc.)
-├── types/           → Tipos de domínio (workPackage, efd, difal, ibscbs)
+├── types/           → Tipos de domínio (workPackage, efd, difal, ibscbs, clientForm)
 ├── constants/       → brandColors, efdConfig, exportConfig
 └── integrations/    → Cliente Supabase (auto-gerado, NÃO EDITAR)
 ```
@@ -114,6 +115,19 @@ src/
 | `useUserEstrutura` | Dados organizacionais do usuário (área, equipe, cluster) |
 | `useSyncProtectedPages` | Sincroniza protectedPages.ts com banco |
 | `useApiAuth` | Autenticação para API externa (GCP Cloud Run) |
+| `useTaxAreas` | Áreas organizacionais com category 'tax' (consulta `estrutura_areas`) |
+| `useTaxProjects` | CRUD de projetos fiscais (JOIN com `estrutura_areas` via `estrutura_area_id`) |
+| `useTaxReferenceData` | Dados de referência para módulo Tax |
+| `useEstruturaArea` | Gestão de áreas organizacionais |
+| `useEstruturaManager` | Gestão completa da estrutura organizacional |
+| `useCategorias` | Gestão de serviços prestados (catálogo) |
+| `useServicosContratados` | Serviços contratados por cliente |
+| `useFiscalClients` | Clientes do módulo fiscal |
+| `useDevClients` | Clientes do módulo Dev |
+| `useClientFormOptions` | Opções de formulário de clientes (líderes, serviços, clusters, centros de custo) |
+| `useClientEditData` | Carrega dados existentes de cliente para edição |
+| `useExternalConsults` | Consultas externas (BrasilAPI CNPJ, ViaCEP) |
+| `useSaveClientTransaction` | Persistência transacional de cliente (upsert contribuintes, participantes, OS) |
 
 > **Exceções toleradas**: queries inline com `useQuery` em páginas de listagem simples. Migração gradual para hooks dedicados.
 
@@ -127,6 +141,35 @@ Cada módulo possui layout dedicado com sidebar/nav próprio:
 - Fonte única: `src/components/ui/` (shadcn-ui)
 - Feedback: `useToast` (`src/hooks/use-toast.ts`) ou `sonner` — nunca `alert()`
 - Cores: sempre tokens semânticos do design system (HSL via CSS variables). Nunca hardcoded.
+
+### 3.5 Componentes client-form
+
+Pasta `src/components/equipe/fiscal/client-form/` — módulos isolados do `NewClientModal`:
+
+| Arquivo | Propósito |
+|---|---|
+| `constants.ts` | Máscaras de formatação (CPF/CNPJ, CEP, telefone), formatação BRL, opções de dropdown |
+| `DateFieldWithInput.tsx` | Input de data com máscara dd/mm/aaaa |
+| `CurrencyField.tsx` | Input monetário BRL (centavos → valor formatado) |
+| `ClienteTab.tsx` | Aba dados do cliente (nome, setor, região, UF, telefone) |
+| `ContribuintesTab.tsx` | Aba contribuintes com lista expansível, edição inline, gestão de IE |
+| `ParticipantesTab.tsx` | Aba participantes com formulário de criação, edição inline |
+| `ContratosTab.tsx` | Aba contratos/OS com seleção de serviço agrupada, distribuição de receita |
+| `FaturamentoTab.tsx` | Aba faturamento (em desenvolvimento — Fase 6.3) |
+
+Todos os componentes de aba recebem estados de rascunho (drafts) e handlers do `NewClientModal` via props, mantendo o estado no nível do orquestrador.
+
+### 3.6 Refatoração NewClientModal (status)
+
+| Fase | Descrição | Status |
+|---|---|---|
+| 1 | `useAuditLog` expandido + `confirm()` → `AlertDialog` | ✅ |
+| 2 | Extrair dicionários para `useClientFormOptions` | ✅ |
+| 3 | Extrair loadData para `useClientEditData` | ✅ |
+| 4 | Extrair consultas externas (CNPJ/CEP) para `useExternalConsults` | ✅ |
+| 5 | Extrair executeSave para `useSaveClientTransaction` | ✅ |
+| 6.1–6.2 | Extrair abas Participantes + Contribuintes | ✅ |
+| 6.3 | Extrair aba Faturamento | 🔄 Em execução |
 
 ---
 
@@ -195,9 +238,14 @@ Clusters → Áreas → Equipes → Membros
 - `estrutura_area_lideres` — líder por área (area_id, user_id; relação 1:1)
 
 **Conexão Tax ↔ Estrutura:**
-`tax_areas.estrutura_area_id` → `estrutura_areas.id` (FK, ON DELETE SET NULL)
 
-Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_area_lideres`.
+```
+tax_projects.estrutura_area_id → estrutura_areas.id (FK direta)
+area_servicos.estrutura_area_id → estrutura_areas.id (FK direta)
+Caminho de joins: tax_projects → estrutura_areas → estrutura_equipes → estrutura_equipe_membros / estrutura_area_lideres
+```
+
+> **Nota**: a tabela `tax_areas` ainda existe como backup (colunas `area_id` legadas preservadas). Fase 5 (drop `tax_areas`) pendente.
 
 ---
 
@@ -209,6 +257,7 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 - `user_id` referencia `profiles.id`, nunca `auth.users.id` diretamente em FK
 - Roles em `user_roles`, checadas via `has_role(uuid, app_role)` — função SECURITY DEFINER
 - Membership de projetos checada via `is_project_member(uuid, uuid)` — função SECURITY DEFINER
+- Membership de áreas checada via `is_area_member(uuid, uuid)` — função SECURITY DEFINER
 - Nunca `CHECK` com `now()`; usar triggers de validação
 
 ### 6.2 Tabelas-chave por domínio
@@ -217,7 +266,12 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_area_lideres`
 
 **Tax/Fiscal:**
-`tax_projects`, `tax_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
+`tax_projects`, `tax_project_members`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
+> Legado: `tax_areas` (preservada como backup — Fase 5 pendente)
+
+**Cadastros de serviços:**
+`servicos_prestados` (ex-`tax_categorias`), `area_servicos` (ex-`tax_area_categorias`), `project_servicos` (ex-`tax_project_categorias`), `produto_segmento`
+> Renomeações aplicadas: `categoria_id` → `servico_id` em `fiscal_tasks` e `area_servicos`
 
 **Chamados:**
 `tickets`, `ticket_messages`, `ticket_attachments` (inferido), `documents`
@@ -247,6 +301,20 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 | Outros (preview Lovable) | dev | `psa-backend-api-456879351254...` |
 
 Tabelas com sufixo `_dev` para desenvolvimento: `cliente_dev`, `contribuinte_dev`, `contrato_dev`. Mapeamento em `TABLE_NAMES` de `api.ts`.
+
+### 6.4 Migração tax_areas → estrutura_areas (status)
+
+| Fase | Descrição | Status |
+|---|---|---|
+| 1 | Adicionar `estrutura_area_id` em `tax_projects` + `area_servicos` com FK | ✅ |
+| 2 | Migrar dados (`area_id` → `estrutura_area_id` via lookup) | ✅ |
+| 3 | Frontend: substituir `tax_areas` por `estrutura_areas` em hooks e componentes | ✅ |
+| 4 | Simplificar RLS policies (remover JOIN com `tax_areas`) | ✅ |
+| 5 | Drop `tax_areas` e colunas `area_id` legadas | ⏳ Pendente |
+
+**Arquivos frontend atualizados (Fase 3):** `useTaxAreas`, `useTaxProjects`, `FiscalDashboard`, `FiscalProjetosCadastro`, `TaskModal`, `AuditLogTable`, `auditFieldFormatter`.
+
+**RLS simplificadas (Fase 4):** policies de `tax_projects` e `fiscal_tasks` usam `estrutura_area_id` direto, sem JOIN com `tax_areas`.
 
 ---
 
@@ -282,9 +350,17 @@ Tabelas com sufixo `_dev` para desenvolvimento: `cliente_dev`, `contribuinte_dev
 ### 8.1 Hook `useAuditLog`
 
 ```typescript
+type AuditArea = 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
+
+type AuditEntityType =
+  | 'project' | 'task' | 'subtask'
+  | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
+  | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
+  | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
+
 interface AuditLogEntry {
-  area: 'tax' | 'osg';
-  entity_type: 'project' | 'task' | 'subtask';
+  area: AuditArea;
+  entity_type: AuditEntityType;
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
