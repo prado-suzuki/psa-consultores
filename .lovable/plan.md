@@ -28,3 +28,10 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 | `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
 | `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
 | `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
+
+## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
+| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
