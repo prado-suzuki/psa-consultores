@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useClientFormOptions } from "@/hooks/useClientFormOptions";
+import { useClientEditData } from "@/hooks/useClientEditData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { isProductionEnvironment } from "@/config/api";
+import type { DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE } from "@/types/clientForm";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -120,75 +122,12 @@ const SITUACAO_PROJETO_OPTIONS = [
   { value: "cancelado", label: "Cancelado" },
 ];
 
-// Types for draft items
-interface DraftEntity {
-  _id: number;
-  _dbId?: string;
-  tipo_pessoa: string;
-  cpf_cnpj: string;
-  nome_razao_social: string;
-  nome_fantasia: string;
-  situacao_inscricao_estadual: string;
-  inscricao_estadual: string;
-  cod_cnae: string;
-  setor: string;
-  simples_nacional: string;
-  telefone: string;
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  municipio: string;
-  uf: string;
-  contribuinte_faturamento: boolean;
-  atividade_principal: string;
-}
-
-interface InscricaoIE {
-  _tempId: number;
-  _dbId?: string;
-  situacao: string;
-  numero_ie: string;
-  uf: string;
-}
+// Types imported from @/types/clientForm
 
 const UF_STATES = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
   "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
 ];
-
-interface DraftParticipant {
-  _id: number;
-  _dbId?: string;
-  nome: string;
-  tipo_participante: string;
-  cargo: string;
-  email: string;
-  telefone: string;
-  observacoes: string;
-  acesso_chamados: boolean;
-}
-
-interface DraftOrdemServico {
-  _id: number;
-  _dbId?: string;
-  ordem_servico: string;
-  data_emissao: string;
-  data_inicio_projeto: string;
-  data_fim_projeto: string;
-  valor_projeto: number;
-  valor_reembolso_km: number;
-  valor_reembolso_refeicao: number;
-  situacao_projeto: string;
-  observacoes_projeto: string;
-  id_servico: string;
-  id_produto_segmento: string;
-  distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
-}
-
-/** @deprecated Use DraftOrdemServico */
-type DraftContract = DraftOrdemServico;
 
 // --- Mask utilities ---
 const formatCpfCnpj = (value: string, tipo: string): string => {
@@ -398,7 +337,7 @@ export default function NewClientModal({
   const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [isAddingContract, setIsAddingContract] = useState(false);
@@ -528,6 +467,9 @@ export default function NewClientModal({
   // Dictionary data from dedicated hook
   const { lideres, catalogServices, allClusters, produtoSegmentoOptions, produtoSegmentoFullOptions, CENTRO_CUSTO_OPTIONS, PRODUTO_SEGMENTO_OPTIONS } = useClientFormOptions();
 
+  // Edit data from dedicated hook
+  const editData = useClientEditData(editingClienteId ?? null, open && !!editingClienteId);
+
   // Default states
   const defaultClientData = {
     nome: "",
@@ -628,7 +570,7 @@ export default function NewClientModal({
 
   // Capture initial snapshot once loading completes
   useEffect(() => {
-    if (open && !loadingEdit) {
+    if (open && !editData.isLoading) {
       const t = setTimeout(() => {
         initialSnapshotRef.current = JSON.stringify({ clientData, entities, participants, contracts });
       }, 100);
@@ -637,7 +579,7 @@ export default function NewClientModal({
     if (!open) {
       initialSnapshotRef.current = null;
     }
-  }, [open, loadingEdit]);
+  }, [open, editData.isLoading]);
 
   // Beforeunload protection
   useEffect(() => {
@@ -669,155 +611,15 @@ export default function NewClientModal({
     user?.id,
   );
 
-  // Load existing data when editing
+  // Sync edit data into local state
   useEffect(() => {
-    if (!open || !editingClienteId) return;
-
-    const loadData = async () => {
-      setLoadingEdit(true);
-      try {
-        const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
-        if (cli) {
-          setClientData({
-            nome: cli.nome || "",
-            categoria: (cli as any).categoria || "Bronze",
-            ativo: cli.ativo ?? true,
-            fixo: cli.fixo || "Sim",
-            telefone: cli.telefone || "",
-            municipio: cli.municipio || "",
-            uf: cli.uf || "",
-            setor_cliente: cli.setor_cliente || "",
-            regiao: (cli as any).regiao || "",
-          });
-        }
-
-        const { data: contribs } = await supabase
-          .from(contribuinteTable)
-          .select("*")
-          .eq("cliente_id", editingClienteId)
-          .eq("excluido", false);
-        if (contribs) {
-          setEntities(
-            contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: c.id,
-              tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: c.cpf_cnpj || "",
-              nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: (c as any).nome_fantasia || "",
-              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
-              inscricao_estadual: c.inscricao_estadual || "",
-              cod_cnae: c.cod_cnae || "",
-              setor: c.setor || "",
-              simples_nacional:
-                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
-              telefone: (c as any).telefone || "",
-              cep: (c as any).cep || "",
-              logradouro: (c as any).logradouro || "",
-              numero: (c as any).numero || "",
-              complemento: (c as any).complemento || "",
-              bairro: (c as any).bairro || "",
-              municipio: (c as any).municipio || "",
-              uf: (c as any).uf || "",
-              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
-              atividade_principal: "",
-            })),
-          );
-        }
-
-        // Load inscricoes estaduais
-        if (contribs && contribs.length > 0) {
-          const contribIds = contribs.map(c => c.id);
-          const { data: inscricoes } = await (supabase as any)
-            .from("inscricao_contribuinte")
-            .select("*")
-            .in("contribuinte_id", contribIds);
-          if (inscricoes) {
-            const map: Record<string, InscricaoIE[]> = {};
-            for (const ie of inscricoes as any[]) {
-              const key = ie.contribuinte_id as string;
-              if (!map[key]) map[key] = [];
-              map[key].push({
-                _tempId: Date.now() + Math.random(),
-                _dbId: ie.id,
-                situacao: ie.situacao || "sim",
-                numero_ie: ie.numero_ie || "",
-                uf: ie.uf || "",
-              });
-            }
-            setInscricoesMap(map);
-          } else {
-            setInscricoesMap({});
-          }
-        }
-
-        const { data: parts } = await (supabase.from(participanteTable) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (parts) {
-          setParticipants(
-            parts.map((p: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: p.id || p.id_participante,
-              nome: p.nome || "",
-              tipo_participante: p.tipo_participante || "",
-              cargo: p.cargo || "",
-              email: p.email || "",
-              telefone: p.telefone || "",
-              observacoes: p.observacoes || "",
-              acesso_chamados: p.acesso_chamados ?? false,
-            })),
-          );
-        }
-
-        // Carregar ordens de serviço do banco
-        const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (existingOS && existingOS.length > 0) {
-          // Also load distribuicao_receita for each OS
-          const osIds = existingOS.map((os: any) => os.id);
-          const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("*")
-            .in("id_ordem_servico", osIds)
-            .eq("excluido", false);
-          const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
-          (distData || []).forEach((d: any) => {
-            if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
-            distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
-          });
-          setContracts(
-            existingOS.map((os: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: os.id,
-              ordem_servico: os.numero_os || "",
-              data_emissao: os.data_emissao || "",
-              data_inicio_projeto: os.data_inicio || "",
-              data_fim_projeto: os.data_fim || "",
-              valor_projeto: os.valor_projeto || 0,
-              valor_reembolso_km: os.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
-              situacao_projeto: os.situacao || "em_andamento",
-              observacoes_projeto: os.observacoes || "",
-              id_servico: os.id_servico || "",
-              id_produto_segmento: os.id_produto_segmento || "",
-              distribuicao_receita: distMap[os.id] || [],
-            })),
-          );
-        } else {
-          setContracts([]);
-        }
-      } catch (err: any) {
-        console.error("Erro ao carregar dados do cliente:", err);
-        toast.error("Erro ao carregar dados do cliente");
-      } finally {
-        setLoadingEdit(false);
-      }
-    };
-    loadData();
-  }, [open, editingClienteId]);
+    if (!editData.clientData) return;
+    setClientData(editData.clientData);
+    setEntities(editData.entities);
+    setInscricoesMap(editData.inscricoesMap);
+    setParticipants(editData.participants);
+    setContracts(editData.contracts);
+  }, [editData.clientData, editData.entities, editData.inscricoesMap, editData.participants, editData.contracts]);
 
   // Restore draft for new client mode
   useEffect(() => {
@@ -1666,7 +1468,7 @@ export default function NewClientModal({
             </div>
           </div>
 
-          {loadingEdit ? (
+          {editData.isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
             </div>
