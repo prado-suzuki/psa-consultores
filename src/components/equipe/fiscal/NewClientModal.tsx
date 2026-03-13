@@ -39,12 +39,10 @@ import {
   Pencil,
   ChevronRight,
   ChevronLeft,
-  Search,
   ChevronDown,
   Save,
-  Copy,
-   Tag,
- } from "lucide-react";
+  Tag,
+} from "lucide-react";
  import { cn } from "@/lib/utils";
  import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
