@@ -939,7 +939,7 @@ export function ContribuintesTab({
               </div>
               {/* UF */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF <RequiredMark /></Label>
                 <div className="flex-1">
                   <Select
                     value={draftEntity.uf || "__none__"}
