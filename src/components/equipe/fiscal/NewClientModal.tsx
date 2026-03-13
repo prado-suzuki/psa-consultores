@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useClientFormOptions } from "@/hooks/useClientFormOptions";
 import { useClientEditData } from "@/hooks/useClientEditData";
 import { useExternalConsults } from "@/hooks/useExternalConsults";
 import { useSaveClientTransaction, generateNextOsNumber } from "@/hooks/useSaveClientTransaction";
+import { useDraftGuard } from "@/hooks/useDraftGuard";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
