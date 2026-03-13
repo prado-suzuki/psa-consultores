@@ -678,7 +678,7 @@ const FiscalProjetosCadastro = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {taxAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
+                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
