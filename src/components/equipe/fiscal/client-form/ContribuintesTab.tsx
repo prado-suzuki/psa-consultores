@@ -990,7 +990,11 @@ export function ContribuintesTab({
                 <div className="flex-1">
                   <Input
                     value={draftEntity.numero || ""}
-                    onChange={(e) => setDraftEntity({ ...draftEntity, numero: e.target.value })}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setDraftEntity({ ...draftEntity, numero: digits });
+                    }}
+                    inputMode="numeric"
                     placeholder="Nº"
                     className="h-8 max-w-[120px]"
                   />
