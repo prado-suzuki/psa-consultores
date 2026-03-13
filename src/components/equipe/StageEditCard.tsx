@@ -56,20 +56,21 @@ interface StageEditCardProps {
    { value: 'critical', label: 'Crítica', color: 'bg-red-100 text-red-700' }
  ];
  
- export function StageEditCard({ stage, index, totalStages, onUpdate, onDelete }: StageEditCardProps) {
-   const [isEditing, setIsEditing] = useState(false);
-   const [saving, setSaving] = useState(false);
-   const [deleting, setDeleting] = useState(false);
-   const [form, setForm] = useState({
-     name: stage.name,
-     description: stage.description || '',
-     responsible: stage.responsible || '',
-     time_current: stage.time_current || '',
-     time_target: stage.time_target || '',
-     frequency: stage.frequency || '',
-     volume: stage.volume || '',
-     automation_level: stage.automation_level || 'none'
-   });
+export function StageEditCard({ stage, index, totalStages, jobRoles, onUpdate, onDelete }: StageEditCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [form, setForm] = useState({
+    name: stage.name,
+    description: stage.description || '',
+    responsible: stage.responsible || '',
+    time_current: stage.time_current || '',
+    time_target: stage.time_target || '',
+    frequency: stage.frequency || '',
+    volume: stage.volume || '',
+    automation_level: stage.automation_level || 'none',
+    job_role_id: stage.job_role_id || ''
+  });
  
    const getAutomationInfo = (level: string | null) => {
      return AUTOMATION_LEVELS.find(a => a.value === level) || AUTOMATION_LEVELS[0];
