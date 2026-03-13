@@ -40,7 +40,6 @@ import {
 } from "lucide-react";
  import { cn } from "@/lib/utils";
  import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
 import {
   UF_STATES,
