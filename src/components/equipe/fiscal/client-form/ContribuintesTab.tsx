@@ -505,7 +505,7 @@ export function ContribuintesTab({
                         )}
                         {/* CEP */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP <RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative max-w-[160px]">
                               <Input
