@@ -34,18 +34,19 @@ interface NewStageFormProps {
    { value: 'critical', label: 'Crítica' }
  ];
  
- export function NewStageForm({ processId, nextOrder, onCreated, onCancel }: NewStageFormProps) {
-   const [saving, setSaving] = useState(false);
-   const [form, setForm] = useState({
-     name: '',
-     description: '',
-     responsible: '',
-     time_current: '',
-     time_target: '',
-     frequency: '',
-     volume: '',
-     automation_level: 'none'
-   });
+export function NewStageForm({ processId, nextOrder, jobRoles, onCreated, onCancel }: NewStageFormProps) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    responsible: '',
+    time_current: '',
+    time_target: '',
+    frequency: '',
+    volume: '',
+    automation_level: 'none',
+    job_role_id: ''
+  });
  
    const handleSave = async () => {
      if (!form.name.trim()) {
