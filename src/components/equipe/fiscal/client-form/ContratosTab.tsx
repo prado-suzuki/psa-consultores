@@ -369,7 +369,7 @@ export function ContratosTab({
                         {cont.id_servico && (
                           <div className="col-span-2 md:col-span-3">
                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                              Empresa
+                              Empresa/ Faturamento
                             </p>
                             <span className="text-sm">
                               {(() => {
