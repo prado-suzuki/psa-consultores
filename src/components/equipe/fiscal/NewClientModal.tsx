@@ -191,7 +191,7 @@ export default function NewClientModal({
   const isEditing = !!editingClienteId;
 
   // Dictionary data from dedicated hook
-  const { lideres, catalogServices, allClusters, produtoSegmentoOptions, produtoSegmentoFullOptions, CENTRO_CUSTO_OPTIONS, PRODUTO_SEGMENTO_OPTIONS } = useClientFormOptions();
+  const { lideres, catalogServices, allClusters, empresas, produtoSegmentoOptions, produtoSegmentoFullOptions, CENTRO_CUSTO_OPTIONS, PRODUTO_SEGMENTO_OPTIONS } = useClientFormOptions();
 
   // Edit data from dedicated hook
   const editData = useClientEditData(editingClienteId ?? null, open && !!editingClienteId);
