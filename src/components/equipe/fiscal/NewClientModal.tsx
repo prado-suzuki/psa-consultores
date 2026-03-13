@@ -697,12 +697,7 @@ export default function NewClientModal({
 
   // --- FINAL SAVE ---
   const handleSave = () => {
-    const pendingTabs = getDraftPendingTabs();
-    if (pendingTabs.length > 0) {
-      setDraftWarningContext({ action: "save", pendingTabs });
-      setShowDraftWarning(true);
-      return;
-    }
+    if (guard({ type: "save" })) return;
     executeSave();
   };
 
