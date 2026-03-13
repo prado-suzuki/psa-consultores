@@ -88,6 +88,7 @@ const UUID_FIELDS: Record<string, string> = {
   leader_id: 'profiles',
   project_id: 'projects',
   area_id: 'areas',
+  estrutura_area_id: 'areas',
   client_id: 'clients',
   external_client_id: 'clients',
   contribuinte_id: 'contribuintes',

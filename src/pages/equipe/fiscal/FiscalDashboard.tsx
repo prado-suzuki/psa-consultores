@@ -145,7 +145,7 @@ const FiscalDashboard = () => {
   const tasksByArea: Record<string, number> = {};
   tasks.forEach(t => {
     const proj = projectMap[t.project_id || ''];
-    const areaName = proj?.area_id ? (areaMap[proj.area_id] || 'Sem área') : 'Sem área';
+    const areaName = proj?.estrutura_area_id ? (areaMap[proj.estrutura_area_id] || 'Sem área') : 'Sem área';
     tasksByArea[areaName] = (tasksByArea[areaName] || 0) + 1;
   });
   const areaChartData = Object.entries(tasksByArea)

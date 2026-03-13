@@ -374,7 +374,7 @@ const FiscalProjetosCadastro = () => {
   };
 
   const getAreaLabel = (project: any) => {
-    if (project.area_ref) return project.area_ref.nome;
+    if (project.area_ref) return project.area_ref.name;
     return '-';
   };
 

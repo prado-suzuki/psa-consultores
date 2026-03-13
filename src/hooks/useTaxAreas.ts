@@ -3,8 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface TaxArea {
   id: string;
-  nome: string;
-  estrutura_area_id: string | null;
+  name: string;
 }
 
 export const useTaxAreas = () => {
@@ -12,9 +11,10 @@ export const useTaxAreas = () => {
     queryKey: ['tax-areas'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('tax_areas')
-        .select('id, nome, estrutura_area_id')
-        .order('nome');
+        .from('estrutura_areas')
+        .select('id, name')
+        .contains('page_categories', ['tax'])
+        .order('name');
       if (error) throw error;
       return (data || []) as TaxArea[];
     },

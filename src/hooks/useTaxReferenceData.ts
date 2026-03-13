@@ -77,9 +77,9 @@ export function useAreaServicos() {
   return useQuery({
     queryKey: ['area-servicos'],
     queryFn: async () => {
-      // as any: tabela 'area_servicos' ausente do schema tipado gerado
-      const { data, error } = await (supabase.from('area_servicos' as any) as any)
-        .select('id, area_id, servico_id');
+      const { data, error } = await supabase
+        .from('area_servicos')
+        .select('id, area_id, estrutura_area_id, servico_id');
       if (error) throw error;
       return data as TaxAreaCategoria[];
     },
