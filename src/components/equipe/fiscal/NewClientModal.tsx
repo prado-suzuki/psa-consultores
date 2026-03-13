@@ -97,90 +97,37 @@ export default function NewClientModal({
   const isLastTab = currentTabIndex === tabOrder.length - 1;
   const isFirstTab = currentTabIndex === 0;
 
-  // --- Draft detection helpers ---
-  const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
-  const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
-  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim());
-
-  const getDraftPendingTabs = (): string[] => {
-    const tabs: string[] = [];
-    if (hasDraftEntityData()) tabs.push("Contribuintes");
-    if (hasDraftParticipantData()) tabs.push("Participantes");
-    if (hasDraftContractData()) tabs.push("OS");
-    return tabs;
-  };
-
-  const tabLabelToKey: Record<string, typeof activeTab> = {
-    "Contribuintes": "contribuintes",
-    "Participantes": "participantes",
-    "OS": "contratos",
-  };
-
-  const checkDraftAndNavigate = (targetTab: typeof activeTab) => {
-    const pendingTabs = getDraftPendingTabs();
-    // Only warn about the current tab's draft
-    const currentTabDraft =
-      (activeTab === "contribuintes" && hasDraftEntityData()) ||
-      (activeTab === "participantes" && hasDraftParticipantData()) ||
-      (activeTab === "contratos" && hasDraftContractData());
-
-    if (currentTabDraft) {
-      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "participantes" ? "Participantes" : "OS";
-      setDraftWarningContext({ action: "navigate", targetTab, pendingTabs: [currentPending] });
-      setShowDraftWarning(true);
-      return;
-    }
-    setActiveTab(targetTab);
-  };
+  // --- Draft detection helpers (stable references for useDraftGuard) ---
+  const hasDraftEntityData = useCallback(
+    () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim()),
+    [draftEntity.nome_razao_social, draftEntity.cpf_cnpj],
+  );
+  const hasDraftParticipantData = useCallback(
+    () => !!(draftParticipant.nome?.trim()),
+    [draftParticipant.nome],
+  );
+  const hasDraftContractData = useCallback(
+    () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim()),
+    [draftContract.valor_projeto, draftContract.id_servico],
+  );
 
   const handleNext = () => {
-    if (!isLastTab) checkDraftAndNavigate(tabOrder[currentTabIndex + 1]);
+    if (!isLastTab && !guardedNavigate(tabOrder[currentTabIndex + 1])) return;
   };
   const handleBack = () => {
-    if (!isFirstTab) checkDraftAndNavigate(tabOrder[currentTabIndex - 1]);
+    if (!isFirstTab && !guardedNavigate(tabOrder[currentTabIndex - 1])) return;
   };
 
   const handleTabClick = (tab: typeof activeTab) => {
     if (tab === activeTab) return;
-    if (isReadOnly) {
-      setActiveTab(tab);
-      return;
-    }
-    checkDraftAndNavigate(tab);
+    if (isReadOnly) { setActiveTab(tab); return; }
+    guardedNavigate(tab);
   };
 
-  const clearCurrentDraft = () => {
-    if (activeTab === "contribuintes") {
-      setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
-    } else if (activeTab === "participantes") {
-      setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
-    } else if (activeTab === "contratos") {
-      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
-    }
-  };
-
-  const handleDraftWarningContinue = () => {
-    if (!draftWarningContext) return;
-    clearCurrentDraft();
-    if (draftWarningContext.action === "navigate" && draftWarningContext.targetTab) {
-      setActiveTab(draftWarningContext.targetTab);
-    } else if (draftWarningContext.action === "save") {
-      setShowDraftWarning(false);
-      setDraftWarningContext(null);
-      executeSave();
-      return;
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
-  };
-
-  const handleDraftWarningGoBack = () => {
-    if (draftWarningContext?.pendingTabs[0]) {
-      const key = tabLabelToKey[draftWarningContext.pendingTabs[0]];
-      if (key) setActiveTab(key);
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
+  const clearAllDrafts = () => {
+    setDraftEntity({ tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "", situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria", simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "" });
+    setDraftParticipant({ nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false });
+    setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
   };
 
   const isEditing = !!editingClienteId;
