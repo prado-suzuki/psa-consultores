@@ -347,7 +347,7 @@ export function ParticipantesTab({
               {/* Cargo/função */}
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                  Cargo/função *
+                  Cargo/função
                 </Label>
                 <div className="flex-1">
                   <Select
