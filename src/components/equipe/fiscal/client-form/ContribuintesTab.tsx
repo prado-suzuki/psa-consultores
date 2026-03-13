@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, X, Trash2, Loader2, Pencil, ChevronDown, Save, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -296,7 +297,7 @@ export function ContribuintesTab({
                         {/* Razão Social */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                            {ed.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}
+                            {ed.tipo_pessoa === "PF" ? <>Nome completo <RequiredMark /></> : <>Razão Social <RequiredMark /></>}
                           </Label>
                           <div className="flex-1">
                             <Input
@@ -485,7 +486,7 @@ export function ContribuintesTab({
                         {/* Simples Nacional */}
                         {ed.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional <RequiredMark /></Label>
                             <div className="flex-1">
                               <Select
                                 value={ed.simples_nacional || undefined}
@@ -504,7 +505,7 @@ export function ContribuintesTab({
                         )}
                         {/* CEP */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP <RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative max-w-[160px]">
                               <Input
@@ -700,7 +701,7 @@ export function ContribuintesTab({
               </div>
               {/* CPF/CNPJ */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ <RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative">
                     <Input
@@ -726,7 +727,7 @@ export function ContribuintesTab({
               {/* Razão Social */}
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-                  {draftEntity.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}
+                  {draftEntity.tipo_pessoa === "PF" ? <>Nome completo <RequiredMark /></> : <>Razão Social <RequiredMark /></>}
                 </Label>
                 <div className="flex-1">
                   <Input
@@ -869,7 +870,7 @@ export function ContribuintesTab({
               {/* CNAE */}
               {draftEntity.tipo_pessoa === "PJ" && (
                 <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE *</Label>
+                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE <RequiredMark /></Label>
                   <div className="flex-1">
                     <Input
                       value={draftEntity.cod_cnae || ""}
@@ -901,7 +902,7 @@ export function ContribuintesTab({
               {/* Simples Nacional */}
               {draftEntity.tipo_pessoa === "PJ" && (
                 <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
+                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional <RequiredMark /></Label>
                   <div className="flex-1">
                     <Select
                       value={draftEntity.simples_nacional || undefined}
@@ -918,7 +919,7 @@ export function ContribuintesTab({
               )}
               {/* CEP */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP <RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative max-w-[160px]">
                     <Input
@@ -938,7 +939,7 @@ export function ContribuintesTab({
               </div>
               {/* UF */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF <RequiredMark /></Label>
                 <div className="flex-1">
                   <Select
                     value={draftEntity.uf || "__none__"}
@@ -958,7 +959,7 @@ export function ContribuintesTab({
               </div>
               {/* Município */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município <RequiredMark /></Label>
                 <div className="flex-1">
                   <Input
                     value={draftEntity.municipio || ""}
@@ -969,7 +970,7 @@ export function ContribuintesTab({
               </div>
               {/* Bairro */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro <RequiredMark /></Label>
                 <div className="flex-1">
                   <Input
                     value={draftEntity.bairro || ""}
@@ -980,7 +981,7 @@ export function ContribuintesTab({
               </div>
               {/* Logradouro */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro <RequiredMark /></Label>
                 <div className="flex-1">
                   <Input
                     value={draftEntity.logradouro || ""}

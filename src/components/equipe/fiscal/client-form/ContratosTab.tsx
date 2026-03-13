@@ -28,6 +28,7 @@ import {
 import { Plus, X, Trash2, Pencil, ChevronDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SITUACAO_PROJETO_OPTIONS, isoToMasked } from "./constants";
+import { RequiredMark } from "@/components/ui/required-mark";
 import { DateFieldWithInput } from "./DateFieldWithInput";
 import { CurrencyField } from "./CurrencyField";
 
@@ -578,7 +579,7 @@ export function ContratosTab({
                       {/* Serviço for edit */}
                       <div className="mt-4">
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                          Serviço Contratado *
+                          Serviço Contratado <RequiredMark />
                         </Label>
                         <Select
                           value={(ec as any).id_servico || "__none__"}
@@ -844,7 +845,7 @@ export function ContratosTab({
             {/* Serviço for draft */}
             <div className="mt-4">
               <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                Serviço Contratado *
+                Serviço Contratado <RequiredMark />
               </Label>
               <Select
                 value={draftContract.id_servico || "__none__"}

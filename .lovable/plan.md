@@ -1,36 +1,92 @@
 
 
-# Plano Corrigido: Ajustes no Modal de Cadastro de Clientes
 
-## 1. "Confirmar Dados" só aparece após ao menos 1 OS no formulário
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-**Arquivo**: `NewClientModal.tsx` (linhas 1031-1042)
+### Alterações realizadas
 
-Envolver o botão com `contracts.length > 0` — sem exceção para modo edição. Se não houver nenhuma OS adicionada no draft local, o botão fica oculto independentemente do contexto.
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-```text
-{contracts.length > 0 && (
-  <Button onClick={handleSave} ...>
-    {isEditing ? "Salvar Alterações" : "Confirmar Dados"}
-  </Button>
-)}
-```
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-## 2. Substituir todos os `*` literais por `<RequiredMark />`
+## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
 
-**ClienteTab.tsx**: `Área do negócio *` e `Região *` → usar `<RequiredMark />`
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
+| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
 
-**ContribuintesTab.tsx**: Todos os campos com `*` literal (Nome/Razão Social, Município, Bairro, Logradouro, etc.) → usar `<RequiredMark />`
+## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
 
-**ContratosTab.tsx**: `Serviço Contratado *` (edição e draft) → usar `<RequiredMark />`
+| Arquivo | Alterações |
+|---|---|
+| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
+| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
+| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
 
-Adicionar `import { RequiredMark } from "@/components/ui/required-mark"` nos 3 arquivos.
+## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
 
-## 3. Remover botões "Voltar" e "Cancelar" do footer
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
+| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
 
-**Arquivo**: `NewClientModal.tsx`
-- Remover botão "Voltar" (linhas 1008-1012)
-- Remover botão "Cancelar" (linhas 1023-1025)
+## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
 
-Footer ficará apenas com "Avançar" e "Confirmar Dados" (quando `contracts.length > 0`).
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
+| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
 
+## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
+
+Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
+
+Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
+| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.
+O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
+
+## Plano: Fase 4 — Simplificar RLS policies (eliminar JOIN com tax_areas) — ✅ CONCLUÍDO
+
+| Policy | Tabela | Alteração |
+|---|---|---|
+| Members can view their tax_projects | `tax_projects` | Removido `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto |
+| Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
+
+Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
+
+## Plano: Unificar DLP em único AlertDialog inteligente — ✅ CONCLUÍDO
+
+| Arquivo | Alteração |
+|---|---|
+| `src/hooks/useDraftGuard.ts` | **Novo** — hook com estado `interceptedAction`, funções `guard`, `dismiss`, `proceed`, `pendingTabs` computado |
+| `src/components/equipe/fiscal/NewClientModal.tsx` | Removidos `showExitConfirm`, `showDraftWarning`, `draftWarningContext`, `checkDraftAndNavigate`, `handleDraftWarningContinue`, `handleDraftWarningGoBack`, `clearCurrentDraft`. Adicionado consumo do hook `useDraftGuard` + `guardedNavigate` + `handleGuardProceed`. 2 AlertDialogs substituídos por 1 único com Badges dinâmicas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.

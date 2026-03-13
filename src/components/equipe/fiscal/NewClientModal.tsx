@@ -1004,13 +1004,7 @@ export default function NewClientModal({
 
               {/* Footer — Stich style */}
               <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
-                <div>
-                  {!isFirstTab && (
-                    <Button variant="outline" onClick={handleBack} className="gap-2 border-gray-300 text-gray-600">
-                      <ChevronLeft size={16} /> Voltar
-                    </Button>
-                  )}
-                </div>
+                <div />
                 <div className="flex gap-3">
                   {isReadOnly ? (
                     !isLastTab && (
@@ -1020,26 +1014,25 @@ export default function NewClientModal({
                     )
                   ) : (
                     <>
-                      <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">
-                        Cancelar
-                      </Button>
                       {!isLastTab && (
                         <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">
                           Avançar <ChevronRight size={16} />
                         </Button>
                       )}
-                      <Button
-                        onClick={handleSave}
-                        disabled={saving}
-                        variant={isLastTab ? "default" : "outline"}
-                        className={isLastTab
-                          ? "bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
-                          : "border-teal-600 text-teal-700 hover:bg-teal-50 gap-2"
-                        }
-                      >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                        {isEditing ? "Salvar Alterações" : "Confirmar Dados"}
-                      </Button>
+                      {contracts.length > 0 && (
+                        <Button
+                          onClick={handleSave}
+                          disabled={saving}
+                          variant={isLastTab ? "default" : "outline"}
+                          className={isLastTab
+                            ? "bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                            : "border-teal-600 text-teal-700 hover:bg-teal-50 gap-2"
+                          }
+                        >
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                          {isEditing ? "Salvar Alterações" : "Confirmar Dados"}
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
