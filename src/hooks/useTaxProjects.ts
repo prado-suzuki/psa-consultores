@@ -14,6 +14,7 @@ export interface TaxProject {
   status: string;
   start_date: string | null;
   end_date: string | null;
+  estrutura_area_id: string | null;
   created_at: string;
   responsible_id: string | null;
   leader_id: string | null;
