@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, X, Trash2, Loader2, Pencil, ChevronDown, Save, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 interface ContribuintesTabProps {
   entities: DraftEntity[];
