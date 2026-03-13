@@ -101,9 +101,8 @@ const FiscalProjetosCadastro = () => {
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
   const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
 
-  // Derive estruturaAreaId from selected tax area
-  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
-  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+  // taxAreas agora retorna estrutura_areas diretamente — id já é o de estrutura_areas
+  const estruturaAreaId = formData.area_id || null;
 
   const {
     liderIds: areaLiderIds,
