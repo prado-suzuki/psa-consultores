@@ -41,22 +41,8 @@ import {
  import { cn } from "@/lib/utils";
  import { toast } from "sonner";
 import { RequiredMark } from "@/components/ui/required-mark";
-import {
-  UF_STATES,
-  TIPO_PARTICIPANTE_OPTIONS,
-  SITUACAO_PROJETO_OPTIONS,
-  formatCpfCnpj,
-  formatCep,
-  formatPhone,
-  formatBRLInput,
-  centsToValue,
-  valueToCents,
-  formatDateMask,
-  parseDateMask,
-  isoToMasked,
-} from "./client-form/constants";
-import { DateFieldWithInput } from "./client-form/DateFieldWithInput";
-import { CurrencyField } from "./client-form/CurrencyField";
+import { formatCpfCnpj, formatCep, formatPhone } from "./client-form/constants";
+import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { ClienteTab } from "./client-form/ClienteTab";
 import { ParticipantesTab } from "./client-form/ParticipantesTab";
