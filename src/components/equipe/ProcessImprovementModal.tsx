@@ -174,6 +174,45 @@ export function ProcessImprovementModal({
     }
   }, [open]);
 
+  // Auto-populate baseline from process stages when job_roles are loaded
+  useEffect(() => {
+    if (!open || jobRoles.length === 0 || processStages.length === 0) return;
+    // Only auto-populate if baseline is empty
+    if (baselineMembers.length > 0) return;
+    
+    const stagesWithRoles = processStages.filter(s => s.job_role_id && s.time_current);
+    if (stagesWithRoles.length === 0) return;
+    
+    const autoBaseline: TeamMember[] = stagesWithRoles.map(stage => {
+      const role = jobRoles.find(r => r.id === stage.job_role_id);
+      return {
+        job_role_id: stage.job_role_id!,
+        hours_allocated: parseTimeToHours(stage.time_current),
+        is_baseline: true,
+        job_role: role
+      };
+    });
+    
+    setBaselineMembers(autoBaseline);
+    
+    // Also pre-populate improved members from time_target
+    const autoImproved: TeamMember[] = stagesWithRoles
+      .filter(s => s.time_target)
+      .map(stage => {
+        const role = jobRoles.find(r => r.id === stage.job_role_id);
+        return {
+          job_role_id: stage.job_role_id!,
+          hours_allocated: parseTimeToHours(stage.time_target),
+          is_baseline: false,
+          job_role: role
+        };
+      });
+    
+    if (autoImproved.length > 0 && improvedMembers.length === 0) {
+      setImprovedMembers(autoImproved);
+    }
+  }, [open, jobRoles, processStages]);
+
   const fetchJobRoles = async () => {
     const { data, error } = await supabase
       .from('job_roles')
