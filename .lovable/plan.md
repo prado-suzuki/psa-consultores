@@ -1,5 +1,6 @@
 
 
+
 ## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
 ### Alterações realizadas
@@ -12,3 +13,18 @@
 | `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
 Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
+| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
+
+## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
+| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
+| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
