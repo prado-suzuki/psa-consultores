@@ -209,24 +209,44 @@ export function StageEditCard({ stage, index, totalStages, jobRoles, onUpdate, o
                />
              </div>
  
-             <div>
-               <Label htmlFor={`stage-automation-${stage.id}`}>Nível de Automação</Label>
-               <Select
-                 value={form.automation_level}
-                 onValueChange={(v) => setForm({ ...form, automation_level: v })}
-               >
-                 <SelectTrigger id={`stage-automation-${stage.id}`}>
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {AUTOMATION_LEVELS.map(level => (
-                     <SelectItem key={level.value} value={level.value}>
-                       {level.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
+            <div>
+              <Label htmlFor={`stage-job-role-${stage.id}`}>Cargo/Função</Label>
+              <Select
+                value={form.job_role_id || 'none'}
+                onValueChange={(v) => setForm({ ...form, job_role_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger id={`stage-job-role-${stage.id}`}>
+                  <SelectValue placeholder="Selecionar cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {jobRoles.map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name} (R$ {role.hourly_rate}/h)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor={`stage-automation-${stage.id}`}>Nível de Automação</Label>
+              <Select
+                value={form.automation_level}
+                onValueChange={(v) => setForm({ ...form, automation_level: v })}
+              >
+                <SelectTrigger id={`stage-automation-${stage.id}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTOMATION_LEVELS.map(level => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
  
              <div>
                <Label htmlFor={`stage-time-current-${stage.id}`}>Tempo Atual</Label>
