@@ -826,9 +826,9 @@ export function ContratosTab({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">Todas as empresas</SelectItem>
-                  {allClusters.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
+                  {empresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

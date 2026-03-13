@@ -1031,7 +1031,7 @@ export default function NewClientModal({
                       catalogServices={catalogServices}
                       filteredCatalogServices={filteredCatalogServices}
                       filteredEditCatalogServices={filteredEditCatalogServices}
-                      allClusters={allClusters}
+                      empresas={empresas}
                       produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                       CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
                       isReadOnly={isReadOnly}
