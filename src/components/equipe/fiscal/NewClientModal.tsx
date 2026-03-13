@@ -645,9 +645,7 @@ export default function NewClientModal({
     if (digits.length !== 14) return;
     setCnpjLoading(true);
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
+      const data = await consultarCnpj(digits);
       setDraftEntity((prev) => ({
         ...prev,
         nome_razao_social: data.razao_social || prev?.nome_razao_social || "",
@@ -676,9 +674,7 @@ export default function NewClientModal({
     if (digits.length !== 8) return;
     setCepLoading(true);
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error("not found");
+      const data = await consultarCep(digits);
       setDraftEntity((prev) => ({
         ...prev,
         logradouro: data.logradouro || prev?.logradouro || "",
