@@ -23,6 +23,7 @@ export interface TaxCategoria {
 export interface TaxAreaCategoria {
   id: string;
   area_id: string;
+  estrutura_area_id: string;
   servico_id: string;
 }
 
