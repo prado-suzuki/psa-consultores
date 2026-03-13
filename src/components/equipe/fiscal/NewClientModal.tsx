@@ -1467,7 +1467,7 @@ export default function NewClientModal({
             </div>
           </div>
 
-          {loadingEdit ? (
+          {editData.isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
             </div>
