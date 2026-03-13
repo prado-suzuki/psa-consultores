@@ -481,7 +481,6 @@ export default function NewClientModal({
       toast.error("Nome é obrigatório");
       return;
     }
-    }
 
     if (!draftParticipant.email.trim()) {
       toast.error("Email é obrigatório");
