@@ -43,7 +43,6 @@ import {
 import { RequiredMark } from "@/components/ui/required-mark";
 import { formatCpfCnpj, formatCep, formatPhone } from "./client-form/constants";
 import { FaturamentoTab } from "./client-form/FaturamentoTab";
-import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { ClienteTab } from "./client-form/ClienteTab";
 import { ParticipantesTab } from "./client-form/ParticipantesTab";
 import { ContribuintesTab } from "./client-form/ContribuintesTab";
