@@ -224,7 +224,7 @@ const GestaoClientes = () => {
   const content = (
     <div className="space-y-6">
       {/* Topo: Botão à esquerda + texto auxiliar à direita */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-end items-center">
         <Button
           onClick={() => {
             setEditingClienteId(null);
@@ -235,10 +235,6 @@ const GestaoClientes = () => {
           <Plus className="h-4 w-4 mr-2" />
           Novo cliente
         </Button>
-        <div className="hidden md:flex items-center text-slate-500 gap-2">
-          <Search className="h-4 w-4" />
-          <span className="text-sm">Gerencie sua base de dados de clientes</span>
-        </div>
       </div>
 
       {/* Card de Filtros */}
