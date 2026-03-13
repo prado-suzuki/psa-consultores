@@ -1,81 +1,83 @@
 
 
-# Fase 4 — Simplificar RLS Policies
 
-## Policies atuais confirmadas
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-### POLICY 1 — `tax_projects` / SELECT / "Members can view their tax_projects"
+### Alterações realizadas
 
-```sql
--- ATUAL:
-(is_project_member(auth.uid(), id) OR (EXISTS (
-  SELECT 1 FROM tax_areas ta
-  WHERE ta.id = tax_projects.area_id
-    AND ta.estrutura_area_id IS NOT NULL
-    AND is_area_member(auth.uid(), ta.estrutura_area_id)
-)))
-```
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-### POLICY 2 — `fiscal_tasks` / SELECT / "Members can view their project fiscal_tasks"
+Nenhuma alteração em banco, RLS ou outras tabelas.
 
-```sql
--- ATUAL:
-(has_role(auth.uid(), 'team_member') AND (
-  project_id IS NULL
-  OR is_project_member(auth.uid(), project_id)
-  OR (EXISTS (
-    SELECT 1 FROM tax_projects tp
-    JOIN tax_areas ta ON ta.id = tp.area_id
-    WHERE tp.id = fiscal_tasks.project_id
-      AND ta.estrutura_area_id IS NOT NULL
-      AND is_area_member(auth.uid(), ta.estrutura_area_id)
-  ))
-))
-```
+## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
 
-## Migration SQL
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
+| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
 
-Uma única migration com 2 `ALTER POLICY`:
+## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
 
-```sql
--- Policy 1: tax_projects SELECT — eliminar JOIN com tax_areas
-ALTER POLICY "Members can view their tax_projects"
-ON public.tax_projects
-USING (
-  is_project_member(auth.uid(), id)
-  OR (
-    tax_projects.estrutura_area_id IS NOT NULL
-    AND is_area_member(auth.uid(), tax_projects.estrutura_area_id)
-  )
-);
+| Arquivo | Alterações |
+|---|---|
+| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
+| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
+| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
 
--- Policy 2: fiscal_tasks SELECT — eliminar JOIN tax_projects→tax_areas
-ALTER POLICY "Members can view their project fiscal_tasks"
-ON public.fiscal_tasks
-USING (
-  has_role(auth.uid(), 'team_member'::app_role)
-  AND (
-    project_id IS NULL
-    OR is_project_member(auth.uid(), project_id)
-    OR EXISTS (
-      SELECT 1 FROM tax_projects tp
-      WHERE tp.id = fiscal_tasks.project_id
-        AND tp.estrutura_area_id IS NOT NULL
-        AND is_area_member(auth.uid(), tp.estrutura_area_id)
-    )
-  )
-);
-```
+## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
 
-## O que muda
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
+| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
 
-- **Policy 1**: remove o `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto
-- **Policy 2**: remove o `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto
+## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
 
-## O que NÃO muda
+| Arquivo | Alterações |
+|---|---|
+| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
+| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
 
-- Nenhum arquivo frontend
-- Nenhuma tabela/coluna dropada
-- Nenhuma outra policy alterada
-- Função `is_area_member()` intacta
+## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
 
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
+
+Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
+
+Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
+| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
+
+Nenhuma alteração em banco, RLS ou outras tabelas.
+O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
+
+## Plano: Fase 4 — Simplificar RLS policies (eliminar JOIN com tax_areas) — ✅ CONCLUÍDO
+
+| Policy | Tabela | Alteração |
+|---|---|---|
+| Members can view their tax_projects | `tax_projects` | Removido `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto |
+| Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
+
+Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
