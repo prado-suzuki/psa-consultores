@@ -52,3 +52,13 @@ Nenhuma alteração em banco, RLS ou outras tabelas.
 
 Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
 Nenhuma alteração em banco, RLS ou outras tabelas.
+
+## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
+
+| Arquivo | Alterações |
+|---|---|
+| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
+| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
+
+Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
+Nenhuma alteração em banco, RLS ou outras tabelas.
