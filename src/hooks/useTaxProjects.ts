@@ -24,7 +24,7 @@ export interface TaxProject {
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
-  area_ref?: { id: string; nome: string } | null;
+  area_ref?: { id: string; name: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
 }
