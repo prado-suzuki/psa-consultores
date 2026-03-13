@@ -12,31 +12,41 @@
  import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
  import { Json } from '@/integrations/supabase/types';
  
- interface ProcessStage {
-   id: string;
-   process_id: string | null;
-   name: string;
-   stage_order: number;
-   description: string | null;
-   responsible: string | null;
-   time_current: string | null;
-   time_target: string | null;
-   frequency: string | null;
-   volume: string | null;
-   automation_level: string | null;
-   inputs: Json;
-   outputs: Json;
-   systems: Json;
-   related_projects: string[] | null;
- }
- 
- interface StageEditCardProps {
-   stage: ProcessStage;
-   index: number;
-   totalStages: number;
-   onUpdate: () => void;
-   onDelete: () => void;
- }
+interface JobRole {
+  id: string;
+  name: string;
+  level: string;
+  category: string | null;
+  hourly_rate: number;
+}
+
+interface ProcessStage {
+  id: string;
+  process_id: string | null;
+  name: string;
+  stage_order: number;
+  description: string | null;
+  responsible: string | null;
+  time_current: string | null;
+  time_target: string | null;
+  frequency: string | null;
+  volume: string | null;
+  automation_level: string | null;
+  inputs: Json;
+  outputs: Json;
+  systems: Json;
+  related_projects: string[] | null;
+  job_role_id: string | null;
+}
+
+interface StageEditCardProps {
+  stage: ProcessStage;
+  index: number;
+  totalStages: number;
+  jobRoles: JobRole[];
+  onUpdate: () => void;
+  onDelete: () => void;
+}
  
  const AUTOMATION_LEVELS = [
    { value: 'none', label: 'Nenhuma', color: 'bg-gray-100 text-gray-600' },
