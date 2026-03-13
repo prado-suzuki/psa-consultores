@@ -195,7 +195,7 @@ const FiscalProjetosCadastro = () => {
   const filteredCategories = useMemo(() => {
     if (!formData.area_id) return [];
     const validCategoryIds = areaCategoryLinks
-      .filter(link => link.area_id === formData.area_id)
+      .filter(link => link.estrutura_area_id === formData.area_id)
       .map(link => link.servico_id);
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
