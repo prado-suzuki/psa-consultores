@@ -67,6 +67,7 @@ import { FaturamentoTab } from "./client-form/FaturamentoTab";
 import { ClienteTab } from "./client-form/ClienteTab";
 import { ParticipantesTab } from "./client-form/ParticipantesTab";
 import { ContribuintesTab } from "./client-form/ContribuintesTab";
+import { ContratosTab } from "./client-form/ContratosTab";
 
 const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
 const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
