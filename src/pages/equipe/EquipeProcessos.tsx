@@ -1274,6 +1274,7 @@ const EquipeProcessos = () => {
                           stage={stage}
                           index={index}
                           totalStages={processStages.length}
+                          jobRoles={jobRoles}
                           onUpdate={() => {
                             if (selectedProcess) fetchProcessDetails(selectedProcess.id);
                           }}
