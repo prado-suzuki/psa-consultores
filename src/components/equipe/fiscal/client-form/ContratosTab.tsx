@@ -556,7 +556,7 @@ export function ContratosTab({
                       {/* Empresa filter for edit */}
                       <div className="mt-4">
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                          Empresa/ Faturamento
+                          Empresa/ Faturamento<br />
                         </Label>
                         <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
                           <SelectTrigger className="h-8 mt-1">
