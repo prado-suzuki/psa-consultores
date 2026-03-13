@@ -223,6 +223,7 @@ export function ContratosTab({
   filteredCatalogServices,
   filteredEditCatalogServices,
   empresas,
+  allClusters,
   produtoSegmentoFullOptions,
   CENTRO_CUSTO_OPTIONS,
   isReadOnly,
