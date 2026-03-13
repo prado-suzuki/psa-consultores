@@ -926,12 +926,20 @@ export function ContribuintesTab({
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
                 <div className="flex-1">
-                  <Input
-                    value={draftEntity.uf || ""}
-                    onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })}
-                    maxLength={2}
-                    className="h-8 max-w-[120px]"
-                  />
+                  <Select
+                    value={draftEntity.uf || "__none__"}
+                    onValueChange={(v) => setDraftEntity({ ...draftEntity, uf: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger className="h-8 max-w-[120px]">
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Selecione...</SelectItem>
+                      {UF_STATES.map((uf) => (
+                        <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               {/* Município */}
