@@ -803,17 +803,13 @@ export default function NewClientModal({
     });
     setActiveTab("cliente");
     setIsReadOnly(readOnly);
-    setShowExitConfirm(false);
     clearDraft();
     onOpenChange(false);
   };
 
   const handleAttemptClose = () => {
-    if (hasUnsavedChanges) {
-      setShowExitConfirm(true);
-    } else {
-      resetAndClose();
-    }
+    if (guard({ type: "close" })) return;
+    resetAndClose();
   };
 
   return (
