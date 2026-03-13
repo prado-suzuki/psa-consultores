@@ -66,7 +66,7 @@ const FiscalDashboard = () => {
   // Lookup maps
   const projectMap = Object.fromEntries(projects.map(p => [p.id, p]));
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c.nome]));
-  const areaMap = Object.fromEntries(areas.map(a => [a.id, a.nome]));
+  const areaMap = Object.fromEntries(areas.map(a => [a.id, a.name]));
   const memberMap = Object.fromEntries(members.map(m => [m.id, `${m.first_name} ${m.last_name}`.trim()]));
 
   // KPIs — Projects
