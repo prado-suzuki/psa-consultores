@@ -1,44 +1,97 @@
 
 
+# Plano — Fase 6.5: Extração da Aba "Participantes" (ParticipantesTab)
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+## Escopo
 
-### Alterações realizadas
+A aba ocupa as **linhas 1991–2379** (~388 linhas de JSX). Diferente das abas anteriores, esta possui interação significativa: formulário de criação, lista expansível com visualização/edição inline, validações e máscaras.
 
-| Arquivo | Alterações |
-|---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
+## Estado Envolvido (permanece no pai)
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
+- `participants` / `setParticipants` — lista principal
+- `draftParticipant` / `setDraftParticipant` — rascunho do novo participante
+- `expandedParticipantId` / `setExpandedParticipantId` — controle de accordion
+- `editingParticipantId` / `setEditingParticipantId` — qual está em edição inline
+- `editingParticipantData` / `setEditingParticipantData` — dados temporários da edição
 
-## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
+## Handlers (permanece no pai, passados via props)
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
-| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
+- `addParticipant()` — validação + push na lista (linhas 536–579)
+- `startEditParticipant(p)` — inicia edição inline (692–695)
+- `cancelEditParticipant()` — cancela edição (696–699)
+- `saveEditParticipant()` — salva edição inline (700–710)
 
-## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
+## Arquivo a Criar
 
-| Arquivo | Alterações |
-|---|---|
-| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
-| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
-| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
+**`src/components/equipe/fiscal/client-form/ParticipantesTab.tsx`**
 
-## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
+### Props
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
-| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
+```typescript
+interface ParticipantesTabProps {
+  participants: DraftParticipant[];
+  setParticipants: React.Dispatch<React.SetStateAction<DraftParticipant[]>>;
+  draftParticipant: Omit<DraftParticipant, '_id'>;
+  setDraftParticipant: React.Dispatch<React.SetStateAction<Omit<DraftParticipant, '_id'>>>;
+  expandedParticipantId: number | null;
+  setExpandedParticipantId: React.Dispatch<React.SetStateAction<number | null>>;
+  editingParticipantId: number | null;
+  editingParticipantData: Partial<DraftParticipant> | null;
+  setEditingParticipantData: React.Dispatch<React.SetStateAction<Partial<DraftParticipant> | null>>;
+  onAdd: () => void;
+  onStartEdit: (p: DraftParticipant) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: () => void;
+  isReadOnly: boolean;
+}
+```
 
-## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
+### Imports próprios
+- `DraftParticipant` de `@/types/clientForm`
+- `TIPO_PARTICIPANTE_OPTIONS`, `formatPhone` de `./constants`
+- UI: `Input`, `Label`, `Select*`, `Switch`, `Textarea`, `Button`, `Badge`, `RequiredMark`
+- `AlertDialog*` do shadcn
+- Ícones: `Pencil`, `Trash2`, `ChevronDown`, `Save`
+- `cn` de `@/lib/utils`
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
-| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
+### `FieldPair` interno
+O helper `FieldPair` (3 linhas) será definido localmente dentro deste componente (também é usado na aba contratos, mas duplicar 3 linhas é preferível a criar um export extra neste momento).
+
+## Edição em `NewClientModal.tsx`
+
+1. **Adicionar import**:
+   ```typescript
+   import { ParticipantesTab } from "./client-form/ParticipantesTab";
+   ```
+
+2. **Substituir** linhas 1991–2379 por:
+   ```tsx
+   <TabsContent value="participantes" className="mt-0 p-3 md:p-4">
+     <ParticipantesTab
+       participants={participants}
+       setParticipants={setParticipants}
+       draftParticipant={draftParticipant}
+       setDraftParticipant={setDraftParticipant}
+       expandedParticipantId={expandedParticipantId}
+       setExpandedParticipantId={setExpandedParticipantId}
+       editingParticipantId={editingParticipantId}
+       editingParticipantData={editingParticipantData}
+       setEditingParticipantData={setEditingParticipantData}
+       onAdd={addParticipant}
+       onStartEdit={startEditParticipant}
+       onCancelEdit={cancelEditParticipant}
+       onSaveEdit={saveEditParticipant}
+       isReadOnly={isReadOnly}
+     />
+   </TabsContent>
+   ```
+
+3. **Limpeza de imports**: verificar se `Textarea` ainda é usada em outro ponto do modal; caso contrário, remover do import principal.
+
+## Resultado
+
+- ~388 linhas removidas do modal
+- 1 novo componente na pasta `client-form/`
+- Handlers e validações permanecem no orquestrador
+- Zero mudança visual ou comportamental
+
