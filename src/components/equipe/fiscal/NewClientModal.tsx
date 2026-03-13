@@ -3,7 +3,7 @@ import { useClientFormOptions } from "@/hooks/useClientFormOptions";
 import { useClientEditData } from "@/hooks/useClientEditData";
 import { useExternalConsults } from "@/hooks/useExternalConsults";
 import { useSaveClientTransaction, generateNextOsNumber } from "@/hooks/useSaveClientTransaction";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { isProductionEnvironment } from "@/config/api";
