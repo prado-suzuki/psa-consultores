@@ -823,7 +823,7 @@ export function ContratosTab({
 
             {/* Empresa filter for draft */}
             <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa/ Faturamento</Label>
+              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa/ Faturamento<br /></Label>
               <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
                 <SelectTrigger className="h-8 mt-1">
                   <SelectValue placeholder="Todas as empresas" />
