@@ -337,7 +337,7 @@ export default function NewClientModal({
   const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [isAddingContract, setIsAddingContract] = useState(false);
