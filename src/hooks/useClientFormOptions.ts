@@ -98,6 +98,7 @@ export function useClientFormOptions() {
     lideres,
     catalogServices,
     allClusters,
+    empresas,
     produtoSegmentoOptions,
     produtoSegmentoFullOptions,
     CENTRO_CUSTO_OPTIONS,
