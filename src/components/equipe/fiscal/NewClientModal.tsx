@@ -567,7 +567,7 @@ export default function NewClientModal({
 
   // Capture initial snapshot once loading completes
   useEffect(() => {
-    if (open && !loadingEdit) {
+    if (open && !editData.isLoading) {
       const t = setTimeout(() => {
         initialSnapshotRef.current = JSON.stringify({ clientData, entities, participants, contracts });
       }, 100);
@@ -576,7 +576,7 @@ export default function NewClientModal({
     if (!open) {
       initialSnapshotRef.current = null;
     }
-  }, [open, loadingEdit]);
+  }, [open, editData.isLoading]);
 
   // Beforeunload protection
   useEffect(() => {
