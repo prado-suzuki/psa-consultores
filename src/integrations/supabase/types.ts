@@ -2221,6 +2221,7 @@ export type Database = {
           frequency: string | null
           id: string
           inputs: Json | null
+          job_role_id: string | null
           name: string
           outputs: Json | null
           process_id: string | null
@@ -2240,6 +2241,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           inputs?: Json | null
+          job_role_id?: string | null
           name: string
           outputs?: Json | null
           process_id?: string | null
@@ -2259,6 +2261,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           inputs?: Json | null
+          job_role_id?: string | null
           name?: string
           outputs?: Json | null
           process_id?: string | null
@@ -2272,6 +2275,13 @@ export type Database = {
           volume?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "process_stages_job_role_id_fkey"
+            columns: ["job_role_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "process_stages_process_id_fkey"
             columns: ["process_id"]
