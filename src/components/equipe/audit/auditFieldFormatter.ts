@@ -30,6 +30,7 @@ const FIELD_LABELS: Record<string, string> = {
   department: 'Departamento',
   objective: 'Objetivo',
   area_id: 'Área',
+  estrutura_area_id: 'Área',
   responsible_id: 'Responsável',
   leader_id: 'Líder',
   member_ids: 'Membros',
