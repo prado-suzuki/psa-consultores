@@ -116,13 +116,6 @@ const tools: ToolEntry[] = [
     icon: <BarChart3 className="h-5 w-5 text-orange-600" />,
     iconBg: 'bg-orange-100',
   },
-  {
-    name: 'Gerenciar dados',
-    description: 'Importe ou limpe tabelas cliente/contribuinte',
-    path: '/equipe/dev/gerenciar-dados',
-    icon: <Database className="h-5 w-5 text-purple-600" />,
-    iconBg: 'bg-purple-100',
-  },
 ];
 
 const DevDashboard = () => {
