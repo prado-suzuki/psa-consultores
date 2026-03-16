@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
-type TableType = 'cliente' | 'contribuinte';
+type TableType = 'cliente' | 'contribuinte' | 'participante';
 type Environment = 'dev' | 'prod';
 
 interface ParsedCliente {
@@ -60,6 +60,17 @@ interface ParsedContribuinte {
   cod_cnae?: string;
   setor?: string;
   simples_nacional?: boolean;
+}
+
+interface ParsedParticipante {
+  id_participante?: string;
+  nome: string;
+  email?: string;
+  id_cliente: string;
+  telefone?: string;
+  tipo_participante?: string;
+  observacoes?: string;
+  acesso_chamados?: boolean;
 }
 
 const GerenciarDados = () => {
