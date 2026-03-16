@@ -78,6 +78,7 @@ const tools: ToolEntry[] = [
     path: '/equipe/dev/consulta-efd-icms',
     icon: <BarChart3 className="h-5 w-5 text-violet-600" />,
     iconBg: 'bg-violet-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
   },
   {
     name: 'ECD',
