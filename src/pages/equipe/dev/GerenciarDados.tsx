@@ -240,6 +240,8 @@ const GerenciarDados = () => {
           count: participantes.length
         });
       }
+
+      toast({
         title: 'Importação concluída',
         description: result?.message || 'Dados importados com sucesso!',
       });
