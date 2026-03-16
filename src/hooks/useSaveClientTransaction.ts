@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { isProductionEnvironment } from "@/config/api";
+import { toTitleCase } from "@/components/equipe/fiscal/client-form/constants";
 import type {
   DraftEntity,
   DraftParticipant,
@@ -45,7 +46,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
   cliente_id: clienteId,
   tipo_pessoa: e.tipo_pessoa,
   cpf_cnpj: e.cpf_cnpj || null,
-  nome_razao_social: e.nome_razao_social,
+  nome_razao_social: toTitleCase(e.nome_razao_social),
   inscricao_estadual: e.inscricao_estadual || null,
   cod_cnae: e.cod_cnae || null,
   setor: e.setor || null,
@@ -56,7 +57,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
         ? false
         : null,
   telefone: e.telefone || null,
-  nome_fantasia: e.nome_fantasia || null,
+  nome_fantasia: toTitleCase(e.nome_fantasia) || null,
   situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
   cep: e.cep || null,
   logradouro: e.logradouro || null,
@@ -70,7 +71,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
 
 const buildPartFields = (p: DraftParticipant, clienteId: string) => ({
   id_cliente: clienteId,
-  nome: p.nome,
+  nome: toTitleCase(p.nome),
   cargo: p.cargo || null,
   email: p.email || null,
   telefone: p.telefone || null,
@@ -175,7 +176,7 @@ async function executeTransaction(
 
   try {
     const clientPayload = {
-      nome: clientData.nome.trim(),
+      nome: toTitleCase(clientData.nome.trim()),
       categoria: clientData.categoria || null,
       ativo: clientData.ativo,
       fixo: clientData.fixo || null,
