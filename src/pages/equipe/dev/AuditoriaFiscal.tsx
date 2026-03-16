@@ -1002,7 +1002,7 @@ const AuditoriaFiscal = () => {
             }
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {isExporting ? "Exportando..." : "Exportar Excel"}
+            {exportStatus === 'starting' ? "Iniciando..." : exportStatus === 'processing' ? "Processando..." : "Exportar Excel"}
           </Button>
         </div>
       )}
