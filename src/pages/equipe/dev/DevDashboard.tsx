@@ -107,6 +107,7 @@ const tools: ToolEntry[] = [
     path: '/equipe/dev/controle-perdcomp',
     icon: <Receipt className="h-5 w-5 text-teal-600" />,
     iconBg: 'bg-teal-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/',
   },
   {
     name: 'Controle de Balancetes',
