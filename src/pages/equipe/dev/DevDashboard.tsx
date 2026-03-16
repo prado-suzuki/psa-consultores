@@ -78,7 +78,6 @@ const tools: ToolEntry[] = [
     path: '/equipe/dev/consulta-efd-icms',
     icon: <BarChart3 className="h-5 w-5 text-violet-600" />,
     iconBg: 'bg-violet-100',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
   },
   {
     name: 'ECD',
@@ -107,7 +106,6 @@ const tools: ToolEntry[] = [
     path: '/equipe/dev/controle-perdcomp',
     icon: <Receipt className="h-5 w-5 text-teal-600" />,
     iconBg: 'bg-teal-100',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/',
   },
   {
     name: 'Controle de Balancetes',
@@ -115,6 +113,13 @@ const tools: ToolEntry[] = [
     path: '/equipe/dev/controle-balancetes',
     icon: <BarChart3 className="h-5 w-5 text-orange-600" />,
     iconBg: 'bg-orange-100',
+  },
+  {
+    name: 'Gerenciar dados',
+    description: 'Importe ou limpe tabelas cliente/contribuinte',
+    path: '/equipe/dev/gerenciar-dados',
+    icon: <Database className="h-5 w-5 text-purple-600" />,
+    iconBg: 'bg-purple-100',
   },
 ];
 
@@ -129,7 +134,7 @@ const DevDashboard = () => {
   return (
     <DevLayout
       title="Hub de Ferramentas"
-      subtitle="Acesso das ferramentas e manuais (SOPS)\n\n"
+      subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
       {/* ── Sessões em Andamento ──────────────────────────── */}
       {pendingSessions.length > 0 && (

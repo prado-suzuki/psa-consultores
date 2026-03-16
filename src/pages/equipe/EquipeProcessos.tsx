@@ -117,7 +117,6 @@ interface ProcessStage {
   outputs: Json;
   systems: Json;
   related_projects: string[] | null;
-  job_role_id: string | null;
 }
 
 interface Project {
@@ -199,7 +198,6 @@ const EquipeProcessos = () => {
    const [newProjectLink, setNewProjectLink] = useState({ project_id: '', impact_type: 'principal' });
    const [isAddingProjectLink, setIsAddingProjectLink] = useState(false);
    const [taskCount, setTaskCount] = useState<number>(0);
-   const [jobRoles, setJobRoles] = useState<{ id: string; name: string; level: string; category: string | null; hourly_rate: number }[]>([]);
 
   // Handle file select for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,18 +327,7 @@ const EquipeProcessos = () => {
     fetchProcesses();
     fetchCatalogClients();
      fetchAllProjects();
-    fetchJobRoles();
   }, []);
-
-  const fetchJobRoles = async () => {
-    const { data, error } = await supabase
-      .from('job_roles')
-      .select('id, name, level, category, hourly_rate')
-      .eq('is_active', true)
-      .order('category')
-      .order('hourly_rate');
-    if (!error && data) setJobRoles(data);
-  };
 
    const fetchAllProjects = async () => {
      try {
@@ -1254,7 +1241,6 @@ const EquipeProcessos = () => {
                       <NewStageForm
                         processId={selectedProcess?.id || ''}
                         nextOrder={processStages.length + 1}
-                        jobRoles={jobRoles}
                         onCreated={() => {
                           setIsAddingStage(false);
                           if (selectedProcess) fetchProcessDetails(selectedProcess.id);
@@ -1275,7 +1261,6 @@ const EquipeProcessos = () => {
                           stage={stage}
                           index={index}
                           totalStages={processStages.length}
-                          jobRoles={jobRoles}
                           onUpdate={() => {
                             if (selectedProcess) fetchProcessDetails(selectedProcess.id);
                           }}
@@ -1464,7 +1449,6 @@ const EquipeProcessos = () => {
         onClose={() => setIsImprovementModalOpen(false)}
         processId={selectedProcess?.id || ''}
         processName={selectedProcess?.name || ''}
-        processStages={processStages}
         baselineData={{
           time_spent_hours: (selectedProcess as any)?.time_spent_hours,
           cost_monthly: (selectedProcess as any)?.cost_monthly,

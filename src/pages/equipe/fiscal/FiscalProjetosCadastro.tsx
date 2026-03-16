@@ -101,8 +101,9 @@ const FiscalProjetosCadastro = () => {
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
   const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
 
-  // taxAreas agora retorna estrutura_areas diretamente — id já é o de estrutura_areas
-  const estruturaAreaId = formData.area_id || null;
+  // Derive estruturaAreaId from selected tax area
+  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
+  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
 
   const {
     liderIds: areaLiderIds,
@@ -195,7 +196,7 @@ const FiscalProjetosCadastro = () => {
   const filteredCategories = useMemo(() => {
     if (!formData.area_id) return [];
     const validCategoryIds = areaCategoryLinks
-      .filter(link => link.estrutura_area_id === formData.area_id)
+      .filter(link => link.area_id === formData.area_id)
       .map(link => link.servico_id);
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
   }, [formData.area_id, taxCategorias, areaCategoryLinks]);
@@ -265,7 +266,7 @@ const FiscalProjetosCadastro = () => {
         sublider_ids: [],
         external_client_id: project.external_client_id || '',
         contribuinte_id: project.contribuinte_id || '',
-        area_id: project.estrutura_area_id || '',
+        area_id: project.area_id || '',
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
@@ -374,7 +375,7 @@ const FiscalProjetosCadastro = () => {
   };
 
   const getAreaLabel = (project: any) => {
-    if (project.area_ref) return project.area_ref.name;
+    if (project.area_ref) return project.area_ref.nome;
     return '-';
   };
 
@@ -409,7 +410,7 @@ const FiscalProjetosCadastro = () => {
               <p className="text-sm text-slate-500">{projects.length} projetos cadastrados</p>
             </div>
           </div>
-          <Button onClick={() => handleOpenModal()} className="bg-teal-600 hover:bg-teal-700">
+          <Button onClick={() => handleOpenModal()} className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
@@ -678,7 +679,7 @@ const FiscalProjetosCadastro = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {taxAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

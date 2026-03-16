@@ -625,7 +625,9 @@ const AuditoriaFiscal = () => {
       // 5. Deletar decisões locais da sessão finalizada
       await supabase.from("difal_decisao").delete().eq("sessao_id", activeSessaoId);
 
-      // 6. Limpar decisões locais
+      // 6. Limpar estado de sessão (mas MANTER filtros)
+      setActiveSessaoId(null);
+      setPendingDecisionsCount(0);
       setLocalDecisions(new Set());
 
       // 7. Re-buscar dados com classificações atualizadas
@@ -636,33 +638,6 @@ const AuditoriaFiscal = () => {
         title: "Alterações salvas",
         description: `${decisoes?.length || 0} decisão(ões) sincronizada(s). Os dados foram recarregados.`,
       });
-
-      // 8. Recriar sessão automaticamente para permitir novas classificações
-      const { data: newSession, error: newSessionError } = await supabase
-        .from("difal_sessao")
-        .insert({
-          usuario_id: user?.id || "unknown",
-          cliente_id: selectedCliente,
-          cliente_nome: clientes?.find((c) => c.id === selectedCliente)?.nome || "",
-          periodo: `${dataInicio} a ${dataFim}`,
-          uf: "MT",
-          request_original: {
-            contribuinte_id: selectedContribuinte,
-            data_inicio: dataInicio,
-            data_fim: dataFim,
-          },
-          status: "EM_ANDAMENTO",
-        })
-        .select("id")
-        .single();
-
-      if (!newSessionError && newSession) {
-        setActiveSessaoId(newSession.id);
-        setPendingDecisionsCount(0);
-      } else {
-        setActiveSessaoId(null);
-        setPendingDecisionsCount(0);
-      }
     } catch (error) {
       toast({
         title: "Erro ao sincronizar",

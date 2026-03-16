@@ -14,7 +14,6 @@ export interface TaxProject {
   status: string;
   start_date: string | null;
   end_date: string | null;
-  estrutura_area_id: string | null;
   created_at: string;
   responsible_id: string | null;
   leader_id: string | null;
@@ -25,7 +24,7 @@ export interface TaxProject {
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
-  area_ref?: { id: string; name: string } | null;
+  area_ref?: { id: string; nome: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
 }
@@ -70,7 +69,7 @@ export const useTaxProjects = () => {
           *,
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:estrutura_areas!tax_projects_estrutura_area_id_fkey(id, name)
+          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
         `)
         .order('name');
       if (error) throw error;
@@ -200,7 +199,7 @@ export const useCreateTaxProject = () => {
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
-        estrutura_area_id: data.area_id || null,
+        area_id: data.area_id || null,
         objective: data.objective || null,
         created_by: user?.id || null,
       }).select('id').single();
@@ -258,7 +257,7 @@ export const useUpdateTaxProject = () => {
         ['status', oldProject.status, data.status],
         ['start_date', oldProject.start_date || null, data.start_date || null],
         ['end_date', oldProject.end_date || null, data.end_date || null],
-        ['estrutura_area_id', oldProject.estrutura_area_id || null, data.area_id || null],
+        ['area_id', oldProject.area_id || null, data.area_id || null],
         ['description', oldProject.description || null, data.description || null],
         ['responsible_id', oldProject.responsible_id || null, data.leader_ids[0] || null],
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
@@ -295,7 +294,7 @@ export const useUpdateTaxProject = () => {
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
-        estrutura_area_id: data.area_id || null,
+        area_id: data.area_id || null,
         objective: data.objective || null,
       }).eq('id', id);
       if (error) throw error;

@@ -222,25 +222,31 @@ const GestaoClientes = () => {
   };
 
   const content = (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Topo: Botão à esquerda + texto auxiliar à direita */}
+      <div className="flex justify-between items-center">
+        <Button
+          onClick={() => {
+            setEditingClienteId(null);
+            setViewMode(false);
+            setNovoClienteModalOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo cliente
+        </Button>
+        <div className="hidden md:flex items-center text-slate-500 gap-2">
+          <Search className="h-4 w-4" />
+          <span className="text-sm">Gerencie sua base de dados de clientes</span>
+        </div>
+      </div>
+
       {/* Card de Filtros */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Filter className="h-5 w-5 text-teal-600" />
-            <h3 className="text-lg font-bold uppercase tracking-wide text-slate-800">Filtros de Busca</h3>
-          </div>
-          <Button
-            onClick={() => {
-              setEditingClienteId(null);
-              setViewMode(false);
-              setNovoClienteModalOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo cliente
-          </Button>
+        <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
+          <Filter className="h-5 w-5 text-teal-600" />
+          <h3 className="text-lg font-bold uppercase tracking-wide text-slate-800">Filtros de Busca</h3>
         </div>
         {/* Corpo */}
         <div className="p-6">

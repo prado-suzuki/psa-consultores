@@ -61,21 +61,11 @@ interface ProcessImprovement {
   other_savings_monthly?: number;
 }
 
-interface ProcessStageInput {
-  id: string;
-  name: string;
-  responsible: string | null;
-  time_current: string | null;
-  time_target: string | null;
-  job_role_id: string | null;
-}
-
 interface ProcessImprovementModalProps {
   open: boolean;
   onClose: () => void;
   processId: string;
   processName: string;
-  processStages?: ProcessStageInput[];
   deliverableId?: string;
   projectId?: string;
   baselineData?: {
@@ -88,30 +78,11 @@ interface ProcessImprovementModalProps {
   onSaved?: () => void;
 }
 
-/** Parse time strings like "2h", "30min", "1 dia", "1.5h" into hours */
-function parseTimeToHours(time: string | null): number {
-  if (!time) return 0;
-  const t = time.trim().toLowerCase();
-  
-  // Match number + unit patterns
-  const match = t.match(/^([\d.,]+)\s*(h|hora|horas|min|minuto|minutos|dia|dias|d)?$/i);
-  if (!match) return 0;
-  
-  const value = parseFloat(match[1].replace(',', '.'));
-  if (isNaN(value)) return 0;
-  
-  const unit = match[2] || 'h';
-  if (unit.startsWith('min')) return value / 60;
-  if (unit.startsWith('dia') || unit === 'd') return value * 8;
-  return value; // default hours
-}
-
 export function ProcessImprovementModal({
   open,
   onClose,
   processId,
   processName,
-  processStages = [],
   deliverableId,
   projectId,
   baselineData,
@@ -173,45 +144,6 @@ export function ProcessImprovementModal({
       fetchJobRoles();
     }
   }, [open]);
-
-  // Auto-populate baseline from process stages when job_roles are loaded
-  useEffect(() => {
-    if (!open || jobRoles.length === 0 || processStages.length === 0) return;
-    // Only auto-populate if baseline is empty
-    if (baselineMembers.length > 0) return;
-    
-    const stagesWithRoles = processStages.filter(s => s.job_role_id && s.time_current);
-    if (stagesWithRoles.length === 0) return;
-    
-    const autoBaseline: TeamMember[] = stagesWithRoles.map(stage => {
-      const role = jobRoles.find(r => r.id === stage.job_role_id);
-      return {
-        job_role_id: stage.job_role_id!,
-        hours_allocated: parseTimeToHours(stage.time_current),
-        is_baseline: true,
-        job_role: role
-      };
-    });
-    
-    setBaselineMembers(autoBaseline);
-    
-    // Also pre-populate improved members from time_target
-    const autoImproved: TeamMember[] = stagesWithRoles
-      .filter(s => s.time_target)
-      .map(stage => {
-        const role = jobRoles.find(r => r.id === stage.job_role_id);
-        return {
-          job_role_id: stage.job_role_id!,
-          hours_allocated: parseTimeToHours(stage.time_target),
-          is_baseline: false,
-          job_role: role
-        };
-      });
-    
-    if (autoImproved.length > 0 && improvedMembers.length === 0) {
-      setImprovedMembers(autoImproved);
-    }
-  }, [open, jobRoles, processStages]);
 
   const fetchJobRoles = async () => {
     const { data, error } = await supabase

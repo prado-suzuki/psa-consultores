@@ -86,9 +86,9 @@ function useLookupMaps(): LookupMaps {
     queryKey: ['audit-lookup-areas'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('estrutura_areas')
-        .select('id, name');
-      return buildMap(data?.map(d => ({ id: d.id, label: d.name })) ?? null);
+        .from('tax_areas')
+        .select('id, nome');
+      return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
   });
 

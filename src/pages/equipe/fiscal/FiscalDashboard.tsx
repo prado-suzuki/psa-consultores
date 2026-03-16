@@ -27,7 +27,7 @@ const FiscalDashboard = () => {
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['fiscal-dash-projects'],
     queryFn: async () => {
-      const { data } = await supabase.from('tax_projects').select('id, name, status, estrutura_area_id').order('name');
+      const { data } = await supabase.from('tax_projects').select('id, name, status, area_id').order('name');
       return data || [];
     },
   });
@@ -66,7 +66,7 @@ const FiscalDashboard = () => {
   // Lookup maps
   const projectMap = Object.fromEntries(projects.map(p => [p.id, p]));
   const clientMap = Object.fromEntries(clients.map(c => [c.id, c.nome]));
-  const areaMap = Object.fromEntries(areas.map(a => [a.id, a.name]));
+  const areaMap = Object.fromEntries(areas.map(a => [a.id, a.nome]));
   const memberMap = Object.fromEntries(members.map(m => [m.id, `${m.first_name} ${m.last_name}`.trim()]));
 
   // KPIs — Projects
@@ -145,7 +145,7 @@ const FiscalDashboard = () => {
   const tasksByArea: Record<string, number> = {};
   tasks.forEach(t => {
     const proj = projectMap[t.project_id || ''];
-    const areaName = proj?.estrutura_area_id ? (areaMap[proj.estrutura_area_id] || 'Sem área') : 'Sem área';
+    const areaName = proj?.area_id ? (areaMap[proj.area_id] || 'Sem área') : 'Sem área';
     tasksByArea[areaName] = (tasksByArea[areaName] || 0) + 1;
   });
   const areaChartData = Object.entries(tasksByArea)
