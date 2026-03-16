@@ -319,7 +319,7 @@ const GerenciarDados = () => {
   return (
     <DevLayout 
       title="Gerenciar dados" 
-      subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
+      subtitle="Importe ou limpe dados das tabelas cliente, contribuinte e participante"
     >
       <div className="space-y-6 max-w-3xl">
         {/* Aviso */}
