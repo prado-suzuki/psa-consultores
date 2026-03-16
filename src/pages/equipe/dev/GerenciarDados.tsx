@@ -199,9 +199,47 @@ const GerenciarDados = () => {
           message: `${contribuintes.length} contribuintes importados com sucesso!`,
           count: contribuintes.length
         });
-      }
+      } else if (selectedTable === 'participante') {
+        // Buscar clientes existentes para mapear nome → id
+        const clienteTableName = getTableName('cliente', selectedEnv);
+        const { data: clientesExistentes } = await supabase
+          .from(clienteTableName as 'cliente' | 'cliente_dev')
+          .select('id, nome');
 
-      toast({
+        const clienteMap = new Map(clientesExistentes?.map(c => [c.nome.toLowerCase().trim(), c.id]) || []);
+
+        const participantes: ParsedParticipante[] = rows.map(row => {
+          const clienteNome = (row.cliente || row.cliente_nome || '').toLowerCase().trim();
+          const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
+
+          return {
+            id_participante: row.id_participante || undefined,
+            nome: row.nome || row.name || '',
+            email: row.email || undefined,
+            id_cliente: clienteId,
+            telefone: row.telefone || row.phone || undefined,
+            tipo_participante: row.tipo_participante || undefined,
+            observacoes: row.observacoes || undefined,
+            acesso_chamados: row.acesso_chamados?.toLowerCase() === 'true' || row.acesso_chamados === '1' || undefined,
+          };
+        }).filter(p => p.nome && p.id_cliente);
+
+        if (participantes.length === 0) {
+          throw new Error('Nenhum participante válido encontrado. Verifique se as colunas "nome" e "cliente" (ou id_cliente) existem e se os clientes estão cadastrados.');
+        }
+
+        const { error } = await supabase
+          .from(tableName as 'participante' | 'participante_dev')
+          .insert(participantes);
+
+        if (error) throw error;
+
+        setResult({
+          success: true,
+          message: `${participantes.length} participantes importados com sucesso!`,
+          count: participantes.length
+        });
+      }
         title: 'Importação concluída',
         description: result?.message || 'Dados importados com sucesso!',
       });
