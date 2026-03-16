@@ -213,7 +213,7 @@ const GerenciarDados = () => {
           const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
 
           return {
-            id_participante: row.id_participante || undefined,
+            ...(row.id_participante ? { id_participante: row.id_participante } : {}),
             nome: row.nome || row.name || '',
             email: row.email || undefined,
             id_cliente: clienteId,
