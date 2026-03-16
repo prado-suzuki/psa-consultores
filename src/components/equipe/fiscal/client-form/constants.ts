@@ -3,6 +3,16 @@
 import { format } from "date-fns";
 import { parseDate } from "@/lib/dateUtils";
 
+// --- Title Case normalizer ---
+
+/** Converts a string to Title Case (first letter of each word uppercase, rest lowercase) */
+export const toTitleCase = (value: string | null | undefined): string => {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .replace(/(?:^|\s|[-/])\S/g, (match) => match.toUpperCase());
+};
+
 // --- Option constants ---
 
 export const TIPO_PARTICIPANTE_OPTIONS = [

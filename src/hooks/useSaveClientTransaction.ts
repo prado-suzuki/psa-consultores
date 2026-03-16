@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { isProductionEnvironment } from "@/config/api";
+import { toTitleCase } from "@/components/equipe/fiscal/client-form/constants";
 import type {
   DraftEntity,
   DraftParticipant,
