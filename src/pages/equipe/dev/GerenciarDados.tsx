@@ -513,12 +513,26 @@ const GerenciarDados = () => {
 Empresa ABC;true;1112223333;11999998888;Comércio;São Paulo;SP
 Indústria XYZ;true;;11988887777;Indústria;Campinas;SP`}
               </pre>
-            ) : (
+            ) : selectedTable === 'contribuinte' ? (
               <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
 {`cliente;nome_razao_social;tipo_pessoa;cpf_cnpj;inscricao_estadual;cod_cnae;setor;simples_nacional
 Empresa ABC;Matriz ABC LTDA;PJ;12345678000199;123456789;4711302;Varejo;false
 Empresa ABC;Filial ABC Norte;PJ;12345678000280;123456790;4711302;Varejo;true`}
               </pre>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Formato básico (mínimo):</p>
+                <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+{`nome;email;cliente
+Adriano Siqueira;adriano@empresa.com;Agro Amazônia
+Denise Moraes;denise@empresa.com;Agro Amazônia`}
+                </pre>
+                <p className="text-sm text-muted-foreground">Formato completo:</p>
+                <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+{`nome;email;cliente;telefone;tipo_participante;observacoes;acesso_chamados
+Adriano Siqueira;adriano@empresa.com;Agro Amazônia;11999998888;contato_principal;Responsável fiscal;true`}
+                </pre>
+              </div>
             )}
           </CardContent>
         </Card>
