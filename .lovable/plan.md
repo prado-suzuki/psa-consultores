@@ -1,92 +1,83 @@
 
 
+## Plano: Normalização de Nomes para Title Case
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+### Diagnóstico Atual
 
-### Alterações realizadas
+| Tabela | Total | CAIXA ALTA | caixa baixa | Misto |
+|--------|-------|-----------|-------------|-------|
+| cliente | 48 | 3 | 0 | 45 |
+| cliente_dev | 45 | 3 | 0 | 42 |
+| contribuinte | 137 | 93 | 1 | 43 |
+| contribuinte_dev | 110 | 88 | 0 | 22 |
 
-| Arquivo | Alterações |
-|---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
+Contribuintes são os mais afetados — 68% em CAIXA ALTA (ex: `AGROPECUARIA BOM PASTOR LTDA`).
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
+### Plano de Ação
 
-## Plano: Fase 2 — Extrair dicionários para useClientFormOptions — ✅ CONCLUÍDO
+#### Etapa 1 — Correção dos dados existentes (4 UPDATEs via insert tool)
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useClientFormOptions.ts` | Criado: centraliza 7 useQuery + 2 useMemo de dados de dicionário |
-| `NewClientModal.tsx` | Removidas ~80 linhas de queries inline, consumo via hook |
+Usar `initcap()` do PostgreSQL nas 4 tabelas:
 
-## Plano: Fase 3 — Extrair loadData para useClientEditData — ✅ CONCLUÍDO
+```sql
+-- cliente
+UPDATE cliente SET nome = initcap(nome) WHERE excluido = false AND nome IS NOT NULL;
 
-| Arquivo | Alterações |
-|---|---|
-| `src/types/clientForm.ts` | Criado: DraftEntity, DraftParticipant, DraftOrdemServico, DraftContract, InscricaoIE |
-| `src/hooks/useClientEditData.ts` | Criado: hook com useQuery que busca cliente, contribuintes, inscrições, participantes, OS e distribuição de receita |
-| `NewClientModal.tsx` | Removidas ~150 linhas do useEffect loadData + tipos locais, consumo via hook + useEffect curto de sync |
+-- cliente_dev
+UPDATE cliente_dev SET nome = initcap(nome) WHERE excluido = false AND nome IS NOT NULL;
 
-## Plano: Fase 4 — Extrair consultas externas (CNPJ/CEP) — ✅ CONCLUÍDO
+-- contribuinte (nome_razao_social + nome_fantasia)
+UPDATE contribuinte SET
+  nome_razao_social = initcap(nome_razao_social),
+  nome_fantasia = initcap(nome_fantasia)
+WHERE excluido = false;
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useExternalConsults.ts` | Criado: hook com consultarCnpj (BrasilAPI) e consultarCep (ViaCEP), funções puras de fetch sem side effects |
-| `NewClientModal.tsx` | Removidos 4 blocos de fetch inline, substituídos por chamadas ao hook; import + desestruturação adicionados |
+-- contribuinte_dev
+UPDATE contribuinte_dev SET
+  nome_razao_social = initcap(nome_razao_social),
+  nome_fantasia = initcap(nome_fantasia)
+WHERE excluido = false;
+```
 
-## Plano: Fase 5 — Extrair executeSave para useSaveClientTransaction — ✅ CONCLUÍDO
+**Nota:** `initcap()` converte `AGROPECUARIA BOM PASTOR LTDA` → `Agropecuaria Bom Pastor Ltda`. Abreviações como LTDA, EIRELI, S/A ficam em Title Case — aceitável para padronização visual.
 
-| Arquivo | Alterações |
-|---|---|
-| `src/hooks/useSaveClientTransaction.ts` | Criado: hook com useMutation contendo toda a transação CUD (6 tabelas), rollback, audit logs, sync DW, invalidação de queries. Exporta também `generateNextOsNumber` e `checkDuplicateName` |
-| `NewClientModal.tsx` | Removidas ~345 linhas (executeSave + syncCadastrosToDW + generateNextOsNumber + imports não usados). Adicionado consumo do hook via `doSave()` + `AlertDialog` para nome duplicado substituindo `window.confirm` |
+#### Etapa 2 — Prevenção no frontend (NewClientModal.tsx)
 
-## Plano: Fase 6.5 — Extração da Aba "Participantes" (ParticipantesTab) — ✅ CONCLUÍDO
+Criar uma função utilitária `toTitleCase()` e aplicá-la nos pontos de salvamento para que novos cadastros e edições já entrem normalizados:
 
-| Arquivo | Alterações |
-|---|---|
-| `src/components/equipe/fiscal/client-form/ParticipantesTab.tsx` | Criado: componente com formulário de criação, lista expansível com edição inline, AlertDialogs, FieldPair local |
-| `NewClientModal.tsx` | Removidas ~370 linhas de JSX, substituídas por `<ParticipantesTab />` com 15 props; adicionado import |
+- **`clientData.nome`** — ao salvar cliente
+- **`draftEntity.nome_razao_social`** e **`nome_fantasia`** — ao adicionar contribuinte
+- **`draftParticipant.nome`** — ao adicionar participante
 
-Props: participants, setParticipants, draftParticipant, setDraftParticipant, expandedParticipantId, setExpandedParticipantId, editingParticipantId, editingParticipantData, setEditingParticipantData, onAdd, onStartEdit, onCancelEdit, onSaveEdit, isReadOnly.
-Nenhuma alteração em banco, RLS ou outras tabelas.
+Locais de alteração:
+- `src/components/equipe/fiscal/NewClientModal.tsx` — funções `executeSave()`, `addEntity()`, `addParticipant()`
+- `src/pages/equipe/dev/GerenciarDados.tsx` — mapeamento CSV de participantes
 
-## Plano: Fase 6.6 — Extração da Aba "Contribuintes" (ContribuintesTab) — ✅ CONCLUÍDO
+#### Etapa 3 — Trigger de banco (migração SQL, opcional mas recomendado)
 
-| Arquivo | Alterações |
-|---|---|
-| `src/components/equipe/fiscal/client-form/ContribuintesTab.tsx` | Criado: componente com lista expansível, edição inline, formulário de novo contribuinte, gestão de IE (draft + edição), AlertDialogs, FieldPair local |
-| `NewClientModal.tsx` | Removidas ~995 linhas de JSX, substituídas por `<ContribuintesTab />` com 25 props; removidos imports `Copy`, `Search`; adicionado import |
+Criar um trigger `BEFORE INSERT OR UPDATE` nas 4 tabelas para garantir normalização mesmo via importações diretas ou APIs:
 
-Props: entities, setEntities, draftEntity, setDraftEntity, inscricoesMap, setInscricoesMap, draftInscricoes, setDraftInscricoes, expandedEntityId, setExpandedEntityId, editingEntityId, editingEntityData, setEditingEntityData, cnpjLoading, cepLoading, onAdd, onCnpjBlur, onCepBlur, onInlineCnpjBlur, onInlineCepBlur, onStartEdit, onCancelEdit, onSaveEdit, onCopyFirstAddress, isReadOnly.
-Nenhuma alteração em banco, RLS ou outras tabelas.
+```sql
+CREATE FUNCTION normalize_name_title_case() RETURNS trigger AS $$
+BEGIN
+  IF TG_TABLE_NAME IN ('cliente', 'cliente_dev') THEN
+    NEW.nome := initcap(NEW.nome);
+  ELSE
+    NEW.nome_razao_social := initcap(NEW.nome_razao_social);
+    NEW.nome_fantasia := initcap(NEW.nome_fantasia);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
 
-## Plano: Fase 6.7 — Extração da Aba "Contratos / OS" (ContratosTab) — ✅ CONCLUÍDO
+Isso torna a normalização à prova de falhas independente do ponto de entrada dos dados.
 
-| Arquivo | Alterações |
-|---|---|
-| `src/components/equipe/fiscal/client-form/ContratosTab.tsx` | Criado: componente com lista expansível de OS, edição inline, formulário Nova OS, seleção de serviço agrupada por cluster, distribuição de receita (DistribuicaoReceita sub-componente), AlertDialogs, FieldPair local, formatCurrencyDisplay local, ServiceSelectItems helper |
-| `NewClientModal.tsx` | Removidas ~880 linhas de JSX, substituídas por `<ContratosTab />` com 27 props. Removidos imports não usados: `Input`, `Label`, `Select*`, `Switch`, `Checkbox`, `Badge`, `Textarea`, `RequiredMark`, `Tag`, `Save`, `Trash2`, `ChevronDown`, `formatCpfCnpj`, `formatCep`, `formatPhone`, `FieldPair`, `formatCurrencyDisplay`, `DateFieldWithInput`, `CurrencyField`, constantes de `constants.ts`. Modal reduzido de ~2040 para ~1153 linhas |
+### Resumo de Alterações
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
-O NewClientModal agora é um orquestrador limpo: todas as 5 abas são componentes isolados em `client-form/`.
+| Tipo | Escopo | Arquivos/Tabelas |
+|------|--------|-----------------|
+| Dados | UPDATE em 4 tabelas | cliente, cliente_dev, contribuinte, contribuinte_dev |
+| Frontend | Normalização no save | NewClientModal.tsx, GerenciarDados.tsx |
+| Banco | Trigger preventivo | 4 tabelas (migração SQL) |
 
-## Plano: Fase 4 — Simplificar RLS policies (eliminar JOIN com tax_areas) — ✅ CONCLUÍDO
-
-| Policy | Tabela | Alteração |
-|---|---|---|
-| Members can view their tax_projects | `tax_projects` | Removido `EXISTS + JOIN tax_areas`, usa `tax_projects.estrutura_area_id` direto |
-| Members can view their project fiscal_tasks | `fiscal_tasks` | Removido `JOIN tax_areas ta ON ta.id = tp.area_id`, usa `tp.estrutura_area_id` direto |
-
-Nenhum arquivo frontend alterado. Nenhuma tabela/coluna dropada. Função `is_area_member()` intacta.
-
-## Plano: Unificar DLP em único AlertDialog inteligente — ✅ CONCLUÍDO
-
-| Arquivo | Alteração |
-|---|---|
-| `src/hooks/useDraftGuard.ts` | **Novo** — hook com estado `interceptedAction`, funções `guard`, `dismiss`, `proceed`, `pendingTabs` computado |
-| `src/components/equipe/fiscal/NewClientModal.tsx` | Removidos `showExitConfirm`, `showDraftWarning`, `draftWarningContext`, `checkDraftAndNavigate`, `handleDraftWarningContinue`, `handleDraftWarningGoBack`, `clearCurrentDraft`. Adicionado consumo do hook `useDraftGuard` + `guardedNavigate` + `handleGuardProceed`. 2 AlertDialogs substituídos por 1 único com Badges dinâmicas |
-
-Nenhuma alteração em banco, RLS ou outras tabelas.
