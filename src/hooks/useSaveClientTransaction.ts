@@ -176,7 +176,7 @@ async function executeTransaction(
 
   try {
     const clientPayload = {
-      nome: clientData.nome.trim(),
+      nome: toTitleCase(clientData.nome.trim()),
       categoria: clientData.categoria || null,
       ativo: clientData.ativo,
       fixo: clientData.fixo || null,
