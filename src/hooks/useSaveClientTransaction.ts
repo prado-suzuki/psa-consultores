@@ -57,7 +57,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
         ? false
         : null,
   telefone: e.telefone || null,
-  nome_fantasia: e.nome_fantasia || null,
+  nome_fantasia: toTitleCase(e.nome_fantasia) || null,
   situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
   cep: e.cep || null,
   logradouro: e.logradouro || null,
