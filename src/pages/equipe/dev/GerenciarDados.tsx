@@ -156,7 +156,7 @@ const GerenciarDados = () => {
           message: `${clientes.length} clientes importados com sucesso!`,
           count: clientes.length
         });
-      } else {
+      } else if (selectedTable === 'contribuinte') {
         // Para contribuintes, precisamos buscar os cliente_ids primeiro
         const clienteTableName = getTableName('cliente', selectedEnv);
         const { data: clientesExistentes } = await supabase
