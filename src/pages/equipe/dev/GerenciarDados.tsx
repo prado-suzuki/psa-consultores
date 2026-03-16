@@ -81,6 +81,7 @@ const GerenciarDados = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getTableName = (table: TableType, env: Environment): string => {
+    if (table === 'participante') return env === 'prod' ? 'participante' : 'participante_dev';
     if (env === 'prod') return table;
     return `${table}_dev`;
   };
