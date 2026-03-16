@@ -366,6 +366,10 @@ const GerenciarDados = () => {
                     <RadioGroupItem value="contribuinte" id="contribuinte" />
                     <Label htmlFor="contribuinte" className="cursor-pointer">Contribuinte</Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="participante" id="participante" />
+                    <Label htmlFor="participante" className="cursor-pointer">Participante</Label>
+                  </div>
                 </RadioGroup>
               </div>
 
