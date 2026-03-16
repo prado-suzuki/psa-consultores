@@ -50,20 +50,30 @@ export type Database = {
       area_servicos: {
         Row: {
           area_id: string
+          estrutura_area_id: string | null
           id: string
           servico_id: string
         }
         Insert: {
           area_id: string
+          estrutura_area_id?: string | null
           id?: string
           servico_id: string
         }
         Update: {
           area_id?: string
+          estrutura_area_id?: string | null
           id?: string
           servico_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "area_servicos_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tax_area_categorias_area_id_fkey"
             columns: ["area_id"]
@@ -2211,6 +2221,7 @@ export type Database = {
           frequency: string | null
           id: string
           inputs: Json | null
+          job_role_id: string | null
           name: string
           outputs: Json | null
           process_id: string | null
@@ -2230,6 +2241,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           inputs?: Json | null
+          job_role_id?: string | null
           name: string
           outputs?: Json | null
           process_id?: string | null
@@ -2249,6 +2261,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           inputs?: Json | null
+          job_role_id?: string | null
           name?: string
           outputs?: Json | null
           process_id?: string | null
@@ -2262,6 +2275,13 @@ export type Database = {
           volume?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "process_stages_job_role_id_fkey"
+            columns: ["job_role_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "process_stages_process_id_fkey"
             columns: ["process_id"]
