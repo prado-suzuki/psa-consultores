@@ -129,7 +129,7 @@ const DevDashboard = () => {
   return (
     <DevLayout
       title="Hub de Ferramentas"
-      subtitle="Acesso das ferramentas e manuais (SOPS)"
+      subtitle="Acesso das ferramentas e manuais (SOPS)\n\n"
     >
       {/* ── Sessões em Andamento ──────────────────────────── */}
       {pendingSessions.length > 0 && (
