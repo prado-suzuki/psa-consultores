@@ -585,7 +585,15 @@ const AuditoriaFiscal = () => {
 
             const downloadUrl = statusData.download_url || statusData.url;
             if (downloadUrl) {
-              window.location.href = downloadUrl;
+              const fileName = statusData.file_name || `DIFAL_export.xlsx`;
+              const a = document.createElement('a');
+              a.href = downloadUrl;
+              a.download = fileName;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
               toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
             } else {
               toast({ title: "Erro", description: "URL de download não disponível.", variant: "destructive" });
