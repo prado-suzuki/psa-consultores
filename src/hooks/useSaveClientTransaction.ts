@@ -46,7 +46,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
   cliente_id: clienteId,
   tipo_pessoa: e.tipo_pessoa,
   cpf_cnpj: e.cpf_cnpj || null,
-  nome_razao_social: e.nome_razao_social,
+  nome_razao_social: toTitleCase(e.nome_razao_social),
   inscricao_estadual: e.inscricao_estadual || null,
   cod_cnae: e.cod_cnae || null,
   setor: e.setor || null,
