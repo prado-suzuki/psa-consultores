@@ -71,7 +71,7 @@ const buildContribFields = (e: DraftEntity, clienteId: string) => ({
 
 const buildPartFields = (p: DraftParticipant, clienteId: string) => ({
   id_cliente: clienteId,
-  nome: p.nome,
+  nome: toTitleCase(p.nome),
   cargo: p.cargo || null,
   email: p.email || null,
   telefone: p.telefone || null,
