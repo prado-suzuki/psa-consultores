@@ -334,6 +334,9 @@ const GerenciarDados = () => {
             <p className="text-xs text-muted-foreground">
               <strong>Contribuinte:</strong> cliente (nome do cliente), nome_razao_social, tipo_pessoa, cpf_cnpj, inscricao_estadual, cod_cnae, setor, simples_nacional
             </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Participante:</strong> nome, email, cliente (nome do cliente), telefone, tipo_participante, observacoes, acesso_chamados
+            </p>
           </AlertDescription>
         </Alert>
 
