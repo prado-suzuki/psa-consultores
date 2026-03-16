@@ -284,18 +284,29 @@ const GerenciarDados = () => {
         if (contribError) throw contribError;
       }
 
-      const { error } = await supabase
-        .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+      if (selectedTable === 'participante') {
+        const { error } = await supabase
+          .from(tableName as 'participante' | 'participante_dev')
+          .delete()
+          .neq('id_participante', '00000000-0000-0000-0000-000000000000');
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (error) throw error;
+      }
 
       setResult({
         success: true,
         message: selectedTable === 'cliente' 
           ? 'Tabelas cliente e contribuinte limpas com sucesso!' 
-          : 'Tabela contribuinte limpa com sucesso!'
+          : selectedTable === 'contribuinte'
+            ? 'Tabela contribuinte limpa com sucesso!'
+            : 'Tabela participante limpa com sucesso!'
       });
 
       toast({
