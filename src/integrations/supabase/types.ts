@@ -999,6 +999,63 @@ export type Database = {
           },
         ]
       }
+      efd_correcoes: {
+        Row: {
+          arquivo_id: string | null
+          arquivo_tipo: string
+          ativo: boolean | null
+          batch_id: string | null
+          campos_alterados: Json | null
+          contribuinte_id: string
+          created_at: string | null
+          empresa_cnpj: string | null
+          id: string
+          motivo: string | null
+          periodo: string | null
+          registro_original_id: string | null
+          registro_tipo: string
+          snapshot: Json
+          tipo_operacao: string
+          usuario_id: string
+        }
+        Insert: {
+          arquivo_id?: string | null
+          arquivo_tipo: string
+          ativo?: boolean | null
+          batch_id?: string | null
+          campos_alterados?: Json | null
+          contribuinte_id: string
+          created_at?: string | null
+          empresa_cnpj?: string | null
+          id?: string
+          motivo?: string | null
+          periodo?: string | null
+          registro_original_id?: string | null
+          registro_tipo: string
+          snapshot: Json
+          tipo_operacao: string
+          usuario_id: string
+        }
+        Update: {
+          arquivo_id?: string | null
+          arquivo_tipo?: string
+          ativo?: boolean | null
+          batch_id?: string | null
+          campos_alterados?: Json | null
+          contribuinte_id?: string
+          created_at?: string | null
+          empresa_cnpj?: string | null
+          id?: string
+          motivo?: string | null
+          periodo?: string | null
+          registro_original_id?: string | null
+          registro_tipo?: string
+          snapshot?: Json
+          tipo_operacao?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       empresas_faturamento: {
         Row: {
           centro_custo_id: string | null
