@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
-type TableType = 'cliente' | 'contribuinte';
+type TableType = 'cliente' | 'contribuinte' | 'participante';
 type Environment = 'dev' | 'prod';
 
 interface ParsedCliente {
@@ -62,6 +62,17 @@ interface ParsedContribuinte {
   simples_nacional?: boolean;
 }
 
+interface ParsedParticipante {
+  id_participante?: string;
+  nome: string;
+  email?: string;
+  id_cliente: string;
+  telefone?: string;
+  tipo_participante?: string;
+  observacoes?: string;
+  acesso_chamados?: boolean;
+}
+
 const GerenciarDados = () => {
   const [selectedTable, setSelectedTable] = useState<TableType>('cliente');
   const [selectedEnv, setSelectedEnv] = useState<Environment>('dev');
@@ -70,6 +81,7 @@ const GerenciarDados = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getTableName = (table: TableType, env: Environment): string => {
+    if (table === 'participante') return env === 'prod' ? 'participante' : 'participante_dev';
     if (env === 'prod') return table;
     return `${table}_dev`;
   };
@@ -144,7 +156,7 @@ const GerenciarDados = () => {
           message: `${clientes.length} clientes importados com sucesso!`,
           count: clientes.length
         });
-      } else {
+      } else if (selectedTable === 'contribuinte') {
         // Para contribuintes, precisamos buscar os cliente_ids primeiro
         const clienteTableName = getTableName('cliente', selectedEnv);
         const { data: clientesExistentes } = await supabase
@@ -186,6 +198,46 @@ const GerenciarDados = () => {
           success: true,
           message: `${contribuintes.length} contribuintes importados com sucesso!`,
           count: contribuintes.length
+        });
+      } else if (selectedTable === 'participante') {
+        // Buscar clientes existentes para mapear nome → id
+        const clienteTableName = getTableName('cliente', selectedEnv);
+        const { data: clientesExistentes } = await supabase
+          .from(clienteTableName as 'cliente' | 'cliente_dev')
+          .select('id, nome');
+
+        const clienteMap = new Map(clientesExistentes?.map(c => [c.nome.toLowerCase().trim(), c.id]) || []);
+
+        const participantes: ParsedParticipante[] = rows.map(row => {
+          const clienteNome = (row.cliente || row.cliente_nome || '').toLowerCase().trim();
+          const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
+
+          return {
+            id_participante: row.id_participante || undefined,
+            nome: row.nome || row.name || '',
+            email: row.email || undefined,
+            id_cliente: clienteId,
+            telefone: row.telefone || row.phone || undefined,
+            tipo_participante: row.tipo_participante || undefined,
+            observacoes: row.observacoes || undefined,
+            acesso_chamados: row.acesso_chamados?.toLowerCase() === 'true' || row.acesso_chamados === '1' || undefined,
+          };
+        }).filter(p => p.nome && p.id_cliente);
+
+        if (participantes.length === 0) {
+          throw new Error('Nenhum participante válido encontrado. Verifique se as colunas "nome" e "cliente" (ou id_cliente) existem e se os clientes estão cadastrados.');
+        }
+
+        const { error } = await supabase
+          .from(tableName as 'participante' | 'participante_dev')
+          .insert(participantes);
+
+        if (error) throw error;
+
+        setResult({
+          success: true,
+          message: `${participantes.length} participantes importados com sucesso!`,
+          count: participantes.length
         });
       }
 
@@ -232,18 +284,29 @@ const GerenciarDados = () => {
         if (contribError) throw contribError;
       }
 
-      const { error } = await supabase
-        .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+      if (selectedTable === 'participante') {
+        const { error } = await supabase
+          .from(tableName as 'participante' | 'participante_dev')
+          .delete()
+          .neq('id_participante', '00000000-0000-0000-0000-000000000000');
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (error) throw error;
+      }
 
       setResult({
         success: true,
         message: selectedTable === 'cliente' 
           ? 'Tabelas cliente e contribuinte limpas com sucesso!' 
-          : 'Tabela contribuinte limpa com sucesso!'
+          : selectedTable === 'contribuinte'
+            ? 'Tabela contribuinte limpa com sucesso!'
+            : 'Tabela participante limpa com sucesso!'
       });
 
       toast({
@@ -269,7 +332,7 @@ const GerenciarDados = () => {
   return (
     <DevLayout 
       title="Gerenciar dados" 
-      subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
+      subtitle="Importe ou limpe dados das tabelas cliente, contribuinte e participante"
     >
       <div className="space-y-6 max-w-3xl">
         {/* Aviso */}
@@ -283,6 +346,9 @@ const GerenciarDados = () => {
             </p>
             <p className="text-xs text-muted-foreground">
               <strong>Contribuinte:</strong> cliente (nome do cliente), nome_razao_social, tipo_pessoa, cpf_cnpj, inscricao_estadual, cod_cnae, setor, simples_nacional
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Participante:</strong> nome, email, cliente (nome do cliente), telefone, tipo_participante, observacoes, acesso_chamados
             </p>
           </AlertDescription>
         </Alert>
@@ -312,6 +378,10 @@ const GerenciarDados = () => {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="contribuinte" id="contribuinte" />
                     <Label htmlFor="contribuinte" className="cursor-pointer">Contribuinte</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="participante" id="participante" />
+                    <Label htmlFor="participante" className="cursor-pointer">Participante</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -456,12 +526,26 @@ const GerenciarDados = () => {
 Empresa ABC;true;1112223333;11999998888;Comércio;São Paulo;SP
 Indústria XYZ;true;;11988887777;Indústria;Campinas;SP`}
               </pre>
-            ) : (
+            ) : selectedTable === 'contribuinte' ? (
               <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
 {`cliente;nome_razao_social;tipo_pessoa;cpf_cnpj;inscricao_estadual;cod_cnae;setor;simples_nacional
 Empresa ABC;Matriz ABC LTDA;PJ;12345678000199;123456789;4711302;Varejo;false
 Empresa ABC;Filial ABC Norte;PJ;12345678000280;123456790;4711302;Varejo;true`}
               </pre>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Formato básico (mínimo):</p>
+                <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+{`nome;email;cliente
+Adriano Siqueira;adriano@empresa.com;Agro Amazônia
+Denise Moraes;denise@empresa.com;Agro Amazônia`}
+                </pre>
+                <p className="text-sm text-muted-foreground">Formato completo:</p>
+                <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+{`nome;email;cliente;telefone;tipo_participante;observacoes;acesso_chamados
+Adriano Siqueira;adriano@empresa.com;Agro Amazônia;11999998888;contato_principal;Responsável fiscal;true`}
+                </pre>
+              </div>
             )}
           </CardContent>
         </Card>
