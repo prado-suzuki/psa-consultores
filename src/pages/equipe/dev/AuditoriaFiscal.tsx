@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -477,8 +477,20 @@ const AuditoriaFiscal = () => {
     setCurrentPage(1); // Resetar para primeira página ao mudar filtro
   };
 
-  // Estado para exportação Excel
-  const [isExporting, setIsExporting] = useState(false);
+  // Estado para exportação Excel com polling
+  const [exportStatus, setExportStatus] = useState<'idle' | 'starting' | 'processing' | 'completed' | 'error'>('idle');
+  const [exportMessage, setExportMessage] = useState('');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const isExporting = exportStatus === 'starting' || exportStatus === 'processing';
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
 
   const handleExportExcel = async () => {
     if (!selectedContribuinte || !dataInicio || !dataFim) {
@@ -490,7 +502,6 @@ const AuditoriaFiscal = () => {
       return;
     }
 
-    // Verificar se há decisões não salvas
     if (pendingDecisionsCount > 0) {
       toast({
         title: "Decisões não salvas",
@@ -500,7 +511,12 @@ const AuditoriaFiscal = () => {
       return;
     }
 
-    setIsExporting(true);
+    // Cleanup any previous polling
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (abortRef.current) abortRef.current.abort();
+
+    setExportStatus('starting');
+    setExportMessage('Iniciando exportação...');
 
     try {
       const response = await fetchWithAuth(
@@ -517,41 +533,80 @@ const AuditoriaFiscal = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Erro ao gerar exportação");
+        throw new Error(errorData.detail || "Erro ao iniciar exportação");
       }
 
-      // Obter o arquivo como blob
-      const blob = await response.blob();
+      const data = await response.json();
 
-      // Criar URL e fazer download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
+      // Cache hit — arquivo pronto imediatamente
+      if (data.status === 'completed' && (data.url || data.download_url)) {
+        const downloadUrl = data.download_url || data.url;
+        window.location.href = downloadUrl;
+        setExportStatus('idle');
+        toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
+        return;
+      }
 
-      // Gerar nome do arquivo
-      const contribuinteNome =
-        contribuintes?.find((c) => c.id === selectedContribuinte)?.nome_razao_social || "contribuinte";
-      const dataInicioFormatted = format(parse(dataInicio, "yyyy-MM-dd", new Date()), "ddMMyyyy");
-      const dataFimFormatted = format(parse(dataFim, "yyyy-MM-dd", new Date()), "ddMMyyyy");
-      a.download = `DIFAL_${contribuinteNome.replace(/\s+/g, "_")}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
+      // Job assíncrono — iniciar polling
+      const jobId = data.job_id || data.id;
+      if (!jobId) throw new Error("Resposta inesperada do servidor");
 
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      setExportStatus('processing');
+      setExportMessage('Processando arquivo...');
 
-      toast({
-        title: "Exportação concluída",
-        description: "O arquivo Excel foi baixado com sucesso.",
-      });
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetchWithAuth(
+            `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/status/${jobId}`,
+            { signal: controller.signal },
+          );
+
+          if (!statusRes.ok) {
+            const errData = await statusRes.json().catch(() => ({}));
+            throw new Error(errData.detail || `Erro ${statusRes.status}`);
+          }
+
+          const statusData = await statusRes.json();
+
+          if (statusData.status === 'completed') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+
+            const downloadUrl = statusData.download_url || statusData.url;
+            if (downloadUrl) {
+              window.location.href = downloadUrl;
+              toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
+            } else {
+              toast({ title: "Erro", description: "URL de download não disponível.", variant: "destructive" });
+            }
+            setExportStatus('idle');
+          } else if (statusData.status === 'failed' || statusData.status === 'error') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setExportStatus('error');
+            toast({
+              title: "Erro na exportação",
+              description: statusData.message || statusData.error || "Falha ao gerar o arquivo.",
+              variant: "destructive",
+            });
+            setExportStatus('idle');
+          }
+          // else still processing, continue polling
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') return;
+          console.error('[DIFAL Export] Polling error:', err);
+        }
+      }, 2000);
     } catch (error) {
+      setExportStatus('idle');
       toast({
         title: "Erro na exportação",
         description: error instanceof Error ? error.message : "Erro ao exportar dados",
         variant: "destructive",
       });
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -947,7 +1002,7 @@ const AuditoriaFiscal = () => {
             }
           >
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {isExporting ? "Exportando..." : "Exportar Excel"}
+            {exportStatus === 'starting' ? "Iniciando..." : exportStatus === 'processing' ? "Processando..." : "Exportar Excel"}
           </Button>
         </div>
       )}
