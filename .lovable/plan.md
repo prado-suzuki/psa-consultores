@@ -1,14 +1,48 @@
 
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+# Plano: Validação cross-environment para `external_client_id`
 
-### Alterações realizadas
+## Migração SQL única
 
-| Arquivo | Alterações |
-|---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
+```sql
+-- 1. Remover FK rígida
+ALTER TABLE public.tax_projects
+  DROP CONSTRAINT tax_projects_external_client_id_fkey;
 
-Nenhuma alteração em banco, RLS ou outras tabelas.
+-- 2. Function de validação (mesmo padrão de validate_tax_project_contribuinte)
+CREATE OR REPLACE FUNCTION public.validate_tax_project_external_client()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.external_client_id IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM public.cliente WHERE id = NEW.external_client_id)
+    AND NOT EXISTS (SELECT 1 FROM public.cliente_dev WHERE id = NEW.external_client_id) THEN
+      RAISE EXCEPTION 'Cliente invalido: id % nao encontrado em cliente nem cliente_dev', NEW.external_client_id;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+-- 3. Trigger
+CREATE TRIGGER trg_validate_tax_project_external_client
+  BEFORE INSERT OR UPDATE ON public.tax_projects
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validate_tax_project_external_client();
+```
+
+## Escopo
+
+- **1 arquivo**: migração SQL
+- **0 alterações de código** — nenhum hook ou componente precisa mudar; a validação é transparente no banco
+
+## Conformidade com AI_CONTEXT.md
+
+- Não usa `CHECK` com `now()` — usa trigger de validação ✓
+- Não modifica schemas reservados (`auth`, `storage`, etc.) ✓
+- Não altera `ALTER DATABASE postgres` ✓
+- Function é `SECURITY DEFINER` com `search_path = 'public'` ✓
+
