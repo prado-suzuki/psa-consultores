@@ -227,6 +227,7 @@ export const useCreateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
+        ordem_servico_id: data.ordem_servico_id || null,
         created_by: user?.id || null,
       }).select('id').single();
       if (error) throw error;
