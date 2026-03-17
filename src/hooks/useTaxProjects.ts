@@ -21,12 +21,14 @@ export interface TaxProject {
   contribuinte_id: string | null;
   area_id: string | null;
   objective: string | null;
+  ordem_servico_id: string | null;
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
   area_ref?: { id: string; nome: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
+  servico_contratado?: string | null;
 }
 
 export interface TaxProjectMember {
