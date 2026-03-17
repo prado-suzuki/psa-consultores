@@ -87,13 +87,11 @@ export const useTaxProjects = () => {
       if (clientIds.length > 0) {
         const { data: clients } = await supabase.from(clienteTable).select('id, nome').in('id', clientIds);
         (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
-        // Fallback for missing IDs
-        if (!isProductionEnvironment) {
-          const missing = clientIds.filter(id => !clientMap[id]);
-          if (missing.length > 0) {
-            const { data: fb } = await supabase.from('cliente').select('id, nome').in('id', missing);
-            (fb || []).forEach(c => { clientMap[c.id] = c.nome; });
-          }
+        // Fallback: buscar IDs ausentes na tabela alternativa
+        const missingClients = clientIds.filter(id => !clientMap[id]);
+        if (missingClients.length > 0) {
+          const { data: fb } = await supabase.from(fallbackClienteTable).select('id, nome').in('id', missingClients);
+          (fb || []).forEach(c => { clientMap[c.id] = c.nome; });
         }
       }
 
