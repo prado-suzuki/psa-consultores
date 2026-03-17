@@ -92,6 +92,7 @@ const FiscalProjetosCadastro = () => {
     objective: '',
     category_ids: [] as string[],
     member_ids: [] as string[],
+    ordem_servico_id: '',
   });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
