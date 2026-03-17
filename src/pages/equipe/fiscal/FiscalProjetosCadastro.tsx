@@ -257,6 +257,7 @@ const FiscalProjetosCadastro = () => {
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
+      setSelectedOsId(project.ordem_servico_id || null);
       setFormData({
         name: project.name,
         description: project.description || '',
@@ -271,6 +272,7 @@ const FiscalProjetosCadastro = () => {
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
+        ordem_servico_id: project.ordem_servico_id || '',
       });
     } else {
       setEditingProject(null);
