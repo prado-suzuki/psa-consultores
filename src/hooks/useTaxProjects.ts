@@ -98,12 +98,11 @@ export const useTaxProjects = () => {
       if (contribIds.length > 0) {
         const { data: contribs } = await supabase.from(contribuinteTable).select('id, nome_razao_social').in('id', contribIds).eq('excluido', false);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-        if (!isProductionEnvironment) {
-          const missing = contribIds.filter(id => !contribMap[id]);
-          if (missing.length > 0) {
-            const { data: fb } = await supabase.from('contribuinte').select('id, nome_razao_social').in('id', missing);
-            (fb || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-          }
+        // Fallback: buscar IDs ausentes na tabela alternativa
+        const missingContribs = contribIds.filter(id => !contribMap[id]);
+        if (missingContribs.length > 0) {
+          const { data: fb } = await supabase.from(fallbackContribuinteTable).select('id, nome_razao_social').in('id', missingContribs);
+          (fb || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
         }
       }
 
