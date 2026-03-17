@@ -291,6 +291,7 @@ export const useUpdateTaxProject = () => {
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
         ['objective', oldProject.objective || null, data.objective || null],
+        ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
       ];
       for (const [field, oldVal, newVal] of comparisons) {
         if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
