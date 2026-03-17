@@ -464,6 +464,9 @@ const FiscalProjetosCadastro = () => {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className="text-sm">{project.servico_contratado || '-'}</span>
+                      </TableCell>
+                      <TableCell>
                         {project.external_client ? (
                           <div className="flex items-center gap-1.5">
                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
