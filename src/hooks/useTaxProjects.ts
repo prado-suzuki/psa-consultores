@@ -50,6 +50,7 @@ export interface TaxProjectFormData {
   objective: string;
   category_ids: string[];
   member_ids: string[];
+  ordem_servico_id: string;
 }
 
 // ── Helper constants ───────────────────────────────────────────────────
