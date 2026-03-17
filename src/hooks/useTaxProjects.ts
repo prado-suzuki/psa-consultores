@@ -324,6 +324,7 @@ export const useUpdateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
+        ordem_servico_id: data.ordem_servico_id || null,
       }).eq('id', id);
       if (error) throw error;
 
