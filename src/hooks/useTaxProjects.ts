@@ -21,12 +21,14 @@ export interface TaxProject {
   contribuinte_id: string | null;
   area_id: string | null;
   objective: string | null;
+  ordem_servico_id: string | null;
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
   area_ref?: { id: string; nome: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
+  servico_contratado?: string | null;
 }
 
 export interface TaxProjectMember {
@@ -48,6 +50,7 @@ export interface TaxProjectFormData {
   objective: string;
   category_ids: string[];
   member_ids: string[];
+  ordem_servico_id: string;
 }
 
 // ── Helper constants ───────────────────────────────────────────────────
@@ -106,10 +109,33 @@ export const useTaxProjects = () => {
         }
       }
 
+      // Resolve servico_contratado via ordem_servico → id_servico → servicos_prestados
+      const osIds = [...new Set((data || []).filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
+      const servicoMap: Record<string, string> = {};
+
+      if (osIds.length > 0) {
+        // Cast needed: ordem_servico not in generated types
+        const { data: osRows } = await (supabase.from('ordem_servico' as any) as any)
+          .select('id, id_servico')
+          .in('id', osIds);
+        const servicoIds = [...new Set((osRows || []).filter((o: any) => o.id_servico).map((o: any) => o.id_servico as string))];
+        let servicoNames: Record<string, string> = {};
+        if (servicoIds.length > 0) {
+          const { data: servicos } = await supabase.from('servicos_prestados').select('id, nome').in('id', servicoIds as string[]);
+          (servicos || []).forEach((s: any) => { servicoNames[s.id] = s.nome; });
+        }
+        (osRows || []).forEach((o: any) => {
+          if (o.id_servico && servicoNames[o.id_servico]) {
+            servicoMap[o.id] = servicoNames[o.id_servico];
+          }
+        });
+      }
+
       return (data || []).map(p => ({
         ...p,
         external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
         contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
+        servico_contratado: p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null,
       })) as TaxProject[];
     },
   });
@@ -201,6 +227,7 @@ export const useCreateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
+        ordem_servico_id: data.ordem_servico_id || null,
         created_by: user?.id || null,
       }).select('id').single();
       if (error) throw error;
@@ -264,6 +291,7 @@ export const useUpdateTaxProject = () => {
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
         ['objective', oldProject.objective || null, data.objective || null],
+        ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
       ];
       for (const [field, oldVal, newVal] of comparisons) {
         if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
@@ -296,6 +324,7 @@ export const useUpdateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         area_id: data.area_id || null,
         objective: data.objective || null,
+        ordem_servico_id: data.ordem_servico_id || null,
       }).eq('id', id);
       if (error) throw error;
 

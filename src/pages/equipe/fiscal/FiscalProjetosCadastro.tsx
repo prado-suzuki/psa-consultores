@@ -92,6 +92,7 @@ const FiscalProjetosCadastro = () => {
     objective: '',
     category_ids: [] as string[],
     member_ids: [] as string[],
+    ordem_servico_id: '',
   });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
@@ -177,13 +178,15 @@ const FiscalProjetosCadastro = () => {
     }
   }, [clienteOS, formData.external_client_id]);
 
-  // Auto-fill dates from selected OS (only on create)
+  // Sync ordem_servico_id + auto-fill dates from selected OS
   useEffect(() => {
+    setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '' }));
     if (!selectedOsId || editingProject) return;
     const os = clienteOS.find((o) => getOsId(o) === selectedOsId);
     if (!os) return;
     setFormData(prev => ({
       ...prev,
+      ordem_servico_id: selectedOsId,
       start_date: prev.start_date || os.data_inicio || '',
       end_date: prev.end_date || os.data_fim || '',
     }));
@@ -256,6 +259,7 @@ const FiscalProjetosCadastro = () => {
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
+      setSelectedOsId(project.ordem_servico_id || null);
       setFormData({
         name: project.name,
         description: project.description || '',
@@ -270,6 +274,7 @@ const FiscalProjetosCadastro = () => {
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
+        ordem_servico_id: project.ordem_servico_id || '',
       });
     } else {
       setEditingProject(null);
@@ -278,6 +283,7 @@ const FiscalProjetosCadastro = () => {
         start_date: '', end_date: '',
         leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
+        ordem_servico_id: '',
       });
     }
     setIsModalOpen(true);
@@ -291,6 +297,7 @@ const FiscalProjetosCadastro = () => {
       start_date: '', end_date: '',
       leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
+      ordem_servico_id: '',
     });
   };
 
@@ -423,6 +430,7 @@ const FiscalProjetosCadastro = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Projeto</TableHead>
+                  <TableHead>Serviço</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Área</TableHead>
                   <TableHead>Responsável</TableHead>
@@ -436,13 +444,13 @@ const FiscalProjetosCadastro = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Carregando projetos...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Nenhum projeto cadastrado.
                     </TableCell>
                   </TableRow>
@@ -454,6 +462,9 @@ const FiscalProjetosCadastro = () => {
                           <FolderKanban className="h-4 w-4 text-emerald-600" />
                           <span className="font-medium">{project.name}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{project.servico_contratado || '-'}</span>
                       </TableCell>
                       <TableCell>
                         {project.external_client ? (
