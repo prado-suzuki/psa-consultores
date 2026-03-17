@@ -1,30 +1,14 @@
 
 
-# Plano: Migrar `external_client_id` de 13 projetos para `cliente_dev`
+## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
 
-## Ação
+### Alterações realizadas
 
-Executar um único UPDATE que cruza `tax_projects` → `cliente` (por nome) → `cliente_dev` para substituir os IDs de produção pelos IDs de desenvolvimento. Os 2 projetos "Grupo Bahia Potrich" ficam inalterados (sem equivalente em `cliente_dev`).
+| Arquivo | Alterações |
+|---|---|
+| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
+| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
+| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
+| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
 
-## SQL a executar (via insert tool)
-
-```sql
-UPDATE tax_projects tp
-SET external_client_id = cd.id
-FROM cliente c
-JOIN cliente_dev cd ON cd.nome = c.nome AND cd.excluido = false
-WHERE c.id = tp.external_client_id
-  AND tp.external_client_id IS NOT NULL
-  AND cd.id IS NOT NULL;
-```
-
-## Resultado esperado
-
-- **13 projetos** atualizados com UUIDs de `cliente_dev`
-- **2 projetos** inalterados (Grupo Bahia Potrich)
-- O trigger `trg_validate_tax_project_external_client` aceita IDs de ambas as tabelas — sem risco de rejeição
-
-## Após execução
-
-Rodar query de verificação para confirmar que os IDs foram atualizados corretamente.
-
+Nenhuma alteração em banco, RLS ou outras tabelas.
