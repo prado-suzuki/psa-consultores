@@ -121,7 +121,7 @@ export const useTaxProjects = () => {
         const servicoIds = [...new Set((osRows || []).filter((o: any) => o.id_servico).map((o: any) => o.id_servico as string))];
         let servicoNames: Record<string, string> = {};
         if (servicoIds.length > 0) {
-          const { data: servicos } = await supabase.from('servicos_prestados').select('id, nome').in('id', servicoIds);
+          const { data: servicos } = await supabase.from('servicos_prestados').select('id, nome').in('id', servicoIds as string[]);
           (servicos || []).forEach((s: any) => { servicoNames[s.id] = s.nome; });
         }
         (osRows || []).forEach((o: any) => {

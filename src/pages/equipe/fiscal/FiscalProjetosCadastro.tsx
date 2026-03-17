@@ -295,6 +295,7 @@ const FiscalProjetosCadastro = () => {
       start_date: '', end_date: '',
       leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
+      ordem_servico_id: '',
     });
   };
 
