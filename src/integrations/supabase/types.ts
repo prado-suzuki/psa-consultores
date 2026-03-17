@@ -3522,6 +3522,7 @@ export type Database = {
           leader_id: string | null
           name: string
           objective: string | null
+          ordem_servico_id: string | null
           responsible_id: string | null
           start_date: string | null
           status: string | null
@@ -3540,6 +3541,7 @@ export type Database = {
           leader_id?: string | null
           name: string
           objective?: string | null
+          ordem_servico_id?: string | null
           responsible_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -3558,6 +3560,7 @@ export type Database = {
           leader_id?: string | null
           name?: string
           objective?: string | null
+          ordem_servico_id?: string | null
           responsible_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -3611,6 +3614,13 @@ export type Database = {
             columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_projects_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
             referencedColumns: ["id"]
           },
           {
