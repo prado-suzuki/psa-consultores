@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isProductionEnvironment } from "@/config/api";
-
 
 
 import { Button } from "@/components/ui/button";
@@ -14,9 +12,6 @@ import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import NewClientModal from "@/components/equipe/fiscal/NewClientModal";
-
-const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 
 const ITEMS_PER_PAGE = 10;
 
