@@ -17,7 +17,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
-import { isProductionEnvironment } from '@/config/api';
+
 
 interface AuditLogTableProps {
   area: 'tax' | 'osg';
