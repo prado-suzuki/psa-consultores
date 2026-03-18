@@ -54,16 +54,11 @@ export interface TaxProjectFormData {
 
 // ── Helper constants ───────────────────────────────────────────────────
 
-const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-const fallbackContribuinteTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-
 // ── Queries ────────────────────────────────────────────────────────────
 
 export const useTaxProjects = () => {
   return useQuery({
-    queryKey: ['tax-projects', clienteTable, contribuinteTable],
+    queryKey: ['tax-projects'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tax_projects')
