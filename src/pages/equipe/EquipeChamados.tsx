@@ -169,10 +169,10 @@ export default function EquipeChamados() {
       if (rolesData) {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', userIds);
-        
+
         setAgents(profilesData || []);
       }
     } catch (error) {
