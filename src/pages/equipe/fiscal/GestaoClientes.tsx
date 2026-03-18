@@ -101,12 +101,12 @@ const GestaoClientes = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["clientes-filtrados", clienteTable, clienteId, status, tipo, categoria, nomeRazaoSocial],
+    queryKey: ["clientes-filtrados", clienteId, status, tipo, categoria, nomeRazaoSocial],
     queryFn: async () => {
       let filteredClienteIds: string[] | null = null;
 
       if (hasContribuinteFilters) {
-        let contribuinteQuery = supabase.from(contribuinteTable).select("cliente_id").eq("excluido", false);
+        let contribuinteQuery = supabase.from('contribuinte').select("cliente_id").eq("excluido", false);
 
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq("nome_razao_social", nomeRazaoSocial);
 
