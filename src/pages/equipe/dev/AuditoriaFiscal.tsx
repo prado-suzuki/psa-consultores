@@ -140,11 +140,11 @@ const AuditoriaFiscal = () => {
 
   // Query: Listar contribuintes do cliente
   const { data: contribuintes, isLoading: isLoadingContribuintes } = useQuery({
-    queryKey: ["difal-contribuintes", selectedCliente, contribuinteTable],
+    queryKey: ["difal-contribuintes", selectedCliente],
     queryFn: async () => {
       if (!selectedCliente) return [];
       const { data, error } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj")
         .eq("cliente_id", selectedCliente)
         .eq("excluido", false)

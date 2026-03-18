@@ -79,25 +79,13 @@ export const useTaxProjects = () => {
       const contribMap: Record<string, string> = {};
 
       if (clientIds.length > 0) {
-        const { data: clients } = await supabase.from(clienteTable).select('id, nome').in('id', clientIds);
+        const { data: clients } = await supabase.from('cliente').select('id, nome').in('id', clientIds);
         (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
-        // Fallback: buscar IDs ausentes na tabela alternativa
-        const missingClients = clientIds.filter(id => !clientMap[id]);
-        if (missingClients.length > 0) {
-          const { data: fb } = await supabase.from(fallbackClienteTable).select('id, nome').in('id', missingClients);
-          (fb || []).forEach(c => { clientMap[c.id] = c.nome; });
-        }
       }
 
       if (contribIds.length > 0) {
-        const { data: contribs } = await supabase.from(contribuinteTable).select('id, nome_razao_social').in('id', contribIds).eq('excluido', false);
+        const { data: contribs } = await supabase.from('contribuinte').select('id, nome_razao_social').in('id', contribIds).eq('excluido', false);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-        // Fallback: buscar IDs ausentes na tabela alternativa
-        const missingContribs = contribIds.filter(id => !contribMap[id]);
-        if (missingContribs.length > 0) {
-          const { data: fb } = await supabase.from(fallbackContribuinteTable).select('id, nome_razao_social').in('id', missingContribs);
-          (fb || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-        }
       }
 
       // Resolve servico_contratado via ordem_servico → id_servico → servicos_prestados

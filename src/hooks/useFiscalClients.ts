@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
 
 export interface Cliente {
   id: string;
@@ -16,22 +15,16 @@ export interface Cliente {
   updated_at: string;
 }
 
-/** Lista de clientes ativos com roteamento de tabela por ambiente */
+/** Lista de clientes ativos */
 export function useFiscalClientsList() {
   return useQuery<Cliente[]>({
     queryKey: ['empresa-clients'],
     queryFn: async () => {
-      const { data, error } = isProductionEnvironment
-        ? await supabase
-            .from('cliente')
-            .select('*')
-            .eq('ativo', true)
-            .order('nome')
-        : await supabase
-            .from('cliente_dev')
-            .select('*')
-            .eq('ativo', true)
-            .order('nome');
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome');
 
       if (error) throw error;
       return data as Cliente[];

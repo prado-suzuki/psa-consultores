@@ -67,29 +67,27 @@ export const useContribuintesByCliente = (clienteId: string | null | undefined) 
   });
 };
 
-/** Fetch external clients for dropdowns (active only, with env fallback for editing) */
+/** Fetch external clients for dropdowns (active only) */
 export const useExternalClients = (editingClientId?: string | null) => {
-  const fallbackTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-
   return useQuery({
-    queryKey: ['external-clients', clienteTable, editingClientId],
+    queryKey: ['external-clients', editingClientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
         .order('nome');
       if (error) throw error;
       const list = data as { id: string; nome: string; setor_cliente: string | null }[];
 
-      // Fallback: if editing and client ID not in current env table
+      // If editing a client not in the active list, fetch it individually
       if (editingClientId && !list.some(c => c.id === editingClientId)) {
-        const { data: fb } = await supabase
-          .from(fallbackTable)
+        const { data: extra } = await supabase
+          .from('cliente')
           .select('id, nome, setor_cliente')
           .eq('id', editingClientId)
           .maybeSingle();
-        if (fb) list.push(fb as typeof list[0]);
+        if (extra) list.push(extra as typeof list[0]);
       }
 
       return list;

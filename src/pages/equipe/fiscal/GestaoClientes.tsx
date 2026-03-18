@@ -171,7 +171,7 @@ const GestaoClientes = () => {
     if (!deletingCliente) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase.from(clienteTable).update({ excluido: true } as any).eq("id", deletingCliente.id);
+      const { error } = await supabase.from('cliente').update({ excluido: true } as any).eq("id", deletingCliente.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
