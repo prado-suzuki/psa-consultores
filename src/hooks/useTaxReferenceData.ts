@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
 
 // ── Interfaces locais ──────────────────────────────────────────────────
 
@@ -138,65 +137,36 @@ export function useSubliderTeamMembers(subliderIds: string[], enabled: boolean) 
   });
 }
 
-/** Clientes externos com fallback cross-environment */
+/** Clientes externos */
 export function useExternalClients(editingClientId?: string | null) {
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const fallbackTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-
   return useQuery({
-    queryKey: ['external-clients-tax', clienteTable, editingClientId],
+    queryKey: ['external-clients-tax', editingClientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
         .order('nome');
       if (error) throw error;
-      const list = data as ExternalClient[];
-
-      if (editingClientId && !list.some(c => c.id === editingClientId)) {
-        const { data: fallback } = await supabase
-          .from(fallbackTable)
-          .select('id, nome, setor_cliente')
-          .eq('id', editingClientId)
-          .maybeSingle();
-        if (fallback) list.push(fallback as ExternalClient);
-      }
-
-      return list;
+      return data as ExternalClient[];
     },
   });
 }
 
-/** Contribuintes filtrados por cliente, com fallback cross-environment */
+/** Contribuintes filtrados por cliente */
 export function useContribuintes(clientId: string | null, editingContribuinteId?: string | null) {
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-  const fallbackTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-
   return useQuery({
-    queryKey: ['contribuintes-for-project', contribuinteTable, clientId, editingContribuinteId],
+    queryKey: ['contribuintes-for-project', clientId, editingContribuinteId],
     queryFn: async () => {
       if (!clientId) return [];
       const { data, error } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clientId)
         .eq('excluido', false)
         .order('nome_razao_social');
       if (error) throw error;
-      let list = data as ContribuinteOption[];
-
-      if (list.length === 0) {
-        const { data: fallback } = await supabase
-          .from(fallbackTable)
-          .select('id, nome_razao_social, cpf_cnpj')
-          .eq('cliente_id', clientId)
-          .eq('excluido', false)
-          .order('nome_razao_social');
-        if (fallback?.length) list = fallback as typeof list;
-      }
-
-      return list;
+      return data as ContribuinteOption[];
     },
     enabled: !!clientId,
   });

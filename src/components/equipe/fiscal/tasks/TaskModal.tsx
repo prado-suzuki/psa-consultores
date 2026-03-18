@@ -49,7 +49,7 @@ import {
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
+
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useTaxProjectsList } from '@/hooks/useTaxProjects';
 import { useTaxAreas } from '@/hooks/useTaxAreas';
@@ -96,8 +96,6 @@ export const TaskModal = ({
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const createTask = useCreateFiscalTask();
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
@@ -143,19 +141,16 @@ export const TaskModal = ({
 
   // ── Queries que permanecem inline ────────────────────────────────────
 
-  // Fetch clients (fallback bidirecional para resolver IDs cross-environment)
-  const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-tasks', clienteTable, fallbackClienteTable],
+    queryKey: ['clients-for-tasks'],
     queryFn: async () => {
-      const [{ data: primary }, { data: fallback }] = await Promise.all([
-        supabase.from(clienteTable).select('id, nome').eq('ativo', true).order('nome'),
-        supabase.from(fallbackClienteTable).select('id, nome').eq('ativo', true).order('nome'),
-      ]);
-      const map = new Map<string, { id: string; nome: string }>();
-      for (const c of (primary || [])) map.set(c.nome, c);
-      for (const c of (fallback || [])) { if (!map.has(c.nome)) map.set(c.nome, c); }
-      return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
     },
     enabled: open,
   });
@@ -180,11 +175,11 @@ export const TaskModal = ({
 
   // Fetch contribuintes filtered by selected client
   const { data: contribuintesTask = [] } = useQuery({
-    queryKey: ['contribuintes-for-task', contribuinteTable, watchedClientId],
+    queryKey: ['contribuintes-for-task', watchedClientId],
     queryFn: async () => {
       if (!watchedClientId) return [];
       const { data } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', watchedClientId)
         .eq('excluido', false)

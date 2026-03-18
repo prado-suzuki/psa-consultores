@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -394,10 +394,9 @@ const EquipeProjetos = () => {
   };
 
   const fetchExternalClients = async () => {
-    const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
     try {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');

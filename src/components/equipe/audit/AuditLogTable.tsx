@@ -17,7 +17,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
-import { isProductionEnvironment } from '@/config/api';
+
 
 interface AuditLogTableProps {
   area: 'tax' | 'osg';
@@ -50,8 +50,6 @@ const ENTITY_LABELS: Record<string, string> = {
 
 // ── Lookup hooks ─────────────────────────────────────────────
 function useLookupMaps(): LookupMaps {
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const buildMap = (data: { id: string; label: string }[] | null) => {
     const map: Record<string, string> = {};
     data?.forEach(d => { map[d.id] = d.label; });
@@ -93,20 +91,20 @@ function useLookupMaps(): LookupMaps {
   });
 
   const { data: clients = {} } = useQuery({
-    queryKey: ['audit-lookup-clients', clienteTable],
+    queryKey: ['audit-lookup-clients'],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome');
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
   });
 
   const { data: contribuintes = {} } = useQuery({
-    queryKey: ['audit-lookup-contribuintes', contribuinteTable],
+    queryKey: ['audit-lookup-contribuintes'],
     queryFn: async () => {
       const { data } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('excluido', false);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
