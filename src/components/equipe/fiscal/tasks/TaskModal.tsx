@@ -143,16 +143,19 @@ export const TaskModal = ({
 
   // ── Queries que permanecem inline ────────────────────────────────────
 
-  // Fetch clients
+  // Fetch clients (fallback bidirecional para resolver IDs cross-environment)
+  const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-tasks', clienteTable],
+    queryKey: ['clients-for-tasks', clienteTable, fallbackClienteTable],
     queryFn: async () => {
-      const { data } = await supabase
-        .from(clienteTable)
-        .select('id, nome')
-        .eq('ativo', true)
-        .order('nome');
-      return data || [];
+      const [{ data: primary }, { data: fallback }] = await Promise.all([
+        supabase.from(clienteTable).select('id, nome').eq('ativo', true).order('nome'),
+        supabase.from(fallbackClienteTable).select('id, nome').eq('ativo', true).order('nome'),
+      ]);
+      const map = new Map<string, { id: string; nome: string }>();
+      for (const c of (primary || [])) map.set(c.nome, c);
+      for (const c of (fallback || [])) { if (!map.has(c.nome)) map.set(c.nome, c); }
+      return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
     },
     enabled: open,
   });
