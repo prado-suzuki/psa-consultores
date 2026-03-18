@@ -194,7 +194,7 @@ export function useTeamMembersForTasks() {
     queryKey: ['team-members-for-tasks'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .order('first_name');
       return (data || []).map(p => ({

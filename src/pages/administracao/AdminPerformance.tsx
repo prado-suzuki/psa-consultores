@@ -11,7 +11,7 @@ const AdminPerformance = () => {
     queryKey: ['admin-users-count'],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('*', { count: 'exact', head: true });
       
       if (error) throw error;

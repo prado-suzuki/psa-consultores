@@ -536,7 +536,7 @@ export default function NewClientModal({
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-all"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, first_name, last_name");
+      const { data } = await supabase.from("profiles_safe").select("id, first_name, last_name");
       return data || [];
     },
   });

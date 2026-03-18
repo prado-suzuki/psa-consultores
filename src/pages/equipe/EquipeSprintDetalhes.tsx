@@ -194,7 +194,7 @@ export default function EquipeSprintDetalhes() {
       setSprint(sprintData);
 
       const { data: profilesData } = await supabase
-        .from("profiles")
+        .from("profiles_safe")
         .select("id, first_name, last_name");
       setProfiles(profilesData || []);
 

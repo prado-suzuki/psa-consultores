@@ -165,7 +165,7 @@ const EquipeSprints = () => {
     try {
       // Fetch all profiles
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name');
 
       const profileMap: Record<string, string> = {};

@@ -153,7 +153,7 @@ const EquipeDaily = () => {
         const uniqueUserIds = [...new Set(standupUsers.map(s => s.user_id))];
         
         const { data: additionalProfiles } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', uniqueUserIds);
 

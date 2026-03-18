@@ -172,7 +172,7 @@ export default function GestaoChamados() {
       const uniqueAgentIds = [...new Set(agentIds)];
       const { data: agentsData } = uniqueAgentIds.length > 0 
         ? await supabase
-            .from('profiles')
+            .from('profiles_safe')
             .select('id, first_name, last_name')
             .in('id', uniqueAgentIds)
         : { data: [] };

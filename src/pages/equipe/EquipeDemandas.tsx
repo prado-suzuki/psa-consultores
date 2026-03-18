@@ -118,7 +118,7 @@ const EquipeDemandas = () => {
     try {
       // Fetch team members
       const { data: members } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .order('first_name');
       

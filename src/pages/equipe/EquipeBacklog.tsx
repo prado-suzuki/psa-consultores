@@ -103,7 +103,7 @@ export default function EquipeBacklog() {
 
       // Fetch profiles
       const { data: profilesData } = await supabase
-        .from("profiles")
+        .from("profiles_safe")
         .select("id, first_name, last_name");
       setProfiles(profilesData || []);
       

@@ -49,8 +49,7 @@ function useProfiles(role: 'admin' | 'client' | 'lider' | 'team_member') {
       if (!data?.length) return [] as Profile[];
       const ids = data.map(r => r.user_id);
       const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email')
+        .rpc('get_profiles_with_email' as any)
         .in('id', ids);
       if (pErr) throw pErr;
       return (profiles || []) as Profile[];

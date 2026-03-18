@@ -30,7 +30,7 @@ export function useWPTeamMembers() {
     queryKey: ['team-members-select'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .order('first_name');
       if (error) throw error;
