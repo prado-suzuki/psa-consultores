@@ -122,16 +122,12 @@ const AuditoriaFiscal = () => {
     pendentes: number;
   } | null>(null);
 
-  // Determinar tabela baseado no ambiente
-  const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-  const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
-
   // Query: Listar clientes (filtrado para Barralcool e Coprodia por nome)
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
-    queryKey: ["difal-clientes", clienteTable],
+    queryKey: ["difal-clientes"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
         .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
