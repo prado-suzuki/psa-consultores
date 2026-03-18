@@ -1,15 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { isProductionEnvironment } from '@/config/api';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-const participanteTable = isProductionEnvironment ? 'participante' : 'participante_dev';
+const clienteTable = 'cliente';
+const contribuinteTable = 'contribuinte';
+const participanteTable = 'participante';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
