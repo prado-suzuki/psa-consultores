@@ -49,7 +49,7 @@ import {
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
+
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useTaxProjectsList } from '@/hooks/useTaxProjects';
 import { useTaxAreas } from '@/hooks/useTaxAreas';
