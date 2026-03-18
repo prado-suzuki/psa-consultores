@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isProductionEnvironment } from "@/config/api";
-
 
 
 import { Button } from "@/components/ui/button";
@@ -14,9 +12,6 @@ import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import NewClientModal from "@/components/equipe/fiscal/NewClientModal";
-
-const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -51,10 +46,10 @@ const GestaoClientes = () => {
 
   // Query para lista de clientes (id + nome)
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-lista", clienteTable],
+    queryKey: ["clientes-lista"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select("id, nome")
         .not("nome", "is", null)
         .eq("excluido", false)
@@ -67,10 +62,10 @@ const GestaoClientes = () => {
 
   // Query para contribuintes - filtrado por cliente_id quando selecionado
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes-por-cliente", contribuinteTable, clienteId],
+    queryKey: ["contribuintes-por-cliente", clienteId],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
         .eq("excluido", false)
@@ -106,12 +101,12 @@ const GestaoClientes = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["clientes-filtrados", clienteTable, clienteId, status, tipo, categoria, nomeRazaoSocial],
+    queryKey: ["clientes-filtrados", clienteId, status, tipo, categoria, nomeRazaoSocial],
     queryFn: async () => {
       let filteredClienteIds: string[] | null = null;
 
       if (hasContribuinteFilters) {
-        let contribuinteQuery = supabase.from(contribuinteTable).select("cliente_id").eq("excluido", false);
+        let contribuinteQuery = supabase.from('contribuinte').select("cliente_id").eq("excluido", false);
 
         if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq("nome_razao_social", nomeRazaoSocial);
 
@@ -123,7 +118,7 @@ const GestaoClientes = () => {
         if (filteredClienteIds.length === 0) return [];
       }
 
-      let clienteQuery = supabase.from(clienteTable).select("*").eq("excluido", false);
+      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false);
 
       if (clienteId && clienteId !== "__todos__") {
         clienteQuery = clienteQuery.eq("id", clienteId);
@@ -176,7 +171,7 @@ const GestaoClientes = () => {
     if (!deletingCliente) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase.from(clienteTable).update({ excluido: true } as any).eq("id", deletingCliente.id);
+      const { error } = await supabase.from('cliente').update({ excluido: true } as any).eq("id", deletingCliente.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });

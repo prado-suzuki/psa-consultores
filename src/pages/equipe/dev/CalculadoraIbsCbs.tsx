@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useApiAuth } from "@/hooks/useApiAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { API_BASE_URL, isProductionEnvironment } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 import { cn } from "@/lib/utils";
 import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from "date-fns";
@@ -123,16 +123,12 @@ const CalculadoraIbsCbs = () => {
     pendentes: number;
   } | null>(null);
 
-  // Determinar tabela baseado no ambiente
-  const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-  const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
-
   // Query: Listar clientes
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
-    queryKey: ["ibscbs-clientes", clienteTable],
+    queryKey: ["ibscbs-clientes"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
         .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
@@ -145,11 +141,11 @@ const CalculadoraIbsCbs = () => {
 
   // Query: Listar contribuintes do cliente
   const { data: contribuintes, isLoading: isLoadingContribuintes } = useQuery({
-    queryKey: ["ibscbs-contribuintes", selectedCliente, contribuinteTable],
+    queryKey: ["ibscbs-contribuintes", selectedCliente],
     queryFn: async () => {
       if (!selectedCliente) return [];
       const { data, error } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj")
         .eq("cliente_id", selectedCliente)
         .eq("excluido", false)

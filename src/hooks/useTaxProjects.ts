@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { isProductionEnvironment } from '@/config/api';
 import { toast } from 'sonner';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -55,16 +54,11 @@ export interface TaxProjectFormData {
 
 // ── Helper constants ───────────────────────────────────────────────────
 
-const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-const fallbackClienteTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-const fallbackContribuinteTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-
 // ── Queries ────────────────────────────────────────────────────────────
 
 export const useTaxProjects = () => {
   return useQuery({
-    queryKey: ['tax-projects', clienteTable, contribuinteTable],
+    queryKey: ['tax-projects'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tax_projects')
@@ -85,25 +79,13 @@ export const useTaxProjects = () => {
       const contribMap: Record<string, string> = {};
 
       if (clientIds.length > 0) {
-        const { data: clients } = await supabase.from(clienteTable).select('id, nome').in('id', clientIds);
+        const { data: clients } = await supabase.from('cliente').select('id, nome').in('id', clientIds);
         (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
-        // Fallback: buscar IDs ausentes na tabela alternativa
-        const missingClients = clientIds.filter(id => !clientMap[id]);
-        if (missingClients.length > 0) {
-          const { data: fb } = await supabase.from(fallbackClienteTable).select('id, nome').in('id', missingClients);
-          (fb || []).forEach(c => { clientMap[c.id] = c.nome; });
-        }
       }
 
       if (contribIds.length > 0) {
-        const { data: contribs } = await supabase.from(contribuinteTable).select('id, nome_razao_social').in('id', contribIds).eq('excluido', false);
+        const { data: contribs } = await supabase.from('contribuinte').select('id, nome_razao_social').in('id', contribIds).eq('excluido', false);
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-        // Fallback: buscar IDs ausentes na tabela alternativa
-        const missingContribs = contribIds.filter(id => !contribMap[id]);
-        if (missingContribs.length > 0) {
-          const { data: fb } = await supabase.from(fallbackContribuinteTable).select('id, nome_razao_social').in('id', missingContribs);
-          (fb || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
-        }
       }
 
       // Resolve servico_contratado via ordem_servico → id_servico → servicos_prestados

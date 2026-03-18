@@ -52,9 +52,9 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
 
-const clienteTable = isProductionEnvironment ? "cliente" : "cliente_dev";
-const contribuinteTable = isProductionEnvironment ? "contribuinte" : "contribuinte_dev";
-const participanteTable = isProductionEnvironment ? "participante" : "participante_dev";
+const clienteTable = 'cliente';
+const contribuinteTable = 'contribuinte';
+const participanteTable = 'participante';
 
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
