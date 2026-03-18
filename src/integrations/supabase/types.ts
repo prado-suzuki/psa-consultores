@@ -4145,28 +4145,19 @@ export type Database = {
       }
       profiles_safe: {
         Row: {
-          company: string | null
-          created_at: string | null
           first_name: string | null
           id: string | null
           last_name: string | null
-          updated_at: string | null
         }
         Insert: {
-          company?: string | null
-          created_at?: string | null
           first_name?: string | null
           id?: string | null
           last_name?: string | null
-          updated_at?: string | null
         }
         Update: {
-          company?: string | null
-          created_at?: string | null
           first_name?: string | null
           id?: string | null
           last_name?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -4198,6 +4189,15 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_profiles_with_email: {
+        Args: never
+        Returns: {
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+        }[]
       }
       has_role: {
         Args: {
