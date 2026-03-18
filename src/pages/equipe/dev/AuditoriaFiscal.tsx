@@ -541,8 +541,6 @@ const AuditoriaFiscal = () => {
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = fileName;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
