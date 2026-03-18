@@ -51,29 +51,16 @@ export const useClientesList = (filters?: { ativo?: boolean; search?: string }) 
 
 export const useContribuintesByCliente = (clienteId: string | null | undefined) => {
   return useQuery({
-    queryKey: ['contribuintes-por-cliente', contribuinteTable, clienteId],
+    queryKey: ['contribuintes-por-cliente', clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
       const { data, error } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clienteId)
         .eq('excluido', false)
         .order('nome_razao_social');
       if (error) throw error;
-
-      // Fallback: if no results in current env table, try the other
-      if (!data?.length) {
-        const fallbackTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-        const { data: fb } = await supabase
-          .from(fallbackTable)
-          .select('id, nome_razao_social, cpf_cnpj')
-          .eq('cliente_id', clienteId)
-          .eq('excluido', false)
-          .order('nome_razao_social');
-        return (fb || []) as ContribuinteListItem[];
-      }
-
       return (data || []) as ContribuinteListItem[];
     },
     enabled: !!clienteId,
