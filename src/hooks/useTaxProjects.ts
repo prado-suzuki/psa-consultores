@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { isProductionEnvironment } from '@/config/api';
 import { toast } from 'sonner';
 
 // ── Types ──────────────────────────────────────────────────────────────
