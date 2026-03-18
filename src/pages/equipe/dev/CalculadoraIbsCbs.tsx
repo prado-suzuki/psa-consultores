@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useApiAuth } from "@/hooks/useApiAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { API_BASE_URL, isProductionEnvironment } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 import { cn } from "@/lib/utils";
 import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from "date-fns";
