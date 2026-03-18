@@ -1899,7 +1899,8 @@ export default function NewClientModal({
                               <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
                               <SelectItem value="IND">IND - Agroindústria</SelectItem>
                               <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
-                              <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
+                               <SelectItem value="TRA">TRA - Transportadora</SelectItem>
+                               <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
