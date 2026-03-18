@@ -50,8 +50,6 @@ const ENTITY_LABELS: Record<string, string> = {
 
 // ── Lookup hooks ─────────────────────────────────────────────
 function useLookupMaps(): LookupMaps {
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const buildMap = (data: { id: string; label: string }[] | null) => {
     const map: Record<string, string> = {};
     data?.forEach(d => { map[d.id] = d.label; });
