@@ -46,10 +46,10 @@ const GestaoClientes = () => {
 
   // Query para lista de clientes (id + nome)
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-lista", clienteTable],
+    queryKey: ["clientes-lista"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select("id, nome")
         .not("nome", "is", null)
         .eq("excluido", false)
