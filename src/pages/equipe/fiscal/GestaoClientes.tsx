@@ -62,10 +62,10 @@ const GestaoClientes = () => {
 
   // Query para contribuintes - filtrado por cliente_id quando selecionado
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes-por-cliente", contribuinteTable, clienteId],
+    queryKey: ["contribuintes-por-cliente", clienteId],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
         .eq("excluido", false)
