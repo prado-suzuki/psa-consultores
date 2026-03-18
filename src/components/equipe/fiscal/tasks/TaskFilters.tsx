@@ -52,14 +52,11 @@ const priorityOptions: { value: FiscalTaskPriority; label: string }[] = [
 
 export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-task-filters', clienteTable],
+    queryKey: ['clients-for-task-filters'],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
