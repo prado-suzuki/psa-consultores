@@ -101,10 +101,10 @@ function useLookupMaps(): LookupMaps {
   });
 
   const { data: contribuintes = {} } = useQuery({
-    queryKey: ['audit-lookup-contribuintes', contribuinteTable],
+    queryKey: ['audit-lookup-contribuintes'],
     queryFn: async () => {
       const { data } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('excluido', false);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);

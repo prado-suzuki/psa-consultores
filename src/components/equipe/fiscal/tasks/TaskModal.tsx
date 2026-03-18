@@ -175,11 +175,11 @@ export const TaskModal = ({
 
   // Fetch contribuintes filtered by selected client
   const { data: contribuintesTask = [] } = useQuery({
-    queryKey: ['contribuintes-for-task', contribuinteTable, watchedClientId],
+    queryKey: ['contribuintes-for-task', watchedClientId],
     queryFn: async () => {
       if (!watchedClientId) return [];
       const { data } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', watchedClientId)
         .eq('excluido', false)

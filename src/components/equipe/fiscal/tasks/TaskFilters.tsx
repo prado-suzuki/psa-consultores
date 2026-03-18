@@ -65,11 +65,11 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   });
 
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes-for-task-filters', contribuinteTable, filters.clientId],
+    queryKey: ['contribuintes-for-task-filters', filters.clientId],
     queryFn: async () => {
       if (!filters.clientId) return [];
       const { data } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('cliente_id', filters.clientId)
         .eq('excluido', false)

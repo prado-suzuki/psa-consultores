@@ -153,35 +153,20 @@ export function useExternalClients(editingClientId?: string | null) {
   });
 }
 
-/** Contribuintes filtrados por cliente, com fallback cross-environment */
+/** Contribuintes filtrados por cliente */
 export function useContribuintes(clientId: string | null, editingContribuinteId?: string | null) {
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
-  const fallbackTable = isProductionEnvironment ? 'contribuinte_dev' : 'contribuinte';
-
   return useQuery({
-    queryKey: ['contribuintes-for-project', contribuinteTable, clientId, editingContribuinteId],
+    queryKey: ['contribuintes-for-project', clientId, editingContribuinteId],
     queryFn: async () => {
       if (!clientId) return [];
       const { data, error } = await supabase
-        .from(contribuinteTable)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clientId)
         .eq('excluido', false)
         .order('nome_razao_social');
       if (error) throw error;
-      let list = data as ContribuinteOption[];
-
-      if (list.length === 0) {
-        const { data: fallback } = await supabase
-          .from(fallbackTable)
-          .select('id, nome_razao_social, cpf_cnpj')
-          .eq('cliente_id', clientId)
-          .eq('excluido', false)
-          .order('nome_razao_social');
-        if (fallback?.length) list = fallback as typeof list;
-      }
-
-      return list;
+      return data as ContribuinteOption[];
     },
     enabled: !!clientId,
   });

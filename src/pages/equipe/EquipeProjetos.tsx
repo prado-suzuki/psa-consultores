@@ -394,10 +394,9 @@ const EquipeProjetos = () => {
   };
 
   const fetchExternalClients = async () => {
-    const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
     try {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
         .order('nome');
