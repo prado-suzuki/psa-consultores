@@ -24,7 +24,7 @@ import {
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isProductionEnvironment } from '@/config/api';
+
 
 interface TaskFiltersProps {
   filters: TaskFiltersType;
