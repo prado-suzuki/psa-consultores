@@ -91,10 +91,10 @@ function useLookupMaps(): LookupMaps {
   });
 
   const { data: clients = {} } = useQuery({
-    queryKey: ['audit-lookup-clients', clienteTable],
+    queryKey: ['audit-lookup-clients'],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome');
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
