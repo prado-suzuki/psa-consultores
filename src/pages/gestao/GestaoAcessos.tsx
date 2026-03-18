@@ -12,8 +12,7 @@ const GestaoAcessos = () => {
     queryKey: ['gestao-users-roles'],
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email');
+        .rpc('get_profiles_with_email' as any);
       
       if (profilesError) throw profilesError;
 

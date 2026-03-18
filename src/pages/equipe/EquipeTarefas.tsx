@@ -117,7 +117,7 @@ const EquipeTarefas = () => {
 
       // Fetch profiles for assignment
       const { data: profilesData } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .order('first_name');
       setProfiles(profilesData || []);

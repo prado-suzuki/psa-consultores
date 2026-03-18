@@ -43,7 +43,7 @@ const EquipeRotinas = () => {
   const fetchData = async () => {
     try {
       const [membersRes, routinesRes] = await Promise.all([
-        supabase.from('profiles').select('id, first_name, last_name').order('first_name'),
+        supabase.from('profiles_safe').select('id, first_name, last_name').order('first_name'),
         user
           ? supabase
               .from('routines')

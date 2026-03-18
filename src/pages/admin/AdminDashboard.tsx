@@ -22,7 +22,7 @@ export default function AdminDashboard() {
   const fetchStats = async () => {
     try {
       const [clientsRes, ticketsRes, openTicketsRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles_safe').select('id', { count: 'exact', head: true }),
         supabase.from('tickets').select('id', { count: 'exact', head: true }),
         supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('status', 'aberto'),
       ]);

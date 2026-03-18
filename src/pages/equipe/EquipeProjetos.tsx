@@ -473,7 +473,7 @@ const EquipeProjetos = () => {
   const fetchTeamMembers = async () => {
     try {
       const { data } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .order('first_name');
       setTeamMembers(data || []);

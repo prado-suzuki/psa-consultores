@@ -110,7 +110,7 @@ export default function GestaoDetalhesChamado() {
       if (roleData && roleData.length > 0) {
         const userIds = roleData.map(r => r.user_id);
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', userIds);
         setAgents(profiles || []);
@@ -221,7 +221,7 @@ export default function GestaoDetalhesChamado() {
 
       // Fetch profile separately
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .eq('id', data.user_id)
         .maybeSingle();

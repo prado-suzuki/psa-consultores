@@ -160,7 +160,7 @@ export default function AdminDetalhesChamado() {
 
       // Fetch profile separately
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .eq('id', data.user_id)
         .maybeSingle();

@@ -215,7 +215,7 @@
   // Fetch profiles separately
   const assignedIds = routines?.map(r => r.assigned_to).filter((id): id is string => !!id) || [];
   const { data: profilesData } = assignedIds.length > 0 
-    ? await supabase.from('profiles').select('id, first_name, last_name').in('id', assignedIds)
+    ? await supabase.from('profiles_safe').select('id, first_name, last_name').in('id', assignedIds)
     : { data: [] };
 
   const profilesMap = new Map(

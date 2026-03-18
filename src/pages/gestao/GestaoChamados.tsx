@@ -142,7 +142,7 @@ export default function GestaoChamados() {
       if (rolesData && rolesData.length > 0) {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', userIds);
 
@@ -164,7 +164,7 @@ export default function GestaoChamados() {
 
       const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
       const { data: profilesData } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('id, first_name, last_name')
         .in('id', userIds);
 
@@ -172,7 +172,7 @@ export default function GestaoChamados() {
       const uniqueAgentIds = [...new Set(agentIds)];
       const { data: agentsData } = uniqueAgentIds.length > 0 
         ? await supabase
-            .from('profiles')
+            .from('profiles_safe')
             .select('id, first_name, last_name')
             .in('id', uniqueAgentIds)
         : { data: [] };

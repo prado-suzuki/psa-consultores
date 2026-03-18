@@ -92,7 +92,7 @@ export function useTicketNotifications() {
       
       if (creatorIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', creatorIds);
         

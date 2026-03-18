@@ -262,7 +262,7 @@ export default function DetalhesChamado() {
 
       if (adminUserIds.length > 0) {
         const { data: profilesData } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('id, first_name, last_name')
           .in('id', adminUserIds);
 

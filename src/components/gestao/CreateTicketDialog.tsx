@@ -88,8 +88,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
       if (rolesData && rolesData.length > 0) {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email')
+          .rpc('get_profiles_with_email' as any)
           .in('id', userIds)
           .order('first_name');
 

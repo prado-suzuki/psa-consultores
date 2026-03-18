@@ -159,7 +159,7 @@ const EquipeKanban = () => {
 
       const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
         supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
-        supabase.from('profiles').select('id, first_name, last_name'),
+        supabase.from('profiles_safe').select('id, first_name, last_name'),
         projectsQuery,
         supabase.from('processes').select('id, name, project_id').order('name'),
         supabase.from('sprint_deliverables').select('id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code')
