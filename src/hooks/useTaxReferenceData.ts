@@ -137,32 +137,18 @@ export function useSubliderTeamMembers(subliderIds: string[], enabled: boolean) 
   });
 }
 
-/** Clientes externos com fallback cross-environment */
+/** Clientes externos */
 export function useExternalClients(editingClientId?: string | null) {
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const fallbackTable = isProductionEnvironment ? 'cliente_dev' : 'cliente';
-
   return useQuery({
-    queryKey: ['external-clients-tax', clienteTable, editingClientId],
+    queryKey: ['external-clients-tax', editingClientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(clienteTable)
+        .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
         .order('nome');
       if (error) throw error;
-      const list = data as ExternalClient[];
-
-      if (editingClientId && !list.some(c => c.id === editingClientId)) {
-        const { data: fallback } = await supabase
-          .from(fallbackTable)
-          .select('id, nome, setor_cliente')
-          .eq('id', editingClientId)
-          .maybeSingle();
-        if (fallback) list.push(fallback as ExternalClient);
-      }
-
-      return list;
+      return data as ExternalClient[];
     },
   });
 }
