@@ -96,8 +96,6 @@ export const TaskModal = ({
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
-  const clienteTable = isProductionEnvironment ? 'cliente' : 'cliente_dev';
-  const contribuinteTable = isProductionEnvironment ? 'contribuinte' : 'contribuinte_dev';
   const createTask = useCreateFiscalTask();
   const updateTask = useUpdateFiscalTask();
   const isEditing = !!task;
