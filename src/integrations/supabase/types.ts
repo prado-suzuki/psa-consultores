@@ -4172,6 +4172,33 @@ export type Database = {
       }
     }
     Functions: {
+      get_ordens_by_client_name: {
+        Args: { p_client_id: string }
+        Returns: {
+          created_at: string | null
+          data_emissao: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          excluido: boolean
+          id: string
+          id_cliente: string
+          id_produto_segmento: string | null
+          id_servico: string | null
+          numero_os: string | null
+          observacoes: string | null
+          situacao: string | null
+          updated_at: string | null
+          valor_projeto: number | null
+          valor_reembolso_km: number | null
+          valor_reembolso_refeicao: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ordem_servico"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -202,18 +202,15 @@ export function useContribuintes(clientId: string | null, editingContribuinteId?
   });
 }
 
-/** Ordens de serviço do cliente */
+/** Ordens de serviço do cliente (fallback bidirecional via RPC) */
 export function useClienteOrdens(clientId: string | null) {
   return useQuery({
     queryKey: ['cliente-os', clientId],
     queryFn: async () => {
       if (!clientId) return [];
-      // as any: tabela 'ordem_servico' ausente do schema tipado gerado
-      const { data, error } = await (supabase.from('ordem_servico' as any) as any)
-        .select('*')
-        .eq('id_cliente', clientId)
-        .eq('excluido', false)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_ordens_by_client_name', {
+        p_client_id: clientId,
+      });
       if (error) throw error;
       return (data || []) as OrdemServico[];
     },
