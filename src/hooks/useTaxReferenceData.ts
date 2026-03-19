@@ -146,7 +146,7 @@ export function useExternalClients(editingClientId?: string | null) {
         .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data as ExternalClient[];
@@ -165,7 +165,7 @@ export function useContribuintes(clientId: string | null, editingContribuinteId?
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clientId)
         .eq('excluido', false)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
       return data as ContribuinteOption[];

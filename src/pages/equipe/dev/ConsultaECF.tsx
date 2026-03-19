@@ -81,7 +81,7 @@ const ConsultaECF = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];
     },
@@ -93,7 +93,7 @@ const ConsultaECF = () => {
       let query = supabase
         .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
       if (selectedCliente) {
         query = query.eq("cliente_id", selectedCliente);

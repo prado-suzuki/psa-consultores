@@ -134,7 +134,7 @@ const ControleBalancetes = () => {
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data;
@@ -148,7 +148,7 @@ const ControleBalancetes = () => {
       let query = supabase
         .from('contribuinte')
         .select('id, nome_razao_social, cliente_id')
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (clienteId) query = query.eq('cliente_id', clienteId);
       const { data, error } = await query;

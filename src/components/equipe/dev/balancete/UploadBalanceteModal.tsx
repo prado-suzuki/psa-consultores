@@ -61,7 +61,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data;
@@ -77,7 +77,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('cliente_id', clienteId)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
       return data;

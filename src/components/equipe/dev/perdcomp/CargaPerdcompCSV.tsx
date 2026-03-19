@@ -60,7 +60,7 @@ export function CargaPerdcompCSV() {
       const { data, error } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       
       if (error) throw error;

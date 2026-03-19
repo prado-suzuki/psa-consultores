@@ -105,7 +105,7 @@ export default function ControlePerdcomp() {
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-ativos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('cliente').select("id, nome").eq("ativo", true).eq("ambiente", "producao").order("nome");
+      const { data, error } = await supabase.from('cliente').select("id, nome").eq("ativo", true).eq("ambiente", currentAmbiente).order("nome");
       if (error) throw error;
       return (data || []) as unknown as { id: string; nome: string }[];
     },
@@ -120,7 +120,7 @@ export default function ControlePerdcomp() {
         .from('contribuinte')
         .select("id, nome_razao_social")
         .eq("cliente_id", clienteId)
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
       if (error) throw error;
       return (data || []) as unknown as { id: string; nome_razao_social: string }[];
