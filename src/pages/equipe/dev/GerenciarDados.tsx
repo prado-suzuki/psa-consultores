@@ -111,11 +111,8 @@ const GerenciarDados = () => {
         throw new Error('CSV vazio ou formato inválido. Use ; como separador.');
       }
 
-      const tableName = getTableName(selectedTable, selectedEnv);
-
       if (selectedTable === 'cliente') {
-        const clientes: ParsedCliente[] = rows.map(row => ({
-          // Preserva o ID original se existir (id_cliente ou id)
+        const clientes = rows.map(row => ({
           id: row.id_cliente || row.id || undefined,
           nome: row.nome || row.name || '',
           ativo: row.ativo?.toLowerCase() === 'true' || row.ativo === '1' || true,
@@ -124,6 +121,7 @@ const GerenciarDados = () => {
           setor_cliente: row.setor_cliente || row.setor || undefined,
           municipio: row.municipio || row.cidade || undefined,
           uf: row.uf || row.estado || undefined,
+          ambiente: selectedAmbiente,
         })).filter(c => c.nome);
 
         if (clientes.length === 0) {
@@ -131,14 +129,14 @@ const GerenciarDados = () => {
         }
 
         const { error } = await supabase
-          .from(tableName as 'cliente' | 'cliente_dev')
+          .from('cliente')
           .insert(clientes);
 
         if (error) throw error;
 
         setResult({
           success: true,
-          message: `${clientes.length} clientes importados com sucesso!`,
+          message: `${clientes.length} clientes importados (${ambienteLabel})!`,
           count: clientes.length
         });
       } else {
