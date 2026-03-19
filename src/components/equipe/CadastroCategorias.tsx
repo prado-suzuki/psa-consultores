@@ -24,6 +24,7 @@ import {
   type ProdutoSegmento, type CentroCusto,
 } from '@/hooks/useCategorias';
 import { useEstruturaClusters } from '@/hooks/useEstruturaManager';
+import ProdutoServicoTab from '@/components/equipe/ProdutoServicoTab';
 
 /* ── Produto / Segmento (produto_segmento) ───────────────────── */
 
@@ -367,11 +368,15 @@ export default function CadastroCategorias() {
             <TabsTrigger value="centros_custo" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
               Centros de Custo
             </TabsTrigger>
+            <TabsTrigger value="produto_servico_vinculo" className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700">
+              Produto × Serviço
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="produto_segmento"><ProdutoSegmentoTab /></TabsContent>
           <TabsContent value="servicos"><ServicosTab /></TabsContent>
           <TabsContent value="centros_custo"><CentroCustoTab /></TabsContent>
+          <TabsContent value="produto_servico_vinculo"><ProdutoServicoTab /></TabsContent>
         </Tabs>
       </CardContent>
     </Card>
