@@ -290,7 +290,7 @@ const GerenciarDados = () => {
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="desenvolvimento" id="dev" />
+                    <RadioGroupItem value="dev" id="dev" />
                     <Label htmlFor="dev" className="cursor-pointer flex items-center gap-2">
                       Desenvolvimento
                       <Badge variant="secondary" className="text-xs">dev</Badge>
