@@ -307,19 +307,19 @@ const GerenciarDados = () => {
               <div>
                 <Label className="text-sm font-medium mb-3 block">Ambiente</Label>
                 <RadioGroup 
-                  value={selectedEnv} 
-                  onValueChange={(v) => setSelectedEnv(v as Environment)}
+                  value={selectedAmbiente} 
+                  onValueChange={(v) => setSelectedAmbiente(v as AmbienteValue)}
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="dev" id="dev" />
+                    <RadioGroupItem value="desenvolvimento" id="dev" />
                     <Label htmlFor="dev" className="cursor-pointer flex items-center gap-2">
                       Desenvolvimento
-                      <Badge variant="secondary" className="text-xs">_dev</Badge>
+                      <Badge variant="secondary" className="text-xs">dev</Badge>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="prod" id="prod" />
+                    <RadioGroupItem value="producao" id="prod" />
                     <Label htmlFor="prod" className="cursor-pointer flex items-center gap-2">
                       Produção
                       <Badge variant="destructive" className="text-xs">CUIDADO</Badge>
@@ -331,7 +331,7 @@ const GerenciarDados = () => {
 
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Tabela selecionada: <strong className="text-foreground">{getTableName(selectedTable, selectedEnv)}</strong>
+                Tabela: <strong className="text-foreground">{selectedTable}</strong> · Ambiente: <strong className="text-foreground">{ambienteLabel}</strong>
               </p>
             </div>
           </CardContent>
