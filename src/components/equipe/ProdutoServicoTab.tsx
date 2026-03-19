@@ -140,7 +140,7 @@ export default function ProdutoServicoTab() {
               Serviços
               {selectedProdutoId && (
                 <span className="ml-1 normal-case">
-                  — {produtosAtivos.find(p => p.id === selectedProdutoId)?.codigo}
+                  — {(() => { const p = produtosAtivos.find(p => p.id === selectedProdutoId); return p ? `${p.codigo} — ${p.nome}` : ''; })()}
                 </span>
               )}
             </span>
