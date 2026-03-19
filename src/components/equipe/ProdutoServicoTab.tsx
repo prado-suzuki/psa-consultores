@@ -1,18 +1,10 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
-import { RequiredMark } from '@/components/ui/required-mark';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { RefreshCw, Package, Link2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   useProdutoServicoList, useProdutoServicoSave, useProdutoServicoDelete,
   useProdutoSegmentoList, useServicosPrestadosList,
@@ -20,10 +12,8 @@ import {
 } from '@/hooks/useCategorias';
 
 export default function ProdutoServicoTab() {
-  const [open, setOpen] = useState(false);
-  const [produtoId, setProdutoId] = useState('');
-  const [servicoId, setServicoId] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<ProdutoServico | null>(null);
+  const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
 
   const { data: items = [], isLoading } = useProdutoServicoList();
   const { save } = useProdutoServicoSave();
@@ -31,110 +21,164 @@ export default function ProdutoServicoTab() {
   const { data: produtos = [] } = useProdutoSegmentoList();
   const { data: servicos = [] } = useServicosPrestadosList();
 
-  const produtosAtivos = produtos.filter(p => p.is_active);
+  const produtosAtivos = useMemo(() => produtos.filter(p => p.is_active), [produtos]);
 
-  const handleSave = async () => {
-    const prod = produtos.find(p => p.id === produtoId);
-    const serv = servicos.find(s => s.id === servicoId);
-    const entityName = `${prod?.codigo || '?'} → ${serv?.nome || '?'}`;
+  // Count links per product
+  const countByProduto = useMemo(() => {
+    const map: Record<string, number> = {};
+    items.forEach(i => {
+      map[i.produto_segmento_id] = (map[i.produto_segmento_id] || 0) + 1;
+    });
+    return map;
+  }, [items]);
+
+  // Set of servico IDs linked to selected product
+  const linkedServicoIds = useMemo(() => {
+    if (!selectedProdutoId) return new Set<string>();
+    return new Set(
+      items.filter(i => i.produto_segmento_id === selectedProdutoId).map(i => i.servico_prestado_id)
+    );
+  }, [items, selectedProdutoId]);
+
+  // Find the ProdutoServico record for a given servico
+  const findLink = useCallback(
+    (servicoId: string): ProdutoServico | undefined =>
+      items.find(i => i.produto_segmento_id === selectedProdutoId && i.servico_prestado_id === servicoId),
+    [items, selectedProdutoId]
+  );
+
+  const handleToggle = useCallback(async (servicoId: string, servicoNome: string) => {
+    if (!selectedProdutoId || savingIds.has(servicoId)) return;
+    const prod = produtosAtivos.find(p => p.id === selectedProdutoId);
+    const entityName = `${prod?.codigo || '?'} → ${servicoNome}`;
+
+    setSavingIds(prev => new Set(prev).add(servicoId));
     try {
-      await save(produtoId, servicoId, entityName);
-      setOpen(false);
+      const existing = findLink(servicoId);
+      if (existing) {
+        await remove(existing);
+      } else {
+        await save(selectedProdutoId, servicoId, entityName);
+      }
     } catch {
-      // errors handled inside hook
+      // errors handled inside hooks
+    } finally {
+      setSavingIds(prev => {
+        const next = new Set(prev);
+        next.delete(servicoId);
+        return next;
+      });
     }
-  };
+  }, [selectedProdutoId, savingIds, produtosAtivos, findLink, remove, save]);
 
-  const executeRemove = async (item: ProdutoServico) => {
-    await remove(item);
-    setDeleteTarget(null);
-  };
+  // Auto-select first product if none selected
+  const effectiveProdutoId = selectedProdutoId && produtosAtivos.some(p => p.id === selectedProdutoId)
+    ? selectedProdutoId
+    : produtosAtivos[0]?.id ?? null;
 
-  const openCreate = () => { setProdutoId(''); setServicoId(''); setOpen(true); };
+  if (effectiveProdutoId !== selectedProdutoId && effectiveProdutoId) {
+    setSelectedProdutoId(effectiveProdutoId);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">{items.length} vínculos cadastrados</p>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
-      </div>
-      <Card className="border-slate-200/60">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Produto</TableHead>
-              <TableHead>Serviço</TableHead>
-              <TableHead className="w-24">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={3} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-            ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum vínculo</TableCell></TableRow>
-            ) : items.map(item => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.produto_segmento?.codigo || '—'}</TableCell>
-                <TableCell>{item.servicos_prestados?.nome || '—'}</TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => setDeleteTarget(item)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <p className="text-sm text-muted-foreground mb-3">
+        <Link2 className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+        {items.length} vínculos cadastrados · Selecione um produto e marque os serviços
+      </p>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Novo Vínculo</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Produto <RequiredMark /></Label>
-              <Select value={produtoId} onValueChange={setProdutoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {produtosAtivos.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Serviço <RequiredMark /></Label>
-              <Select value={servicoId} onValueChange={setServicoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {servicos.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
+        {/* Left panel — Products */}
+        <Card className="border-border/60">
+          <div className="px-3 py-2 border-b border-border/40">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Produtos</span>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <ScrollArea className="h-[400px]">
+            <div className="p-1">
+              {produtosAtivos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum produto ativo</p>
+              ) : (
+                produtosAtivos.map(p => {
+                  const count = countByProduto[p.id] || 0;
+                  const isSelected = p.id === selectedProdutoId;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedProdutoId(p.id)}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 rounded-md flex items-center gap-2 transition-colors text-sm',
+                        isSelected
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'hover:bg-muted/50 text-foreground'
+                      )}
+                    >
+                      <Package className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate flex-1">{p.codigo}</span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 min-w-[20px] justify-center">
+                        {count}
+                      </Badge>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Excluir vínculo "{deleteTarget?.produto_segmento?.codigo} → {deleteTarget?.servicos_prestados?.nome}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteTarget && executeRemove(deleteTarget)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Right panel — Services checkboxes */}
+        <Card className="border-border/60">
+          <div className="px-3 py-2 border-b border-border/40">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Serviços
+              {selectedProdutoId && (
+                <span className="ml-1 normal-case">
+                  — {produtosAtivos.find(p => p.id === selectedProdutoId)?.codigo}
+                </span>
+              )}
+            </span>
+          </div>
+          <ScrollArea className="h-[400px]">
+            <div className="p-3 space-y-1">
+              {!selectedProdutoId ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Selecione um produto</p>
+              ) : servicos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum serviço cadastrado</p>
+              ) : (
+                servicos.map(s => {
+                  const isLinked = linkedServicoIds.has(s.id);
+                  const isSaving = savingIds.has(s.id);
+                  return (
+                    <label
+                      key={s.id}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors',
+                        isLinked ? 'bg-primary/5' : 'hover:bg-muted/50',
+                        isSaving && 'opacity-60 pointer-events-none'
+                      )}
+                    >
+                      <Checkbox
+                        checked={isLinked}
+                        disabled={isSaving}
+                        onCheckedChange={() => handleToggle(s.id, s.nome)}
+                      />
+                      <span className="text-sm flex-1">{s.nome}</span>
+                      {isSaving && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
+      </div>
     </>
   );
 }
