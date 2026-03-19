@@ -24,6 +24,7 @@ import {
   type ProdutoSegmento, type CentroCusto,
 } from '@/hooks/useCategorias';
 import { useEstruturaClusters } from '@/hooks/useEstruturaManager';
+import ProdutoServicoTab from '@/components/equipe/ProdutoServicoTab';
 
 /* ── Produto / Segmento (produto_segmento) ───────────────────── */
 
