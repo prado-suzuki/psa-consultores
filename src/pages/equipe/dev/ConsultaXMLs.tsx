@@ -235,7 +235,7 @@ const ConsultaXMLs = () => {
 
   // Buscar lista de clientes
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-list", TABLE_NAMES.cliente],
+    queryKey: ["clientes-list"],
     queryFn: async () => {
       const {
         data: { user },
@@ -246,9 +246,10 @@ const ConsultaXMLs = () => {
       }
 
       const { data, error } = await supabase
-        .from(TABLE_NAMES.cliente)
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("ambiente", "producao")
         .order("nome");
 
       if (error) {
