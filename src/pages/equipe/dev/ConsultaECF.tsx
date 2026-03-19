@@ -3,7 +3,7 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getApiUrl } from '@/config/api';
+import { getApiUrl, currentAmbiente } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
