@@ -287,8 +287,11 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 
 ```typescript
 interface AuditLogEntry {
-  area: 'tax' | 'osg';
-  entity_type: 'project' | 'task' | 'subtask';
+  area: 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
+  entity_type: 'project' | 'task' | 'subtask'
+    | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
+    | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
+    | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
