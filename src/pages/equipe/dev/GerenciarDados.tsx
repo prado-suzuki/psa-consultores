@@ -210,38 +210,33 @@ const GerenciarDados = () => {
     setResult(null);
 
     try {
-      const tableName = getTableName(selectedTable, selectedEnv);
-
-      // Para limpar contribuintes, precisamos deletar primeiro devido à FK
+      // Para limpar clientes, precisamos deletar contribuintes primeiro (FK)
       if (selectedTable === 'cliente') {
-        const contribuinteTableName = getTableName('contribuinte', selectedEnv);
-        
-        // Primeiro limpa contribuintes relacionados
         const { error: contribError } = await supabase
-          .from(contribuinteTableName as 'contribuinte' | 'contribuinte_dev')
+          .from('contribuinte')
           .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+          .eq('ambiente', selectedAmbiente);
 
         if (contribError) throw contribError;
       }
 
       const { error } = await supabase
-        .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
+        .from(selectedTable)
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+        .eq('ambiente', selectedAmbiente);
 
       if (error) throw error;
 
       setResult({
         success: true,
         message: selectedTable === 'cliente' 
-          ? 'Tabelas cliente e contribuinte limpas com sucesso!' 
-          : 'Tabela contribuinte limpa com sucesso!'
+          ? `Clientes e contribuintes (${ambienteLabel}) limpos!` 
+          : `Contribuintes (${ambienteLabel}) limpos!`
       });
 
       toast({
         title: 'Tabela limpa',
-        description: 'Todos os registros foram removidos.',
+        description: `Registros de ${ambienteLabel} removidos.`,
       });
     } catch (error: any) {
       console.error('Erro ao limpar tabela:', error);
