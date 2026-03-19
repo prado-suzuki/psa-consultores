@@ -282,6 +282,7 @@ export type Database = {
       }
       cliente: {
         Row: {
+          ambiente: string
           ativo: boolean | null
           categoria: string | null
           created_at: string
@@ -297,6 +298,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ambiente?: string
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
@@ -312,54 +314,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          ativo?: boolean | null
-          categoria?: string | null
-          created_at?: string
-          excluido?: boolean
-          fixo?: string | null
-          id?: string
-          municipio?: string | null
-          nome?: string
-          regiao?: string | null
-          setor_cliente?: string | null
-          telefone?: string | null
-          uf?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      cliente_dev: {
-        Row: {
-          ativo: boolean | null
-          categoria: string | null
-          created_at: string
-          excluido: boolean
-          fixo: string | null
-          id: string
-          municipio: string | null
-          nome: string
-          regiao: string | null
-          setor_cliente: string | null
-          telefone: string | null
-          uf: string | null
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean | null
-          categoria?: string | null
-          created_at?: string
-          excluido?: boolean
-          fixo?: string | null
-          id?: string
-          municipio?: string | null
-          nome: string
-          regiao?: string | null
-          setor_cliente?: string | null
-          telefone?: string | null
-          uf?: string | null
-          updated_at?: string
-        }
-        Update: {
+          ambiente?: string
           ativo?: boolean | null
           categoria?: string | null
           created_at?: string
@@ -429,6 +384,7 @@ export type Database = {
       }
       contribuinte: {
         Row: {
+          ambiente: string
           bairro: string | null
           cep: string | null
           cliente_id: string
@@ -454,6 +410,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ambiente?: string
           bairro?: string | null
           cep?: string | null
           cliente_id: string
@@ -479,6 +436,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ambiente?: string
           bairro?: string | null
           cep?: string | null
           cliente_id?: string
@@ -536,92 +494,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      contribuinte_dev: {
-        Row: {
-          bairro: string | null
-          cep: string | null
-          cliente_id: string
-          cod_cnae: string | null
-          complemento: string | null
-          contribuinte_faturamento: boolean | null
-          cpf_cnpj: string | null
-          created_at: string
-          excluido: boolean
-          id: string
-          inscricao_estadual: string | null
-          logradouro: string | null
-          municipio: string | null
-          nome_fantasia: string | null
-          nome_razao_social: string
-          numero: string | null
-          setor: string | null
-          simples_nacional: boolean | null
-          situacao_inscricao_estadual: string | null
-          telefone: string | null
-          tipo_pessoa: string
-          uf: string | null
-          updated_at: string
-        }
-        Insert: {
-          bairro?: string | null
-          cep?: string | null
-          cliente_id: string
-          cod_cnae?: string | null
-          complemento?: string | null
-          contribuinte_faturamento?: boolean | null
-          cpf_cnpj?: string | null
-          created_at?: string
-          excluido?: boolean
-          id?: string
-          inscricao_estadual?: string | null
-          logradouro?: string | null
-          municipio?: string | null
-          nome_fantasia?: string | null
-          nome_razao_social: string
-          numero?: string | null
-          setor?: string | null
-          simples_nacional?: boolean | null
-          situacao_inscricao_estadual?: string | null
-          telefone?: string | null
-          tipo_pessoa: string
-          uf?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bairro?: string | null
-          cep?: string | null
-          cliente_id?: string
-          cod_cnae?: string | null
-          complemento?: string | null
-          contribuinte_faturamento?: boolean | null
-          cpf_cnpj?: string | null
-          created_at?: string
-          excluido?: boolean
-          id?: string
-          inscricao_estadual?: string | null
-          logradouro?: string | null
-          municipio?: string | null
-          nome_fantasia?: string | null
-          nome_razao_social?: string
-          numero?: string | null
-          setor?: string | null
-          simples_nacional?: boolean | null
-          situacao_inscricao_estadual?: string | null
-          telefone?: string | null
-          tipo_pessoa?: string
-          uf?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_cliente_dev"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "cliente_dev"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       daily_standups: {
         Row: {
@@ -743,13 +615,6 @@ export type Database = {
             columns: ["nr_per_orig"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
-          },
-          {
-            foreignKeyName: "dcomp_nr_per_orig_fkey"
-            columns: ["nr_per_orig"]
-            isOneToOne: false
-            referencedRelation: "per_with_contribuinte"
             referencedColumns: ["numero_processo_per"]
           },
         ]
@@ -1968,59 +1833,6 @@ export type Database = {
           },
         ]
       }
-      participante_dev: {
-        Row: {
-          acesso_chamados: boolean | null
-          cargo: string | null
-          created_at: string | null
-          email: string | null
-          excluido: boolean
-          id_cliente: string
-          id_participante: string
-          nome: string
-          observacoes: string | null
-          telefone: string | null
-          tipo_participante: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          acesso_chamados?: boolean | null
-          cargo?: string | null
-          created_at?: string | null
-          email?: string | null
-          excluido?: boolean
-          id_cliente: string
-          id_participante?: string
-          nome: string
-          observacoes?: string | null
-          telefone?: string | null
-          tipo_participante?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          acesso_chamados?: boolean | null
-          cargo?: string | null
-          created_at?: string | null
-          email?: string | null
-          excluido?: boolean
-          id_cliente?: string
-          id_participante?: string
-          nome?: string
-          observacoes?: string | null
-          telefone?: string | null
-          tipo_participante?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "participante_dev_id_cliente_fkey"
-            columns: ["id_cliente"]
-            isOneToOne: false
-            referencedRelation: "cliente_dev"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       per: {
         Row: {
           atualizado_em: string | null
@@ -2078,13 +1890,6 @@ export type Database = {
             referencedRelation: "per"
             referencedColumns: ["numero_processo_per"]
           },
-          {
-            foreignKeyName: "per_nr_proc_ret_fkey"
-            columns: ["nr_proc_ret"]
-            isOneToOne: false
-            referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
-          },
         ]
       }
       per_situacao: {
@@ -2118,13 +1923,6 @@ export type Database = {
             columns: ["nr_proc_per"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
-          },
-          {
-            foreignKeyName: "per_situacao_nr_proc_per_fkey"
-            columns: ["nr_proc_per"]
-            isOneToOne: false
-            referencedRelation: "per_with_contribuinte"
             referencedColumns: ["numero_processo_per"]
           },
         ]
@@ -4108,41 +3906,6 @@ export type Database = {
       }
     }
     Views: {
-      per_with_contribuinte: {
-        Row: {
-          atualizado_em: string | null
-          atualizado_por: string | null
-          contribuinte_nome: string | null
-          criado_em: string | null
-          criado_por: string | null
-          dt_solicitada: string | null
-          exercicio: number | null
-          id_contribuinte: string | null
-          nr_proc_ret: string | null
-          numero_processo_per: string | null
-          porcentagem_psa: number | null
-          tp_credito: string | null
-          tri_exercicio: number | null
-          vlr_credito: number | null
-          vlr_ressarcido: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "per_nr_proc_ret_fkey"
-            columns: ["nr_proc_ret"]
-            isOneToOne: false
-            referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
-          },
-          {
-            foreignKeyName: "per_nr_proc_ret_fkey"
-            columns: ["nr_proc_ret"]
-            isOneToOne: false
-            referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
-          },
-        ]
-      }
       profiles_safe: {
         Row: {
           first_name: string | null
