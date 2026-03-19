@@ -223,7 +223,7 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `tickets`, `ticket_messages`, `ticket_attachments` (inferido), `documents`
 
 **Dev/Tributário:**
-`cliente` / `cliente_dev`, `contribuinte` / `contribuinte_dev`, `contrato` / `contrato_dev`, `per`, `per_situacao` (inferido), `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`
+`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `contrato`, `per`, `per_situacao` (inferido), `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`
 
 **Projetos/Sprints:**
 `projects`, `sprints`, `sprint_deliverables`, `deliverable_attachments`, `daily_standups`, `routines`, `demand_items`, `processes`, `process_stages` (inferido), `sops` (inferido), `process_improvements`, `improvement_savings_details`, `improvement_team_members` (inferido)
