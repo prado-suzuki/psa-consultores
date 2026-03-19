@@ -37,7 +37,7 @@ import {
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
 type TableType = 'cliente' | 'contribuinte';
-type Environment = 'dev' | 'prod';
+type AmbienteValue = 'producao' | 'desenvolvimento';
 
 interface ParsedCliente {
   id?: string;
