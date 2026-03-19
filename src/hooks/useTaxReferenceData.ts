@@ -146,6 +146,7 @@ export function useExternalClients(editingClientId?: string | null) {
         .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
+        .eq('ambiente', 'producao')
         .order('nome');
       if (error) throw error;
       return data as ExternalClient[];
