@@ -223,7 +223,7 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `tickets`, `ticket_messages`, `ticket_attachments` (inferido), `documents`
 
 **Dev/Tributário:**
-`cliente` / `cliente_dev`, `contribuinte` / `contribuinte_dev`, `contrato` / `contrato_dev`, `per`, `per_situacao` (inferido), `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`
+`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `contrato`, `per`, `per_situacao` (inferido), `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`
 
 **Projetos/Sprints:**
 `projects`, `sprints`, `sprint_deliverables`, `deliverable_attachments`, `daily_standups`, `routines`, `demand_items`, `processes`, `process_stages` (inferido), `sops` (inferido), `process_improvements`, `improvement_savings_details`, `improvement_team_members` (inferido)
@@ -246,7 +246,11 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 | `psa-consultores.lovable.app`, `psaconsultores.com.br` | prod | `psa-backend-api-1010211821554...` |
 | Outros (preview Lovable) | dev | `psa-backend-api-456879351254...` |
 
-Tabelas com sufixo `_dev` para desenvolvimento: `cliente_dev`, `contribuinte_dev`, `contrato_dev`. Mapeamento em `TABLE_NAMES` de `api.ts`.
+**Separação de dados por ambiente (coluna `ambiente`):**
+- Tabelas `cliente` e `contribuinte` possuem coluna `ambiente` com valores `'prod'` | `'dev'` (default `'prod'`).
+- `src/config/api.ts` exporta `currentAmbiente: Ambiente` (tipo `'prod' | 'dev'`), selecionado automaticamente via `isProductionEnvironment`.
+- Todas as queries nessas tabelas DEVEM filtrar via `.eq('ambiente', currentAmbiente)`.
+- `GerenciarDados.tsx` permite toggle manual entre ambientes para operações administrativas.
 
 ---
 
@@ -283,8 +287,11 @@ Tabelas com sufixo `_dev` para desenvolvimento: `cliente_dev`, `contribuinte_dev
 
 ```typescript
 interface AuditLogEntry {
-  area: 'tax' | 'osg';
-  entity_type: 'project' | 'task' | 'subtask';
+  area: 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
+  entity_type: 'project' | 'task' | 'subtask'
+    | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
+    | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
+    | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
