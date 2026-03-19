@@ -39,7 +39,7 @@ export const useClientesList = (filters?: { ativo?: boolean; search?: string }) 
   return useQuery({
     queryKey: ['clientes-lista', filters],
     queryFn: async () => {
-      let query = supabase.from(clienteTable).select('*').eq('excluido', false).order('nome');
+      let query = supabase.from(clienteTable).select('*').eq('excluido', false).eq('ambiente', 'producao').order('nome');
       if (filters?.ativo !== undefined) query = query.eq('ativo', filters.ativo);
       if (filters?.search) query = query.ilike('nome', `%${filters.search}%`);
       const { data, error } = await query;
