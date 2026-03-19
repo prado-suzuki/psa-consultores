@@ -70,17 +70,14 @@ const ConsultaEFDICMS = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  // Query de clientes - usa tabela correta conforme ambiente
-  const clienteTable = getTableName('cliente');
-  const contribuinteTable = getTableName('contribuinte');
-  
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd-icms", clienteTable],
+    queryKey: ["clientes-efd-icms"],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable as 'cliente')
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("ambiente", "producao")
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];
     },
@@ -88,11 +85,12 @@ const ConsultaEFDICMS = () => {
 
   // Query de contribuintes (filtrado por cliente selecionado)
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd-icms", contribuinteTable, selectedCliente],
+    queryKey: ["contribuintes-efd-icms", selectedCliente],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable as 'contribuinte')
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .eq("ambiente", "producao")
         .order("nome_razao_social");
       
       if (selectedCliente) {

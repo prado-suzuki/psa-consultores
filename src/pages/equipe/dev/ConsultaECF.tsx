@@ -74,27 +74,26 @@ const ConsultaECF = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const clienteTable = getTableName('cliente');
-  const contribuinteTable = getTableName('contribuinte');
-
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd-ecf", clienteTable],
+    queryKey: ["clientes-efd-ecf"],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable as 'cliente')
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("ambiente", "producao")
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];
     },
   });
 
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd-ecf", contribuinteTable, selectedCliente],
+    queryKey: ["contribuintes-efd-ecf", selectedCliente],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable as 'contribuinte')
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .eq("ambiente", "producao")
         .order("nome_razao_social");
       if (selectedCliente) {
         query = query.eq("cliente_id", selectedCliente);

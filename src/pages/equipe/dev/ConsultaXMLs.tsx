@@ -36,7 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { API_BASE_URL, TABLE_NAMES } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 import { RequiredMark } from '@/components/ui/required-mark';
 
 const DEFAULT_DATA_INICIO = "2024-01-01";

@@ -58,8 +58,9 @@ export function CargaPerdcompCSV() {
     queryKey: ['contribuintes-for-perdcomp'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(getTableName('contribuinte') as any)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
+        .eq('ambiente', 'producao')
         .order('nome_razao_social');
       
       if (error) throw error;
