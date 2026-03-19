@@ -336,3 +336,72 @@ export const useEmpresaFaturamentoDelete = () => {
     },
   };
 };
+
+// ── Produto × Serviço ─────────────────────────────────────────────────
+
+export interface ProdutoServico {
+  id: string;
+  produto_segmento_id: string;
+  servico_prestado_id: string;
+  produto_segmento: { codigo: string; nome: string } | null;
+  servicos_prestados: { nome: string } | null;
+}
+
+export const useProdutoServicoList = () =>
+  useQuery({
+    queryKey: ['produto_servico'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('produto_servico')
+        .select('id, produto_segmento_id, servico_prestado_id, produto_segmento(codigo, nome), servicos_prestados(nome)')
+        .order('produto_segmento_id');
+      if (error) throw error;
+      return (data || []) as unknown as ProdutoServico[];
+    },
+  });
+
+export const useProdutoServicoSave = () => {
+  const qc = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return {
+    save: async (produtoSegmentoId: string, servicoPrestadoId: string, entityName: string) => {
+      if (!produtoSegmentoId || !servicoPrestadoId) { toast.error('Selecione produto e serviço'); throw new Error('Validation'); }
+      try {
+        const { data, error } = await supabase
+          .from('produto_servico')
+          .insert({ produto_segmento_id: produtoSegmentoId, servico_prestado_id: servicoPrestadoId })
+          .select('id')
+          .single();
+        if (error) throw error;
+        logAction({ area: 'cadastros', entity_type: 'produto_servico' as any, entity_id: data.id, entity_name: entityName, action: 'created' });
+        toast.success('Vínculo criado');
+        qc.invalidateQueries({ queryKey: ['produto_servico'] });
+      } catch (e: any) {
+        if (e.code === '23505') toast.error('Este vínculo já existe');
+        else if (e.message !== 'Validation') toast.error(e.message || 'Erro ao salvar');
+        throw e;
+      }
+    },
+  };
+};
+
+export const useProdutoServicoDelete = () => {
+  const qc = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return {
+    remove: async (item: ProdutoServico) => {
+      try {
+        const { error } = await supabase.from('produto_servico').delete().eq('id', item.id);
+        if (error) throw error;
+        qc.invalidateQueries({ queryKey: ['produto_servico'] });
+        toast.success('Vínculo excluído');
+        const entityName = `${item.produto_segmento?.codigo || '?'} → ${item.servicos_prestados?.nome || '?'}`;
+        logAction({ area: 'cadastros', entity_type: 'produto_servico' as any, entity_id: item.id, entity_name: entityName, action: 'deleted' });
+      } catch {
+        toast.error('Erro ao excluir');
+      }
+    },
+  };
+};
