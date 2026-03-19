@@ -25,7 +25,7 @@ export const API_BASE_URL = isProductionEnvironment ? API_URLS.production : API_
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 // Valores válidos para a coluna 'ambiente' nas tabelas cliente/contribuinte
-export type Ambiente = 'producao' | 'desenvolvimento';
+export type Ambiente = 'prod' | 'dev';
 
 // Ambiente atual baseado no hostname (usado para filtrar dados nas queries)
-export const currentAmbiente: Ambiente = isProductionEnvironment ? 'producao' : 'desenvolvimento';
+export const currentAmbiente: Ambiente = isProductionEnvironment ? 'prod' : 'dev';

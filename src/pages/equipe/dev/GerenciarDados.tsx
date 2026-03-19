@@ -37,7 +37,7 @@ import {
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
 type TableType = 'cliente' | 'contribuinte';
-type AmbienteValue = 'producao' | 'desenvolvimento';
+type AmbienteValue = 'prod' | 'dev';
 
 
 const GerenciarDados = () => {
