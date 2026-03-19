@@ -1,14 +1,12 @@
 
 
-## Plano: Adicionar useAuditLog + substituir confirm() — ✅ CONCLUÍDO
+## Plano: Consolidar tabelas `_dev` com coluna `ambiente` — ✅ CONCLUÍDO
 
 ### Alterações realizadas
 
-| Arquivo | Alterações |
+| Etapa | Alterações |
 |---|---|
-| `useAuditLog.ts` | Expandidos union types: `area` (+estrutura, cadastros, dev) e `entity_type` (+13 novos tipos) |
-| `EstruturaManager.tsx` | +useAuditLog com logAction em 10 ops CUD, +AlertDialog substituindo 3 confirm(), +estado deleteConfirm |
-| `CadastroCategorias.tsx` | +useAuditLog em cada sub-tab (4 tabs), +AlertDialog substituindo 4 confirm(), +estado deleteTarget por tab |
-| `NewClientModal.tsx` | +useAuditLog com logAction em executeSave (~8 pontos: cliente, contribuintes, participantes, OS) |
-
-Nenhuma alteração em banco, RLS ou outras tabelas.
+| Migration SQL | Adicionada coluna `ambiente` em `cliente` e `contribuinte` (default `'producao'`). Dados migrados de `cliente_dev`, `contribuinte_dev`, `participante_dev`. Triggers e functions atualizados. Tabelas `_dev` removidas. |
+| GerenciarDados.tsx | Removido `getTableName` local. Seletor de ambiente agora insere/deleta via coluna `ambiente`. |
+| config/api.ts | Removidos `TABLE_NAMES` e `getTableName`. Adicionado tipo `Ambiente`. |
+| Hooks e queries | Adicionado `.eq('ambiente', 'producao')` em: `useFiscalClients`, `useDevClients`, `useTaxReferenceData`, 4x Consulta*.tsx, ConsultaXMLs, ControleBalancetes, ControlePerdcomp, PerFormModal, CargaPerdcompCSV, UploadBalanceteModal |
