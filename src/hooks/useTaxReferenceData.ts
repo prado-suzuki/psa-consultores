@@ -165,6 +165,7 @@ export function useContribuintes(clientId: string | null, editingContribuinteId?
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clientId)
         .eq('excluido', false)
+        .eq('ambiente', 'producao')
         .order('nome_razao_social');
       if (error) throw error;
       return data as ContribuinteOption[];

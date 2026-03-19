@@ -24,11 +24,5 @@ export const API_BASE_URL = isProductionEnvironment ? API_URLS.production : API_
 // Helper para construir URLs completas
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// Nomes das tabelas (sempre produção — tabelas _dev são exclusivas do BigQuery)
-export const TABLE_NAMES = {
-  cliente: "cliente",
-  contribuinte: "contribuinte",
-} as const;
-
-// Helper para obter o nome da tabela correto para o ambiente
-export const getTableName = (table: keyof typeof TABLE_NAMES): string => TABLE_NAMES[table];
+// Valores válidos para a coluna 'ambiente' nas tabelas cliente/contribuinte
+export type Ambiente = 'producao' | 'desenvolvimento';

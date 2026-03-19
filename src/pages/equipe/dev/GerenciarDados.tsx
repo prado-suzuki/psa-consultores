@@ -39,28 +39,6 @@ import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcomp
 type TableType = 'cliente' | 'contribuinte';
 type AmbienteValue = 'producao' | 'desenvolvimento';
 
-interface ParsedCliente {
-  id?: string;
-  nome: string;
-  ativo?: boolean;
-  fixo?: string;
-  telefone?: string;
-  setor_cliente?: string;
-  municipio?: string;
-  uf?: string;
-}
-
-interface ParsedContribuinte {
-  id?: string;
-  cliente_id: string;
-  tipo_pessoa: string;
-  nome_razao_social: string;
-  cpf_cnpj?: string;
-  inscricao_estadual?: string;
-  cod_cnae?: string;
-  setor?: string;
-  simples_nacional?: boolean;
-}
 
 const GerenciarDados = () => {
   const [selectedTable, setSelectedTable] = useState<TableType>('cliente');

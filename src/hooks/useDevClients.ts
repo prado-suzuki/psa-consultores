@@ -76,6 +76,7 @@ export const useExternalClients = (editingClientId?: string | null) => {
         .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
+        .eq('ambiente', 'producao')
         .order('nome');
       if (error) throw error;
       const list = data as { id: string; nome: string; setor_cliente: string | null }[];
