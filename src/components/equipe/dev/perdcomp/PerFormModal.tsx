@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TABLE_NAMES } from '@/config/api';
+
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { toast } from 'sonner';
 import {
