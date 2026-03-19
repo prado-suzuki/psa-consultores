@@ -1927,6 +1927,116 @@ export type Database = {
           },
         ]
       }
+      pis_cofins_class: {
+        Row: {
+          classificado_em: string | null
+          classificado_por: string | null
+          cod_ncm: string | null
+          cod_produto: string | null
+          created_at: string
+          id: string
+          id_contribuinte: string | null
+          id_regra: string | null
+        }
+        Insert: {
+          classificado_em?: string | null
+          classificado_por?: string | null
+          cod_ncm?: string | null
+          cod_produto?: string | null
+          created_at?: string
+          id?: string
+          id_contribuinte?: string | null
+          id_regra?: string | null
+        }
+        Update: {
+          classificado_em?: string | null
+          classificado_por?: string | null
+          cod_ncm?: string | null
+          cod_produto?: string | null
+          created_at?: string
+          id?: string
+          id_contribuinte?: string | null
+          id_regra?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pis_cofins_class_classificado_por_fkey"
+            columns: ["classificado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pis_cofins_class_classificado_por_fkey"
+            columns: ["classificado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pis_cofins_class_id_contribuinte_fkey"
+            columns: ["id_contribuinte"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pis_cofins_class_id_regra_fkey"
+            columns: ["id_regra"]
+            isOneToOne: false
+            referencedRelation: "pis_cofins_regra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pis_cofins_regra: {
+        Row: {
+          base_legal: string | null
+          cod_ncm: string
+          created_at: string
+          cst_cofins: string | null
+          cst_pis: string | null
+          data_vigencia_fim: number | null
+          data_vigencia_inicio: number | null
+          desc_cst: string | null
+          id: string
+          id_segmento: string
+          observacoes: string | null
+          permite_credito: string | null
+          tipo_credito: string | null
+        }
+        Insert: {
+          base_legal?: string | null
+          cod_ncm: string
+          created_at?: string
+          cst_cofins?: string | null
+          cst_pis?: string | null
+          data_vigencia_fim?: number | null
+          data_vigencia_inicio?: number | null
+          desc_cst?: string | null
+          id?: string
+          id_segmento: string
+          observacoes?: string | null
+          permite_credito?: string | null
+          tipo_credito?: string | null
+        }
+        Update: {
+          base_legal?: string | null
+          cod_ncm?: string
+          created_at?: string
+          cst_cofins?: string | null
+          cst_pis?: string | null
+          data_vigencia_fim?: number | null
+          data_vigencia_inicio?: number | null
+          desc_cst?: string | null
+          id?: string
+          id_segmento?: string
+          observacoes?: string | null
+          permite_credito?: string | null
+          tipo_credito?: string | null
+        }
+        Relationships: []
+      }
       process_improvements: {
         Row: {
           baseline_cost_monthly: number | null
