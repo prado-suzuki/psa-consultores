@@ -37,7 +37,7 @@ import {
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
 type TableType = 'cliente' | 'contribuinte';
-type AmbienteValue = 'producao' | 'desenvolvimento';
+type AmbienteValue = 'prod' | 'dev';
 
 
 const GerenciarDados = () => {
@@ -47,7 +47,7 @@ const GerenciarDados = () => {
   const [result, setResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const ambienteLabel = selectedAmbiente === 'producao' ? 'Produção' : 'Desenvolvimento';
+  const ambienteLabel = selectedAmbiente === 'prod' ? 'Produção' : 'Desenvolvimento';
 
   const parseCSV = (text: string): Record<string, string>[] => {
     const lines = text.trim().split('\n');
@@ -290,14 +290,14 @@ const GerenciarDados = () => {
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="desenvolvimento" id="dev" />
+                    <RadioGroupItem value="dev" id="dev" />
                     <Label htmlFor="dev" className="cursor-pointer flex items-center gap-2">
                       Desenvolvimento
                       <Badge variant="secondary" className="text-xs">dev</Badge>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="producao" id="prod" />
+                    <RadioGroupItem value="prod" id="prod" />
                     <Label htmlFor="prod" className="cursor-pointer flex items-center gap-2">
                       Produção
                       <Badge variant="destructive" className="text-xs">CUIDADO</Badge>
