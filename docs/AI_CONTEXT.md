@@ -246,7 +246,11 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 | `psa-consultores.lovable.app`, `psaconsultores.com.br` | prod | `psa-backend-api-1010211821554...` |
 | Outros (preview Lovable) | dev | `psa-backend-api-456879351254...` |
 
-Tabelas com sufixo `_dev` para desenvolvimento: `cliente_dev`, `contribuinte_dev`, `contrato_dev`. Mapeamento em `TABLE_NAMES` de `api.ts`.
+**Separação de dados por ambiente (coluna `ambiente`):**
+- Tabelas `cliente` e `contribuinte` possuem coluna `ambiente` com valores `'prod'` | `'dev'` (default `'prod'`).
+- `src/config/api.ts` exporta `currentAmbiente: Ambiente` (tipo `'prod' | 'dev'`), selecionado automaticamente via `isProductionEnvironment`.
+- Todas as queries nessas tabelas DEVEM filtrar via `.eq('ambiente', currentAmbiente)`.
+- `GerenciarDados.tsx` permite toggle manual entre ambientes para operações administrativas.
 
 ---
 
