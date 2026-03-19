@@ -64,15 +64,12 @@ interface ParsedContribuinte {
 
 const GerenciarDados = () => {
   const [selectedTable, setSelectedTable] = useState<TableType>('cliente');
-  const [selectedEnv, setSelectedEnv] = useState<Environment>('dev');
+  const [selectedAmbiente, setSelectedAmbiente] = useState<AmbienteValue>('desenvolvimento');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getTableName = (table: TableType, env: Environment): string => {
-    if (env === 'prod') return table;
-    return `${table}_dev`;
-  };
+  const ambienteLabel = selectedAmbiente === 'producao' ? 'Produção' : 'Desenvolvimento';
 
   const parseCSV = (text: string): Record<string, string>[] => {
     const lines = text.trim().split('\n');
