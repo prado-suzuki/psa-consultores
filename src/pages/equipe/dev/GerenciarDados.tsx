@@ -21,7 +21,7 @@ import {
   Zap,
   Copy,
 } from 'lucide-react';
-import { getApiUrl } from '@/config/api';
+import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
