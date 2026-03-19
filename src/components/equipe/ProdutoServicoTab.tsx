@@ -121,7 +121,7 @@ export default function ProdutoServicoTab() {
                       )}
                     >
                       <Package className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate flex-1">{p.codigo}</span>
+                      <span className="truncate flex-1">{p.codigo} — {p.nome}</span>
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0 min-w-[20px] justify-center">
                         {count}
                       </Badge>
