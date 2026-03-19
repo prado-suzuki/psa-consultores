@@ -128,12 +128,13 @@ const ControleBalancetes = () => {
 
   // Fetch clientes
   const { data: clientes } = useQuery({
-    queryKey: ['clientes-balancetes', TABLE_NAMES.cliente],
+    queryKey: ['clientes-balancetes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE_NAMES.cliente)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('ambiente', 'producao')
         .order('nome');
       if (error) throw error;
       return data;
@@ -142,11 +143,12 @@ const ControleBalancetes = () => {
 
   // Fetch contribuintes filtered by client
   const { data: contribuintes } = useQuery({
-    queryKey: ['contribuintes-balancetes', TABLE_NAMES.contribuinte, clienteId],
+    queryKey: ['contribuintes-balancetes', clienteId],
     queryFn: async () => {
       let query = supabase
-        .from(TABLE_NAMES.contribuinte)
+        .from('contribuinte')
         .select('id, nome_razao_social, cliente_id')
+        .eq('ambiente', 'producao')
         .order('nome_razao_social');
       if (clienteId) query = query.eq('cliente_id', clienteId);
       const { data, error } = await query;

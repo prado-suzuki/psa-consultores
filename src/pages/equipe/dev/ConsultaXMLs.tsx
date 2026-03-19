@@ -267,7 +267,7 @@ const ConsultaXMLs = () => {
     isLoading: loadingContribuintes,
     error: errorContribuintes,
   } = useQuery({
-    queryKey: ["contribuintes-list", selectedCliente, TABLE_NAMES.contribuinte],
+    queryKey: ["contribuintes-list", selectedCliente],
     queryFn: async () => {
       const {
         data: { user },
@@ -278,8 +278,9 @@ const ConsultaXMLs = () => {
       }
 
       let query = supabase
-        .from(TABLE_NAMES.contribuinte)
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .eq("ambiente", "producao")
         .order("nome_razao_social");
 
       if (selectedCliente && selectedCliente !== "all") {

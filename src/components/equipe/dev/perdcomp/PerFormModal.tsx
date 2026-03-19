@@ -156,12 +156,13 @@ export function PerFormModal({
 
   // Fetch all clients for the client selector
   const { data: clientes = [] } = useQuery({
-    queryKey: ['clientes-dev-per-modal', TABLE_NAMES.cliente],
+    queryKey: ['clientes-dev-per-modal'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE_NAMES.cliente)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('ambiente', 'producao')
         .order('nome');
       if (error) throw error;
       return data || [];
@@ -170,13 +171,14 @@ export function PerFormModal({
 
   // Fetch contribuintes for the selected client in the modal
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes', TABLE_NAMES.contribuinte, selectedClienteId],
+    queryKey: ['contribuintes', selectedClienteId],
     queryFn: async () => {
       if (!selectedClienteId) return [];
       const { data, error } = await supabase
-        .from(TABLE_NAMES.contribuinte)
+        .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedClienteId)
+        .eq('ambiente', 'producao')
         .order('nome_razao_social');
       if (error) throw error;
       return data || [];
