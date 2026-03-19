@@ -386,14 +386,13 @@ const GerenciarDados = () => {
                     <AlertDialogDescription>
                       {selectedTable === 'cliente' ? (
                         <>
-                          Esta ação irá <strong>remover todos os registros</strong> das tabelas{' '}
-                          <strong>{getTableName('cliente', selectedEnv)}</strong> e{' '}
-                          <strong>{getTableName('contribuinte', selectedEnv)}</strong> (devido à FK).
+                          Esta ação irá <strong>remover todos os registros</strong> de cliente e contribuinte
+                          com ambiente <strong>{ambienteLabel}</strong> (devido à FK).
                         </>
                       ) : (
                         <>
-                          Esta ação irá <strong>remover todos os registros</strong> da tabela{' '}
-                          <strong>{getTableName('contribuinte', selectedEnv)}</strong>.
+                          Esta ação irá <strong>remover todos os registros</strong> de contribuinte
+                          com ambiente <strong>{ambienteLabel}</strong>.
                         </>
                       )}
                       <br /><br />
