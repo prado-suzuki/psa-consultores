@@ -140,21 +140,18 @@ const GerenciarDados = () => {
           count: clientes.length
         });
       } else {
-        // Para contribuintes, precisamos buscar os cliente_ids primeiro
-        const clienteTableName = getTableName('cliente', selectedEnv);
         const { data: clientesExistentes } = await supabase
-          .from(clienteTableName as 'cliente' | 'cliente_dev')
-          .select('id, nome');
+          .from('cliente')
+          .select('id, nome')
+          .eq('ambiente', selectedAmbiente);
 
         const clienteMap = new Map(clientesExistentes?.map(c => [c.nome.toLowerCase(), c.id]) || []);
 
-        const contribuintes: ParsedContribuinte[] = rows.map(row => {
+        const contribuintes = rows.map(row => {
           const clienteNome = (row.cliente || row.cliente_nome || '').toLowerCase();
-          // Suporta id_cliente, cliente_id, ou busca por nome do cliente
           const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
           
           return {
-            // Preserva o ID original se existir (id_contribuinte ou id)
             id: row.id_contribuinte || row.id || undefined,
             cliente_id: clienteId,
             tipo_pessoa: row.tipo_pessoa || (row.cpf_cnpj?.replace(/\D/g, '').length === 11 ? 'PF' : 'PJ'),
@@ -164,6 +161,7 @@ const GerenciarDados = () => {
             cod_cnae: row.cod_cnae || row.cnae || undefined,
             setor: row.setor || undefined,
             simples_nacional: row.simples_nacional?.toLowerCase() === 'true' || row.simples_nacional === '1' || false,
+            ambiente: selectedAmbiente,
           };
         }).filter(c => c.nome_razao_social && c.cliente_id);
 
@@ -172,14 +170,14 @@ const GerenciarDados = () => {
         }
 
         const { error } = await supabase
-          .from(tableName as 'contribuinte' | 'contribuinte_dev')
+          .from('contribuinte')
           .insert(contribuintes);
 
         if (error) throw error;
 
         setResult({
           success: true,
-          message: `${contribuintes.length} contribuintes importados com sucesso!`,
+          message: `${contribuintes.length} contribuintes importados (${ambienteLabel})!`,
           count: contribuintes.length
         });
       }
