@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { TABLE_NAMES } from "@/config/api";
+
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,9 +103,9 @@ export default function ControlePerdcomp() {
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-ativos", TABLE_NAMES.cliente],
+    queryKey: ["clientes-ativos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from(TABLE_NAMES.cliente).select("id, nome").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from('cliente').select("id, nome").eq("ativo", true).eq("ambiente", "producao").order("nome");
       if (error) throw error;
       return (data || []) as unknown as { id: string; nome: string }[];
     },
@@ -113,13 +113,14 @@ export default function ControlePerdcomp() {
 
   // Fetch contribuintes based on selected cliente
   const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes", clienteId, TABLE_NAMES.contribuinte],
+    queryKey: ["contribuintes", clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
       const { data, error } = await supabase
-        .from(TABLE_NAMES.contribuinte)
+        .from('contribuinte')
         .select("id, nome_razao_social")
         .eq("cliente_id", clienteId)
+        .eq("ambiente", "producao")
         .order("nome_razao_social");
       if (error) throw error;
       return (data || []) as unknown as { id: string; nome_razao_social: string }[];

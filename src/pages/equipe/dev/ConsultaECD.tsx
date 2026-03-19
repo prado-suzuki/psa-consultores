@@ -3,7 +3,7 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getTableName, getApiUrl } from '@/config/api';
+import { getApiUrl } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,27 +68,26 @@ const ConsultaECD = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const clienteTable = getTableName('cliente');
-  const contribuinteTable = getTableName('contribuinte');
-
   const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd-ecd", clienteTable],
+    queryKey: ["clientes-efd-ecd"],
     queryFn: async () => {
       const { data } = await supabase
-        .from(clienteTable as 'cliente')
+        .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("ambiente", "producao")
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];
     },
   });
 
   const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd-ecd", contribuinteTable, selectedCliente],
+    queryKey: ["contribuintes-efd-ecd", selectedCliente],
     queryFn: async () => {
       let query = supabase
-        .from(contribuinteTable as 'contribuinte')
+        .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
+        .eq("ambiente", "producao")
         .order("nome_razao_social");
       if (selectedCliente) {
         query = query.eq("cliente_id", selectedCliente);

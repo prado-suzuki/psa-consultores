@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { TABLE_NAMES, getApiUrl } from '@/config/api';
+import { getApiUrl } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -55,12 +55,13 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
   // Fetch clientes
   const { data: clientes } = useQuery({
-    queryKey: ['upload-balancete-clientes', TABLE_NAMES.cliente],
+    queryKey: ['upload-balancete-clientes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE_NAMES.cliente)
+        .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('ambiente', 'producao')
         .order('nome');
       if (error) throw error;
       return data;
@@ -70,12 +71,13 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
   // Fetch contribuintes filtered by client
   const { data: contribuintes } = useQuery({
-    queryKey: ['upload-balancete-contribuintes', TABLE_NAMES.contribuinte, clienteId],
+    queryKey: ['upload-balancete-contribuintes', clienteId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE_NAMES.contribuinte)
+        .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('cliente_id', clienteId)
+        .eq('ambiente', 'producao')
         .order('nome_razao_social');
       if (error) throw error;
       return data;

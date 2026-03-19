@@ -37,42 +37,17 @@ import {
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 
 type TableType = 'cliente' | 'contribuinte';
-type Environment = 'dev' | 'prod';
+type AmbienteValue = 'producao' | 'desenvolvimento';
 
-interface ParsedCliente {
-  id?: string;
-  nome: string;
-  ativo?: boolean;
-  fixo?: string;
-  telefone?: string;
-  setor_cliente?: string;
-  municipio?: string;
-  uf?: string;
-}
-
-interface ParsedContribuinte {
-  id?: string;
-  cliente_id: string;
-  tipo_pessoa: string;
-  nome_razao_social: string;
-  cpf_cnpj?: string;
-  inscricao_estadual?: string;
-  cod_cnae?: string;
-  setor?: string;
-  simples_nacional?: boolean;
-}
 
 const GerenciarDados = () => {
   const [selectedTable, setSelectedTable] = useState<TableType>('cliente');
-  const [selectedEnv, setSelectedEnv] = useState<Environment>('dev');
+  const [selectedAmbiente, setSelectedAmbiente] = useState<AmbienteValue>('desenvolvimento');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getTableName = (table: TableType, env: Environment): string => {
-    if (env === 'prod') return table;
-    return `${table}_dev`;
-  };
+  const ambienteLabel = selectedAmbiente === 'producao' ? 'Produção' : 'Desenvolvimento';
 
   const parseCSV = (text: string): Record<string, string>[] => {
     const lines = text.trim().split('\n');
@@ -114,11 +89,8 @@ const GerenciarDados = () => {
         throw new Error('CSV vazio ou formato inválido. Use ; como separador.');
       }
 
-      const tableName = getTableName(selectedTable, selectedEnv);
-
       if (selectedTable === 'cliente') {
-        const clientes: ParsedCliente[] = rows.map(row => ({
-          // Preserva o ID original se existir (id_cliente ou id)
+        const clientes = rows.map(row => ({
           id: row.id_cliente || row.id || undefined,
           nome: row.nome || row.name || '',
           ativo: row.ativo?.toLowerCase() === 'true' || row.ativo === '1' || true,
@@ -127,6 +99,7 @@ const GerenciarDados = () => {
           setor_cliente: row.setor_cliente || row.setor || undefined,
           municipio: row.municipio || row.cidade || undefined,
           uf: row.uf || row.estado || undefined,
+          ambiente: selectedAmbiente,
         })).filter(c => c.nome);
 
         if (clientes.length === 0) {
@@ -134,32 +107,29 @@ const GerenciarDados = () => {
         }
 
         const { error } = await supabase
-          .from(tableName as 'cliente' | 'cliente_dev')
+          .from('cliente')
           .insert(clientes);
 
         if (error) throw error;
 
         setResult({
           success: true,
-          message: `${clientes.length} clientes importados com sucesso!`,
+          message: `${clientes.length} clientes importados (${ambienteLabel})!`,
           count: clientes.length
         });
       } else {
-        // Para contribuintes, precisamos buscar os cliente_ids primeiro
-        const clienteTableName = getTableName('cliente', selectedEnv);
         const { data: clientesExistentes } = await supabase
-          .from(clienteTableName as 'cliente' | 'cliente_dev')
-          .select('id, nome');
+          .from('cliente')
+          .select('id, nome')
+          .eq('ambiente', selectedAmbiente);
 
         const clienteMap = new Map(clientesExistentes?.map(c => [c.nome.toLowerCase(), c.id]) || []);
 
-        const contribuintes: ParsedContribuinte[] = rows.map(row => {
+        const contribuintes = rows.map(row => {
           const clienteNome = (row.cliente || row.cliente_nome || '').toLowerCase();
-          // Suporta id_cliente, cliente_id, ou busca por nome do cliente
           const clienteId = row.id_cliente || row.cliente_id || clienteMap.get(clienteNome) || '';
           
           return {
-            // Preserva o ID original se existir (id_contribuinte ou id)
             id: row.id_contribuinte || row.id || undefined,
             cliente_id: clienteId,
             tipo_pessoa: row.tipo_pessoa || (row.cpf_cnpj?.replace(/\D/g, '').length === 11 ? 'PF' : 'PJ'),
@@ -169,6 +139,7 @@ const GerenciarDados = () => {
             cod_cnae: row.cod_cnae || row.cnae || undefined,
             setor: row.setor || undefined,
             simples_nacional: row.simples_nacional?.toLowerCase() === 'true' || row.simples_nacional === '1' || false,
+            ambiente: selectedAmbiente,
           };
         }).filter(c => c.nome_razao_social && c.cliente_id);
 
@@ -177,14 +148,14 @@ const GerenciarDados = () => {
         }
 
         const { error } = await supabase
-          .from(tableName as 'contribuinte' | 'contribuinte_dev')
+          .from('contribuinte')
           .insert(contribuintes);
 
         if (error) throw error;
 
         setResult({
           success: true,
-          message: `${contribuintes.length} contribuintes importados com sucesso!`,
+          message: `${contribuintes.length} contribuintes importados (${ambienteLabel})!`,
           count: contribuintes.length
         });
       }
@@ -217,38 +188,33 @@ const GerenciarDados = () => {
     setResult(null);
 
     try {
-      const tableName = getTableName(selectedTable, selectedEnv);
-
-      // Para limpar contribuintes, precisamos deletar primeiro devido à FK
+      // Para limpar clientes, precisamos deletar contribuintes primeiro (FK)
       if (selectedTable === 'cliente') {
-        const contribuinteTableName = getTableName('contribuinte', selectedEnv);
-        
-        // Primeiro limpa contribuintes relacionados
         const { error: contribError } = await supabase
-          .from(contribuinteTableName as 'contribuinte' | 'contribuinte_dev')
+          .from('contribuinte')
           .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+          .eq('ambiente', selectedAmbiente);
 
         if (contribError) throw contribError;
       }
 
       const { error } = await supabase
-        .from(tableName as 'cliente' | 'cliente_dev' | 'contribuinte' | 'contribuinte_dev')
+        .from(selectedTable)
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+        .eq('ambiente', selectedAmbiente);
 
       if (error) throw error;
 
       setResult({
         success: true,
         message: selectedTable === 'cliente' 
-          ? 'Tabelas cliente e contribuinte limpas com sucesso!' 
-          : 'Tabela contribuinte limpa com sucesso!'
+          ? `Clientes e contribuintes (${ambienteLabel}) limpos!` 
+          : `Contribuintes (${ambienteLabel}) limpos!`
       });
 
       toast({
         title: 'Tabela limpa',
-        description: 'Todos os registros foram removidos.',
+        description: `Registros de ${ambienteLabel} removidos.`,
       });
     } catch (error: any) {
       console.error('Erro ao limpar tabela:', error);
@@ -319,19 +285,19 @@ const GerenciarDados = () => {
               <div>
                 <Label className="text-sm font-medium mb-3 block">Ambiente</Label>
                 <RadioGroup 
-                  value={selectedEnv} 
-                  onValueChange={(v) => setSelectedEnv(v as Environment)}
+                  value={selectedAmbiente} 
+                  onValueChange={(v) => setSelectedAmbiente(v as AmbienteValue)}
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="dev" id="dev" />
+                    <RadioGroupItem value="desenvolvimento" id="dev" />
                     <Label htmlFor="dev" className="cursor-pointer flex items-center gap-2">
                       Desenvolvimento
-                      <Badge variant="secondary" className="text-xs">_dev</Badge>
+                      <Badge variant="secondary" className="text-xs">dev</Badge>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="prod" id="prod" />
+                    <RadioGroupItem value="producao" id="prod" />
                     <Label htmlFor="prod" className="cursor-pointer flex items-center gap-2">
                       Produção
                       <Badge variant="destructive" className="text-xs">CUIDADO</Badge>
@@ -343,7 +309,7 @@ const GerenciarDados = () => {
 
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Tabela selecionada: <strong className="text-foreground">{getTableName(selectedTable, selectedEnv)}</strong>
+                Tabela: <strong className="text-foreground">{selectedTable}</strong> · Ambiente: <strong className="text-foreground">{ambienteLabel}</strong>
               </p>
             </div>
           </CardContent>
@@ -398,14 +364,13 @@ const GerenciarDados = () => {
                     <AlertDialogDescription>
                       {selectedTable === 'cliente' ? (
                         <>
-                          Esta ação irá <strong>remover todos os registros</strong> das tabelas{' '}
-                          <strong>{getTableName('cliente', selectedEnv)}</strong> e{' '}
-                          <strong>{getTableName('contribuinte', selectedEnv)}</strong> (devido à FK).
+                          Esta ação irá <strong>remover todos os registros</strong> de cliente e contribuinte
+                          com ambiente <strong>{ambienteLabel}</strong> (devido à FK).
                         </>
                       ) : (
                         <>
-                          Esta ação irá <strong>remover todos os registros</strong> da tabela{' '}
-                          <strong>{getTableName('contribuinte', selectedEnv)}</strong>.
+                          Esta ação irá <strong>remover todos os registros</strong> de contribuinte
+                          com ambiente <strong>{ambienteLabel}</strong>.
                         </>
                       )}
                       <br /><br />
