@@ -21,7 +21,7 @@ import {
   Zap,
   Copy,
 } from 'lucide-react';
-import { getApiUrl } from '@/config/api';
+import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -42,7 +42,7 @@ type AmbienteValue = 'producao' | 'desenvolvimento';
 
 const GerenciarDados = () => {
   const [selectedTable, setSelectedTable] = useState<TableType>('cliente');
-  const [selectedAmbiente, setSelectedAmbiente] = useState<AmbienteValue>('desenvolvimento');
+  const [selectedAmbiente, setSelectedAmbiente] = useState<AmbienteValue>(currentAmbiente);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

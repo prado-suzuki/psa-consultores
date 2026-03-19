@@ -36,7 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { API_BASE_URL } from "@/config/api";
+import { API_BASE_URL, currentAmbiente } from "@/config/api";
 import { RequiredMark } from '@/components/ui/required-mark';
 
 const DEFAULT_DATA_INICIO = "2024-01-01";
@@ -249,7 +249,7 @@ const ConsultaXMLs = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome");
 
       if (error) {
@@ -280,7 +280,7 @@ const ConsultaXMLs = () => {
       let query = supabase
         .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
 
       if (selectedCliente && selectedCliente !== "all") {

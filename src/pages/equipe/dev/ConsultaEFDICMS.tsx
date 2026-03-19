@@ -3,7 +3,7 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getApiUrl } from '@/config/api';
+import { getApiUrl, currentAmbiente } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,7 +77,7 @@ const ConsultaEFDICMS = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];
     },
@@ -90,7 +90,7 @@ const ConsultaEFDICMS = () => {
       let query = supabase
         .from('contribuinte')
         .select("id, nome_razao_social, cpf_cnpj, cliente_id")
-        .eq("ambiente", "producao")
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
       
       if (selectedCliente) {

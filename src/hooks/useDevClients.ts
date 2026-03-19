@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
@@ -39,7 +40,7 @@ export const useClientesList = (filters?: { ativo?: boolean; search?: string }) 
   return useQuery({
     queryKey: ['clientes-lista', filters],
     queryFn: async () => {
-      let query = supabase.from(clienteTable).select('*').eq('excluido', false).eq('ambiente', 'producao').order('nome');
+      let query = supabase.from(clienteTable).select('*').eq('excluido', false).eq('ambiente', currentAmbiente).order('nome');
       if (filters?.ativo !== undefined) query = query.eq('ativo', filters.ativo);
       if (filters?.search) query = query.ilike('nome', `%${filters.search}%`);
       const { data, error } = await query;
@@ -76,7 +77,7 @@ export const useExternalClients = (editingClientId?: string | null) => {
         .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       const list = data as { id: string; nome: string; setor_cliente: string | null }[];

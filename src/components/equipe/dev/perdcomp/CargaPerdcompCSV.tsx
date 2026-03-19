@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,7 +61,7 @@ export function CargaPerdcompCSV() {
       const { data, error } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       
       if (error) throw error;

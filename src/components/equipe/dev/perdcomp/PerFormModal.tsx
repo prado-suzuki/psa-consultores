@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { currentAmbiente } from '@/config/api';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -162,7 +163,7 @@ export function PerFormModal({
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data || [];
@@ -178,7 +179,7 @@ export function PerFormModal({
         .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedClienteId)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
       return data || [];

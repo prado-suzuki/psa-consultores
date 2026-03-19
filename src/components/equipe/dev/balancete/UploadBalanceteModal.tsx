@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { getApiUrl } from '@/config/api';
+import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -61,7 +61,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data;
@@ -77,7 +77,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
         .from('contribuinte')
         .select('id, nome_razao_social')
         .eq('cliente_id', clienteId)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
       return data;

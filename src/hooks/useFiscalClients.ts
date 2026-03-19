@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 
 export interface Cliente {
   id: string;
@@ -24,7 +25,7 @@ export function useFiscalClientsList() {
         .from('cliente')
         .select('*')
         .eq('ativo', true)
-        .eq('ambiente', 'producao')
+        .eq('ambiente', currentAmbiente)
         .order('nome');
 
       if (error) throw error;
