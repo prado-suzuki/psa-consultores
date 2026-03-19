@@ -297,7 +297,7 @@ const GerenciarDados = () => {
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="producao" id="prod" />
+                    <RadioGroupItem value="prod" id="prod" />
                     <Label htmlFor="prod" className="cursor-pointer flex items-center gap-2">
                       Produção
                       <Badge variant="destructive" className="text-xs">CUIDADO</Badge>
