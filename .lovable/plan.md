@@ -1,59 +1,122 @@
 
 
-## Plano: Trocar campo "Serviço Contratado" para "Produto/Serviço Contratado" (produto_segmento)
+## Plano: Fase 1 — Página Apuração PIS/COFINS
 
-### Arquivo: `src/components/equipe/fiscal/NewClientModal.tsx`
+### 1. Menu lateral (DevLayout.tsx)
 
-#### 1. Atualizar query de dados (linha 594-601)
+Adicionar novo agrupador collapsible "Análise PIS/COFINS" no sidebar, idêntico ao padrão "Consulta SPED":
 
-A query `produtoSegmentoFullOptions` já existe mas não inclui `cluster_id` nem join com `estrutura_clusters`. Alterar o select para:
+- Novo array `pisCofinsSubItems` com um item inicial: `{ icon: FileText, label: 'Apuração', path: '/equipe/dev/apuracao-pis-cofins' }`
+- Novo state `pisCofinsOpen` com lógica de auto-abertura igual a `spedOpen`
+- Ícone do agrupador: `Calculator` (já importado)
+- Posicionar **após** o bloco Consulta SPED e **antes** de `navItemsAfterSped`
+
+### 2. Rota (App.tsx)
+
 ```
-"id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)"
+import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
+// Route:
+<Route path="/equipe/dev/apuracao-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate></TeamRoute>} />
 ```
 
-#### 2. Atualizar filtros de cluster (linhas 667-675)
+### 3. Tipagem (src/types/pisCofins.ts)
 
-Os `filteredCatalogServices` e `filteredEditCatalogServices` filtram `catalogServices`. Trocar para filtrar `produtoSegmentoFullOptions`:
-- `filteredCatalogServices` → `filteredCatalogProducts` — filtra `produtoSegmentoFullOptions` por `osClusterFilter`
-- `filteredEditCatalogServices` → `filteredEditCatalogProducts` — filtra `produtoSegmentoFullOptions` por `osEditClusterFilter`
+```typescript
+export interface PisCofinsItemCredito {
+  cst_pis: string;
+  aliq_pis: number;
+  cod_cta: string;
+  descricao_conta: string;
+  bloco_efd: string;
+  vlr_efd: number;
+  credito: number;
+  debito: number;
+  saldo_periodo: number;
+  saldo_atual: number;
+}
 
-#### 3. Validação `addContract` (linha 1111)
+export interface PisCofinsRateioReceitas {
+  rec_bru_cum: number;
+  ncum_exp: number;
+  ncum_trib_mi: number;
+  ncum_nt_mi: number;
+  faturamento_bruto: number;
+}
 
-Trocar `if (!draftContract.id_servico)` → `if (!draftContract.id_produto_segmento)` com mensagem "Selecione um Produto/Serviço Contratado".
+export interface PisCofsinPeriodo {
+  dt_ini: string;           // "2024-01-01"
+  itens_credito: PisCofinsItemCredito[];
+  rateio_receitas: PisCofinsRateioReceitas | null;
+}
 
-#### 4. Verificação de rascunho `hasDraftContractData` (linha 442)
+export interface PisCofinsApuracaoResponse {
+  periodos: PisCofsinPeriodo[];
+}
 
-Trocar `draftContract.id_servico?.trim()` → `draftContract.id_produto_segmento?.trim()`.
+// Linha achatada para a tabela
+export interface PisCofinsRow extends PisCofinsItemCredito {
+  periodo: string;          // "01/2024" (derivado de dt_ini)
+  dt_ini: string;
+  rateio_receitas: PisCofinsRateioReceitas | null;
+}
+```
 
-#### 5. Payload `buildOsFields` (linhas 1518-1519)
+### 4. Hook de dados (src/hooks/usePisCofinsApuracao.ts)
 
-Remover `id_servico: c.id_servico || null`. Manter `id_produto_segmento: c.id_produto_segmento || null`.
+- Seguir padrão de `useEFDData.ts`: usa `useApiAuth` + `useQuery`
+- Endpoint: `getApiUrl('/api/v1/pis_cofins/apuracao')` com query params `cnpj`, `data_inicio`, `data_fim`
+- Recebe `cnpj`, `dataInicio`, `dataFim`, `enabled`
+- Retorna `useQuery` com `queryKey: ['pis-cofins-apuracao', cnpj, dataInicio, dataFim]`
 
-#### 6. Card read-only da OS salva (linhas 3467-3489)
+### 5. Página (src/pages/equipe/dev/ApuracaoPisCofins.tsx)
 
-Trocar os dois blocos `cont.id_servico` para usar `cont.id_produto_segmento`:
-- **Empresa**: resolver cluster via `produtoSegmentoFullOptions.find(p => p.id === cont.id_produto_segmento)?.estrutura_clusters?.name`
-- **Label**: "Produto/Serviço Contratado" em vez de "Serviço Contratado"
-- **Badge**: exibir `{p.codigo} — {p.nome}`
+**Layout**: `<DevLayout title="Apuração PIS/COFINS" subtitle="Visão unificada de apuração e cruzamento de dados EFD">`.
 
-#### 7. Dropdown de criação (linhas 4030-4078)
+**Filtros** (padrão do projeto — Select/MonthYearPicker, não inputs HTML):
+- Cliente (`Select` com dados de `useClientesList`)
+- Contribuinte (`Select` com dados de `useContribuintesByCliente`)
+- Data início e Data fim (`MonthYearPicker` — mesmo componente usado em ConsultaEFD)
+- Validação: se uma data informada, outra obrigatória; fim ≥ início
+- Botão "Consultar" (teal-600, ícone `Search`)
 
-- Label: "Produto/Serviço Contratado *"
-- `value`: `draftContract.id_produto_segmento`
-- `onValueChange`: atualiza `id_produto_segmento`
-- Source: `filteredCatalogProducts` em vez de `filteredCatalogServices`
-- Opções: `{p.codigo} — {p.nome}`
+**Transformação flatten**: `useMemo` que itera `periodos`, para cada período extrai `dt_ini` → formata como "MM/YYYY", e espalha cada `item_credito` com `periodo` e `rateio_receitas` do período-pai, resultando em `PisCofinsRow[]`.
 
-#### 8. Dropdown de edição (linhas 3663-3713)
+**Data Grid**:
+- Componente `Table` do shadcn/ui (como usado em ConsultaEFD)
+- Colunas: Período, CST, Alíq %, CTA, Descrição Conta, Bloco EFD, VLR EFD, Crédito, Débito, Saldo Per., Saldo Atual, Ações
+- `sticky top-0` no `thead`
+- Valores numéricos: `tabular-nums text-right`, formatados com `toLocaleString('pt-BR')`
+- Saldos negativos: `text-red-600`
+- Coluna Ações: `Button` ghost com ícone `PieChart` (lucide) — placeholder para Fase 2 (rateio)
 
-Mesma troca: label, value (`ec.id_produto_segmento`), onValueChange, source (`filteredEditCatalogProducts`), opções com `{p.codigo} — {p.nome}`.
+**Estética DESIGN.md**:
+- Filtros em card `bg-slate-50 rounded-xl` (surface-container-low equivalente no projeto)
+- Tabela em card `bg-white rounded-xl shadow-sm`
+- Header da tabela: `bg-slate-100` com labels `text-xs font-semibold uppercase tracking-wider text-slate-500`
+- Hover nas rows: `hover:bg-slate-50`
+- Sem bordas 1px entre seções (No-Line Rule) — usar espaçamento
+- Labels com `text-xs uppercase tracking-wider text-slate-500`
 
-#### 9. Reset states (linhas 497, 684, 1131, 1667)
+### 6. Componentes reutilizados
 
-Nos resets de `draftContract`, garantir que `id_produto_segmento: ""` está presente (já está) e `id_servico` pode manter `""` por compatibilidade.
+| Componente | Uso |
+|---|---|
+| `DevLayout` | Shell da página |
+| `Select` (shadcn) | Filtros cliente/contribuinte |
+| `MonthYearPicker` | Filtros de data |
+| `Table` (shadcn) | Grid de dados |
+| `Button` (shadcn) | Consultar + ações |
+| `Skeleton` | Loading state |
+| `RequiredMark` | Asterisco em campos obrigatórios |
+| `useClientesList` / `useContribuintesByCliente` | Dados de filtros (hooks existentes) |
 
-### Fora de escopo
-- Coluna `id_servico` permanece no banco
-- Query `catalogServices` pode permanecer (usada em outros contextos)
-- Sem alteração de schema
+### Arquivos criados/editados
+
+| Arquivo | Ação |
+|---|---|
+| `src/types/pisCofins.ts` | Criar — tipos da API e row achatada |
+| `src/hooks/usePisCofinsApuracao.ts` | Criar — hook de fetch com auth |
+| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Criar — página completa |
+| `src/components/equipe/dev/DevLayout.tsx` | Editar — adicionar agrupador "Análise PIS/COFINS" |
+| `src/App.tsx` | Editar — adicionar import + rota |
 
