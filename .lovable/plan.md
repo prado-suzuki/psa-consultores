@@ -1,57 +1,38 @@
 
 
-## Diagnóstico: Tarefa excluída reaparece para outros usuários
+## Plano: Adicionar `cluster_id` em `produto_segmento`
 
-### Causa raiz
+### Etapa 1 — Migration SQL
 
-`EquipeSprintDetalhes.tsx` usa `useState` local para `deliverables`. Os dados são carregados **uma única vez** no `useEffect` inicial. Não há subscription Realtime — quando o usuário A exclui uma tarefa, o usuário B nunca recebe a atualização.
-
-### Solução: Adicionar Realtime subscription na tabela `sprint_deliverables`
-
-#### Passo 1 — Habilitar Realtime na tabela (migração SQL)
 ```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sprint_deliverables;
+ALTER TABLE public.produto_segmento
+  ADD COLUMN cluster_id UUID REFERENCES public.estrutura_clusters(id) ON DELETE SET NULL;
+
+UPDATE public.produto_segmento
+SET cluster_id = (SELECT id FROM public.estrutura_clusters WHERE name = 'PSA Consultores' LIMIT 1);
 ```
 
-#### Passo 2 — Adicionar subscription em `EquipeSprintDetalhes.tsx`
+### Etapa 2 — Hook `useCategorias.ts`
 
-Dentro do `useEffect` que já observa `[id]`, após o `fetchSprintData()`, criar um channel Supabase:
+**Tipo `ProdutoSegmento`** — adicionar `cluster_id: string | null` e `estrutura_clusters: { name: string } | null`.
 
-```typescript
-const channel = supabase
-  .channel(`sprint-deliverables-${id}`)
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'sprint_deliverables',
-    filter: `sprint_id=eq.${id}`,
-  }, (payload) => {
-    if (payload.eventType === 'DELETE') {
-      setDeliverables(prev => prev.filter(d => d.id !== payload.old.id));
-    } else if (payload.eventType === 'INSERT') {
-      setDeliverables(prev => {
-        if (prev.some(d => d.id === payload.new.id)) return prev;
-        return [...prev, payload.new as Deliverable];
-      });
-    } else if (payload.eventType === 'UPDATE') {
-      setDeliverables(prev =>
-        prev.map(d => d.id === payload.new.id ? { ...d, ...payload.new } as Deliverable : d)
-      );
-    }
-  })
-  .subscribe();
-```
+**`useProdutoSegmentoList`** — alterar select para `'id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)'`.
 
-No cleanup do `useEffect`, fazer `supabase.removeChannel(channel)`.
+**`useProdutoSegmentoSave`** — adicionar parâmetro `clusterId: string | null` na função `save`, incluir `cluster_id: clusterId || null` no payload.
+
+### Etapa 3 — Componente `ProdutoSegmentoTab.tsx`
+
+Seguir o padrão exato de `ServicosTab.tsx`:
+
+**Tabela** — adicionar coluna "Cluster" entre "Nome" e "Status", renderizando `Badge` com `item.estrutura_clusters?.name` (ou "—" se vazio). Atualizar `colSpan` de 4 para 5.
+
+**Dialog de criação/edição** — adicionar estado `clusterId`, campo `Select` com opções de `useEstruturaClusters()` (incluindo "Nenhum"), passar `clusterId` no `handleSave`. Preencher `clusterId` no `openEdit`.
 
 ### Arquivos afetados
 
 | Arquivo | Alteração |
 |---|---|
-| Migração SQL | `ALTER PUBLICATION supabase_realtime ADD TABLE sprint_deliverables` |
-| `src/pages/equipe/EquipeSprintDetalhes.tsx` | Adicionar channel Realtime no `useEffect` existente com cleanup |
-
-### Resultado
-- Quando qualquer usuário exclui, cria ou edita uma tarefa, todos os outros usuários vendo a mesma sprint recebem a atualização em tempo real
-- Zero alteração visual ou de lógica de negócio existente
+| Migration SQL | ADD COLUMN + UPDATE 18 registros |
+| `src/hooks/useCategorias.ts` | Tipo, select com join, save com cluster_id |
+| `src/components/equipe/ProdutoSegmentoTab.tsx` | Coluna cluster na tabela + select no dialog |
 
