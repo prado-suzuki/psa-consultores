@@ -421,7 +421,7 @@ const ApuracaoPisCofins = () => {
               <p className="text-sm text-muted-foreground">Nenhum dado encontrado para os filtros selecionados.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <PivotTable title="DK — Resumo" rows={resumo.rows} periodos={resumo.periodos} showCst showBloco />
               <PivotTable title="Débitos" rows={debitos.rows} periodos={debitos.periodos} showTotal />
               <PivotTable title="Isenções e Exclusões" rows={isencoes.rows} periodos={isencoes.periodos} showTotal />
