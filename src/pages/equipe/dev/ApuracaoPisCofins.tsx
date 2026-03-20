@@ -69,10 +69,10 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
   const headCls = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap';
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
       {/* Section header */}
-      <div className="bg-slate-100 px-4 py-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</span>
+      <div className="border-l-4 border-teal-600 pl-3 py-3 px-4 bg-slate-50">
+        <span className="text-sm font-bold text-slate-800">{title}</span>
       </div>
 
       <div className="overflow-auto max-h-[calc(100vh-360px)]">
@@ -168,7 +168,9 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                         key={pk}
                         className={cn(
                           'text-xs tabular-nums text-right whitespace-nowrap p-2',
+                          val === 0 && 'text-slate-300',
                           val < 0 && 'text-red-600',
+                          val > 0 && 'text-slate-700',
                         )}
                       >
                         {fmt(val)}
@@ -178,8 +180,10 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                   {showTotal && (
                     <TableCell
                       className={cn(
-                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold',
+                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold bg-slate-50/50',
+                        rowTotal === 0 && 'text-slate-300',
                         rowTotal < 0 && 'text-red-600',
+                        rowTotal > 0 && 'text-slate-700',
                       )}
                     >
                       {fmt(rowTotal)}
@@ -191,21 +195,20 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
 
             {/* Footer totals row */}
             {showTotal && (
-              <TableRow className="bg-slate-50 hover:bg-slate-50 font-semibold">
-                {showCst && <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-50')} style={{ left: offsets.cst }} />}
+              <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-300">
+                {showCst && <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-100')} style={{ left: offsets.cst }} />}
                 <TableCell
-                  className={cn('text-xs p-2 uppercase tracking-wider text-muted-foreground', stickyBase, 'bg-slate-50')}
+                  className={cn('text-xs p-2 uppercase tracking-wider font-bold text-slate-800', stickyBase, 'bg-slate-100')}
                   colSpan={showBloco ? 2 : 1}
                   style={{ left: offsets.cta }}
                 >
                   Total
                 </TableCell>
                 {showBloco && (
-                  <TableCell className={cn('text-xs p-2 border-r border-slate-200', stickyBase, 'bg-slate-50')} style={{ left: offsets.bloco }} />
+                  <TableCell className={cn('text-xs p-2 border-r border-slate-200', stickyBase, 'bg-slate-100')} style={{ left: offsets.bloco }} />
                 )}
-                {/* fill desc col if no colSpan covers it */}
                 {!showBloco && (
-                  <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-50')} style={{ left: offsets.desc }} />
+                  <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-100')} style={{ left: offsets.desc }} />
                 )}
                 {periodos.map(pk => {
                   const val = totals[pk] ?? 0;
@@ -213,7 +216,8 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                     <TableCell
                       key={pk}
                       className={cn(
-                        'text-xs tabular-nums text-right whitespace-nowrap p-2',
+                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold text-slate-900',
+                        val === 0 && 'text-slate-300',
                         val < 0 && 'text-red-600',
                       )}
                     >
@@ -221,7 +225,7 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                     </TableCell>
                   );
                 })}
-                <TableCell className="text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold">
+                <TableCell className="text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold text-slate-900">
                   {fmt(periodos.reduce((s, pk) => s + (totals[pk] ?? 0), 0))}
                 </TableCell>
               </TableRow>
@@ -230,7 +234,7 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
         </Table>
       </div>
 
-      <div className="px-4 py-2 bg-slate-50 text-xs text-muted-foreground">
+      <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-muted-foreground">
         {rows.length} conta{rows.length !== 1 ? 's' : ''} · {periodos.length} período{periodos.length !== 1 ? 's' : ''}
       </div>
     </div>
@@ -417,7 +421,7 @@ const ApuracaoPisCofins = () => {
               <p className="text-sm text-muted-foreground">Nenhum dado encontrado para os filtros selecionados.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <PivotTable title="DK — Resumo" rows={resumo.rows} periodos={resumo.periodos} showCst showBloco />
               <PivotTable title="Débitos" rows={debitos.rows} periodos={debitos.periodos} showTotal />
               <PivotTable title="Isenções e Exclusões" rows={isencoes.rows} periodos={isencoes.periodos} showTotal />
