@@ -95,7 +95,7 @@ export default function ProdutoServicoTab() {
         {items.length} vínculos cadastrados · Selecione um produto e marque os serviços
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-4">
         {/* Left panel — Products */}
         <Card className="border-border/60">
           <div className="px-3 py-2 border-b border-border/40">
