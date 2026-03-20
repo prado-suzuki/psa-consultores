@@ -53,6 +53,7 @@ const GestaoClientes = () => {
         .select("id, nome")
         .not("nome", "is", null)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome");
 
       if (error) throw error;
