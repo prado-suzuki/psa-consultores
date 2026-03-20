@@ -3463,26 +3463,26 @@ export default function NewClientModal({
                                             value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
                                           />
                                         </div>
-                                        {cont.id_servico && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
                                               Empresa
                                             </p>
                                             <span className="text-sm">
-                                              {(() => {
-                                                const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
-                                                return (svc as any)?.estrutura_clusters?.name || "—";
-                                              })()}
+                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)?.estrutura_clusters?.name || "—"}
                                             </span>
                                           </div>
                                         )}
-                                        {cont.id_servico && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Serviço Contratado
+                                              Produto/Serviço Contratado
                                             </p>
                                             <Badge variant="secondary" className="text-xs mt-1">
-                                              {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
+                                              {(() => {
+                                                const p = produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento);
+                                                return p ? `${p.codigo} — ${p.nome}` : cont.id_produto_segmento;
+                                              })()}
                                             </Badge>
                                           </div>
                                         )}
