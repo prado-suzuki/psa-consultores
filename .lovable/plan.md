@@ -1,38 +1,59 @@
 
 
-## Plano: Adicionar `cluster_id` em `produto_segmento`
+## Plano: Trocar campo "Serviço Contratado" para "Produto/Serviço Contratado" (produto_segmento)
 
-### Etapa 1 — Migration SQL
+### Arquivo: `src/components/equipe/fiscal/NewClientModal.tsx`
 
-```sql
-ALTER TABLE public.produto_segmento
-  ADD COLUMN cluster_id UUID REFERENCES public.estrutura_clusters(id) ON DELETE SET NULL;
+#### 1. Atualizar query de dados (linha 594-601)
 
-UPDATE public.produto_segmento
-SET cluster_id = (SELECT id FROM public.estrutura_clusters WHERE name = 'PSA Consultores' LIMIT 1);
+A query `produtoSegmentoFullOptions` já existe mas não inclui `cluster_id` nem join com `estrutura_clusters`. Alterar o select para:
+```
+"id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)"
 ```
 
-### Etapa 2 — Hook `useCategorias.ts`
+#### 2. Atualizar filtros de cluster (linhas 667-675)
 
-**Tipo `ProdutoSegmento`** — adicionar `cluster_id: string | null` e `estrutura_clusters: { name: string } | null`.
+Os `filteredCatalogServices` e `filteredEditCatalogServices` filtram `catalogServices`. Trocar para filtrar `produtoSegmentoFullOptions`:
+- `filteredCatalogServices` → `filteredCatalogProducts` — filtra `produtoSegmentoFullOptions` por `osClusterFilter`
+- `filteredEditCatalogServices` → `filteredEditCatalogProducts` — filtra `produtoSegmentoFullOptions` por `osEditClusterFilter`
 
-**`useProdutoSegmentoList`** — alterar select para `'id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)'`.
+#### 3. Validação `addContract` (linha 1111)
 
-**`useProdutoSegmentoSave`** — adicionar parâmetro `clusterId: string | null` na função `save`, incluir `cluster_id: clusterId || null` no payload.
+Trocar `if (!draftContract.id_servico)` → `if (!draftContract.id_produto_segmento)` com mensagem "Selecione um Produto/Serviço Contratado".
 
-### Etapa 3 — Componente `ProdutoSegmentoTab.tsx`
+#### 4. Verificação de rascunho `hasDraftContractData` (linha 442)
 
-Seguir o padrão exato de `ServicosTab.tsx`:
+Trocar `draftContract.id_servico?.trim()` → `draftContract.id_produto_segmento?.trim()`.
 
-**Tabela** — adicionar coluna "Cluster" entre "Nome" e "Status", renderizando `Badge` com `item.estrutura_clusters?.name` (ou "—" se vazio). Atualizar `colSpan` de 4 para 5.
+#### 5. Payload `buildOsFields` (linhas 1518-1519)
 
-**Dialog de criação/edição** — adicionar estado `clusterId`, campo `Select` com opções de `useEstruturaClusters()` (incluindo "Nenhum"), passar `clusterId` no `handleSave`. Preencher `clusterId` no `openEdit`.
+Remover `id_servico: c.id_servico || null`. Manter `id_produto_segmento: c.id_produto_segmento || null`.
 
-### Arquivos afetados
+#### 6. Card read-only da OS salva (linhas 3467-3489)
 
-| Arquivo | Alteração |
-|---|---|
-| Migration SQL | ADD COLUMN + UPDATE 18 registros |
-| `src/hooks/useCategorias.ts` | Tipo, select com join, save com cluster_id |
-| `src/components/equipe/ProdutoSegmentoTab.tsx` | Coluna cluster na tabela + select no dialog |
+Trocar os dois blocos `cont.id_servico` para usar `cont.id_produto_segmento`:
+- **Empresa**: resolver cluster via `produtoSegmentoFullOptions.find(p => p.id === cont.id_produto_segmento)?.estrutura_clusters?.name`
+- **Label**: "Produto/Serviço Contratado" em vez de "Serviço Contratado"
+- **Badge**: exibir `{p.codigo} — {p.nome}`
+
+#### 7. Dropdown de criação (linhas 4030-4078)
+
+- Label: "Produto/Serviço Contratado *"
+- `value`: `draftContract.id_produto_segmento`
+- `onValueChange`: atualiza `id_produto_segmento`
+- Source: `filteredCatalogProducts` em vez de `filteredCatalogServices`
+- Opções: `{p.codigo} — {p.nome}`
+
+#### 8. Dropdown de edição (linhas 3663-3713)
+
+Mesma troca: label, value (`ec.id_produto_segmento`), onValueChange, source (`filteredEditCatalogProducts`), opções com `{p.codigo} — {p.nome}`.
+
+#### 9. Reset states (linhas 497, 684, 1131, 1667)
+
+Nos resets de `draftContract`, garantir que `id_produto_segmento: ""` está presente (já está) e `id_servico` pode manter `""` por compatibilidade.
+
+### Fora de escopo
+- Coluna `id_servico` permanece no banco
+- Query `catalogServices` pode permanecer (usada em outros contextos)
+- Sem alteração de schema
 
