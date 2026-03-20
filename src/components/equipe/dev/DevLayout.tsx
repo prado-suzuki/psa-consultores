@@ -199,7 +199,56 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             </Collapsible>
           )}
 
-          {navItemsAfterSped.map((item) => (
+          {/* Análise PIS/COFINS - Collapsible */}
+          {collapsed ? (
+            <Button
+              variant="ghost"
+              className={`w-full justify-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isPisCofinsActive
+                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
+                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+              }`}
+              onClick={() => navigate('/equipe/dev/apuracao-pis-cofins')}
+              title="Análise PIS/COFINS"
+            >
+              <Calculator className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Collapsible open={pisCofinsOpen} onOpenChange={setPisCofinsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isPisCofinsActive
+                      ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                  }`}
+                >
+                  <Calculator className="h-4 w-4 mr-3" />
+                  <span className="flex-1 text-left">Análise PIS/COFINS</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
+                {pisCofinsSubItems.map((item) => (
+                  <Button
+                    key={item.path}
+                    variant="ghost"
+                    className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive(item.path)
+                        ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-teal-600'
+                    }`}
+                    onClick={() => navigate(item.path)}
+                  >
+                    <item.icon className="h-3.5 w-3.5 mr-3" />
+                    {item.label}
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
             <Button
               key={item.path}
               variant="ghost"
