@@ -249,6 +249,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             </Collapsible>
           )}
 
+          {navItemsAfterSped.map((item) => (
             <Button
               key={item.path}
               variant="ghost"
