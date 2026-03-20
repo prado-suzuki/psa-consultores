@@ -10,6 +10,8 @@ export interface ProdutoSegmento {
   codigo: string;
   nome: string;
   is_active: boolean;
+  cluster_id: string | null;
+  estrutura_clusters: { name: string } | null;
 }
 
 export interface ServicoPrestado {
@@ -40,7 +42,7 @@ export const useProdutoSegmentoList = () =>
   useQuery({
     queryKey: ['produto_segmento'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('produto_segmento').select('id, codigo, nome, is_active').order('codigo');
+      const { data, error } = await supabase.from('produto_segmento').select('id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)').order('codigo');
       if (error) throw error;
       return (data || []) as ProdutoSegmento[];
     },
@@ -51,9 +53,9 @@ export const useProdutoSegmentoSave = () => {
   const { logAction } = useAuditLog();
 
   return {
-    save: async (editId: string | null, codigo: string, nome: string) => {
+    save: async (editId: string | null, codigo: string, nome: string, clusterId: string | null) => {
       if (!codigo.trim() || !nome.trim()) { toast.error('Código e nome são obrigatórios'); throw new Error('Validation'); }
-      const payload = { codigo: codigo.trim().toUpperCase(), nome: nome.trim() };
+      const payload = { codigo: codigo.trim().toUpperCase(), nome: nome.trim(), cluster_id: clusterId || null };
       const entityName = `${payload.codigo} - ${payload.nome}`;
       try {
         if (editId) {

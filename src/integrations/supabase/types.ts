@@ -2378,6 +2378,7 @@ export type Database = {
       }
       produto_segmento: {
         Row: {
+          cluster_id: string | null
           codigo: string
           created_at: string | null
           id: string
@@ -2385,6 +2386,7 @@ export type Database = {
           nome: string
         }
         Insert: {
+          cluster_id?: string | null
           codigo: string
           created_at?: string | null
           id?: string
@@ -2392,13 +2394,22 @@ export type Database = {
           nome: string
         }
         Update: {
+          cluster_id?: string | null
           codigo?: string
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produto_segmento_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produto_servico: {
         Row: {
