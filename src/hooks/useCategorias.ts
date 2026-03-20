@@ -53,9 +53,9 @@ export const useProdutoSegmentoSave = () => {
   const { logAction } = useAuditLog();
 
   return {
-    save: async (editId: string | null, codigo: string, nome: string) => {
+    save: async (editId: string | null, codigo: string, nome: string, clusterId: string | null) => {
       if (!codigo.trim() || !nome.trim()) { toast.error('Código e nome são obrigatórios'); throw new Error('Validation'); }
-      const payload = { codigo: codigo.trim().toUpperCase(), nome: nome.trim() };
+      const payload = { codigo: codigo.trim().toUpperCase(), nome: nome.trim(), cluster_id: clusterId || null };
       const entityName = `${payload.codigo} - ${payload.nome}`;
       try {
         if (editId) {
