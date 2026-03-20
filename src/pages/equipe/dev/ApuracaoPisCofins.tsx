@@ -13,8 +13,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { buildPivot, isDebito, isExclusao, isCredito } from '@/lib/pisCofinsFilters';
 import type { PivotRow } from '@/types/pisCofins';
 
+/* ── Formatters ── */
 const fmt = (val: number) =>
   val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -22,6 +24,220 @@ const periodLabel = (key: string) => {
   const [y, m] = key.split('-');
   return `${m}/${y}`;
 };
+
+/* ── Reusable PivotTable component ── */
+
+interface PivotTableProps {
+  title: string;
+  rows: PivotRow[];
+  periodos: string[];
+  showCst?: boolean;
+  showBloco?: boolean;
+  showTotal?: boolean;
+}
+
+const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false, showTotal = false }: PivotTableProps) => {
+  if (rows.length === 0) return null;
+
+  // Build sticky left offsets dynamically based on visible columns
+  const colWidths: { key: string; w: number }[] = [];
+  if (showCst) colWidths.push({ key: 'cst', w: 60 });
+  colWidths.push({ key: 'cta', w: 90 });
+  colWidths.push({ key: 'desc', w: 220 });
+  if (showBloco) colWidths.push({ key: 'bloco', w: 80 });
+
+  const offsets = colWidths.reduce<Record<string, number>>((acc, col, i) => {
+    acc[col.key] = i === 0 ? 0 : acc[colWidths[i - 1].key] + colWidths[i - 1].w;
+    return acc;
+  }, {});
+
+  const widthOf = (key: string) => colWidths.find(c => c.key === key)?.w ?? 0;
+  const lastFixedKey = colWidths[colWidths.length - 1].key;
+
+  // Totals row
+  const totals: Record<string, number> = {};
+  if (showTotal) {
+    for (const row of rows) {
+      for (const pk of periodos) {
+        totals[pk] = (totals[pk] || 0) + (row.valores[pk] ?? 0);
+      }
+    }
+  }
+
+  const stickyBase = 'sticky z-10 bg-white';
+  const stickyHeadBase = 'sticky z-30 bg-slate-100';
+  const headCls = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap';
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+      {/* Section header */}
+      <div className="bg-slate-100 px-4 py-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</span>
+      </div>
+
+      <div className="overflow-auto max-h-[calc(100vh-360px)]">
+        <Table className="text-xs">
+          <TableHeader className="sticky top-0 z-20">
+            <TableRow className="bg-slate-100 hover:bg-slate-100">
+              {showCst && (
+                <TableHead
+                  className={cn(headCls, stickyHeadBase, 'left-0')}
+                  style={{ width: widthOf('cst'), minWidth: widthOf('cst'), left: offsets.cst }}
+                >
+                  CST
+                </TableHead>
+              )}
+              <TableHead
+                className={cn(headCls, stickyHeadBase)}
+                style={{ width: widthOf('cta'), minWidth: widthOf('cta'), left: offsets.cta }}
+              >
+                Conta
+              </TableHead>
+              <TableHead
+                className={cn(headCls, stickyHeadBase)}
+                style={{ width: widthOf('desc'), minWidth: widthOf('desc'), left: offsets.desc }}
+              >
+                Descrição
+              </TableHead>
+              {showBloco && (
+                <TableHead
+                  className={cn(headCls, stickyHeadBase, 'border-r border-slate-200')}
+                  style={{ width: widthOf('bloco'), minWidth: widthOf('bloco'), left: offsets.bloco }}
+                >
+                  Bloco
+                </TableHead>
+              )}
+              {!showBloco && !showCst && (
+                // apply border-r to the last fixed col when bloco is hidden
+                <></>
+              )}
+              {periodos.map(pk => (
+                <TableHead key={pk} className={cn(headCls, 'text-right')} style={{ minWidth: 110 }}>
+                  {periodLabel(pk)}
+                </TableHead>
+              ))}
+              {showTotal && (
+                <TableHead className={cn(headCls, 'text-right')} style={{ minWidth: 120 }}>
+                  Total
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {rows.map((row, idx) => {
+              const rowTotal = showTotal
+                ? periodos.reduce((s, pk) => s + (row.valores[pk] ?? 0), 0)
+                : 0;
+
+              return (
+                <TableRow key={idx} className="hover:bg-slate-50">
+                  {showCst && (
+                    <TableCell
+                      className={cn('text-xs tabular-nums whitespace-nowrap p-2', stickyBase)}
+                      style={{ left: offsets.cst }}
+                    >
+                      {row.cst_pis}
+                    </TableCell>
+                  )}
+                  <TableCell
+                    className={cn('text-xs tabular-nums whitespace-nowrap p-2', stickyBase)}
+                    style={{ left: offsets.cta }}
+                  >
+                    {row.cod_cta}
+                  </TableCell>
+                  <TableCell
+                    className={cn('text-xs p-2 truncate', stickyBase)}
+                    style={{ left: offsets.desc, maxWidth: widthOf('desc') }}
+                    title={row.descricao_conta}
+                  >
+                    {row.descricao_conta}
+                  </TableCell>
+                  {showBloco && (
+                    <TableCell
+                      className={cn('text-xs whitespace-nowrap p-2 border-r border-slate-200', stickyBase)}
+                      style={{ left: offsets.bloco }}
+                    >
+                      {row.bloco_efd}
+                    </TableCell>
+                  )}
+                  {periodos.map(pk => {
+                    const val = row.valores[pk] ?? 0;
+                    return (
+                      <TableCell
+                        key={pk}
+                        className={cn(
+                          'text-xs tabular-nums text-right whitespace-nowrap p-2',
+                          val < 0 && 'text-red-600',
+                        )}
+                      >
+                        {fmt(val)}
+                      </TableCell>
+                    );
+                  })}
+                  {showTotal && (
+                    <TableCell
+                      className={cn(
+                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold',
+                        rowTotal < 0 && 'text-red-600',
+                      )}
+                    >
+                      {fmt(rowTotal)}
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+
+            {/* Footer totals row */}
+            {showTotal && (
+              <TableRow className="bg-slate-50 hover:bg-slate-50 font-semibold">
+                {showCst && <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-50')} style={{ left: offsets.cst }} />}
+                <TableCell
+                  className={cn('text-xs p-2 uppercase tracking-wider text-muted-foreground', stickyBase, 'bg-slate-50')}
+                  colSpan={showBloco ? 2 : 1}
+                  style={{ left: offsets.cta }}
+                >
+                  Total
+                </TableCell>
+                {showBloco && (
+                  <TableCell className={cn('text-xs p-2 border-r border-slate-200', stickyBase, 'bg-slate-50')} style={{ left: offsets.bloco }} />
+                )}
+                {/* fill desc col if no colSpan covers it */}
+                {!showBloco && (
+                  <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-50')} style={{ left: offsets.desc }} />
+                )}
+                {periodos.map(pk => {
+                  const val = totals[pk] ?? 0;
+                  return (
+                    <TableCell
+                      key={pk}
+                      className={cn(
+                        'text-xs tabular-nums text-right whitespace-nowrap p-2',
+                        val < 0 && 'text-red-600',
+                      )}
+                    >
+                      {fmt(val)}
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold">
+                  {fmt(periodos.reduce((s, pk) => s + (totals[pk] ?? 0), 0))}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="px-4 py-2 bg-slate-50 text-xs text-muted-foreground">
+        {rows.length} conta{rows.length !== 1 ? 's' : ''} · {periodos.length} período{periodos.length !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+};
+
+/* ── Main page ── */
 
 const ApuracaoPisCofins = () => {
   const [selectedCliente, setSelectedCliente] = useState('');
@@ -78,36 +294,13 @@ const ApuracaoPisCofins = () => {
     enabled: searchTriggered && !!selectedContribuinte,
   });
 
-  // Pivot transformation
-  const { pivotRows, periodos } = useMemo(() => {
-    if (!apiData?.periodos?.length) return { pivotRows: [] as PivotRow[], periodos: [] as string[] };
+  /* ── Pivots ── */
+  const resumo = useMemo(() => buildPivot(apiData?.periodos ?? []), [apiData]);
+  const debitos = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isDebito(item.cst_pis)), [apiData]);
+  const isencoes = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isExclusao(item.cst_pis)), [apiData]);
+  const creditos = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isCredito(item.cst_pis, item.aliq_pis)), [apiData]);
 
-    const periodKeys = apiData.periodos
-      .map(p => p.dt_ini.slice(0, 7)) // "YYYY-MM"
-      .sort();
-
-    const map = new Map<string, PivotRow>();
-
-    for (const periodo of apiData.periodos) {
-      const pk = periodo.dt_ini.slice(0, 7);
-      for (const item of periodo.itens_credito) {
-        const key = `${item.cst_pis}|${item.cod_cta}|${item.descricao_conta}|${item.bloco_efd}`;
-        if (!map.has(key)) {
-          map.set(key, {
-            cst_pis: item.cst_pis,
-            cod_cta: item.cod_cta,
-            descricao_conta: item.descricao_conta,
-            bloco_efd: item.bloco_efd,
-            valores: {},
-          });
-        }
-        const row = map.get(key)!;
-        row.valores[pk] = (row.valores[pk] || 0) + item.vlr_efd;
-      }
-    }
-
-    return { pivotRows: Array.from(map.values()), periodos: periodKeys };
-  }, [apiData]);
+  const hasData = resumo.rows.length > 0;
 
   const handleSearch = () => {
     if (!selectedContribuinte) {
@@ -135,15 +328,6 @@ const ApuracaoPisCofins = () => {
     setMesInicio(null);
     setMesFim(null);
     setSearchTriggered(false);
-  };
-
-  // Sticky left offsets for fixed columns
-  const COL_W = { cst: 60, cta: 90, desc: 200, bloco: 80 };
-  const stickyLeft = {
-    cst: 0,
-    cta: COL_W.cst,
-    desc: COL_W.cst + COL_W.cta,
-    bloco: COL_W.cst + COL_W.cta + COL_W.desc,
   };
 
   return (
@@ -215,118 +399,32 @@ const ApuracaoPisCofins = () => {
         </div>
       </div>
 
-      {/* Pivot Grid */}
+      {/* Results */}
       {searchTriggered && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <>
           {isLoading ? (
-            <div className="p-6 space-y-3">
+            <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
             </div>
           ) : error ? (
-            <div className="p-8 text-center space-y-2">
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-2">
               <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
               <p className="text-sm text-foreground">Erro ao buscar dados</p>
               <p className="text-xs text-muted-foreground">{(error as Error).message}</p>
             </div>
-          ) : pivotRows.length === 0 ? (
-            <div className="p-8 text-center">
+          ) : !hasData ? (
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
               <p className="text-sm text-muted-foreground">Nenhum dado encontrado para os filtros selecionados.</p>
             </div>
           ) : (
-            <div className="overflow-auto max-h-[calc(100vh-320px)]">
-              <Table className="text-xs">
-                <TableHeader className="sticky top-0 z-20">
-                  <TableRow className="bg-slate-100 hover:bg-slate-100">
-                    <TableHead
-                      className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky left-0 z-30 bg-slate-100 whitespace-nowrap"
-                      style={{ width: COL_W.cst, minWidth: COL_W.cst, left: stickyLeft.cst }}
-                    >
-                      CST
-                    </TableHead>
-                    <TableHead
-                      className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky z-30 bg-slate-100 whitespace-nowrap"
-                      style={{ width: COL_W.cta, minWidth: COL_W.cta, left: stickyLeft.cta }}
-                    >
-                      CTA
-                    </TableHead>
-                    <TableHead
-                      className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky z-30 bg-slate-100 whitespace-nowrap"
-                      style={{ width: COL_W.desc, minWidth: COL_W.desc, left: stickyLeft.desc }}
-                    >
-                      Descrição Conta
-                    </TableHead>
-                    <TableHead
-                      className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky z-30 bg-slate-100 whitespace-nowrap border-r border-slate-200"
-                      style={{ width: COL_W.bloco, minWidth: COL_W.bloco, left: stickyLeft.bloco }}
-                    >
-                      Bloco
-                    </TableHead>
-                    {periodos.map(pk => (
-                      <TableHead
-                        key={pk}
-                        className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right whitespace-nowrap"
-                        style={{ minWidth: 100 }}
-                      >
-                        {periodLabel(pk)}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pivotRows.map((row, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50">
-                      <TableCell
-                        className="text-xs tabular-nums sticky left-0 z-10 bg-white whitespace-nowrap p-2"
-                        style={{ left: stickyLeft.cst }}
-                      >
-                        {row.cst_pis}
-                      </TableCell>
-                      <TableCell
-                        className="text-xs tabular-nums sticky z-10 bg-white whitespace-nowrap p-2"
-                        style={{ left: stickyLeft.cta }}
-                      >
-                        {row.cod_cta}
-                      </TableCell>
-                      <TableCell
-                        className="text-xs sticky z-10 bg-white p-2 truncate"
-                        style={{ left: stickyLeft.desc, maxWidth: COL_W.desc }}
-                        title={row.descricao_conta}
-                      >
-                        {row.descricao_conta}
-                      </TableCell>
-                      <TableCell
-                        className="text-xs sticky z-10 bg-white whitespace-nowrap p-2 border-r border-slate-200"
-                        style={{ left: stickyLeft.bloco }}
-                      >
-                        {row.bloco_efd}
-                      </TableCell>
-                      {periodos.map(pk => {
-                        const val = row.valores[pk] ?? 0;
-                        return (
-                          <TableCell
-                            key={pk}
-                            className={cn(
-                              'text-xs tabular-nums text-right whitespace-nowrap p-2',
-                              val < 0 ? 'text-red-600' : 'text-foreground'
-                            )}
-                          >
-                            {fmt(val)}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              <PivotTable title="DK — Resumo" rows={resumo.rows} periodos={resumo.periodos} showCst showBloco />
+              <PivotTable title="Débitos" rows={debitos.rows} periodos={debitos.periodos} showTotal />
+              <PivotTable title="Isenções e Exclusões" rows={isencoes.rows} periodos={isencoes.periodos} showTotal />
+              <PivotTable title="Créditos" rows={creditos.rows} periodos={creditos.periodos} showTotal />
             </div>
           )}
-
-          {pivotRows.length > 0 && (
-            <div className="px-4 py-2.5 bg-slate-50 text-xs text-muted-foreground">
-              {pivotRows.length} conta{pivotRows.length !== 1 ? 's' : ''} · {periodos.length} período{periodos.length !== 1 ? 's' : ''}
-            </div>
-          )}
-        </div>
+        </>
       )}
     </DevLayout>
   );
