@@ -170,9 +170,37 @@ export default function EquipeSprintDetalhes() {
 
 
   useEffect(() => {
-    if (id) {
-      fetchSprintData();
-    }
+    if (!id) return;
+    
+    fetchSprintData();
+
+    // Realtime: sync deliverables across users
+    const channel = supabase
+      .channel(`sprint-deliverables-${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'sprint_deliverables',
+        filter: `sprint_id=eq.${id}`,
+      }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          setDeliverables(prev => prev.filter(d => d.id !== (payload.old as any).id));
+        } else if (payload.eventType === 'INSERT') {
+          setDeliverables(prev => {
+            if (prev.some(d => d.id === (payload.new as any).id)) return prev;
+            return [...prev, payload.new as unknown as Deliverable];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setDeliverables(prev =>
+            prev.map(d => d.id === (payload.new as any).id ? { ...d, ...payload.new } as Deliverable : d)
+          );
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const fetchSprintData = async () => {
