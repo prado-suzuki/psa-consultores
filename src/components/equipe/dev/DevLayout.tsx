@@ -54,6 +54,10 @@ const spedSubItems: NavItem[] = [
   { icon: FileText, label: 'ECF', path: '/equipe/dev/consulta-ecf' },
 ];
 
+const pisCofinsSubItems: NavItem[] = [
+  { icon: FileText, label: 'Apuração', path: '/equipe/dev/apuracao-pis-cofins' },
+];
+
 const navItemsAfterSped: NavItem[] = [
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
   { icon: Calculator, label: 'Calculadora IBS/CBS', path: '/equipe/dev/calculadora-ibs-cbs' },
