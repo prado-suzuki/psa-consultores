@@ -664,15 +664,15 @@ export default function NewClientModal({
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
 
-  const filteredCatalogServices = useMemo(() => {
-    if (osClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osClusterFilter);
-  }, [catalogServices, osClusterFilter]);
+  const filteredCatalogProducts = useMemo(() => {
+    if (osClusterFilter === "__all__") return produtoSegmentoFullOptions;
+    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osClusterFilter);
+  }, [produtoSegmentoFullOptions, osClusterFilter]);
 
-  const filteredEditCatalogServices = useMemo(() => {
-    if (osEditClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osEditClusterFilter);
-  }, [catalogServices, osEditClusterFilter]);
+  const filteredEditCatalogProducts = useMemo(() => {
+    if (osEditClusterFilter === "__all__") return produtoSegmentoFullOptions;
+    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osEditClusterFilter);
+  }, [produtoSegmentoFullOptions, osEditClusterFilter]);
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
