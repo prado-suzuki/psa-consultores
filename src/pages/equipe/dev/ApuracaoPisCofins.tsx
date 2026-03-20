@@ -234,7 +234,7 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
         </Table>
       </div>
 
-      <div className="px-4 py-2 bg-slate-50 text-xs text-muted-foreground">
+      <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-muted-foreground">
         {rows.length} conta{rows.length !== 1 ? 's' : ''} · {periodos.length} período{periodos.length !== 1 ? 's' : ''}
       </div>
     </div>
