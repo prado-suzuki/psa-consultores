@@ -168,7 +168,9 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                         key={pk}
                         className={cn(
                           'text-xs tabular-nums text-right whitespace-nowrap p-2',
+                          val === 0 && 'text-slate-300',
                           val < 0 && 'text-red-600',
+                          val > 0 && 'text-slate-700',
                         )}
                       >
                         {fmt(val)}
