@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
+import { currentAmbiente } from "@/config/api";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,6 +53,7 @@ const GestaoClientes = () => {
         .select("id, nome")
         .not("nome", "is", null)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome");
 
       if (error) throw error;
@@ -69,6 +70,7 @@ const GestaoClientes = () => {
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
 
       if (clienteId && clienteId !== "__todos__") {
@@ -118,7 +120,7 @@ const GestaoClientes = () => {
         if (filteredClienteIds.length === 0) return [];
       }
 
-      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false);
+      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false).eq("ambiente", currentAmbiente);
 
       if (clienteId && clienteId !== "__todos__") {
         clienteQuery = clienteQuery.eq("id", clienteId);

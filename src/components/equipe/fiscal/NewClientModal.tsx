@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { isProductionEnvironment } from "@/config/api";
+import { isProductionEnvironment, currentAmbiente } from "@/config/api";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -1363,6 +1363,7 @@ export default function NewClientModal({
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
         regiao: clientData.regiao || null,
+        ambiente: currentAmbiente,
       };
 
       let clienteId: string;
