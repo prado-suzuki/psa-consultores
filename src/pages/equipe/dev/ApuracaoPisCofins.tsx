@@ -73,19 +73,14 @@ const ApuracaoPisCofins = () => {
     setSearchTriggered(false);
   }, [selectedCliente]);
 
-  const cnpj = useMemo(() => {
-    const c = contribuintes?.find(c => c.id === selectedContribuinte);
-    return c?.cpf_cnpj?.replace(/\D/g, '') || '';
-  }, [contribuintes, selectedContribuinte]);
-
   const dataInicio = monthYearToDateString(mesInicio, 'start');
   const dataFim = monthYearToDateString(mesFim, 'end');
 
   const { data: apiData, isLoading, error } = usePisCofinsApuracao({
-    cnpj,
-    dataInicio,
-    dataFim,
-    enabled: searchTriggered && !!cnpj,
+    idContribuinte: selectedContribuinte,
+    dtIni: dataInicio,
+    dtFim: dataFim,
+    enabled: searchTriggered && !!selectedContribuinte,
   });
 
   // Flatten transformation
