@@ -1,41 +1,43 @@
 
 
-## Plano: Correção do Contrato da API PIS/COFINS
+## Plano: Refatorar tabela PIS/COFINS para Pivot Table
 
-### 1. Hook `src/hooks/usePisCofinsApuracao.ts`
+### Lógica de Pivotamento (`useMemo` no componente)
 
-**Parâmetros da interface**: trocar `cnpj` → `idContribuinte`, `dataInicio` → `dtIni`, `dataFim` → `dtFim`.
+Substituir o flatten atual por uma transformação pivot:
 
-**Construção da URL**: trocar os query params para `id_contribuinte`, `dt_ini`, `dt_fim`.
+1. **Extrair períodos únicos** — iterar `apiData.periodos`, coletar `dt_ini` ordenados cronologicamente → gera as colunas dinâmicas (ex: `2025-01`, `2025-02`)
+2. **Agrupar por chave composta** — `${cst_pis}|${cod_cta}|${descricao_conta}|${bloco_efd}` → cada chave = 1 linha
+3. **Preencher valores** — para cada grupo, mapear `dt_ini → vlr_efd`. Períodos sem valor = `0`
 
-**Tratamento de erro**: no bloco `!res.ok`, parsear JSON da resposta e extrair `error_message`. Usar `toast()` para exibir mensagens 400 (ex: `INVALID_DATE_RANGE`). Re-throw com a mensagem extraída.
+Tipo de saída:
+```typescript
+interface PivotRow {
+  cst_pis: string;
+  cod_cta: string;
+  descricao_conta: string;
+  bloco_efd: string;
+  valores: Record<string, number>; // chave = "YYYY-MM", valor = vlr_efd
+}
+```
 
-**queryKey**: atualizar para `['pis-cofins-apuracao', idContribuinte, dtIni, dtFim]`.
+### Renderização da Tabela
 
-### 2. Página `src/pages/equipe/dev/ApuracaoPisCofins.tsx`
+**Colunas fixas** (esquerda, sticky): CST, CTA, Descrição Conta, Bloco EFD
 
-**Chamada do hook**: passar `idContribuinte: selectedContribuinte` em vez de `cnpj`. Remover o `useMemo` que extrai CNPJ do contribuinte (não mais necessário). Passar `dtIni: dataInicio`, `dtFim: dataFim`.
+**Colunas dinâmicas** (direita, scroll horizontal): uma por período, header formatado como `MM/YYYY`
 
-**Validação** já existe (datas em par ou ambas omitidas) — manter sem alteração.
+**Células de valor**: `tabular-nums text-right text-xs`, formatadas com `toLocaleString('pt-BR')`. Valores negativos em `text-red-600`. Zero exibido como `0,00`.
 
-### 3. Tipos `src/types/pisCofins.ts`
+**Scroll**: container com `overflow-x-auto`. Colunas fixas com `sticky left-0 bg-white z-10` (encadeadas com `left-[Npx]` para cada coluna fixa).
 
-**`PisCofinsRateioReceitas`**: corrigir campos para:
-- `rec_bru_cum: number`
-- `rec_bru_ncum_exp: number`
-- `rec_bru_ncum_nt_mi: number`
-- `rec_bru_ncum_trib_mi: number`
-- `rec_bru_total: number`
+**Row count**: atualizado para contar linhas pivotadas.
 
-Remover os campos antigos (`ncum_exp`, `ncum_trib_mi`, `ncum_nt_mi`, `faturamento_bruto`).
-
-`cst_pis` já é `string` — sem alteração.
-
-### 4. Arquivos afetados
+### Arquivo afetado
 
 | Arquivo | Alteração |
 |---|---|
-| `src/hooks/usePisCofinsApuracao.ts` | Params renomeados, URL corrigida, toast em erro 400 |
-| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Passar `idContribuinte` direto, remover derivação de CNPJ |
-| `src/types/pisCofins.ts` | Campos de rateio corrigidos |
+| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Substituir flatten por pivot `useMemo`, reescrever `<Table>` com colunas dinâmicas e sticky |
+
+Tipo `PisCofinsRow` em `pisCofins.ts` permanece (não remove), mas não será mais usado pela tabela — pode adicionar `PivotRow` inline ou no types.
 
