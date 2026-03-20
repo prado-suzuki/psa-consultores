@@ -591,12 +591,12 @@ export default function NewClientModal({
     { value: "__outro__", label: "Outro (personalizado)" },
   ], [produtoSegmentoOptions]);
 
-  // produto_segmento options with ID for OS-level linking
+  // produto_segmento options with ID for OS-level linking (includes cluster join)
   const { data: produtoSegmentoFullOptions = [] } = useQuery({
     queryKey: ["produto_segmento_full"],
     queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
-      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean }>;
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)").eq("is_active", true).order("codigo");
+      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
     },
   });
 
