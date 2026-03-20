@@ -34,3 +34,11 @@ export interface PisCofinsRow extends PisCofinsItemCredito {
   dt_ini: string;
   rateio_receitas: PisCofinsRateioReceitas | null;
 }
+
+export interface PivotRow {
+  cst_pis: string;
+  cod_cta: string;
+  descricao_conta: string;
+  bloco_efd: string;
+  valores: Record<string, number>; // chave = "YYYY-MM", valor = vlr_efd
+}
