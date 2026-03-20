@@ -1108,8 +1108,8 @@ export default function NewClientModal({
 
   // --- OS HANDLERS ---
   const addContract = async () => {
-    if (!draftContract.id_servico) {
-      toast.error("Selecione um Serviço Contratado");
+    if (!draftContract.id_produto_segmento) {
+      toast.error("Selecione um Produto/Serviço Contratado");
       return;
     }
 
