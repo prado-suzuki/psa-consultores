@@ -10,6 +10,8 @@ export interface ProdutoSegmento {
   codigo: string;
   nome: string;
   is_active: boolean;
+  cluster_id: string | null;
+  estrutura_clusters: { name: string } | null;
 }
 
 export interface ServicoPrestado {
