@@ -42,7 +42,7 @@ export const useProdutoSegmentoList = () =>
   useQuery({
     queryKey: ['produto_segmento'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('produto_segmento').select('id, codigo, nome, is_active').order('codigo');
+      const { data, error } = await supabase.from('produto_segmento').select('id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)').order('codigo');
       if (error) throw error;
       return (data || []) as ProdutoSegmento[];
     },
