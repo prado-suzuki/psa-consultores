@@ -29,7 +29,6 @@ export interface PisCofinsApuracaoResponse {
   periodos: PisCofsinPeriodo[];
 }
 
-// Flat row (kept for backward compat)
 export interface PisCofinsRow extends PisCofinsItemCredito {
   periodo: string;
   dt_ini: string;
