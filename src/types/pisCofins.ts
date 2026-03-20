@@ -13,10 +13,10 @@ export interface PisCofinsItemCredito {
 
 export interface PisCofinsRateioReceitas {
   rec_bru_cum: number;
-  ncum_exp: number;
-  ncum_trib_mi: number;
-  ncum_nt_mi: number;
-  faturamento_bruto: number;
+  rec_bru_ncum_exp: number;
+  rec_bru_ncum_nt_mi: number;
+  rec_bru_ncum_trib_mi: number;
+  rec_bru_total: number;
 }
 
 export interface PisCofsinPeriodo {
