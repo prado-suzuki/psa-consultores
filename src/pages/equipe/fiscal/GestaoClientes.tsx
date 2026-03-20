@@ -70,6 +70,7 @@ const GestaoClientes = () => {
         .select("id, nome_razao_social, cliente_id")
         .not("nome_razao_social", "is", null)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
 
       if (clienteId && clienteId !== "__todos__") {
