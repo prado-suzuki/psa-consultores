@@ -180,8 +180,10 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
                   {showTotal && (
                     <TableCell
                       className={cn(
-                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold',
+                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold bg-slate-50/50',
+                        rowTotal === 0 && 'text-slate-300',
                         rowTotal < 0 && 'text-red-600',
+                        rowTotal > 0 && 'text-slate-700',
                       )}
                     >
                       {fmt(rowTotal)}
