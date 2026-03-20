@@ -51,6 +51,7 @@ import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
 import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
 import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
+import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
@@ -148,6 +149,7 @@ const App = () => (
             {/* Redirect legacy route */}
             <Route path="/equipe/dev/gestao-clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/calculadora-ibs-cbs" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/apuracao-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             
             
