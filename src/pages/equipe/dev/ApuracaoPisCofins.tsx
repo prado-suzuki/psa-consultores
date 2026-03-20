@@ -69,10 +69,10 @@ const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false,
   const headCls = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap';
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
       {/* Section header */}
-      <div className="bg-slate-100 px-4 py-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</span>
+      <div className="border-l-4 border-teal-600 pl-3 py-3 px-4 bg-slate-50">
+        <span className="text-sm font-bold text-slate-800">{title}</span>
       </div>
 
       <div className="overflow-auto max-h-[calc(100vh-360px)]">
