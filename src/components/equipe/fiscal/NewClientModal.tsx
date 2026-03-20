@@ -3661,47 +3661,47 @@ export default function NewClientModal({
                                       </div>
                                       <div className="mt-4">
                                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                          Serviço Contratado *
+                                          Produto/Serviço Contratado *
                                         </Label>
                                         <Select
-                                          value={(ec as any).id_servico || "__none__"}
+                                          value={(ec as any).id_produto_segmento || "__none__"}
                                           onValueChange={(v) =>
                                             setEditingContractData({
                                               ...ec,
-                                              id_servico: v === "__none__" ? "" : v,
+                                              id_produto_segmento: v === "__none__" ? "" : v,
                                             } as any)
                                           }
                                         >
                                           <SelectTrigger className="h-8 mt-1">
-                                            <SelectValue placeholder="Selecione um serviço..." />
+                                            <SelectValue placeholder="Selecione um produto..." />
                                           </SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="__none__">Selecione...</SelectItem>
                                             {(() => {
-                                              const source = filteredEditCatalogServices;
-                                              const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                              const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                              const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                                const cName = s.estrutura_clusters.name;
+                                              const source = filteredEditCatalogProducts;
+                                              const withCluster = source.filter((p) => p.estrutura_clusters?.name);
+                                              const withoutCluster = source.filter((p) => !p.estrutura_clusters?.name);
+                                              const clusterGroups = withCluster.reduce((acc: Record<string, typeof source>, p) => {
+                                                const cName = p.estrutura_clusters!.name;
                                                 if (!acc[cName]) acc[cName] = [];
-                                                acc[cName].push(s);
+                                                acc[cName].push(p);
                                                 return acc;
-                                              }, {} as Record<string, any[]>);
+                                              }, {} as Record<string, typeof source>);
                                               return (
                                                 <>
-                                                  {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                                  {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, prods]) => (
                                                     <SelectGroup key={clusterName}>
                                                       <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                                      {(svcs as any[]).map((svc: any) => (
-                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                      {prods.map((p) => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                                       ))}
                                                     </SelectGroup>
                                                   ))}
                                                   {withoutCluster.length > 0 && (
                                                     <SelectGroup>
                                                       <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                                      {withoutCluster.map((svc: any) => (
-                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                      {withoutCluster.map((p) => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                                       ))}
                                                     </SelectGroup>
                                                   )}
