@@ -1363,6 +1363,7 @@ export default function NewClientModal({
         uf: clientData.uf.trim() || null,
         setor_cliente: clientData.setor_cliente || null,
         regiao: clientData.regiao || null,
+        ambiente: currentAmbiente,
       };
 
       let clienteId: string;

@@ -120,7 +120,7 @@ const GestaoClientes = () => {
         if (filteredClienteIds.length === 0) return [];
       }
 
-      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false);
+      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false).eq("ambiente", currentAmbiente);
 
       if (clienteId && clienteId !== "__todos__") {
         clienteQuery = clienteQuery.eq("id", clienteId);
