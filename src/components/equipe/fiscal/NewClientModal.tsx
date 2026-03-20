@@ -439,7 +439,7 @@ export default function NewClientModal({
   // --- Draft detection helpers ---
   const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
   const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
-  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim());
+  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_produto_segmento?.trim());
 
   const getDraftPendingTabs = (): string[] => {
     const tabs: string[] = [];
@@ -591,12 +591,12 @@ export default function NewClientModal({
     { value: "__outro__", label: "Outro (personalizado)" },
   ], [produtoSegmentoOptions]);
 
-  // produto_segmento options with ID for OS-level linking
+  // produto_segmento options with ID for OS-level linking (includes cluster join)
   const { data: produtoSegmentoFullOptions = [] } = useQuery({
     queryKey: ["produto_segmento_full"],
     queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
-      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean }>;
+      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)").eq("is_active", true).order("codigo");
+      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
     },
   });
 
@@ -664,15 +664,15 @@ export default function NewClientModal({
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
 
-  const filteredCatalogServices = useMemo(() => {
-    if (osClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osClusterFilter);
-  }, [catalogServices, osClusterFilter]);
+  const filteredCatalogProducts = useMemo(() => {
+    if (osClusterFilter === "__all__") return produtoSegmentoFullOptions;
+    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osClusterFilter);
+  }, [produtoSegmentoFullOptions, osClusterFilter]);
 
-  const filteredEditCatalogServices = useMemo(() => {
-    if (osEditClusterFilter === "__all__") return catalogServices;
-    return catalogServices.filter((s: any) => s.cluster_id === osEditClusterFilter);
-  }, [catalogServices, osEditClusterFilter]);
+  const filteredEditCatalogProducts = useMemo(() => {
+    if (osEditClusterFilter === "__all__") return produtoSegmentoFullOptions;
+    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osEditClusterFilter);
+  }, [produtoSegmentoFullOptions, osEditClusterFilter]);
   const [draftContract, setDraftContract] = useState({
     ordem_servico: "",
     data_emissao: "",
@@ -1108,8 +1108,8 @@ export default function NewClientModal({
 
   // --- OS HANDLERS ---
   const addContract = async () => {
-    if (!draftContract.id_servico) {
-      toast.error("Selecione um Serviço Contratado");
+    if (!draftContract.id_produto_segmento) {
+      toast.error("Selecione um Produto/Serviço Contratado");
       return;
     }
 
@@ -1515,7 +1515,6 @@ export default function NewClientModal({
         valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
         situacao: c.situacao_projeto || "em_andamento",
         observacoes: c.observacoes_projeto || null,
-        id_servico: c.id_servico || null,
         id_produto_segmento: c.id_produto_segmento || null,
       });
 
@@ -3464,26 +3463,26 @@ export default function NewClientModal({
                                             value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)}
                                           />
                                         </div>
-                                        {cont.id_servico && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
                                               Empresa
                                             </p>
                                             <span className="text-sm">
-                                              {(() => {
-                                                const svc = catalogServices.find((s: any) => s.id === cont.id_servico);
-                                                return (svc as any)?.estrutura_clusters?.name || "—";
-                                              })()}
+                                              {produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)?.estrutura_clusters?.name || "—"}
                                             </span>
                                           </div>
                                         )}
-                                        {cont.id_servico && (
+                                        {cont.id_produto_segmento && (
                                           <div className="col-span-2 md:col-span-3">
                                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                                              Serviço Contratado
+                                              Produto/Serviço Contratado
                                             </p>
                                             <Badge variant="secondary" className="text-xs mt-1">
-                                              {catalogServices.find((s: any) => s.id === cont.id_servico)?.nome || cont.id_servico}
+                                              {(() => {
+                                                const p = produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento);
+                                                return p ? `${p.codigo} — ${p.nome}` : cont.id_produto_segmento;
+                                              })()}
                                             </Badge>
                                           </div>
                                         )}
@@ -3662,47 +3661,47 @@ export default function NewClientModal({
                                       </div>
                                       <div className="mt-4">
                                         <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                          Serviço Contratado *
+                                          Produto/Serviço Contratado *
                                         </Label>
                                         <Select
-                                          value={(ec as any).id_servico || "__none__"}
+                                          value={(ec as any).id_produto_segmento || "__none__"}
                                           onValueChange={(v) =>
                                             setEditingContractData({
                                               ...ec,
-                                              id_servico: v === "__none__" ? "" : v,
+                                              id_produto_segmento: v === "__none__" ? "" : v,
                                             } as any)
                                           }
                                         >
                                           <SelectTrigger className="h-8 mt-1">
-                                            <SelectValue placeholder="Selecione um serviço..." />
+                                            <SelectValue placeholder="Selecione um produto..." />
                                           </SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="__none__">Selecione...</SelectItem>
                                             {(() => {
-                                              const source = filteredEditCatalogServices;
-                                              const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                              const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                              const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                                const cName = s.estrutura_clusters.name;
+                                              const source = filteredEditCatalogProducts;
+                                              const withCluster = source.filter((p) => p.estrutura_clusters?.name);
+                                              const withoutCluster = source.filter((p) => !p.estrutura_clusters?.name);
+                                              const clusterGroups = withCluster.reduce((acc: Record<string, typeof source>, p) => {
+                                                const cName = p.estrutura_clusters!.name;
                                                 if (!acc[cName]) acc[cName] = [];
-                                                acc[cName].push(s);
+                                                acc[cName].push(p);
                                                 return acc;
-                                              }, {} as Record<string, any[]>);
+                                              }, {} as Record<string, typeof source>);
                                               return (
                                                 <>
-                                                  {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                                  {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, prods]) => (
                                                     <SelectGroup key={clusterName}>
                                                       <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                                      {(svcs as any[]).map((svc: any) => (
-                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                      {prods.map((p) => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                                       ))}
                                                     </SelectGroup>
                                                   ))}
                                                   {withoutCluster.length > 0 && (
                                                     <SelectGroup>
                                                       <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                                      {withoutCluster.map((svc: any) => (
-                                                        <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                                      {withoutCluster.map((p) => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                                       ))}
                                                     </SelectGroup>
                                                   )}
@@ -4027,47 +4026,47 @@ export default function NewClientModal({
                               </Select>
                             </div>
 
-                            {/* L7: Serviço Contratado */}
+                            {/* L7: Produto/Serviço Contratado */}
                             <div className="mt-4">
                               <Label className="text-xs font-semibold uppercase text-muted-foreground">
-                                Serviço Contratado *
+                                Produto/Serviço Contratado *
                               </Label>
                               <Select
-                                value={draftContract.id_servico || "__none__"}
+                                value={draftContract.id_produto_segmento || "__none__"}
                                 onValueChange={(v) =>
-                                  setDraftContract(prev => ({ ...prev, id_servico: v === "__none__" ? "" : v }))
+                                  setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))
                                 }
                               >
                                 <SelectTrigger className="h-8 mt-1">
-                                  <SelectValue placeholder="Selecione um serviço..." />
+                                  <SelectValue placeholder="Selecione um produto..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="__none__">Selecione...</SelectItem>
                                   {(() => {
-                                    const source = filteredCatalogServices;
-                                    const withCluster = source.filter((s: any) => s.estrutura_clusters?.name);
-                                    const withoutCluster = source.filter((s: any) => !s.estrutura_clusters?.name);
-                                    const clusterGroups = withCluster.reduce((acc: Record<string, any[]>, s: any) => {
-                                      const cName = s.estrutura_clusters.name;
+                                    const source = filteredCatalogProducts;
+                                    const withCluster = source.filter((p) => p.estrutura_clusters?.name);
+                                    const withoutCluster = source.filter((p) => !p.estrutura_clusters?.name);
+                                    const clusterGroups = withCluster.reduce((acc: Record<string, typeof source>, p) => {
+                                      const cName = p.estrutura_clusters!.name;
                                       if (!acc[cName]) acc[cName] = [];
-                                      acc[cName].push(s);
+                                      acc[cName].push(p);
                                       return acc;
-                                    }, {} as Record<string, any[]>);
+                                    }, {} as Record<string, typeof source>);
                                     return (
                                       <>
-                                        {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, svcs]) => (
+                                        {Object.entries(clusterGroups).sort(([a],[b]) => a.localeCompare(b)).map(([clusterName, prods]) => (
                                           <SelectGroup key={clusterName}>
                                             <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-                                            {(svcs as any[]).map((svc: any) => (
-                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                            {prods.map((p) => (
+                                              <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                             ))}
                                           </SelectGroup>
                                         ))}
                                         {withoutCluster.length > 0 && (
                                           <SelectGroup>
                                             <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-                                            {withoutCluster.map((svc: any) => (
-                                              <SelectItem key={svc.id} value={svc.id}>{svc.nome}</SelectItem>
+                                            {withoutCluster.map((p) => (
+                                              <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>
                                             ))}
                                           </SelectGroup>
                                         )}
