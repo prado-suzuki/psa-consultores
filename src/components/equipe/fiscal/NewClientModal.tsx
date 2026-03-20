@@ -439,7 +439,7 @@ export default function NewClientModal({
   // --- Draft detection helpers ---
   const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
   const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
-  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_servico?.trim());
+  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_produto_segmento?.trim());
 
   const getDraftPendingTabs = (): string[] => {
     const tabs: string[] = [];
