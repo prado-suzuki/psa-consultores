@@ -1515,7 +1515,6 @@ export default function NewClientModal({
         valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
         situacao: c.situacao_projeto || "em_andamento",
         observacoes: c.observacoes_projeto || null,
-        id_servico: c.id_servico || null,
         id_produto_segmento: c.id_produto_segmento || null,
       });
 
