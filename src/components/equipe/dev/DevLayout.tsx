@@ -81,12 +81,16 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const [spedOpen, setSpedOpen] = useState(() => 
     spedSubItems.some(item => location.pathname === item.path)
   );
+  const [pisCofinsOpen, setPisCofinsOpen] = useState(() =>
+    pisCofinsSubItems.some(item => location.pathname === item.path)
+  );
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
   const isSpedActive = spedSubItems.some(item => location.pathname === item.path);
+  const isPisCofinsActive = pisCofinsSubItems.some(item => location.pathname === item.path);
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
