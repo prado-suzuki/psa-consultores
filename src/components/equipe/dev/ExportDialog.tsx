@@ -612,7 +612,7 @@ export function ExportDialog({
             Exportar Excel
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Exportar Documentos Fiscais</DialogTitle>
             <DialogDescription>
