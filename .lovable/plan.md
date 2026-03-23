@@ -1,24 +1,15 @@
 
 
-## Plano: Corrigir AuditoriaCruzada — nome, abas e filtros
+## Plano: Simplificar filtros globais da Auditoria Cruzada
 
-### Arquivo 1: `src/pages/equipe/dev/AuditoriaCruzada.tsx`
+### Arquivo: `src/pages/equipe/dev/AuditoriaCruzada.tsx`
 
-3 correções:
+Manter apenas 4 filtros globais: **Cliente**, **Contribuinte**, **Data Início** e **Data Fim**. Remover NCM, Alíquota e Tipo de Produto (serão adicionados dinamicamente por aba no futuro).
 
-1. **Título**: Trocar `title="Cruzamento de Dados"` para `title="Auditoria Cruzada"` e subtitle para "Auditoria cruzada entre fontes de dados fiscais"
+1. **Remover states**: `ncm`, `aliquota`, `tipoProduto` e suas referências no `handleLimpar`
+2. **Remover imports** não mais usados (Input se não houver outro uso)
+3. **Reorganizar grid**: Uma única linha com 4 colunas (`lg:grid-cols-4`) contendo Cliente, Contribuinte, Data Início, Data Fim
+4. **Mover botões** Limpar/Consultar para a mesma linha ou logo abaixo
 
-2. **Accordions → Tabs**: Substituir os 3 `AccordionItem` por um componente `Tabs` com `TabsList` + `TabsTrigger` + `TabsContent`, mesmo padrão da ApuracaoPisCofins (usando `activeTab` state). As 3 abas:
-   - "Balancete vs EFD Contribuições"
-   - "EFD Contribuições vs EFD ICMS"  
-   - "EFD Contribuições vs XMLs"
-   - Conteúdo de cada aba: placeholder "Em construção"
-
-3. **Filtros**: Trocar filtro "Nome" por "Cliente" (Select com dados de `useClientesList` ou query direta à tabela `cliente`). Adicionar filtro "Contribuinte" (Select carregado da tabela `contribuinte` filtrado pelo cliente selecionado, usando `useContribuintesByCliente`). Manter NCM, Alíquota e Tipo de Produto. Grid passa de 4 para 5 colunas (`lg:grid-cols-5`).
-
-### Arquivo 2: `src/components/equipe/dev/DevLayout.tsx`
-
-- Linha 60: Trocar label de `'Cruzamento de Dados'` para `'Auditoria Cruzada'`
-
-2 arquivos, ~60 linhas alteradas.
+1 arquivo, ~30 linhas removidas/simplificadas.
 
