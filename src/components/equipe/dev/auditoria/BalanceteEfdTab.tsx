@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
 
 interface BalanceteEfdTabProps {
@@ -24,7 +24,7 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [blocoFilter, setBlocoFilter] = useState('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  
 
   // Debounce 300ms
   useEffect(() => {
@@ -106,10 +106,6 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Adicionar Registro
-          </Button>
         </div>
 
         {/* Tabela */}
@@ -152,15 +148,6 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
           </div>
         )}
 
-        {/* Dialog placeholder */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar Registro</DialogTitle>
-              <DialogDescription>Formulário de inserção manual em desenvolvimento.</DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
