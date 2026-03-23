@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
-import type { PisCofinsApuracaoResponse } from '@/types/pisCofins';
+import type { ApuracaoInput } from '@/types/pisCofins';
 
 interface UsePisCofinsApuracaoParams {
   idContribuinte: string;
@@ -16,7 +16,7 @@ export function usePisCofinsApuracao({ idContribuinte, dtIni, dtFim, enabled = f
 
   return useQuery({
     queryKey: ['pis-cofins-apuracao', idContribuinte, dtIni, dtFim],
-    queryFn: async (): Promise<PisCofinsApuracaoResponse> => {
+    queryFn: async (): Promise<ApuracaoInput> => {
       if (!idContribuinte) throw new Error('Contribuinte é obrigatório');
 
       const url = new URL(getApiUrl(`/api/v1/pis_cofins/apuracao`));
