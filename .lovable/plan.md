@@ -1,27 +1,24 @@
 
 
-## Plano: Nova ferramenta "Cruzamento de Dados" no card Levantamento de Créditos
+## Plano: Corrigir AuditoriaCruzada — nome, abas e filtros
 
-### Arquivos
+### Arquivo 1: `src/pages/equipe/dev/AuditoriaCruzada.tsx`
 
-**1. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** (novo, ~80 linhas)
-- Layout com `DevLayout` (título "Cruzamento de Dados", subtitle "Cruzamento entre fontes de dados fiscais")
-- Filtros globais em card `bg-muted/50`: Nome (Input text), NCM (Input text), Alíquota (Input text), Tipo de Produto (Select com opções "Todos", "Mercadoria", "Serviço")
-- Botões Limpar e Consultar alinhados à direita
-- 3 Accordions (`Accordion type="multiple"`):
-  1. "Balancete vs EFD Contribuições"
-  2. "EFD Contribuições vs EFD ICMS"
-  3. "EFD Contribuições vs XMLs (NFe e CTe)"
-- Cada accordion com placeholder "Em construção"
+3 correções:
 
-**2. `src/components/equipe/dev/DevLayout.tsx`** (~2 linhas)
-- Adicionar em `pisCofinsSubItems`:
-  ```ts
-  { icon: FileSpreadsheet, label: 'Cruzamento de Dados', path: '/equipe/dev/cruzamento-dados' },
-  ```
+1. **Título**: Trocar `title="Cruzamento de Dados"` para `title="Auditoria Cruzada"` e subtitle para "Auditoria cruzada entre fontes de dados fiscais"
 
-**3. `src/App.tsx`** (~3 linhas)
-- Import `AuditoriaCruzada` e rota `/equipe/dev/cruzamento-dados` com `TeamRoute + PageAccessGate`
+2. **Accordions → Tabs**: Substituir os 3 `AccordionItem` por um componente `Tabs` com `TabsList` + `TabsTrigger` + `TabsContent`, mesmo padrão da ApuracaoPisCofins (usando `activeTab` state). As 3 abas:
+   - "Balancete vs EFD Contribuições"
+   - "EFD Contribuições vs EFD ICMS"  
+   - "EFD Contribuições vs XMLs"
+   - Conteúdo de cada aba: placeholder "Em construção"
 
-3 arquivos, ~90 linhas novas.
+3. **Filtros**: Trocar filtro "Nome" por "Cliente" (Select com dados de `useClientesList` ou query direta à tabela `cliente`). Adicionar filtro "Contribuinte" (Select carregado da tabela `contribuinte` filtrado pelo cliente selecionado, usando `useContribuintesByCliente`). Manter NCM, Alíquota e Tipo de Produto. Grid passa de 4 para 5 colunas (`lg:grid-cols-5`).
+
+### Arquivo 2: `src/components/equipe/dev/DevLayout.tsx`
+
+- Linha 60: Trocar label de `'Cruzamento de Dados'` para `'Auditoria Cruzada'`
+
+2 arquivos, ~60 linhas alteradas.
 
