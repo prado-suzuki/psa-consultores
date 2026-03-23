@@ -828,6 +828,24 @@ const ConsultaXMLs = () => {
                   Limpar filtros
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={handleDownloadBatchXml}
+                disabled={
+                  downloadingBatch ||
+                  isLoading ||
+                  !selectedContribuinte ||
+                  !dataInicio ||
+                  (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
+                }
+              >
+                {downloadingBatch ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderDown className="h-4 w-4 mr-2" />
+                )}
+                Baixar XMLs
+              </Button>
               <ExportDialog
                 data={tipoDocumento === "nfe" ? nfeRecords : []}
                 cteData={tipoDocumento === "cte" ? cteRecords : []}
