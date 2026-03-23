@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format } from 'date-fns';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -137,6 +138,19 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                 <DetailField label="Vigência Fim (YYYYMM)" value={regra.data_vigencia_fim} />
               </div>
               <DetailField label="Observações" value={regra.observacoes} />
+              {/* Metadados de auditoria */}
+              {((regra as any).updated_at || (regra as any).updated_by) && (
+                <div className="border-t pt-3 mt-4 space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground">Metadados</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <DetailField
+                      label="Última atualização"
+                      value={(regra as any).updated_at ? format(new Date((regra as any).updated_at), 'dd/MM/yyyy HH:mm') : null}
+                    />
+                    <DetailField label="Atualizado por" value={(regra as any).updated_by} />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Form {...form}>

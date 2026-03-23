@@ -2004,6 +2004,8 @@ export type Database = {
           observacoes: string | null
           permite_credito: string | null
           tipo_credito: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           base_legal?: string | null
@@ -2019,6 +2021,8 @@ export type Database = {
           observacoes?: string | null
           permite_credito?: string | null
           tipo_credito?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           base_legal?: string | null
@@ -2034,6 +2038,8 @@ export type Database = {
           observacoes?: string | null
           permite_credito?: string | null
           tipo_credito?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
