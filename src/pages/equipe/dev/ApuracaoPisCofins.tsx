@@ -295,9 +295,7 @@ const ApuracaoPisCofins = () => {
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} className="mb-6">
                 <TabsList>
-                  <TabsTrigger value="resumo">
-                    {contribuintes?.find(c => c.id === selectedContribuinte)?.nome_razao_social || 'Resumo'} - Resumo
-                  </TabsTrigger>
+                  <TabsTrigger value="resumo">Resumo</TabsTrigger>
                   <TabsTrigger value="debitos">Débitos</TabsTrigger>
                   <TabsTrigger value="creditos">Créditos</TabsTrigger>
                   <TabsTrigger value="apuracao">Apuração</TabsTrigger>
