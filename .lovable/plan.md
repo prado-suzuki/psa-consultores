@@ -1,65 +1,94 @@
 
 
-## Plano: Corrigir Responsividade do ExportDialog
+## Plano: Nova Ferramenta "Mapa NCM (PIS/COFINS)"
 
-### Problema
+CRUD completo para a tabela `pis_cofins_regra`, seguindo os padrões do projeto (hook encapsulado, auditoria, rota protegida).
 
-O modal usa alturas fixas (`h-[350px]`, `h-[320px]`) nos `ScrollArea` que não se adaptam a viewports menores (laptops 768px–900px de altura). O conteúdo ou transborda ou desperdiça espaço.
+### Arquivos a criar
 
-### Arquivo: `src/components/equipe/dev/ExportDialog.tsx`
+| Arquivo | Descrição |
+|---|---|
+| `src/hooks/useRegrasNCM.ts` | Hook encapsulado com query + mutations (create, update, delete) + audit log |
+| `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` | Sheet lateral com formulário (zod + react-hook-form) para criar/editar regra |
+| `src/pages/equipe/dev/MapaNCMPisCofins.tsx` | Página principal com filtros, tabela e ações |
 
-### Alterações
+### Arquivos a editar
 
-**1. DialogContent — layout flex responsivo (linha 615)**
+| Arquivo | Alteração |
+|---|---|
+| `src/components/equipe/dev/DevLayout.tsx` | Adicionar item "Mapa NCM" no array `pisCofinsSubItems` |
+| `src/App.tsx` | Adicionar import + rota `/equipe/dev/mapa-ncm-pis-cofins` |
+| `src/config/protectedPages.ts` | Registrar a nova página |
+| `src/hooks/useAuditLog.ts` | Adicionar `'regra_pis_cofins'` ao type `AuditEntityType` |
+
+---
+
+### 1. Hook `useRegrasNCM.ts`
+
+- **Query**: `supabase.from('pis_cofins_regra').select('*').order('cod_ncm')` com queryKey `['regras-ncm-pis-cofins']`
+- **createRegra**: mutation que insere na tabela com `id_segmento` fixo (campo obrigatório, default `'geral'`), chama `logAction` com `entity_type: 'regra_pis_cofins'`, action `'created'`
+- **updateRegra**: mutation de update por `id`, chama `logAction` com `'updated'` e `changed_fields`
+- **deleteRegra**: mutation de delete por `id`, chama `logAction` com `'deleted'`
+- Todos invalidam a queryKey no `onSuccess`
+- Tipagem: usar `Database['public']['Tables']['pis_cofins_regra']['Row']` do types.ts gerado
+
+### 2. Componente `RegraFormSheet.tsx`
+
+Baseado no arquivo enviado, adaptado ao projeto:
+- Schema zod com campos: `cod_ncm` (obrigatório), `cst_pis`, `cst_cofins`, `desc_cst` (obrigatórios), `base_legal`, `permite_credito` (Select S/N/vazio), `tipo_credito`, `observacoes`, `data_vigencia_inicio`, `data_vigencia_fim` (inputs numéricos bigint, conforme schema real)
+- Usa mutations do hook `useRegrasNCM` (não chama supabase direto)
+- Sheet com `sm:max-w-[600px]`, grid 2 colunas, botões teal
+
+### 3. Página `MapaNCMPisCofins.tsx`
+
+**Filtros** (card `bg-slate-50 rounded-xl`):
+- Input de busca (NCM ou Descrição) com ícone `Search`
+- Switch "Apenas com crédito"
+- Botão "Nova Regra" (teal, ícone `Plus`)
+
+**Tabela** (card `bg-white rounded-xl shadow-sm border`):
+- Header `bg-slate-50`, `text-xs uppercase tracking-wider`
+- Colunas: NCM, CST PIS, CST COFINS, Descrição CST, Crédito (Badge verde/outline), Ações (Editar/Excluir)
+- Empty state com ícone `FileSpreadsheet`
+- Hover `hover:bg-slate-50/50`
+- Contador de registros no rodapé
+
+**Modais**:
+- `RegraFormSheet` para criar/editar
+- `AlertDialog` para confirmar exclusão
+
+### 4. Sidebar (DevLayout.tsx)
+
+```typescript
+// pisCofinsSubItems — adicionar:
+{ icon: FileSpreadsheet, label: 'Mapa NCM', path: '/equipe/dev/mapa-ncm-pis-cofins' },
 ```
-// De:
-"max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-// Para:
-"max-w-4xl w-[95vw] max-h-[85vh] overflow-hidden flex flex-col"
-```
-Adiciona `w-[95vw]` para telas estreitas e reduz `max-h` para `85vh` para evitar que o modal encoste nas bordas.
 
-**2. ScrollArea da aba Colunas (linha 714)**
-```
-// De:
-<ScrollArea className="h-[350px] pr-4">
-// Para:
-<div className="flex-1 min-h-0 overflow-y-auto pr-4">
-```
-Substituir `ScrollArea` com altura fixa por `div` com `flex-1 min-h-0 overflow-y-auto` (padrão do projeto conforme memory pattern). Isso faz o conteúdo preencher o espaço disponível dinamicamente.
+### 5. Rota (App.tsx)
 
-**3. TabsContent da aba Colunas (linha 634)**
+```tsx
+import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
+// ...
+<Route path="/equipe/dev/mapa-ncm-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate></TeamRoute>} />
 ```
-// De:
-className="flex-1 overflow-hidden mt-4"
-// Para:
-className="flex-1 overflow-hidden mt-4 flex flex-col"
-```
-Adicionar `flex flex-col` para que o `flex-1` do scroll interno funcione.
 
-**4. ScrollArea da aba Preview (linha 785)**
-```
-// De:
-<ScrollArea className="h-[320px] w-full">
-// Para:
-<div className="flex-1 min-h-0 overflow-auto w-full">
-```
-Mesma substituição — usar flex growth em vez de altura fixa.
+### 6. Registro de página protegida
 
-**5. TabsContent da aba Preview (linha 767)**
+```typescript
+{
+  page_path: '/equipe/dev/mapa-ncm-pis-cofins',
+  page_name: 'Mapa NCM PIS/COFINS',
+  page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
+  category: 'dev',
+  requires_admin: false,
+  requires_team_member: true,
+}
 ```
-// De:
-className="flex-1 overflow-hidden mt-4"
-// Para:
-className="flex-1 overflow-hidden mt-4 flex flex-col"
-```
-E o `div` interno `space-y-4` também precisa de `flex flex-col flex-1 min-h-0`.
 
-**6. Toolbar de perfis — responsividade (linhas 636-684)**
-- Adicionar `min-w-0` no `SelectTrigger` para evitar que o select force largura em telas menores
-- Os botões de ação já usam `flex-wrap`, manter
+### Detalhes técnicos
 
-### Resultado esperado
-
-O modal se adapta a qualquer viewport entre 600px e 1440px de largura, e 500px a 1080px de altura, sem conteúdo cortado ou espaço desperdiçado. O scroll interno cresce/encolhe conforme o espaço disponível.
+- `data_vigencia_inicio` e `data_vigencia_fim` são `bigint` (number | null) no schema, não date — o formulário usa Input type `number`
+- `id_segmento` é `string` obrigatório na tabela — o hook define um default `'geral'` no insert
+- Filtragem client-side via `useMemo` (busca textual + toggle de crédito)
+- Nenhuma RLS nova necessária — tabela já existe com dados carregados
 
