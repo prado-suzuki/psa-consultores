@@ -56,6 +56,7 @@ const spedSubItems: NavItem[] = [
 
 const pisCofinsSubItems: NavItem[] = [
   { icon: FileText, label: 'Apuração', path: '/equipe/dev/apuracao-pis-cofins' },
+  { icon: FileSpreadsheet, label: 'Mapa NCM', path: '/equipe/dev/mapa-ncm-pis-cofins' },
 ];
 
 const navItemsAfterSped: NavItem[] = [

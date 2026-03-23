@@ -8,7 +8,8 @@ type AuditEntityType =
   | 'project' | 'task' | 'subtask'
   | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
   | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
-  | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
+  | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico'
+  | 'regra_pis_cofins';
 
 interface AuditLogEntry {
   area: AuditArea;
