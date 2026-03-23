@@ -222,7 +222,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isPisCofinsActive
                       ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                      : 'text-slate-700 hover:text-teal-600'
                   }`}
                 >
                   <Calculator className="h-4 w-4 mr-3" />
