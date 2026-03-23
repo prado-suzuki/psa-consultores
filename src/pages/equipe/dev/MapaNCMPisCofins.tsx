@@ -8,11 +8,12 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Plus, FileSpreadsheet, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
+type ModalMode = 'view' | 'edit' | 'create' | null;
 
 const MapaNCMPisCofins = () => {
   const { regras, isLoading, createRegra, updateRegra, deleteRegra } = useRegrasNCM();
@@ -20,8 +21,8 @@ const MapaNCMPisCofins = () => {
 
   const [search, setSearch] = useState('');
   const [creditOnly, setCreditOnly] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingRegra, setEditingRegra] = useState<RegraNCMRow | null>(null);
+  const [selectedRegra, setSelectedRegra] = useState<RegraNCMRow | null>(null);
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -38,20 +39,20 @@ const MapaNCMPisCofins = () => {
   }, [regras, search, creditOnly]);
 
   const handleSubmit = (values: any) => {
-    if (editingRegra) {
-      updateRegra.mutate({ id: editingRegra.id, ...values }, {
+    if (modalMode === 'edit' && selectedRegra) {
+      updateRegra.mutate({ id: selectedRegra.id, ...values }, {
         onSuccess: () => {
           toast({ title: 'Regra atualizada com sucesso' });
-          setSheetOpen(false);
-          setEditingRegra(null);
+          setModalMode(null);
+          setSelectedRegra(null);
         },
         onError: () => toast({ title: 'Erro ao atualizar', variant: 'destructive' }),
       });
-    } else {
+    } else if (modalMode === 'create') {
       createRegra.mutate(values, {
         onSuccess: () => {
           toast({ title: 'Regra criada com sucesso' });
-          setSheetOpen(false);
+          setModalMode(null);
         },
         onError: () => toast({ title: 'Erro ao criar', variant: 'destructive' }),
       });
@@ -67,6 +68,11 @@ const MapaNCMPisCofins = () => {
       },
       onError: () => toast({ title: 'Erro ao excluir', variant: 'destructive' }),
     });
+  };
+
+  const openView = (regra: RegraNCMRow) => {
+    setSelectedRegra(regra);
+    setModalMode('view');
   };
 
   return (
@@ -86,7 +92,7 @@ const MapaNCMPisCofins = () => {
           <Switch checked={creditOnly} onCheckedChange={setCreditOnly} />
           <span className="text-sm text-slate-600">Apenas com crédito</span>
         </div>
-        <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setEditingRegra(null); setSheetOpen(true); }}>
+        <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
           <Plus className="h-4 w-4 mr-2" /> Nova Regra
         </Button>
       </div>
@@ -120,7 +126,7 @@ const MapaNCMPisCofins = () => {
                   </TableCell>
                 </TableRow>
               ) : filtered.map(regra => (
-                <TableRow key={regra.id} className="hover:bg-slate-50/50">
+                <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
                   <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
                   <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
                   <TableCell className="text-xs text-slate-600">{regra.cst_cofins}</TableCell>
@@ -134,10 +140,10 @@ const MapaNCMPisCofins = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRegra(regra); setSheetOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openView(regra); }}>
+                        <Eye className="h-3.5 w-3.5 text-slate-500" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => setDeleteId(regra.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteId(regra.id); }}>
                         <Trash2 className="h-3.5 w-3.5 text-red-500" />
                       </Button>
                     </div>
@@ -152,11 +158,13 @@ const MapaNCMPisCofins = () => {
         </div>
       </div>
 
-      {/* Form Sheet */}
+      {/* Detail/Edit Modal */}
       <RegraFormSheet
-        open={sheetOpen}
-        onOpenChange={o => { setSheetOpen(o); if (!o) setEditingRegra(null); }}
-        regra={editingRegra}
+        open={modalMode !== null}
+        onOpenChange={o => { if (!o) { setModalMode(null); setSelectedRegra(null); } }}
+        regra={selectedRegra}
+        mode={modalMode ?? 'view'}
+        onModeChange={setModalMode}
         onSubmit={handleSubmit}
         isSubmitting={createRegra.isPending || updateRegra.isPending}
       />
