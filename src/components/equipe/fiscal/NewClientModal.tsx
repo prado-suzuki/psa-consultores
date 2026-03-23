@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
+import { useSetoresCliente } from "@/hooks/useSetorCliente";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { isProductionEnvironment, currentAmbiente } from "@/config/api";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -617,8 +618,11 @@ export default function NewClientModal({
     municipio: "",
     uf: "",
     setor_cliente: "",
+    setor_cliente_id: "",
     regiao: "",
   };
+
+  const { data: setoresCliente = [] } = useSetoresCliente();
 
   // Section 1 - Client data
   const [clientData, setClientData] = useState(defaultClientData);
@@ -766,6 +770,7 @@ export default function NewClientModal({
             municipio: cli.municipio || "",
             uf: cli.uf || "",
             setor_cliente: cli.setor_cliente || "",
+            setor_cliente_id: (cli as any).setor_cliente_id || "",
             regiao: (cli as any).regiao || "",
           });
         }
@@ -1353,6 +1358,11 @@ export default function NewClientModal({
     setSaving(true);
     let createdClienteId: string | null = null;
     try {
+      // Dual-write: gravar setor_cliente_id (UUID) e setor_cliente (sigla) para compatibilidade
+      const setorSigla = clientData.setor_cliente_id
+        ? setoresCliente.find(s => s.id === clientData.setor_cliente_id)?.sigla || clientData.setor_cliente || null
+        : clientData.setor_cliente || null;
+
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -1361,7 +1371,8 @@ export default function NewClientModal({
         telefone: clientData.telefone.trim() || null,
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
-        setor_cliente: clientData.setor_cliente || null,
+        setor_cliente: setorSigla,
+        setor_cliente_id: clientData.setor_cliente_id || null,
         regiao: clientData.regiao || null,
         ambiente: currentAmbiente,
       };
@@ -1883,24 +1894,30 @@ export default function NewClientModal({
                           </Label>
                           <Select
                             disabled={isReadOnly}
-                            value={clientData.setor_cliente || "__none__"}
-                            onValueChange={(v) =>
-                              setClientData({ ...clientData, setor_cliente: v === "__none__" ? "" : v })
-                            }
+                            value={clientData.setor_cliente_id || "__none__"}
+                            onValueChange={(v) => {
+                              if (v === "__none__") {
+                                setClientData({ ...clientData, setor_cliente_id: "", setor_cliente: "" });
+                              } else {
+                                const setor = setoresCliente.find(s => s.id === v);
+                                setClientData({
+                                  ...clientData,
+                                  setor_cliente_id: v,
+                                  setor_cliente: setor?.sigla || "",
+                                });
+                              }
+                            }}
                           >
                             <SelectTrigger className="flex-1 h-8">
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Selecione...</SelectItem>
-                              <SelectItem value="REV">REV - Revendas de insumos, máquinas e cerealistas</SelectItem>
-                              <SelectItem value="INS">INS - Instituições do agro</SelectItem>
-                              <SelectItem value="COO">COO - Cooperativas agropecuárias</SelectItem>
-                              <SelectItem value="AGR">AGR - Produção agropecuária</SelectItem>
-                              <SelectItem value="IND">IND - Agroindústria</SelectItem>
-                              <SelectItem value="INF">INF - Infraestrutura e concessões</SelectItem>
-                               <SelectItem value="TRA">TRA - Transportadora</SelectItem>
-                               <SelectItem value="DIV">DIV - Outros diversos</SelectItem>
+                              {setoresCliente.map((setor) => (
+                                <SelectItem key={setor.id} value={setor.id}>
+                                  {setor.sigla} - {setor.nome}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
