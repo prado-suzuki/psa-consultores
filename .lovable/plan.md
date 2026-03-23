@@ -1,17 +1,34 @@
 
+Problema confirmado: o PATCH continua disparando imediatamente ao clicar em “Editar”, mesmo com `type="button"` no botão de leitura. Pelos arquivos atuais e pelos requests capturados, a causa mais provável é a troca de modo dentro do mesmo footer: o botão clicado é reconciliado no mesmo slot e vira o botão “Salvar” externo ao form (`type="submit" form="regra-form"`), disparando o submit com os valores já populados.
 
-## Plano: Corrigir auto-submit ao clicar em Editar
+Plano de correção:
 
-### Causa raiz
+1. Arquivo alvo: `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
 
-O botão "Editar" no footer não tem `type="button"` explícito. Dentro de um `DialogContent` que contém um `<form>`, o botão pode ser interpretado como `type="submit"` pelo browser, disparando o submit do formulário no momento em que o modo troca para `edit` e o form aparece.
+2. Remover o submit externo implícito
+- Trocar o botão “Salvar” de:
+  - `type="submit" form="regra-form"`
+- Para:
+  - `type="button"`
+  - `onClick={form.handleSubmit(onSubmit)}`
+- Assim o salvar só acontece por clique explícito no botão, sem depender do `form` externo.
 
-### Correção
+3. Quebrar a reconciliação entre os modos
+- Colocar `key` diferente nos blocos condicionais de leitura e edição:
+  - conteúdo (`view-content` / `edit-content`)
+  - footer (`view-footer` / `edit-footer`)
+- Isso força desmontagem/remontagem real ao trocar de modo e evita reaproveitamento do mesmo botão no mesmo ciclo de clique.
 
-**Arquivo:** `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
+4. Manter submit por Enter apenas dentro do form
+- Preservar `onSubmit={form.handleSubmit(onSubmit)}` no `<form>`
+- Remover a dependência do atributo `form="regra-form"` no footer externo
 
-1. Adicionar `type="button"` ao botão "Editar" (linha 244) para garantir que ele nunca dispare submit
-2. Adicionar `type="button"` ao botão "Fechar" (linha 243) por segurança
+5. Validação final esperada
+- Clicar em “Editar” apenas troca para modo edição
+- Nenhum PATCH deve ocorrer nesse clique
+- PATCH só deve acontecer ao clicar em “Salvar” ou pressionar Enter dentro do formulário
 
-Alteração mínima — apenas 2 atributos adicionados, zero mudança de lógica.
-
+Impacto:
+- Alteração pontual em 1 arquivo
+- Zero mudança de layout, regras de negócio ou CRUD
+- Correção focada no fluxo do modal e no bug de auto-save
