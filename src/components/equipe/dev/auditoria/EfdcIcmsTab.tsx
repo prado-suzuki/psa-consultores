@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
@@ -20,7 +19,7 @@ const formatBRL = (value: number) =>
 const EfdcIcmsTab = ({ notas = [], isLoading, hasQueried }: EfdcIcmsTabProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showDivergencias, setShowDivergencias] = useState(false);
+  
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -71,16 +70,6 @@ const EfdcIcmsTab = ({ notas = [], isLoading, hasQueried }: EfdcIcmsTabProps) =>
                 className="h-8 text-sm pl-7"
               />
             </div>
-          </div>
-          <div className="flex items-center gap-2 pb-0.5">
-            <Switch
-              id="show-divergencias"
-              checked={showDivergencias}
-              onCheckedChange={setShowDivergencias}
-            />
-            <Label htmlFor="show-divergencias" className="text-xs whitespace-nowrap cursor-pointer">
-              Mostrar apenas divergências
-            </Label>
           </div>
         </div>
 
