@@ -1,46 +1,17 @@
 
 
-## Plano: Modal Centralizado com Modos Leitura/Edição
+## Plano: Corrigir auto-submit ao clicar em Editar
 
-### Arquivo: `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` → Renomear para `RegraDetailModal.tsx`
+### Causa raiz
 
-Substituir o `Sheet` lateral por um `Dialog` centralizado com dois modos internos.
+O botão "Editar" no footer não tem `type="button"` explícito. Dentro de um `DialogContent` que contém um `<form>`, o botão pode ser interpretado como `type="submit"` pelo browser, disparando o submit do formulário no momento em que o modo troca para `edit` e o form aparece.
 
-**Novo prop**: `mode: 'view' | 'edit' | 'create'` controlado externamente, com callback `onModeChange`.
+### Correção
 
-**Modo Leitura (view)** — aberto por padrão ao clicar na linha ou no ícone de olho:
-- Campos exibidos como texto estático (labels + valores em `<span>`) sem inputs
-- Layout em grid 2 colunas para dados principais (NCM, CST PIS, CST COFINS, Crédito)
-- Campos longos (Descrição, Base Legal, Observações) em largura total
-- Botão "Editar" no footer que chama `onModeChange('edit')`
-- Botão "Fechar" outline
+**Arquivo:** `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
 
-**Modo Edição (edit/create)** — ativado pelo botão "Editar" interno ou pelo "Nova Regra":
-- Formulário atual com inputs, validação Zod, submit
-- Botão "Cancelar" volta para modo leitura (se editando) ou fecha (se criando)
+1. Adicionar `type="button"` ao botão "Editar" (linha 244) para garantir que ele nunca dispare submit
+2. Adicionar `type="button"` ao botão "Fechar" (linha 243) por segurança
 
-**DialogContent**: `max-w-2xl` centralizado, `max-h-[85vh] overflow-y-auto`
-
-### Arquivo: `src/pages/equipe/dev/MapaNCMPisCofins.tsx`
-
-**Estado**: Substituir `sheetOpen` + `editingRegra` por:
-- `selectedRegra: RegraNCMRow | null` — regra selecionada para visualizar
-- `modalMode: 'view' | 'edit' | 'create' | null` — controla abertura e modo
-
-**Linha clicável**: Adicionar `onClick` no `TableRow` que seta `selectedRegra` e `modalMode = 'view'`. Usar `cursor-pointer`.
-
-**Ícone**: Trocar `Pencil` → `Eye` (lucide `Eye`) no botão de ações. O `onClick` do botão abre em modo `view`.
-
-**Botão excluir**: Já existe `AlertDialog` de confirmação — confirmado, nenhuma alteração necessária.
-
-**Botão "Nova Regra"**: Seta `selectedRegra = null` e `modalMode = 'create'`.
-
-**Propagação de clique**: No botão de ações (Eye e Trash), usar `e.stopPropagation()` para não disparar o onClick da linha.
-
-### Resumo de impacto
-
-| Arquivo | Alteração |
-|---|---|
-| `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` | Reescrever: Sheet → Dialog, adicionar modo leitura, renomear internamente |
-| `src/pages/equipe/dev/MapaNCMPisCofins.tsx` | Novo estado de modo, linha clicável, ícone Eye, stopPropagation nos botões |
+Alteração mínima — apenas 2 atributos adicionados, zero mudança de lógica.
 
