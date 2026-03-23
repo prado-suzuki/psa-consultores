@@ -240,8 +240,8 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
         <DialogFooter className="pt-4">
           {isViewMode ? (
             <>
-              <Button variant="outline" onClick={handleClose}>Fechar</Button>
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => onModeChange('edit')}>
+              <Button type="button" variant="outline" onClick={handleClose}>Fechar</Button>
+              <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => onModeChange('edit')}>
                 <Pencil className="h-4 w-4 mr-2" /> Editar
               </Button>
             </>
