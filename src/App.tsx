@@ -52,6 +52,7 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
 import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
 import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
+import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
