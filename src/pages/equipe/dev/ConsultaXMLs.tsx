@@ -29,6 +29,7 @@ import {
   Download,
   Filter,
   Eraser,
+  FolderDown,
 } from "lucide-react";
 import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
 import { NFE_COLUMNS, CTE_COLUMNS } from "@/constants/exportConfig";
@@ -198,6 +199,7 @@ const ConsultaXMLs = () => {
   const [chaveAcesso, setChaveAcesso] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [downloadingBatch, setDownloadingBatch] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
@@ -490,6 +492,65 @@ const ConsultaXMLs = () => {
     }
   };
 
+  const handleDownloadBatchXml = async () => {
+    if (!selectedContribuinte || !dataInicio) return;
+    setDownloadingBatch(true);
+    try {
+      const docType = tipoDocumento === "cte" ? "cte" : "nfe";
+      const params = new URLSearchParams({ data_inicio: dataInicio });
+      if (dataFim) params.append("data_fim", dataFim);
+      if (tipoMov) params.append("tipo_mov", tipoMov);
+      if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
+      if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
+
+      const url = `${API_BASE_URL}/api/v1/query/download/contribuintes/${selectedContribuinte}/${docType}/xml?${params}`;
+      const response = await fetchWithAuth(url, {
+        method: "GET",
+        headers: { Accept: "application/xml, application/zip" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao baixar XMLs: ${response.status}`);
+      }
+
+      const contentType = response.headers.get("Content-Type") || "";
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const filenameMatch = disposition.match(/filename[^;=\n]*=["']?([^"';\n]*)["']?/);
+      const filename = filenameMatch?.[1] || (contentType.includes("zip") ? "xmls.zip" : "documento.xml");
+
+      const filesFound = response.headers.get("X-Files-Found");
+      const filesMissing = response.headers.get("X-Files-Missing");
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      const parts: string[] = [];
+      if (filesFound) parts.push(`${filesFound} arquivo(s) encontrado(s)`);
+      if (filesMissing && filesMissing !== "0") parts.push(`${filesMissing} não localizado(s)`);
+
+      toast({
+        title: "Download concluído",
+        description: parts.length ? parts.join(". ") : "XMLs baixados com sucesso.",
+      });
+    } catch (err) {
+      console.error("Erro no download em lote:", err);
+      toast({
+        title: "Erro no download",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingBatch(false);
+    }
+  };
+
   return (
     <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/">
       <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
@@ -767,6 +828,24 @@ const ConsultaXMLs = () => {
                   Limpar filtros
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={handleDownloadBatchXml}
+                disabled={
+                  downloadingBatch ||
+                  isLoading ||
+                  !selectedContribuinte ||
+                  !dataInicio ||
+                  (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
+                }
+              >
+                {downloadingBatch ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderDown className="h-4 w-4 mr-2" />
+                )}
+                Baixar XMLs
+              </Button>
               <ExportDialog
                 data={tipoDocumento === "nfe" ? nfeRecords : []}
                 cteData={tipoDocumento === "cte" ? cteRecords : []}
