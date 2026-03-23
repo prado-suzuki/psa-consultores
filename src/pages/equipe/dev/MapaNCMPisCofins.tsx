@@ -122,7 +122,7 @@ const MapaNCMPisCofins = () => {
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
                     <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
                   </TableCell>
