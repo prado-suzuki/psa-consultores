@@ -20,6 +20,8 @@ const AuditoriaCruzada = () => {
   const [ncm, setNcm] = useState('');
   const [aliquota, setAliquota] = useState('');
   const [tipoProduto, setTipoProduto] = useState('todos');
+  const [dataInicio, setDataInicio] = useState<Date | undefined>();
+  const [dataFim, setDataFim] = useState<Date | undefined>();
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
