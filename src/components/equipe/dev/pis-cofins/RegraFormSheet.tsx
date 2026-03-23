@@ -38,7 +38,7 @@ const formatYYYYMM = (val: number | null | undefined) => {
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 
 const schema = z.object({
-  cod_ncm: z.string().min(1, 'NCM obrigatório'),
+  cod_ncm: z.string().min(1, 'NCM obrigatório').max(8, 'NCM deve ter no máximo 8 dígitos'),
   cst_pis: z.string().min(1, 'CST PIS obrigatório'),
   cst_cofins: z.string().min(1, 'CST COFINS obrigatório'),
   desc_cst: z.string().min(1, 'Descrição CST obrigatória'),
@@ -178,7 +178,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   <FormField control={form.control} name="cod_ncm" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Código NCM</FormLabel>
-                      <FormControl><Input placeholder="0000.00.00" {...field} /></FormControl>
+                      <FormControl><Input placeholder="00000000" maxLength={8} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
