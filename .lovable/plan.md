@@ -1,10 +1,20 @@
 
 
-## Plano: Remover tabela "Saldo a Pagar Consolidado" da aba Apuração
+## Plano: Renomear itens do menu lateral no DevLayout
 
-### Arquivo: `src/pages/equipe/dev/ApuracaoPisCofins.tsx`
+### Arquivo: `src/components/equipe/dev/DevLayout.tsx`
 
-**Linhas 646-699**: Remover o bloco `<section>` inteiro que contém o título "Saldo a Pagar Consolidado" e a tabela com 3 linhas (PIS Due, COFINS Due, Total a Recolher). Manter o container da aba (`<div className="space-y-8">`) vazio por enquanto — as tabelas detalhadas de apuração (COFINS/PIS breakdown) serão adicionadas em iteração futura se necessário.
+**3 mudanças pontuais:**
 
-1 arquivo, ~55 linhas removidas.
+1. **Linha 57-60** — Reordenar e renomear `pisCofinsSubItems`: Mapa NCM vai para o topo, Apuração para baixo
+   ```ts
+   const pisCofinsSubItems: NavItem[] = [
+     { icon: FileSpreadsheet, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
+     { icon: FileText, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
+   ];
+   ```
+
+2. **Linhas 203, 213, 229** — Trocar "Análise PIS/COFINS" por "Levantamento de Créditos" (título do collapsible e tooltip)
+
+1 arquivo, ~5 linhas alteradas.
 
