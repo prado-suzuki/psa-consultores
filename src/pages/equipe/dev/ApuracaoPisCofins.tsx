@@ -20,7 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { useQuery } from '@tanstack/react-query';
-import type { ResultadoPeriodo } from '@/types/pisCofins';
+import type { ResultadoPeriodo, RateioResultado } from '@/types/pisCofins';
 
 /* ── Formatters ── */
 const formatCurrency = (value: number) =>
