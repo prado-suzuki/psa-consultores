@@ -138,27 +138,27 @@ const DevDashboard = () => {
     >
       {/* ── Sessões em Andamento ──────────────────────────── */}
       {pendingSessions.length > 0 && (
-        <Card className="mb-6 border-amber-200 bg-amber-50/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base text-amber-800 flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+        <Card className="mb-4 border-amber-200 bg-amber-50/60">
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="text-sm text-amber-800 flex items-center gap-2">
+              <Clock className="h-4 w-4" />
               Sessões em Andamento
             </CardTitle>
-            <CardDescription className="text-amber-700/80">
+            <CardDescription className="text-amber-700/80 text-xs">
               Você tem trabalhos não finalizados
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-3 pt-0 space-y-2">
             {pendingSessions.map((s) => (
               <div
                 key={s.tool}
-                className="flex items-center justify-between rounded-lg border border-amber-200 bg-white p-3"
+                className="flex items-center justify-between rounded-lg border border-amber-200 bg-white p-2"
               >
-                <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-amber-500" />
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" />
                   <div>
-                    <p className="text-sm font-medium text-slate-700">{s.tool}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs font-medium text-slate-700">{s.tool}</p>
+                    <p className="text-[11px] text-slate-500">
                       {s.desc} · Último acesso: {s.lastModified}
                     </p>
                   </div>
@@ -166,10 +166,10 @@ const DevDashboard = () => {
                 <Button
                   size="sm"
                   onClick={() => navigate(s.path)}
-                  className="gap-1"
+                  className="gap-1 h-7 text-xs px-2"
                 >
-                  Retomar trabalho
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  Retomar
+                  <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
             ))}
@@ -178,23 +178,23 @@ const DevDashboard = () => {
       )}
 
       {/* ── Hub de Ferramentas ────────────────────────────── */}
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-teal-600" />
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-slate-700 flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-teal-600" />
           Ferramentas
         </h2>
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-[11px]">
           {filteredTools.length}
         </Badge>
       </div>
 
-      <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           placeholder="Buscar ferramenta pelo nome..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
+          className="pl-8 h-8 text-sm"
         />
       </div>
 
@@ -204,39 +204,39 @@ const DevDashboard = () => {
           <p>Nenhuma ferramenta encontrada para "{search}"</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredTools.map((tool) => (
             <Card
               key={tool.path}
-              className="flex flex-col justify-between border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+              className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${tool.iconBg}`}>{tool.icon}</div>
-                  <CardTitle className="text-base text-slate-700">{tool.name}</CardTitle>
+              <CardHeader className="p-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-md ${tool.iconBg}`}>{tool.icon}</div>
+                  <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
                 </div>
-                <CardDescription className="text-xs text-slate-500 mt-1">
+                <CardDescription className="text-[11px] text-slate-500 mt-0.5">
                   {tool.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0 flex items-center gap-3 flex-wrap">
+              <CardContent className="p-3 pt-0 flex items-center gap-2 flex-wrap">
                 <Button
                   size="sm"
                   onClick={() => navigate(tool.path)}
-                  className="gap-1"
+                  className="gap-1 h-7 text-xs px-2"
                 >
-                  Acessar Ferramenta
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  Acessar
+                  <ArrowRight className="h-3 w-3" />
                 </Button>
                 {tool.sopUrl && (
                   <a
                     href={tool.sopUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-teal-600 hover:text-teal-700 hover:underline text-xs font-medium inline-flex items-center gap-1"
+                    className="text-teal-600 hover:text-teal-700 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
                   >
-                    Ler Manual (SOP)
-                    <ExternalLink className="h-3 w-3" />
+                    SOP
+                    <ExternalLink className="h-2.5 w-2.5" />
                   </a>
                 )}
               </CardContent>
