@@ -807,8 +807,7 @@ export function ExportDialog({
                         </TableBody>
                       </Table>
                     </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
+                  </div>
                 )}
               </div>
             </TabsContent>
