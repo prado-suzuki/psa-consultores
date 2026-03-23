@@ -1,68 +1,110 @@
 
 
-## Plano: Normalizar `setor_cliente` — Implementação aprovada com dual-write
+## Plano: Refatoração da camada de dados da Apuração PIS/COFINS
 
-### Fase 1 — Migration SQL (uma única migration)
+### Diagnóstico
 
-```sql
--- Tabela setor_cliente
-CREATE TABLE public.setor_cliente (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  nome text NOT NULL,
-  sigla text NOT NULL UNIQUE,
-  descricao text,
-  created_at timestamptz DEFAULT now()
-);
+**Estado atual**: Existem duas "gerações" de código coexistindo:
+- **Geração 1 (projeto)**: `src/types/pisCofins.ts`, `src/hooks/usePisCofinsApuracao.ts`, `src/lib/pisCofinsFilters.ts` — usados pela página `ApuracaoPisCofins.tsx` atual (dashboard pivotado simples)
+- **Geração 2 (anexos)**: `types.ts`, `apuracao.ts`, `usePisCofinsApuracao.ts`, `usePisCofinsCalculator.ts` — motor de cálculo completo com apuração de PIS/COFINS, rateio, carryforward de saldos, variante balancete e pivoteamento genérico
 
--- Dados iniciais
-INSERT INTO setor_cliente (nome, sigla, descricao) VALUES
-  ('Transportadora', 'TRA', 'Atividades relacionadas ao setor de transportes'),
-  ('Agropecuária', 'AGR', 'Atividades relacionadas ao setor agropecuário'),
-  ('Revenda', 'REV', 'Atividades relacionadas a revenda'),
-  ('Indústria', 'IND', 'Atividades relacionadas ao setor industrial'),
-  ('Cooperativa', 'COO', 'Atividades relacionadas a cooperativas'),
-  ('Infraestrutura', 'INF', 'Atividades relacionadas a infraestrutura'),
-  ('Diversificado', 'DIV', 'Atividades diversificadas'),
-  ('Instituições do agro', 'INS', 'Instituições do setor agropecuário');
+**Problemas identificados nos anexos**:
+1. `usePisCofinsCalculator` mistura 4 responsabilidades: cálculo de resultados, cálculo de totais, montagem de colunas e pivoteamento de 6 tabelas — tudo num único `useMemo` gigante
+2. `pivotItems` usa `any` no retorno e recalcula todas as 6 tabelas quando qualquer dependência muda
+3. `calcTotais` recebe `any[]` — sem tipagem
+4. Tipos duplicados entre `src/types/pisCofins.ts` e o `types.ts` anexo (mesmos campos, nomes diferentes)
+5. O hook de fetch anexo usa `API_BASE_URL` diretamente em vez de `getApiUrl`
 
--- FK na tabela cliente
-ALTER TABLE public.cliente ADD COLUMN setor_cliente_id uuid REFERENCES public.setor_cliente(id);
+### Arquitetura proposta
 
--- Backfill
-UPDATE public.cliente c SET setor_cliente_id = sc.id
-FROM public.setor_cliente sc WHERE c.setor_cliente = sc.sigla AND c.setor_cliente IS NOT NULL;
-
--- RLS
-ALTER TABLE public.setor_cliente ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Authenticated can read" ON public.setor_cliente FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin can insert" ON public.setor_cliente FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "Admin can update" ON public.setor_cliente FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "Admin can delete" ON public.setor_cliente FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+```text
+src/types/pisCofins.ts          ← Fonte única de tipagens (merge)
+src/lib/apuracaoPisCofins.ts    ← Motor de cálculo puro (funções do apuracao.ts)
+src/lib/pisCofinsFilters.ts     ← Predicados CST + buildPivot (já existe, expandir)
+src/hooks/usePisCofinsApuracao.ts  ← Fetch only (já existe, ajustar tipagem)
+src/hooks/usePisCofinsCalculator.ts ← Novo: orquestra cálculos com useMemo granulares
 ```
 
-### Fase 2 — Novo hook: `src/hooks/useSetorCliente.ts`
+### Fase 1 — Unificar tipagens em `src/types/pisCofins.ts`
 
-Query simples que busca todos os setores ordenados por nome. Retorna `{ id, nome, sigla, descricao }[]`.
+Mesclar os tipos dos anexos com os existentes. Manter os nomes do projeto (`PisCofinsItemCredito` etc.) como aliases para evitar breaking changes na página atual.
 
-### Fase 3 — Frontend: `NewClientModal.tsx`
+| Tipo existente | Tipo anexo | Ação |
+|---|---|---|
+| `PisCofinsItemCredito` | `ItemCredito` | Manter existente, exportar alias `ItemCredito` |
+| `PisCofinsRateioReceitas` | `RateioReceitas` | Idem |
+| `PisCofsinPeriodo` | `Periodo` | Idem |
+| `PisCofinsApuracaoResponse` | `ApuracaoInput` | Expandir com campo `metadata` |
+| — | `SaldoCarryforward` | Adicionar |
+| — | `ResultadoApuracao` | Adicionar |
+| — | `RateioResultado` | Adicionar |
+| `PisCofinsRow` | — | Manter |
+| `PivotRow` | — | Manter |
 
-| Local | Alteração |
-|---|---|
-| Estado `defaultClientData` (linha 619) | Adicionar `setor_cliente_id: ""` ao lado de `setor_cliente` |
-| Carregamento edição (linha 768) | Carregar `setor_cliente_id` do cliente existente |
-| Dropdown "Área do negócio" (linhas 1884-1905) | Trocar itens hardcoded por `setores.map()` da query; `value` = `setor.id`; label = `sigla - nome` |
-| `onValueChange` do Select | Setar AMBOS: `setor_cliente_id = setor.id` e `setor_cliente = setor.sigla` (busca sigla do array de setores) |
-| `executeSave` payload (linha 1356-1367) | Incluir `setor_cliente_id: clientData.setor_cliente_id \|\| null` + manter `setor_cliente: clientData.setor_cliente \|\| null` (dual-write) |
+Adicionar tipo `ResultadoPeriodo` para tipar o retorno de `calcTodosPeriodos` (eliminar `any[]`).
 
-**Dual-write no `executeSave`**: ao montar `clientPayload`, busca a sigla correspondente ao `setor_cliente_id` selecionado no array de setores e grava ambos os campos. Isso garante compatibilidade com `FiscalClients.tsx`, `GestaoClientes.tsx`, `GerenciarDados.tsx` e `sync-cadastros`.
+### Fase 2 — Motor de cálculo: `src/lib/apuracaoPisCofins.ts`
 
-### Arquivos afetados
+Copiar **fielmente** todas as funções de `apuracao.ts` sem alterar nenhuma fórmula:
+- Predicados: `isItemReceita`, `isItemSuspenso`, `isItemOutrasSaidas`, `isItemCredito`, `isItemIsencaoCredito`
+- Seção 1 (Débitos): `calcReceitaPorConta`, `receitaBrutaTotal`, `exclusaoSuspensao`, `calcBaseDebito`
+- Seção 2 (Créditos): `calcCreditoPorConta`, `calcBaseCredito`
+- Seção 3 (Valores): `COFINS_POR_PIS`, `aliqCofins`, `calcValoresCredito`
+- Seção 4 (Apuração): `calcApuracao`, `calcTodosPeriodos`
+- Seção 5 (Rateio): `calcRateio`
+- Variante Balancete: `valorBaseBalancete`, `calcCreditoPorContaBalancete`, `calcBaseCreditoBalancete`, `calcValoresCreditoBalancete`, `calcTodosPeriodosBalancete`
+- Totais: `calcTotais` — **tipar o parâmetro** como `ResultadoPeriodo[]` em vez de `any[]`
 
-| Arquivo | Tipo |
-|---|---|
-| Migration SQL | Novo |
-| `src/hooks/useSetorCliente.ts` | Novo |
-| `src/components/equipe/fiscal/NewClientModal.tsx` | Alterado |
+Importar tipos de `@/types/pisCofins`. Zero alteração em lógica de negócio.
 
-Nenhum outro arquivo precisa de mudança — todos continuam lendo `setor_cliente` (texto).
+### Fase 3 — Expandir `src/lib/pisCofinsFilters.ts`
+
+Adicionar predicados de item (delegando para `apuracaoPisCofins`):
+- `isItemOutrasSaidas`, `isItemIsencaoCredito`
+
+Adicionar `buildPivotGeneric` — versão parametrizável do `pivotItems` do calculator:
+- Aceita `groupBy` e `valueFn` customizáveis
+- Retorna `PivotRow[]` tipado (sem `any`)
+- Mantém `buildPivot` existente inalterado para não quebrar a página atual
+
+### Fase 4 — Hook de fetch: `src/hooks/usePisCofinsApuracao.ts`
+
+Ajustes mínimos:
+- Atualizar tipagem de retorno para `ApuracaoInput` (que agora inclui `metadata`)
+- Manter uso de `getApiUrl` (já correto no projeto)
+- O hook anexo é descartado — o existente já segue os padrões do projeto
+
+### Fase 5 — Novo hook: `src/hooks/usePisCofinsCalculator.ts`
+
+Desacoplar o `useMemo` monolítico em memos granulares:
+
+```text
+usePisCofinsCalculator({ data, tipoApuracao, periodoFechado })
+  ├── resultados    = useMemo(calcTodosPeriodos | calcTodosPeriodosBalancete)
+  ├── totais        = useMemo(calcTotais, [resultados])
+  ├── columnsData   = useMemo(periods + yearsMap, [data])
+  ├── resumoData    = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
+  ├── debitosData   = useMemo(buildPivotGeneric, [data])
+  ├── isencoesData  = useMemo(buildPivotGeneric, [data])
+  ├── outrasSaidasData = useMemo(buildPivotGeneric, [data])
+  ├── creditosData  = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
+  └── isencoesCredito = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
+```
+
+Benefícios:
+- `debitosData` e `isencoesData` não recalculam quando `periodoFechado` muda (dependem só de `vlr_efd`)
+- Cada tabela tem dependências mínimas e precisas
+- Eliminação total de `any` — todos os retornos tipados
+
+### Resumo de arquivos
+
+| Arquivo | Ação | Linhas estimadas |
+|---|---|---|
+| `src/types/pisCofins.ts` | Expandir (merge tipos) | ~80 |
+| `src/lib/apuracaoPisCofins.ts` | Criar (motor de cálculo) | ~220 |
+| `src/lib/pisCofinsFilters.ts` | Expandir (novos predicados + pivot genérico) | ~40 adicionais |
+| `src/hooks/usePisCofinsApuracao.ts` | Ajuste mínimo de tipagem | ~5 linhas |
+| `src/hooks/usePisCofinsCalculator.ts` | Criar (orquestrador de estado) | ~90 |
+
+Nenhuma alteração em `ApuracaoPisCofins.tsx` (Fase 2 do usuário). Nenhuma fórmula ou lógica de negócio alterada.
 
