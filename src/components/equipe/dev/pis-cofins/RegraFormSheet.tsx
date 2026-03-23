@@ -13,7 +13,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Pencil } from 'lucide-react';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import type { Database } from '@/integrations/supabase/types';
+
+const yyyymmToMonthYear = (val: number | null | undefined) => {
+  if (!val) return null;
+  const y = Math.floor(val / 100);
+  const m = (val % 100) - 1;
+  return { month: m, year: y };
+};
+
+const monthYearToYYYYMM = (val: { month: number; year: number } | null) => {
+  if (!val) return null;
+  return val.year * 100 + (val.month + 1);
+};
+
+const formatYYYYMM = (val: number | null | undefined) => {
+  if (!val) return null;
+  const y = Math.floor(val / 100);
+  const m = val % 100;
+  return `${String(m).padStart(2, '0')}/${y}`;
+};
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 
@@ -134,8 +154,8 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
               <DetailField label="Base Legal" value={regra.base_legal} />
               <DetailField label="Tipo de Crédito" value={regra.tipo_credito} />
               <div className="grid grid-cols-2 gap-4">
-                <DetailField label="Vigência Início (YYYYMM)" value={regra.data_vigencia_inicio} />
-                <DetailField label="Vigência Fim (YYYYMM)" value={regra.data_vigencia_fim} />
+                <DetailField label="Vigência Início" value={formatYYYYMM(regra.data_vigencia_inicio)} />
+                <DetailField label="Vigência Fim" value={formatYYYYMM(regra.data_vigencia_fim)} />
               </div>
               <DetailField label="Observações" value={regra.observacoes} />
               {/* Metadados de auditoria */}
@@ -220,18 +240,26 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="data_vigencia_inicio" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vigência Início (YYYYMM)</FormLabel>
+                      <FormLabel>Vigência Início</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="202501" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)} />
+                        <MonthYearPicker
+                          value={yyyymmToMonthYear(field.value)}
+                          onChange={(v) => field.onChange(monthYearToYYYYMM(v))}
+                          placeholder="Selecione o mês"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="data_vigencia_fim" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vigência Fim (YYYYMM)</FormLabel>
+                      <FormLabel>Vigência Fim</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="202512" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)} />
+                        <MonthYearPicker
+                          value={yyyymmToMonthYear(field.value)}
+                          onChange={(v) => field.onChange(monthYearToYYYYMM(v))}
+                          placeholder="Selecione o mês"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
