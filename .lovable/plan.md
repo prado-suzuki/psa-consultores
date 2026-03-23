@@ -1,18 +1,19 @@
 
 
-## Plano: Reorganizar layout dos filtros
+## Plano: Alinhar filtros e botões na ApuracaoPisCofins
 
 ### Arquivo: `src/pages/equipe/dev/ApuracaoPisCofins.tsx`
 
-**Linha 1 (3 colunas iguais)**: Cliente, Contribuinte, Tipo de documento (com label "Tipo de documento")
+**Problema**: Os 3 filtros da Row 1 têm alturas inconsistentes (labels com/sem `flex items-center`). Na Row 2, os botões usam `size="sm"` (h-9) enquanto os date pickers provavelmente são h-10, causando desalinhamento vertical.
 
-**Linha 2 (alinhamento horizontal)**: Data Início, Data Fim, switch Período Fechado (se BALANCETE), botões Limpar e Consultar alinhados à direita
+### Mudanças
 
-### Mudanças concretas (linhas 170-262)
+**Row 1 (linhas 172-222)**: Uniformizar todas as labels com a mesma classe (`text-xs uppercase tracking-wider text-muted-foreground font-semibold`), removendo `flex items-center` das que têm e garantindo que o `RequiredMark` seja inline sem alterar a altura. Adicionar `items-end` no grid para alinhar os selects pela base.
 
-1. Primeira row: `grid grid-cols-1 md:grid-cols-3 gap-4` com Cliente, Contribuinte, e Tipo de documento (o Select de EFD/Balancete com label "Tipo de documento")
-2. Segunda row: `flex items-end gap-4` com Data Início, Data Fim, switch (condicional), e `ml-auto` nos botões Limpar/Consultar
-3. Remover o grid de 4 colunas atual e a div separada do tipo de apuração
+**Row 2 (linhas 225-263)**:
+- Trocar `size="sm"` por `size="default"` nos dois botões (h-9 → h-10), igualando a altura dos date pickers
+- Remover os ícones pequenos (h-3.5 → h-4) para acompanhar a proporção
+- Manter `items-end` no flex para alinhamento pela base
 
-1 arquivo alterado, ~40 linhas reescritas na seção de filtros.
+1 arquivo, ~10 linhas ajustadas.
 
