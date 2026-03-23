@@ -55,8 +55,8 @@ const spedSubItems: NavItem[] = [
 ];
 
 const pisCofinsSubItems: NavItem[] = [
-  { icon: FileText, label: 'Apuração', path: '/equipe/dev/apuracao-pis-cofins' },
-  { icon: FileSpreadsheet, label: 'Mapa NCM', path: '/equipe/dev/mapa-ncm-pis-cofins' },
+  { icon: FileSpreadsheet, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
+  { icon: FileText, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
 ];
 
 const navItemsAfterSped: NavItem[] = [
@@ -210,7 +210,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
               }`}
               onClick={() => navigate('/equipe/dev/apuracao-pis-cofins')}
-              title="Análise PIS/COFINS"
+              title="Levantamento de Créditos"
             >
               <Calculator className="h-4 w-4" />
             </Button>
@@ -226,7 +226,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   }`}
                 >
                   <Calculator className="h-4 w-4 mr-3" />
-                  <span className="flex-1 text-left">Análise PIS/COFINS</span>
+                  <span className="flex-1 text-left">Levantamento de Créditos</span>
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? 'rotate-180' : ''}`} />
                 </Button>
               </CollapsibleTrigger>
