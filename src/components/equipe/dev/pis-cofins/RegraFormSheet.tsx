@@ -346,6 +346,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                               value={field.value ?? ''}
                               onChange={(e) => {
                                 field.onChange(e.target.value);
+                                setDescSearch(e.target.value);
                                 if (!descOpen) setDescOpen(true);
                               }}
                               onFocus={() => setDescOpen(true)}
