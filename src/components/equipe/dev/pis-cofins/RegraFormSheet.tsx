@@ -140,8 +140,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
               <DetailField label="Observações" value={regra.observacoes} />
               {/* Metadados de auditoria */}
               {((regra as any).updated_at || (regra as any).updated_by) && (
-                <div className="border-t pt-3 mt-4 space-y-1">
-                  <span className="text-xs font-medium text-muted-foreground">Metadados</span>
+                <div className="border-t pt-3 mt-4">
                   <div className="grid grid-cols-2 gap-4">
                     <DetailField
                       label="Última atualização"
