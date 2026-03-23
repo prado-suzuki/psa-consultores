@@ -1,24 +1,27 @@
 
 
-## Plano: Reduzir tamanho dos cards de ferramentas no DevDashboard
+## Plano: Nova ferramenta "Cruzamento de Dados" no card Levantamento de Créditos
 
-### Arquivo: `src/pages/equipe/dev/DevDashboard.tsx`
+### Arquivos
 
-**Problema**: Os cards do grid de ferramentas são grandes demais e ultrapassam a área visível ao lado da sidebar.
+**1. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** (novo, ~80 linhas)
+- Layout com `DevLayout` (título "Cruzamento de Dados", subtitle "Cruzamento entre fontes de dados fiscais")
+- Filtros globais em card `bg-muted/50`: Nome (Input text), NCM (Input text), Alíquota (Input text), Tipo de Produto (Select com opções "Todos", "Mercadoria", "Serviço")
+- Botões Limpar e Consultar alinhados à direita
+- 3 Accordions (`Accordion type="multiple"`):
+  1. "Balancete vs EFD Contribuições"
+  2. "EFD Contribuições vs EFD ICMS"
+  3. "EFD Contribuições vs XMLs (NFe e CTe)"
+- Cada accordion com placeholder "Em construção"
 
-### Mudanças
+**2. `src/components/equipe/dev/DevLayout.tsx`** (~2 linhas)
+- Adicionar em `pisCofinsSubItems`:
+  ```ts
+  { icon: FileSpreadsheet, label: 'Cruzamento de Dados', path: '/equipe/dev/cruzamento-dados' },
+  ```
 
-1. **Grid (linha 207)**: Trocar `lg:grid-cols-3` por `lg:grid-cols-3 xl:grid-cols-4` e reduzir `gap-4` para `gap-3`
+**3. `src/App.tsx`** (~3 linhas)
+- Import `AuditoriaCruzada` e rota `/equipe/dev/cruzamento-dados` com `TeamRoute + PageAccessGate`
 
-2. **Cards (linhas 211-242)**: Reduzir padding interno:
-   - `CardHeader`: adicionar `p-3 pb-1` (menor que o padrão p-6)
-   - Ícone do tool: `p-1.5` ao invés de `p-2`, ícones `h-4 w-4` ao invés de `h-5 w-5`
-   - `CardTitle`: `text-sm` ao invés de `text-base`
-   - `CardContent`: `p-3 pt-0` com botão `size="xs"` ou padding menor
-
-3. **Sessões em Andamento (linhas 140-177)**: Reduzir padding do card e dos itens internos (`p-2` ao invés de `p-3`)
-
-4. **Header e search (linhas 181-198)**: Títulos `text-base` ao invés de `text-lg`, ícones `h-4 w-4`
-
-1 arquivo, ~15 linhas ajustadas.
+3 arquivos, ~90 linhas novas.
 
