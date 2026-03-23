@@ -54,10 +54,11 @@ const spedSubItems: NavItem[] = [
   { icon: FileText, label: 'ECF', path: '/equipe/dev/consulta-ecf' },
 ];
 
-const pisCofinsSubItems: NavItem[] = [
-  { icon: FileSpreadsheet, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
-  { icon: FileText, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
-];
+  const pisCofinsSubItems: NavItem[] = [
+    { icon: FileSpreadsheet, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
+    { icon: FileText, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
+    { icon: FileSpreadsheet, label: 'Cruzamento de Dados', path: '/equipe/dev/cruzamento-dados' },
+  ];
 
 const navItemsAfterSped: NavItem[] = [
   { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
