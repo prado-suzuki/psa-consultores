@@ -635,7 +635,7 @@ export function ExportDialog({
               {/* Toolbar de Gestão de Perfis */}
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Select value={selectedProfileId || "__none__"} onValueChange={(val) => loadProfile(val === "__none__" ? "" : val)}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-[200px] min-w-0">
                     <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Carregar Preset"} />
                   </SelectTrigger>
                   <SelectContent>
