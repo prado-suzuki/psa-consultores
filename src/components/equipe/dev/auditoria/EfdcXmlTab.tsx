@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ChevronRight, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown } from 'lucide-react';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
 interface EfdcXmlTabProps {
@@ -105,14 +105,13 @@ const EfdcXmlTab = ({ lotes = [], isLoading, hasQueried }: EfdcXmlTabProps) => {
               </TableHeader>
               <TableBody>
                 {filteredLotes.map((lote, idx) => {
-                  const isDivergent = lote.VLR_LOTE !== lote.SUM_LOTE;
                   const isExpanded = expandedRows.has(idx);
 
                   return (
                     <>
                       <TableRow
                         key={`master-${idx}`}
-                        className={`cursor-pointer ${isDivergent ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                        className="cursor-pointer"
                         onClick={() => toggleRow(idx)}
                       >
                         <TableCell className="px-2">
@@ -129,9 +128,6 @@ const EfdcXmlTab = ({ lotes = [], isLoading, hasQueried }: EfdcXmlTabProps) => {
                         <TableCell className="text-xs text-right">{formatBRL(lote.VLR_LOTE)}</TableCell>
                         <TableCell className="text-xs text-right whitespace-nowrap">
                           {formatBRL(lote.SUM_LOTE)}
-                          {isDivergent && (
-                            <AlertTriangle className="inline ml-1.5 h-3.5 w-3.5 text-amber-500" />
-                          )}
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
