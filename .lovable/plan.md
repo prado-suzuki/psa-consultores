@@ -1,49 +1,53 @@
 
 
-## Plano: Aba "EFD Contribuições vs EFD ICMS"
+## Plano: Aba "EFD Contribuições vs XMLs" (CT-e Lotes)
 
 ### Arquitetura
 
 ```text
 AuditoriaCruzada.tsx (página — adicionar hook + renderizar nova aba)
-  └─ EfdcIcmsTab.tsx (componente isolado)
-       ├─ Filtro local: busca por Chave NFe (debounce 300ms)
-       ├─ Switch: "Mostrar apenas divergências" (UI only, sem lógica)
-       └─ Tabela lado a lado (EFD ICMS vs EFD Contribuições)
+  └─ EfdcXmlTab.tsx (componente isolado)
+       ├─ Filtro local: busca CFOP/Intervalo (debounce 300ms)
+       ├─ Tabela expansível Master-Detail (Collapsible)
+       └─ Highlight divergência VLR_LOTE ≠ SUM_LOTE
 
-types/efdcIcms.ts       (tipagem)
-hooks/useEfdcIcms.ts    (fetch controlado)
+types/efdcXml.ts        (tipagem)
+hooks/useEfdcXml.ts     (fetch controlado)
 ```
 
 ### Arquivos
 
-**1. `src/types/efdcIcms.ts`** (novo)
-- `EfdcIcmsEfdSide` — campos comuns: `CNPJ`, `NOME`, `CFOP: number[]`, `COD_CTA: (string|null)[]`, `VL_DOC: number`, e opcionais `DT_INI`, `DT_FIN` (presentes só no lado ICMS)
-- `EfdcIcmsNota` — `CHV_NFE: string`, `EFD_ICMS: EfdcIcmsEfdSide`, `EFD_CONTRIB: EfdcIcmsEfdSide`
-- `EfdcIcmsResponse` — `ID_CONTRIBUINTE: string`, `NOTAS: EfdcIcmsNota[]`
+**1. `src/types/efdcXml.ts`** (novo)
+- `EfdcXmlCte` — `CHV_CTE: string`, `NR_CTE: number`, `VLR_CTE: number`
+- `EfdcXmlLote` — `ID_CONTRIBUINTE`, `CNPJ_EMIT`, `NOME_EMIT`, `MOD`, `SERIE`, `CFOP`, `DT_LOTE`, `INTERVALO`, `VLR_LOTE`, `SUM_LOTE`, `CTES: EfdcXmlCte[]`
+- Resposta da API é `EfdcXmlLote[]` diretamente (array raiz)
 
-**2. `src/hooks/useEfdcIcms.ts`** (novo)
+**2. `src/hooks/useEfdcXml.ts`** (novo)
 - `useQuery` com `enabled: false`, fetch via `refetch()`
-- Endpoint: `getApiUrl('/api/v1/pis_cofins/comparacoes/efdc_icms')`
-- Param único na query: `id_contribuinte` (sem datas)
-- Mesmo padrão do `useBalanceteEfd`
+- Endpoint: `getApiUrl('/api/v1/pis_cofins/comparacoes/cte_lote')`
+- Params: `id_contribuinte` sempre; `dt_ini` e `dt_fim` somente se ambos preenchidos (mesma lógica do `useBalanceteEfd`)
+- Retorna `EfdcXmlLote[]`
 
-**3. `src/components/equipe/dev/auditoria/EfdcIcmsTab.tsx`** (novo, ~120 linhas)
-- **Props**: `notas: EfdcIcmsNota[]`, `isLoading`, `hasQueried`
+**3. `src/components/equipe/dev/auditoria/EfdcXmlTab.tsx`** (novo, ~160 linhas)
+- **Props**: `lotes: EfdcXmlLote[]`, `isLoading`, `hasQueried`
 - **Filtros locais**:
-  - Input Chave NFe com debounce 300ms (mesmo padrão do BalanceteEfdTab)
-  - Switch "Mostrar apenas divergências" — apenas UI, sem filtragem por enquanto
-- **Tabela com cabeçalho agrupado**:
-  - Linha superior do header: célula vazia (Chave NFe), colSpan=3 "EFD ICMS", colSpan=3 "EFD Contribuições"
-  - Linha inferior: Chave NFe | CFOP | Conta Contábil | Valor Doc | CFOP | Conta Contábil | Valor Doc
-  - Body: itera `filteredNotas`, arrays CFOP e COD_CTA exibidos com `.join(', ')`, valores em BRL
-  - Sem lógica de divergência ou cores condicionais
+  - Input busca por CFOP ou Intervalo com debounce 300ms (mesmo padrão das outras abas)
+- **Tabela Master-Detail** usando `Collapsible`:
+  - **Linha Master**: ícone chevron (expand/collapse), Data Lote, Emitente, CFOP, Intervalo, Valor Lote (BRL), Soma CT-es (BRL)
+  - **Área Detail**: Sub-tabela com Chave CT-e, Número, Valor (BRL)
+  - State `expandedRows: Set<number>` para controlar quais linhas estão abertas
+- **Divergência de Lote**: Se `VLR_LOTE !== SUM_LOTE`, a linha master recebe `bg-amber-50 dark:bg-amber-950/20` + ícone `AlertTriangle` ao lado do valor
 
 **4. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** (edição)
-- Importar `useEfdcIcms` e `EfdcIcmsTab`
-- Instanciar `useEfdcIcms({ id_contribuinte: contribuinteId })`
-- No `handleConsultar`: chamar `efdcIcmsQuery.refetch()` além do `balanceteQuery.refetch()`
-- No `TabsContent value="efd-icms"`: renderizar `<EfdcIcmsTab notas={efdcIcmsQuery.data?.NOTAS} isLoading={efdcIcmsQuery.isLoading} hasQueried={hasQueried} />`
+- Importar `useEfdcXml` e `EfdcXmlTab`
+- Instanciar `useEfdcXml({ id_contribuinte, dt_ini, dt_fim })` com mesma lógica de formatação de datas
+- No `handleConsultar`: chamar `efdcXmlQuery.refetch()`
+- No `TabsContent value="efd-xml"`: renderizar `<EfdcXmlTab>` substituindo o placeholder "Em construção"
 
-4 arquivos (3 novos + 1 editado), ~180 linhas.
+### Restrições mantidas
+1. Hook desativado no mount (`enabled: false`)
+2. Debounce 300ms no filtro local
+3. Datas opcionais: só envia se ambas preenchidas
+
+4 arquivos (3 novos + 1 editado), ~220 linhas.
 
