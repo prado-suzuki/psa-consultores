@@ -711,7 +711,7 @@ export function ExportDialog({
               </div>
 
               {/* Lista de Colunas com Accordions */}
-              <ScrollArea className="h-[350px] pr-4">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-4">
                 <Accordion type="multiple" defaultValue={[]} className="w-full">
                   {columnGroups.map(group => {
                     const groupCols = columnsByGroup[group] || [];
