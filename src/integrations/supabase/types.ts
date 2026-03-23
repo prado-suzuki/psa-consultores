@@ -413,6 +413,7 @@ export type Database = {
           nome_razao_social: string
           numero: string | null
           setor: string | null
+          setor_cliente_id: string | null
           simples_nacional: boolean | null
           situacao_inscricao_estadual: string | null
           telefone: string | null
@@ -439,6 +440,7 @@ export type Database = {
           nome_razao_social: string
           numero?: string | null
           setor?: string | null
+          setor_cliente_id?: string | null
           simples_nacional?: boolean | null
           situacao_inscricao_estadual?: string | null
           telefone?: string | null
@@ -465,6 +467,7 @@ export type Database = {
           nome_razao_social?: string
           numero?: string | null
           setor?: string | null
+          setor_cliente_id?: string | null
           simples_nacional?: boolean | null
           situacao_inscricao_estadual?: string | null
           telefone?: string | null
@@ -478,6 +481,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribuinte_setor_cliente_id_fkey"
+            columns: ["setor_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "setor_cliente"
             referencedColumns: ["id"]
           },
         ]

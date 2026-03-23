@@ -1,0 +1,1 @@
+ALTER TABLE public.contribuinte ADD COLUMN setor_cliente_id uuid REFERENCES public.setor_cliente(id);
