@@ -699,21 +699,15 @@ const ApuracaoPisCofins = () => {
                   </section>
                 </div>
               )}
+            </>
+          )}
+        </>
+      )}
+    </DevLayout>
+  );
+};
 
-              {/* Tab: Dados */}
-              {activeTab === 'dados' && (
-                <div className="space-y-8 animate-in fade-in duration-300">
-                  <ApuracaoDataTable title="DK — Resumo" data={tables.resumoData} showCst showBloco {...dataTableProps} />
-                  <ApuracaoDataTable title="Débitos" data={tables.debitosData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Isenções e Exclusões" data={tables.isencoesData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Outras Saídas" data={tables.outrasSaidasData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Créditos" data={tables.creditosData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Isenções de Crédito" data={tables.isencoesCreditoData} {...dataTableProps} />
-                </div>
-              )}
-
-              {/* Tab: Rateio */}
-              {activeTab === 'rateio' && tipoApuracao === 'EFD' && (
+export default ApuracaoPisCofins;
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio das Receitas (Percentuais)</h2>
