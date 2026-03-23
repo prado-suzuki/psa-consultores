@@ -47,6 +47,16 @@ const getRateioReceitasColValue = (
     .reduce((sum, r) => sum + accessor(r.rateio_receitas!), 0);
 };
 
+const getRateioColValue = (
+  resultados: ResultadoPeriodo[],
+  dataKeys: string[],
+  accessor: (r: NonNullable<RateioResultado>) => number,
+): number => {
+  return resultados
+    .filter(r => dataKeys.includes(r.dt_ini.substring(0, 7)) && r.rateio)
+    .reduce((sum, r) => sum + accessor(r.rateio!), 0);
+};
+
 /* ── Main page ── */
 
 const ApuracaoPisCofins = () => {
