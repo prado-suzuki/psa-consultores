@@ -1,34 +1,41 @@
 
-Problema confirmado: o PATCH continua disparando imediatamente ao clicar em “Editar”, mesmo com `type="button"` no botão de leitura. Pelos arquivos atuais e pelos requests capturados, a causa mais provável é a troca de modo dentro do mesmo footer: o botão clicado é reconciliado no mesmo slot e vira o botão “Salvar” externo ao form (`type="submit" form="regra-form"`), disparando o submit com os valores já populados.
 
-Plano de correção:
+## Plano: Colunas de Auditoria na `pis_cofins_regra`
 
-1. Arquivo alvo: `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
+### 1. Migration SQL
 
-2. Remover o submit externo implícito
-- Trocar o botão “Salvar” de:
-  - `type="submit" form="regra-form"`
-- Para:
-  - `type="button"`
-  - `onClick={form.handleSubmit(onSubmit)}`
-- Assim o salvar só acontece por clique explícito no botão, sem depender do `form` externo.
+Adicionar colunas `updated_at` e `updated_by` na tabela `pis_cofins_regra`:
 
-3. Quebrar a reconciliação entre os modos
-- Colocar `key` diferente nos blocos condicionais de leitura e edição:
-  - conteúdo (`view-content` / `edit-content`)
-  - footer (`view-footer` / `edit-footer`)
-- Isso força desmontagem/remontagem real ao trocar de modo e evita reaproveitamento do mesmo botão no mesmo ciclo de clique.
+```sql
+ALTER TABLE public.pis_cofins_regra
+  ADD COLUMN updated_at timestamptz DEFAULT now(),
+  ADD COLUMN updated_by text;
+```
 
-4. Manter submit por Enter apenas dentro do form
-- Preservar `onSubmit={form.handleSubmit(onSubmit)}` no `<form>`
-- Remover a dependência do atributo `form="regra-form"` no footer externo
+Sem trigger automático para `updated_at` — vamos controlar via código para enviar ambos os campos juntos.
 
-5. Validação final esperada
-- Clicar em “Editar” apenas troca para modo edição
-- Nenhum PATCH deve ocorrer nesse clique
-- PATCH só deve acontecer ao clicar em “Salvar” ou pressionar Enter dentro do formulário
+### 2. Hook `useRegrasNCM.ts`
 
-Impacto:
-- Alteração pontual em 1 arquivo
-- Zero mudança de layout, regras de negócio ou CRUD
-- Correção focada no fluxo do modal e no bug de auto-save
+- Importar `useAuth` do `AuthContext`
+- No `updateRegra.mutationFn`, injetar `updated_at: new Date().toISOString()` e `updated_by: user?.email` no payload de update
+- No `createRegra.mutationFn`, injetar os mesmos campos
+- Usar `as any` com comentário justificativo (colunas ainda não tipadas no types.ts gerado)
+
+### 3. Modal `RegraFormSheet.tsx`
+
+No modo **view**, adicionar uma seção de metadados no final com separador visual:
+
+- "Última atualização" — exibe `updated_at` formatado em pt-BR (`dd/MM/yyyy HH:mm`)
+- "Atualizado por" — exibe `updated_by` (e-mail)
+- Estilo discreto: texto menor, cor muted, separador `border-t`
+
+Esses campos são somente leitura e **nunca** aparecem no formulário de edição.
+
+### Arquivos afetados
+
+| Arquivo | Alteração |
+|---|---|
+| Migration SQL | ADD COLUMN `updated_at`, `updated_by` |
+| `src/hooks/useRegrasNCM.ts` | Injetar campos de auditoria nas mutations |
+| `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` | Exibir metadados no modo view |
+
