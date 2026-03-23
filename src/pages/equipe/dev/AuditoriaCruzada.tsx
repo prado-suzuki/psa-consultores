@@ -64,7 +64,7 @@ const AuditoriaCruzada = () => {
   };
 
   return (
-    <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada entre fontes de dados fiscais">
+    <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
       <div className="space-y-4">
         <Card className="bg-muted/50 border-dashed">
           <CardContent className="p-4">
@@ -164,13 +164,13 @@ const AuditoriaCruzada = () => {
         <Tabs defaultValue="balancete-efd" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">
-              Balancete vs EFD Contribuições
+              Balancete
             </TabsTrigger>
             <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">
-              EFD Contribuições vs EFD ICMS
+              EFD ICMS
             </TabsTrigger>
             <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">
-              EFD Contribuições vs XMLs
+              XMLs
             </TabsTrigger>
           </TabsList>
 
