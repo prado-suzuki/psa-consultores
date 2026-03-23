@@ -295,11 +295,350 @@ const ApuracaoPisCofins = () => {
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} className="mb-6">
                 <TabsList>
+                  <TabsTrigger value="resumo">
+                    {contribuintes?.find(c => c.id === selectedContribuinte)?.nome_razao_social || 'Resumo'} - Resumo
+                  </TabsTrigger>
+                  <TabsTrigger value="debitos">Débitos</TabsTrigger>
+                  <TabsTrigger value="creditos">Créditos</TabsTrigger>
                   <TabsTrigger value="apuracao">Apuração</TabsTrigger>
-                  <TabsTrigger value="dados">Dados</TabsTrigger>
                   {tipoApuracao === 'EFD' && <TabsTrigger value="rateio">Rateio</TabsTrigger>}
                 </TabsList>
               </Tabs>
+
+              {/* ══════════════ Tab: RESUMO ══════════════ */}
+              {activeTab === 'resumo' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <ApuracaoDataTable title="Resumo Geral" data={tables.resumoData} showCst showBloco {...dataTableProps} />
+                </div>
+              )}
+
+              {/* ══════════════ Tab: DÉBITOS ══════════════ */}
+              {activeTab === 'debitos' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <ApuracaoDataTable title="Débitos" data={tables.debitosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções e Exclusões" data={tables.isencoesData} emptyMessage="Nenhuma isenção/exclusão encontrada." {...dataTableProps} />
+                  <ApuracaoDataTable title="Outras Saídas" data={tables.outrasSaidasData} emptyMessage="Nenhuma outra saída encontrada." {...dataTableProps} />
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo Após Isenções/Exclusões</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-semibold">Base Normal</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseDebito.baseNormal))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.receitaBruta)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
+
+              {/* ══════════════ Tab: CRÉDITOS ══════════════ */}
+              {activeTab === 'creditos' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <ApuracaoDataTable title="Créditos" data={tables.creditosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções e Exclusões do Crédito" data={tables.isencoesCreditoData} emptyMessage="Nenhuma isenção/exclusão de crédito encontrada." {...dataTableProps} />
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-semibold">Base Normal</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseCredito.baseNormal))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.baseCredito)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Crédito do Mês</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-semibold">PIS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-semibold">COFINS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
+
+              {/* ══════════════ Tab: APURAÇÃO ══════════════ */}
+              {activeTab === 'apuracao' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="font-bold">Valor Devido PIS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="font-bold">Valor Devido COFINS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
+                            </TableRow>
+                            <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-lg">
+                              <TableCell className="font-bold text-primary">Total Devido</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono font-bold text-primary">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue)))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">{formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-semibold">Contribuição Bruta (Débito)</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsContribuicaoBruta))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.cofinsContribuicaoBruta)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-semibold">Crédito do Mês</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-semibold">Crédito Anterior (Carryforward)</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoAnterior))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="font-bold">Valor Devido</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
+                            </TableRow>
+                            <TableRow className="text-muted-foreground">
+                              <TableCell>Saldo Acumulado p/ Próximo Mês</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsSaldoAcumulado))}</TableCell>))}
+                              <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-semibold">Contribuição Bruta (Débito)</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisContribuicaoBruta))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.pisContribuicaoBruta)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-semibold">Crédito do Mês</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-semibold">Crédito Anterior (Carryforward)</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoAnterior))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="font-bold">Valor Devido</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
+                            </TableRow>
+                            <TableRow className="text-muted-foreground">
+                              <TableCell>Saldo Acumulado p/ Próximo Mês</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisSaldoAcumulado))}</TableCell>))}
+                              <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Isenções e Exclusões</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Conta' }, { label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            {[...tables.isencoesData, ...tables.isencoesCreditoData].length > 0 ? (
+                              [...tables.isencoesData, ...tables.isencoesCreditoData].map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell className="font-mono text-xs">{row.cod_cta}</TableCell>
+                                  <TableCell className="text-sm truncate max-w-[250px]" title={row.descricao_conta}>{row.descricao_conta}</TableCell>
+                                  {headerBottom.map((col) => (
+                                    <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/30">{formatCurrency(col.dataKeys.reduce((sum, key) => sum + ((row[key] as number) || 0), 0))}</TableCell>
+                                  ))}
+                                  <TableCell className="text-right font-mono font-bold text-sm bg-muted/30">{formatCurrency(row.total)}</TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">Nenhuma isenção/exclusão encontrada.</TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
+
+              {/* ══════════════ Tab: RATEIO ══════════════ */}
+              {activeTab === 'rateio' && tipoApuracao === 'EFD' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader firstColumns={[{ label: 'Rateio das receitas' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-bold">Total de Receitas apuradas</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-bold">Total Tributadas</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-bold">Total Não Tributadas</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-bold">Total Não Tributadas - Exp.</TableCell>
+                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp))}</TableCell>))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                            </TableRow>
+
+                            <TableRow className="bg-primary text-primary-foreground uppercase text-xs hover:bg-primary">
+                              <TableCell className="font-bold" colSpan={headerBottom.length + 2}>Percentual de rateio</TableCell>
+                            </TableRow>
+                            {[
+                              { label: 'Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_trib_mi },
+                              { label: 'Não Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_nt_mi },
+                              { label: 'Não Tributado - Exportação', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_exp },
+                            ].map((row) => (
+                              <TableRow key={row.label}>
+                                <TableCell className="font-bold">{row.label}</TableCell>
+                                {headerBottom.map((col) => {
+                                  const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
+                                  const val = getRateioReceitasColValue(resultados, col.dataKeys, row.accessor);
+                                  const perc = total > 0 ? val / total : 0;
+                                  return (<TableCell key={col.id} className="text-right font-mono">{(perc * 100).toFixed(2)}%</TableCell>);
+                                })}
+                                <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted text-muted-foreground uppercase text-xs">
+                              <TableCell className="font-bold text-right">Total % Apurado</TableCell>
+                              {headerBottom.map((col) => {
+                                const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
+                                const trib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi);
+                                const naoTrib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi);
+                                const exp = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp);
+                                const perc = total > 0 ? (trib + naoTrib + exp) / total : 0;
+                                return (<TableCell key={col.id} className="text-right font-mono font-bold">{(perc * 100).toFixed(2)}%</TableCell>);
+                              })}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                            </TableRow>
+
+                            <TableRow className="bg-transparent border-none hover:bg-transparent">
+                              <TableCell colSpan={headerBottom.length + 2} className="p-2" />
+                            </TableRow>
+                            {[
+                              { label: 'PIS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'pis101' as const },
+                              { label: 'PIS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'pis201' as const },
+                              { label: 'PIS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'pis301' as const },
+                            ].map((row) => (
+                              <TableRow key={row.field} className="bg-muted/50 text-xs">
+                                <TableCell className="font-bold">{row.label}</TableCell>
+                                {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
+                                <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
+                              </TableRow>
+                            ))}
+
+                            <TableRow className="bg-transparent border-none hover:bg-transparent">
+                              <TableCell colSpan={headerBottom.length + 2} className="p-2" />
+                            </TableRow>
+                            {[
+                              { label: 'COFINS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'cofins101' as const },
+                              { label: 'COFINS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'cofins201' as const },
+                              { label: 'COFINS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'cofins301' as const },
+                            ].map((row) => (
+                              <TableRow key={row.field} className="bg-muted/50 text-xs">
+                                <TableCell className="font-bold">{row.label}</TableCell>
+                                {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
+                                <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
 
               {/* Tab: Apuração */}
               {activeTab === 'apuracao' && (
