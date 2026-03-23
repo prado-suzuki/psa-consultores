@@ -1,0 +1,181 @@
+import { useState, useMemo } from 'react';
+import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { useRegrasNCM } from '@/hooks/useRegrasNCM';
+import { RegraFormSheet } from '@/components/equipe/dev/pis-cofins/RegraFormSheet';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Search, Plus, FileSpreadsheet, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
+
+const MapaNCMPisCofins = () => {
+  const { regras, isLoading, createRegra, updateRegra, deleteRegra } = useRegrasNCM();
+  const { toast } = useToast();
+
+  const [search, setSearch] = useState('');
+  const [creditOnly, setCreditOnly] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingRegra, setEditingRegra] = useState<RegraNCMRow | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    let list = regras;
+    if (creditOnly) list = list.filter(r => r.permite_credito === 'S');
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(r =>
+        (r.cod_ncm ?? '').toLowerCase().includes(q) ||
+        (r.desc_cst ?? '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [regras, search, creditOnly]);
+
+  const handleSubmit = (values: any) => {
+    if (editingRegra) {
+      updateRegra.mutate({ id: editingRegra.id, ...values }, {
+        onSuccess: () => {
+          toast({ title: 'Regra atualizada com sucesso' });
+          setSheetOpen(false);
+          setEditingRegra(null);
+        },
+        onError: () => toast({ title: 'Erro ao atualizar', variant: 'destructive' }),
+      });
+    } else {
+      createRegra.mutate(values, {
+        onSuccess: () => {
+          toast({ title: 'Regra criada com sucesso' });
+          setSheetOpen(false);
+        },
+        onError: () => toast({ title: 'Erro ao criar', variant: 'destructive' }),
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteRegra.mutate(deleteId, {
+      onSuccess: () => {
+        toast({ title: 'Regra excluída' });
+        setDeleteId(null);
+      },
+      onError: () => toast({ title: 'Erro ao excluir', variant: 'destructive' }),
+    });
+  };
+
+  return (
+    <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM">
+      {/* Filters */}
+      <div className="bg-slate-50 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar por NCM ou descrição..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 bg-white"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch checked={creditOnly} onCheckedChange={setCreditOnly} />
+          <span className="text-sm text-slate-600">Apenas com crédito</span>
+        </div>
+        <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setEditingRegra(null); setSheetOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> Nova Regra
+        </Button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">NCM</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST PIS</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST COFINS</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Descrição CST</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">Crédito</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                    <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map(regra => (
+                <TableRow key={regra.id} className="hover:bg-slate-50/50">
+                  <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
+                  <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
+                  <TableCell className="text-xs text-slate-600">{regra.cst_cofins}</TableCell>
+                  <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
+                  <TableCell className="text-center">
+                    {regra.permite_credito === 'S' ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRegra(regra); setSheetOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => setDeleteId(regra.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
+          {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Form Sheet */}
+      <RegraFormSheet
+        open={sheetOpen}
+        onOpenChange={o => { setSheetOpen(o); if (!o) setEditingRegra(null); }}
+        regra={editingRegra}
+        onSubmit={handleSubmit}
+        isSubmitting={createRegra.isPending || updateRegra.isPending}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir regra</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir esta regra? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </DevLayout>
+  );
+};
+
+export default MapaNCMPisCofins;
