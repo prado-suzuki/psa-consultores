@@ -1,53 +1,62 @@
 
 
-## Plano: Aba "EFD Contribuições vs XMLs" (CT-e Lotes)
+## Plano: Refatoração do módulo Auditoria Cruzada
 
-### Arquitetura
+### 1. Store Global com Context API
 
-```text
-AuditoriaCruzada.tsx (página — adicionar hook + renderizar nova aba)
-  └─ EfdcXmlTab.tsx (componente isolado)
-       ├─ Filtro local: busca CFOP/Intervalo (debounce 300ms)
-       ├─ Tabela expansível Master-Detail (Collapsible)
-       └─ Highlight divergência VLR_LOTE ≠ SUM_LOTE
+Zustand não está instalado no projeto. Usaremos React Context para evitar dependência extra.
 
-types/efdcXml.ts        (tipagem)
-hooks/useEfdcXml.ts     (fetch controlado)
-```
+**Novo arquivo: `src/contexts/AuditoriaContext.tsx`** (~60 linhas)
+- Context + Provider com estados: `clienteId`, `contribuinteId`, `dataInicio`, `dataFim`, `hasQueried`
+- Funções: `setClienteId` (reseta contribuinte), `setContribuinteId`, `setDataInicio`, `setDataFim`, `setHasQueried`, `handleLimpar`
+- Hook `useAuditoriaStore()` que consome o context
 
-### Arquivos
+**Impacto em `AuditoriaCruzada.tsx`**:
+- Envolve conteúdo com `<AuditoriaProvider>`
+- Remove os 5 `useState` locais e funções `handleLimpar`/`handleClienteChange`
+- Filtros e hooks consomem `useAuditoriaStore()`
 
-**1. `src/types/efdcXml.ts`** (novo)
-- `EfdcXmlCte` — `CHV_CTE: string`, `NR_CTE: number`, `VLR_CTE: number`
-- `EfdcXmlLote` — `ID_CONTRIBUINTE`, `CNPJ_EMIT`, `NOME_EMIT`, `MOD`, `SERIE`, `CFOP`, `DT_LOTE`, `INTERVALO`, `VLR_LOTE`, `SUM_LOTE`, `CTES: EfdcXmlCte[]`
-- Resposta da API é `EfdcXmlLote[]` diretamente (array raiz)
+**Impacto nos hooks** (`useBalanceteEfd`, `useEfdcIcms`, `useEfdcXml`):
+- Mantêm a interface de params via props (não consomem context diretamente — hooks de dados devem ser puros)
+- O context elimina prop drilling apenas nos componentes de abas que recebem `hasQueried` via props; agora consomem direto do context
 
-**2. `src/hooks/useEfdcXml.ts`** (novo)
-- `useQuery` com `enabled: false`, fetch via `refetch()`
-- Endpoint: `getApiUrl('/api/v1/pis_cofins/comparacoes/cte_lote')`
-- Params: `id_contribuinte` sempre; `dt_ini` e `dt_fim` somente se ambos preenchidos (mesma lógica do `useBalanceteEfd`)
-- Retorna `EfdcXmlLote[]`
+**Impacto nos tabs** (`BalanceteEfdTab`, `EfdcIcmsTab`, `EfdcXmlTab`):
+- Removem `hasQueried` das props — consomem via `useAuditoriaStore()`
+- Props de dados (`itens`, `notas`, `lotes`, `isLoading`, `error`) permanecem, pois vêm do useQuery na página
 
-**3. `src/components/equipe/dev/auditoria/EfdcXmlTab.tsx`** (novo, ~160 linhas)
-- **Props**: `lotes: EfdcXmlLote[]`, `isLoading`, `hasQueried`
-- **Filtros locais**:
-  - Input busca por CFOP ou Intervalo com debounce 300ms (mesmo padrão das outras abas)
-- **Tabela Master-Detail** usando `Collapsible`:
-  - **Linha Master**: ícone chevron (expand/collapse), Data Lote, Emitente, CFOP, Intervalo, Valor Lote (BRL), Soma CT-es (BRL)
-  - **Área Detail**: Sub-tabela com Chave CT-e, Número, Valor (BRL)
-  - State `expandedRows: Set<number>` para controlar quais linhas estão abertas
-- **Divergência de Lote**: Se `VLR_LOTE !== SUM_LOTE`, a linha master recebe `bg-amber-50 dark:bg-amber-950/20` + ícone `AlertTriangle` ao lado do valor
+### 2. Paginação Client-Side (40 itens/página)
 
-**4. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** (edição)
-- Importar `useEfdcXml` e `EfdcXmlTab`
-- Instanciar `useEfdcXml({ id_contribuinte, dt_ini, dt_fim })` com mesma lógica de formatação de datas
-- No `handleConsultar`: chamar `efdcXmlQuery.refetch()`
-- No `TabsContent value="efd-xml"`: renderizar `<EfdcXmlTab>` substituindo o placeholder "Em construção"
+**Novo componente: `src/components/equipe/dev/auditoria/TablePagination.tsx`** (~50 linhas)
+- Props: `currentPage`, `totalPages`, `onPageChange`
+- Renderiza: Primeira, Anterior, numeração com ellipsis, Próximo, Última
+- Usa os componentes do `src/components/ui/pagination.tsx` já existente no projeto
 
-### Restrições mantidas
-1. Hook desativado no mount (`enabled: false`)
-2. Debounce 300ms no filtro local
-3. Datas opcionais: só envia se ambas preenchidas
+**Impacto nos 3 componentes de aba**:
+- Cada um adiciona estado `currentPage` (resetado quando dados/filtros mudam)
+- Após filtrar, aplica `.slice(page * 40, (page + 1) * 40)` sobre os dados filtrados
+- Exibe `<TablePagination>` abaixo da tabela com contagem de registros
+- Na aba XMLs, a paginação conta lotes (linhas master), não CT-es individuais
 
-4 arquivos (3 novos + 1 editado), ~220 linhas.
+### 3. Tratamento de Erros
+
+**Nos 3 componentes de aba**:
+- Adicionam prop `error?: Error | null`
+- Se `error` presente e `hasQueried`, exibem card de estado de erro com mensagem amigável + botão "Tentar novamente" (opcional)
+- Disparam `toast.error('Falha ao carregar os dados. Tente novamente.')` via `sonner` (já importado no projeto) usando `useEffect` ao detectar `error`
+
+**Em `AuditoriaCruzada.tsx`**:
+- Passa `error={query.error as Error | null}` para cada tab component
+
+### Resumo de arquivos
+
+| Arquivo | Ação | Descrição |
+|---|---|---|
+| `src/contexts/AuditoriaContext.tsx` | Novo | Context + Provider + hook `useAuditoriaStore` |
+| `src/components/equipe/dev/auditoria/TablePagination.tsx` | Novo | Componente de paginação reutilizável (40/página) |
+| `src/pages/equipe/dev/AuditoriaCruzada.tsx` | Editar | Wrappa com Provider, remove useState locais, passa `error` |
+| `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx` | Editar | Paginação + erro + consome context |
+| `src/components/equipe/dev/auditoria/EfdcIcmsTab.tsx` | Editar | Paginação + erro + consome context |
+| `src/components/equipe/dev/auditoria/EfdcXmlTab.tsx` | Editar | Paginação (por lote) + erro + consome context |
+
+6 arquivos (2 novos + 4 editados), ~250 linhas de alteração.
 
