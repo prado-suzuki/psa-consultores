@@ -631,7 +631,7 @@ export function ExportDialog({
             </TabsList>
 
             {/* Aba Colunas */}
-            <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4">
+            <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4 flex flex-col">
               {/* Toolbar de Gestão de Perfis */}
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Select value={selectedProfileId || "__none__"} onValueChange={(val) => loadProfile(val === "__none__" ? "" : val)}>
