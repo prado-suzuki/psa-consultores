@@ -13,6 +13,7 @@ const QUERY_KEY = ['regras-ncm-pis-cofins'];
 export const useRegrasNCM = () => {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   const query = useQuery({
     queryKey: QUERY_KEY,
@@ -30,7 +31,8 @@ export const useRegrasNCM = () => {
     mutationFn: async (regra: Omit<RegraNCMInsert, 'id' | 'id_segmento'>) => {
       const { data, error } = await supabase
         .from('pis_cofins_regra')
-        .insert({ ...regra, id_segmento: 'geral' })
+        // as any: updated_at/updated_by ainda não tipadas no types.ts gerado
+        .insert({ ...regra, id_segmento: 'geral', updated_at: new Date().toISOString(), updated_by: user?.email ?? null } as any)
         .select()
         .single();
       if (error) throw error;
@@ -52,7 +54,8 @@ export const useRegrasNCM = () => {
     mutationFn: async ({ id, ...updates }: RegraNCMUpdate & { id: string }) => {
       const { data, error } = await supabase
         .from('pis_cofins_regra')
-        .update(updates)
+        // as any: updated_at/updated_by ainda não tipadas no types.ts gerado
+        .update({ ...updates, updated_at: new Date().toISOString(), updated_by: user?.email ?? null } as any)
         .eq('id', id)
         .select()
         .single();
