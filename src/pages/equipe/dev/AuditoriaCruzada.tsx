@@ -33,9 +33,12 @@ const AuditoriaCruzada = () => {
     dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
   });
 
+  const efdcIcmsQuery = useEfdcIcms({ id_contribuinte: contribuinteId });
+
   const handleConsultar = () => {
     setHasQueried(true);
     balanceteQuery.refetch();
+    efdcIcmsQuery.refetch();
   };
 
   const handleLimpar = () => {
@@ -171,11 +174,11 @@ const AuditoriaCruzada = () => {
           </TabsContent>
 
           <TabsContent value="efd-icms">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Em construção</p>
-              </CardContent>
-            </Card>
+            <EfdcIcmsTab
+              notas={efdcIcmsQuery.data?.NOTAS}
+              isLoading={efdcIcmsQuery.isLoading}
+              hasQueried={hasQueried}
+            />
           </TabsContent>
 
           <TabsContent value="efd-xml">
