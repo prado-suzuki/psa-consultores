@@ -32,7 +32,8 @@ const MapaNCMPisCofins = () => {
       const q = search.toLowerCase();
       list = list.filter(r =>
         (r.cod_ncm ?? '').toLowerCase().includes(q) ||
-        (r.desc_cst ?? '').toLowerCase().includes(q)
+        (r.desc_cst ?? '').toLowerCase().includes(q) ||
+        (r.base_legal ?? '').toLowerCase().includes(q)
       );
     }
     return list;
@@ -107,6 +108,7 @@ const MapaNCMPisCofins = () => {
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST PIS</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST COFINS</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Descrição CST</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Base Legal</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">Crédito</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">Ações</TableHead>
               </TableRow>
@@ -114,13 +116,13 @@ const MapaNCMPisCofins = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                    <TableCell colSpan={7} className="text-center py-12">
+                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
                     <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
                   </TableCell>
@@ -131,6 +133,9 @@ const MapaNCMPisCofins = () => {
                   <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
                   <TableCell className="text-xs text-slate-600">{regra.cst_cofins}</TableCell>
                   <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
+                  <TableCell className="text-xs text-slate-600 max-w-[350px]">
+                    <span className="line-clamp-2">{regra.base_legal || '—'}</span>
+                  </TableCell>
                   <TableCell className="text-center">
                     {regra.permite_credito === 'S' ? (
                       <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
