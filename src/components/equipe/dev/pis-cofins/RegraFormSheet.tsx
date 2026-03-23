@@ -113,7 +113,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
 
         <div className="flex-1 min-h-0 overflow-y-auto pr-2">
           {isViewMode && regra ? (
-            <div className="space-y-4">
+            <div key="view-content" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <DetailField label="Código NCM" value={regra.cod_ncm} />
                 <DetailField label="CST PIS" value={regra.cst_pis} />
@@ -140,7 +140,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
             </div>
           ) : (
             <Form {...form}>
-              <form id="regra-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form key="edit-content" id="regra-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="cod_ncm" render={({ field }) => (
                     <FormItem>
