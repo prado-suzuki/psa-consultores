@@ -200,6 +200,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
+  {
+    page_path: '/equipe/dev/mapa-ncm-pis-cofins',
+    page_name: 'Mapa NCM PIS/COFINS',
+    page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
   // === OSG PAGES ===
   {
     page_path: '/equipe/osg/dashboard',
