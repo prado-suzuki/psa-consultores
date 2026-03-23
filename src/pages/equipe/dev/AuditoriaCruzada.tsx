@@ -13,7 +13,9 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
+import { useEfdcIcms } from '@/hooks/useEfdcIcms';
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
+import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 
 const AuditoriaCruzada = () => {
   const [clienteId, setClienteId] = useState('');
