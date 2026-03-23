@@ -68,7 +68,7 @@ const ApuracaoPisCofins = () => {
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   // New UI state
-  const [activeTab, setActiveTab] = useState<'apuracao' | 'dados' | 'rateio'>('apuracao');
+  const [activeTab, setActiveTab] = useState<'resumo' | 'debitos' | 'creditos' | 'apuracao' | 'rateio'>('resumo');
   const [expandedYear, setExpandedYear] = useState<string | null>(null);
   const [tipoApuracao, setTipoApuracao] = useState<'EFD' | 'BALANCETE'>('EFD');
   const [periodoFechado, setPeriodoFechado] = useState(false);
