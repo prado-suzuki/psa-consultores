@@ -177,6 +177,7 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
                 return (
                   <CommandItem
                     key={opt.code}
+                    value={opt.code}
                     onSelect={() => handleSelect(opt)}
                     className="text-xs"
                   >
@@ -197,6 +198,7 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
 /* ── Modal principal ── */
 export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting }: RegraDetailModalProps) => {
   const [descOpen, setDescOpen] = useState(false);
+  const [descSearch, setDescSearch] = useState('');
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -329,14 +331,14 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
 
                 <FormField control={form.control} name="desc_cst" render={({ field }) => {
                   const filteredDesc = CST_OPTIONS.filter(opt => {
-                    if (!field.value) return true;
-                    const q = field.value.toLowerCase();
+                    if (!descSearch) return true;
+                    const q = descSearch.toLowerCase();
                     return opt.code.includes(q) || opt.description.toLowerCase().includes(q);
                   });
                   return (
                     <FormItem>
                       <FormLabel>Descrição CST</FormLabel>
-                      <Popover open={descOpen} onOpenChange={setDescOpen}>
+                      <Popover open={descOpen} onOpenChange={(o) => { setDescOpen(o); if (o) setDescSearch(''); }}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Input
