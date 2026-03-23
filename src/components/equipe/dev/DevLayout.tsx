@@ -57,7 +57,7 @@ const spedSubItems: NavItem[] = [
   const pisCofinsSubItems: NavItem[] = [
     { icon: FileSpreadsheet, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
     { icon: FileText, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
-    { icon: FileSpreadsheet, label: 'Cruzamento de Dados', path: '/equipe/dev/cruzamento-dados' },
+    { icon: FileSpreadsheet, label: 'Auditoria Cruzada', path: '/equipe/dev/cruzamento-dados' },
   ];
 
 const navItemsAfterSped: NavItem[] = [

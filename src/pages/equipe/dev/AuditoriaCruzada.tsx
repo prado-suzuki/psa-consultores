@@ -5,37 +5,65 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, X } from 'lucide-react';
+import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 
 const AuditoriaCruzada = () => {
-  const [nome, setNome] = useState('');
+  const [clienteId, setClienteId] = useState('');
+  const [contribuinteId, setContribuinteId] = useState('');
   const [ncm, setNcm] = useState('');
   const [aliquota, setAliquota] = useState('');
   const [tipoProduto, setTipoProduto] = useState('todos');
 
+  const { data: clientes = [] } = useClientesList({ ativo: true });
+  const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
+
   const handleLimpar = () => {
-    setNome('');
+    setClienteId('');
+    setContribuinteId('');
     setNcm('');
     setAliquota('');
     setTipoProduto('todos');
   };
 
+  const handleClienteChange = (value: string) => {
+    setClienteId(value);
+    setContribuinteId('');
+  };
+
   return (
-    <DevLayout title="Cruzamento de Dados" subtitle="Cruzamento entre fontes de dados fiscais">
+    <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada entre fontes de dados fiscais">
       <div className="space-y-4">
         {/* Filtros Globais */}
         <Card className="bg-muted/50 border-dashed">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Nome</Label>
-                <Input
-                  placeholder="Buscar por nome..."
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="h-8 text-sm"
-                />
+                <Label className="text-xs">Cliente</Label>
+                <Select value={clienteId} onValueChange={handleClienteChange}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Contribuinte</Label>
+                <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contribuintes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">NCM</Label>
@@ -82,35 +110,44 @@ const AuditoriaCruzada = () => {
           </CardContent>
         </Card>
 
-        {/* Accordions */}
-        <Accordion type="multiple" className="w-full space-y-2">
-          <AccordionItem value="balancete-efd" className="border rounded-lg px-4">
-            <AccordionTrigger className="text-sm font-semibold">
+        {/* Abas */}
+        <Tabs defaultValue="balancete-efd" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">
               Balancete vs EFD Contribuições
-            </AccordionTrigger>
-            <AccordionContent>
-              <p className="text-sm text-muted-foreground">Em construção</p>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="efd-icms" className="border rounded-lg px-4">
-            <AccordionTrigger className="text-sm font-semibold">
+            </TabsTrigger>
+            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">
               EFD Contribuições vs EFD ICMS
-            </AccordionTrigger>
-            <AccordionContent>
-              <p className="text-sm text-muted-foreground">Em construção</p>
-            </AccordionContent>
-          </AccordionItem>
+            </TabsTrigger>
+            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">
+              EFD Contribuições vs XMLs
+            </TabsTrigger>
+          </TabsList>
 
-          <AccordionItem value="efd-xml" className="border rounded-lg px-4">
-            <AccordionTrigger className="text-sm font-semibold">
-              EFD Contribuições vs XMLs (NFe e CTe)
-            </AccordionTrigger>
-            <AccordionContent>
-              <p className="text-sm text-muted-foreground">Em construção</p>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+          <TabsContent value="balancete-efd">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground">Em construção</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="efd-icms">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground">Em construção</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="efd-xml">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground">Em construção</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DevLayout>
   );
