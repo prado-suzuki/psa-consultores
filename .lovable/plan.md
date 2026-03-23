@@ -1,24 +1,68 @@
 
 
-## Plano: Corrigir exibição do CST e filtro da Descrição
+## Plano: Normalizar `setor_cliente` — Implementação aprovada com dual-write
 
-### Arquivo: `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
+### Fase 1 — Migration SQL (uma única migration)
 
-**Problema 1 — CST PIS/COFINS mostrando descrição**
-O `CstCombobox` no `mode="code"` exibe `displayValue = value`, que deveria ser só o código. O problema pode estar no cmdk: o `CommandItem` sem prop `value` explícita usa o textContent (código + descrição) e pode sobrescrever o valor. Correção: adicionar `value={opt.code}` explícito em cada `CommandItem` do CstCombobox.
+```sql
+-- Tabela setor_cliente
+CREATE TABLE public.setor_cliente (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome text NOT NULL,
+  sigla text NOT NULL UNIQUE,
+  descricao text,
+  created_at timestamptz DEFAULT now()
+);
 
-**Problema 2 — Descrição CST mostrando apenas 2 itens**
-O filtro na linha 331-334 usa `field.value` (texto completo da descrição atual) como query de busca. Se o campo já tem "Operação Tributável com Alíquota Básica", só aparecem itens que contenham essa string inteira. Correção: não filtrar quando o popover acabou de abrir; filtrar apenas pelo texto digitado incrementalmente. Usar um estado `descSearch` separado que é resetado ao abrir o popover e atualizado conforme o usuário digita.
+-- Dados iniciais
+INSERT INTO setor_cliente (nome, sigla, descricao) VALUES
+  ('Transportadora', 'TRA', 'Atividades relacionadas ao setor de transportes'),
+  ('Agropecuária', 'AGR', 'Atividades relacionadas ao setor agropecuário'),
+  ('Revenda', 'REV', 'Atividades relacionadas a revenda'),
+  ('Indústria', 'IND', 'Atividades relacionadas ao setor industrial'),
+  ('Cooperativa', 'COO', 'Atividades relacionadas a cooperativas'),
+  ('Infraestrutura', 'INF', 'Atividades relacionadas a infraestrutura'),
+  ('Diversificado', 'DIV', 'Atividades diversificadas'),
+  ('Instituições do agro', 'INS', 'Instituições do setor agropecuário');
 
-### Mudanças concretas
+-- FK na tabela cliente
+ALTER TABLE public.cliente ADD COLUMN setor_cliente_id uuid REFERENCES public.setor_cliente(id);
 
-1. **CstCombobox** — adicionar `value={opt.code}` no `CommandItem` para evitar que cmdk use o textContent como valor interno
+-- Backfill
+UPDATE public.cliente c SET setor_cliente_id = sc.id
+FROM public.setor_cliente sc WHERE c.setor_cliente = sc.sigla AND c.setor_cliente IS NOT NULL;
 
-2. **Campo Descrição CST** — trocar a lógica de filtro:
-   - Novo estado `descSearch` (string) resetado para `''` ao abrir
-   - O `Input` atualiza tanto `field.value` quanto `descSearch`
-   - O filtro usa `descSearch` em vez de `field.value`
-   - Resultado: ao abrir, todos os 30 itens aparecem; conforme digita, filtra normalmente
+-- RLS
+ALTER TABLE public.setor_cliente ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated can read" ON public.setor_cliente FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Admin can insert" ON public.setor_cliente FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admin can update" ON public.setor_cliente FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admin can delete" ON public.setor_cliente FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+```
 
-1 arquivo, alteração pontual em ~15 linhas.
+### Fase 2 — Novo hook: `src/hooks/useSetorCliente.ts`
+
+Query simples que busca todos os setores ordenados por nome. Retorna `{ id, nome, sigla, descricao }[]`.
+
+### Fase 3 — Frontend: `NewClientModal.tsx`
+
+| Local | Alteração |
+|---|---|
+| Estado `defaultClientData` (linha 619) | Adicionar `setor_cliente_id: ""` ao lado de `setor_cliente` |
+| Carregamento edição (linha 768) | Carregar `setor_cliente_id` do cliente existente |
+| Dropdown "Área do negócio" (linhas 1884-1905) | Trocar itens hardcoded por `setores.map()` da query; `value` = `setor.id`; label = `sigla - nome` |
+| `onValueChange` do Select | Setar AMBOS: `setor_cliente_id = setor.id` e `setor_cliente = setor.sigla` (busca sigla do array de setores) |
+| `executeSave` payload (linha 1356-1367) | Incluir `setor_cliente_id: clientData.setor_cliente_id \|\| null` + manter `setor_cliente: clientData.setor_cliente \|\| null` (dual-write) |
+
+**Dual-write no `executeSave`**: ao montar `clientPayload`, busca a sigla correspondente ao `setor_cliente_id` selecionado no array de setores e grava ambos os campos. Isso garante compatibilidade com `FiscalClients.tsx`, `GestaoClientes.tsx`, `GerenciarDados.tsx` e `sync-cadastros`.
+
+### Arquivos afetados
+
+| Arquivo | Tipo |
+|---|---|
+| Migration SQL | Novo |
+| `src/hooks/useSetorCliente.ts` | Novo |
+| `src/components/equipe/fiscal/NewClientModal.tsx` | Alterado |
+
+Nenhum outro arquivo precisa de mudança — todos continuam lendo `setor_cliente` (texto).
 
