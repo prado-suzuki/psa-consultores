@@ -643,60 +643,7 @@ const ApuracaoPisCofins = () => {
               {/* Tab: Apuração */}
               {activeTab === 'apuracao' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Saldo a Pagar Consolidado</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <DynamicTableHeader
-                            firstColumns={[{ label: 'Descrição' }]}
-                            headerRow1={headerRow1}
-                            headerRow2={headerRow2}
-                            hasExpandedYear={hasExpandedYear}
-                            headerRowsCount={headerRowsCount}
-                            setExpandedYear={setExpandedYear}
-                          />
-                          <TableBody>
-                            <TableRow className="hover:bg-muted/30">
-                              <TableCell className="font-semibold text-foreground">Valor Devido PIS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">
-                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}
-                                </TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">
-                                {formatCurrency(totais.pisDue)}
-                              </TableCell>
-                            </TableRow>
-
-                            <TableRow className="hover:bg-muted/30">
-                              <TableCell className="font-semibold text-foreground">Valor Devido COFINS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">
-                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}
-                                </TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">
-                                {formatCurrency(totais.cofinsDue)}
-                              </TableCell>
-                            </TableRow>
-
-                            <TableRow className="bg-primary/5 hover:bg-primary/10">
-                              <TableCell className="font-bold text-primary">Total a Recolher</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono font-bold text-primary">
-                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue)))}
-                                </TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">
-                                {formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </Card>
-                  </section>
+                  {/* Tabelas detalhadas de apuração serão adicionadas aqui */}
                 </div>
               )}
             </>
