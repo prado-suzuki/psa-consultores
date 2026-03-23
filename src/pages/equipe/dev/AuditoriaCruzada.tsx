@@ -6,7 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Search, X, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 
 const AuditoriaCruzada = () => {
@@ -15,6 +20,8 @@ const AuditoriaCruzada = () => {
   const [ncm, setNcm] = useState('');
   const [aliquota, setAliquota] = useState('');
   const [tipoProduto, setTipoProduto] = useState('todos');
+  const [dataInicio, setDataInicio] = useState<Date | undefined>();
+  const [dataFim, setDataFim] = useState<Date | undefined>();
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
@@ -25,6 +32,8 @@ const AuditoriaCruzada = () => {
     setNcm('');
     setAliquota('');
     setTipoProduto('todos');
+    setDataInicio(undefined);
+    setDataFim(undefined);
   };
 
   const handleClienteChange = (value: string) => {
@@ -95,6 +104,60 @@ const AuditoriaCruzada = () => {
                     <SelectItem value="servico">Serviço</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Data Início</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-8 justify-start text-left font-normal text-sm',
+                        !dataInicio && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicio}
+                      onSelect={setDataInicio}
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data Fim</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-8 justify-start text-left font-normal text-sm',
+                        !dataFim && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataFim}
+                      onSelect={setDataFim}
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-3">
