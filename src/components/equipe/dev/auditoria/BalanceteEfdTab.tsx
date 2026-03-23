@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Plus, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus, Search } from 'lucide-react';
 import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
 
 interface BalanceteEfdTabProps {
@@ -20,12 +19,6 @@ interface BalanceteEfdTabProps {
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-const isDivergent = (item: BalanceteEfdItem): boolean => {
-  const contabil = Math.abs(item.saldo_periodo);
-  if (contabil === 0 && item.vlr_efd === 0) return false;
-  const base = Math.max(contabil, item.vlr_efd) || 1;
-  return Math.abs(item.vlr_efd - contabil) / base > 0.10;
-};
 
 const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabProps) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,18 +132,10 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItens.map((item, idx) => {
-                  const divergent = isDivergent(item);
-                  return (
-                    <TableRow
-                      key={`${item.cod_cta}-${item.bloco_efd}-${idx}`}
-                      className={cn(divergent && 'bg-red-50 dark:bg-red-950/20')}
-                    >
+                {filteredItens.map((item, idx) => (
+                    <TableRow key={`${item.cod_cta}-${item.bloco_efd}-${idx}`}>
                       <TableCell className="text-xs whitespace-nowrap">
-                        <span className="flex items-center gap-1">
-                          {divergent && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                          {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        </span>
+                        {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
                       <TableCell className="text-xs">{item.bloco_efd}</TableCell>
@@ -161,8 +146,7 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
                       <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
                       <TableCell className="text-xs text-right font-medium">{formatBRL(item.saldo_periodo)}</TableCell>
                     </TableRow>
-                  );
-                })}
+                ))}
               </TableBody>
             </Table>
           </div>
