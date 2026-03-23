@@ -14,8 +14,10 @@ import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
 import { useEfdcIcms } from '@/hooks/useEfdcIcms';
+import { useEfdcXml } from '@/hooks/useEfdcXml';
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
+import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
 
 const AuditoriaCruzada = () => {
   const [clienteId, setClienteId] = useState('');
@@ -35,10 +37,17 @@ const AuditoriaCruzada = () => {
 
   const efdcIcmsQuery = useEfdcIcms({ id_contribuinte: contribuinteId });
 
+  const efdcXmlQuery = useEfdcXml({
+    id_contribuinte: contribuinteId,
+    dt_ini: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '',
+    dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
+  });
+
   const handleConsultar = () => {
     setHasQueried(true);
     balanceteQuery.refetch();
     efdcIcmsQuery.refetch();
+    efdcXmlQuery.refetch();
   };
 
   const handleLimpar = () => {
@@ -182,11 +191,11 @@ const AuditoriaCruzada = () => {
           </TabsContent>
 
           <TabsContent value="efd-xml">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Em construção</p>
-              </CardContent>
-            </Card>
+            <EfdcXmlTab
+              lotes={efdcXmlQuery.data}
+              isLoading={efdcXmlQuery.isLoading}
+              hasQueried={hasQueried}
+            />
           </TabsContent>
         </Tabs>
       </div>
