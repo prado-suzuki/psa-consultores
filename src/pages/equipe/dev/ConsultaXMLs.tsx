@@ -29,6 +29,7 @@ import {
   Download,
   Filter,
   Eraser,
+  FolderDown,
 } from "lucide-react";
 import { ExportDialog } from "@/components/equipe/dev/ExportDialog";
 import { NFE_COLUMNS, CTE_COLUMNS } from "@/constants/exportConfig";
