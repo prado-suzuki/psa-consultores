@@ -13,7 +13,9 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
+import { useEfdcIcms } from '@/hooks/useEfdcIcms';
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
+import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 
 const AuditoriaCruzada = () => {
   const [clienteId, setClienteId] = useState('');
@@ -31,9 +33,12 @@ const AuditoriaCruzada = () => {
     dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
   });
 
+  const efdcIcmsQuery = useEfdcIcms({ id_contribuinte: contribuinteId });
+
   const handleConsultar = () => {
     setHasQueried(true);
     balanceteQuery.refetch();
+    efdcIcmsQuery.refetch();
   };
 
   const handleLimpar = () => {
@@ -169,11 +174,11 @@ const AuditoriaCruzada = () => {
           </TabsContent>
 
           <TabsContent value="efd-icms">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Em construção</p>
-              </CardContent>
-            </Card>
+            <EfdcIcmsTab
+              notas={efdcIcmsQuery.data?.NOTAS}
+              isLoading={efdcIcmsQuery.isLoading}
+              hasQueried={hasQueried}
+            />
           </TabsContent>
 
           <TabsContent value="efd-xml">
