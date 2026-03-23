@@ -106,6 +106,60 @@ const AuditoriaCruzada = () => {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Data Início</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-8 justify-start text-left font-normal text-sm',
+                        !dataInicio && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicio}
+                      onSelect={setDataInicio}
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data Fim</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-8 justify-start text-left font-normal text-sm',
+                        !dataFim && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataFim}
+                      onSelect={setDataFim}
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             <div className="flex justify-end gap-2 mt-3">
               <Button variant="outline" size="sm" onClick={handleLimpar}>
                 <X className="h-3.5 w-3.5 mr-1" />
