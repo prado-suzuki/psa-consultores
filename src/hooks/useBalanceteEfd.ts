@@ -17,9 +17,11 @@ export function useBalanceteEfd(params: UseBalanceteEfdParams) {
     queryFn: async () => {
       const searchParams = new URLSearchParams({
         id_contribuinte: params.id_contribuinte,
-        dt_ini: params.dt_ini,
-        dt_fim: params.dt_fim,
       });
+      if (params.dt_ini && params.dt_fim) {
+        searchParams.append('dt_ini', params.dt_ini);
+        searchParams.append('dt_fim', params.dt_fim);
+      }
       const url = getApiUrl(`/api/v1/pis_cofins/comparacoes/efdc_balancete?${searchParams}`);
       const response = await fetchWithAuth(url);
       if (!response.ok) {
