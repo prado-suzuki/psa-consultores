@@ -1,41 +1,25 @@
 
 
-## Plano: Colunas de Auditoria na `pis_cofins_regra`
+## Plano: Adicionar coluna "Base Legal" na tabela principal do Mapa NCM
 
-### 1. Migration SQL
+### Arquivo: `src/pages/equipe/dev/MapaNCMPisCofins.tsx`
 
-Adicionar colunas `updated_at` e `updated_by` na tabela `pis_cofins_regra`:
-
-```sql
-ALTER TABLE public.pis_cofins_regra
-  ADD COLUMN updated_at timestamptz DEFAULT now(),
-  ADD COLUMN updated_by text;
+**1. Header — nova coluna (entre "Descrição CST" e "Crédito", linha 109-110)**
+```tsx
+<TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Base Legal</TableHead>
 ```
 
-Sem trigger automático para `updated_at` — vamos controlar via código para enviar ambos os campos juntos.
+**2. Célula de dados (entre desc_cst e permite_credito, linha 133-134)**
+```tsx
+<TableCell className="text-xs text-slate-600 max-w-[350px]">
+  <span className="line-clamp-2">{regra.base_legal || '—'}</span>
+</TableCell>
+```
+Usar `line-clamp-2` para exibir até 2 linhas do texto, permitindo leitura sem abrir o modal.
 
-### 2. Hook `useRegrasNCM.ts`
+**3. Atualizar colSpan** dos estados de loading e empty de `6` → `7` (linhas 117 e 123).
 
-- Importar `useAuth` do `AuthContext`
-- No `updateRegra.mutationFn`, injetar `updated_at: new Date().toISOString()` e `updated_by: user?.email` no payload de update
-- No `createRegra.mutationFn`, injetar os mesmos campos
-- Usar `as any` com comentário justificativo (colunas ainda não tipadas no types.ts gerado)
+**4. Incluir base_legal na busca textual** (filtro `search`, linha ~40) para que o usuário possa buscar por texto da base legal.
 
-### 3. Modal `RegraFormSheet.tsx`
-
-No modo **view**, adicionar uma seção de metadados no final com separador visual:
-
-- "Última atualização" — exibe `updated_at` formatado em pt-BR (`dd/MM/yyyy HH:mm`)
-- "Atualizado por" — exibe `updated_by` (e-mail)
-- Estilo discreto: texto menor, cor muted, separador `border-t`
-
-Esses campos são somente leitura e **nunca** aparecem no formulário de edição.
-
-### Arquivos afetados
-
-| Arquivo | Alteração |
-|---|---|
-| Migration SQL | ADD COLUMN `updated_at`, `updated_by` |
-| `src/hooks/useRegrasNCM.ts` | Injetar campos de auditoria nas mutations |
-| `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` | Exibir metadados no modo view |
+Alteração em 1 arquivo, sem mudança de lógica ou schema.
 
