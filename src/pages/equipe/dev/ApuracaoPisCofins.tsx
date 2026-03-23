@@ -708,9 +708,6 @@ const ApuracaoPisCofins = () => {
 };
 
 export default ApuracaoPisCofins;
-                <div className="space-y-8 animate-in fade-in duration-300">
-                  <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio das Receitas (Percentuais)</h2>
                     <Card className="overflow-hidden">
                       <div className="overflow-x-auto">
                         <Table>
