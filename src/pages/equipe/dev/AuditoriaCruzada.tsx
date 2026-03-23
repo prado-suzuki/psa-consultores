@@ -32,6 +32,8 @@ const AuditoriaCruzada = () => {
     setNcm('');
     setAliquota('');
     setTipoProduto('todos');
+    setDataInicio(undefined);
+    setDataFim(undefined);
   };
 
   const handleClienteChange = (value: string) => {
