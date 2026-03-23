@@ -782,7 +782,7 @@ export function ExportDialog({
                     Nenhum dado disponível para preview.
                   </div>
                 ) : (
-                  <ScrollArea className="h-[320px] w-full">
+                  <div className="flex-1 min-h-0 overflow-auto w-full">
                     <div className="min-w-max">
                       <Table>
                         <TableHeader>
