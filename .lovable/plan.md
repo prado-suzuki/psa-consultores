@@ -1,110 +1,38 @@
 
 
-## Plano: Refatoração da camada de dados da Apuração PIS/COFINS
+## Plano: Fase 2 — Integrar UI com camada de dados refatorada
 
-### Diagnóstico
+### Arquivos a criar/alterar
 
-**Estado atual**: Existem duas "gerações" de código coexistindo:
-- **Geração 1 (projeto)**: `src/types/pisCofins.ts`, `src/hooks/usePisCofinsApuracao.ts`, `src/lib/pisCofinsFilters.ts` — usados pela página `ApuracaoPisCofins.tsx` atual (dashboard pivotado simples)
-- **Geração 2 (anexos)**: `types.ts`, `apuracao.ts`, `usePisCofinsApuracao.ts`, `usePisCofinsCalculator.ts` — motor de cálculo completo com apuração de PIS/COFINS, rateio, carryforward de saldos, variante balancete e pivoteamento genérico
+| Arquivo | Acao |
+|---|---|
+| `src/hooks/useTableHeaders.ts` | Criar — hook do arquivo enviado (expandedYear, headerRow1, headerRow2, headerBottom) |
+| `src/components/equipe/dev/pis-cofins/DynamicTableHeader.tsx` | Criar — componente de header com botoes +/- para expandir/colapsar anos |
+| `src/components/equipe/dev/pis-cofins/ApuracaoDataTable.tsx` | Criar — tabela generica que consome useTableHeaders + DynamicTableHeader |
+| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Reescrever — substituir PivotTable inline por usePisCofinsCalculator + ApuracaoDataTable + abas |
 
-**Problemas identificados nos anexos**:
-1. `usePisCofinsCalculator` mistura 4 responsabilidades: cálculo de resultados, cálculo de totais, montagem de colunas e pivoteamento de 6 tabelas — tudo num único `useMemo` gigante
-2. `pivotItems` usa `any` no retorno e recalcula todas as 6 tabelas quando qualquer dependência muda
-3. `calcTotais` recebe `any[]` — sem tipagem
-4. Tipos duplicados entre `src/types/pisCofins.ts` e o `types.ts` anexo (mesmos campos, nomes diferentes)
-5. O hook de fetch anexo usa `API_BASE_URL` diretamente em vez de `getApiUrl`
+### Detalhes
 
-### Arquitetura proposta
+**1. `useTableHeaders.ts`** — Copiar fielmente o arquivo enviado pelo usuario.
 
-```text
-src/types/pisCofins.ts          ← Fonte única de tipagens (merge)
-src/lib/apuracaoPisCofins.ts    ← Motor de cálculo puro (funções do apuracao.ts)
-src/lib/pisCofinsFilters.ts     ← Predicados CST + buildPivot (já existe, expandir)
-src/hooks/usePisCofinsApuracao.ts  ← Fetch only (já existe, ajustar tipagem)
-src/hooks/usePisCofinsCalculator.ts ← Novo: orquestra cálculos com useMemo granulares
-```
+**2. `DynamicTableHeader.tsx`** — Copiar do anexo `DynamicTableHeader-2.tsx`. Tipar `headerRow1`/`headerRow2` com interfaces proprias em vez de `any[]`.
 
-### Fase 1 — Unificar tipagens em `src/types/pisCofins.ts`
+**3. `ApuracaoDataTable.tsx`** — Copiar do anexo `ApuracaoDataTable-2.tsx`. Tipar `data` como `PivotRowGeneric[]` em vez de `any[]`.
 
-Mesclar os tipos dos anexos com os existentes. Manter os nomes do projeto (`PisCofinsItemCredito` etc.) como aliases para evitar breaking changes na página atual.
+**4. `ApuracaoPisCofins.tsx`** — Reescrever completo:
+- **Manter intacto**: filtros (Cliente, Contribuinte, Data Inicio, Data Fim), queries de clientes/contribuintes, handleSearch, handleClear, loading/error states
+- **Remover**: componente PivotTable inline (linhas 28-242), imports de buildPivot/isDebito/isExclusao/isCredito, useMemo dos pivots (linhas 301-305)
+- **Adicionar estado**: `activeTab` ('apuracao' | 'dados'), `expandedYear` (string | null), `tipoApuracao` ('EFD' | 'BALANCETE'), `periodoFechado` (boolean)
+- **Adicionar hooks**: `usePisCofinsCalculator({ data: apiData, tipoApuracao, periodoFechado })` → resultados, totais, columnsData, tables; `useTableHeaders({ columnsData, expandedYear })` → headerRow1, headerRow2, headerBottom, etc.
+- **Helpers**: `getResultadoColValue(resultados, dataKeys, accessor)` — soma valores de resultados cujo `dt_ini.substring(0,7)` esta em dataKeys; `getRateioReceitasColValue` — idem para rateio_receitas
+- **Aba "Apuracao"**: Tabela "Saldo a Pagar Consolidado" com DynamicTableHeader (3 linhas: PIS Due, COFINS Due, Total a Recolher) + secao Rateio (percentuais por tipo de receita, apenas quando tipoApuracao === 'EFD')
+- **Aba "Dados"**: 6 tabelas via ApuracaoDataTable (Resumo com showCst+showBloco, Debitos com showTotal, Isencoes, Outras Saidas, Creditos, Isencoes Credito)
+- **Filtros extras**: Toggle EFD/Balancete + checkbox "Periodo Fechado" (visivel apenas quando BALANCETE)
 
-| Tipo existente | Tipo anexo | Ação |
-|---|---|---|
-| `PisCofinsItemCredito` | `ItemCredito` | Manter existente, exportar alias `ItemCredito` |
-| `PisCofinsRateioReceitas` | `RateioReceitas` | Idem |
-| `PisCofsinPeriodo` | `Periodo` | Idem |
-| `PisCofinsApuracaoResponse` | `ApuracaoInput` | Expandir com campo `metadata` |
-| — | `SaldoCarryforward` | Adicionar |
-| — | `ResultadoApuracao` | Adicionar |
-| — | `RateioResultado` | Adicionar |
-| `PisCofinsRow` | — | Manter |
-| `PivotRow` | — | Manter |
+### Eliminacoes
 
-Adicionar tipo `ResultadoPeriodo` para tipar o retorno de `calcTodosPeriodos` (eliminar `any[]`).
-
-### Fase 2 — Motor de cálculo: `src/lib/apuracaoPisCofins.ts`
-
-Copiar **fielmente** todas as funções de `apuracao.ts` sem alterar nenhuma fórmula:
-- Predicados: `isItemReceita`, `isItemSuspenso`, `isItemOutrasSaidas`, `isItemCredito`, `isItemIsencaoCredito`
-- Seção 1 (Débitos): `calcReceitaPorConta`, `receitaBrutaTotal`, `exclusaoSuspensao`, `calcBaseDebito`
-- Seção 2 (Créditos): `calcCreditoPorConta`, `calcBaseCredito`
-- Seção 3 (Valores): `COFINS_POR_PIS`, `aliqCofins`, `calcValoresCredito`
-- Seção 4 (Apuração): `calcApuracao`, `calcTodosPeriodos`
-- Seção 5 (Rateio): `calcRateio`
-- Variante Balancete: `valorBaseBalancete`, `calcCreditoPorContaBalancete`, `calcBaseCreditoBalancete`, `calcValoresCreditoBalancete`, `calcTodosPeriodosBalancete`
-- Totais: `calcTotais` — **tipar o parâmetro** como `ResultadoPeriodo[]` em vez de `any[]`
-
-Importar tipos de `@/types/pisCofins`. Zero alteração em lógica de negócio.
-
-### Fase 3 — Expandir `src/lib/pisCofinsFilters.ts`
-
-Adicionar predicados de item (delegando para `apuracaoPisCofins`):
-- `isItemOutrasSaidas`, `isItemIsencaoCredito`
-
-Adicionar `buildPivotGeneric` — versão parametrizável do `pivotItems` do calculator:
-- Aceita `groupBy` e `valueFn` customizáveis
-- Retorna `PivotRow[]` tipado (sem `any`)
-- Mantém `buildPivot` existente inalterado para não quebrar a página atual
-
-### Fase 4 — Hook de fetch: `src/hooks/usePisCofinsApuracao.ts`
-
-Ajustes mínimos:
-- Atualizar tipagem de retorno para `ApuracaoInput` (que agora inclui `metadata`)
-- Manter uso de `getApiUrl` (já correto no projeto)
-- O hook anexo é descartado — o existente já segue os padrões do projeto
-
-### Fase 5 — Novo hook: `src/hooks/usePisCofinsCalculator.ts`
-
-Desacoplar o `useMemo` monolítico em memos granulares:
-
-```text
-usePisCofinsCalculator({ data, tipoApuracao, periodoFechado })
-  ├── resultados    = useMemo(calcTodosPeriodos | calcTodosPeriodosBalancete)
-  ├── totais        = useMemo(calcTotais, [resultados])
-  ├── columnsData   = useMemo(periods + yearsMap, [data])
-  ├── resumoData    = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
-  ├── debitosData   = useMemo(buildPivotGeneric, [data])
-  ├── isencoesData  = useMemo(buildPivotGeneric, [data])
-  ├── outrasSaidasData = useMemo(buildPivotGeneric, [data])
-  ├── creditosData  = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
-  └── isencoesCredito = useMemo(buildPivotGeneric, [data, tipoApuracao, periodoFechado])
-```
-
-Benefícios:
-- `debitosData` e `isencoesData` não recalculam quando `periodoFechado` muda (dependem só de `vlr_efd`)
-- Cada tabela tem dependências mínimas e precisas
-- Eliminação total de `any` — todos os retornos tipados
-
-### Resumo de arquivos
-
-| Arquivo | Ação | Linhas estimadas |
-|---|---|---|
-| `src/types/pisCofins.ts` | Expandir (merge tipos) | ~80 |
-| `src/lib/apuracaoPisCofins.ts` | Criar (motor de cálculo) | ~220 |
-| `src/lib/pisCofinsFilters.ts` | Expandir (novos predicados + pivot genérico) | ~40 adicionais |
-| `src/hooks/usePisCofinsApuracao.ts` | Ajuste mínimo de tipagem | ~5 linhas |
-| `src/hooks/usePisCofinsCalculator.ts` | Criar (orquestrador de estado) | ~90 |
-
-Nenhuma alteração em `ApuracaoPisCofins.tsx` (Fase 2 do usuário). Nenhuma fórmula ou lógica de negócio alterada.
+- Componente `PivotTable` inline — substituido por `ApuracaoDataTable`
+- Imports de `buildPivot`, `isDebito`, `isExclusao`, `isCredito` — substituidos por `usePisCofinsCalculator.tables`
+- `useMemo` de pivots individuais — agora dentro do calculator hook
+- Import de `PivotRow` type — substituido por `PivotRowGeneric`
 
