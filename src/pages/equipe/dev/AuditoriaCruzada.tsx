@@ -12,21 +12,36 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
+import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
+import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 
 const AuditoriaCruzada = () => {
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
+  const [hasQueried, setHasQueried] = useState(false);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
+
+  const balanceteQuery = useBalanceteEfd({
+    id_contribuinte: contribuinteId,
+    dt_ini: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '',
+    dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
+  });
+
+  const handleConsultar = () => {
+    setHasQueried(true);
+    balanceteQuery.refetch();
+  };
 
   const handleLimpar = () => {
     setClienteId('');
     setContribuinteId('');
     setDataInicio(undefined);
     setDataFim(undefined);
+    setHasQueried(false);
   };
 
   const handleClienteChange = (value: string) => {
@@ -124,7 +139,7 @@ const AuditoriaCruzada = () => {
                 <X className="h-3.5 w-3.5 mr-1" />
                 Limpar
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={handleConsultar}>
                 <Search className="h-3.5 w-3.5 mr-1" />
                 Consultar
               </Button>
@@ -146,11 +161,11 @@ const AuditoriaCruzada = () => {
           </TabsList>
 
           <TabsContent value="balancete-efd">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Em construção</p>
-              </CardContent>
-            </Card>
+            <BalanceteEfdTab
+              itens={balanceteQuery.data?.itens}
+              isLoading={balanceteQuery.isLoading}
+              hasQueried={hasQueried}
+            />
           </TabsContent>
 
           <TabsContent value="efd-icms">
