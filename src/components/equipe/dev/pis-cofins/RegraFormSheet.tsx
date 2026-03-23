@@ -160,7 +160,7 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" onWheelCapture={(e) => e.stopPropagation()}>
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Buscar CST..."
@@ -196,6 +196,7 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
 
 /* ── Modal principal ── */
 export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting }: RegraDetailModalProps) => {
+  const [descOpen, setDescOpen] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -326,21 +327,62 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   )} />
                 </div>
 
-                <FormField control={form.control} name="desc_cst" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição CST</FormLabel>
-                    <FormControl>
-                      <CstCombobox
-                        value={field.value}
-                        onChange={field.onChange}
-                        onSyncCode={(code) => form.setValue('cst_pis', code)}
-                        mode="description"
-                        placeholder="Selecione a descrição"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <FormField control={form.control} name="desc_cst" render={({ field }) => {
+                  const filteredDesc = CST_OPTIONS.filter(opt => {
+                    if (!field.value) return true;
+                    const q = field.value.toLowerCase();
+                    return opt.code.includes(q) || opt.description.toLowerCase().includes(q);
+                  });
+                  return (
+                    <FormItem>
+                      <FormLabel>Descrição CST</FormLabel>
+                      <Popover open={descOpen} onOpenChange={setDescOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Input
+                              placeholder="Digite ou selecione a descrição"
+                              value={field.value ?? ''}
+                              onChange={(e) => {
+                                field.onChange(e.target.value);
+                                if (!descOpen) setDescOpen(true);
+                              }}
+                              onFocus={() => setDescOpen(true)}
+                            />
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[--radix-popover-trigger-width] p-0"
+                          align="start"
+                          onWheelCapture={(e) => e.stopPropagation()}
+                          onOpenAutoFocus={(e) => e.preventDefault()}
+                        >
+                          <Command shouldFilter={false}>
+                            <CommandList>
+                              <CommandEmpty>Nenhum CST encontrado</CommandEmpty>
+                              <CommandGroup>
+                                {filteredDesc.map(opt => (
+                                  <CommandItem
+                                    key={opt.code}
+                                    onSelect={() => {
+                                      field.onChange(opt.description);
+                                      form.setValue('cst_pis', opt.code);
+                                      setDescOpen(false);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    <span className="font-mono mr-2 text-muted-foreground">{opt.code}</span>
+                                    <span className="truncate">{opt.description}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="permite_credito" render={({ field }) => (
