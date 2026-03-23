@@ -764,8 +764,8 @@ export function ExportDialog({
             </TabsContent>
 
             {/* Aba Preview */}
-            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4">
-              <div className="space-y-4">
+            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4 flex flex-col">
+              <div className="flex flex-col flex-1 min-h-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     Mostrando {Math.min(10, tipoDocumento === 'cte' ? cteData.length : data.length)} de {totalRecords} registros
