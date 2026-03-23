@@ -1,255 +1,69 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { usePisCofinsApuracao } from '@/hooks/usePisCofinsApuracao';
+import { usePisCofinsCalculator } from '@/hooks/usePisCofinsCalculator';
+import { useTableHeaders } from '@/hooks/useTableHeaders';
+import { ApuracaoDataTable } from '@/components/equipe/dev/pis-cofins/ApuracaoDataTable';
+import { DynamicTableHeader } from '@/components/equipe/dev/pis-cofins/DynamicTableHeader';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
 import { RequiredMark } from '@/components/ui/required-mark';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Search, Loader2, Eraser, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
-import { buildPivot, isDebito, isExclusao, isCredito } from '@/lib/pisCofinsFilters';
-import type { PivotRow } from '@/types/pisCofins';
+import type { ResultadoPeriodo } from '@/types/pisCofins';
 
 /* ── Formatters ── */
-const fmt = (val: number) =>
-  val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-const periodLabel = (key: string) => {
-  const [y, m] = key.split('-');
-  return `${m}/${y}`;
+/* ── Helpers para somar valores de resultados por dataKeys ── */
+const getResultadoColValue = (
+  resultados: ResultadoPeriodo[],
+  dataKeys: string[],
+  accessor: (r: ResultadoPeriodo) => number,
+): number => {
+  return resultados
+    .filter(r => dataKeys.includes(r.dt_ini.substring(0, 7)))
+    .reduce((sum, r) => sum + accessor(r), 0);
 };
 
-/* ── Reusable PivotTable component ── */
-
-interface PivotTableProps {
-  title: string;
-  rows: PivotRow[];
-  periodos: string[];
-  showCst?: boolean;
-  showBloco?: boolean;
-  showTotal?: boolean;
-}
-
-const PivotTable = ({ title, rows, periodos, showCst = false, showBloco = false, showTotal = false }: PivotTableProps) => {
-  if (rows.length === 0) return null;
-
-  // Build sticky left offsets dynamically based on visible columns
-  const colWidths: { key: string; w: number }[] = [];
-  if (showCst) colWidths.push({ key: 'cst', w: 60 });
-  colWidths.push({ key: 'cta', w: 90 });
-  colWidths.push({ key: 'desc', w: 220 });
-  if (showBloco) colWidths.push({ key: 'bloco', w: 80 });
-
-  const offsets = colWidths.reduce<Record<string, number>>((acc, col, i) => {
-    acc[col.key] = i === 0 ? 0 : acc[colWidths[i - 1].key] + colWidths[i - 1].w;
-    return acc;
-  }, {});
-
-  const widthOf = (key: string) => colWidths.find(c => c.key === key)?.w ?? 0;
-  const lastFixedKey = colWidths[colWidths.length - 1].key;
-
-  // Totals row
-  const totals: Record<string, number> = {};
-  if (showTotal) {
-    for (const row of rows) {
-      for (const pk of periodos) {
-        totals[pk] = (totals[pk] || 0) + (row.valores[pk] ?? 0);
-      }
-    }
-  }
-
-  const stickyBase = 'sticky z-10 bg-white';
-  const stickyHeadBase = 'sticky z-30 bg-slate-100';
-  const headCls = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap';
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-      {/* Section header */}
-      <div className="border-l-4 border-teal-600 pl-3 py-3 px-4 bg-slate-50">
-        <span className="text-sm font-bold text-slate-800">{title}</span>
-      </div>
-
-      <div className="overflow-auto max-h-[calc(100vh-360px)]">
-        <Table className="text-xs">
-          <TableHeader className="sticky top-0 z-20">
-            <TableRow className="bg-slate-100 hover:bg-slate-100">
-              {showCst && (
-                <TableHead
-                  className={cn(headCls, stickyHeadBase, 'left-0')}
-                  style={{ width: widthOf('cst'), minWidth: widthOf('cst'), left: offsets.cst }}
-                >
-                  CST
-                </TableHead>
-              )}
-              <TableHead
-                className={cn(headCls, stickyHeadBase)}
-                style={{ width: widthOf('cta'), minWidth: widthOf('cta'), left: offsets.cta }}
-              >
-                Conta
-              </TableHead>
-              <TableHead
-                className={cn(headCls, stickyHeadBase)}
-                style={{ width: widthOf('desc'), minWidth: widthOf('desc'), left: offsets.desc }}
-              >
-                Descrição
-              </TableHead>
-              {showBloco && (
-                <TableHead
-                  className={cn(headCls, stickyHeadBase, 'border-r border-slate-200')}
-                  style={{ width: widthOf('bloco'), minWidth: widthOf('bloco'), left: offsets.bloco }}
-                >
-                  Bloco
-                </TableHead>
-              )}
-              {!showBloco && !showCst && (
-                // apply border-r to the last fixed col when bloco is hidden
-                <></>
-              )}
-              {periodos.map(pk => (
-                <TableHead key={pk} className={cn(headCls, 'text-right')} style={{ minWidth: 110 }}>
-                  {periodLabel(pk)}
-                </TableHead>
-              ))}
-              {showTotal && (
-                <TableHead className={cn(headCls, 'text-right')} style={{ minWidth: 120 }}>
-                  Total
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {rows.map((row, idx) => {
-              const rowTotal = showTotal
-                ? periodos.reduce((s, pk) => s + (row.valores[pk] ?? 0), 0)
-                : 0;
-
-              return (
-                <TableRow key={idx} className="hover:bg-slate-50">
-                  {showCst && (
-                    <TableCell
-                      className={cn('text-xs tabular-nums whitespace-nowrap p-2', stickyBase)}
-                      style={{ left: offsets.cst }}
-                    >
-                      {row.cst_pis}
-                    </TableCell>
-                  )}
-                  <TableCell
-                    className={cn('text-xs tabular-nums whitespace-nowrap p-2', stickyBase)}
-                    style={{ left: offsets.cta }}
-                  >
-                    {row.cod_cta}
-                  </TableCell>
-                  <TableCell
-                    className={cn('text-xs p-2 truncate', stickyBase)}
-                    style={{ left: offsets.desc, maxWidth: widthOf('desc') }}
-                    title={row.descricao_conta}
-                  >
-                    {row.descricao_conta}
-                  </TableCell>
-                  {showBloco && (
-                    <TableCell
-                      className={cn('text-xs whitespace-nowrap p-2 border-r border-slate-200', stickyBase)}
-                      style={{ left: offsets.bloco }}
-                    >
-                      {row.bloco_efd}
-                    </TableCell>
-                  )}
-                  {periodos.map(pk => {
-                    const val = row.valores[pk] ?? 0;
-                    return (
-                      <TableCell
-                        key={pk}
-                        className={cn(
-                          'text-xs tabular-nums text-right whitespace-nowrap p-2',
-                          val === 0 && 'text-slate-300',
-                          val < 0 && 'text-red-600',
-                          val > 0 && 'text-slate-700',
-                        )}
-                      >
-                        {fmt(val)}
-                      </TableCell>
-                    );
-                  })}
-                  {showTotal && (
-                    <TableCell
-                      className={cn(
-                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-semibold bg-slate-50/50',
-                        rowTotal === 0 && 'text-slate-300',
-                        rowTotal < 0 && 'text-red-600',
-                        rowTotal > 0 && 'text-slate-700',
-                      )}
-                    >
-                      {fmt(rowTotal)}
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-
-            {/* Footer totals row */}
-            {showTotal && (
-              <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-300">
-                {showCst && <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-100')} style={{ left: offsets.cst }} />}
-                <TableCell
-                  className={cn('text-xs p-2 uppercase tracking-wider font-bold text-slate-800', stickyBase, 'bg-slate-100')}
-                  colSpan={showBloco ? 2 : 1}
-                  style={{ left: offsets.cta }}
-                >
-                  Total
-                </TableCell>
-                {showBloco && (
-                  <TableCell className={cn('text-xs p-2 border-r border-slate-200', stickyBase, 'bg-slate-100')} style={{ left: offsets.bloco }} />
-                )}
-                {!showBloco && (
-                  <TableCell className={cn('text-xs p-2', stickyBase, 'bg-slate-100')} style={{ left: offsets.desc }} />
-                )}
-                {periodos.map(pk => {
-                  const val = totals[pk] ?? 0;
-                  return (
-                    <TableCell
-                      key={pk}
-                      className={cn(
-                        'text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold text-slate-900',
-                        val === 0 && 'text-slate-300',
-                        val < 0 && 'text-red-600',
-                      )}
-                    >
-                      {fmt(val)}
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="text-xs tabular-nums text-right whitespace-nowrap p-2 font-bold text-slate-900">
-                  {fmt(periodos.reduce((s, pk) => s + (totals[pk] ?? 0), 0))}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-muted-foreground">
-        {rows.length} conta{rows.length !== 1 ? 's' : ''} · {periodos.length} período{periodos.length !== 1 ? 's' : ''}
-      </div>
-    </div>
-  );
+const getRateioReceitasColValue = (
+  resultados: ResultadoPeriodo[],
+  dataKeys: string[],
+  accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => number,
+): number => {
+  return resultados
+    .filter(r => dataKeys.includes(r.dt_ini.substring(0, 7)) && r.rateio_receitas)
+    .reduce((sum, r) => sum + accessor(r.rateio_receitas!), 0);
 };
 
 /* ── Main page ── */
 
 const ApuracaoPisCofins = () => {
+  // Filter state
   const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
   const [mesInicio, setMesInicio] = useState<{ month: number; year: number } | null>(null);
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
+  // New UI state
+  const [activeTab, setActiveTab] = useState<'apuracao' | 'dados' | 'rateio'>('apuracao');
+  const [expandedYear, setExpandedYear] = useState<string | null>(null);
+  const [tipoApuracao, setTipoApuracao] = useState<'EFD' | 'BALANCETE'>('EFD');
+  const [periodoFechado, setPeriodoFechado] = useState(false);
+
+  // ── Queries de clientes e contribuintes ──
   const { data: clientes, isLoading: loadingClientes } = useQuery({
     queryKey: ['clientes-piscofins'],
     queryFn: async () => {
@@ -288,6 +102,7 @@ const ApuracaoPisCofins = () => {
     setSearchTriggered(false);
   }, [selectedCliente]);
 
+  // ── Fetch de dados ──
   const dataInicio = monthYearToDateString(mesInicio, 'start');
   const dataFim = monthYearToDateString(mesFim, 'end');
 
@@ -298,14 +113,21 @@ const ApuracaoPisCofins = () => {
     enabled: searchTriggered && !!selectedContribuinte,
   });
 
-  /* ── Pivots ── */
-  const resumo = useMemo(() => buildPivot(apiData?.periodos ?? []), [apiData]);
-  const debitos = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isDebito(item.cst_pis)), [apiData]);
-  const isencoes = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isExclusao(item.cst_pis)), [apiData]);
-  const creditos = useMemo(() => buildPivot(apiData?.periodos ?? [], item => isCredito(item.cst_pis, item.aliq_pis)), [apiData]);
+  // ── Calculator + Headers ──
+  const { resultados, totais, columnsData, tables } = usePisCofinsCalculator({
+    data: apiData ?? null,
+    tipoApuracao,
+    periodoFechado,
+  });
 
-  const hasData = resumo.rows.length > 0;
+  const { headerRow1, headerRow2, hasExpandedYear, headerRowsCount, headerBottom } = useTableHeaders({
+    columnsData,
+    expandedYear,
+  });
 
+  const hasData = resultados.length > 0;
+
+  // ── Handlers ──
   const handleSearch = () => {
     if (!selectedContribuinte) {
       toast({ title: 'Selecione um contribuinte', variant: 'destructive' });
@@ -332,12 +154,20 @@ const ApuracaoPisCofins = () => {
     setMesInicio(null);
     setMesFim(null);
     setSearchTriggered(false);
+    setExpandedYear(null);
+  };
+
+  // Shared table props for data tables
+  const dataTableProps = {
+    columnsData,
+    expandedYear,
+    setExpandedYear,
   };
 
   return (
-    <DevLayout title="Apuração PIS/COFINS" subtitle="Visão unificada de apuração e cruzamento de dados EFD">
+    <DevLayout title="Apuração PIS/COFINS" subtitle="Auditoria e cruzamento de apurações tributárias">
       {/* Filters */}
-      <div className="bg-slate-50 rounded-xl p-5 mb-6 space-y-4">
+      <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center">
@@ -387,19 +217,47 @@ const ApuracaoPisCofins = () => {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" size="sm" onClick={handleClear} className="gap-1.5">
-            <Eraser className="h-3.5 w-3.5" /> Limpar
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSearch}
-            disabled={isLoading}
-            className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-            Consultar
-          </Button>
+        {/* Second row: type toggle + actions */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Select value={tipoApuracao} onValueChange={v => setTipoApuracao(v as 'EFD' | 'BALANCETE')}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EFD">EFD Contribuições</SelectItem>
+                <SelectItem value="BALANCETE">Balancete</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {tipoApuracao === 'BALANCETE' && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="periodo-fechado"
+                  checked={periodoFechado}
+                  onCheckedChange={setPeriodoFechado}
+                />
+                <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground">
+                  Período Fechado
+                </Label>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleClear} className="gap-1.5">
+              <Eraser className="h-3.5 w-3.5" /> Limpar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSearch}
+              disabled={isLoading}
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              Consultar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -407,26 +265,158 @@ const ApuracaoPisCofins = () => {
       {searchTriggered && (
         <>
           {isLoading ? (
-            <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
+            <div className="bg-card rounded-xl shadow-sm p-6 space-y-3">
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
             </div>
           ) : error ? (
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-2">
+            <div className="bg-card rounded-xl shadow-sm p-8 text-center space-y-2">
               <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
               <p className="text-sm text-foreground">Erro ao buscar dados</p>
               <p className="text-xs text-muted-foreground">{(error as Error).message}</p>
             </div>
           ) : !hasData ? (
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <div className="bg-card rounded-xl shadow-sm p-8 text-center">
               <p className="text-sm text-muted-foreground">Nenhum dado encontrado para os filtros selecionados.</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              <PivotTable title="DK — Resumo" rows={resumo.rows} periodos={resumo.periodos} showCst showBloco />
-              <PivotTable title="Débitos" rows={debitos.rows} periodos={debitos.periodos} showTotal />
-              <PivotTable title="Isenções e Exclusões" rows={isencoes.rows} periodos={isencoes.periodos} showTotal />
-              <PivotTable title="Créditos" rows={creditos.rows} periodos={creditos.periodos} showTotal />
-            </div>
+            <>
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} className="mb-6">
+                <TabsList>
+                  <TabsTrigger value="apuracao">Apuração</TabsTrigger>
+                  <TabsTrigger value="dados">Dados</TabsTrigger>
+                  {tipoApuracao === 'EFD' && <TabsTrigger value="rateio">Rateio</TabsTrigger>}
+                </TabsList>
+              </Tabs>
+
+              {/* Tab: Apuração */}
+              {activeTab === 'apuracao' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Saldo a Pagar Consolidado</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader
+                            firstColumns={[{ label: 'Descrição' }]}
+                            headerRow1={headerRow1}
+                            headerRow2={headerRow2}
+                            hasExpandedYear={hasExpandedYear}
+                            headerRowsCount={headerRowsCount}
+                            setExpandedYear={setExpandedYear}
+                          />
+                          <TableBody>
+                            <TableRow className="hover:bg-muted/30">
+                              <TableCell className="font-semibold text-foreground">Valor Devido PIS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">
+                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">
+                                {formatCurrency(totais.pisDue)}
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="hover:bg-muted/30">
+                              <TableCell className="font-semibold text-foreground">Valor Devido COFINS</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono">
+                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold bg-muted/30">
+                                {formatCurrency(totais.cofinsDue)}
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-primary/5 hover:bg-primary/10">
+                              <TableCell className="font-bold text-primary">Total a Recolher</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono font-bold text-primary">
+                                  {formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue)))}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">
+                                {formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
+
+              {/* Tab: Dados */}
+              {activeTab === 'dados' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <ApuracaoDataTable title="DK — Resumo" data={tables.resumoData} showCst showBloco {...dataTableProps} />
+                  <ApuracaoDataTable title="Débitos" data={tables.debitosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções e Exclusões" data={tables.isencoesData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Outras Saídas" data={tables.outrasSaidasData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Créditos" data={tables.creditosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções de Crédito" data={tables.isencoesCreditoData} {...dataTableProps} />
+                </div>
+              )}
+
+              {/* Tab: Rateio */}
+              {activeTab === 'rateio' && tipoApuracao === 'EFD' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio das Receitas (Percentuais)</h2>
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <DynamicTableHeader
+                            firstColumns={[{ label: 'Descrição' }]}
+                            headerRow1={headerRow1}
+                            headerRow2={headerRow2}
+                            hasExpandedYear={hasExpandedYear}
+                            headerRowsCount={headerRowsCount}
+                            setExpandedYear={setExpandedYear}
+                          />
+                          <TableBody>
+                            {[
+                              { label: 'Tributado no Mercado Interno', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_trib_mi },
+                              { label: 'Não Tributado no Mercado Interno', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_nt_mi },
+                              { label: 'Exportação', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_exp },
+                              { label: 'Cumulativo', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_cum },
+                            ].map((row) => (
+                              <TableRow key={row.label} className="hover:bg-muted/30">
+                                <TableCell className="font-semibold text-foreground">{row.label}</TableCell>
+                                {headerBottom.map((col) => {
+                                  const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
+                                  const val = getRateioReceitasColValue(resultados, col.dataKeys, row.accessor);
+                                  const perc = total > 0 ? val / total : 0;
+                                  return (
+                                    <TableCell key={col.id} className="text-right font-mono">
+                                      {(perc * 100).toFixed(2)}%
+                                    </TableCell>
+                                  );
+                                })}
+                                <TableCell className="bg-muted/30" />
+                              </TableRow>
+                            ))}
+
+                            <TableRow className="bg-muted/50 font-bold">
+                              <TableCell className="font-bold text-foreground">Receita Bruta Total</TableCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono font-bold">
+                                  {formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total))}
+                                </TableCell>
+                              ))}
+                              <TableCell className="bg-muted/30" />
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  </section>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
