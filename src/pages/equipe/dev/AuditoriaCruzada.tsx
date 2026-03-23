@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import DevLayout from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,9 +16,6 @@ import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClient
 const AuditoriaCruzada = () => {
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
-  const [ncm, setNcm] = useState('');
-  const [aliquota, setAliquota] = useState('');
-  const [tipoProduto, setTipoProduto] = useState('todos');
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
 
@@ -29,9 +25,6 @@ const AuditoriaCruzada = () => {
   const handleLimpar = () => {
     setClienteId('');
     setContribuinteId('');
-    setNcm('');
-    setAliquota('');
-    setTipoProduto('todos');
     setDataInicio(undefined);
     setDataFim(undefined);
   };
@@ -44,10 +37,9 @@ const AuditoriaCruzada = () => {
   return (
     <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada entre fontes de dados fiscais">
       <div className="space-y-4">
-        {/* Filtros Globais */}
         <Card className="bg-muted/50 border-dashed">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Cliente</Label>
                 <Select value={clienteId} onValueChange={handleClienteChange}>
@@ -74,39 +66,6 @@ const AuditoriaCruzada = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">NCM</Label>
-                <Input
-                  placeholder="Ex: 8471.30.19"
-                  value={ncm}
-                  onChange={(e) => setNcm(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Alíquota</Label>
-                <Input
-                  placeholder="Ex: 1.65"
-                  value={aliquota}
-                  onChange={(e) => setAliquota(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Tipo de Produto</Label>
-                <Select value={tipoProduto} onValueChange={setTipoProduto}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="mercadoria">Mercadoria</SelectItem>
-                    <SelectItem value="servico">Serviço</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
                 <Popover>
@@ -173,7 +132,6 @@ const AuditoriaCruzada = () => {
           </CardContent>
         </Card>
 
-        {/* Abas */}
         <Tabs defaultValue="balancete-efd" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">
