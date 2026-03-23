@@ -1,40 +1,43 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
+import TablePagination, { PAGE_SIZE } from './TablePagination';
 import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
 
 interface BalanceteEfdTabProps {
   itens?: BalanceteEfdItem[];
   isLoading: boolean;
-  hasQueried: boolean;
+  error?: Error | null;
 }
 
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-
-const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabProps) => {
+const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps) => {
+  const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [blocoFilter, setBlocoFilter] = useState('all');
-  
+  const [currentPage, setCurrentPage] = useState(0);
 
-  // Debounce 300ms
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  useEffect(() => {
+    if (error) toast.error('Falha ao carregar os dados do Balancete. Tente novamente.');
+  }, [error]);
+
   const blocoOptions = useMemo(() => {
-    const unique = [...new Set(itens.map((i) => i.bloco_efd))].sort();
-    return unique;
+    return [...new Set(itens.map((i) => i.bloco_efd))].sort();
   }, [itens]);
 
   const filteredItens = useMemo(() => {
@@ -52,6 +55,12 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
     }
     return result;
   }, [itens, debouncedSearch, blocoFilter]);
+
+  // Reset page on filter change
+  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, blocoFilter, itens]);
+
+  const totalPages = Math.ceil(filteredItens.length / PAGE_SIZE);
+  const pagedItens = filteredItens.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   if (!hasQueried) {
     return (
@@ -75,10 +84,20 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
     );
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center space-y-2">
+          <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+          <p className="text-sm text-destructive">Falha ao carregar os dados. Tente novamente.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        {/* Filtros locais */}
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[180px]">
             <Label className="text-xs">Conta Contábil</Label>
@@ -108,28 +127,28 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
           </div>
         </div>
 
-        {/* Tabela */}
         {filteredItens.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
         ) : (
-          <div className="rounded-md border overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Data</TableHead>
-                  <TableHead className="text-xs">Conta Contábil</TableHead>
-                  <TableHead className="text-xs">Bloco SPED</TableHead>
-                  <TableHead className="text-xs">CST</TableHead>
-                  <TableHead className="text-xs text-right">Alíquota</TableHead>
-                  <TableHead className="text-xs text-right">Valor EFD</TableHead>
-                  <TableHead className="text-xs text-right">Débito</TableHead>
-                  <TableHead className="text-xs text-right">Crédito</TableHead>
-                  <TableHead className="text-xs text-right">Saldo Período</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItens.map((item, idx) => (
-                    <TableRow key={`${item.cod_cta}-${item.bloco_efd}-${idx}`}>
+          <>
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Data</TableHead>
+                    <TableHead className="text-xs">Conta Contábil</TableHead>
+                    <TableHead className="text-xs">Bloco SPED</TableHead>
+                    <TableHead className="text-xs">CST</TableHead>
+                    <TableHead className="text-xs text-right">Alíquota</TableHead>
+                    <TableHead className="text-xs text-right">Valor EFD</TableHead>
+                    <TableHead className="text-xs text-right">Débito</TableHead>
+                    <TableHead className="text-xs text-right">Crédito</TableHead>
+                    <TableHead className="text-xs text-right">Saldo Período</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedItens.map((item, idx) => (
+                    <TableRow key={`${item.cod_cta}-${item.bloco_efd}-${currentPage}-${idx}`}>
                       <TableCell className="text-xs whitespace-nowrap">
                         {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </TableCell>
@@ -142,12 +161,18 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
                       <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
                       <TableCell className="text-xs text-right font-medium">{formatBRL(item.saldo_periodo)}</TableCell>
                     </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredItens.length}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
-
       </CardContent>
     </Card>
   );

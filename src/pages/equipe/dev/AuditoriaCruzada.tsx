@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import DevLayout from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -15,16 +14,16 @@ import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClient
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
 import { useEfdcIcms } from '@/hooks/useEfdcIcms';
 import { useEfdcXml } from '@/hooks/useEfdcXml';
+import { AuditoriaProvider, useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
 
-const AuditoriaCruzada = () => {
-  const [clienteId, setClienteId] = useState('');
-  const [contribuinteId, setContribuinteId] = useState('');
-  const [dataInicio, setDataInicio] = useState<Date | undefined>();
-  const [dataFim, setDataFim] = useState<Date | undefined>();
-  const [hasQueried, setHasQueried] = useState(false);
+const AuditoriaCruzadaContent = () => {
+  const {
+    clienteId, contribuinteId, dataInicio, dataFim, hasQueried,
+    setClienteId, setContribuinteId, setDataInicio, setDataFim, setHasQueried, handleLimpar,
+  } = useAuditoriaStore();
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
@@ -50,19 +49,6 @@ const AuditoriaCruzada = () => {
     efdcXmlQuery.refetch();
   };
 
-  const handleLimpar = () => {
-    setClienteId('');
-    setContribuinteId('');
-    setDataInicio(undefined);
-    setDataFim(undefined);
-    setHasQueried(false);
-  };
-
-  const handleClienteChange = (value: string) => {
-    setClienteId(value);
-    setContribuinteId('');
-  };
-
   return (
     <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
       <div className="space-y-4">
@@ -71,7 +57,7 @@ const AuditoriaCruzada = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Cliente</Label>
-                <Select value={clienteId} onValueChange={handleClienteChange}>
+                <Select value={clienteId} onValueChange={setClienteId}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
@@ -163,22 +149,16 @@ const AuditoriaCruzada = () => {
 
         <Tabs defaultValue="balancete-efd" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">
-              Balancete
-            </TabsTrigger>
-            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">
-              EFD ICMS
-            </TabsTrigger>
-            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">
-              XMLs
-            </TabsTrigger>
+            <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">Balancete</TabsTrigger>
+            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS</TabsTrigger>
+            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="balancete-efd">
             <BalanceteEfdTab
               itens={balanceteQuery.data?.itens}
               isLoading={balanceteQuery.isLoading}
-              hasQueried={hasQueried}
+              error={balanceteQuery.error as Error | null}
             />
           </TabsContent>
 
@@ -186,7 +166,7 @@ const AuditoriaCruzada = () => {
             <EfdcIcmsTab
               notas={efdcIcmsQuery.data?.NOTAS}
               isLoading={efdcIcmsQuery.isLoading}
-              hasQueried={hasQueried}
+              error={efdcIcmsQuery.error as Error | null}
             />
           </TabsContent>
 
@@ -194,7 +174,7 @@ const AuditoriaCruzada = () => {
             <EfdcXmlTab
               lotes={efdcXmlQuery.data}
               isLoading={efdcXmlQuery.isLoading}
-              hasQueried={hasQueried}
+              error={efdcXmlQuery.error as Error | null}
             />
           </TabsContent>
         </Tabs>
@@ -202,5 +182,11 @@ const AuditoriaCruzada = () => {
     </DevLayout>
   );
 };
+
+const AuditoriaCruzada = () => (
+  <AuditoriaProvider>
+    <AuditoriaCruzadaContent />
+  </AuditoriaProvider>
+);
 
 export default AuditoriaCruzada;
