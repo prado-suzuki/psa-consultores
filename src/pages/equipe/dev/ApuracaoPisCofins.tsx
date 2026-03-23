@@ -169,9 +169,9 @@ const ApuracaoPisCofins = () => {
       {/* Filters */}
       <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
         {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               Cliente <RequiredMark />
             </label>
             {loadingClientes ? <Skeleton className="h-10 w-full" /> : (
@@ -185,7 +185,7 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               Contribuinte <RequiredMark />
             </label>
             {loadingContribuintes && selectedCliente ? <Skeleton className="h-10 w-full" /> : (
@@ -247,16 +247,16 @@ const ApuracaoPisCofins = () => {
           )}
 
           <div className="ml-auto flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleClear} className="gap-1.5">
-              <Eraser className="h-3.5 w-3.5" /> Limpar
+            <Button variant="outline" size="default" onClick={handleClear} className="gap-1.5">
+              <Eraser className="h-4 w-4" /> Limpar
             </Button>
             <Button
-              size="sm"
+              size="default"
               onClick={handleSearch}
               disabled={isLoading}
               className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Consultar
             </Button>
           </div>
