@@ -199,6 +199,7 @@ const ConsultaXMLs = () => {
   const [chaveAcesso, setChaveAcesso] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [downloadingBatch, setDownloadingBatch] = useState(false);
   const { fetchWithAuth } = useApiAuth();
 
   const hasActiveFilters = useMemo(() => {
