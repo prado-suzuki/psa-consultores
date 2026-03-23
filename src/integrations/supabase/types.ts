@@ -293,6 +293,7 @@ export type Database = {
           nome: string
           regiao: string | null
           setor_cliente: string | null
+          setor_cliente_id: string | null
           telefone: string | null
           uf: string | null
           updated_at: string
@@ -309,6 +310,7 @@ export type Database = {
           nome: string
           regiao?: string | null
           setor_cliente?: string | null
+          setor_cliente_id?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string
@@ -325,11 +327,20 @@ export type Database = {
           nome?: string
           regiao?: string | null
           setor_cliente?: string | null
+          setor_cliente_id?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cliente_setor_cliente_id_fkey"
+            columns: ["setor_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "setor_cliente"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contatos: {
         Row: {
@@ -2971,6 +2982,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      setor_cliente: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          sigla: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          sigla: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          sigla?: string
+        }
+        Relationships: []
       }
       sprint_backlog_items: {
         Row: {
