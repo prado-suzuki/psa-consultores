@@ -43,8 +43,8 @@ const BalanceteEfdTab = ({ itens = [], isLoading, hasQueried }: BalanceteEfdTabP
       const term = debouncedSearch.toLowerCase();
       result = result.filter(
         (i) =>
-          i.cod_cta.toLowerCase().includes(term) ||
-          i.descricao_conta.toLowerCase().includes(term)
+          (i.cod_cta ?? '').toLowerCase().includes(term) ||
+          (i.descricao_conta ?? '').toLowerCase().includes(term)
       );
     }
     if (blocoFilter !== 'all') {
