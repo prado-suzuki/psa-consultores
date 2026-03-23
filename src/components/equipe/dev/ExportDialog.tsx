@@ -760,7 +760,7 @@ export function ExportDialog({
                     );
                   })}
                 </Accordion>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             {/* Aba Preview */}
