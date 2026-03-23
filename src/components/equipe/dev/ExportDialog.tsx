@@ -612,7 +612,7 @@ export function ExportDialog({
             Exportar Excel
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Exportar Documentos Fiscais</DialogTitle>
             <DialogDescription>
@@ -631,11 +631,11 @@ export function ExportDialog({
             </TabsList>
 
             {/* Aba Colunas */}
-            <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4">
+            <TabsContent value="colunas" className="flex-1 overflow-hidden mt-4 flex flex-col">
               {/* Toolbar de Gestão de Perfis */}
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Select value={selectedProfileId || "__none__"} onValueChange={(val) => loadProfile(val === "__none__" ? "" : val)}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-[200px] min-w-0">
                     <SelectValue placeholder={loadingProfiles ? "Carregando..." : "Carregar Preset"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -711,7 +711,7 @@ export function ExportDialog({
               </div>
 
               {/* Lista de Colunas com Accordions */}
-              <ScrollArea className="h-[350px] pr-4">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-4">
                 <Accordion type="multiple" defaultValue={[]} className="w-full">
                   {columnGroups.map(group => {
                     const groupCols = columnsByGroup[group] || [];
@@ -760,12 +760,12 @@ export function ExportDialog({
                     );
                   })}
                 </Accordion>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             {/* Aba Preview */}
-            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4">
-              <div className="space-y-4">
+            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4 flex flex-col">
+              <div className="flex flex-col flex-1 min-h-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     Mostrando {Math.min(10, tipoDocumento === 'cte' ? cteData.length : data.length)} de {totalRecords} registros
@@ -782,7 +782,7 @@ export function ExportDialog({
                     Nenhum dado disponível para preview.
                   </div>
                 ) : (
-                  <ScrollArea className="h-[320px] w-full">
+                  <div className="flex-1 min-h-0 overflow-auto w-full">
                     <div className="min-w-max">
                       <Table>
                         <TableHeader>
@@ -807,8 +807,7 @@ export function ExportDialog({
                         </TableBody>
                       </Table>
                     </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
+                  </div>
                 )}
               </div>
             </TabsContent>
