@@ -12,10 +12,51 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Pencil } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Loader2, Pencil, ChevronsUpDown, Check } from 'lucide-react';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
+/* ── CST Options ── */
+const CST_OPTIONS = [
+  { code: '01', description: 'Operação Tributável com Alíquota Básica' },
+  { code: '02', description: 'Operação Tributável com Alíquota Diferenciada' },
+  { code: '03', description: 'Operação Tributável com Alíquota por Unidade de Medida de Produto' },
+  { code: '04', description: 'Operação Tributável Monofásica - Revenda a Alíquota Zero' },
+  { code: '05', description: 'Operação Tributável por Substituição Tributária' },
+  { code: '06', description: 'Operação Tributável a Alíquota Zero' },
+  { code: '07', description: 'Operação Isenta da Contribuição' },
+  { code: '08', description: 'Operação sem Incidência da Contribuição' },
+  { code: '09', description: 'Operação com Suspensão da Contribuição' },
+  { code: '49', description: 'Outras Operações de Saída' },
+  { code: '50', description: 'Direito a Crédito - Vinculada a Receita Tributada no Mercado Interno' },
+  { code: '51', description: 'Direito a Crédito - Vinculada a Receita Não Tributada no Mercado Interno' },
+  { code: '52', description: 'Direito a Crédito - Vinculada a Receita de Exportação' },
+  { code: '53', description: 'Direito a Crédito - Vinculada a Receitas Tributadas e Não Tributadas no Mercado Interno' },
+  { code: '54', description: 'Direito a Crédito - Vinculada a Receitas Tributadas no Mercado Interno e de Exportação' },
+  { code: '55', description: 'Direito a Crédito - Vinculada a Receitas Não Tributadas no Mercado Interno e de Exportação' },
+  { code: '56', description: 'Direito a Crédito - Vinculada a Receitas Tributadas e Não Tributadas no Mercado Interno e de Exportação' },
+  { code: '60', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receita Tributada no Mercado Interno' },
+  { code: '61', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receita Não Tributada no Mercado Interno' },
+  { code: '62', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receita de Exportação' },
+  { code: '63', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receitas Tributadas e Não Tributadas no Mercado Interno' },
+  { code: '64', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receitas Tributadas no Mercado Interno e de Exportação' },
+  { code: '65', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receitas Não Tributadas no Mercado Interno e de Exportação' },
+  { code: '66', description: 'Crédito Presumido - Operação de Aquisição Vinculada a Receitas Tributadas e Não Tributadas no Mercado Interno e de Exportação' },
+  { code: '67', description: 'Crédito Presumido - Outras Operações' },
+  { code: '70', description: 'Operação de Aquisição sem Direito a Crédito' },
+  { code: '71', description: 'Operação de Aquisição com Isenção' },
+  { code: '72', description: 'Operação de Aquisição com Suspensão' },
+  { code: '73', description: 'Operação de Aquisição a Alíquota Zero' },
+  { code: '74', description: 'Operação de Aquisição sem Incidência' },
+  { code: '75', description: 'Operação de Aquisição por Substituição Tributária' },
+  { code: '98', description: 'Outras Operações de Entrada' },
+  { code: '99', description: 'Outras Operações' },
+] as const;
+
+/* ── Helpers ── */
 const yyyymmToMonthYear = (val: number | null | undefined) => {
   if (!val) return null;
   const y = Math.floor(val / 100);
@@ -39,8 +80,8 @@ type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 
 const schema = z.object({
   cod_ncm: z.string().min(1, 'NCM obrigatório').max(8, 'NCM deve ter no máximo 8 dígitos'),
-  cst_pis: z.string().min(1, 'CST PIS obrigatório'),
-  cst_cofins: z.string().min(1, 'CST COFINS obrigatório'),
+  cst_pis: z.string().min(1, 'CST PIS/COFINS obrigatório'),
+  cst_cofins: z.string().optional(),
   desc_cst: z.string().min(1, 'Descrição CST obrigatória'),
   base_legal: z.string().optional(),
   permite_credito: z.string().optional(),
@@ -51,7 +92,6 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
-
 type ModalMode = 'view' | 'edit' | 'create';
 
 interface RegraDetailModalProps {
@@ -71,6 +111,90 @@ const DetailField = ({ label, value }: { label: string; value?: string | number 
   </div>
 );
 
+/* ── Combobox CST ── */
+interface CstComboboxProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSyncDesc?: (desc: string) => void;
+  onSyncCode?: (code: string) => void;
+  mode: 'code' | 'description';
+  placeholder?: string;
+}
+
+const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholder }: CstComboboxProps) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filteredOptions = CST_OPTIONS.filter(opt => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return opt.code.includes(q) || opt.description.toLowerCase().includes(q);
+  });
+
+  const handleSelect = (opt: typeof CST_OPTIONS[number]) => {
+    if (mode === 'code') {
+      onChange(opt.code);
+      onSyncDesc?.(opt.description);
+    } else {
+      onChange(opt.description);
+      onSyncCode?.(opt.code);
+    }
+    setOpen(false);
+    setSearch('');
+  };
+
+  const displayValue = value || '';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal h-10 text-sm"
+        >
+          <span className={cn("truncate", !displayValue && "text-muted-foreground")}>
+            {displayValue || placeholder || 'Selecione...'}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Buscar CST..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>Nenhum CST encontrado</CommandEmpty>
+            <CommandGroup>
+              {filteredOptions.map(opt => {
+                const isSelected = mode === 'code'
+                  ? value === opt.code
+                  : value === opt.description;
+                return (
+                  <CommandItem
+                    key={opt.code}
+                    onSelect={() => handleSelect(opt)}
+                    className="text-xs"
+                  >
+                    <Check className={cn("mr-2 h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
+                    <span className="font-mono mr-2 text-muted-foreground">{opt.code}</span>
+                    <span className="truncate">{opt.description}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+/* ── Modal principal ── */
 export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting }: RegraDetailModalProps) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -116,6 +240,11 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
     }
   };
 
+  const handleFormSubmit = (values: FormValues) => {
+    // Sync cst_cofins = cst_pis before submitting
+    onSubmit({ ...values, cst_cofins: values.cst_pis });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -137,8 +266,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
             <div key="view-content" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <DetailField label="Código NCM" value={regra.cod_ncm} />
-                <DetailField label="CST PIS" value={regra.cst_pis} />
-                <DetailField label="CST COFINS" value={regra.cst_cofins} />
+                <DetailField label="CST PIS/COFINS" value={regra.cst_pis} />
                 <div>
                   <span className="text-xs font-medium text-muted-foreground">Permite Crédito</span>
                   <div className="mt-1">
@@ -158,7 +286,6 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                 <DetailField label="Vigência Fim" value={formatYYYYMM(regra.data_vigencia_fim)} />
               </div>
               <DetailField label="Observações" value={regra.observacoes} />
-              {/* Metadados de auditoria */}
               {((regra as any).updated_at || (regra as any).updated_by) && (
                 <div className="border-t pt-3 mt-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -173,7 +300,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
             </div>
           ) : (
             <Form {...form}>
-              <form key="edit-content" id="regra-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form key="edit-content" id="regra-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="cod_ncm" render={({ field }) => (
                     <FormItem>
@@ -184,18 +311,38 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   )} />
                   <FormField control={form.control} name="cst_pis" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CST PIS</FormLabel>
-                      <FormControl><Input placeholder="01" {...field} /></FormControl>
+                      <FormLabel>CST PIS/COFINS</FormLabel>
+                      <FormControl>
+                        <CstCombobox
+                          value={field.value}
+                          onChange={field.onChange}
+                          onSyncDesc={(desc) => form.setValue('desc_cst', desc)}
+                          mode="code"
+                          placeholder="Selecione o CST"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="cst_cofins" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CST COFINS</FormLabel>
-                      <FormControl><Input placeholder="01" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                </div>
+
+                <FormField control={form.control} name="desc_cst" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição CST</FormLabel>
+                    <FormControl>
+                      <CstCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        onSyncCode={(code) => form.setValue('cst_pis', code)}
+                        mode="description"
+                        placeholder="Selecione a descrição"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="permite_credito" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Permite Crédito</FormLabel>
@@ -211,27 +358,18 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                       <FormMessage />
                     </FormItem>
                   )} />
+                  <FormField control={form.control} name="tipo_credito" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Crédito</FormLabel>
+                      <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </div>
-
-                <FormField control={form.control} name="desc_cst" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição CST</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
 
                 <FormField control={form.control} name="base_legal" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Base Legal</FormLabel>
-                    <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="tipo_credito" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Crédito</FormLabel>
                     <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -289,7 +427,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
           ) : (
             <div key="edit-footer" className="flex gap-2 justify-end w-full">
               <Button type="button" variant="outline" onClick={handleCancel}>Cancelar</Button>
-              <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
+              <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={isSubmitting} onClick={form.handleSubmit(handleFormSubmit)}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {mode === 'create' ? 'Criar Regra' : 'Salvar'}
               </Button>
