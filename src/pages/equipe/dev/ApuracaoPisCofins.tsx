@@ -168,7 +168,8 @@ const ApuracaoPisCofins = () => {
     <DevLayout title="Apuração PIS/COFINS" subtitle="Auditoria e cruzamento de apurações tributárias">
       {/* Filters */}
       <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center">
               Cliente <RequiredMark />
@@ -207,6 +208,22 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              Tipo de documento
+            </label>
+            <Select value={tipoApuracao} onValueChange={v => setTipoApuracao(v as 'EFD' | 'BALANCETE')}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EFD">EFD Contribuições</SelectItem>
+                <SelectItem value="BALANCETE">Balancete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 2: Datas, switch, botões */}
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Início</label>
             <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
           </div>
@@ -215,36 +232,21 @@ const ApuracaoPisCofins = () => {
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Fim</label>
             <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
           </div>
-        </div>
 
-        {/* Second row: type toggle + actions */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Select value={tipoApuracao} onValueChange={v => setTipoApuracao(v as 'EFD' | 'BALANCETE')}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EFD">EFD Contribuições</SelectItem>
-                <SelectItem value="BALANCETE">Balancete</SelectItem>
-              </SelectContent>
-            </Select>
+          {tipoApuracao === 'BALANCETE' && (
+            <div className="flex items-center gap-2 pb-1">
+              <Switch
+                id="periodo-fechado"
+                checked={periodoFechado}
+                onCheckedChange={setPeriodoFechado}
+              />
+              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground">
+                Período Fechado
+              </Label>
+            </div>
+          )}
 
-            {tipoApuracao === 'BALANCETE' && (
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="periodo-fechado"
-                  checked={periodoFechado}
-                  onCheckedChange={setPeriodoFechado}
-                />
-                <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground">
-                  Período Fechado
-                </Label>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-2">
+          <div className="ml-auto flex gap-2">
             <Button variant="outline" size="sm" onClick={handleClear} className="gap-1.5">
               <Eraser className="h-3.5 w-3.5" /> Limpar
             </Button>
