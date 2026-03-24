@@ -72,6 +72,9 @@ interface Process {
   document_path?: string | null;
    sop_link?: string | null;
    sop_document_path?: string | null;
+  sop_before_link?: string | null;
+  sop_before_document_path?: string | null;
+  sop_before_content?: string | null;
   last_ai_sync?: string | null;
   catalog_client?: CatalogClient | null;
   linked_projects?: LinkedProject[];
@@ -1406,8 +1409,11 @@ const EquipeProcessos = () => {
         onClose={() => setIsSOPModalOpen(false)}
         processName={selectedProcess?.name || ''}
         formattedContent={selectedProcess?.formatted_content || null}
-         sopLink={selectedProcess?.sop_link || null}
-         sopDocumentPath={selectedProcess?.sop_document_path || null}
+        sopLink={selectedProcess?.sop_link || null}
+        sopDocumentPath={selectedProcess?.sop_document_path || null}
+        beforeLink={selectedProcess?.sop_before_link || null}
+        beforeDocumentPath={selectedProcess?.sop_before_document_path || null}
+        beforeContent={selectedProcess?.sop_before_content || null}
       />
 
        {/* SOP Config Modal */}
@@ -1419,6 +1425,9 @@ const EquipeProcessos = () => {
          currentLink={selectedProcess?.sop_link || null}
          currentDocumentPath={selectedProcess?.sop_document_path || null}
          currentFormattedContent={selectedProcess?.formatted_content || null}
+         currentBeforeLink={selectedProcess?.sop_before_link || null}
+         currentBeforeDocumentPath={selectedProcess?.sop_before_document_path || null}
+         currentBeforeContent={selectedProcess?.sop_before_content || null}
          onUpdated={() => {
            fetchProcesses();
            if (selectedProcess) {
