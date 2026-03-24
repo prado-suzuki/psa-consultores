@@ -224,7 +224,7 @@ const CorrecoesSped = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-[11px] min-w-[120px]">Data</TableHead>
+                          
                           <TableHead className="text-[11px] min-w-[300px]">Chave NFe</TableHead>
                           <TableHead className="text-[11px] min-w-[200px]">Descrição EFD</TableHead>
                           <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
