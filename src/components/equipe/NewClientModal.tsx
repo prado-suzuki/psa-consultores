@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useSetoresCliente } from "@/hooks/useSetorCliente";
-import { useAuditLog } from "@/hooks/useAuditLog";
-import { isProductionEnvironment, currentAmbiente } from "@/config/api";
+import { useClientFormOptions } from "@/hooks/useClientFormOptions";
+import { useClientEditData } from "@/hooks/useClientEditData";
+import { useExternalConsults } from "@/hooks/useExternalConsults";
+import { useSaveClientTransaction } from "@/hooks/useSaveClientTransaction";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -64,27 +64,8 @@ import DateFieldWithInput from "./client-form/DateFieldWithInput";
 import CurrencyField from "./client-form/CurrencyField";
 import FieldPair from "./client-form/FieldPair";
 
-const clienteTable = 'cliente';
-const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
-
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
-
-
-// Helper para sincronizar com DW
-const syncCadastrosToDW = (payload: any) => {
-  const environment = isProductionEnvironment ? "production" : "development";
-  supabase.functions
-    .invoke("sync-cadastros", {
-      body: { ...payload, environment },
-    })
-    .then(({ error }) => {
-      if (error) console.error("[sync-cadastros] Erro:", error.message);
-      else console.log("[sync-cadastros] Sync iniciado");
-    })
-    .catch((err) => console.error("[sync-cadastros] Erro:", err));
-};
 
 export default function NewClientModal({
   open,
