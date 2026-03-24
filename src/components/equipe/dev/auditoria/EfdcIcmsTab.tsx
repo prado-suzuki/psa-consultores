@@ -106,7 +106,8 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                   <TableRow>
                     <TableHead rowSpan={2} className="text-xs align-bottom border-r">Chave NFe</TableHead>
                     <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD ICMS</TableHead>
-                    <TableHead colSpan={3} className="text-xs text-center bg-muted/30">EFD Contribuições</TableHead>
+                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD Contribuições</TableHead>
+                    <TableHead colSpan={2} className="text-xs text-center bg-muted/30">XML</TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-xs">CFOP</TableHead>
@@ -114,6 +115,8 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                     <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
                     <TableHead className="text-xs">CFOP</TableHead>
                     <TableHead className="text-xs">Conta Contábil</TableHead>
+                    <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
+                    <TableHead className="text-xs">CFOP</TableHead>
                     <TableHead className="text-xs text-right">Valor Doc</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -125,14 +128,26 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                       <TableCell className="text-xs">{nota.EFD_ICMS.COD_CTA.filter(Boolean).join(', ')}</TableCell>
                       <TableCell className="text-xs text-right border-r">{formatBRL(nota.EFD_ICMS.VL_DOC)}</TableCell>
                       {nota.EFD_CONTRIB.CFOP.length === 0 ? (
-                        <TableCell colSpan={3} className="text-xs text-center italic text-amber-600">
+                        <TableCell colSpan={3} className="text-xs text-center italic text-amber-600 border-r">
                           NFe não encontrada na EFD Contribuições
                         </TableCell>
                       ) : (
                         <>
                           <TableCell className="text-xs">{nota.EFD_CONTRIB.CFOP.join(', ')}</TableCell>
                           <TableCell className="text-xs">{nota.EFD_CONTRIB.COD_CTA.filter(Boolean).join(', ')}</TableCell>
-                          <TableCell className="text-xs text-right">{formatBRL(nota.EFD_CONTRIB.VL_DOC)}</TableCell>
+                          <TableCell className="text-xs text-right border-r">{formatBRL(nota.EFD_CONTRIB.VL_DOC)}</TableCell>
+                        </>
+                      )}
+                      {!nota.XML || nota.XML.CFOP.length === 0 ? (
+                        <TableCell colSpan={2} className="text-xs text-center italic text-amber-600">
+                          XML de nota não encontrado
+                        </TableCell>
+                      ) : (
+                        <>
+                          <TableCell className="text-xs">{nota.XML.CFOP.join(', ')}</TableCell>
+                          <TableCell className="text-xs text-right">
+                            {nota.XML.VL_DOC != null ? formatBRL(nota.XML.VL_DOC) : '—'}
+                          </TableCell>
                         </>
                       )}
                     </TableRow>
