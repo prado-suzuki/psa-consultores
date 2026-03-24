@@ -148,7 +148,7 @@ const MapaNCMPisCofins = () => {
                 <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
                   <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
                   <TableCell className="text-xs text-slate-600">
-                    {setorMap[regra.id_segmento ?? '']?.sigla ?? regra.id_segmento ?? '—'}
+                    {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
                   <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>

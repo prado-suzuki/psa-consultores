@@ -84,7 +84,7 @@ const schema = z.object({
   id_segmento: z.string().min(1, 'Setor/Segmento obrigatório'),
   cst_pis: z.string().min(1, 'CST PIS/COFINS obrigatório'),
   cst_cofins: z.string().optional(),
-  desc_cst: z.string().min(1, 'Descrição CST obrigatória'),
+  desc_cst: z.string().optional(),
   base_legal: z.string().optional(),
   permite_credito: z.string().optional(),
   tipo_credito: z.string().optional(),
@@ -201,8 +201,6 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
 
 /* ── Modal principal ── */
 export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting, setores, setorMap }: RegraDetailModalProps) => {
-  const [descOpen, setDescOpen] = useState(false);
-  const [descSearch, setDescSearch] = useState('');
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -249,8 +247,8 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
   };
 
   const handleFormSubmit = (values: FormValues) => {
-    // Sync cst_cofins = cst_pis before submitting
-    onSubmit({ ...values, cst_cofins: values.cst_pis });
+    const cstOpt = CST_OPTIONS.find(o => o.code === values.cst_pis);
+    onSubmit({ ...values, cst_cofins: values.cst_pis, desc_cst: cstOpt?.description ?? '' });
   };
 
   return (
@@ -287,7 +285,6 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   </div>
                 </div>
               </div>
-              <DetailField label="Descrição CST" value={regra.desc_cst} />
               <DetailField label="Base Legal" value={regra.base_legal} />
               <DetailField label="Tipo de Crédito" value={regra.tipo_credito} />
               <div className="grid grid-cols-2 gap-4">
@@ -337,83 +334,44 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="cst_pis" render={({ field }) => (
+                  <FormField control={form.control} name="permite_credito" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CST PIS/COFINS</FormLabel>
-                      <FormControl>
-                        <CstCombobox
-                          value={field.value}
-                          onChange={field.onChange}
-                          onSyncDesc={(desc) => form.setValue('desc_cst', desc)}
-                          mode="code"
-                          placeholder="Selecione o CST"
-                        />
-                      </FormControl>
+                      <FormLabel>Permite Crédito</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="S">Sim</SelectItem>
+                          <SelectItem value="N">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="tipo_credito" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Crédito</FormLabel>
+                      <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                 </div>
 
-                <FormField control={form.control} name="desc_cst" render={({ field }) => {
-                  const filteredDesc = CST_OPTIONS.filter(opt => {
-                    if (!descSearch) return true;
-                    const q = descSearch.toLowerCase();
-                    return opt.code.includes(q) || opt.description.toLowerCase().includes(q);
-                  });
-                  return (
-                    <FormItem>
-                      <FormLabel>Descrição CST</FormLabel>
-                      <Popover open={descOpen} onOpenChange={(o) => { setDescOpen(o); if (o) setDescSearch(''); }}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Input
-                              placeholder="Digite ou selecione a descrição"
-                              value={field.value ?? ''}
-                              onChange={(e) => {
-                                field.onChange(e.target.value);
-                                setDescSearch(e.target.value);
-                                if (!descOpen) setDescOpen(true);
-                              }}
-                              onFocus={() => setDescOpen(true)}
-                            />
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-[--radix-popover-trigger-width] p-0"
-                          align="start"
-                          onWheelCapture={(e) => e.stopPropagation()}
-                          onOpenAutoFocus={(e) => e.preventDefault()}
-                        >
-                          <Command shouldFilter={false}>
-                            <CommandList>
-                              <CommandEmpty>Nenhum CST encontrado</CommandEmpty>
-                              <CommandGroup>
-                                {filteredDesc.map(opt => (
-                                  <CommandItem
-                                    key={opt.code}
-                                    onSelect={() => {
-                                      field.onChange(opt.description);
-                                      form.setValue('cst_pis', opt.code);
-                                      setDescOpen(false);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    <span className="font-mono mr-2 text-muted-foreground">{opt.code}</span>
-                                    <span className="truncate">{opt.description}</span>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }} />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="permite_credito" render={({ field }) => (
+                <FormField control={form.control} name="cst_pis" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CST PIS/COFINS</FormLabel>
+                    <FormControl>
+                      <CstCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        mode="code"
+                        placeholder="Selecione o CST"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
                     <FormItem>
                       <FormLabel>Permite Crédito</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value ?? ''}>
