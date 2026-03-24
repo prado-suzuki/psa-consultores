@@ -1,279 +1,266 @@
- import { useState, useRef } from 'react';
- import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
- import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { Button } from '@/components/ui/button';
- import { Input } from '@/components/ui/input';
- import { Label } from '@/components/ui/label';
- import { Textarea } from '@/components/ui/textarea';
- import { supabase } from '@/integrations/supabase/client';
- import { toast } from '@/hooks/use-toast';
- import { Link, FileUp, FileText, Loader2, X, Upload } from 'lucide-react';
- 
- interface SOPConfigModalProps {
-   open: boolean;
-   onClose: () => void;
-   processId: string;
-   processName: string;
-   currentLink: string | null;
-   currentDocumentPath: string | null;
-   currentFormattedContent: string | null;
-   onUpdated: () => void;
- }
- 
- export function SOPConfigModal({
-   open,
-   onClose,
-   processId,
-   processName,
-   currentLink,
-   currentDocumentPath,
-   currentFormattedContent,
-   onUpdated
- }: SOPConfigModalProps) {
-   const fileInputRef = useRef<HTMLInputElement>(null);
-   const [activeTab, setActiveTab] = useState<string>(() => {
-     if (currentLink) return 'link';
-     if (currentDocumentPath) return 'document';
-     return 'link';
-   });
-   const [sopLink, setSopLink] = useState(currentLink || '');
-   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-   const [formattedContent, setFormattedContent] = useState(currentFormattedContent || '');
-   const [saving, setSaving] = useState(false);
-   const [uploading, setUploading] = useState(false);
- 
-   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-     const file = e.target.files?.[0];
-     if (file) {
-       setSelectedFile(file);
-     }
-   };
- 
-   const handleSave = async () => {
-     setSaving(true);
-     try {
-       let updates: {
-         sop_link: string | null;
-         sop_document_path: string | null;
-         formatted_content: string | null;
-       } = {
-         sop_link: null,
-         sop_document_path: null,
-         formatted_content: null
-       };
- 
-       if (activeTab === 'link') {
-         updates.sop_link = sopLink.trim() || null;
-       } else if (activeTab === 'document' && selectedFile) {
-         setUploading(true);
-         const filePath = `${processId}/${selectedFile.name}`;
-         
-         // Delete old file if exists
-         if (currentDocumentPath) {
-           await supabase.storage.from('sop-documents').remove([currentDocumentPath]);
-         }
-         
-         const { error: uploadError } = await supabase.storage
-           .from('sop-documents')
-           .upload(filePath, selectedFile, { upsert: true });
-         
-         if (uploadError) throw uploadError;
-         
-         updates.sop_document_path = filePath;
-         setUploading(false);
-       } else if (activeTab === 'document' && currentDocumentPath) {
-         // Keep existing document
-         updates.sop_document_path = currentDocumentPath;
-       } else if (activeTab === 'text') {
-         updates.formatted_content = formattedContent.trim() || null;
-       }
- 
-       const { error } = await supabase
-         .from('processes')
-         .update(updates)
-         .eq('id', processId);
- 
-       if (error) throw error;
- 
-       toast({
-         title: 'SOP atualizado',
-         description: 'A configuração do SOP foi salva com sucesso.'
-       });
- 
-       onUpdated();
-       onClose();
-     } catch (error: any) {
-       console.error('Error saving SOP config:', error);
-       toast({
-         title: 'Erro ao salvar',
-         description: error.message,
-         variant: 'destructive'
-       });
-     } finally {
-       setSaving(false);
-       setUploading(false);
-     }
-   };
- 
-   const handleClearDocument = async () => {
-     if (currentDocumentPath) {
-       try {
-         await supabase.storage.from('sop-documents').remove([currentDocumentPath]);
-         const { error } = await supabase
-           .from('processes')
-           .update({ sop_document_path: null })
-           .eq('id', processId);
-         
-         if (error) throw error;
-         
-         toast({ title: 'Documento removido' });
-         onUpdated();
-       } catch (error: any) {
-         toast({
-           title: 'Erro ao remover documento',
-           description: error.message,
-           variant: 'destructive'
-         });
-       }
-     }
-     setSelectedFile(null);
-   };
- 
-   const getFileName = (path: string) => path.split('/').pop() || path;
- 
-   return (
-     <Dialog open={open} onOpenChange={onClose}>
-       <DialogContent className="max-w-lg">
-         <DialogHeader>
-           <DialogTitle className="flex items-center gap-2">
-             <FileText className="h-5 w-5 text-primary" />
-             Configurar SOP
-           </DialogTitle>
-           <p className="text-sm text-muted-foreground">{processName}</p>
-         </DialogHeader>
- 
-         <div className="space-y-4">
-           <p className="text-sm text-muted-foreground">
-             Como deseja associar o SOP a este processo?
-           </p>
- 
-           <Tabs value={activeTab} onValueChange={setActiveTab}>
-             <TabsList className="grid w-full grid-cols-3">
-               <TabsTrigger value="link" className="flex items-center gap-1">
-                 <Link className="h-4 w-4" />
-                 Link
-               </TabsTrigger>
-               <TabsTrigger value="document" className="flex items-center gap-1">
-                 <FileUp className="h-4 w-4" />
-                 Documento
-               </TabsTrigger>
-               <TabsTrigger value="text" className="flex items-center gap-1">
-                 <FileText className="h-4 w-4" />
-                 Texto
-               </TabsTrigger>
-             </TabsList>
- 
-             <TabsContent value="link" className="space-y-4 mt-4">
-               <div className="space-y-2">
-                 <Label htmlFor="sop-link">URL do SOP</Label>
-                 <Input
-                   id="sop-link"
-                   type="url"
-                   value={sopLink}
-                   onChange={(e) => setSopLink(e.target.value)}
-                   placeholder="https://docs.google.com/document/d/..."
-                 />
-                 <p className="text-xs text-muted-foreground">
-                   Cole o link para o documento externo (Google Docs, Notion, SharePoint, etc.)
-                 </p>
-               </div>
-             </TabsContent>
- 
-             <TabsContent value="document" className="space-y-4 mt-4">
-               <input
-                 ref={fileInputRef}
-                 type="file"
-                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                 className="hidden"
-                 onChange={handleFileSelect}
-               />
-               
-               {(selectedFile || currentDocumentPath) ? (
-                 <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                   <div className="flex items-center gap-2">
-                     <FileUp className="h-5 w-5 text-primary" />
-                     <span className="text-sm font-medium">
-                       {selectedFile?.name || (currentDocumentPath && getFileName(currentDocumentPath))}
-                     </span>
-                     {selectedFile && (
-                       <span className="text-xs text-muted-foreground">
-                         ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                       </span>
-                     )}
-                   </div>
-                   <Button
-                     variant="ghost"
-                     size="sm"
-                     onClick={handleClearDocument}
-                   >
-                     <X className="h-4 w-4" />
-                   </Button>
-                 </div>
-               ) : (
-                 <Button
-                   variant="outline"
-                   className="w-full h-24 border-dashed"
-                   onClick={() => fileInputRef.current?.click()}
-                 >
-                   <div className="flex flex-col items-center gap-2">
-                     <Upload className="h-6 w-6 text-muted-foreground" />
-                     <span className="text-sm text-muted-foreground">
-                       Clique para selecionar arquivo
-                     </span>
-                   </div>
-                 </Button>
-               )}
-               
-               <p className="text-xs text-muted-foreground">
-                 Formatos aceitos: PDF, Word, Excel, PowerPoint
-               </p>
-             </TabsContent>
- 
-             <TabsContent value="text" className="space-y-4 mt-4">
-               <div className="space-y-2">
-                 <Label htmlFor="sop-content">Conteúdo do SOP</Label>
-                 <Textarea
-                   id="sop-content"
-                   value={formattedContent}
-                   onChange={(e) => setFormattedContent(e.target.value)}
-                   placeholder="Digite o conteúdo do SOP em Markdown..."
-                   rows={10}
-                   className="font-mono text-sm"
-                 />
-                 <p className="text-xs text-muted-foreground">
-                   Suporta formatação Markdown (títulos, listas, negrito, etc.)
-                 </p>
-               </div>
-             </TabsContent>
-           </Tabs>
-         </div>
- 
-         <DialogFooter>
-           <Button variant="outline" onClick={onClose} disabled={saving}>
-             Cancelar
-           </Button>
-           <Button onClick={handleSave} disabled={saving}>
-             {saving ? (
-               <>
-                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                 {uploading ? 'Enviando...' : 'Salvando...'}
-               </>
-             ) : (
-               'Salvar'
-             )}
-           </Button>
-         </DialogFooter>
-       </DialogContent>
-     </Dialog>
-   );
- }
+import { useState, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Link, FileUp, FileText, Loader2, X, Upload } from 'lucide-react';
+
+interface SOPSectionData {
+  link: string;
+  file: File | null;
+  existingDocPath: string | null;
+  content: string;
+}
+
+interface SOPConfigModalProps {
+  open: boolean;
+  onClose: () => void;
+  processId: string;
+  processName: string;
+  currentLink: string | null;
+  currentDocumentPath: string | null;
+  currentFormattedContent: string | null;
+  currentBeforeLink?: string | null;
+  currentBeforeDocumentPath?: string | null;
+  currentBeforeContent?: string | null;
+  onUpdated: () => void;
+}
+
+function SOPSectionFields({
+  label,
+  data,
+  onChange,
+  onClearDoc,
+  fileInputRef,
+}: {
+  label: string;
+  data: SOPSectionData;
+  onChange: (patch: Partial<SOPSectionData>) => void;
+  onClearDoc: () => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+}) {
+  const getFileName = (path: string) => path.split('/').pop() || path;
+
+  return (
+    <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+      <h4 className="text-sm font-semibold text-foreground">{label}</h4>
+
+      {/* Link */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <Link className="h-3.5 w-3.5" /> Link externo
+        </Label>
+        <Input
+          type="url"
+          value={data.link}
+          onChange={(e) => onChange({ link: e.target.value })}
+          placeholder="https://docs.google.com/..."
+          className="text-sm"
+        />
+      </div>
+
+      {/* Document upload */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <FileUp className="h-3.5 w-3.5" /> Documento
+        </Label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onChange({ file });
+          }}
+        />
+        {data.file || data.existingDocPath ? (
+          <div className="flex items-center justify-between p-2 border rounded-md bg-background">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileUp className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-xs truncate">
+                {data.file?.name || (data.existingDocPath && getFileName(data.existingDocPath))}
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClearDoc} className="shrink-0">
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-dashed"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Selecionar arquivo</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Text content */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <FileText className="h-3.5 w-3.5" /> Texto (Markdown)
+        </Label>
+        <Textarea
+          value={data.content}
+          onChange={(e) => onChange({ content: e.target.value })}
+          placeholder="Descreva o procedimento..."
+          rows={5}
+          className="font-mono text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function SOPConfigModal({
+  open,
+  onClose,
+  processId,
+  processName,
+  currentLink,
+  currentDocumentPath,
+  currentFormattedContent,
+  currentBeforeLink,
+  currentBeforeDocumentPath,
+  currentBeforeContent,
+  onUpdated,
+}: SOPConfigModalProps) {
+  const beforeFileRef = useRef<HTMLInputElement>(null);
+  const afterFileRef = useRef<HTMLInputElement>(null);
+
+  const [before, setBefore] = useState<SOPSectionData>({
+    link: currentBeforeLink || '',
+    file: null,
+    existingDocPath: currentBeforeDocumentPath || null,
+    content: currentBeforeContent || '',
+  });
+
+  const [after, setAfter] = useState<SOPSectionData>({
+    link: currentLink || '',
+    file: null,
+    existingDocPath: currentDocumentPath || null,
+    content: currentFormattedContent || '',
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  const uploadFile = async (file: File, prefix: string, oldPath: string | null) => {
+    const filePath = `${processId}/${prefix}_${file.name}`;
+    if (oldPath) {
+      await supabase.storage.from('sop-documents').remove([oldPath]);
+    }
+    const { error } = await supabase.storage
+      .from('sop-documents')
+      .upload(filePath, file, { upsert: true });
+    if (error) throw error;
+    return filePath;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Resolve before document
+      let beforeDocPath = before.existingDocPath;
+      if (before.file) {
+        beforeDocPath = await uploadFile(before.file, 'before', currentBeforeDocumentPath || null);
+      }
+
+      // Resolve after document
+      let afterDocPath = after.existingDocPath;
+      if (after.file) {
+        afterDocPath = await uploadFile(after.file, 'after', currentDocumentPath || null);
+      }
+
+      const updates = {
+        sop_before_link: before.link.trim() || null,
+        sop_before_document_path: beforeDocPath,
+        sop_before_content: before.content.trim() || null,
+        sop_link: after.link.trim() || null,
+        sop_document_path: afterDocPath,
+        formatted_content: after.content.trim() || null,
+      };
+
+      const { error } = await supabase
+        .from('processes')
+        .update(updates)
+        .eq('id', processId);
+
+      if (error) throw error;
+
+      toast({ title: 'SOP atualizado', description: 'Configuração salva com sucesso.' });
+      onUpdated();
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving SOP config:', error);
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearDoc = (section: 'before' | 'after') => {
+    if (section === 'before') {
+      setBefore((prev) => ({ ...prev, file: null, existingDocPath: null }));
+    } else {
+      setAfter((prev) => ({ ...prev, file: null, existingDocPath: null }));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Configurar SOP
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">{processName}</p>
+        </DialogHeader>
+
+        <ScrollArea className="h-[60vh] pr-2">
+          <div className="space-y-6">
+            <SOPSectionFields
+              label="📋 Como era (Antes)"
+              data={before}
+              onChange={(patch) => setBefore((prev) => ({ ...prev, ...patch }))}
+              onClearDoc={() => handleClearDoc('before')}
+              fileInputRef={beforeFileRef as React.RefObject<HTMLInputElement>}
+            />
+
+            <SOPSectionFields
+              label="✅ Como ficou (Depois)"
+              data={after}
+              onChange={(patch) => setAfter((prev) => ({ ...prev, ...patch }))}
+              onClearDoc={() => handleClearDoc('after')}
+              fileInputRef={afterFileRef as React.RefObject<HTMLInputElement>}
+            />
+          </div>
+        </ScrollArea>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
