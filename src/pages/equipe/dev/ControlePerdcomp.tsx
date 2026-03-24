@@ -473,6 +473,16 @@ export default function ControlePerdcomp() {
       );
     }
 
+    if (perError) {
+      return (
+        <div className="text-center py-12 text-destructive">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-70" />
+          <p className="font-medium">Erro ao carregar registros de PER.</p>
+          <p className="text-sm text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
+        </div>
+      );
+    }
+
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-12">
