@@ -120,7 +120,16 @@ export default function ContratosTab({
                     onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">OS {cont.ordem_servico}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
+                          {(() => {
+                            const p = cont.id_produto_segmento
+                              ? produtoSegmentoFullOptions.find(ps => ps.id === cont.id_produto_segmento)
+                              : null;
+                            return p
+                              ? `OS ${cont.ordem_servico} — ${p.codigo} — ${p.nome}`
+                              : `OS ${cont.ordem_servico}`;
+                          })()}
+                        </span>
                       </div>
                       <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
                     </div>

@@ -56,6 +56,7 @@ import {
   useClienteOrdens,
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
+import { useClientFormOptions } from '@/hooks/useClientFormOptions';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useTaxAreas } from '@/hooks/useTaxAreas';
