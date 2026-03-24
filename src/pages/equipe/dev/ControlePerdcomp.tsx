@@ -28,6 +28,7 @@ import {
   Filter,
   Eraser,
   FileSpreadsheet,
+  AlertCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
