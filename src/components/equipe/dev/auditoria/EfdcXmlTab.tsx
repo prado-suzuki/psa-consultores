@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, ChevronRight, ChevronDown, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
-import TablePagination, { PAGE_SIZE } from './TablePagination';
+import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
 interface EfdcXmlTabProps {

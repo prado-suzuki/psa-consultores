@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
-import TablePagination, { PAGE_SIZE } from './TablePagination';
+import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
 
 interface BalanceteEfdTabProps {
