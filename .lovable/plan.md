@@ -1,25 +1,65 @@
 
 
-## Plano: Remover campo Contribuinte do formulário de Projeto
+## Padronizar cards de OS — produto/segmento no título
 
-O campo "Contribuinte" será removido do modal de criação/edição de projetos. A associação contribuinte ficará apenas no nível de tarefas.
+### Contexto
 
-### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+- A interface `OrdemServico` já inclui `id_produto_segmento: string | null`
+- O RPC `get_ordens_by_client_name` retorna `SETOF ordem_servico` (todas as colunas)
+- Nenhuma alteração de query ou tipo necessária — o campo já está disponível
 
-**1. Remover do formData (linhas 90, 272, 284, 298)**
-- Eliminar `contribuinte_id` do estado inicial e dos resets
+### Arquivo 1: `ContratosTab.tsx` — header do card colapsado (linha 123)
 
-**2. Remover hook (linhas 156-159)**
-- Remover chamada `useContribuintes(...)` e import de `useContribuintes`
+Substituir `OS {cont.ordem_servico}` por:
+```tsx
+{(() => {
+  const p = cont.id_produto_segmento
+    ? produtoSegmentoFullOptions.find(ps => ps.id === cont.id_produto_segmento)
+    : null;
+  return p
+    ? `OS ${cont.ordem_servico} — ${p.codigo} — ${p.nome}`
+    : `OS ${cont.ordem_servico}`;
+})()}
+```
 
-**3. Remover do onChange do cliente (linha 544)**
-- `onValueChange` do cliente: tirar `, contribuinte_id: ''` do spread
+### Arquivo 2: `FiscalProjetosCadastro.tsx`
 
-**4. Remover bloco JSX do campo (linhas 558-576)**
-- Remover o `<div className="col-span-2">` inteiro com Label "Contribuinte" e Select
+**A. Importar hook (topo):**
+```tsx
+import { useClientFormOptions } from '@/hooks/useClientFormOptions';
+```
 
-**5. Limpar imports (linha 55)**
-- Remover `useContribuintes` do import de `useTaxReferenceData`
+**B. Chamar hook (~linha 155):**
+```tsx
+const { produtoSegmentoFullOptions } = useClientFormOptions();
+```
 
-Zero impacto funcional nos hooks de persistência — `contribuinte_id` continuará existindo na tabela e será populado via tarefas. O campo simplesmente não aparece mais no form de projeto.
+**C. Título do card de OS (linha 582):**
+
+Substituir `OS: {getOsLabel(os)}` por:
+```tsx
+{(() => {
+  const p = os.id_produto_segmento
+    ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
+    : null;
+  return p
+    ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
+    : `OS: ${getOsLabel(os)}`;
+})()}
+```
+
+Sem `as any` — `os` já é tipado como `OrdemServico` que inclui `id_produto_segmento`.
+
+**D. Remover badge `getServicoName` (linhas 606-615):** deletar bloco inteiro.
+
+**E. Remover função `getServicoName` (linhas 373-377):** deletar.
+
+### Resultado
+
+| Local | Formato |
+|-------|---------|
+| ContratosTab | `OS 001/2026 — CT — Consultoria Tributária` + valor |
+| FiscalProjetosCadastro | `OS: 001/2026 — CT — Consultoria Tributária` + badge situação + datas |
+
+Zero `as any`, zero queries novas, zero alteração de tipo.
 
