@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
+import { useSetoresCliente } from '@/hooks/useSetorCliente';
 import { RegraFormSheet } from '@/components/equipe/dev/pis-cofins/RegraFormSheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,12 @@ type ModalMode = 'view' | 'edit' | 'create' | null;
 
 const MapaNCMPisCofins = () => {
   const { regras, isLoading, createRegra, updateRegra, deleteRegra } = useRegrasNCM();
+  const { data: setores = [] } = useSetoresCliente();
   const { toast } = useToast();
+
+  const setorMap = useMemo(() =>
+    setores.reduce((acc, s) => ({ ...acc, [s.id]: s }), {} as Record<string, typeof setores[0]>),
+  [setores]);
 
   const [search, setSearch] = useState('');
   const [creditOnly, setCreditOnly] = useState(false);
@@ -30,11 +36,14 @@ const MapaNCMPisCofins = () => {
     if (creditOnly) list = list.filter(r => r.permite_credito === 'S');
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(r =>
-        (r.cod_ncm ?? '').toLowerCase().includes(q) ||
-        (r.desc_cst ?? '').toLowerCase().includes(q) ||
-        (r.base_legal ?? '').toLowerCase().includes(q)
-      );
+      list = list.filter(r => {
+        const setorLabel = setorMap[r.id_segmento ?? ''];
+        return (r.cod_ncm ?? '').toLowerCase().includes(q) ||
+          (r.desc_cst ?? '').toLowerCase().includes(q) ||
+          (r.base_legal ?? '').toLowerCase().includes(q) ||
+          (setorLabel?.sigla ?? '').toLowerCase().includes(q) ||
+          (setorLabel?.nome ?? '').toLowerCase().includes(q);
+      });
     }
     return list;
   }, [regras, search, creditOnly]);
@@ -105,6 +114,7 @@ const MapaNCMPisCofins = () => {
             <TableHeader>
               <TableRow className="bg-slate-50">
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">NCM</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Setor</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST PIS/COFINS</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Descrição CST</TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Base Legal</TableHead>
@@ -115,13 +125,13 @@ const MapaNCMPisCofins = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
                     <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
                   </TableCell>
@@ -129,6 +139,9 @@ const MapaNCMPisCofins = () => {
               ) : filtered.map(regra => (
                 <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
                   <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
+                  <TableCell className="text-xs text-slate-600">
+                    {setorMap[regra.id_segmento ?? '']?.sigla ?? regra.id_segmento ?? '—'}
+                  </TableCell>
                   <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
                   <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
                   <TableCell className="text-xs text-slate-600 max-w-[350px]">
@@ -170,6 +183,8 @@ const MapaNCMPisCofins = () => {
         onModeChange={setModalMode}
         onSubmit={handleSubmit}
         isSubmitting={createRegra.isPending || updateRegra.isPending}
+        setores={setores}
+        setorMap={setorMap}
       />
 
       {/* Delete Confirmation */}
