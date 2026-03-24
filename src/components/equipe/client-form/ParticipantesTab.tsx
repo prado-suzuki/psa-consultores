@@ -205,16 +205,16 @@ export default function ParticipantesTab({
                           <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                <AlertDialogDescription>Deseja salvar as alterações feitas neste participante?</AlertDialogDescription>
+                                <AlertDialogTitle>Aplicar alterações</AlertDialogTitle>
+                                <AlertDialogDescription>Deseja aplicar as alterações feitas neste participante?</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Salvar</AlertDialogAction>
+                                <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Aplicar</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

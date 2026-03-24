@@ -277,10 +277,10 @@ export default function ContratosTab({
                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Salvar alterações</AlertDialogTitle><AlertDialogDescription>Deseja salvar as alterações feitas nesta OS?</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Salvar</AlertDialogAction></AlertDialogFooter>
+                            <AlertDialogHeader><AlertDialogTitle>Aplicar alterações</AlertDialogTitle><AlertDialogDescription>Deseja aplicar as alterações feitas nesta OS?</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Aplicar</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>

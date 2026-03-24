@@ -388,16 +388,16 @@ export default function ContribuintesTab({
                           <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Salvar</Button>
+                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Salvar alterações</AlertDialogTitle>
-                                <AlertDialogDescription>Deseja salvar as alterações feitas neste contribuinte?</AlertDialogDescription>
+                                <AlertDialogTitle>Aplicar alterações</AlertDialogTitle>
+                                <AlertDialogDescription>Deseja aplicar as alterações feitas neste contribuinte?</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}>Salvar</AlertDialogAction>
+                                <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditEntity}>Aplicar</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
