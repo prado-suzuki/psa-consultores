@@ -13,16 +13,19 @@ import { Plus, X, Pencil, Trash2, ChevronDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked, generateNextOsNumber } from "./constants";
-import type { DraftOrdemServico, DraftContract } from "@/types/clientForm";
+import type { DraftContract } from "@/types/clientForm";
+import { createDefaultDraftContract } from "./constants";
 import DateFieldWithInput from "./DateFieldWithInput";
 import CurrencyField from "./CurrencyField";
 import FieldPair from "./FieldPair";
 
+type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
+
 export interface ContratosTabProps {
   contracts: DraftContract[];
   setContracts: React.Dispatch<React.SetStateAction<DraftContract[]>>;
-  draftContract: DraftOrdemServico;
-  setDraftContract: React.Dispatch<React.SetStateAction<DraftOrdemServico>>;
+  draftContract: DraftContractState;
+  setDraftContract: React.Dispatch<React.SetStateAction<DraftContractState>>;
   isReadOnly: boolean;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
   allClusters: Array<{ id: string; name: string }>;
