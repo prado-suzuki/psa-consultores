@@ -1,27 +1,53 @@
-## Plano: Adicionar bloco XML na aba EFD ICMS
 
-A API agora retorna um objeto `XML` em cada nota, com `CFOP` (array) e `VL_DOC` (number | null). Precisamos tipar e exibir esses dados na tabela.
 
-### Alterações
+## Plano: SOP Antes/Depois + Correção de Sobrescrita
 
-**1. `src/types/efdcIcms.ts**`
+### Problemas identificados
 
-- Adicionar interface `EfdcIcmsXmlSide` com `CFOP: number[]` e `VL_DOC: number | null`
-- Adicionar campo opcional `XML?: EfdcIcmsXmlSide` em `EfdcIcmsNota`
+1. **Sobrescrita destrutiva**: O `handleSave` inicializa `sop_link`, `sop_document_path` e `formatted_content` como `null` e só preenche o campo da aba ativa. Salvar um link apaga documento e texto, e vice-versa.
+2. **Falta de comparação**: Não existe conceito de "como era" vs "como ficou" no processo.
 
-**2. `src/components/equipe/dev/auditoria/EfdcIcmsTab.tsx**`
+### Solução
 
-- Adicionar grupo de colunas "XML" no header (colSpan 2: CFOP + Valor Doc)
-- Atualizar o header row 1: agora 3 grupos (EFD ICMS | EFD Contribuições | XML)
-- Atualizar o header row 2: adicionar 2 colunas (CFOP, Valor Doc) para XML
-- No body: renderizar `nota.XML?.CFOP.join(', ')` e `nota.XML?.VL_DOC` (com formatBRL ou "—" se null)
-- Tratar ausencia do bloco XML com fallback gracioso
-- Caso o campo de xml esteja vazio apresentar a mensagem "XML de nota não encontrado"
+Reestruturar o SOP em duas seções — **"Como era"** (antes) e **"Como ficou"** (depois) — e permitir que link, documento e texto coexistam dentro de cada seção.
+
+### 1. Migração de banco (`processes`)
+
+Adicionar 3 colunas para o SOP "antes":
+
+```sql
+ALTER TABLE processes ADD COLUMN sop_before_link text;
+ALTER TABLE processes ADD COLUMN sop_before_document_path text;
+ALTER TABLE processes ADD COLUMN sop_before_content text;
+```
+
+Os campos existentes (`sop_link`, `sop_document_path`, `formatted_content`) passam a representar o estado "Como ficou".
+
+### 2. `SOPConfigModal.tsx` — Reestrutura completa
+
+- **Layout**: Substituir as Tabs (Link/Documento/Texto) por duas seções verticais: **"Como era"** e **"Como ficou"**, cada uma com 3 campos opcionais (link, upload de documento, texto markdown) visíveis simultaneamente (sem tabs).
+- **Estado**: Adicionar states para `beforeLink`, `beforeFile`, `beforeContent` além dos existentes.
+- **Lógica de save**: Construir o objeto de update preservando todos os campos. Cada campo é salvo independentemente — se o usuário preencheu link E texto em "Como ficou", ambos são persistidos.
+- **Props**: Receber novas props `currentBeforeLink`, `currentBeforeDocumentPath`, `currentBeforeContent`.
+
+### 3. `SOPViewerModal.tsx` — Exibição antes/depois
+
+- **Layout**: Duas seções lado a lado (ou empilhadas em mobile): "Como era" à esquerda, "Como ficou" à direita.
+- Cada seção exibe todos os tipos de conteúdo que foram preenchidos (link + documento + texto podem aparecer juntos).
+- Se uma seção não tiver nada, mostrar mensagem "Nenhuma documentação registrada".
+- **Props**: Receber novas props `beforeLink`, `beforeDocumentPath`, `beforeContent`.
+
+### 4. `EquipeProcessos.tsx` — Wiring
+
+- Atualizar a interface `Process` com os 3 novos campos.
+- Passar os novos campos para `SOPConfigModal` e `SOPViewerModal`.
 
 ### Arquivos alterados
 
+| Arquivo | Alteração |
+|---|---|
+| Migração SQL | 3 novas colunas `sop_before_*` em `processes` |
+| `SOPConfigModal.tsx` | Duas seções (antes/depois), campos independentes, save não-destrutivo |
+| `SOPViewerModal.tsx` | Visualização antes/depois lado a lado |
+| `EquipeProcessos.tsx` | Novos campos na interface e props |
 
-| Arquivo           | Alteração                                                        |
-| ----------------- | ---------------------------------------------------------------- |
-| `efdcIcms.ts`     | Nova interface `EfdcIcmsXmlSide` + campo `XML` em `EfdcIcmsNota` |
-| `EfdcIcmsTab.tsx` | 2 colunas extras no header + renderização XML no body            |
