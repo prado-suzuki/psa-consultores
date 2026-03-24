@@ -66,206 +66,6 @@ const participanteTable = 'participante';
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
 
-const TIPO_PARTICIPANTE_OPTIONS = [
-  "Sócio/Proprietário",
-  "Contador",
-  "Advogado",
-  "Procurador",
-  "Representante Legal",
-  "Diretor/Gestor",
-  "Consultor Externo",
-  "Outros",
-];
-
-
-
-// --- Auto-generate OS number (XXX/AAAA) ---
-const generateNextOsNumber = async (localContracts: DraftOrdemServico[]): Promise<string> => {
-  const year = new Date().getFullYear();
-  const suffix = `/${year}`;
-
-  // Query ALL OS for the current year (including excluido=true) to never reuse a number
-  const { data } = await (supabase.from("ordem_servico" as any) as any)
-    .select("numero_os")
-    .like("numero_os", `%${suffix}`)
-    .order("numero_os", { ascending: false })
-    .limit(1000);
-
-  let maxSeq = 0;
-
-  // Check DB records
-  if (data && data.length > 0) {
-    for (const row of data) {
-      const match = (row.numero_os as string)?.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  // Check local (unsaved) contracts in the same session
-  for (const c of localContracts) {
-    if (c.ordem_servico?.endsWith(suffix)) {
-      const match = c.ordem_servico.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  const next = (maxSeq + 1).toString().padStart(3, "0");
-  return `${next}${suffix}`;
-};
-
-const SITUACAO_PROJETO_OPTIONS = [
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluido", label: "Concluído" },
-  { value: "suspenso", label: "Suspenso" },
-  { value: "cancelado", label: "Cancelado" },
-];
-
-// Types for draft items
-interface DraftEntity {
-  _id: number;
-  _dbId?: string;
-  tipo_pessoa: string;
-  cpf_cnpj: string;
-  nome_razao_social: string;
-  nome_fantasia: string;
-  situacao_inscricao_estadual: string;
-  inscricao_estadual: string;
-  cod_cnae: string;
-  setor: string;
-  simples_nacional: string;
-  telefone: string;
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  municipio: string;
-  uf: string;
-  contribuinte_faturamento: boolean;
-  atividade_principal: string;
-}
-
-interface InscricaoIE {
-  _tempId: number;
-  _dbId?: string;
-  situacao: string;
-  numero_ie: string;
-  uf: string;
-}
-
-const UF_STATES = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
-  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
-];
-
-interface DraftParticipant {
-  _id: number;
-  _dbId?: string;
-  nome: string;
-  tipo_participante: string;
-  cargo: string;
-  email: string;
-  telefone: string;
-  observacoes: string;
-  acesso_chamados: boolean;
-}
-
-interface DraftOrdemServico {
-  _id: number;
-  _dbId?: string;
-  ordem_servico: string;
-  data_emissao: string;
-  data_inicio_projeto: string;
-  data_fim_projeto: string;
-  valor_projeto: number;
-  valor_reembolso_km: number;
-  valor_reembolso_refeicao: number;
-  situacao_projeto: string;
-  observacoes_projeto: string;
-  id_servico: string;
-  id_produto_segmento: string;
-  distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
-}
-
-/** @deprecated Use DraftOrdemServico */
-type DraftContract = DraftOrdemServico;
-
-// --- Mask utilities ---
-const formatCpfCnpj = (value: string, tipo: string): string => {
-  const digits = value.replace(/\D/g, "");
-  if (tipo === "PF") {
-    const d = digits.slice(0, 11);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
-    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
-    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-  }
-  const d = digits.slice(0, 14);
-  if (d.length <= 2) return d;
-  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
-  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-};
-
-const formatCep = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-};
-
-const formatPhone = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : "";
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-};
-
-// --- Currency mask utilities (centavos approach) ---
-const formatBRLInput = (value: number): string => {
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const centsToValue = (cents: number): number => cents / 100;
-
-const valueToCents = (value: number): number => Math.round(value * 100);
-
-// --- Date mask utilities ---
-const formatDateMask = (value: string): string => {
-  const d = value.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
-  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
-};
-
-const parseDateMask = (masked: string): string | null => {
-  const d = masked.replace(/\D/g, "");
-  if (d.length !== 8) return null;
-  const day = parseInt(d.slice(0, 2));
-  const month = parseInt(d.slice(2, 4));
-  const year = parseInt(d.slice(4, 8));
-  if (year < 2000 || year > 2060) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-};
-
-const isoToMasked = (iso: string): string => {
-  if (!iso) return "";
-  try {
-    const date = parseDate(iso);
-    return format(date, "dd/MM/yyyy");
-  } catch {
-    return "";
-  }
-};
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
@@ -387,12 +187,6 @@ const CurrencyField = ({
   );
 };
 
-interface NewClientModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  editingClienteId?: string | null;
-  readOnly?: boolean;
-}
 
 export default function NewClientModal({
   open,
@@ -614,19 +408,6 @@ export default function NewClientModal({
       .map((p: any) => ({ id: p.id, nome: `${p.first_name || ""} ${p.last_name || ""}`.trim() }));
   }, [userRoles, profiles]);
 
-  // Default states
-  const defaultClientData = {
-    nome: "",
-    categoria: "Bronze",
-    ativo: true,
-    fixo: "Sim",
-    telefone: "",
-    municipio: "",
-    uf: "",
-    setor_cliente: "",
-    setor_cliente_id: "",
-    regiao: "",
-  };
 
   const { data: setoresCliente = [] } = useSetoresCliente();
 
@@ -635,39 +416,11 @@ export default function NewClientModal({
 
   // Section 2 - Contribuintes
   const [entities, setEntities] = useState<DraftEntity[]>([]);
-  const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>({
-    tipo_pessoa: "PJ",
-    cpf_cnpj: "",
-    nome_razao_social: "",
-    nome_fantasia: "",
-    situacao_inscricao_estadual: "",
-    inscricao_estadual: "",
-    cod_cnae: "",
-    setor: "Indústria",
-    simples_nacional: "",
-    telefone: "",
-    cep: "",
-    logradouro: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    municipio: "",
-    uf: "",
-    contribuinte_faturamento: false,
-    atividade_principal: "",
-  });
+  const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>(createDefaultDraftEntity());
 
   // Section 3 - Participantes
   const [participants, setParticipants] = useState<DraftParticipant[]>([]);
-  const [draftParticipant, setDraftParticipant] = useState({
-    nome: "",
-    tipo_participante: "",
-    cargo: "",
-    email: "",
-    telefone: "",
-    observacoes: "",
-    acesso_chamados: false,
-  });
+  const [draftParticipant, setDraftParticipant] = useState(createDefaultDraftParticipant());
 
   // Section 4 - OS (Ordem de Serviço)
   const [contracts, setContracts] = useState<DraftContract[]>([]);
@@ -683,20 +436,7 @@ export default function NewClientModal({
     if (osEditClusterFilter === "__all__") return produtoSegmentoFullOptions;
     return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osEditClusterFilter);
   }, [produtoSegmentoFullOptions, osEditClusterFilter]);
-  const [draftContract, setDraftContract] = useState({
-    ordem_servico: "",
-    data_emissao: "",
-    data_inicio_projeto: "",
-    data_fim_projeto: "",
-    valor_projeto: 0,
-    valor_reembolso_km: 0,
-    valor_reembolso_refeicao: 0,
-    situacao_projeto: "em_andamento",
-    observacoes_projeto: "",
-    id_servico: "",
-    id_produto_segmento: "",
-    distribuicao_receita: [] as Array<{ id_centro_custo: string; percentual_rateio: number }>,
-  });
+  const [draftContract, setDraftContract] = useState(createDefaultDraftContract());
 
   // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
   const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
@@ -922,8 +662,6 @@ export default function NewClientModal({
     }
   }, [open, isEditing]);
 
-  const formatCurrencyDisplay = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   // --- ENTITY HANDLERS ---
   // --- CNPJ FETCH ---
