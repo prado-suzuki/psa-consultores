@@ -44,7 +44,7 @@ export interface TaxProjectFormData {
   leader_ids: string[];
   sublider_ids: string[];
   external_client_id: string;
-  contribuinte_id: string;
+  contribuinte_id?: string;
   area_id: string;
   objective: string;
   category_ids: string[];
