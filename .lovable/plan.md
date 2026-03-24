@@ -1,50 +1,25 @@
 
 
-## Mover botão "Editar" do header para o footer — `NewClientModal.tsx`
+## Plano: Remover campo Contribuinte do formulário de Projeto
 
-### 1. Header (linhas 238-245) — remover botão Editar
+O campo "Contribuinte" será removido do modal de criação/edição de projetos. A associação contribuinte ficará apenas no nível de tarefas.
 
-Substituir o bloco `<div className="flex items-center gap-2">` inteiro por apenas o botão X:
+### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-```tsx
-// ANTES (linhas 238-245)
-<div className="flex items-center gap-2">
-  {isReadOnly && (
-    <Button onClick={() => setIsReadOnly(false)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white" size="sm">
-      <Pencil size={14} /> Editar
-    </Button>
-  )}
-  <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
-</div>
+**1. Remover do formData (linhas 90, 272, 284, 298)**
+- Eliminar `contribuinte_id` do estado inicial e dos resets
 
-// DEPOIS
-<button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
-```
+**2. Remover hook (linhas 156-159)**
+- Remover chamada `useContribuintes(...)` e import de `useContribuintes`
 
-### 2. Footer readOnly (linhas 307-310) — adicionar botão Editar
+**3. Remover do onChange do cliente (linha 544)**
+- `onValueChange` do cliente: tirar `, contribuinte_id: ''` do spread
 
-Trocar o `<div />` + Fechar por Fechar à esquerda + Editar à direita:
+**4. Remover bloco JSX do campo (linhas 558-576)**
+- Remover o `<div className="col-span-2">` inteiro com Label "Contribuinte" e Select
 
-```tsx
-// ANTES (linhas 307-310)
-{isReadOnly ? (
-  <>
-    <div />
-    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+**5. Limpar imports (linha 55)**
+- Remover `useContribuintes` do import de `useTaxReferenceData`
 
-// DEPOIS
-{isReadOnly ? (
-  <>
-    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
-    <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
-      <Pencil size={16} /> Editar
-    </Button>
-```
-
-### Resultado
-
-- Header sempre limpo: `[ícone + título]` ... `[X]`
-- Footer readOnly: `[Fechar]` ... `[✏ Editar]` (mesmo padrão do footer de edição)
-- Footer edição: sem mudança
-- Zero alteração funcional
+Zero impacto funcional nos hooks de persistência — `contribuinte_id` continuará existindo na tabela e será populado via tarefas. O campo simplesmente não aparece mais no form de projeto.
 
