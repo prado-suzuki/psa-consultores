@@ -106,7 +106,8 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                   <TableRow>
                     <TableHead rowSpan={2} className="text-xs align-bottom border-r">Chave NFe</TableHead>
                     <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD ICMS</TableHead>
-                    <TableHead colSpan={3} className="text-xs text-center bg-muted/30">EFD Contribuições</TableHead>
+                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD Contribuições</TableHead>
+                    <TableHead colSpan={2} className="text-xs text-center bg-muted/30">XML</TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-xs">CFOP</TableHead>
@@ -114,6 +115,8 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                     <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
                     <TableHead className="text-xs">CFOP</TableHead>
                     <TableHead className="text-xs">Conta Contábil</TableHead>
+                    <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
+                    <TableHead className="text-xs">CFOP</TableHead>
                     <TableHead className="text-xs text-right">Valor Doc</TableHead>
                   </TableRow>
                 </TableHeader>

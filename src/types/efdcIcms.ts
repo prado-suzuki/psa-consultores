@@ -8,10 +8,16 @@ export interface EfdcIcmsEfdSide {
   DT_FIN?: string;
 }
 
+export interface EfdcIcmsXmlSide {
+  CFOP: number[];
+  VL_DOC: number | null;
+}
+
 export interface EfdcIcmsNota {
   CHV_NFE: string;
   EFD_ICMS: EfdcIcmsEfdSide;
   EFD_CONTRIB: EfdcIcmsEfdSide;
+  XML?: EfdcIcmsXmlSide;
 }
 
 export interface EfdcIcmsResponse {
