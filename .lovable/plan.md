@@ -1,147 +1,176 @@
 
 
-## Fase 3 — Extração de Hooks Especializados
+## Fase 4 — Extração de 5 Componentes de Aba
 
-### Resumo
-
-Extrair 4 custom hooks do `NewClientModal.tsx`, movendo queries, mutations, consultas externas e lógica de persistência para `src/hooks/`. Redução estimada de ~700 linhas no componente. Zero alteração visual/funcional.
+Extrair os 5 `TabsContent` do `NewClientModal.tsx` (3.410 linhas) para componentes em `src/components/equipe/client-form/`. O modal final fica com ~350 linhas.
 
 ---
 
-### 3.1 — `src/hooks/useClientFormOptions.ts`
+### Boundary Map
 
-**Extrair do NewClientModal.tsx** (linhas 227–336):
+```text
+ClienteTab:        lines 765–919    (~155 lines)
+ContribuintesTab:  lines 921–1915   (~995 lines)
+ParticipantesTab:  lines 1917–2305  (~389 lines)
+ContratosTab:      lines 2307–3186  (~880 lines)
+FaturamentoTab:    lines 3188–3282  (~95 lines)
+```
 
-Todas as 6 queries de dropdown + 3 memos derivados:
-- `useQuery["user-roles-lider"]` → userRoles
-- `useQuery["profiles-all"]` → profiles (de `profiles_safe`)
-- `useQuery["servicos_prestados_services"]` → catalogServices
-- `useQuery["estrutura_clusters_for_os_filter"]` → allClusters
-- `useQuery["produto_segmento"]` → produtoSegmentoOptions
-- `useQuery["centros_custo_options"]` → CENTRO_CUSTO_OPTIONS
-- `useQuery["produto_segmento_full"]` → produtoSegmentoFullOptions
-- `useMemo` → PRODUTO_SEGMENTO_OPTIONS (com fallback "Outro")
-- `useMemo` → lideres (join userRoles + profiles)
+---
 
-**Retorna:**
+### 4.1 — `FaturamentoTab.tsx` (~95 lines)
+
+Read-only component. No internal state or handlers.
+
+**Props:**
 ```typescript
-{
-  catalogServices, allClusters,
-  PRODUTO_SEGMENTO_OPTIONS, CENTRO_CUSTO_OPTIONS,
-  produtoSegmentoFullOptions, lideres
+interface FaturamentoTabProps {
+  entities: DraftEntity[];
 }
 ```
 
-**Nota:** `filteredCatalogProducts` e `filteredEditCatalogProducts` dependem de estado local (`osClusterFilter`) e permanecem no componente.
+Extracts lines 3188–3282 verbatim.
 
 ---
 
-### 3.2 — `src/hooks/useClientEditData.ts`
+### 4.2 — `ClienteTab.tsx` (~160 lines)
 
-**Extrair do NewClientModal.tsx** (linhas 399–548):
+Form fields for client data. No internal state or handlers.
 
-O `useEffect` de carregamento de dados existentes quando `editingClienteId` está definido:
-- Carrega cliente, contribuintes, inscrições estaduais, participantes, OS + distribuição de receita
-- Mapeia para tipos `DraftEntity[]`, `DraftParticipant[]`, `DraftOrdemServico[]`
-
-**Interface do hook:**
+**Props:**
 ```typescript
-function useClientEditData(
-  open: boolean,
-  editingClienteId: string | null | undefined,
-  setters: {
-    setClientData, setEntities, setParticipants,
-    setContracts, setInscricoesMap
-  }
-): { loadingEdit: boolean }
+interface ClienteTabProps {
+  clientData: ReturnType<typeof defaultClientData>;
+  setClientData: React.Dispatch<SetStateAction<typeof clientData>>;
+  isReadOnly: boolean;
+  setoresCliente: SetorCliente[];
+}
 ```
 
-Os setters são passados como parâmetro para o hook preencher os estados do componente. O hook encapsula todo o fetch e mapeamento.
+Extracts lines 765–919.
 
 ---
 
-### 3.3 — `src/hooks/useExternalConsults.ts`
+### 4.3 — `ParticipantesTab.tsx` (~390 lines)
 
-**Extrair do NewClientModal.tsx** (linhas 566–848):
+**Moves INTO component** from NewClientModal:
+- States: `expandedParticipantId`, `editingParticipantId`, `editingParticipantData` (lines 108–110)
+- Handlers: `addParticipant`, `startEditParticipant`, `cancelEditParticipant`, `saveEditParticipant` (lines 433–553)
 
-4 funções de consulta externa + 2 estados de loading:
-- `handleCnpjBlur` (BrasilAPI CNPJ) — recebe setter `setDraftEntity`
-- `handleCepBlur` (ViaCEP) — recebe setter `setDraftEntity`
-- `handleInlineCnpjBlur` — recebe setter `setEditingEntityData`
-- `handleInlineCepBlur` — recebe setter `setEditingEntityData`
-- Estados: `cnpjLoading`, `cepLoading`
-
-**Interface do hook:**
+**Props:**
 ```typescript
-function useExternalConsults(): {
-  handleCnpjBlur: (value: string, setter: React.Dispatch<...>) => Promise<void>;
-  handleCepBlur: (value: string, setter: React.Dispatch<...>) => Promise<void>;
+interface ParticipantesTabProps {
+  participants: DraftParticipant[];
+  setParticipants: Dispatch<SetStateAction<DraftParticipant[]>>;
+  draftParticipant: Partial<DraftParticipant>;
+  setDraftParticipant: Dispatch<SetStateAction<Partial<DraftParticipant>>>;
+  isReadOnly: boolean;
+}
+```
+
+---
+
+### 4.4 — `ContribuintesTab.tsx` (~1000 lines)
+
+The largest tab — entity list + new form + inline edit + inscricoes estaduais.
+
+**Moves INTO component** from NewClientModal:
+- States: `expandedEntityId`, `editingEntityId`, `editingEntityData` (lines 104–106)
+- Handlers: `addEntity`, `startEditEntity`, `cancelEditEntity`, `saveEditEntity`, `handleCopyFirstAddress` (lines 342–593)
+- CNPJ/CEP wrapper calls (lines 339–340, 512–513)
+
+**Props:**
+```typescript
+interface ContribuintesTabProps {
+  entities: DraftEntity[];
+  setEntities: Dispatch<SetStateAction<DraftEntity[]>>;
+  draftEntity: Partial<DraftEntity>;
+  setDraftEntity: Dispatch<SetStateAction<Partial<DraftEntity>>>;
+  inscricoesMap: Record<string, InscricaoIE[]>;
+  setInscricoesMap: Dispatch<SetStateAction<Record<string, InscricaoIE[]>>>;
+  draftInscricoes: InscricaoIE[];
+  setDraftInscricoes: Dispatch<SetStateAction<InscricaoIE[]>>;
   cnpjLoading: boolean;
   cepLoading: boolean;
+  cnpjLookup: (value: string, setter: any) => Promise<void>;
+  cepLookup: (value: string, setter: any) => Promise<void>;
+  isReadOnly: boolean;
 }
 ```
 
-As funções inline e draft usam o mesmo setter pattern, diferindo apenas no target setter. Unificar: cada função recebe o setter como parâmetro.
-
 ---
 
-### 3.4 — `src/hooks/useSaveClientTransaction.ts`
+### 4.5 — `ContratosTab.tsx` (~880 lines)
 
-**Extrair do NewClientModal.tsx** (linhas 933–1295):
+**Moves INTO component** from NewClientModal:
+- States: `expandedContractId`, `editingContractId`, `editingContractData` (lines 112–114)
+- States: `osClusterFilter`, `osEditClusterFilter`, `isAddingContract` (lines 77, 236–237)
+- Memos: `filteredCatalogProducts`, `filteredEditCatalogProducts` (lines 239–247)
+- Handlers: `addContract`, `startEditContract`, `cancelEditContract`, `saveEditContract` (lines 479–571)
 
-Toda a lógica de persistência:
-- `handleSave()` (verificação de drafts pendentes)
-- `executeSave()` (validação, persistência sequencial, rollback)
-- `syncCadastrosToDW` (mover da linha 76–87 do componente para dentro deste hook)
-- Audit logs via `useAuditLog` (embutido)
-- Invalidação de queries via `queryClient`
-- `window.confirm` (linha 986) → substituir por callback `onDuplicateConfirm` que o componente fornece via AlertDialog
-
-**Interface do hook:**
+**Props:**
 ```typescript
-function useSaveClientTransaction(params: {
-  clientData; entities; participants; contracts; inscricoesMap;
-  isEditing: boolean;
-  editingClienteId?: string;
-  setoresCliente: SetorCliente[];
-  getDraftPendingTabs: () => string[];
-  onDuplicateFound: (name: string) => Promise<boolean>; // substitui window.confirm
-  onSuccess: () => void; // chama resetAndClose
-}): {
-  handleSave: () => void;
-  executeSave: () => Promise<void>;
-  saving: boolean;
+interface ContratosTabProps {
+  contracts: DraftContract[];
+  setContracts: Dispatch<SetStateAction<DraftContract[]>>;
+  draftContract: DraftOrdemServico;
+  setDraftContract: Dispatch<SetStateAction<DraftOrdemServico>>;
+  isReadOnly: boolean;
+  produtoSegmentoFullOptions: Array<{id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: {name: string} | null}>;
+  allClusters: Array<{id: string; name: string}>;
+  CENTRO_CUSTO_OPTIONS: Array<{id: string; codigo: string; nome: string; label: string}>;
+  SITUACAO_PROJETO_OPTIONS: Array<{value: string; label: string}>;
 }
 ```
 
-**Mudança de `window.confirm`**: O hook recebe `onDuplicateFound` (callback async que retorna boolean). No componente, esse callback abre um AlertDialog controlado por estado e resolve uma Promise quando o usuário confirma/cancela. Assim eliminamos `window.confirm` sem alterar o fluxo.
+---
+
+### NewClientModal.tsx (~350 lines final)
+
+**Keeps:**
+- Imports of hooks + 5 tab components
+- State: `activeTab`, `showExitConfirm`, `showDraftWarning`, `showDuplicateConfirm`, data lists (`clientData`, `entities`, `participants`, `contracts`, `inscricoesMap`, drafts)
+- Hooks: `useClientFormOptions`, `useClientEditData`, `useExternalConsults`, `useSaveClientTransaction`, `useSetoresCliente`, `useDraftPersistence`
+- Draft detection, unsaved changes, beforeunload, tab navigation
+- `handleSave`, `resetAndClose`, `handleAttemptClose`
+- Dialog shell + Tabs wrapper + ScrollArea + Footer + 3 AlertDialogs
+
+**Removes:**
+- All inline expand/edit states (lines 104–114) — moved to tabs
+- `isAddingContract`, `osClusterFilter`, `osEditClusterFilter`, `filteredCatalogProducts`, `filteredEditCatalogProducts` — moved to ContratosTab
+- All CRUD handlers: `addEntity`, `addParticipant`, `addContract`, `startEdit*`, `cancelEdit*`, `saveEdit*`, `handleCopyFirstAddress`, CNPJ/CEP wrappers (lines 335–593)
+- All 5 TabsContent JSX blocks (lines 765–3282)
+
+**Removes unused imports:**
+- `Badge`, `Checkbox`, `Textarea`, `RequiredMark`, `Select*`, `Switch`, `Calendar`, `Popover*`, `format`, `parseDate`, `cn` (where only used in tabs)
+- Icons: `Building2`, `Pencil`, `Trash2`, `Search`, `ChevronDown`, `Save`, `Copy`, `CalendarIcon`, `Tag`
+- `formatCpfCnpj`, `formatCep`, `formatPhone`, `formatCurrencyDisplay`, `isoToMasked`, `SITUACAO_PROJETO_OPTIONS`, `UF_STATES`, `TIPO_PARTICIPANTE_OPTIONS`
+- `DateFieldWithInput`, `CurrencyField`, `FieldPair`
+
+**Each TabsContent becomes:**
+```tsx
+<TabsContent value="cliente" className="mt-0 p-3 md:p-4">
+  <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} />
+</TabsContent>
+```
 
 ---
 
-### Alteração no NewClientModal.tsx
+### Files Summary
 
-- Remover: todas as 6 queries, 3 memos, useEffect de edit, 4 funções de consulta externa, toda a lógica de `executeSave`/`handleSave`, `syncCadastrosToDW`, estados `saving`/`loadingEdit`/`cnpjLoading`/`cepLoading`
-- Adicionar imports dos 4 hooks
-- Adicionar estado `showDuplicateConfirm` + `duplicateName` + `pendingDuplicateResolve` para o AlertDialog que substitui `window.confirm`
-- Adicionar AlertDialog no JSX para confirmação de duplicata
-
----
-
-### Arquivos resultantes
-
-| Arquivo | Ação | Linhas aprox. |
+| File | Action | Lines |
 |---|---|---|
-| `src/hooks/useClientFormOptions.ts` | **Criar** | ~80 |
-| `src/hooks/useClientEditData.ts` | **Criar** | ~170 |
-| `src/hooks/useExternalConsults.ts` | **Criar** | ~80 |
-| `src/hooks/useSaveClientTransaction.ts` | **Criar** | ~320 |
-| `src/components/equipe/NewClientModal.tsx` | **Alterar** | ~3.350 (−700) |
+| `client-form/FaturamentoTab.tsx` | Create | ~95 |
+| `client-form/ClienteTab.tsx` | Create | ~160 |
+| `client-form/ParticipantesTab.tsx` | Create | ~390 |
+| `client-form/ContribuintesTab.tsx` | Create | ~1000 |
+| `client-form/ContratosTab.tsx` | Create | ~880 |
+| `NewClientModal.tsx` | Rewrite | ~350 |
 
-### Validação
+### Validation
 
-- Build deve compilar sem erros
-- Nenhuma alteração visual/funcional
-- `window.confirm` substituído por AlertDialog controlado
-- `syncCadastrosToDW` movido para `useSaveClientTransaction`
-- Todas as mutations com audit log dentro do hook
+- Zero visual/functional changes
+- All CRUD handlers live inside their respective tab component
+- Props with typed exported interfaces
+- Build compiles without errors
 
