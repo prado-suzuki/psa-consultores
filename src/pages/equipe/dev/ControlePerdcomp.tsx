@@ -28,6 +28,7 @@ import {
   Filter,
   Eraser,
   FileSpreadsheet,
+  AlertCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -137,7 +138,7 @@ export default function ControlePerdcomp() {
   }, [clienteId, contribuintes, contribuinteId]);
 
   // Query for PER data
-  const { data: perData = [], isLoading: perLoading } = useQuery({
+  const { data: perData = [], isLoading: perLoading, isError: perError } = useQuery({
     queryKey: ["perdcomp-per", contribuinteId, searched],
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
@@ -469,6 +470,16 @@ export default function ControlePerdcomp() {
         <div className="text-center py-12 text-muted-foreground">
           <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>Selecione um cliente e contribuinte para visualizar os registros</p>
+        </div>
+      );
+    }
+
+    if (perError) {
+      return (
+        <div className="text-center py-12 text-destructive">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-70" />
+          <p className="font-medium">Erro ao carregar registros de PER.</p>
+          <p className="text-sm text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
         </div>
       );
     }
