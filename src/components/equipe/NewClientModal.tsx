@@ -212,89 +212,12 @@ export default function NewClientModal({
 
   const isEditing = !!editingClienteId;
 
-  // Queries for lider dropdown
-  const { data: userRoles = [] } = useQuery({
-    queryKey: ["user-roles-lider"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("user_id, role").eq("role", "lider");
-      return data || [];
-    },
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles_safe").select("id, first_name, last_name");
-      return data || [];
-    },
-  });
-
-  const { data: catalogServices = [] } = useQuery({
-    queryKey: ["servicos_prestados_services"],
-    queryFn: async () => {
-      const { data } = await (supabase
-        .from("servicos_prestados" as any)
-        .select("id, nome, cluster_id, estrutura_clusters(name)") as any)
-        .order("nome");
-      return data || [];
-    },
-  });
-
-  const { data: allClusters = [] } = useQuery({
-    queryKey: ["estrutura_clusters_for_os_filter"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("estrutura_clusters")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
-      return data || [];
-    },
-  });
-
-  const { data: produtoSegmentoOptions = [] } = useQuery({
-    queryKey: ["produto_segmento"],
-    queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
-      return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
-    },
-  });
-
-  const { data: CENTRO_CUSTO_OPTIONS = [] } = useQuery({
-    queryKey: ["centros_custo_options"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("centros_custo")
-        .select("id, codigo, nome")
-        .eq("is_active", true)
-        .order("codigo");
-      return (data || []).map((e: any) => ({ id: e.id as string, codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
-    },
-  });
-
-  
-
-  const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
-    ...produtoSegmentoOptions,
-    { value: "__outro__", label: "Outro (personalizado)" },
-  ], [produtoSegmentoOptions]);
-
-  // produto_segmento options with ID for OS-level linking (includes cluster join)
-  const { data: produtoSegmentoFullOptions = [] } = useQuery({
-    queryKey: ["produto_segmento_full"],
-    queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)").eq("is_active", true).order("codigo");
-      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
-    },
-  });
-
-  const lideres = useMemo(() => {
-    const liderIds = new Set(userRoles.map((r: any) => r.user_id));
-    return profiles
-      .filter((p: any) => liderIds.has(p.id))
-      .map((p: any) => ({ id: p.id, nome: `${p.first_name || ""} ${p.last_name || ""}`.trim() }));
-  }, [userRoles, profiles]);
-
+  // --- Hooks ---
+  const {
+    catalogServices, allClusters,
+    PRODUTO_SEGMENTO_OPTIONS, CENTRO_CUSTO_OPTIONS,
+    produtoSegmentoFullOptions, lideres,
+  } = useClientFormOptions();
 
   const { data: setoresCliente = [] } = useSetoresCliente();
 
@@ -386,155 +309,14 @@ export default function NewClientModal({
   );
 
   // Load existing data when editing
-  useEffect(() => {
-    if (!open || !editingClienteId) return;
-
-    const loadData = async () => {
-      setLoadingEdit(true);
-      try {
-        const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
-        if (cli) {
-          setClientData({
-            nome: cli.nome || "",
-            categoria: (cli as any).categoria || "Bronze",
-            ativo: cli.ativo ?? true,
-            fixo: cli.fixo || "Sim",
-            telefone: cli.telefone || "",
-            municipio: cli.municipio || "",
-            uf: cli.uf || "",
-            setor_cliente: cli.setor_cliente || "",
-            setor_cliente_id: (cli as any).setor_cliente_id || "",
-            regiao: (cli as any).regiao || "",
-          });
-        }
-
-        const { data: contribs } = await supabase
-          .from(contribuinteTable)
-          .select("*")
-          .eq("cliente_id", editingClienteId)
-          .eq("excluido", false);
-        if (contribs) {
-          setEntities(
-            contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: c.id,
-              tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: c.cpf_cnpj || "",
-              nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: (c as any).nome_fantasia || "",
-              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
-              inscricao_estadual: c.inscricao_estadual || "",
-              cod_cnae: c.cod_cnae || "",
-              setor: c.setor || "",
-              simples_nacional:
-                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
-              telefone: (c as any).telefone || "",
-              cep: (c as any).cep || "",
-              logradouro: (c as any).logradouro || "",
-              numero: (c as any).numero || "",
-              complemento: (c as any).complemento || "",
-              bairro: (c as any).bairro || "",
-              municipio: (c as any).municipio || "",
-              uf: (c as any).uf || "",
-              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
-              atividade_principal: "",
-            })),
-          );
-        }
-
-        // Load inscricoes estaduais
-        if (contribs && contribs.length > 0) {
-          const contribIds = contribs.map(c => c.id);
-          const { data: inscricoes } = await (supabase as any)
-            .from("inscricao_contribuinte")
-            .select("*")
-            .in("contribuinte_id", contribIds);
-          if (inscricoes) {
-            const map: Record<string, InscricaoIE[]> = {};
-            for (const ie of inscricoes as any[]) {
-              const key = ie.contribuinte_id as string;
-              if (!map[key]) map[key] = [];
-              map[key].push({
-                _tempId: Date.now() + Math.random(),
-                _dbId: ie.id,
-                situacao: ie.situacao || "sim",
-                numero_ie: ie.numero_ie || "",
-                uf: ie.uf || "",
-              });
-            }
-            setInscricoesMap(map);
-          } else {
-            setInscricoesMap({});
-          }
-        }
-
-        const { data: parts } = await (supabase.from(participanteTable) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (parts) {
-          setParticipants(
-            parts.map((p: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: p.id || p.id_participante,
-              nome: p.nome || "",
-              tipo_participante: p.tipo_participante || "",
-              cargo: p.cargo || "",
-              email: p.email || "",
-              telefone: p.telefone || "",
-              observacoes: p.observacoes || "",
-              acesso_chamados: p.acesso_chamados ?? false,
-            })),
-          );
-        }
-
-        // Carregar ordens de serviço do banco
-        const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (existingOS && existingOS.length > 0) {
-          // Also load distribuicao_receita for each OS
-          const osIds = existingOS.map((os: any) => os.id);
-          const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("*")
-            .in("id_ordem_servico", osIds)
-            .eq("excluido", false);
-          const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
-          (distData || []).forEach((d: any) => {
-            if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
-            distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
-          });
-          setContracts(
-            existingOS.map((os: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: os.id,
-              ordem_servico: os.numero_os || "",
-              data_emissao: os.data_emissao || "",
-              data_inicio_projeto: os.data_inicio || "",
-              data_fim_projeto: os.data_fim || "",
-              valor_projeto: os.valor_projeto || 0,
-              valor_reembolso_km: os.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
-              situacao_projeto: os.situacao || "em_andamento",
-              observacoes_projeto: os.observacoes || "",
-              id_servico: os.id_servico || "",
-              id_produto_segmento: os.id_produto_segmento || "",
-              distribuicao_receita: distMap[os.id] || [],
-            })),
-          );
-        } else {
-          setContracts([]);
-        }
-      } catch (err: any) {
-        console.error("Erro ao carregar dados do cliente:", err);
-        toast.error("Erro ao carregar dados do cliente");
-      } finally {
-        setLoadingEdit(false);
-      }
-    };
-    loadData();
-  }, [open, editingClienteId]);
+  const editSetters = useMemo(() => ({
+    setClientData,
+    setEntities,
+    setParticipants,
+    setContracts,
+    setInscricoesMap,
+  }), []);
+  const { loadingEdit } = useClientEditData(open, editingClienteId, editSetters);
 
   // Restore draft for new client mode
   useEffect(() => {
@@ -551,60 +333,11 @@ export default function NewClientModal({
 
 
   // --- ENTITY HANDLERS ---
-  // --- CNPJ FETCH ---
-  const handleCnpjBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 14) return;
-    setCnpjLoading(true);
-    try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
-      setDraftEntity((prev) => ({
-        ...prev,
-        nome_razao_social: data.razao_social || prev?.nome_razao_social || "",
-        nome_fantasia: data.nome_fantasia || "",
-        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev?.cod_cnae || "",
-        atividade_principal: data.cnae_fiscal_descricao || "",
-        cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev?.cep || "",
-        logradouro: data.logradouro || prev?.logradouro || "",
-        numero: data.numero || prev?.numero || "",
-        complemento: data.complemento || prev?.complemento || "",
-        bairro: data.bairro || prev?.bairro || "",
-        municipio: data.municipio || prev?.municipio || "",
-        uf: data.uf || prev?.uf || "",
-      }));
-      toast.success("Dados preenchidos via CNPJ");
-    } catch {
-      toast.error("CNPJ não encontrado na base federal");
-    } finally {
-      setCnpjLoading(false);
-    }
-  };
+  // --- External consults ---
+  const { handleCnpjBlur: cnpjLookup, handleCepBlur: cepLookup, cnpjLoading, cepLoading } = useExternalConsults();
 
-  // --- CEP FETCH ---
-  const handleCepBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 8) return;
-    setCepLoading(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error("not found");
-      setDraftEntity((prev) => ({
-        ...prev,
-        logradouro: data.logradouro || prev?.logradouro || "",
-        bairro: data.bairro || prev?.bairro || "",
-        municipio: data.localidade || prev?.municipio || "",
-        uf: data.uf || prev?.uf || "",
-      }));
-      toast.success("Endereço preenchido via CEP");
-    } catch {
-      toast.error("CEP não encontrado");
-    } finally {
-      setCepLoading(false);
-    }
-  };
+  const handleCnpjBlur = (value: string) => cnpjLookup(value, setDraftEntity);
+  const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
 
   const addEntity = () => {
     if (!draftEntity.nome_razao_social?.trim()) {
