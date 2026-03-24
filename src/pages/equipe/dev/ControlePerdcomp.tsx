@@ -137,7 +137,7 @@ export default function ControlePerdcomp() {
   }, [clienteId, contribuintes, contribuinteId]);
 
   // Query for PER data
-  const { data: perData = [], isLoading: perLoading } = useQuery({
+  const { data: perData = [], isLoading: perLoading, isError: perError } = useQuery({
     queryKey: ["perdcomp-per", contribuinteId, searched],
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
