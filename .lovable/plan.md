@@ -1,85 +1,129 @@
 
 
-## Fase 1 — Types, Constants e Move do Arquivo
+## Fase 3 — Extração de Hooks Especializados
 
 ### Resumo
 
-Extrair types, constantes e utilitários do `NewClientModal.tsx` (4.418 linhas) para arquivos dedicados, mover o arquivo para `src/components/equipe/`, e atualizar imports. Zero alteração visual/funcional.
+Extrair 4 custom hooks do `NewClientModal.tsx`, movendo queries, mutations, consultas externas e lógica de persistência para `src/hooks/`. Redução estimada de ~700 linhas no componente. Zero alteração visual/funcional.
 
 ---
 
-### Passo 1 — Mover arquivo e atualizar import
+### 3.1 — `src/hooks/useClientFormOptions.ts`
 
-| Ação | Arquivo |
-|---|---|
-| Mover (criar novo + reescrever) | `src/components/equipe/fiscal/NewClientModal.tsx` → `src/components/equipe/NewClientModal.tsx` |
-| Atualizar import (linha 14) | `src/pages/equipe/fiscal/GestaoClientes.tsx` |
-| Criar pasta | `src/components/equipe/client-form/` (via criação do `constants.ts`) |
+**Extrair do NewClientModal.tsx** (linhas 227–336):
 
-Apenas 1 arquivo importa `NewClientModal`: `GestaoClientes.tsx` linha 14. O import muda de:
-```
-import NewClientModal from "@/components/equipe/fiscal/NewClientModal"
-```
-para:
-```
-import NewClientModal from "@/components/equipe/NewClientModal"
-```
+Todas as 6 queries de dropdown + 3 memos derivados:
+- `useQuery["user-roles-lider"]` → userRoles
+- `useQuery["profiles-all"]` → profiles (de `profiles_safe`)
+- `useQuery["servicos_prestados_services"]` → catalogServices
+- `useQuery["estrutura_clusters_for_os_filter"]` → allClusters
+- `useQuery["produto_segmento"]` → produtoSegmentoOptions
+- `useQuery["centros_custo_options"]` → CENTRO_CUSTO_OPTIONS
+- `useQuery["produto_segmento_full"]` → produtoSegmentoFullOptions
+- `useMemo` → PRODUTO_SEGMENTO_OPTIONS (com fallback "Outro")
+- `useMemo` → lideres (join userRoles + profiles)
 
----
-
-### Passo 2 — Criar `src/types/clientForm.ts`
-
-Extrair do `NewClientModal.tsx` (linhas 124–191, 384–389):
-
-- `DraftEntity` (interface, linhas 124–146)
-- `InscricaoIE` (interface, linhas 148–154)
-- `DraftParticipant` (interface, linhas 161–171)
-- `DraftOrdemServico` (interface, linhas 173–188)
-- `DraftContract` (type alias, linhas 190–191)
-- `NewClientModalProps` (interface, linhas 384–389)
-
-No `NewClientModal.tsx`: remover essas definições e adicionar:
+**Retorna:**
 ```typescript
-import { DraftEntity, InscricaoIE, DraftParticipant, DraftOrdemServico, DraftContract, NewClientModalProps } from "@/types/clientForm";
+{
+  catalogServices, allClusters,
+  PRODUTO_SEGMENTO_OPTIONS, CENTRO_CUSTO_OPTIONS,
+  produtoSegmentoFullOptions, lideres
+}
 ```
+
+**Nota:** `filteredCatalogProducts` e `filteredEditCatalogProducts` dependem de estado local (`osClusterFilter`) e permanecem no componente.
 
 ---
 
-### Passo 3 — Criar `src/components/equipe/client-form/constants.ts`
+### 3.2 — `src/hooks/useClientEditData.ts`
 
-Extrair do `NewClientModal.tsx`:
+**Extrair do NewClientModal.tsx** (linhas 399–548):
 
-| Item | Linhas aprox. |
-|---|---|
-| `TIPO_PARTICIPANTE_OPTIONS` | 63–72 |
-| `UF_STATES` | 156–159 |
-| `SITUACAO_PROJETO_OPTIONS` | 116–121 |
-| `formatCpfCnpj` | 194–209 |
-| `formatCep` | 211–215 |
-| `formatPhone` | 217–223 |
-| `formatBRLInput`, `centsToValue`, `valueToCents` | 226–232 |
-| `formatDateMask`, `parseDateMask`, `isoToMasked` | 235–262 |
-| `formatCurrencyDisplay` | 919–920 |
-| `generateNextOsNumber` | 77–114 |
-| `defaultClientData` (factory) | 612–623 |
-| `createDefaultDraftEntity` (factory) | 632–652 |
-| `createDefaultDraftParticipant` (factory) | 656–664 |
-| `createDefaultDraftContract` (factory) | 680–693 |
+O `useEffect` de carregamento de dados existentes quando `editingClienteId` está definido:
+- Carrega cliente, contribuintes, inscrições estaduais, participantes, OS + distribuição de receita
+- Mapeia para tipos `DraftEntity[]`, `DraftParticipant[]`, `DraftOrdemServico[]`
 
-**NÃO inclui** `syncCadastrosToDW` (linhas 265–276) — permanece no `NewClientModal.tsx` até a Fase 3 (hook de persistência).
-
-No `NewClientModal.tsx`: remover todas essas definições e adicionar:
+**Interface do hook:**
 ```typescript
-import {
-  TIPO_PARTICIPANTE_OPTIONS, UF_STATES, SITUACAO_PROJETO_OPTIONS,
-  formatCpfCnpj, formatCep, formatPhone, formatBRLInput, centsToValue, valueToCents,
-  formatDateMask, parseDateMask, isoToMasked, formatCurrencyDisplay,
-  generateNextOsNumber, defaultClientData, createDefaultDraftEntity,
-  createDefaultDraftParticipant, createDefaultDraftContract,
-} from "./client-form/constants";
+function useClientEditData(
+  open: boolean,
+  editingClienteId: string | null | undefined,
+  setters: {
+    setClientData, setEntities, setParticipants,
+    setContracts, setInscricoesMap
+  }
+): { loadingEdit: boolean }
 ```
 
-O `generateNextOsNumber` precisa de `supabase` e do tipo `DraftOrdemServico`, que serão importados dentro do `constants.ts`.
+Os setters são passados como parâmetro para o hook preencher os estados do componente. O hook encapsula todo o fetch e mapeamento.
+
+---
+
+### 3.3 — `src/hooks/useExternalConsults.ts`
+
+**Extrair do NewClientModal.tsx** (linhas 566–848):
+
+4 funções de consulta externa + 2 estados de loading:
+- `handleCnpjBlur` (BrasilAPI CNPJ) — recebe setter `setDraftEntity`
+- `handleCepBlur` (ViaCEP) — recebe setter `setDraftEntity`
+- `handleInlineCnpjBlur` — recebe setter `setEditingEntityData`
+- `handleInlineCepBlur` — recebe setter `setEditingEntityData`
+- Estados: `cnpjLoading`, `cepLoading`
+
+**Interface do hook:**
+```typescript
+function useExternalConsults(): {
+  handleCnpjBlur: (value: string, setter: React.Dispatch<...>) => Promise<void>;
+  handleCepBlur: (value: string, setter: React.Dispatch<...>) => Promise<void>;
+  cnpjLoading: boolean;
+  cepLoading: boolean;
+}
+```
+
+As funções inline e draft usam o mesmo setter pattern, diferindo apenas no target setter. Unificar: cada função recebe o setter como parâmetro.
+
+---
+
+### 3.4 — `src/hooks/useSaveClientTransaction.ts`
+
+**Extrair do NewClientModal.tsx** (linhas 933–1295):
+
+Toda a lógica de persistência:
+- `handleSave()` (verificação de drafts pendentes)
+- `executeSave()` (validação, persistência sequencial, rollback)
+- `syncCadastrosToDW` (mover da linha 76–87 do componente para dentro deste hook)
+- Audit logs via `useAuditLog` (embutido)
+- Invalidação de queries via `queryClient`
+- `window.confirm` (linha 986) → substituir por callback `onDuplicateConfirm` que o componente fornece via AlertDialog
+
+**Interface do hook:**
+```typescript
+function useSaveClientTransaction(params: {
+  clientData; entities; participants; contracts; inscricoesMap;
+  isEditing: boolean;
+  editingClienteId?: string;
+  setoresCliente: SetorCliente[];
+  getDraftPendingTabs: () => string[];
+  onDuplicateFound: (name: string) => Promise<boolean>; // substitui window.confirm
+  onSuccess: () => void; // chama resetAndClose
+}): {
+  handleSave: () => void;
+  executeSave: () => Promise<void>;
+  saving: boolean;
+}
+```
+
+**Mudança de `window.confirm`**: O hook recebe `onDuplicateFound` (callback async que retorna boolean). No componente, esse callback abre um AlertDialog controlado por estado e resolve uma Promise quando o usuário confirma/cancela. Assim eliminamos `window.confirm` sem alterar o fluxo.
+
+---
+
+### Alteração no NewClientModal.tsx
+
+- Remover: todas as 6 queries, 3 memos, useEffect de edit, 4 funções de consulta externa, toda a lógica de `executeSave`/`handleSave`, `syncCadastrosToDW`, estados `saving`/`loadingEdit`/`cnpjLoading`/`cepLoading`
+- Adicionar imports dos 4 hooks
+- Adicionar estado `showDuplicateConfirm` + `duplicateName` + `pendingDuplicateResolve` para o AlertDialog que substitui `window.confirm`
+- Adicionar AlertDialog no JSX para confirmação de duplicata
 
 ---
 
@@ -87,15 +131,17 @@ O `generateNextOsNumber` precisa de `supabase` e do tipo `DraftOrdemServico`, qu
 
 | Arquivo | Ação | Linhas aprox. |
 |---|---|---|
-| `src/types/clientForm.ts` | **Criar** | ~75 |
-| `src/components/equipe/client-form/constants.ts` | **Criar** | ~180 |
-| `src/components/equipe/NewClientModal.tsx` | **Criar** (cópia do original com imports atualizados, definições locais removidas) | ~4.150 |
-| `src/components/equipe/fiscal/NewClientModal.tsx` | **Deletar** (substituído pelo novo caminho) | - |
-| `src/pages/equipe/fiscal/GestaoClientes.tsx` | **Alterar** linha 14 | 1 linha |
+| `src/hooks/useClientFormOptions.ts` | **Criar** | ~80 |
+| `src/hooks/useClientEditData.ts` | **Criar** | ~170 |
+| `src/hooks/useExternalConsults.ts` | **Criar** | ~80 |
+| `src/hooks/useSaveClientTransaction.ts` | **Criar** | ~320 |
+| `src/components/equipe/NewClientModal.tsx` | **Alterar** | ~3.350 (−700) |
 
 ### Validação
 
-- `NewClientModal.tsx` continua com export default e mesmo comportamento
-- O build deve compilar sem erros
-- Nenhuma mudança visual ou funcional
+- Build deve compilar sem erros
+- Nenhuma alteração visual/funcional
+- `window.confirm` substituído por AlertDialog controlado
+- `syncCadastrosToDW` movido para `useSaveClientTransaction`
+- Todas as mutations com audit log dentro do hook
 
