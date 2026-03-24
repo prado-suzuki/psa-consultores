@@ -1,28 +1,33 @@
 
 
-## Plano: Substituir seletores de data por MonthYearPicker na Auditoria Cruzada
+## Plano: Ajustes no Mapa NCM — Tabela e Modal
 
-### Tipo do MonthYearPicker
-O componente emite `{ month: number; year: number } | null`. Os helpers `monthYearToDateString` já convertem para `YYYY-MM-DD` com primeiro/último dia.
+### 1. Tabela Principal (`MapaNCMPisCofins.tsx`)
 
-### Alterações
+**Coluna Setor:** Linha 151 — trocar `?.sigla` por `?.nome` para exibir o nome completo do segmento.
 
-**1. `src/contexts/AuditoriaContext.tsx`**
-- Mudar tipo de `dataInicio` e `dataFim` de `Date | undefined` para `{ month: number; year: number } | null`
-- Ajustar setters e `handleLimpar` (usar `null` em vez de `undefined`)
+### 2. Modal (`RegraFormSheet.tsx`)
 
-**2. `src/pages/equipe/dev/AuditoriaCruzada.tsx`**
-- Remover imports: `Popover`, `PopoverContent`, `PopoverTrigger`, `Calendar`, `CalendarIcon`, `format`, `ptBR`
-- Importar `MonthYearPicker` e `monthYearToDateString` de `@/components/ui/month-year-picker`
-- Substituir os dois blocos de Popover+Calendar por `<MonthYearPicker>` com `className="h-8 text-sm"`
-- Converter datas para API usando `monthYearToDateString(dataInicio, 'start')` e `monthYearToDateString(dataFim, 'end')` nos 3 hooks de consulta
+**Schema Zod:** Remover validação obrigatória de `desc_cst` — mudar para `z.string().optional()` (linha 87), pois será preenchido automaticamente.
+
+**Remover campo Descrição CST do formulário:** Deletar o bloco `FormField` de `desc_cst` (linhas 357-413) e os estados `descOpen`/`descSearch` (linhas 204-205).
+
+**Reorganizar layout do formulário:**
+- Após a linha de NCM + Setor, colocar "Permite Crédito" e "Tipo de Crédito" na segunda linha (grid-cols-2)
+- Terceira linha: "CST PIS/COFINS" ocupando largura total (sem grid), com o Combobox que já exibe código + descrição
+
+**Lógica de submissão:** No `handleFormSubmit`, extrair a descrição do CST selecionado a partir de `CST_OPTIONS` e injetá-la no payload:
+```typescript
+const cstOpt = CST_OPTIONS.find(o => o.code === values.cst_pis);
+onSubmit({ ...values, cst_cofins: values.cst_pis, desc_cst: cstOpt?.description ?? '' });
+```
+
+**View mode:** Remover o `DetailField` de "Descrição CST" (linha 290), pois a descrição já é visível no CST.
 
 ### Arquivos alterados
 
 | Arquivo | Alteração |
 |---|---|
-| `AuditoriaContext.tsx` | Tipagem `Date → MonthYear \| null` |
-| `AuditoriaCruzada.tsx` | Substituir Calendar por MonthYearPicker + conversão API |
-
-2 arquivos, ~30 linhas de alteração.
+| `MapaNCMPisCofins.tsx` | Coluna setor: `sigla` → `nome` |
+| `RegraFormSheet.tsx` | Remover campo desc_cst, reorganizar layout, auto-preencher desc_cst no submit |
 
