@@ -2309,6 +2309,9 @@ export type Database = {
           people_involved: number | null
           priority: string | null
           project_id: string | null
+          sop_before_content: string | null
+          sop_before_document_path: string | null
+          sop_before_link: string | null
           sop_document_path: string | null
           sop_link: string | null
           stage: string
@@ -2343,6 +2346,9 @@ export type Database = {
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
+          sop_before_content?: string | null
+          sop_before_document_path?: string | null
+          sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
@@ -2377,6 +2383,9 @@ export type Database = {
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
+          sop_before_content?: string | null
+          sop_before_document_path?: string | null
+          sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
