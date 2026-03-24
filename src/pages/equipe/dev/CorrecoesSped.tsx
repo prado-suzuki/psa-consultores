@@ -397,6 +397,11 @@ const CorrecoesSped = () => {
           )}
         </DialogContent>
       </Dialog>
+      <NcmRegrasModal
+        open={!!selectedNcm}
+        onOpenChange={(v) => { if (!v) setSelectedNcm(null); }}
+        ncm={selectedNcm}
+      />
     </DevLayout>
   );
 };
