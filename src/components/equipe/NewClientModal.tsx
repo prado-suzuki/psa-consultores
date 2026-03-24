@@ -235,14 +235,7 @@ export default function NewClientModal({
               </div>
               <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
-            <div className="flex items-center gap-2">
-              {isReadOnly && (
-                <Button onClick={() => setIsReadOnly(false)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white" size="sm">
-                  <Pencil size={14} /> Editar
-                </Button>
-              )}
               <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
-            </div>
           </div>
 
           {loadingEdit ? (
@@ -306,8 +299,10 @@ export default function NewClientModal({
               <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
                 {isReadOnly ? (
                   <>
-                    <div />
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+                    <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
+                      <Pencil size={16} /> Editar
+                    </Button>
                   </>
                 ) : (
                   <>
