@@ -1,176 +1,81 @@
 
 
-## Fase 4 — Extração de 5 Componentes de Aba
+## Simplificar Botões do Modal de Cliente
 
-Extrair os 5 `TabsContent` do `NewClientModal.tsx` (3.410 linhas) para componentes em `src/components/equipe/client-form/`. O modal final fica com ~350 linhas.
+### Alterações
 
----
+**1. `NewClientModal.tsx` — Footer + limpeza**
 
-### Boundary Map
+- **Footer**: Remover Voltar/Avançar. Layout uniforme em todas as abas:
+  - ReadOnly: apenas `[Fechar]` à direita
+  - Edit/New: `[Cancelar]` à esquerda (outline) + `[Salvar Cliente / Salvar Alterações]` à direita (teal sólido + shadow)
+- **Remover**: `handleNext`, `handleBack`, `isFirstTab`, `isLastTab`, `tabOrder`, `currentTabIndex`
+- **Remover imports**: `ChevronLeft`, `ChevronRight`
+- **Draft warning text**: Atualizar para "Deseja descartar e trocar de aba?" / botões "Descartar" e "Continuar editando"
+- **`handleTabClick`** já intercepta troca de aba via `checkDraftAndNavigate` — mantém como está
 
-```text
-ClienteTab:        lines 765–919    (~155 lines)
-ContribuintesTab:  lines 921–1915   (~995 lines)
-ParticipantesTab:  lines 1917–2305  (~389 lines)
-ContratosTab:      lines 2307–3186  (~880 lines)
-FaturamentoTab:    lines 3188–3282  (~95 lines)
-```
+**2. `ContribuintesTab.tsx` — Linha 391**
+- `Salvar` → `Aplicar` no botão trigger
+- `Salvar alterações` → `Aplicar alterações` no título do AlertDialog
+- `Salvar` → `Aplicar` no botão de confirmação do AlertDialog
 
----
+**3. `ParticipantesTab.tsx` — Linha 208**
+- Mesmas renomeações: `Salvar` → `Aplicar`
 
-### 4.1 — `FaturamentoTab.tsx` (~95 lines)
+**4. `ContratosTab.tsx` — Linha 280**
+- Mesmas renomeações: `Salvar` → `Aplicar`
 
-Read-only component. No internal state or handlers.
+### Código do Footer (resultado final)
 
-**Props:**
-```typescript
-interface FaturamentoTabProps {
-  entities: DraftEntity[];
-}
-```
-
-Extracts lines 3188–3282 verbatim.
-
----
-
-### 4.2 — `ClienteTab.tsx` (~160 lines)
-
-Form fields for client data. No internal state or handlers.
-
-**Props:**
-```typescript
-interface ClienteTabProps {
-  clientData: ReturnType<typeof defaultClientData>;
-  setClientData: React.Dispatch<SetStateAction<typeof clientData>>;
-  isReadOnly: boolean;
-  setoresCliente: SetorCliente[];
-}
-```
-
-Extracts lines 765–919.
-
----
-
-### 4.3 — `ParticipantesTab.tsx` (~390 lines)
-
-**Moves INTO component** from NewClientModal:
-- States: `expandedParticipantId`, `editingParticipantId`, `editingParticipantData` (lines 108–110)
-- Handlers: `addParticipant`, `startEditParticipant`, `cancelEditParticipant`, `saveEditParticipant` (lines 433–553)
-
-**Props:**
-```typescript
-interface ParticipantesTabProps {
-  participants: DraftParticipant[];
-  setParticipants: Dispatch<SetStateAction<DraftParticipant[]>>;
-  draftParticipant: Partial<DraftParticipant>;
-  setDraftParticipant: Dispatch<SetStateAction<Partial<DraftParticipant>>>;
-  isReadOnly: boolean;
-}
-```
-
----
-
-### 4.4 — `ContribuintesTab.tsx` (~1000 lines)
-
-The largest tab — entity list + new form + inline edit + inscricoes estaduais.
-
-**Moves INTO component** from NewClientModal:
-- States: `expandedEntityId`, `editingEntityId`, `editingEntityData` (lines 104–106)
-- Handlers: `addEntity`, `startEditEntity`, `cancelEditEntity`, `saveEditEntity`, `handleCopyFirstAddress` (lines 342–593)
-- CNPJ/CEP wrapper calls (lines 339–340, 512–513)
-
-**Props:**
-```typescript
-interface ContribuintesTabProps {
-  entities: DraftEntity[];
-  setEntities: Dispatch<SetStateAction<DraftEntity[]>>;
-  draftEntity: Partial<DraftEntity>;
-  setDraftEntity: Dispatch<SetStateAction<Partial<DraftEntity>>>;
-  inscricoesMap: Record<string, InscricaoIE[]>;
-  setInscricoesMap: Dispatch<SetStateAction<Record<string, InscricaoIE[]>>>;
-  draftInscricoes: InscricaoIE[];
-  setDraftInscricoes: Dispatch<SetStateAction<InscricaoIE[]>>;
-  cnpjLoading: boolean;
-  cepLoading: boolean;
-  cnpjLookup: (value: string, setter: any) => Promise<void>;
-  cepLookup: (value: string, setter: any) => Promise<void>;
-  isReadOnly: boolean;
-}
-```
-
----
-
-### 4.5 — `ContratosTab.tsx` (~880 lines)
-
-**Moves INTO component** from NewClientModal:
-- States: `expandedContractId`, `editingContractId`, `editingContractData` (lines 112–114)
-- States: `osClusterFilter`, `osEditClusterFilter`, `isAddingContract` (lines 77, 236–237)
-- Memos: `filteredCatalogProducts`, `filteredEditCatalogProducts` (lines 239–247)
-- Handlers: `addContract`, `startEditContract`, `cancelEditContract`, `saveEditContract` (lines 479–571)
-
-**Props:**
-```typescript
-interface ContratosTabProps {
-  contracts: DraftContract[];
-  setContracts: Dispatch<SetStateAction<DraftContract[]>>;
-  draftContract: DraftOrdemServico;
-  setDraftContract: Dispatch<SetStateAction<DraftOrdemServico>>;
-  isReadOnly: boolean;
-  produtoSegmentoFullOptions: Array<{id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: {name: string} | null}>;
-  allClusters: Array<{id: string; name: string}>;
-  CENTRO_CUSTO_OPTIONS: Array<{id: string; codigo: string; nome: string; label: string}>;
-  SITUACAO_PROJETO_OPTIONS: Array<{value: string; label: string}>;
-}
-```
-
----
-
-### NewClientModal.tsx (~350 lines final)
-
-**Keeps:**
-- Imports of hooks + 5 tab components
-- State: `activeTab`, `showExitConfirm`, `showDraftWarning`, `showDuplicateConfirm`, data lists (`clientData`, `entities`, `participants`, `contracts`, `inscricoesMap`, drafts)
-- Hooks: `useClientFormOptions`, `useClientEditData`, `useExternalConsults`, `useSaveClientTransaction`, `useSetoresCliente`, `useDraftPersistence`
-- Draft detection, unsaved changes, beforeunload, tab navigation
-- `handleSave`, `resetAndClose`, `handleAttemptClose`
-- Dialog shell + Tabs wrapper + ScrollArea + Footer + 3 AlertDialogs
-
-**Removes:**
-- All inline expand/edit states (lines 104–114) — moved to tabs
-- `isAddingContract`, `osClusterFilter`, `osEditClusterFilter`, `filteredCatalogProducts`, `filteredEditCatalogProducts` — moved to ContratosTab
-- All CRUD handlers: `addEntity`, `addParticipant`, `addContract`, `startEdit*`, `cancelEdit*`, `saveEdit*`, `handleCopyFirstAddress`, CNPJ/CEP wrappers (lines 335–593)
-- All 5 TabsContent JSX blocks (lines 765–3282)
-
-**Removes unused imports:**
-- `Badge`, `Checkbox`, `Textarea`, `RequiredMark`, `Select*`, `Switch`, `Calendar`, `Popover*`, `format`, `parseDate`, `cn` (where only used in tabs)
-- Icons: `Building2`, `Pencil`, `Trash2`, `Search`, `ChevronDown`, `Save`, `Copy`, `CalendarIcon`, `Tag`
-- `formatCpfCnpj`, `formatCep`, `formatPhone`, `formatCurrencyDisplay`, `isoToMasked`, `SITUACAO_PROJETO_OPTIONS`, `UF_STATES`, `TIPO_PARTICIPANTE_OPTIONS`
-- `DateFieldWithInput`, `CurrencyField`, `FieldPair`
-
-**Each TabsContent becomes:**
 ```tsx
-<TabsContent value="cliente" className="mt-0 p-3 md:p-4">
-  <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} />
-</TabsContent>
+{/* Footer */}
+<div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
+  {isReadOnly ? (
+    <>
+      <div />
+      <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+    </>
+  ) : (
+    <>
+      <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
+      <Button
+        onClick={handleSave} disabled={saving}
+        className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+        {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+      </Button>
+    </>
+  )}
+</div>
 ```
 
----
+### Draft Warning (texto atualizado)
 
-### Files Summary
+```tsx
+<AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
+<AlertDialogDescription>
+  Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
+  {draftWarningContext?.action === "save"
+    ? " Deseja salvar mesmo assim?"
+    : " Deseja descartar e trocar de aba?"}
+</AlertDialogDescription>
+<AlertDialogFooter>
+  <AlertDialogCancel onClick={handleDraftWarningGoBack}>Continuar editando</AlertDialogCancel>
+  <AlertDialogAction onClick={handleDraftWarningContinue}>
+    {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Descartar"}
+  </AlertDialogAction>
+</AlertDialogFooter>
+```
 
-| File | Action | Lines |
-|---|---|---|
-| `client-form/FaturamentoTab.tsx` | Create | ~95 |
-| `client-form/ClienteTab.tsx` | Create | ~160 |
-| `client-form/ParticipantesTab.tsx` | Create | ~390 |
-| `client-form/ContribuintesTab.tsx` | Create | ~1000 |
-| `client-form/ContratosTab.tsx` | Create | ~880 |
-| `NewClientModal.tsx` | Rewrite | ~350 |
+### Arquivos alterados
 
-### Validation
+| Arquivo | Mudança |
+|---|---|
+| `NewClientModal.tsx` | Footer simplificado, remove nav, limpa imports |
+| `ContribuintesTab.tsx` | "Salvar" → "Aplicar" (3 ocorrências) |
+| `ParticipantesTab.tsx` | "Salvar" → "Aplicar" (3 ocorrências) |
+| `ContratosTab.tsx` | "Salvar" → "Aplicar" (3 ocorrências) |
 
-- Zero visual/functional changes
-- All CRUD handlers live inside their respective tab component
-- Props with typed exported interfaces
-- Build compiles without errors
+Zero alteração funcional no salvamento. Toda proteção de dados mantida.
 
