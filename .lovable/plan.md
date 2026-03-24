@@ -1,62 +1,50 @@
 
 
-## Plano: Modal de Regras NCM na Correções SPED
+## Mover botão "Editar" do header para o footer — `NewClientModal.tsx`
 
-Ao clicar na célula NCM de uma linha da tabela, abre um modal que busca todas as regras cadastradas na `pis_cofins_regra` para aquele NCM. O modal reutiliza o `RegraFormSheet` existente para edição/criação, e apresenta as regras em cards colapsáveis.
+### 1. Header (linhas 238-245) — remover botão Editar
 
----
+Substituir o bloco `<div className="flex items-center gap-2">` inteiro por apenas o botão X:
 
-### Arquitetura
+```tsx
+// ANTES (linhas 238-245)
+<div className="flex items-center gap-2">
+  {isReadOnly && (
+    <Button onClick={() => setIsReadOnly(false)} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white" size="sm">
+      <Pencil size={14} /> Editar
+    </Button>
+  )}
+  <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
+</div>
 
-```text
-src/
-├── components/equipe/dev/pis-cofins/
-│   ├── RegraFormSheet.tsx          ← Existente (reutilizado para editar/criar)
-│   └── NcmRegrasModal.tsx          ← NOVO — modal de consulta/listagem
-├── hooks/useRegrasNCM.ts           ← Existente (já tem query + CRUD)
-└── pages/equipe/dev/CorrecoesSped.tsx  ← Alterado (adiciona click handler na coluna NCM)
+// DEPOIS
+<button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
 ```
 
----
+### 2. Footer readOnly (linhas 307-310) — adicionar botão Editar
 
-### 1. Novo componente: `NcmRegrasModal.tsx`
+Trocar o `<div />` + Fechar por Fechar à esquerda + Editar à direita:
 
-**Props**: `open`, `onOpenChange`, `ncm: string | null`
+```tsx
+// ANTES (linhas 307-310)
+{isReadOnly ? (
+  <>
+    <div />
+    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
 
-**Comportamento**:
-- Consome `useRegrasNCM()` (já carrega todas as regras) e filtra client-side por `cod_ncm === ncm`
-- Título dinâmico: "Regras NCM {ncm}" (consulta) / "Editar Regra" / "Nova Regra para NCM {ncm}"
-- Corpo: lista de `Collapsible` cards (um por regra encontrada)
-  - Cada card colapsado mostra: Setor, CST, Crédito (badge), Base Legal (truncado)
-  - Expandido: todos os campos (vigência, observações, auditoria updated_at/by)
-  - Botão "Editar" no card → abre `RegraFormSheet` em modo `edit` com a regra selecionada
-- Se 0 regras: empty state com botão "Adicionar Regra"
-- Footer: botão "Adicionar Regra" (abre `RegraFormSheet` em modo `create` com `cod_ncm` pré-preenchido)
-- Usa `useSetoresCliente` para resolver nomes de setor (já usado no Mapa NCM)
+// DEPOIS
+{isReadOnly ? (
+  <>
+    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+    <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
+      <Pencil size={16} /> Editar
+    </Button>
+```
 
-**Reutilização do `RegraFormSheet`**:
-- Renderizado dentro do `NcmRegrasModal` como segundo `Dialog`
-- Quando abre para criar, pré-preenche `cod_ncm` com o NCM do contexto
-- `onSubmit` chama `createRegra.mutate` ou `updateRegra.mutate` do `useRegrasNCM`
-- Ao fechar o form, volta à listagem
+### Resultado
 
----
-
-### 2. Alteração: `CorrecoesSped.tsx`
-
-- Novo state: `selectedNcm: string | null`
-- Na célula NCM da tabela (linha ~254-259), tornar clicável (cursor-pointer, hover underline)
-- Clicar define `selectedNcm` e abre o `NcmRegrasModal`
-- Importar e renderizar `<NcmRegrasModal>` no final do JSX
-
----
-
-### 3. Ficheiros alterados/criados
-
-| Arquivo | Ação |
-|---|---|
-| `src/components/equipe/dev/pis-cofins/NcmRegrasModal.tsx` | Criar |
-| `src/pages/equipe/dev/CorrecoesSped.tsx` | Alterar (click handler NCM + render modal) |
-
-Zero alteração no hook `useRegrasNCM` ou no `RegraFormSheet` (reutilizados tal como estão).
+- Header sempre limpo: `[ícone + título]` ... `[X]`
+- Footer readOnly: `[Fechar]` ... `[✏ Editar]` (mesmo padrão do footer de edição)
+- Footer edição: sem mudança
+- Zero alteração funcional
 
