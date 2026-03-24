@@ -1,15 +1,17 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
+type MonthYear = { month: number; year: number } | null;
+
 interface AuditoriaState {
   clienteId: string;
   contribuinteId: string;
-  dataInicio: Date | undefined;
-  dataFim: Date | undefined;
+  dataInicio: MonthYear;
+  dataFim: MonthYear;
   hasQueried: boolean;
   setClienteId: (id: string) => void;
   setContribuinteId: (id: string) => void;
-  setDataInicio: (d: Date | undefined) => void;
-  setDataFim: (d: Date | undefined) => void;
+  setDataInicio: (d: MonthYear) => void;
+  setDataFim: (d: MonthYear) => void;
   setHasQueried: (v: boolean) => void;
   handleLimpar: () => void;
 }
@@ -19,8 +21,8 @@ const AuditoriaContext = createContext<AuditoriaState | null>(null);
 export const AuditoriaProvider = ({ children }: { children: ReactNode }) => {
   const [clienteId, setClienteIdRaw] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
-  const [dataInicio, setDataInicio] = useState<Date | undefined>();
-  const [dataFim, setDataFim] = useState<Date | undefined>();
+  const [dataInicio, setDataInicio] = useState<MonthYear>(null);
+  const [dataFim, setDataFim] = useState<MonthYear>(null);
   const [hasQueried, setHasQueried] = useState(false);
 
   const setClienteId = useCallback((id: string) => {
@@ -31,8 +33,8 @@ export const AuditoriaProvider = ({ children }: { children: ReactNode }) => {
   const handleLimpar = useCallback(() => {
     setClienteIdRaw('');
     setContribuinteId('');
-    setDataInicio(undefined);
-    setDataFim(undefined);
+    setDataInicio(null);
+    setDataFim(null);
     setHasQueried(false);
   }, []);
 
