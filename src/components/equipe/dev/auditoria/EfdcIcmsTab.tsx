@@ -124,9 +124,17 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                       <TableCell className="text-xs">{nota.EFD_ICMS.CFOP.join(', ')}</TableCell>
                       <TableCell className="text-xs">{nota.EFD_ICMS.COD_CTA.filter(Boolean).join(', ')}</TableCell>
                       <TableCell className="text-xs text-right border-r">{formatBRL(nota.EFD_ICMS.VL_DOC)}</TableCell>
-                      <TableCell className="text-xs">{nota.EFD_CONTRIB.CFOP.join(', ')}</TableCell>
-                      <TableCell className="text-xs">{nota.EFD_CONTRIB.COD_CTA.filter(Boolean).join(', ')}</TableCell>
-                      <TableCell className="text-xs text-right">{formatBRL(nota.EFD_CONTRIB.VL_DOC)}</TableCell>
+                      {nota.EFD_CONTRIB.CFOP.length === 0 ? (
+                        <TableCell colSpan={3} className="text-xs text-center italic text-amber-600">
+                          NFe não encontrada na EFD Contribuições
+                        </TableCell>
+                      ) : (
+                        <>
+                          <TableCell className="text-xs">{nota.EFD_CONTRIB.CFOP.join(', ')}</TableCell>
+                          <TableCell className="text-xs">{nota.EFD_CONTRIB.COD_CTA.filter(Boolean).join(', ')}</TableCell>
+                          <TableCell className="text-xs text-right">{formatBRL(nota.EFD_CONTRIB.VL_DOC)}</TableCell>
+                        </>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

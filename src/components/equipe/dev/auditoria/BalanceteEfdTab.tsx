@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
@@ -24,6 +25,7 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
+  const [periodoFechado, setPeriodoFechado] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -98,6 +100,10 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
               />
             </div>
           </div>
+          <div className="flex items-center gap-2 pb-0.5">
+            <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
+            <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">Período Fechado</Label>
+          </div>
         </div>
 
         {filteredItens.length === 0 ? (
@@ -113,22 +119,29 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
                     <TableHead className="text-xs text-right">Valor EFD</TableHead>
                     <TableHead className="text-xs text-right">Débito</TableHead>
                     <TableHead className="text-xs text-right">Crédito</TableHead>
-                    <TableHead className="text-xs text-right">Saldo Período</TableHead>
+                    <TableHead className="text-xs text-right">{periodoFechado ? 'Saldo Atual' : 'Saldo Período'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedItens.map((item, idx) => (
-                    <TableRow key={`${item.cod_cta}-${currentPage}-${idx}`}>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
-                      <TableCell className="text-xs text-right font-medium">{formatBRL(item.vlr_efd)}</TableCell>
-                      <TableCell className="text-xs text-right">{formatBRL(item.debito)}</TableCell>
-                      <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
-                      <TableCell className="text-xs text-right font-medium">{formatBRL(item.saldo_periodo)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {pagedItens.map((item, idx) => {
+                    const saldoComparacao = periodoFechado ? item.saldo_atual : item.saldo_periodo;
+                    const isDivergente = Math.abs(item.vlr_efd - saldoComparacao) > 0.05;
+                    return (
+                      <TableRow
+                        key={`${item.cod_cta}-${currentPage}-${idx}`}
+                        className={isDivergente ? 'bg-red-50 hover:bg-red-100' : ''}
+                      >
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
+                        <TableCell className="text-xs text-right font-medium">{formatBRL(item.vlr_efd)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatBRL(item.debito)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
+                        <TableCell className="text-xs text-right font-medium">{formatBRL(saldoComparacao)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
