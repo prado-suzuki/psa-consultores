@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2 } from 'lucide-react';
+import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -30,6 +31,7 @@ const MapaNCMPisCofins = () => {
   const [selectedRegra, setSelectedRegra] = useState<RegraNCMRow | null>(null);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const filtered = useMemo(() => {
     let list = regras;
@@ -46,7 +48,13 @@ const MapaNCMPisCofins = () => {
       });
     }
     return list;
-  }, [regras, search, creditOnly]);
+  }, [regras, search, creditOnly, setorMap]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(0); }, [filtered.length]);
 
   const handleSubmit = (values: any) => {
     if (modalMode === 'edit' && selectedRegra) {
@@ -136,7 +144,7 @@ const MapaNCMPisCofins = () => {
                     <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(regra => (
+              ) : paged.map(regra => (
                 <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
                   <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
                   <TableCell className="text-xs text-slate-600">
@@ -169,9 +177,12 @@ const MapaNCMPisCofins = () => {
             </TableBody>
           </Table>
         </div>
-        <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
-          {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Detail/Edit Modal */}
