@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
@@ -54,7 +54,7 @@ const MapaNCMPisCofins = () => {
   const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   // Reset page when filters change
-  useMemo(() => { setCurrentPage(0); }, [filtered.length]);
+  useEffect(() => { setCurrentPage(0); }, [filtered.length]);
 
   const handleSubmit = (values: any) => {
     if (modalMode === 'edit' && selectedRegra) {
