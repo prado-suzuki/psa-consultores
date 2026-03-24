@@ -1,42 +1,29 @@
 
 
-## Plano: Exibir Setor/Segmento na tabela e modal do Mapa NCM
+## Plano: Mover TablePagination para diretório compartilhado + paginação no Mapa NCM
 
-A tabela `pis_cofins_regra` já possui `id_segmento` (string). A tabela `setor_cliente` possui `id`, `nome`, `sigla`. Precisamos fazer o JOIN para exibir o nome do setor na tabela e permitir seleção no formulário.
+### 1. Mover arquivo
 
-### 1. Hook `useRegrasNCM.ts` — JOIN com setor_cliente
+Mover `src/components/equipe/dev/auditoria/TablePagination.tsx` para `src/components/equipe/dev/TablePagination.tsx` (sem alterações no conteúdo).
 
-- Alterar a query de `select('*')` para `select('*, setor_cliente:id_segmento(id, nome, sigla)')` (foreign key join)
-- Se não houver FK configurada, usar abordagem alternativa: carregar setores separadamente via `useSetoresCliente()` e mapear no componente
-- Como `id_segmento` hoje recebe `'geral'` (string literal, não UUID), e `setor_cliente.id` é UUID, **não há FK natural**. Estratégia: usar `useSetoresCliente()` no componente para criar um mapa `id → nome/sigla`
+### 2. Atualizar imports (3 arquivos)
 
-### 2. Página `MapaNCMPisCofins.tsx` — Coluna na tabela
+| Arquivo | Import antigo | Import novo |
+|---|---|---|
+| `BalanceteEfdTab.tsx` | `'./TablePagination'` | `'@/components/equipe/dev/TablePagination'` |
+| `EfdcIcmsTab.tsx` | `'./TablePagination'` | `'@/components/equipe/dev/TablePagination'` |
+| `EfdcXmlTab.tsx` | `'./TablePagination'` | `'@/components/equipe/dev/TablePagination'` |
 
-- Importar `useSetoresCliente` e criar mapa `Record<string, SetorCliente>`
-- Adicionar coluna "Setor" no `<TableHeader>` (entre "NCM" e "CST PIS/COFINS")
-- No `<TableBody>`, exibir `setorMap[regra.id_segmento]?.sigla` ou `regra.id_segmento` como fallback
-- Adicionar filtro por setor no search (buscar também pela sigla/nome do setor)
+### 3. Paginação no `MapaNCMPisCofins.tsx`
 
-### 3. Modal `RegraFormSheet.tsx` — Campo de seleção
+- Importar `TablePagination` e `PAGE_SIZE` de `@/components/equipe/dev/TablePagination`
+- Adicionar estado `currentPage` (reset para 0 quando `filtered` muda)
+- Fatiar `filtered` com `.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)`
+- Substituir rodapé de contagem pelo `<TablePagination>`
 
-- Receber prop `setores: SetorCliente[]`
-- Adicionar campo `id_segmento` ao schema zod (string, obrigatório)
-- Adicionar `<Select>` com opções dos setores no formulário (entre NCM e CST)
-- Exibir setor no modo view via `DetailField`
-- No `useEffect` de reset, preencher `id_segmento` a partir da regra
+### 4. Remover arquivo antigo
 
-### 4. Hook `useRegrasNCM.ts` — Atualizar mutations
+Deletar `src/components/equipe/dev/auditoria/TablePagination.tsx`.
 
-- Remover o hardcoded `id_segmento: 'geral'` do `createRegra`
-- Passar `id_segmento` vindo do formulário
-
-### Arquivos alterados
-
-| Arquivo | Ação |
-|---|---|
-| `src/pages/equipe/dev/MapaNCMPisCofins.tsx` | Coluna setor + mapa de setores |
-| `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx` | Campo select setor no form + view |
-| `src/hooks/useRegrasNCM.ts` | Remover hardcode `id_segmento: 'geral'` |
-
-3 arquivos editados, ~60 linhas de alteração.
+5 arquivos alterados (1 novo, 3 imports atualizados, 1 deletado).
 
