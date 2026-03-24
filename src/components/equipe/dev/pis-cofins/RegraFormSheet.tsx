@@ -81,6 +81,7 @@ type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 
 const schema = z.object({
   cod_ncm: z.string().min(1, 'NCM obrigatório').max(8, 'NCM deve ter no máximo 8 dígitos'),
+  id_segmento: z.string().min(1, 'Setor/Segmento obrigatório'),
   cst_pis: z.string().min(1, 'CST PIS/COFINS obrigatório'),
   cst_cofins: z.string().optional(),
   desc_cst: z.string().min(1, 'Descrição CST obrigatória'),
