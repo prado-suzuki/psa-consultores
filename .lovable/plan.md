@@ -1,33 +1,27 @@
+## Plano: Adicionar bloco XML na aba EFD ICMS
 
+A API agora retorna um objeto `XML` em cada nota, com `CFOP` (array) e `VL_DOC` (number | null). Precisamos tipar e exibir esses dados na tabela.
 
-## Plano: Ajustes no Mapa NCM — Tabela e Modal
+### Alterações
 
-### 1. Tabela Principal (`MapaNCMPisCofins.tsx`)
+**1. `src/types/efdcIcms.ts**`
 
-**Coluna Setor:** Linha 151 — trocar `?.sigla` por `?.nome` para exibir o nome completo do segmento.
+- Adicionar interface `EfdcIcmsXmlSide` com `CFOP: number[]` e `VL_DOC: number | null`
+- Adicionar campo opcional `XML?: EfdcIcmsXmlSide` em `EfdcIcmsNota`
 
-### 2. Modal (`RegraFormSheet.tsx`)
+**2. `src/components/equipe/dev/auditoria/EfdcIcmsTab.tsx**`
 
-**Schema Zod:** Remover validação obrigatória de `desc_cst` — mudar para `z.string().optional()` (linha 87), pois será preenchido automaticamente.
-
-**Remover campo Descrição CST do formulário:** Deletar o bloco `FormField` de `desc_cst` (linhas 357-413) e os estados `descOpen`/`descSearch` (linhas 204-205).
-
-**Reorganizar layout do formulário:**
-- Após a linha de NCM + Setor, colocar "Permite Crédito" e "Tipo de Crédito" na segunda linha (grid-cols-2)
-- Terceira linha: "CST PIS/COFINS" ocupando largura total (sem grid), com o Combobox que já exibe código + descrição
-
-**Lógica de submissão:** No `handleFormSubmit`, extrair a descrição do CST selecionado a partir de `CST_OPTIONS` e injetá-la no payload:
-```typescript
-const cstOpt = CST_OPTIONS.find(o => o.code === values.cst_pis);
-onSubmit({ ...values, cst_cofins: values.cst_pis, desc_cst: cstOpt?.description ?? '' });
-```
-
-**View mode:** Remover o `DetailField` de "Descrição CST" (linha 290), pois a descrição já é visível no CST.
+- Adicionar grupo de colunas "XML" no header (colSpan 2: CFOP + Valor Doc)
+- Atualizar o header row 1: agora 3 grupos (EFD ICMS | EFD Contribuições | XML)
+- Atualizar o header row 2: adicionar 2 colunas (CFOP, Valor Doc) para XML
+- No body: renderizar `nota.XML?.CFOP.join(', ')` e `nota.XML?.VL_DOC` (com formatBRL ou "—" se null)
+- Tratar ausencia do bloco XML com fallback gracioso
+- Caso o campo de xml esteja vazio apresentar a mensagem "XML de nota não encontrado"
 
 ### Arquivos alterados
 
-| Arquivo | Alteração |
-|---|---|
-| `MapaNCMPisCofins.tsx` | Coluna setor: `sigla` → `nome` |
-| `RegraFormSheet.tsx` | Remover campo desc_cst, reorganizar layout, auto-preencher desc_cst no submit |
 
+| Arquivo           | Alteração                                                        |
+| ----------------- | ---------------------------------------------------------------- |
+| `efdcIcms.ts`     | Nova interface `EfdcIcmsXmlSide` + campo `XML` em `EfdcIcmsNota` |
+| `EfdcIcmsTab.tsx` | 2 colunas extras no header + renderização XML no body            |
