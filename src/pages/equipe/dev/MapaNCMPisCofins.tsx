@@ -144,7 +144,7 @@ const MapaNCMPisCofins = () => {
                     <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(regra => (
+              ) : paged.map(regra => (
                 <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
                   <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
                   <TableCell className="text-xs text-slate-600">
@@ -177,9 +177,12 @@ const MapaNCMPisCofins = () => {
             </TableBody>
           </Table>
         </div>
-        <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
-          {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
-        </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Detail/Edit Modal */}
