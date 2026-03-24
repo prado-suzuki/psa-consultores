@@ -48,7 +48,13 @@ const MapaNCMPisCofins = () => {
       });
     }
     return list;
-  }, [regras, search, creditOnly]);
+  }, [regras, search, creditOnly, setorMap]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  // Reset page when filters change
+  useMemo(() => { setCurrentPage(0); }, [filtered.length]);
 
   const handleSubmit = (values: any) => {
     if (modalMode === 'edit' && selectedRegra) {
