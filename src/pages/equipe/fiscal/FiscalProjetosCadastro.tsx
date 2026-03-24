@@ -52,7 +52,7 @@ import {
   useTeamRolesForProjects,
   useSubliderTeamMembers,
   useExternalClients,
-  useContribuintes,
+  
   useClienteOrdens,
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
@@ -87,7 +87,6 @@ const FiscalProjetosCadastro = () => {
     leader_ids: [] as string[],
     sublider_ids: [] as string[],
     external_client_id: '',
-    contribuinte_id: '',
     area_id: '',
     objective: '',
     category_ids: [] as string[],
@@ -153,10 +152,6 @@ const FiscalProjetosCadastro = () => {
     !estruturaAreaId && formData.sublider_ids.length > 0,
   );
   const { data: externalClients = [] } = useExternalClients(editingProject?.external_client_id);
-  const { data: contribuintes = [] } = useContribuintes(
-    formData.external_client_id || null,
-    editingProject?.contribuinte_id,
-  );
   const { data: clienteOS = [] } = useClienteOrdens(formData.external_client_id || null);
 
   // Helper to get OS fields via typed interface
@@ -269,7 +264,7 @@ const FiscalProjetosCadastro = () => {
         leader_ids: [],
         sublider_ids: [],
         external_client_id: project.external_client_id || '',
-        contribuinte_id: project.contribuinte_id || '',
+        
         area_id: project.area_id || '',
         objective: project.objective || '',
         category_ids: [],
@@ -281,7 +276,7 @@ const FiscalProjetosCadastro = () => {
       setFormData({ 
         name: '', description: '', status: 'active',
         start_date: '', end_date: '',
-        leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
+        leader_ids: [], sublider_ids: [], external_client_id: '',
         area_id: '', objective: '', category_ids: [], member_ids: [],
         ordem_servico_id: '',
       });
@@ -295,7 +290,7 @@ const FiscalProjetosCadastro = () => {
     setFormData({ 
       name: '', description: '', status: 'active',
       start_date: '', end_date: '',
-      leader_ids: [], sublider_ids: [], external_client_id: '', contribuinte_id: '',
+      leader_ids: [], sublider_ids: [], external_client_id: '',
       area_id: '', objective: '', category_ids: [], member_ids: [],
       ordem_servico_id: '',
     });
@@ -541,7 +536,7 @@ const FiscalProjetosCadastro = () => {
                     <Label>Cliente *</Label>
                     <Select
                       value={formData.external_client_id}
-                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value, contribuinte_id: '' })}
+                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o cliente" />
@@ -550,25 +545,6 @@ const FiscalProjetosCadastro = () => {
                         {externalClients.map(client => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Contribuinte</Label>
-                    <Select
-                      value={formData.contribuinte_id}
-                      onValueChange={(value) => setFormData({ ...formData, contribuinte_id: value })}
-                      disabled={!formData.external_client_id}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={formData.external_client_id ? "Selecione o contribuinte" : "Selecione um cliente primeiro"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contribuintes.map(c => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
