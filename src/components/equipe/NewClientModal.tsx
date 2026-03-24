@@ -46,10 +46,16 @@ import {
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { parseDate } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { DraftEntity, InscricaoIE, DraftParticipant, DraftOrdemServico, DraftContract, NewClientModalProps } from "@/types/clientForm";
+import {
+  TIPO_PARTICIPANTE_OPTIONS, UF_STATES, SITUACAO_PROJETO_OPTIONS,
+  formatCpfCnpj, formatCep, formatPhone, formatBRLInput, centsToValue, valueToCents,
+  formatDateMask, parseDateMask, isoToMasked, formatCurrencyDisplay,
+  generateNextOsNumber, defaultClientData, createDefaultDraftEntity,
+  createDefaultDraftParticipant, createDefaultDraftContract,
+} from "./client-form/constants";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
 
