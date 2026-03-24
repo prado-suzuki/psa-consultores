@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, X, AlertCircle, FileSearch, Package } from 'lucide-react';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
+import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesSped } from '@/hooks/useCorrecoesSped';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { FlatItemEfd, ItemEfd } from '@/types/correcoesSped';
@@ -47,6 +48,8 @@ const CorrecoesSped = () => {
 
   // XML detail modal
   const [selectedItem, setSelectedItem] = useState<ItemEfd | null>(null);
+  // NCM rules modal
+  const [selectedNcm, setSelectedNcm] = useState<string | null>(null);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
@@ -253,7 +256,12 @@ const CorrecoesSped = () => {
                             </TableCell>
                             <TableCell className="py-1.5">
                               {item.cod_ncm ? (
-                                <code className="text-xs font-mono">{item.cod_ncm}</code>
+                                <button
+                                  onClick={() => setSelectedNcm(item.cod_ncm)}
+                                  className="cursor-pointer hover:underline"
+                                >
+                                  <code className="text-xs font-mono text-teal-700">{item.cod_ncm}</code>
+                                </button>
                               ) : (
                                 <span className="text-xs text-muted-foreground italic">—</span>
                               )}
@@ -389,6 +397,11 @@ const CorrecoesSped = () => {
           )}
         </DialogContent>
       </Dialog>
+      <NcmRegrasModal
+        open={!!selectedNcm}
+        onOpenChange={(v) => { if (!v) setSelectedNcm(null); }}
+        ncm={selectedNcm}
+      />
     </DevLayout>
   );
 };
