@@ -154,6 +154,7 @@ const FiscalProjetosCadastro = () => {
   );
   const { data: externalClients = [] } = useExternalClients(editingProject?.external_client_id);
   const { data: clienteOS = [] } = useClienteOrdens(formData.external_client_id || null);
+  const { produtoSegmentoFullOptions } = useClientFormOptions();
 
   // Helper to get OS fields via typed interface
   const getOsId = (os: OrdemServico): string => os.id;
@@ -371,11 +372,6 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
-  const getServicoName = (servicoId: string | null): string | null => {
-    if (!servicoId) return null;
-    const cat = taxCategorias.find(c => c.id === servicoId);
-    return cat?.nome || null;
-  };
 
   const getAreaLabel = (project: any) => {
     if (project.area_ref) return project.area_ref.nome;
@@ -580,7 +576,14 @@ const FiscalProjetosCadastro = () => {
                           >
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="font-medium text-sm">
-                                OS: {getOsLabel(os)}
+                                {(() => {
+                                  const p = os.id_produto_segmento
+                                    ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
+                                    : null;
+                                  return p
+                                    ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
+                                    : `OS: ${getOsLabel(os)}`;
+                                })()}
                               </span>
                               {getOsSituacaoBadge(os.situacao)}
                             </div>
@@ -604,16 +607,6 @@ const FiscalProjetosCadastro = () => {
                                 </span>
                               )}
                             </div>
-                            {(() => {
-                              const servicoName = getServicoName(os.id_servico);
-                              return servicoName ? (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  <Badge variant="secondary" className="text-xs font-normal">
-                                    {servicoName}
-                                  </Badge>
-                                </div>
-                              ) : null;
-                            })()}
                           </div>
                         );
                       })}
