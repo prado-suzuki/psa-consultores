@@ -1,8 +1,8 @@
 
 
-## Plano: Ferramenta "Correções no SPED"
+## Plano: Modal de Regras NCM na Correções SPED
 
-Nova página em `/equipe/dev/correcoes-sped` para auditoria EFD vs XML com edição inline de campos.
+Ao clicar na célula NCM de uma linha da tabela, abre um modal que busca todas as regras cadastradas na `pis_cofins_regra` para aquele NCM. O modal reutiliza o `RegraFormSheet` existente para edição/criação, e apresenta as regras em cards colapsáveis.
 
 ---
 
@@ -10,115 +10,53 @@ Nova página em `/equipe/dev/correcoes-sped` para auditoria EFD vs XML com ediç
 
 ```text
 src/
-├── types/correcoesSped.ts          ← Tipagem da resposta da API
-├── hooks/useCorrecoesSped.ts       ← Hook de data fetching (useQuery + fetchWithAuth)
-├── pages/equipe/dev/CorrecoesSped.tsx  ← Página principal (filtros + tabela + modal)
+├── components/equipe/dev/pis-cofins/
+│   ├── RegraFormSheet.tsx          ← Existente (reutilizado para editar/criar)
+│   └── NcmRegrasModal.tsx          ← NOVO — modal de consulta/listagem
+├── hooks/useRegrasNCM.ts           ← Existente (já tem query + CRUD)
+└── pages/equipe/dev/CorrecoesSped.tsx  ← Alterado (adiciona click handler na coluna NCM)
 ```
 
 ---
 
-### 1. Tipos (`src/types/correcoesSped.ts`)
+### 1. Novo componente: `NcmRegrasModal.tsx`
 
-```typescript
-export interface NfeItem {
-  nItem: number;
-  cProd: string;
-  xProd: string;
-  ncm: string;
-  vProd: number;
-}
+**Props**: `open`, `onOpenChange`, `ncm: string | null`
 
-export interface ItemEfd {
-  num_item: number;
-  descr_item: string;
-  vl_item: number;
-  cod_ncm: string | null;
-  cst_pis: string;
-  aliq_pis: number;
-  vl_pis: number;
-  cst_cofins: string;
-  aliq_cofins: number;
-  vl_cofins: number;
-  cod_cta: string;
-  nfe_itens: NfeItem[];
-}
+**Comportamento**:
+- Consome `useRegrasNCM()` (já carrega todas as regras) e filtra client-side por `cod_ncm === ncm`
+- Título dinâmico: "Regras NCM {ncm}" (consulta) / "Editar Regra" / "Nova Regra para NCM {ncm}"
+- Corpo: lista de `Collapsible` cards (um por regra encontrada)
+  - Cada card colapsado mostra: Setor, CST, Crédito (badge), Base Legal (truncado)
+  - Expandido: todos os campos (vigência, observações, auditoria updated_at/by)
+  - Botão "Editar" no card → abre `RegraFormSheet` em modo `edit` com a regra selecionada
+- Se 0 regras: empty state com botão "Adicionar Regra"
+- Footer: botão "Adicionar Regra" (abre `RegraFormSheet` em modo `create` com `cod_ncm` pré-preenchido)
+- Usa `useSetoresCliente` para resolver nomes de setor (já usado no Mapa NCM)
 
-export interface NotaRevisao {
-  chv_nfe: string;
-  dt_doc: string;
-  tipo_relacao: 'SEM_NFE' | '1:1' | 'CONSOLIDADO';
-  itens_efd: ItemEfd[];
-}
-
-export interface CorrecoeSpedResponse {
-  id_contribuinte: string;
-  periodo: { dt_ini: string; dt_fin: string };
-  notas: NotaRevisao[];
-}
-```
+**Reutilização do `RegraFormSheet`**:
+- Renderizado dentro do `NcmRegrasModal` como segundo `Dialog`
+- Quando abre para criar, pré-preenche `cod_ncm` com o NCM do contexto
+- `onSubmit` chama `createRegra.mutate` ou `updateRegra.mutate` do `useRegrasNCM`
+- Ao fechar o form, volta à listagem
 
 ---
 
-### 2. Hook (`src/hooks/useCorrecoesSped.ts`)
+### 2. Alteração: `CorrecoesSped.tsx`
 
-Segue o padrão exato de `useBalanceteEfd`:
-- `useQuery` com `enabled: false`, disparado via `refetch`
-- `fetchWithAuth` via `useApiAuth`
-- Endpoint: `GET /api/v1/pis_cofins/revisao/notas-itens?id_contribuinte=X&dt_ini=Y&dt_fin=Z`
-- QueryKey: `['correcoes-sped', id_contribuinte, dt_ini, dt_fin]`
-
----
-
-### 3. Página (`src/pages/equipe/dev/CorrecoesSped.tsx`)
-
-Envolvida pelo `DevLayout`. Estrutura:
-
-**Filtros** (Card com border-dashed, igual à Auditoria Cruzada):
-- Select: Cliente (via `useClientesList`)
-- Select: Contribuinte (via `useContribuintesByCliente`)
-- Input date: Data Início / Data Fim (type="date", formato YYYY-MM-DD)
-- Select: Filtro NCM (Todos / Com NCM / Sem NCM) — filtro client-side
-- Botões: Consultar + Limpar
-
-**Tabela principal** (componente `Table` do shadcn):
-- Dados são "achatados" (flatMap notas → itens_efd), cada linha = 1 item EFD
-- Colunas: Chave NFe (mono, espaçada a cada 4 chars) | Descrição | NCM | Valor EFD | PIS (CST|%|R$) agrupado | COFINS (CST|%|R$) agrupado | Auditoria XML (Badge com tipo_relacao)
-- Células editáveis inline (inputs transparentes que ganham borda no focus, como no HTML de referência)
-- Badge colorido na coluna Auditoria XML:
-  - `1:1` → verde (bg-green-100 text-green-700)
-  - `SEM_NFE` → vermelho (bg-red-100 text-red-700)
-  - `CONSOLIDADO` → amarelo (bg-amber-100 text-amber-700)
-- Clicar no badge abre modal de detalhe XML
-- Paginação client-side (40 itens por página, componente `TablePagination` existente)
-
-**Modal de detalhe XML** (shadcn `Dialog`):
-- Header: descrição do item EFD + valor
-- Body: lista de cards com os `nfe_itens` (cProd, xProd, NCM com badge OK/Divergente, vProd)
-- Se `nfe_itens` vazio: mensagem "Nenhum item XML encontrado (SEM_NFE)"
-
-**Estado local**: os dados editados ficam em `useState` (a edição é local, sem persistência por agora — igual ao HTML de referência).
+- Novo state: `selectedNcm: string | null`
+- Na célula NCM da tabela (linha ~254-259), tornar clicável (cursor-pointer, hover underline)
+- Clicar define `selectedNcm` e abre o `NcmRegrasModal`
+- Importar e renderizar `<NcmRegrasModal>` no final do JSX
 
 ---
 
-### 4. Navegação e Rota
-
-| Arquivo | Alteração |
-|---|---|
-| `src/App.tsx` | Adicionar `Route` para `/equipe/dev/correcoes-sped` com `TeamRoute` + `PageAccessGate` |
-| `src/config/protectedPages.ts` | Registrar entrada com `category: 'dev'` |
-| `src/components/equipe/dev/DevLayout.tsx` | Adicionar item em `pisCofinsSubItems` (ícone `FileSearch`, label "Correções no SPED") |
-| `src/pages/equipe/dev/DevDashboard.tsx` | Não alterar (o catálogo `tools[]` é separado do sidebar — a entrada no sidebar é suficiente) |
-
----
-
-### 5. Ficheiros criados/alterados
+### 3. Ficheiros alterados/criados
 
 | Arquivo | Ação |
 |---|---|
-| `src/types/correcoesSped.ts` | Criar |
-| `src/hooks/useCorrecoesSped.ts` | Criar |
-| `src/pages/equipe/dev/CorrecoesSped.tsx` | Criar |
-| `src/App.tsx` | +1 import + 1 Route |
-| `src/config/protectedPages.ts` | +1 entrada |
-| `src/components/equipe/dev/DevLayout.tsx` | +1 item no `pisCofinsSubItems` |
+| `src/components/equipe/dev/pis-cofins/NcmRegrasModal.tsx` | Criar |
+| `src/pages/equipe/dev/CorrecoesSped.tsx` | Alterar (click handler NCM + render modal) |
+
+Zero alteração no hook `useRegrasNCM` ou no `RegraFormSheet` (reutilizados tal como estão).
 
