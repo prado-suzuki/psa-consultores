@@ -333,67 +333,6 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   )} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="permite_credito" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Permite Crédito</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="S">Sim</SelectItem>
-                          <SelectItem value="N">Não</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="tipo_credito" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Crédito</FormLabel>
-                      <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-
-                <FormField control={form.control} name="cst_pis" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CST PIS/COFINS</FormLabel>
-                    <FormControl>
-                      <CstCombobox
-                        value={field.value}
-                        onChange={field.onChange}
-                        mode="code"
-                        placeholder="Selecione o CST"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                    <FormItem>
-                      <FormLabel>Permite Crédito</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="S">Sim</SelectItem>
-                          <SelectItem value="N">Não</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="tipo_credito" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Crédito</FormLabel>
-                      <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
 
                 <FormField control={form.control} name="base_legal" render={({ field }) => (
                   <FormItem>
