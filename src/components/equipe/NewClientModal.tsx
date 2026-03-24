@@ -251,6 +251,16 @@ export default function NewClientModal({
   const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
   const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
 
+  // Load existing data when editing
+  const editSetters = useMemo(() => ({
+    setClientData,
+    setEntities,
+    setParticipants,
+    setContracts,
+    setInscricoesMap,
+  }), []);
+  const { loadingEdit } = useClientEditData(open, editingClienteId, editSetters);
+
   // --- Unsaved changes detection ---
   const initialSnapshotRef = useRef<string | null>(null);
 
@@ -307,15 +317,6 @@ export default function NewClientModal({
     user?.id,
   );
 
-  // Load existing data when editing
-  const editSetters = useMemo(() => ({
-    setClientData,
-    setEntities,
-    setParticipants,
-    setContracts,
-    setInscricoesMap,
-  }), []);
-  const { loadingEdit } = useClientEditData(open, editingClienteId, editSetters);
 
   // Restore draft for new client mode
   useEffect(() => {
