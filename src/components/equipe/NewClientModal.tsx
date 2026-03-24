@@ -74,12 +74,20 @@ export default function NewClientModal({
   readOnly = false,
 }: NewClientModalProps) {
   const { user } = useAuth();
-  const { logAction } = useAuditLog();
-  const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
-  const [loadingEdit, setLoadingEdit] = useState(false);
-  const [cnpjLoading, setCnpjLoading] = useState(false);
-  const [cepLoading, setCepLoading] = useState(false);
+  const [isAddingContract, setIsAddingContract] = useState(false);
+
+  // Duplicate confirm state (replaces window.confirm)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicateName, setDuplicateName] = useState("");
+  const pendingDuplicateResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const onDuplicateFound = useCallback((name: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setDuplicateName(name);
+      pendingDuplicateResolveRef.current = resolve;
+      setShowDuplicateConfirm(true);
+    });
+  }, []);
   const [isAddingContract, setIsAddingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
