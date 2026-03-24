@@ -242,7 +242,7 @@ const CorrecoesSped = () => {
                       <TableBody>
                         {paged.map((item, idx) => (
                           <TableRow key={`${item.chv_nfe}-${item.num_item}-${idx}`} className="group">
-                            <TableCell className="text-xs py-1.5">{item.dt_doc}</TableCell>
+                            
                             <TableCell className="py-1.5">
                               <code className="text-[10px] font-mono text-muted-foreground leading-tight break-all">
                                 {formatChaveNfe(item.chv_nfe)}
