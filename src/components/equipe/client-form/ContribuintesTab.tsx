@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Save, Copy, Loader2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
@@ -388,7 +388,7 @@ export default function ContribuintesTab({
                           <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button>
+                              <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Check size={14} /> Aplicar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -562,7 +562,7 @@ export default function ContribuintesTab({
                 </div>
               </div>
               <div className="flex justify-end mt-2">
-                <Button onClick={addEntity} className="gap-2">Adicionar à Lista</Button>
+                <Button size="sm" variant="outline" onClick={addEntity} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> Adicionar à Lista</Button>
               </div>
             </div>
           </div>
