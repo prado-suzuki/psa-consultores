@@ -28,11 +28,11 @@ export const useRegrasNCM = () => {
   });
 
   const createRegra = useMutation({
-    mutationFn: async (regra: Omit<RegraNCMInsert, 'id' | 'id_segmento'>) => {
+    mutationFn: async (regra: Omit<RegraNCMInsert, 'id'>) => {
       const { data, error } = await supabase
         .from('pis_cofins_regra')
         // as any: updated_at/updated_by ainda não tipadas no types.ts gerado
-        .insert({ ...regra, id_segmento: 'geral', updated_at: new Date().toISOString(), updated_by: user?.email ?? null } as any)
+        .insert({ ...regra, updated_at: new Date().toISOString(), updated_by: user?.email ?? null } as any)
         .select()
         .single();
       if (error) throw error;

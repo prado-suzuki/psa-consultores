@@ -18,6 +18,7 @@ import { Loader2, Pencil, ChevronsUpDown, Check } from 'lucide-react';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
+import type { SetorCliente } from '@/hooks/useSetorCliente';
 
 /* ── CST Options ── */
 const CST_OPTIONS = [
@@ -102,6 +103,8 @@ interface RegraDetailModalProps {
   onModeChange: (mode: ModalMode) => void;
   onSubmit: (values: FormValues) => void;
   isSubmitting: boolean;
+  setores: SetorCliente[];
+  setorMap: Record<string, SetorCliente>;
 }
 
 const DetailField = ({ label, value }: { label: string; value?: string | number | null }) => (
@@ -196,13 +199,13 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
 };
 
 /* ── Modal principal ── */
-export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting }: RegraDetailModalProps) => {
+export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, onSubmit, isSubmitting, setores, setorMap }: RegraDetailModalProps) => {
   const [descOpen, setDescOpen] = useState(false);
   const [descSearch, setDescSearch] = useState('');
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cod_ncm: '', cst_pis: '', cst_cofins: '', desc_cst: '',
+      cod_ncm: '', id_segmento: '', cst_pis: '', cst_cofins: '', desc_cst: '',
       base_legal: '', permite_credito: '', tipo_credito: '', observacoes: '',
       data_vigencia_inicio: null, data_vigencia_fim: null,
     },
@@ -212,6 +215,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
     if (regra && mode !== 'create') {
       form.reset({
         cod_ncm: regra.cod_ncm ?? '',
+        id_segmento: regra.id_segmento ?? '',
         cst_pis: regra.cst_pis ?? '',
         cst_cofins: regra.cst_cofins ?? '',
         desc_cst: regra.desc_cst ?? '',
@@ -224,7 +228,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
       });
     } else if (mode === 'create') {
       form.reset({
-        cod_ncm: '', cst_pis: '', cst_cofins: '', desc_cst: '',
+        cod_ncm: '', id_segmento: '', cst_pis: '', cst_cofins: '', desc_cst: '',
         base_legal: '', permite_credito: '', tipo_credito: '', observacoes: '',
         data_vigencia_inicio: null, data_vigencia_fim: null,
       });
@@ -269,6 +273,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
             <div key="view-content" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <DetailField label="Código NCM" value={regra.cod_ncm} />
+                <DetailField label="Setor/Segmento" value={setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento} />
                 <DetailField label="CST PIS/COFINS" value={regra.cst_pis} />
                 <div>
                   <span className="text-xs font-medium text-muted-foreground">Permite Crédito</span>
@@ -312,6 +317,25 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                       <FormMessage />
                     </FormItem>
                   )} />
+                  <FormField control={form.control} name="id_segmento" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Setor/Segmento</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {setores.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.sigla} — {s.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="cst_pis" render={({ field }) => (
                     <FormItem>
                       <FormLabel>CST PIS/COFINS</FormLabel>
