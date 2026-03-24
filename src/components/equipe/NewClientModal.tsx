@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, Loader2, CheckCircle2, Pencil, ChevronRight, ChevronLeft, Building2 } from "lucide-react";
+import { Plus, X, Loader2, CheckCircle2, Pencil, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftParticipant, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData, createDefaultDraftEntity, createDefaultDraftParticipant, createDefaultDraftContract } from "./client-form/constants";
@@ -53,10 +53,6 @@ export default function NewClientModal({
 
   useEffect(() => { if (open) setIsReadOnly(readOnly); }, [open, readOnly]);
 
-  const tabOrder: (typeof activeTab)[] = ["cliente", "contribuintes", "participantes", "contratos", "faturamento"];
-  const currentTabIndex = tabOrder.indexOf(activeTab);
-  const isLastTab = currentTabIndex === tabOrder.length - 1;
-  const isFirstTab = currentTabIndex === 0;
 
   const isEditing = !!editingClienteId;
 
@@ -111,8 +107,6 @@ export default function NewClientModal({
     setActiveTab(targetTab);
   };
 
-  const handleNext = () => { if (!isLastTab) checkDraftAndNavigate(tabOrder[currentTabIndex + 1]); };
-  const handleBack = () => { if (!isFirstTab) checkDraftAndNavigate(tabOrder[currentTabIndex - 1]); };
   const handleTabClick = (tab: typeof activeTab) => {
     if (tab === activeTab) return;
     if (isReadOnly) { setActiveTab(tab); return; }
@@ -310,25 +304,23 @@ export default function NewClientModal({
 
               {/* Footer */}
               <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
-                <div>{!isFirstTab && <Button variant="outline" onClick={handleBack} className="gap-2 border-gray-300 text-gray-600"><ChevronLeft size={16} /> Voltar</Button>}</div>
-                <div className="flex gap-3">
-                  {isReadOnly ? (
-                    !isLastTab && <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">Avançar <ChevronRight size={16} /></Button>
-                  ) : (
-                    <>
-                      <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
-                      {!isLastTab && <Button onClick={handleNext} className="bg-teal-600 hover:bg-teal-700 text-white gap-2">Avançar <ChevronRight size={16} /></Button>}
-                      <Button
-                        onClick={handleSave} disabled={saving}
-                        variant={isLastTab ? "default" : "outline"}
-                        className={isLastTab ? "bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20" : "border-teal-600 text-teal-700 hover:bg-teal-50 gap-2"}
-                      >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                        {isEditing ? "Salvar Alterações" : "Confirmar Dados"}
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {isReadOnly ? (
+                  <>
+                    <div />
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
+                    <Button
+                      onClick={handleSave} disabled={saving}
+                      className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                      {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -353,12 +345,12 @@ export default function NewClientModal({
             <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
             <AlertDialogDescription>
               Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
-              {draftWarningContext?.action === "save" ? " Deseja salvar mesmo assim ou voltar para adicioná-los?" : " Deseja continuar sem adicionar ou voltar para adicioná-los?"}
+              {draftWarningContext?.action === "save" ? " Deseja salvar mesmo assim?" : " Deseja descartar e trocar de aba?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDraftWarningGoBack}>Voltar e adicionar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>{draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}</AlertDialogAction>
+            <AlertDialogCancel onClick={handleDraftWarningGoBack}>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDraftWarningContinue}>{draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Descartar"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
