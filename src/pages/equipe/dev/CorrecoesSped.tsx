@@ -48,6 +48,8 @@ const CorrecoesSped = () => {
 
   // XML detail modal
   const [selectedItem, setSelectedItem] = useState<ItemEfd | null>(null);
+  // NCM rules modal
+  const [selectedNcm, setSelectedNcm] = useState<string | null>(null);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
@@ -254,7 +256,12 @@ const CorrecoesSped = () => {
                             </TableCell>
                             <TableCell className="py-1.5">
                               {item.cod_ncm ? (
-                                <code className="text-xs font-mono">{item.cod_ncm}</code>
+                                <button
+                                  onClick={() => setSelectedNcm(item.cod_ncm)}
+                                  className="cursor-pointer hover:underline"
+                                >
+                                  <code className="text-xs font-mono text-teal-700">{item.cod_ncm}</code>
+                                </button>
                               ) : (
                                 <span className="text-xs text-muted-foreground italic">—</span>
                               )}
