@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, AlertCircle } from 'lucide-react';
@@ -24,7 +23,6 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [blocoFilter, setBlocoFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
@@ -36,28 +34,17 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
     if (error) toast.error('Falha ao carregar os dados do Balancete. Tente novamente.');
   }, [error]);
 
-  const blocoOptions = useMemo(() => {
-    return [...new Set(itens.map((i) => i.bloco_efd))].sort();
-  }, [itens]);
-
   const filteredItens = useMemo(() => {
-    let result = itens;
-    if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase();
-      result = result.filter(
-        (i) =>
-          (i.cod_cta ?? '').toLowerCase().includes(term) ||
-          (i.descricao_conta ?? '').toLowerCase().includes(term)
-      );
-    }
-    if (blocoFilter !== 'all') {
-      result = result.filter((i) => i.bloco_efd === blocoFilter);
-    }
-    return result;
-  }, [itens, debouncedSearch, blocoFilter]);
+    if (!debouncedSearch) return itens;
+    const term = debouncedSearch.toLowerCase();
+    return itens.filter(
+      (i) =>
+        (i.cod_cta ?? '').toLowerCase().includes(term) ||
+        (i.descricao_conta ?? '').toLowerCase().includes(term)
+    );
+  }, [itens, debouncedSearch]);
 
-  // Reset page on filter change
-  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, blocoFilter, itens]);
+  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, itens]);
 
   const totalPages = Math.ceil(filteredItens.length / PAGE_SIZE);
   const pagedItens = filteredItens.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
@@ -111,20 +98,6 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
               />
             </div>
           </div>
-          <div className="space-y-1 min-w-[150px]">
-            <Label className="text-xs">Bloco EFD</Label>
-            <Select value={blocoFilter} onValueChange={setBlocoFilter}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {blocoOptions.map((b) => (
-                  <SelectItem key={b} value={b}>{b}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {filteredItens.length === 0 ? (
@@ -137,9 +110,6 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
                   <TableRow>
                     <TableHead className="text-xs">Data</TableHead>
                     <TableHead className="text-xs">Conta Contábil</TableHead>
-                    <TableHead className="text-xs">Bloco SPED</TableHead>
-                    <TableHead className="text-xs">CST</TableHead>
-                    <TableHead className="text-xs text-right">Alíquota</TableHead>
                     <TableHead className="text-xs text-right">Valor EFD</TableHead>
                     <TableHead className="text-xs text-right">Débito</TableHead>
                     <TableHead className="text-xs text-right">Crédito</TableHead>
@@ -148,14 +118,11 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
                 </TableHeader>
                 <TableBody>
                   {pagedItens.map((item, idx) => (
-                    <TableRow key={`${item.cod_cta}-${item.bloco_efd}-${currentPage}-${idx}`}>
+                    <TableRow key={`${item.cod_cta}-${currentPage}-${idx}`}>
                       <TableCell className="text-xs whitespace-nowrap">
                         {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
-                      <TableCell className="text-xs">{item.bloco_efd}</TableCell>
-                      <TableCell className="text-xs">{item.cst_pis}</TableCell>
-                      <TableCell className="text-xs text-right">{item.aliq_pis.toFixed(2)}%</TableCell>
                       <TableCell className="text-xs text-right font-medium">{formatBRL(item.vlr_efd)}</TableCell>
                       <TableCell className="text-xs text-right">{formatBRL(item.debito)}</TableCell>
                       <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
