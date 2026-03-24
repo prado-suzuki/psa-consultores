@@ -4,17 +4,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Search, X, CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
 import { useEfdcIcms } from '@/hooks/useEfdcIcms';
 import { useEfdcXml } from '@/hooks/useEfdcXml';
 import { AuditoriaProvider, useAuditoriaStore } from '@/contexts/AuditoriaContext';
+import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
@@ -28,18 +24,21 @@ const AuditoriaCruzadaContent = () => {
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
 
+  const dtIni = monthYearToDateString(dataInicio, 'start');
+  const dtFim = monthYearToDateString(dataFim, 'end');
+
   const balanceteQuery = useBalanceteEfd({
     id_contribuinte: contribuinteId,
-    dt_ini: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '',
-    dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
+    dt_ini: dtIni,
+    dt_fim: dtFim,
   });
 
   const efdcIcmsQuery = useEfdcIcms({ id_contribuinte: contribuinteId });
 
   const efdcXmlQuery = useEfdcXml({
     id_contribuinte: contribuinteId,
-    dt_ini: dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '',
-    dt_fim: dataFim ? format(dataFim, 'yyyy-MM-dd') : '',
+    dt_ini: dtIni,
+    dt_fim: dtFim,
   });
 
   const handleConsultar = () => {
@@ -83,55 +82,27 @@ const AuditoriaCruzadaContent = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full h-8 justify-start text-left font-normal text-sm',
-                        !dataInicio && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dataInicio}
-                      onSelect={setDataInicio}
-                      locale={ptBR}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
+                  <MonthYearPicker
+                    value={dataInicio}
+                    onChange={setDataInicio}
+                    placeholder="Selecione..."
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Fim</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full h-8 justify-start text-left font-normal text-sm',
-                        !dataFim && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dataFim}
-                      onSelect={setDataFim}
-                      locale={ptBR}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
+                  <MonthYearPicker
+                    value={dataFim}
+                    onChange={setDataFim}
+                    placeholder="Selecione..."
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-3">
