@@ -201,6 +201,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
 
   {
+    page_path: '/equipe/dev/correcoes-sped',
+    page_name: 'Correções no SPED',
+    page_description: 'Revisão de notas e itens EFD vs XML para correções',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/dev/mapa-ncm-pis-cofins',
     page_name: 'Mapa NCM PIS/COFINS',
     page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',

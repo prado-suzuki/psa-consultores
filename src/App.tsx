@@ -54,6 +54,7 @@ import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
 import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
 import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
 import AuditoriaCruzada from "./pages/equipe/dev/AuditoriaCruzada";
+import CorrecoesSped from "./pages/equipe/dev/CorrecoesSped";
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
@@ -154,6 +155,7 @@ const App = () => (
             <Route path="/equipe/dev/apuracao-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/mapa-ncm-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/cruzamento-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/correcoes-sped" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
             
             
