@@ -3371,6 +3371,40 @@ export default function NewClientModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate name confirmation AlertDialog */}
+      <AlertDialog open={showDuplicateConfirm} onOpenChange={(v) => {
+        if (!v) {
+          pendingDuplicateResolveRef.current?.(false);
+          pendingDuplicateResolveRef.current = null;
+          setShowDuplicateConfirm(false);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cliente duplicado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existe um cliente com o nome <strong>"{duplicateName}"</strong>. Deseja cadastrar mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              pendingDuplicateResolveRef.current?.(false);
+              pendingDuplicateResolveRef.current = null;
+              setShowDuplicateConfirm(false);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              pendingDuplicateResolveRef.current?.(true);
+              pendingDuplicateResolveRef.current = null;
+              setShowDuplicateConfirm(false);
+            }}>
+              Cadastrar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
