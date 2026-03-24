@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, X, AlertCircle, FileSearch, Package } from 'lucide-react';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
+import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesSped } from '@/hooks/useCorrecoesSped';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { FlatItemEfd, ItemEfd } from '@/types/correcoesSped';
