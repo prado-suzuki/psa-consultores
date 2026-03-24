@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useSetoresCliente } from "@/hooks/useSetorCliente";
-import { useAuditLog } from "@/hooks/useAuditLog";
-import { isProductionEnvironment, currentAmbiente } from "@/config/api";
+import { useClientFormOptions } from "@/hooks/useClientFormOptions";
+import { useClientEditData } from "@/hooks/useClientEditData";
+import { useExternalConsults } from "@/hooks/useExternalConsults";
+import { useSaveClientTransaction } from "@/hooks/useSaveClientTransaction";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -64,27 +64,8 @@ import DateFieldWithInput from "./client-form/DateFieldWithInput";
 import CurrencyField from "./client-form/CurrencyField";
 import FieldPair from "./client-form/FieldPair";
 
-const clienteTable = 'cliente';
-const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
-
 // PRODUTO_SEGMENTO_OPTIONS is now loaded from the database (produto_segmento table)
 // with a static fallback for "Outro (personalizado)"
-
-
-// Helper para sincronizar com DW
-const syncCadastrosToDW = (payload: any) => {
-  const environment = isProductionEnvironment ? "production" : "development";
-  supabase.functions
-    .invoke("sync-cadastros", {
-      body: { ...payload, environment },
-    })
-    .then(({ error }) => {
-      if (error) console.error("[sync-cadastros] Erro:", error.message);
-      else console.log("[sync-cadastros] Sync iniciado");
-    })
-    .catch((err) => console.error("[sync-cadastros] Erro:", err));
-};
 
 export default function NewClientModal({
   open,
@@ -93,13 +74,20 @@ export default function NewClientModal({
   readOnly = false,
 }: NewClientModalProps) {
   const { user } = useAuth();
-  const { logAction } = useAuditLog();
-  const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
-  const [loadingEdit, setLoadingEdit] = useState(false);
-  const [cnpjLoading, setCnpjLoading] = useState(false);
-  const [cepLoading, setCepLoading] = useState(false);
   const [isAddingContract, setIsAddingContract] = useState(false);
+
+  // Duplicate confirm state (replaces window.confirm)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicateName, setDuplicateName] = useState("");
+  const pendingDuplicateResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
+
+  const onDuplicateFound = useCallback((name: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setDuplicateName(name);
+      pendingDuplicateResolveRef.current = resolve;
+      setShowDuplicateConfirm(true);
+    });
+  }, []);
   const [activeTab, setActiveTab] = useState<
     "cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento"
   >("cliente");
@@ -223,89 +211,12 @@ export default function NewClientModal({
 
   const isEditing = !!editingClienteId;
 
-  // Queries for lider dropdown
-  const { data: userRoles = [] } = useQuery({
-    queryKey: ["user-roles-lider"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("user_id, role").eq("role", "lider");
-      return data || [];
-    },
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles_safe").select("id, first_name, last_name");
-      return data || [];
-    },
-  });
-
-  const { data: catalogServices = [] } = useQuery({
-    queryKey: ["servicos_prestados_services"],
-    queryFn: async () => {
-      const { data } = await (supabase
-        .from("servicos_prestados" as any)
-        .select("id, nome, cluster_id, estrutura_clusters(name)") as any)
-        .order("nome");
-      return data || [];
-    },
-  });
-
-  const { data: allClusters = [] } = useQuery({
-    queryKey: ["estrutura_clusters_for_os_filter"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("estrutura_clusters")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
-      return data || [];
-    },
-  });
-
-  const { data: produtoSegmentoOptions = [] } = useQuery({
-    queryKey: ["produto_segmento"],
-    queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
-      return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
-    },
-  });
-
-  const { data: CENTRO_CUSTO_OPTIONS = [] } = useQuery({
-    queryKey: ["centros_custo_options"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("centros_custo")
-        .select("id, codigo, nome")
-        .eq("is_active", true)
-        .order("codigo");
-      return (data || []).map((e: any) => ({ id: e.id as string, codigo: e.codigo as string, nome: e.nome as string, label: `${e.codigo} - ${e.nome}` }));
-    },
-  });
-
-  
-
-  const PRODUTO_SEGMENTO_OPTIONS = useMemo(() => [
-    ...produtoSegmentoOptions,
-    { value: "__outro__", label: "Outro (personalizado)" },
-  ], [produtoSegmentoOptions]);
-
-  // produto_segmento options with ID for OS-level linking (includes cluster join)
-  const { data: produtoSegmentoFullOptions = [] } = useQuery({
-    queryKey: ["produto_segmento_full"],
-    queryFn: async () => {
-      const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)").eq("is_active", true).order("codigo");
-      return (data || []) as Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
-    },
-  });
-
-  const lideres = useMemo(() => {
-    const liderIds = new Set(userRoles.map((r: any) => r.user_id));
-    return profiles
-      .filter((p: any) => liderIds.has(p.id))
-      .map((p: any) => ({ id: p.id, nome: `${p.first_name || ""} ${p.last_name || ""}`.trim() }));
-  }, [userRoles, profiles]);
-
+  // --- Hooks ---
+  const {
+    catalogServices, allClusters,
+    PRODUTO_SEGMENTO_OPTIONS, CENTRO_CUSTO_OPTIONS,
+    produtoSegmentoFullOptions, lideres,
+  } = useClientFormOptions();
 
   const { data: setoresCliente = [] } = useSetoresCliente();
 
@@ -339,6 +250,16 @@ export default function NewClientModal({
   // Inscricoes Estaduais per contribuinte (keyed by _dbId or String(_id))
   const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
   const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
+
+  // Load existing data when editing
+  const editSetters = useMemo(() => ({
+    setClientData,
+    setEntities,
+    setParticipants,
+    setContracts,
+    setInscricoesMap,
+  }), []);
+  const { loadingEdit } = useClientEditData(open, editingClienteId, editSetters);
 
   // --- Unsaved changes detection ---
   const initialSnapshotRef = useRef<string | null>(null);
@@ -396,156 +317,6 @@ export default function NewClientModal({
     user?.id,
   );
 
-  // Load existing data when editing
-  useEffect(() => {
-    if (!open || !editingClienteId) return;
-
-    const loadData = async () => {
-      setLoadingEdit(true);
-      try {
-        const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
-        if (cli) {
-          setClientData({
-            nome: cli.nome || "",
-            categoria: (cli as any).categoria || "Bronze",
-            ativo: cli.ativo ?? true,
-            fixo: cli.fixo || "Sim",
-            telefone: cli.telefone || "",
-            municipio: cli.municipio || "",
-            uf: cli.uf || "",
-            setor_cliente: cli.setor_cliente || "",
-            setor_cliente_id: (cli as any).setor_cliente_id || "",
-            regiao: (cli as any).regiao || "",
-          });
-        }
-
-        const { data: contribs } = await supabase
-          .from(contribuinteTable)
-          .select("*")
-          .eq("cliente_id", editingClienteId)
-          .eq("excluido", false);
-        if (contribs) {
-          setEntities(
-            contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: c.id,
-              tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: c.cpf_cnpj || "",
-              nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: (c as any).nome_fantasia || "",
-              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
-              inscricao_estadual: c.inscricao_estadual || "",
-              cod_cnae: c.cod_cnae || "",
-              setor: c.setor || "",
-              simples_nacional:
-                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
-              telefone: (c as any).telefone || "",
-              cep: (c as any).cep || "",
-              logradouro: (c as any).logradouro || "",
-              numero: (c as any).numero || "",
-              complemento: (c as any).complemento || "",
-              bairro: (c as any).bairro || "",
-              municipio: (c as any).municipio || "",
-              uf: (c as any).uf || "",
-              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
-              atividade_principal: "",
-            })),
-          );
-        }
-
-        // Load inscricoes estaduais
-        if (contribs && contribs.length > 0) {
-          const contribIds = contribs.map(c => c.id);
-          const { data: inscricoes } = await (supabase as any)
-            .from("inscricao_contribuinte")
-            .select("*")
-            .in("contribuinte_id", contribIds);
-          if (inscricoes) {
-            const map: Record<string, InscricaoIE[]> = {};
-            for (const ie of inscricoes as any[]) {
-              const key = ie.contribuinte_id as string;
-              if (!map[key]) map[key] = [];
-              map[key].push({
-                _tempId: Date.now() + Math.random(),
-                _dbId: ie.id,
-                situacao: ie.situacao || "sim",
-                numero_ie: ie.numero_ie || "",
-                uf: ie.uf || "",
-              });
-            }
-            setInscricoesMap(map);
-          } else {
-            setInscricoesMap({});
-          }
-        }
-
-        const { data: parts } = await (supabase.from(participanteTable) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (parts) {
-          setParticipants(
-            parts.map((p: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: p.id || p.id_participante,
-              nome: p.nome || "",
-              tipo_participante: p.tipo_participante || "",
-              cargo: p.cargo || "",
-              email: p.email || "",
-              telefone: p.telefone || "",
-              observacoes: p.observacoes || "",
-              acesso_chamados: p.acesso_chamados ?? false,
-            })),
-          );
-        }
-
-        // Carregar ordens de serviço do banco
-        const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
-          .select("*")
-          .eq("id_cliente", editingClienteId)
-          .eq("excluido", false);
-        if (existingOS && existingOS.length > 0) {
-          // Also load distribuicao_receita for each OS
-          const osIds = existingOS.map((os: any) => os.id);
-          const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("*")
-            .in("id_ordem_servico", osIds)
-            .eq("excluido", false);
-          const distMap: Record<string, Array<{ id_centro_custo: string; percentual_rateio: number; _dbId: string }>> = {};
-          (distData || []).forEach((d: any) => {
-            if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
-            distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
-          });
-          setContracts(
-            existingOS.map((os: any) => ({
-              _id: Date.now() + Math.random(),
-              _dbId: os.id,
-              ordem_servico: os.numero_os || "",
-              data_emissao: os.data_emissao || "",
-              data_inicio_projeto: os.data_inicio || "",
-              data_fim_projeto: os.data_fim || "",
-              valor_projeto: os.valor_projeto || 0,
-              valor_reembolso_km: os.valor_reembolso_km || 0,
-              valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
-              situacao_projeto: os.situacao || "em_andamento",
-              observacoes_projeto: os.observacoes || "",
-              id_servico: os.id_servico || "",
-              id_produto_segmento: os.id_produto_segmento || "",
-              distribuicao_receita: distMap[os.id] || [],
-            })),
-          );
-        } else {
-          setContracts([]);
-        }
-      } catch (err: any) {
-        console.error("Erro ao carregar dados do cliente:", err);
-        toast.error("Erro ao carregar dados do cliente");
-      } finally {
-        setLoadingEdit(false);
-      }
-    };
-    loadData();
-  }, [open, editingClienteId]);
 
   // Restore draft for new client mode
   useEffect(() => {
@@ -562,60 +333,11 @@ export default function NewClientModal({
 
 
   // --- ENTITY HANDLERS ---
-  // --- CNPJ FETCH ---
-  const handleCnpjBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 14) return;
-    setCnpjLoading(true);
-    try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
-      setDraftEntity((prev) => ({
-        ...prev,
-        nome_razao_social: data.razao_social || prev?.nome_razao_social || "",
-        nome_fantasia: data.nome_fantasia || "",
-        cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev?.cod_cnae || "",
-        atividade_principal: data.cnae_fiscal_descricao || "",
-        cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev?.cep || "",
-        logradouro: data.logradouro || prev?.logradouro || "",
-        numero: data.numero || prev?.numero || "",
-        complemento: data.complemento || prev?.complemento || "",
-        bairro: data.bairro || prev?.bairro || "",
-        municipio: data.municipio || prev?.municipio || "",
-        uf: data.uf || prev?.uf || "",
-      }));
-      toast.success("Dados preenchidos via CNPJ");
-    } catch {
-      toast.error("CNPJ não encontrado na base federal");
-    } finally {
-      setCnpjLoading(false);
-    }
-  };
+  // --- External consults ---
+  const { handleCnpjBlur: cnpjLookup, handleCepBlur: cepLookup, cnpjLoading, cepLoading } = useExternalConsults();
 
-  // --- CEP FETCH ---
-  const handleCepBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 8) return;
-    setCepLoading(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error("not found");
-      setDraftEntity((prev) => ({
-        ...prev,
-        logradouro: data.logradouro || prev?.logradouro || "",
-        bairro: data.bairro || prev?.bairro || "",
-        municipio: data.localidade || prev?.municipio || "",
-        uf: data.uf || prev?.uf || "",
-      }));
-      toast.success("Endereço preenchido via CEP");
-    } catch {
-      toast.error("CEP não encontrado");
-    } finally {
-      setCepLoading(false);
-    }
-  };
+  const handleCnpjBlur = (value: string) => cnpjLookup(value, setDraftEntity);
+  const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
 
   const addEntity = () => {
     if (!draftEntity.nome_razao_social?.trim()) {
@@ -787,66 +509,8 @@ export default function NewClientModal({
   };
 
   // --- INLINE EDIT HELPERS ---
-  const handleInlineCnpjBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 14) return;
-    setCnpjLoading(true);
-    try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
-      setEditingEntityData((prev) =>
-        prev
-          ? {
-              ...prev,
-              nome_razao_social: data.razao_social || prev.nome_razao_social || "",
-              nome_fantasia: data.nome_fantasia || "",
-              cod_cnae: data.cnae_fiscal ? String(data.cnae_fiscal) : prev.cod_cnae || "",
-              atividade_principal: data.cnae_fiscal_descricao || "",
-              cep: data.cep ? String(data.cep).replace(/\D/g, "") : prev.cep || "",
-              logradouro: data.logradouro || prev.logradouro || "",
-              numero: data.numero || prev.numero || "",
-              complemento: data.complemento || prev.complemento || "",
-              bairro: data.bairro || prev.bairro || "",
-              municipio: data.municipio || prev.municipio || "",
-              uf: data.uf || prev.uf || "",
-            }
-          : prev,
-      );
-      toast.success("Dados preenchidos via CNPJ");
-    } catch {
-      toast.error("CNPJ não encontrado");
-    } finally {
-      setCnpjLoading(false);
-    }
-  };
-
-  const handleInlineCepBlur = async (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 8) return;
-    setCepLoading(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error("not found");
-      setEditingEntityData((prev) =>
-        prev
-          ? {
-              ...prev,
-              logradouro: data.logradouro || prev.logradouro || "",
-              bairro: data.bairro || prev.bairro || "",
-              municipio: data.localidade || prev.municipio || "",
-              uf: data.uf || prev.uf || "",
-            }
-          : prev,
-      );
-      toast.success("Endereço preenchido via CEP");
-    } catch {
-      toast.error("CEP não encontrado");
-    } finally {
-      setCepLoading(false);
-    }
-  };
+  const handleInlineCnpjBlur = (value: string) => cnpjLookup(value, setEditingEntityData as any);
+  const handleInlineCepBlur = (value: string) => cepLookup(value, setEditingEntityData as any);
 
   const startEditEntity = (ent: DraftEntity) => {
     setEditingEntityId(ent._id);
@@ -930,367 +594,26 @@ export default function NewClientModal({
 
   
 
-  // --- FINAL SAVE ---
+  // --- SAVE via hook ---
+  const { handleSave: hookHandleSave, executeSave, saving } = useSaveClientTransaction({
+    clientData,
+    entities,
+    participants,
+    contracts,
+    inscricoesMap,
+    isEditing,
+    editingClienteId,
+    setoresCliente,
+    getDraftPendingTabs,
+    onDuplicateFound,
+    onSuccess: () => resetAndClose(),
+  });
+
   const handleSave = () => {
-    const pendingTabs = getDraftPendingTabs();
-    if (pendingTabs.length > 0) {
+    const pendingTabs = hookHandleSave();
+    if (pendingTabs) {
       setDraftWarningContext({ action: "save", pendingTabs });
       setShowDraftWarning(true);
-      return;
-    }
-    executeSave();
-  };
-
-  const executeSave = async () => {
-    if (!clientData.nome.trim()) {
-      toast.error("Nome do cliente é obrigatório");
-      return;
-    }
-
-    if (!clientData.setor_cliente) {
-      toast.error("Área do negócio é obrigatória");
-      return;
-    }
-    if (!clientData.regiao) {
-      toast.error("Região é obrigatória");
-      return;
-    }
-
-    // --- Pre-validation: distribuicao_receita UUIDs and percentage sums ---
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    for (const c of contracts) {
-      if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
-        for (const d of c.distribuicao_receita) {
-          if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
-            toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
-            return;
-          }
-        }
-        const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
-        if (Math.abs(totalPercent - 100) > 0.01) {
-          toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
-          return;
-        }
-      }
-    }
-
-    // --- Duplicate name check (only on creation) ---
-    if (!isEditing) {
-      const { data: existing } = await supabase
-        .from(clienteTable)
-        .select("id, nome")
-        .eq("nome", clientData.nome.trim())
-        .eq("excluido", false)
-        .limit(1);
-      if (existing && existing.length > 0) {
-        const confirmed = window.confirm(
-          `Já existe um cliente com o nome "${clientData.nome.trim()}". Deseja cadastrar mesmo assim?`
-        );
-        if (!confirmed) return;
-      }
-    }
-
-    setSaving(true);
-    let createdClienteId: string | null = null;
-    try {
-      // Dual-write: gravar setor_cliente_id (UUID) e setor_cliente (sigla) para compatibilidade
-      const setorSigla = clientData.setor_cliente_id
-        ? setoresCliente.find(s => s.id === clientData.setor_cliente_id)?.sigla || clientData.setor_cliente || null
-        : clientData.setor_cliente || null;
-
-      const clientPayload = {
-        nome: clientData.nome.trim(),
-        categoria: clientData.categoria || null,
-        ativo: clientData.ativo,
-        fixo: clientData.fixo || null,
-        telefone: clientData.telefone.trim() || null,
-        municipio: clientData.municipio.trim() || null,
-        uf: clientData.uf.trim() || null,
-        setor_cliente: setorSigla,
-        setor_cliente_id: clientData.setor_cliente_id || null,
-        regiao: clientData.regiao || null,
-        ambiente: currentAmbiente,
-      };
-
-      let clienteId: string;
-      let clienteResult: any;
-
-      if (isEditing) {
-        const { data: updated, error } = await supabase
-          .from(clienteTable)
-          .update(clientPayload)
-          .eq("id", editingClienteId!)
-          .select()
-          .single();
-        if (error) throw error;
-        clienteId = editingClienteId!;
-        clienteResult = updated;
-
-        // --- Contribuintes: update existentes, insert novos, delete removidos ---
-        const currentContribDbIds = entities.filter(e => e._dbId).map(e => e._dbId!);
-        const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
-        const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
-        if (removedContribIds.length > 0) {
-          await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);
-        }
-
-        // --- Participantes: update existentes, insert novos, delete removidos ---
-        const partIdField = "id_participante";
-        const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
-        const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
-        const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
-        if (removedPartIds.length > 0) {
-          await (supabase.from(participanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
-        }
-
-        // --- Ordens de Serviço: update existentes, insert novos, delete removidos ---
-        const currentOsDbIds = contracts.filter(c => c._dbId).map(c => c._dbId!);
-        const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
-        const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
-        if (removedOsIds.length > 0) {
-          await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
-        }
-      } else {
-        const { data: newCliente, error: clienteError } = await supabase
-          .from(clienteTable)
-          .insert(clientPayload)
-          .select()
-          .single();
-        if (clienteError) throw clienteError;
-        clienteId = newCliente.id;
-        createdClienteId = newCliente.id;
-        clienteResult = newCliente;
-      }
-
-      // --- Persistir contribuintes (update ou insert) ---
-      const buildContribFields = (e: DraftEntity) => ({
-        cliente_id: clienteId,
-        tipo_pessoa: e.tipo_pessoa,
-        cpf_cnpj: e.cpf_cnpj || null,
-        nome_razao_social: e.nome_razao_social,
-        inscricao_estadual: e.inscricao_estadual || null,
-        cod_cnae: e.cod_cnae || null,
-        setor: e.setor || null,
-        simples_nacional:
-          e.simples_nacional === "optante" ? true : e.simples_nacional === "nao_optante" ? false : null,
-        telefone: e.telefone || null,
-        nome_fantasia: e.nome_fantasia || null,
-        situacao_inscricao_estadual: e.situacao_inscricao_estadual || null,
-        cep: e.cep || null,
-        logradouro: e.logradouro || null,
-        numero: e.numero || null,
-        complemento: e.complemento || null,
-        bairro: e.bairro || null,
-        municipio: e.municipio || null,
-        uf: e.uf || null,
-        contribuinte_faturamento: e.contribuinte_faturamento ?? false,
-      });
-
-      for (const e of entities) {
-        let contribId = e._dbId;
-        if (e._dbId) {
-          const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
-          if (error) throw error;
-        } else {
-          const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
-          if (error) throw error;
-          contribId = newContrib.id;
-        }
-
-        // Persist inscricoes estaduais
-        const entityKey = e._dbId || String(e._id);
-        const ies = inscricoesMap[entityKey] || [];
-        if (contribId) {
-          const { data: existingIEs } = await (supabase as any)
-            .from("inscricao_contribuinte")
-            .select("id")
-            .eq("contribuinte_id", contribId);
-          const currentDbIds = ies.filter(ie => ie._dbId).map(ie => ie._dbId!);
-          const removedIds = (existingIEs || []).map((r: any) => r.id).filter((id: string) => !currentDbIds.includes(id));
-          if (removedIds.length > 0) {
-            await (supabase as any).from("inscricao_contribuinte").delete().in("id", removedIds);
-          }
-          for (const ie of ies) {
-            const iePayload = {
-              contribuinte_id: contribId,
-              situacao: ie.situacao,
-              numero_ie: ie.situacao === "sim" ? (ie.numero_ie || null) : null,
-              uf: ie.uf,
-            };
-            if (ie._dbId) {
-              await (supabase as any).from("inscricao_contribuinte").update(iePayload).eq("id", ie._dbId);
-            } else {
-              await (supabase as any).from("inscricao_contribuinte").insert(iePayload);
-            }
-          }
-        }
-      }
-
-      // --- Persistir participantes (update ou insert) ---
-      const buildPartFields = (p: DraftParticipant) => ({
-        id_cliente: clienteId,
-        nome: p.nome,
-        cargo: p.cargo || null,
-        email: p.email || null,
-        telefone: p.telefone || null,
-        tipo_participante: p.tipo_participante || null,
-        observacoes: p.observacoes || null,
-        acesso_chamados: p.acesso_chamados ?? false,
-      });
-
-      for (const p of participants) {
-        const pIdField = "id_participante";
-        if (p._dbId) {
-          const { error } = await (supabase.from(participanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from(participanteTable) as any).insert(buildPartFields(p));
-          if (error) throw error;
-        }
-      }
-
-      // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita ---
-      const buildOsFields = (c: DraftOrdemServico) => ({
-        id_cliente: clienteId,
-        numero_os: c.ordem_servico || null,
-        data_emissao: c.data_emissao || null,
-        data_inicio: c.data_inicio_projeto || null,
-        data_fim: c.data_fim_projeto || null,
-        valor_projeto: c.valor_projeto || 0,
-        valor_reembolso_km: c.valor_reembolso_km || 0,
-        valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-        situacao: c.situacao_projeto || "em_andamento",
-        observacoes: c.observacoes_projeto || null,
-        id_produto_segmento: c.id_produto_segmento || null,
-      });
-
-      for (const c of contracts) {
-        let osId = c._dbId;
-        if (c._dbId) {
-          const { error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId);
-          if (error) throw error;
-        } else {
-          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
-          if (error) throw error;
-          osId = newOs.id;
-        }
-
-        // Persist distribuicao_receita: delete all then insert
-        if (osId) {
-          await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
-          if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
-            const distPayload = c.distribuicao_receita
-              .filter(d => d.id_centro_custo)
-              .map(d => ({
-                id_ordem_servico: osId,
-                id_centro_custo: d.id_centro_custo,
-                percentual_rateio: d.percentual_rateio || 0,
-              }));
-            if (distPayload.length > 0) {
-              const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(distPayload);
-              if (distError) throw distError;
-            }
-          }
-        }
-      }
-
-      syncCadastrosToDW({
-        clientes: [
-          {
-            id_cliente: clienteResult.id,
-            nome: clienteResult.nome,
-            fixo: clienteResult.fixo,
-            telefone: clienteResult.telefone,
-            setor_cliente: clienteResult.setor_cliente,
-            municipio: clienteResult.municipio,
-            uf: clienteResult.uf,
-            ativo: clienteResult.ativo,
-            categoria: (clienteResult as any).categoria ?? null,
-            created_at: clienteResult.created_at,
-            updated_at: clienteResult.updated_at,
-            regiao: (clienteResult as any).regiao ?? null,
-          },
-        ],
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
-      queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
-      queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
-      queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
-
-      // ─── Audit logs ───────────────────────────────────────────
-      const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
-      logAction({
-        area: 'dev',
-        entity_type: 'cliente',
-        entity_id: auditClienteId,
-        entity_name: clientData.nome.trim(),
-        action: isEditing ? 'updated' : 'created',
-      });
-
-      // Log contribuintes
-      for (const e of entities) {
-        logAction({
-          area: 'dev',
-          entity_type: 'contribuinte',
-          entity_id: e._dbId || auditClienteId,
-          entity_name: e.nome_razao_social,
-          action: e._dbId ? 'updated' : 'created',
-          details: `Cliente: ${clientData.nome.trim()}`,
-        });
-      }
-
-      // Log participantes
-      for (const p of participants) {
-        logAction({
-          area: 'dev',
-          entity_type: 'participante',
-          entity_id: p._dbId || auditClienteId,
-          entity_name: p.nome,
-          action: p._dbId ? 'updated' : 'created',
-          details: `Cliente: ${clientData.nome.trim()}`,
-        });
-      }
-
-      // Log ordens de serviço
-      for (const c of contracts) {
-        logAction({
-          area: 'dev',
-          entity_type: 'ordem_servico',
-          entity_id: c._dbId || auditClienteId,
-          entity_name: c.ordem_servico || '(sem número)',
-          action: c._dbId ? 'updated' : 'created',
-          details: `Cliente: ${clientData.nome.trim()}`,
-        });
-      }
-
-      // Log summary for edits
-      if (isEditing) {
-        logAction({
-          area: 'dev',
-          entity_type: 'cliente',
-          entity_id: auditClienteId,
-          entity_name: clientData.nome.trim(),
-          action: 'updated',
-          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} participantes, ${contracts.length} OS`,
-        });
-      }
-
-      toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
-      resetAndClose();
-    } catch (error: any) {
-      // Rollback: delete newly created client (CASCADE removes children)
-      if (createdClienteId) {
-        try {
-          await supabase.from(clienteTable).delete().eq("id", createdClienteId);
-          console.log("[rollback] Cliente removido:", createdClienteId);
-        } catch (rollbackErr) {
-          console.error("[rollback] Falha ao remover cliente:", rollbackErr);
-        }
-      }
-      toast.error(`Erro ao ${isEditing ? "atualizar" : "cadastrar"} cliente: ` + error.message);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -4044,6 +3367,40 @@ export default function NewClientModal({
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleDraftWarningContinue}>
               {draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Continuar sem adicionar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Duplicate name confirmation AlertDialog */}
+      <AlertDialog open={showDuplicateConfirm} onOpenChange={(v) => {
+        if (!v) {
+          pendingDuplicateResolveRef.current?.(false);
+          pendingDuplicateResolveRef.current = null;
+          setShowDuplicateConfirm(false);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cliente duplicado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existe um cliente com o nome <strong>"{duplicateName}"</strong>. Deseja cadastrar mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              pendingDuplicateResolveRef.current?.(false);
+              pendingDuplicateResolveRef.current = null;
+              setShowDuplicateConfirm(false);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              pendingDuplicateResolveRef.current?.(true);
+              pendingDuplicateResolveRef.current = null;
+              setShowDuplicateConfirm(false);
+            }}>
+              Cadastrar mesmo assim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
