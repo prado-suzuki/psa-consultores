@@ -9,10 +9,12 @@ import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
 
 interface BalanceteEfdTabProps {
   itens?: BalanceteEfdItem[];
+  contas?: string[];
   isLoading: boolean;
   error?: Error | null;
 }
@@ -20,12 +22,13 @@ interface BalanceteEfdTabProps {
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps) => {
+const BalanceteEfdTab = ({ itens = [], contas = [], isLoading, error }: BalanceteEfdTabProps) => {
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [periodoFechado, setPeriodoFechado] = useState(false);
+  const [tipoFilter, setTipoFilter] = useState<string>('all');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -37,16 +40,22 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
   }, [error]);
 
   const filteredItens = useMemo(() => {
-    if (!debouncedSearch) return itens;
-    const term = debouncedSearch.toLowerCase();
-    return itens.filter(
-      (i) =>
-        (i.cod_cta ?? '').toLowerCase().includes(term) ||
-        (i.descricao_conta ?? '').toLowerCase().includes(term)
-    );
-  }, [itens, debouncedSearch]);
+    let result = itens;
+    if (tipoFilter !== 'all') {
+      result = result.filter((i) => i.desc_tipo === tipoFilter);
+    }
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
+      result = result.filter(
+        (i) =>
+          (i.cod_cta ?? '').toLowerCase().includes(term) ||
+          (i.descricao_conta ?? '').toLowerCase().includes(term)
+      );
+    }
+    return result;
+  }, [itens, debouncedSearch, tipoFilter]);
 
-  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, itens]);
+  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, itens, tipoFilter]);
 
   const totalPages = Math.ceil(filteredItens.length / PAGE_SIZE);
   const pagedItens = filteredItens.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
@@ -100,6 +109,22 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
               />
             </div>
           </div>
+          {contas.length > 0 && (
+            <div className="space-y-1 min-w-[180px]">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {contas.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex items-center gap-2 pb-0.5">
             <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
             <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">Período Fechado</Label>
@@ -115,7 +140,8 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Data</TableHead>
-                    <TableHead className="text-xs">Conta Contábil</TableHead>
+                     <TableHead className="text-xs">Tipo</TableHead>
+                     <TableHead className="text-xs">Conta Contábil</TableHead>
                     <TableHead className="text-xs text-right">Valor EFD</TableHead>
                     <TableHead className="text-xs text-right">Débito</TableHead>
                     <TableHead className="text-xs text-right">Crédito</TableHead>
@@ -134,6 +160,7 @@ const BalanceteEfdTab = ({ itens = [], isLoading, error }: BalanceteEfdTabProps)
                         <TableCell className="text-xs whitespace-nowrap">
                           {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
                         </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{item.desc_tipo}</TableCell>
                         <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
                         <TableCell className="text-xs text-right font-medium">{formatBRL(item.vlr_efd)}</TableCell>
                         <TableCell className="text-xs text-right">{formatBRL(item.debito)}</TableCell>
