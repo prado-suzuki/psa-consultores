@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Save } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked, generateNextOsNumber } from "./constants";
@@ -277,7 +277,7 @@ export default function ContratosTab({
                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Check size={14} /> Aplicar</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Aplicar alterações</AlertDialogTitle><AlertDialogDescription>Deseja aplicar as alterações feitas nesta OS?</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Aplicar</AlertDialogAction></AlertDialogFooter>
@@ -354,7 +354,7 @@ export default function ContratosTab({
             <div className="mt-4 border border-dashed rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)</h5>
-                <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setDraftContract(prev => ({ ...prev, distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }] }))}><Plus size={12} /> Adicionar Centro de Custo</Button>
+                <Button type="button" size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => setDraftContract(prev => ({ ...prev, distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }] }))}><Plus size={14} /> Adicionar Centro de Custo</Button>
               </div>
               {draftContract.distribuicao_receita.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum centro de custo adicionado.</p>}
               {draftContract.distribuicao_receita.map((cc, idx) => (
@@ -387,7 +387,7 @@ export default function ContratosTab({
             </div>
 
             <div className="flex justify-end mt-4 pt-2 border-t">
-              <Button onClick={addContract} disabled={isAddingContract} className="gap-2">{isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}</Button>
+              <Button size="sm" variant="outline" onClick={addContract} disabled={isAddingContract} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}</Button>
             </div>
           </div>
         )}

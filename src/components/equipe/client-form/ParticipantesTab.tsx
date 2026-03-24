@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ChevronDown, Save } from "lucide-react";
+import { Pencil, Trash2, ChevronDown, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TIPO_PARTICIPANTE_OPTIONS, formatPhone } from "./constants";
@@ -205,7 +205,7 @@ export default function ParticipantesTab({
                           <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"><Save size={14} /> Aplicar</Button>
+                              <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Check size={14} /> Aplicar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -270,7 +270,7 @@ export default function ParticipantesTab({
                 <div className="flex-1"><Textarea value={draftParticipant.observacoes || ""} onChange={(e) => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })} placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..." className="min-h-[60px]" /></div>
               </div>
               <div className="flex justify-end mt-2">
-                <Button onClick={addParticipant} className="gap-2">Adicionar à Lista</Button>
+                <Button size="sm" variant="outline" onClick={addParticipant} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> Adicionar à Lista</Button>
               </div>
             </div>
           </div>
