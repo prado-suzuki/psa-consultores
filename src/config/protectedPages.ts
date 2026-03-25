@@ -323,4 +323,13 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  // === PERFORMANCE PAGE ===
+  {
+    page_path: '/gerencial/performance',
+    page_name: 'Performance',
+    page_description: 'Painel executivo consolidado de performance',
+    category: 'gestao',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

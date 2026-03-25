@@ -2312,6 +2312,33 @@ export type Database = {
           },
         ]
       }
+      performance_preferencias: {
+        Row: {
+          area_padrao: string | null
+          id: string
+          periodo_padrao: string | null
+          updated_at: string | null
+          usuario_id: string | null
+          widgets_ocultos: string[] | null
+        }
+        Insert: {
+          area_padrao?: string | null
+          id?: string
+          periodo_padrao?: string | null
+          updated_at?: string | null
+          usuario_id?: string | null
+          widgets_ocultos?: string[] | null
+        }
+        Update: {
+          area_padrao?: string | null
+          id?: string
+          periodo_padrao?: string | null
+          updated_at?: string | null
+          usuario_id?: string | null
+          widgets_ocultos?: string[] | null
+        }
+        Relationships: []
+      }
       pis_cofins_class: {
         Row: {
           classificado_em: string | null
