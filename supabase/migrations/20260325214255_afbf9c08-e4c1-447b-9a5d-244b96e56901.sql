@@ -1,0 +1,1 @@
+ALTER TABLE public.metas DROP COLUMN area_id;
