@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FolderKanban, CheckSquare, MessageSquare, Users, Zap, Target } from 'lucide-react';
 import type { PerformanceProject } from '@/hooks/usePerformanceData';
@@ -7,34 +6,30 @@ interface KPICardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  subItems?: { label: string; value: string | number; color?: string }[];
+  iconBg?: string;
   topLineColor?: string;
-  onClick?: () => void;
+  subItems?: { label: string; value: string | number; color?: string }[];
 }
 
-const KPICard = ({ title, value, icon, subItems, topLineColor = '#10B981', onClick }: KPICardProps) => (
-  <Card
-    className="min-w-[200px] flex-1 cursor-pointer hover:shadow-md transition-shadow duration-200 relative overflow-hidden"
-    onClick={onClick}
-  >
-    <div className="h-[3px] w-full" style={{ backgroundColor: topLineColor }} />
-    <CardContent className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
-        <span className="text-muted-foreground">{icon}</span>
+const KPICard = ({ title, value, icon, iconBg = 'var(--board-blue-s)', topLineColor = 'var(--board-green)', subItems }: KPICardProps) => (
+  <div className="board-kpi">
+    <div className="board-kpi-bar" style={{ backgroundColor: topLineColor }} />
+    <div className="board-kpi-icon" style={{ backgroundColor: iconBg }}>
+      {icon}
+    </div>
+    <div className="board-kpi-val">{value}</div>
+    <div className="board-kpi-label">{title}</div>
+    {subItems && subItems.length > 0 && (
+      <div className="flex flex-col gap-[3px]">
+        {subItems.map((s, i) => (
+          <span key={i} className="text-[11px] flex items-center gap-[5px]" style={{ color: 'var(--board-t3)' }}>
+            <span className="board-dot" style={{ backgroundColor: s.color || 'var(--board-t4)' }} />
+            {s.label}: <strong style={{ color: 'var(--board-t2)' }}>{s.value}</strong>
+          </span>
+        ))}
       </div>
-      <p className="text-[28px] font-bold text-foreground leading-none mb-2">{value}</p>
-      {subItems && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {subItems.map((s, i) => (
-            <span key={i} className="text-xs" style={{ color: s.color || '#6B7280' }}>
-              {s.label}: <strong>{s.value}</strong>
-            </span>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
+    )}
+  </div>
 );
 
 interface Props {
@@ -55,9 +50,9 @@ export const PerformanceKPICards = ({
 }: Props) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[130px] rounded-xl" />
+          <Skeleton key={i} className="h-[140px] rounded-xl" />
         ))}
       </div>
     );
@@ -66,13 +61,11 @@ export const PerformanceKPICards = ({
   const emDia = projects.filter(p => p.computed_status === 'em_dia').length;
   const emRisco = projects.filter(p => p.computed_status === 'em_risco').length;
   const atrasados = projects.filter(p => p.computed_status === 'atrasado').length;
-
-  const projectColor = atrasados > 0 ? '#EF4444' : emRisco > 0 ? '#D97706' : '#10B981';
+  const projectColor = atrasados > 0 ? 'var(--board-red)' : emRisco > 0 ? 'var(--board-amber)' : 'var(--board-green)';
 
   const completedTasks = periodTasks.filter(t => t.status === 'concluida').length;
   const openTasks = periodTasks.length - completedTasks;
-
-  const ticketColor = (tickets?.pendingOver7 || 0) > 0 ? '#EF4444' : '#10B981';
+  const ticketColor = (tickets?.pendingOver7 || 0) > 0 ? 'var(--board-red)' : 'var(--board-green)';
 
   const metaAvg = metas.length > 0
     ? Math.round(metas.filter(m => m.nivel === 'individual').reduce((acc: number, m: any) => acc + (m.progresso_atual || 0), 0) / Math.max(metas.filter(m => m.nivel === 'individual').length, 1))
@@ -82,68 +75,35 @@ export const PerformanceKPICards = ({
     if (!m.prazo) return true;
     return m.progresso_atual >= 70 || new Date(m.prazo) > new Date();
   }).length;
-
   const metasEmRisco = metas.length - metasNoPrazo;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-      <KPICard
-        title="Projetos Ativos"
-        value={projects.length}
-        icon={<FolderKanban className="h-4 w-4" />}
-        topLineColor={projectColor}
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <KPICard title="Projetos Ativos" value={projects.length} icon={<FolderKanban className="h-[15px] w-[15px]" style={{ color: 'var(--board-blue)' }} />} iconBg="var(--board-blue-s)" topLineColor={projectColor}
         subItems={[
-          { label: 'Em dia', value: emDia, color: '#10B981' },
-          { label: 'Em risco', value: emRisco, color: '#D97706' },
-          { label: 'Atrasados', value: atrasados, color: '#EF4444' },
-        ]}
-      />
-      <KPICard
-        title="Tarefas do Período"
-        value={periodTasks.length}
-        icon={<CheckSquare className="h-4 w-4" />}
-        topLineColor="#3B82F6"
+          { label: 'Em dia', value: emDia, color: 'var(--board-green)' },
+          { label: 'Em risco', value: emRisco, color: 'var(--board-amber)' },
+          { label: 'Atrasados', value: atrasados, color: 'var(--board-red)' },
+        ]} />
+      <KPICard title="Tarefas do Periodo" value={periodTasks.length} icon={<CheckSquare className="h-[15px] w-[15px]" style={{ color: 'var(--board-indigo)' }} />} iconBg="var(--board-indigo-s)" topLineColor="var(--board-indigo)"
         subItems={[
-          { label: 'Concluídas', value: completedTasks, color: '#10B981' },
-          { label: 'Em aberto', value: openTasks, color: '#6B7280' },
-        ]}
-      />
-      <KPICard
-        title="Chamados"
-        value={tickets?.total || 0}
-        icon={<MessageSquare className="h-4 w-4" />}
-        topLineColor={ticketColor}
+          { label: 'Concluidas', value: completedTasks, color: 'var(--board-green)' },
+          { label: 'Em aberto', value: openTasks, color: 'var(--board-t4)' },
+        ]} />
+      <KPICard title="Chamados" value={tickets?.total || 0} icon={<MessageSquare className="h-[15px] w-[15px]" style={{ color: 'var(--board-amber)' }} />} iconBg="var(--board-amber-s)" topLineColor={ticketColor}
         subItems={[
-          { label: 'Resolvidos', value: tickets?.resolved || 0, color: '#10B981' },
-          { label: '> 7 dias', value: tickets?.pendingOver7 || 0, color: (tickets?.pendingOver7 || 0) > 0 ? '#EF4444' : '#6B7280' },
-        ]}
-      />
-      <KPICard
-        title="Membros Ativos"
-        value={activeMembers}
-        icon={<Users className="h-4 w-4" />}
-        topLineColor="#8B5CF6"
-        subItems={[
-          { label: 'Total cadastrados', value: totalMembers },
-        ]}
-      />
-      <KPICard
-        title="ROI Acumulado"
-        value={roiData.length > 0 ? `R$ ${roiData.reduce((a: number, r: any) => a + (r.annual_savings || 0), 0).toLocaleString('pt-BR')}` : '—'}
-        icon={<Zap className="h-4 w-4" />}
-        topLineColor="#10B981"
-        subItems={roiData.length > 0 ? [{ label: 'Automações ativas', value: roiData.length }] : [{ label: 'Sem dados de ROI', value: '' }]}
-      />
-      <KPICard
-        title="Metas do Ciclo"
-        value={metaAvg !== null ? `${metaAvg}%` : '—'}
-        icon={<Target className="h-4 w-4" />}
-        topLineColor={ciclo ? '#3B82F6' : '#9CA3AF'}
+          { label: 'Resolvidos', value: tickets?.resolved || 0, color: 'var(--board-green)' },
+          { label: '> 7 dias', value: tickets?.pendingOver7 || 0, color: (tickets?.pendingOver7 || 0) > 0 ? 'var(--board-red)' : 'var(--board-t4)' },
+        ]} />
+      <KPICard title="Membros Ativos" value={activeMembers} icon={<Users className="h-[15px] w-[15px]" style={{ color: 'var(--board-purple)' }} />} iconBg="var(--board-purple-s)" topLineColor="var(--board-purple)"
+        subItems={[{ label: 'Total cadastrados', value: totalMembers }]} />
+      <KPICard title="ROI Acumulado" value={roiData.length > 0 ? `R$ ${roiData.reduce((a: number, r: any) => a + (r.annual_savings || 0), 0).toLocaleString('pt-BR')}` : '—'} icon={<Zap className="h-[15px] w-[15px]" style={{ color: 'var(--board-green)' }} />} iconBg="var(--board-green-s)" topLineColor="var(--board-green)"
+        subItems={roiData.length > 0 ? [{ label: 'Automacoes ativas', value: roiData.length }] : [{ label: 'Sem dados de ROI', value: '' }]} />
+      <KPICard title="Metas do Ciclo" value={metaAvg !== null ? `${metaAvg}%` : '—'} icon={<Target className="h-[15px] w-[15px]" style={{ color: 'var(--board-indigo)' }} />} iconBg="var(--board-indigo-s)" topLineColor={ciclo ? 'var(--board-indigo)' : 'var(--board-t4)'}
         subItems={ciclo ? [
-          { label: 'No prazo', value: metasNoPrazo, color: '#10B981' },
-          { label: 'Em risco', value: metasEmRisco, color: '#D97706' },
-        ] : [{ label: 'Sem ciclo ativo', value: '' }]}
-      />
+          { label: 'No prazo', value: metasNoPrazo, color: 'var(--board-green)' },
+          { label: 'Em risco', value: metasEmRisco, color: 'var(--board-amber)' },
+        ] : [{ label: 'Sem ciclo ativo', value: '' }]} />
     </div>
   );
 };
