@@ -107,8 +107,8 @@ const DesempenhoVisaoGeral = () => {
   }, [metasIndividuais, reunioes, selectedCiclo, profileMap]);
 
   const feedbacksByType = useMemo(() => {
-    const reconhecimento = feedbacks?.filter(f => f.tipo === 'reconhecimento' || f.tipo === 'positivo').length ?? 0;
-    const desenvolvimento = feedbacks?.filter(f => f.tipo === 'desenvolvimento' || f.tipo === 'construtivo').length ?? 0;
+    const reconhecimento = feedbacks?.filter(f => f.tipo === 'reconhecimento' || f.tipo === '360').length ?? 0;
+    const desenvolvimento = feedbacks?.filter(f => f.tipo === 'desenvolvimento').length ?? 0;
     return { reconhecimento, desenvolvimento };
   }, [feedbacks]);
 
