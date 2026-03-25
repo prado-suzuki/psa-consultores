@@ -142,9 +142,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
           client_name: p.cliente?.nome || null,
           area_name: p.area?.name || null,
           area_color: p.area?.color || null,
-          responsible_name: responsible?.profiles
-            ? `${responsible.profiles.first_name} ${responsible.profiles.last_name}`.trim()
-            : null,
+          responsible_name: null, // resolved separately if needed
           responsible_id: responsible?.user_id || null,
           start_date: p.start_date,
           end_date: p.end_date,
