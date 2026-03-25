@@ -3,80 +3,73 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { NotificationPopover } from '@/components/notifications/NotificationPopover';
-import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
-import { 
+import {
   LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
   ArrowLeft,
-  LayoutDashboard,
-  Newspaper,
-  MessageSquare,
-  Users,
+  Target,
+  BarChart3,
+  CalendarRange,
+  Crosshair,
+  MessageSquareHeart,
+  Users2,
+  TrendingUp,
   User,
-  MessageCircle,
-  Target
 } from 'lucide-react';
 
-interface GestaoLayoutProps {
+interface DesempenhoLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
 }
 
-interface NavItem {
-  icon: any;
-  label: string;
-  path: string;
-}
+const navItems = [
+  { icon: BarChart3, label: 'Visão Geral', path: '/gerencial/desempenho' },
+  { icon: CalendarRange, label: 'Ciclos', path: '/gerencial/desempenho/ciclos' },
+  { icon: Crosshair, label: 'Metas', path: '/gerencial/desempenho/metas' },
+  { icon: MessageSquareHeart, label: 'Feedbacks', path: '/gerencial/desempenho/feedbacks' },
+  { icon: Users2, label: '1:1s', path: '/gerencial/desempenho/1a1' },
+  { icon: TrendingUp, label: 'Evolução', path: '/gerencial/desempenho/evolucao' },
+];
 
-export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
-  const { signOut, user, isAdmin, isLider } = useAuth();
+export const DesempenhoLayout = ({ children, title, subtitle, headerActions }: DesempenhoLayoutProps) => {
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-
-  const navItems: NavItem[] = [
-    { icon: Newspaper, label: 'Novidades', path: '/gestao' },
-    { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
-    { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
-    ...((isAdmin || isLider) ? [{ icon: Target, label: 'Desempenho', path: '/gerencial/desempenho' }] : []),
-  ];
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="min-h-screen bg-[#F8F9FA] flex w-full">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`${collapsed ? 'w-16' : 'w-64'} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0`}
       >
         {/* Header */}
         <div className="p-6 border-b border-slate-200/60">
           {collapsed ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <Target className="h-5 w-5 text-violet-600" />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+                <Target className="h-5 w-5 text-violet-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900 text-lg">Gestão</h2>
-                <p className="text-xs text-slate-500">Painel de Controle</p>
+                <h2 className="font-semibold text-slate-900 text-lg">Desempenho</h2>
+                <p className="text-xs text-slate-500">Gestão de Performance</p>
               </div>
             </div>
           )}
@@ -100,9 +93,9 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               key={item.path}
               variant="ghost"
               className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                isActive(item.path)
+                  ? 'bg-violet-500/10 text-violet-700 hover:bg-violet-500/15'
+                  : 'text-slate-700 hover:bg-slate-50 hover:text-violet-600'
               }`}
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
@@ -115,32 +108,31 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-200/60 space-y-2">
-          {/* User Card */}
           {!collapsed && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-              <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-teal-600" />
+              <div className="h-8 w-8 rounded-full bg-violet-500/10 flex items-center justify-center">
+                <User className="h-4 w-4 text-violet-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-900 truncate">
                   {user?.email?.split('@')[0] || 'Usuário'}
                 </p>
-                <p className="text-xs text-slate-500">Gestão</p>
+                <p className="text-xs text-slate-500">Desempenho</p>
               </div>
             </div>
           )}
-          
-          <Button 
-            variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors`}
-            onClick={() => navigate('/equipe')}
+
+          <Button
+            variant="ghost"
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-violet-600 transition-colors`}
+            onClick={() => navigate('/equipe/digital')}
             title={collapsed ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
             {!collapsed && 'Trocar área'}
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
@@ -169,33 +161,14 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
-              onClick={() => navigate('/gestao/chamados')}
-              title="Ver Chamados"
-            >
-              <MessageCircle className="h-5 w-5" />
-            </Button>
-            <NotificationPopover navigateTo="/gestao/chamados" />
-            {headerActions}
-          </div>
+          <div className="flex items-center gap-3">{headerActions}</div>
         </header>
-
-        {/* Pending Tickets Alert */}
-        <PendingTicketsAlert navigateTo="/gestao/chamados" />
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6">
-            {children}
-          </div>
+          <div className="p-6">{children}</div>
         </ScrollArea>
       </main>
     </div>
   );
 };
-
-export default GestaoLayout;
