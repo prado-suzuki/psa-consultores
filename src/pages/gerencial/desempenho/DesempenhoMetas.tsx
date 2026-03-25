@@ -185,21 +185,21 @@ const DesempenhoMetas = () => {
           <SelectTrigger className="w-56 bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
           <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
         </Select>
-        <Select value={nivelFilter} onValueChange={setNivelFilter}>
+        <Select value={nivelFilter || '__all__'} onValueChange={v => setNivelFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Nivel" /></SelectTrigger>
-          <SelectContent><SelectItem value="">Todos</SelectItem><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="equipe">Equipe</SelectItem><SelectItem value="individual">Individual</SelectItem></SelectContent>
+          <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="equipe">Equipe</SelectItem><SelectItem value="individual">Individual</SelectItem></SelectContent>
         </Select>
-        <Select value={dimensaoFilter} onValueChange={setDimensaoFilter}>
+        <Select value={dimensaoFilter || '__all__'} onValueChange={v => setDimensaoFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Dimensao" /></SelectTrigger>
-          <SelectContent><SelectItem value="">Todas</SelectItem><SelectItem value="entrega">Entrega</SelectItem><SelectItem value="impacto">Impacto</SelectItem><SelectItem value="gestao">Gestao</SelectItem></SelectContent>
+          <SelectContent><SelectItem value="__all__">Todas</SelectItem><SelectItem value="entrega">Entrega</SelectItem><SelectItem value="impacto">Impacto</SelectItem><SelectItem value="gestao">Gestao</SelectItem></SelectContent>
         </Select>
-        <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
+        <Select value={responsavelFilter || '__all__'} onValueChange={v => setResponsavelFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Responsavel" /></SelectTrigger>
-          <SelectContent><SelectItem value="">Todos</SelectItem>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+          <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent><SelectItem value="">Todos</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="pausada">Pausada</SelectItem><SelectItem value="concluida">Concluida</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
+          <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="pausada">Pausada</SelectItem><SelectItem value="concluida">Concluida</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
         </Select>
       </div>
 
