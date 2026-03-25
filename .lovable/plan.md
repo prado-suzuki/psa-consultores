@@ -1,167 +1,106 @@
 
 
-## Plano: Expansao do Board — Novas paginas, migrations, Edge Functions e Dashboard Estrategico
+## Plano: Refatorar 3 paginas do Board para Design System v3 com dados reais
 
-Este plano expande o modulo Board com 3 migrations, 3 Edge Functions, 1 refatoracao do Dashboard e 3 novas paginas. Nenhuma rota, aba ou logica existente sera removida.
-
----
-
-### Fase 1 — Migrations (4 execucoes)
-
-**Migration 1:** Criar `ppr_regras_ciclo`, `comentarios_avaliacao`, `relatorios_gerados` com RLS conforme especificado no prompt.
-
-**Migration 2:** Alterar tabela `metas` — adicionar colunas `ajuste_qualitativo_publico`, `recomendacao_decisao`, `ultima_atualizacao_membro`, `comentario_membro`.
-
-**Migration 3:** Alterar `comentarios_avaliacao` — adicionar `lido boolean default false`, `lido_em timestamptz`.
-
-**Migration 4:** Seed de regras PPR padrao para ciclo ativo (INSERT condicional).
+Substituir o conteudo visual das paginas Dashboard, Performance e Desempenho/Visao Geral para corresponder exatamente ao HTML de referencia v3, mantendo os hooks de dados existentes e sem alterar nenhuma outra pagina ou rota.
 
 ---
 
-### Fase 2 — Hooks de dados (5 novos hooks)
+### Fase 1 — CSS: Adicionar classes v3 faltantes ao `index.css`
 
-| Hook | Tabela | Descricao |
-|------|--------|-----------|
-| `usePprRegras` | `ppr_regras_ciclo` | CRUD regras PPR por ciclo |
-| `useComentariosAvaliacao` | `comentarios_avaliacao` | Listar, criar, editar, marcar como lido |
-| `useRelatoriosGerados` | `relatorios_gerados` | Listar historico, criar, atualizar status |
-| `useMinhaEvolucao` | metas + feedbacks + reunioes + comentarios | Dados consolidados do usuario logado |
-| `useDecisoesData` | metas + profiles + feedbacks + reunioes | Dados para pagina de decisoes |
+Adicionar ~120 linhas de classes que existem no HTML de referencia mas nao no CSS atual. As classes `board-*` existentes (v2) permanecem para compatibilidade com outras paginas. Novas classes v3 usam nomes curtos do HTML:
 
-Todos seguem o padrao existente: encapsulados em `src/hooks/`, com `useAuditLog.logAction` nas mutacoes, usando `as any` para tabelas nao tipadas.
+- **Tipografia**: `.pgt`, `.pgs`, `.sct`, `.scl` — titulos/subtitulos de pagina e secao
+- **KPI v3**: `.kpi`, `.ktb`, `.ki`, `.kv`, `.kl`, `.ksubs`, `.ksub`, `.dot`, `.tr`, `.tr-u`, `.tr-d`, `.tr-n` — cards com topbar colorida e trend badges
+- **Chips**: `.ch`, `.c-tax`, `.c-osg`, `.c-dev`, `.c-ok`, `.c-w`, `.c-er`, `.c-in`, `.c-ppr-s/a/p/b` — chips coloridos por area e classificacao
+- **Progress**: `.pb`, `.pb6`, `.pb4`, `.pb3`, `.pbf`, `.pg`, `.pa`, `.pr`, `.pi`, `.pp` — barras de progresso com cores semanticas
+- **AI Box**: `.ai`, `.ai-lbl`, `.ai-txt`, `.ai-bul`, `.ai-b` — caixa de analise IA
+- **Alertas**: `.al`, `.al-r`, `.al-a`, `.al-b`, `.al-t`, `.al-d`, `.al-act` — cards de alerta com borda colorida
+- **Tabela**: `.tw`, `table/thead/tbody` v3 styles — tabela nativa estilizada
+- **Score/Ranking**: `.sr`, `.srk`, `.srb`, `.srn`, `.srv` — linhas de ranking com posicao, barra e valor
+- **Member cards**: `.mc`, `.mc.warn`, `.mch`, `.mc-n`, `.mc-r`, `.mcs`, `.mcs-v`, `.mcs-l` — cards de membro
+- **Filtros**: `.fi`, `.fi-s`, `.segs`, `.seg`, `.seg.on`, `.fbar` — controles nativos estilizados
+- **Cycle bar**: `.cyb`, `.cyb-n`, `.cyb-m`, `.cyb-pb`, `.cyb-pbf`, `.cyb-bt` — barra de progresso do ciclo
+- **Strategic numbers**: `.snum`, `.snum-label`, `.snum-sub` — numeros grandes 42px
+- **Sparkline**: `.spark`, `.spb` — mini barras de tendencia
+- **Heatmap**: `.hm`, `.hmc`, `.hmc.h1/h2/h3/h4` — celulas de mapa de calor
+- **Metric row**: `.mr`, `.mr-t`, `.mr-m`, `.mr-p` — linhas de metrica
+- **Avatars**: `.av`, `.av-xs/sm/md/lg/xl`, `.av-pm/ba/gf/ac/hs/mc` — avatares com gradientes por pessoa
+- **Grids**: `.g2`, `.g3`, `.g4`, `.g5`, `.mb12`, `.mb16` — helpers de layout
+- **Cards**: `.card`, `.card-p0` — card base v3
 
----
-
-### Fase 3 — Edge Functions (3 funcoes)
-
-**`gerar-sintese-executiva`**: Busca projetos, tarefas, metas do ciclo, ROI. Monta prompt e chama Lovable AI (`google/gemini-3-flash-preview`). Retorna `{ sintese, bullets }`. Cacheia em `relatorios_gerados` por 6h.
-
-**`gerar-recomendacoes-pessoas`**: Recebe `{ ciclo_id }`. Busca metas ponderadas, feedbacks, 1:1s por membro. Chama Lovable AI com tool calling para retornar JSON estruturado (array de recomendacoes). Salva em `relatorios_gerados`.
-
-**`gerar-relatorio-individual`**: Recebe `{ member_id, ciclo_id, tipo }`. Busca todos os dados do membro e chama Lovable AI. Salva resultado em `relatorios_gerados`.
-
-Todas validam JWT em codigo, usam `LOVABLE_API_KEY` + Lovable AI Gateway, e retornam erros 429/402 com mensagens claras.
-
----
-
-### Fase 4 — Refatorar Dashboard (`BoardDashboard.tsx`)
-
-Transformar de operacional para visao executiva estrategica:
-
-- **Header**: "Visao Executiva — PSA Consultores", data + ciclo ativo, chips de status (projetos em risco, dias ate analise, ROI)
-- **5 Strategic KPI cards** em grid: Projetos Ativos (com sparkline), Economia/Ano (ROI acumulado), Taxa Pontualidade, Metas do Ciclo, Membros Ativos — usando Syne 42px para valores, sparklines de 5 barras
-- **AI Insight Box**: Chama `gerar-sintese-executiva` via `supabase.functions.invoke`, exibe sintese + 3 bullets
-- **Grid 2 colunas**: Recharts BarChart (tarefas Tax/OSG/Dev 3 meses) + Recharts AreaChart (ROI acumulado vs meta)
-- **Grid 2 colunas inferior**: Projetos Criticos (lista compacta com chips de decisao) + Ranking Performance (posicao, avatar, barra, % , chip PPR)
-
-Dados vem dos hooks existentes: `usePerformanceData`, `useDesempenhoOverview`, `useCicloAtivo`, `useMetas`.
+Todas essas classes replicam exatamente o CSS do HTML de referencia (linhas 8-390).
 
 ---
 
-### Fase 5 — Expandir Metas e PPR (`DesempenhoMetas.tsx`)
+### Fase 2 — Dashboard Estrategico (`BoardDashboard.tsx`)
 
-Adicionar acima da arvore de metas existente:
+Reescrever o componente mantendo os hooks existentes (`usePerformanceData`, `useCicloAtivo`, `useDesempenhoOverview`, `useDecisoesData`).
 
-- **Bloco Regras PPR**: Card com header escuro (gradiente), 4 linhas (Supera/Atende/Parcial/Abaixo) com faixas coloridas, barras, multiplicadores. Usa `usePprRegras`. Empty state com botao "Configurar regras" para admin/lider.
-- **Coluna "Decisao"** nas linhas individuais: dropdown inline Promover/Reajustar/Monitorar/Manter → salva em `metas.recomendacao_decisao`
-- **Botao "Classificar"** condicional quando ciclo em `em_avaliacao`
+**Mudancas visuais:**
+- Header: usar `.pgt` e `.pgs` em vez de classes inline. Chips de status com `.ch .c-er`, `.ch .c-w`, `.ch .c-ok`
+- KPIs: trocar de 5 cards `.board-kpi` para 5 cards `.card` com `.snum` (42px Syne), `.snum-label`, `.snum-sub` e `.spark`/`.spb` para sparklines. Cores: Projetos=#5B6EF0, Economia=#13A87A, Pontualidade=#7A50EE, Metas=#E8920A, Membros=#0A1020
+- AI Box: trocar de `.board-ai-box` para `.ai` com `.ai-lbl`, `.ai-txt`, `.ai-bul`, `.ai-b`
+- Charts: manter Recharts BarChart e AreaChart mas ajustar cores para v3 (#3680F6 Tax, #13A87A OSG, #7A50EE Dev) e dimensoes (height=160)
+- Projetos Criticos: trocar para `.mr` rows com `.ch` de area, `.pb .pb6` de progresso, `.mr-p` de percentual e `.ch .c-er/.c-w` de decisao
+- Performance Ranking: trocar para `.sr` rows com `.srk`, avatar `.av .av-sm`, `.srb`, `.srn`, `.pb .pb6`, `.srv` e `.ch .c-ppr-*`
 
-Toda logica existente de filtros, modais e arvore permanece intacta.
-
----
-
-### Fase 6 — Nova pagina Decisoes (`DesempenhoDecisoes.tsx`)
-
-Rota: `/equipe/board/desempenho/decisoes`
-
-- **AI Synthesis box**: Chama `gerar-recomendacoes-pessoas`, exibe texto de sintese
-- **Cards de recomendacao**: Um por membro, fundo/borda por tipo (Promocao verde, Reajuste ambar, Acompanhamento vermelho). Header com avatar, nome, chip. Metricas: PPR, historico, feedbacks. Botoes "Confirmar decisao" e "Ignorar"
-- **Modal de confirmacao**: Radio tipo, campo cargo/percentual condicional, data vigencia, observacoes. Salva em `metas.recomendacao_decisao` + cria `comentarios_avaliacao`
+**Dados:** Nenhuma mudanca nos hooks — apenas no template JSX.
 
 ---
 
-### Fase 7 — Nova pagina Relatorios (`DesempenhoRelatorios.tsx`)
+### Fase 3 — Performance (`PerformanceDashboard.tsx`)
 
-Rota: `/equipe/board/desempenho/relatorios`
+Reescrever completamente, integrando toda a logica dos sub-componentes inline (eliminar imports de `PerformanceKPICards`, `ProjectsBlock`, `AreaComparisonBlock`, `TeamContributionBlock`, `AutomationImpactBlock`, `CycleGoalsBlock`). Os arquivos dos sub-componentes permanecem no disco para nao quebrar outros imports, mas o dashboard nao os usa mais.
 
-- **Controles**: Dropdowns membro, ciclo, tipo + "Gerar com IA" + "Exportar PDF"
-- **Historico**: Lista compacta de relatorios ja gerados com botao "Carregar"
-- **Painel gerado**: Header escuro com avatar, metricas. Corpo em 2 colunas: esquerda (dimensoes + historico ciclos), direita (pontos fortes + desenvolvimento + recomendacao RH). Rodape com confidencialidade.
-- **Skeleton** durante geracao
+**Layout v3:**
+1. **Filter bar**: `.card` com `.segs`/`.seg` para periodo, divider vertical, label "AREA" com `<select class="fi">`, timestamp e botao "Atualizar" com `.btn .btn-g`
+2. **5 KPIs**: Grid 5 colunas com `.kpi`, `.ktb`, `.ki`, `.kv`, `.kl`, `.ksubs`, `.ksub`, `.dot`, `.tr`
+3. **Grid g2 charts**: BarChart (3 meses Tax/OSG/Dev) com `.card`/`.sct` + AreaChart ROI vs Meta com ReferenceLine dourada
+4. **Tabela de Projetos**: `.card` com `.sct` + `.fi`/`.segs` inline, `<table>` nativa com `.tw`, `.pb .pb6`, `.ch .c-tax/osg/dev`, avatar `.av .av-xs`, `.ch .c-ok/.c-w/.c-er`
+5. **Contribuicao Individual**: `.card` com `.sct` + `.fi`/`.segs`, `.sr` rows com ranking, avatar, barra, valor, chip PPR. Heatmap abaixo com `.hm`/`.hmc` classes
 
----
-
-### Fase 8 — Nova pagina Minha Evolucao (`MinhaEvolucao.tsx`)
-
-Rota: `/equipe/board/desempenho/minha-evolucao` — acessivel a todos os papeis (nao apenas admin/lider).
-
-- **Header escuro**: Avatar, nome, cargo, classificacao PPR, 6 metricas inline
-- **Seletor de ciclo**: Dropdown padrao ciclo ativo
-- **Minhas Metas**: Lista com botao "Atualizar progresso" por meta (modal slider + comentario). Bloco PPR calculado com tabela Meta/Peso/Contribuicao
-- **Consideracoes do Lider**: Comentarios `lider_para_membro`, indicador nao lido, area de resposta `membro_resposta`
-- **Meus Pontos de Vista**: Textarea para `membro_ponto_vista`, lista dos existentes, edicao ate encerramento
-- **Historico PPR**: Recharts LineChart por ciclo encerrado
-- **Feedbacks Recebidos**: Lista expansivel dos ultimos 5
+**Dados:** Usa `usePerformanceData` existente. Calculos de metrica (pontualidade, tempo medio, etc.) inline no componente.
 
 ---
 
-### Fase 9 — Sidebar e Rotas
+### Fase 4 — Desempenho/Visao Geral (`DesempenhoVisaoGeral.tsx`)
 
-**BoardLayout.tsx** — Atualizar sidebar:
+Reescrever o componente mantendo todos os hooks existentes (`useCiclosAvaliacao`, `useCicloAtivo`, `useDesempenhoOverview`, `useMetas`, `useFeedbacks`, `useReunioes`, `useAllOpenItensAcao`).
 
-- Renomear grupo "Visao Geral" → "Diretoria" com label "Dashboard Estrategico"
-- Grupo "Gerencial": Performance + Desempenho com sub-itens expandidos (Visao Geral, Metas e PPR, Decisoes com badge, Relatorios, Evolucao, Feedbacks, 1:1s)
-- Novo grupo "Minha Area": item "Minha Evolucao" com badge ambar (comentarios nao lidos ou metas vencidas)
-- Breadcrumb: adicionar mapeamentos para novas rotas
+**Layout v3:**
+1. **Header**: `.pgt` + `.pgs` com fases do ciclo. `<select class="fi">` para ciclo alinhado a direita
+2. **Cycle bar**: `.cyb` com gradiente escuro, `.cyb-n` nome, `.cyb-m` info, `.cyb-pb`/`.cyb-pbf` barra, `.cyb-bt` rodape com 3 spans
+3. **4 KPIs**: Grid `.g4` com `.kpi`, `.ktb`, `.kv` (20px), `.kl`, `.ksubs`, `.dot`, `.tr` — Total Metas (indigo), Media Progresso (ambar), Feedbacks (roxo), 1:1s (ciano)
+4. **Grid g2**: AI box (`.ai`) com analise do ciclo + Alertas card (`.card`) com `.al .al-r/.al-a/.al-b` rows
+5. **Member cards**: `.scl` label + `.g3` grid com `.mc` cards — avatar `.av .av-lg`, `.mc-n`, `.mc-r`, `.ch .c-ppr-*`, `.pb .pb6`, `.mcs`/`.mcs-v`/`.mcs-l` para metricas inline. Cards com `.mc.warn` quando classificacao < atende
 
-**App.tsx** — Adicionar 3 rotas:
-```
-/equipe/board/desempenho/decisoes → DesempenhoAccessGate
-/equipe/board/desempenho/relatorios → DesempenhoAccessGate
-/equipe/board/desempenho/minha-evolucao → TeamRoute (sem DesempenhoAccessGate)
-```
+**AI box:** Chamar edge function `gerar-sintese-executiva` existente. Fallback: texto estatico baseado em dados calculados (% decorrido, media, membros em risco).
 
-**protectedPages.ts** — Registrar 3 novas paginas na categoria `board`.
+**Dados:** Mantidos como estao. O `pprPorMembro` e os `alertas` ja sao calculados — apenas o template muda.
 
 ---
 
-### Fase 10 — CSS e Visual
+### Fase 5 — Heatmap (`ActivityHeatmap.tsx`)
 
-Atualizar `src/index.css` com classes v3 do HTML de referencia:
-- Variaveis atualizadas: `--board-sb: #0A1020`, novas cores `--board-cyan`, `--board-gold`
-- Classes: `.board-strategic-num`, `.board-sparkline`, `.board-ppr-hero`, `.board-cycle-bar`, `.board-rec-box`, `.board-self-header`, `.board-comment-box`, `.board-rule-row`, `.board-report`
-- Estilos de decisao cards, report preview, sentiment dots
+Refatorar para usar classes v3 `.hm`/`.hmc`/`.hmc.h1/h2/h3/h4` em vez de cores inline verdes. Grid 13x7 (13 semanas). Cores em tons de indigo (rgba(91,110,240,.2/.45/.68/.92)) conforme HTML.
 
 ---
 
-### Arquivos criados/modificados
+### Arquivos modificados
 
 | Acao | Arquivo |
 |------|---------|
-| Migration | 4 migrations SQL |
-| Criar | `src/hooks/usePprRegras.ts` |
-| Criar | `src/hooks/useComentariosAvaliacao.ts` |
-| Criar | `src/hooks/useRelatoriosGerados.ts` |
-| Criar | `src/hooks/useMinhaEvolucao.ts` |
-| Criar | `src/hooks/useDecisoesData.ts` |
-| Criar | `supabase/functions/gerar-sintese-executiva/index.ts` |
-| Criar | `supabase/functions/gerar-recomendacoes-pessoas/index.ts` |
-| Criar | `supabase/functions/gerar-relatorio-individual/index.ts` |
-| Criar | `src/pages/gerencial/desempenho/DesempenhoDecisoes.tsx` |
-| Criar | `src/pages/gerencial/desempenho/DesempenhoRelatorios.tsx` |
-| Criar | `src/pages/gerencial/desempenho/MinhaEvolucao.tsx` |
-| Editar | `src/pages/equipe/board/BoardDashboard.tsx` |
-| Editar | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` |
-| Editar | `src/components/equipe/board/BoardLayout.tsx` |
-| Editar | `src/App.tsx` |
-| Editar | `src/config/protectedPages.ts` |
-| Editar | `src/index.css` |
-| Config | `supabase/config.toml` (3 novas funcoes) |
+| Editar | `src/index.css` — adicionar ~120 linhas de classes v3 |
+| Reescrever | `src/pages/equipe/board/BoardDashboard.tsx` |
+| Reescrever | `src/pages/gerencial/performance/PerformanceDashboard.tsx` |
+| Reescrever | `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` |
+| Editar | `src/components/performance/ActivityHeatmap.tsx` — usar classes v3 |
 
 ### O que NAO muda
-- Nenhuma rota existente
-- Nenhum hook existente (useMetas, useFeedbacks, useReunioes, etc.)
-- Nenhuma tabela existente (apenas colunas adicionadas via migration)
-- Paginas de Performance, Ciclos, Visao Geral, Feedbacks, 1:1s, Evolucao existentes
-- Todo o sistema fora do modulo Board
+- Nenhuma rota
+- Nenhum hook de dados
+- Sub-componentes em `src/components/performance/` permanecem no disco (outros imports podem depender deles)
+- Todas as demais paginas do sistema
+- Sidebar, layout, navegacao
 
