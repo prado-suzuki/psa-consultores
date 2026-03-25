@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -152,8 +152,29 @@ export function SOPConfigModal({
 
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setBefore({
+        link: currentBeforeLink || '',
+        file: null,
+        existingDocPath: currentBeforeDocumentPath || null,
+        content: currentBeforeContent || '',
+      });
+      setAfter({
+        link: currentLink || '',
+        file: null,
+        existingDocPath: currentDocumentPath || null,
+        content: currentFormattedContent || '',
+      });
+    }
+  }, [open, processId]);
+
   const uploadFile = async (file: File, prefix: string, oldPath: string | null) => {
-    const filePath = `${processId}/${prefix}_${file.name}`;
+    const safeName = file.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `${processId}/${prefix}_${safeName}`;
     if (oldPath) {
       await supabase.storage.from('sop-documents').remove([oldPath]);
     }
