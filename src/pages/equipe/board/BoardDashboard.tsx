@@ -45,7 +45,7 @@ const BoardDashboard = () => {
   const { data: criticalTasks } = useQuery({
     queryKey: ['board-critical-tasks'],
     queryFn: async () => {
-      const { data } = await supabase.from('fiscal_tasks').select('id, title, due_date, status, project_id, assigned_to').neq('status', 'concluida').not('due_date', 'is', null).order('due_date', { ascending: true }).limit(5);
+      const { data } = await supabase.from('fiscal_tasks').select('id, title, due_date, status, project_id, assigned_to').neq('status', 'done').not('due_date', 'is', null).order('due_date', { ascending: true }).limit(5);
       return data ?? [];
     },
   });
