@@ -53,7 +53,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useTaxProjectsList } from '@/hooks/useTaxProjects';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
-import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
