@@ -332,4 +332,28 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/board/desempenho/decisoes',
+    page_name: 'Desempenho - Decisoes',
+    page_description: 'Recomendacoes de IA para promocao e reajuste',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/desempenho/relatorios',
+    page_name: 'Desempenho - Relatorios',
+    page_description: 'Geracao de relatorios individuais com IA',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/desempenho/minha-evolucao',
+    page_name: 'Minha Evolucao',
+    page_description: 'Visao individual de metas, feedbacks e PPR',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 ];

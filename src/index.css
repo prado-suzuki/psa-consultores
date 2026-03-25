@@ -326,6 +326,95 @@ All colors MUST be HSL.
   font-weight: 500;
 }
 
+/* ── Board v3 — Strategic Dashboard & PPR ── */
+.board-strategic-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--board-t1);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.board-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 24px;
+}
+.board-sparkline-bar {
+  width: 5px;
+  border-radius: 2px;
+  transition: height .3s;
+}
+
+/* PPR Rule rows */
+.board-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.board-rule-row:hover {
+  filter: brightness(0.97);
+}
+.board-rule-row .rule-faixa {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  min-width: 100px;
+}
+.board-rule-row .rule-mult {
+  font-family: 'DM Mono', 'DM Sans', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Decision/Recommendation cards */
+.board-rec-box {
+  border-radius: var(--board-r);
+  border-width: 1px;
+  border-style: solid;
+  padding: 18px;
+  transition: box-shadow .2s;
+}
+.board-rec-box:hover {
+  box-shadow: var(--board-shadow-md);
+}
+.board-rec-promote { background: #ECFDF5; border-color: #6EE7B7; }
+.board-rec-adjust { background: #FFFBEB; border-color: #FCD34D; }
+.board-rec-monitor { background: #FFF5F5; border-color: #FCA5A5; }
+
+/* Self-service header (Minha Evolucao) */
+.board-self-header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  border-radius: var(--board-r);
+  padding: 24px;
+  color: #E2E8F6;
+}
+
+/* Comment boxes */
+.board-comment-box {
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--board-border);
+  transition: border-color .15s;
+}
+.board-comment-box.unread {
+  border-color: var(--board-indigo);
+  background: rgba(91,110,240,.04);
+}
+
+/* Report preview */
+.board-report-header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  border-radius: var(--board-r) var(--board-r) 0 0;
+  padding: 24px;
+  color: #E2E8F6;
+}
+
 @layer base {
   * {
     @apply border-border;

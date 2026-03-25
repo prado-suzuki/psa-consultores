@@ -3,6 +3,8 @@ import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
 import { useCreateKpi, useDeleteKpi } from '@/hooks/useKpisMeta';
+import { usePprRegras } from '@/hooks/usePprRegras';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,7 @@ const classifLabels: Record<string, string> = { supera: 'Supera', atende: 'Atend
 const classifColors: Record<string, string> = { supera: 'bg-emerald-50 text-emerald-700', atende: 'bg-green-50 text-green-700', atende_parcialmente: 'bg-amber-50 text-amber-700', abaixo: 'bg-red-50 text-red-700' };
 
 const DesempenhoMetas = () => {
+  const { isAdmin, isLider } = useAuth();
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const [selectedCicloId, setSelectedCicloId] = useState<string | undefined>(undefined);
@@ -47,6 +50,7 @@ const DesempenhoMetas = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   const cicloId = selectedCicloId || cicloAtivo?.id;
+  const { data: pprRegras } = usePprRegras(cicloId);
   const { data: metas, isLoading } = useMetas({ ciclo_id: cicloId, nivel: nivelFilter || undefined, dimensao: dimensaoFilter || undefined, responsavel_id: responsavelFilter || undefined, status: statusFilter || undefined });
   const createMeta = useCreateMeta();
   const updateMeta = useUpdateMeta();
@@ -176,9 +180,54 @@ const DesempenhoMetas = () => {
   };
 
   return (
-    <BoardLayout title="Metas" subtitle="Gestao hierarquica de metas" headerActions={
+    <BoardLayout title="Metas e PPR" subtitle="Gestao hierarquica de metas e regras do PPR" headerActions={
       <Button onClick={() => { resetForm(); setShowForm(true); }} size="sm"><Plus className="h-4 w-4 mr-1" />Nova Meta</Button>
     }>
+      {/* PPR Rules Block */}
+      {pprRegras && pprRegras.length > 0 ? (
+        <Card className="mb-6 overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
+          <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
+            <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
+            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Faixas de classificacao e multiplicadores de bonus</p>
+          </div>
+          <CardContent className="p-4 space-y-1">
+            {pprRegras.map(r => {
+              const colors: Record<string, { text: string; bg: string }> = {
+                supera: { text: '#065F46', bg: '#F0FDF4' },
+                atende: { text: '#1E40AF', bg: '#FFFFFF' },
+                atende_parcialmente: { text: '#92400E', bg: '#FFFBEB' },
+                abaixo: { text: '#991B1B', bg: '#FFF8F8' },
+              };
+              const c = colors[r.classificacao] || colors.atende;
+              const maxWidth = r.faixa_maxima ? Math.min(r.faixa_maxima, 120) : 120;
+              const barWidth = Math.max(20, (r.faixa_minima / maxWidth) * 100);
+              return (
+                <div key={r.id} className="board-rule-row" style={{ backgroundColor: c.bg }}>
+                  <span className="rule-faixa" style={{ color: c.text }}>{r.faixa_minima}%{r.faixa_maxima ? `–${r.faixa_maxima}%` : '+'}</span>
+                  <div className="w-px h-6 flex-shrink-0" style={{ backgroundColor: c.text, opacity: 0.2 }} />
+                  <span className="text-sm font-semibold flex-1" style={{ color: c.text }}>{classifLabels[r.classificacao]}</span>
+                  <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${c.text}15` }}>
+                    <div className="h-full rounded-full" style={{ width: `${barWidth}%`, backgroundColor: c.text }} />
+                  </div>
+                  <span className="rule-mult" style={{ color: c.text }}>{r.multiplicador_bonus}x</span>
+                  <Badge variant="outline" className="text-[10px] font-semibold rounded-full" style={{ color: c.text, borderColor: `${c.text}30` }}>{classifLabels[r.classificacao]}</Badge>
+                </div>
+              );
+            })}
+          </CardContent>
+          <div className="px-5 py-3 flex gap-6 text-[11px]" style={{ borderTop: '1px solid var(--board-border)', color: 'var(--board-t3)' }}>
+            <span>PPR = soma(progresso x peso) / soma(peso)</span>
+            <span>Ajuste qualitativo: lider pode alterar +/-1 faixa</span>
+            <span>Multiplicador base por cargo</span>
+          </div>
+        </Card>
+      ) : (isAdmin || isLider) ? (
+        <div className="mb-6 p-6 rounded-xl text-center" style={{ backgroundColor: 'var(--board-border-s)', border: '1px dashed var(--board-border)' }}>
+          <p className="text-sm mb-3" style={{ color: 'var(--board-t3)' }}>Nenhuma regra de PPR configurada para este ciclo</p>
+          <Button variant="outline" size="sm">Configurar regras do ciclo</Button>
+        </div>
+      ) : null}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <Select value={cicloId ?? ''} onValueChange={setSelectedCicloId}>
