@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,12 @@ const STATUS_CONFIG = {
   em_dia: { label: 'Em dia', color: '#10B981', bg: 'bg-emerald-50 text-emerald-700' },
   em_risco: { label: 'Em risco', color: '#D97706', bg: 'bg-amber-50 text-amber-700' },
   atrasado: { label: 'Atrasado', color: '#EF4444', bg: 'bg-red-50 text-red-700' },
+};
+
+const AREA_COLORS: Record<string, string> = {
+  tax: '#3B82F6',
+  osg: '#10B981',
+  dev: '#8B5CF6',
 };
 
 interface Props {
@@ -41,6 +47,20 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
   });
 
   const now = new Date();
+
+  const getAreaColor = (areaName: string | null) => {
+    if (!areaName) return undefined;
+    const key = areaName.toLowerCase();
+    for (const [k, v] of Object.entries(AREA_COLORS)) {
+      if (key.includes(k)) return v;
+    }
+    return undefined;
+  };
+
+  const getInitials = (name: string | null) => {
+    if (!name) return '??';
+    return name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <div className="space-y-4">
@@ -79,6 +99,8 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
               <TableRow>
                 <TableHead>Projeto</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Área</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Progresso</TableHead>
                 <TableHead>Prazo</TableHead>
                 <TableHead>Tarefas</TableHead>
@@ -91,10 +113,11 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
                 const daysLeft = p.end_date ? differenceInDays(parseISO(p.end_date), now) : null;
                 const cfg = STATUS_CONFIG[p.computed_status];
                 const isExpanded = expanded === p.id;
+                const areaColor = getAreaColor(p.area_name);
 
                 return (
-                  <>
-                    <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setExpanded(isExpanded ? null : p.id)}>
+                  <React.Fragment key={p.id}>
+                    <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setExpanded(isExpanded ? null : p.id)}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -102,6 +125,34 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{p.client_name || '—'}</TableCell>
+                      <TableCell>
+                        {p.area_name ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-semibold rounded-full px-2.5"
+                            style={{
+                              backgroundColor: areaColor ? `${areaColor}15` : undefined,
+                              color: areaColor || undefined,
+                              borderColor: areaColor ? `${areaColor}30` : undefined,
+                            }}
+                          >
+                            {p.area_name}
+                          </Badge>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {p.responsible_name ? (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white flex-shrink-0"
+                              style={{ backgroundColor: areaColor || '#6B7280' }}
+                            >
+                              {getInitials(p.responsible_name)}
+                            </div>
+                            <span className="text-sm truncate">{p.responsible_name}</span>
+                          </div>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-[120px]">
                           <Progress value={progress} className="h-2 flex-1" />
@@ -124,8 +175,8 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
                       <TableCell><Badge className={cfg.bg}>{cfg.label}</Badge></TableCell>
                     </TableRow>
                     {isExpanded && (
-                      <TableRow key={`${p.id}-detail`}>
-                        <TableCell colSpan={6} className="bg-muted/30 p-4">
+                      <TableRow>
+                        <TableCell colSpan={8} className="bg-muted/30 p-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Distribuição de Tarefas</p>
@@ -166,7 +217,7 @@ export const ProjectsBlock = ({ projects, isLoading }: Props) => {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </TableBody>

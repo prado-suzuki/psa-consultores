@@ -3,7 +3,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,12 +13,28 @@ interface Props {
   members: any[];
   profiles: any[];
   periodTasks: any[];
+  heatmapTasks: any[];
   metas: any[];
   isLoading: boolean;
 }
 
-export const TeamContributionBlock = ({ members, profiles, periodTasks, metas, isLoading }: Props) => {
+const AREA_OPTIONS = [
+  { value: 'todas', label: 'Todas as áreas' },
+  { value: 'tax', label: 'Tax' },
+  { value: 'osg', label: 'OSG' },
+  { value: 'dev', label: 'Dev' },
+];
+
+const METRIC_OPTIONS = [
+  { value: 'tasks', label: 'Tarefas concluídas' },
+  { value: 'ontime', label: 'Taxa pontualidade' },
+  { value: 'projects', label: 'Projetos envolvidos' },
+];
+
+export const TeamContributionBlock = ({ members, profiles, periodTasks, heatmapTasks, metas, isLoading }: Props) => {
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [areaFilter, setAreaFilter] = useState('todas');
+  const [sortMetric, setSortMetric] = useState('tasks');
 
   if (isLoading) return <Skeleton className="h-[400px] rounded-xl" />;
 
@@ -43,11 +60,12 @@ export const TeamContributionBlock = ({ members, profiles, periodTasks, metas, i
       : null;
 
     const areaInfo = members.find((m: any) => m.user_id === p.id);
+    const areaName = (areaInfo?.equipe as any)?.area?.name || '—';
 
     return {
       id: p.id,
       name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sem nome',
-      area: (areaInfo?.equipe as any)?.area?.name || '—',
+      area: areaName,
       tasks_completed: completed,
       tasks_total: memberTasks.length,
       on_time_rate: memberTasks.length > 0 ? Math.round((onTime / Math.max(completed, 1)) * 100) : null,
@@ -55,13 +73,46 @@ export const TeamContributionBlock = ({ members, profiles, periodTasks, metas, i
       last_activity: lastActivity,
       meta_progress: metaProgress,
     };
-  }).filter(m => m.tasks_total > 0 || m.meta_progress !== null).sort((a, b) => b.tasks_completed - a.tasks_completed);
+  })
+    .filter(m => m.tasks_total > 0 || m.meta_progress !== null)
+    .filter(m => {
+      if (areaFilter === 'todas') return true;
+      return m.area.toLowerCase().includes(areaFilter.toLowerCase());
+    })
+    .sort((a, b) => {
+      if (sortMetric === 'ontime') return (b.on_time_rate ?? 0) - (a.on_time_rate ?? 0);
+      if (sortMetric === 'projects') return b.projects_active - a.projects_active;
+      return b.tasks_completed - a.tasks_completed;
+    });
 
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
         Contribuição da Equipe <span className="font-normal text-xs">(visível apenas para gestão)</span>
       </h2>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={areaFilter} onValueChange={setAreaFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {AREA_OPTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="flex border rounded-lg overflow-hidden">
+          {METRIC_OPTIONS.map(m => (
+            <Button
+              key={m.value}
+              variant={sortMetric === m.value ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setSortMetric(m.value)}
+              className="rounded-none text-xs"
+            >
+              {m.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {memberData.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhuma atividade registrada no período.</CardContent></Card>
@@ -123,7 +174,7 @@ export const TeamContributionBlock = ({ members, profiles, periodTasks, metas, i
                 Atividade — últimos 90 dias
                 {selectedMember && <span className="text-foreground ml-1">(filtrado por membro)</span>}
               </p>
-              <ActivityHeatmap tasks={periodTasks} selectedMemberId={selectedMember} />
+              <ActivityHeatmap tasks={heatmapTasks} selectedMemberId={selectedMember} />
             </CardContent>
           </Card>
         </>
