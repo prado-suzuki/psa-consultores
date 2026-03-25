@@ -217,6 +217,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
 
+  {
+    page_path: '/equipe/dev/procedimentos',
+    page_name: 'Procedimentos',
+    page_description: 'Biblioteca de procedimentos técnicos gerados por IA',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
   // === OSG PAGES ===
   {
     page_path: '/equipe/osg/dashboard',

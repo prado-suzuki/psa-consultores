@@ -2085,6 +2085,69 @@ export type Database = {
         }
         Relationships: []
       }
+      procedimentos: {
+        Row: {
+          ai_complexidade: string | null
+          ai_etapas: Json | null
+          ai_resumo: string | null
+          ai_tags: string[] | null
+          ai_titulo: string | null
+          arquivo_path: string | null
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string | null
+          created_by: string | null
+          erro_mensagem: string | null
+          id: string
+          processos_associados: string[] | null
+          source_type: string
+          source_url: string | null
+          status_geracao: string | null
+          status_publicacao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_complexidade?: string | null
+          ai_etapas?: Json | null
+          ai_resumo?: string | null
+          ai_tags?: string[] | null
+          ai_titulo?: string | null
+          arquivo_path?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          processos_associados?: string[] | null
+          source_type: string
+          source_url?: string | null
+          status_geracao?: string | null
+          status_publicacao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_complexidade?: string | null
+          ai_etapas?: Json | null
+          ai_resumo?: string | null
+          ai_tags?: string[] | null
+          ai_titulo?: string | null
+          arquivo_path?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          processos_associados?: string[] | null
+          source_type?: string
+          source_url?: string | null
+          status_geracao?: string | null
+          status_publicacao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       process_improvements: {
         Row: {
           baseline_cost_monthly: number | null
