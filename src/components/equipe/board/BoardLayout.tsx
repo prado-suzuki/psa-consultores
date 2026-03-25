@@ -60,7 +60,7 @@ const buildNavItems = (isAdmin: boolean, isLider: boolean, pendingDecisions: num
 ];
 
 const getBreadcrumb = (pathname: string) => {
-  const segments: { label: string; path: string }[] = [{ label: 'Board', path: '/equipe/board/dashboard' }];
+  const segments: { label: string; path: string }[] = [{ label: 'Board', path: '/equipe/board' }];
   if (pathname.includes('/performance')) {
     segments.push({ label: 'Performance', path: '/equipe/board/performance' });
   } else if (pathname.includes('/desempenho')) {
