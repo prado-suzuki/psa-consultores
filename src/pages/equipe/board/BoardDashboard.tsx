@@ -56,25 +56,28 @@ const BoardDashboard = () => {
     queryFn: async () => {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const { data } = await supabase.from('fiscal_tasks').select('id, category, status, created_at').eq('status', 'done').gte('created_at', threeMonthsAgo.toISOString());
-      return (data ?? []) as any[];
+      const { data: tasks } = await supabase.from('fiscal_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
+      return (tasks ?? []) as any[];
     },
   });
 
   const barChartData = useMemo(() => {
     const months: Record<string, { name: string; Tax: number; OSG: number; Dev: number }> = {};
     (tasksByArea ?? []).forEach((t: any) => {
-      const d = new Date(t.created_at);
+      const d = new Date(t.updated_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = format(d, "MMM/yy", { locale: ptBR });
       if (!months[key]) months[key] = { name: label, Tax: 0, OSG: 0, Dev: 0 };
-      const cat = (t.category || '').toLowerCase();
-      if (cat.includes('tax') || cat === 'obrigacao_acessoria' || cat === 'apuracao') months[key].Tax++;
-      else if (cat.includes('osg') || cat === 'societario') months[key].OSG++;
-      else months[key].Dev++;
+      // Cross project_id with projects to determine area
+      const proj = projects.find(p => p.id === t.project_id);
+      const areaName = (proj?.area_name || '').toLowerCase();
+      if (areaName.includes('tax') || areaName.includes('fiscal')) months[key].Tax++;
+      else if (areaName.includes('osg') || areaName.includes('societar')) months[key].OSG++;
+      else if (areaName.includes('dev') || areaName.includes('digital')) months[key].Dev++;
+      else months[key].Tax++; // fallback
     });
     return Object.values(months).slice(-3);
-  }, [tasksByArea]);
+  }, [tasksByArea, projects]);
 
   const daysToAnalise = cicloAtivo?.data_analise_semestral ? differenceInDays(new Date(cicloAtivo.data_analise_semestral), new Date()) : null;
 
@@ -95,7 +98,6 @@ const BoardDashboard = () => {
 
   const pontualidade = projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0;
   const progressoMetas = overview?.mediaProgresso ?? 0;
-  const metasEmRisco = overview?.proximoPrazoCritico ? 3 : 0;
 
   const handleGenerateSintese = async () => {
     setAiLoading(true);
@@ -167,32 +169,27 @@ const BoardDashboard = () => {
               <div className="snum" style={{ color: 'var(--in)' }}>{projects.length}</div>
               <div className="snum-label">Projetos Ativos</div>
               <div className="snum-sub">{projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0}% no prazo</div>
-              <div className="spark" style={{ marginTop: 8, justifyContent: 'center' }}>
-                {[50, 65, 55, 80, 100].map((h, i) => (
-                  <div key={i} className="spb" style={{ height: `${h}%`, background: 'var(--in)', opacity: 0.4 + (i * 0.15) }} />
-                ))}
+              <div className="ksubs" style={{ marginTop: 8 }}>
+                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--gr)' }} />{emDia} no prazo</div>
+                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--am)' }} />{emRisco} em risco</div>
+                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{atrasados} atrasados</div>
               </div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--gr)' }}>R${(totalSavingsYear / 1000).toFixed(0)}k</div>
               <div className="snum-label">Economia / Ano</div>
-              <div className="snum-sub" style={{ color: 'var(--gr)' }}>{roiPct}% ROI · {roiFerramentas} ferramentas</div>
-              <div className="spark" style={{ marginTop: 8, justifyContent: 'center' }}>
-                {[30, 50, 70, 88, 100].map((h, i) => (
-                  <div key={i} className="spb" style={{ height: `${h}%`, background: 'var(--gr)', opacity: 0.4 + (i * 0.15) }} />
-                ))}
-              </div>
+              <div className="snum-sub" style={{ color: 'var(--gr)' }}>{roiFerramentas} ferramentas · R${(totalSavingsYear / 12000).toFixed(1)}k/mes</div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--pu)' }}>{pontualidade}%</div>
               <div className="snum-label">Taxa Pontualidade</div>
-              <div className="snum-sub" style={{ color: 'var(--gr)' }}>+5pp vs mes anterior</div>
+              <div className="snum-sub" style={{ color: pontualidade >= 85 ? 'var(--gr)' : 'var(--am)' }}>{pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta'}</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pg" style={{ width: `${pontualidade}%` }} /></div></div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--am)' }}>{progressoMetas}%</div>
               <div className="snum-label">Metas do Ciclo</div>
-              <div className="snum-sub">{metasEmRisco} de {overview?.totalMetas ?? 0} em risco</div>
+              <div className="snum-sub">{overview?.metasEmRisco ?? 0} de {overview?.totalMetas ?? 0} em risco</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pa" style={{ width: `${progressoMetas}%` }} /></div></div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
@@ -255,27 +252,38 @@ const BoardDashboard = () => {
           </div>
 
           <div className="v3-card">
-            <div className="sct">ROI Acumulado vs Meta</div>
-            <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={[
-                { name: 'Set/25', value: 8000 },
-                { name: 'Nov/25', value: 22000 },
-                { name: 'Jan/26', value: 38000 },
-                { name: 'Mar/26', value: totalSavingsYear || 51000 },
-              ]}>
-                <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
-                <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                <ReferenceLine y={60000} stroke="#D4960A" strokeDasharray="5 3" label={{ value: 'Meta', fill: '#D4960A', fontSize: 9 }} />
-                <defs><linearGradient id="roiGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
-                <Area type="monotone" dataKey="value" fill="url(#roiGrad)" stroke="#13A87A" strokeWidth={2.2} />
-              </AreaChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
-              <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k</strong></span>
-              <span style={{ color: 'var(--am)' }}>Meta Dez/26: <strong>R$60k</strong></span>
-            </div>
+            <div className="sct">ROI Acumulado</div>
+            {totalSavingsYear > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <AreaChart data={(() => {
+                    // Build real ROI data from improvements
+                    const sorted = [...(improvements ?? [])].sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+                    let cumulative = 0;
+                    const points = sorted.map((imp: any) => {
+                      cumulative += (imp.total_savings_monthly || 0) * 12;
+                      return { name: imp.created_at ? format(new Date(imp.created_at), "MMM/yy", { locale: ptBR }) : '?', value: Math.round(cumulative) };
+                    });
+                    return points.length > 0 ? points : [{ name: 'Atual', value: totalSavingsYear }];
+                  })()}>
+                    <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <defs><linearGradient id="roiGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
+                    <Area type="monotone" dataKey="value" fill="url(#roiGrad)" stroke="#13A87A" strokeWidth={2.2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
+                  <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k/ano</strong></span>
+                  <span style={{ color: 'var(--t3)' }}>{roiFerramentas} ferramentas</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}>
+                <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados de ROI
+              </div>
+            )}
           </div>
         </div>
 

@@ -131,9 +131,9 @@ export const usePerformanceData = (periodo: string, area: string) => {
       const enriched: PerformanceProject[] = (projects || []).map((p: any) => {
         const pTasks = tasks.filter((t: any) => t.project_id === p.id);
         const total = pTasks.length;
-        const completed = pTasks.filter((t: any) => t.status === 'concluida').length;
+        const completed = pTasks.filter((t: any) => t.status === 'done').length;
         const overdue = pTasks.filter((t: any) =>
-          t.due_date && isBefore(parseISO(t.due_date), now) && t.status !== 'concluida'
+          t.due_date && isBefore(parseISO(t.due_date), now) && t.status !== 'done'
         ).length;
 
         const overdueRatio = total > 0 ? overdue / total : 0;
