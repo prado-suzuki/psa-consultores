@@ -1,41 +1,43 @@
 
 
-## Plano: Atualizar IDs de contribuintes para sincronizar com DW
+## Plano: Limpeza de código morto e campo órfão
 
-### Situacao atual
+### 1. Remover `useAreaServicos` e `TaxAreaCategoria` de `useTaxReferenceData.ts`
 
-Confirmei que ambos os contribuintes existem na base:
-- `e4e3ccc9-...` → Dk Transportes Rodoviarios Ltda
-- `a20fdaf0-...` → Rene Jungeuira Barbour
+Deletar linhas 23-28 (interface `TaxAreaCategoria`) e linhas 75-87 (hook `useAreaServicos`). Nenhum arquivo importa esse hook ou interface.
 
-Tabelas que referenciam esses IDs:
-| Tabela | Registros afetados |
-|--------|-------------------|
-| `per` | 8 |
-| `contribuinte_bal_config` | 1 |
-| `tax_projects` | 0 |
-| `fiscal_tasks` | 0 |
-| `inscricao_contribuinte` | 0 |
+### 2. Dropar coluna `area_id` da tabela `metas`
 
-### O que sera feito
+Migration SQL:
+```sql
+ALTER TABLE public.metas DROP COLUMN area_id;
+```
 
-Uma unica migration SQL que:
+### 3. Atualizar `useMetasDesempenho.ts`
 
-1. Atualiza as tabelas dependentes primeiro (per, contribuinte_bal_config) trocando o ID antigo pelo novo
-2. Atualiza o ID do proprio contribuinte
+Remover `area_id: string | null;` da interface `Meta` (L18).
 
-A ordem e: dependentes primeiro, depois o registro principal — evita violacao de FK.
+### 4. Atualizar `DesempenhoMetas.tsx`
 
-**DK Transportes:**
-- `per.id_contribuinte`: `e4e3ccc9-...` → `1dc16e34-...` (8 linhas)
-- `contribuinte_bal_config.id_contribuinte`: mesma troca (verificar qual dos dois)
-- `contribuinte.id`: `e4e3ccc9-...` → `1dc16e34-...`
+Remover `area_id: null,` da criação de meta (L106).
 
-**Rene Jungeuira Barbour:**
-- `contribuinte.id`: `a20fdaf0-...` → `0b81b35b-...`
-- (sem dependentes)
+### Diagnóstico que justifica o drop
 
-### Nenhum arquivo de codigo muda
+| Onde | Como `area_id` é usado |
+|------|------------------------|
+| `useMetasDesempenho.ts` L18 | Declarado na interface, nunca lido |
+| `DesempenhoMetas.tsx` L106 | Sempre `null` hardcoded na criação |
+| Filtros/formulários | Não aparece em nenhum |
+| Banco (FK) | Nenhuma constraint |
 
-Apenas uma migration de dados no banco.
+**Veredicto**: campo 100% morto → dropar.
+
+### Arquivos alterados
+
+| Ação | Arquivo |
+|------|---------|
+| Editar | `src/hooks/useTaxReferenceData.ts` — remover interface + hook |
+| Editar | `src/hooks/useMetasDesempenho.ts` — remover `area_id` da interface |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` — remover `area_id: null` |
+| Migration | `ALTER TABLE metas DROP COLUMN area_id` |
 
