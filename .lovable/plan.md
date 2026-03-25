@@ -1,171 +1,121 @@
 
 
-## Módulo Desempenho — /gerencial/desempenho/
+## Módulo Performance — /gerencial/performance/
 
-### Escopo
-Novo módulo completo de gestão de performance com 8 tabelas, 6 páginas, múltiplos modais e gráficos Recharts. Acesso exclusivo Admin + Líder.
-
-### Nota sobre rotas
-O sistema existente usa `/gestao/` para o módulo gerencial. As rotas `/gerencial/desempenho/` serão criadas como rotas independentes, protegidas por um novo `DesempenhoAccessGate` que valida `isAdmin || isLider`.
+### Resumo
+Painel executivo consolidado que consome dados existentes (projetos, tarefas, chamados, equipe, metas, ROI) em uma única página com scroll vertical, filtros globais e gráficos Recharts. Acesso exclusivo Admin + Líder.
 
 ---
 
-### 1. Migration SQL (1 arquivo)
+### 1. Migration SQL
 
-Criar as 8 tabelas com RLS usando `has_role()` (não `auth.role()` genérico):
+Tabela simples de preferências do painel:
 
-- `ciclos_avaliacao` — ciclos de avaliação
-- `metas` — metas hierárquicas (empresa/equipe/individual)
-- `kpis_meta` — KPIs vinculados a metas
-- `atualizacoes_meta` — histórico de progresso
-- `analises_semestrais` — análises semestrais por membro
-- `feedbacks` — feedbacks contínuos
-- `reunioes_1a1` — registros de reuniões 1:1
-- `itens_acao_1a1` — itens de ação das 1:1s
-
-Políticas RLS para todas: SELECT/INSERT/UPDATE/DELETE restrito a `has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'lider')`.
-
-Triggers `update_updated_at_column` em todas as tabelas com `updated_at`.
-
----
-
-### 2. Controle de acesso
-
-**`DesempenhoAccessGate`** (`src/components/desempenho/DesempenhoAccessGate.tsx`):
-- Verifica `isAdmin || isLider` do AuthContext
-- Se não autorizado, redireciona para `/equipe/digital` silenciosamente
-- Se não logado, mostra tela de login (reutiliza padrão GestaoAccessGate)
-
----
-
-### 3. Layout e navegação
-
-**`DesempenhoLayout`** (`src/components/desempenho/DesempenhoLayout.tsx`):
-- Sidebar com 6 itens: Visão Geral, Ciclos, Metas, Feedbacks, 1:1s, Evolução
-- Ícone `Target` no header
-- Mesmo padrão visual do GestaoLayout (sidebar colapsável, header com ações)
-
-**`GestaoLayout.tsx`** — adicionar item "Desempenho" (ícone `Target`) no `navItems`, visível apenas para admin/lider (verificação via useAuth).
-
----
-
-### 4. Hooks (novos arquivos em `src/hooks/`)
-
-| Hook | Responsabilidade |
-|------|-----------------|
-| `useCiclosAvaliacao.ts` | CRUD ciclos + encerramento |
-| `useMetasDesempenho.ts` | CRUD metas + atualização progresso + classificação |
-| `useKpisMeta.ts` | CRUD KPIs vinculados a metas |
-| `useFeedbacksDesempenho.ts` | CRUD feedbacks |
-| `useReunioes1a1.ts` | CRUD reuniões + itens de ação |
-| `useAnalisesSemestrais.ts` | CRUD análises semestrais |
-| `useDesempenhoOverview.ts` | Dados agregados para Visão Geral |
-
-Todos com `useAuditLog.logAction` nas mutações.
-
----
-
-### 5. Páginas (em `src/pages/gerencial/desempenho/`)
-
-| Página | Rota | Conteúdo |
-|--------|------|----------|
-| `DesempenhoVisaoGeral.tsx` | `/gerencial/desempenho/` | KPIs, metas equipe, progresso individual, alertas |
-| `DesempenhoCiclos.tsx` | `/gerencial/desempenho/ciclos/` | Tabela ciclos, modal novo ciclo, detalhe com gauge |
-| `DesempenhoMetas.tsx` | `/gerencial/desempenho/metas/` | Árvore hierárquica, filtros, modais CRUD/progresso/classificação |
-| `DesempenhoFeedbacks.tsx` | `/gerencial/desempenho/feedbacks/` | Duas abas, tabela, modal registro |
-| `DesempenhoReuniones1a1.tsx` | `/gerencial/desempenho/1a1/` | Grid membros, histórico, modal registro, painel ações |
-| `DesempenhoEvolucao.tsx` | `/gerencial/desempenho/evolucao/` | Gráficos Recharts, heatmap, projeção PPR |
-
----
-
-### 6. Componentes (em `src/components/desempenho/`)
-
-- `DesempenhoAccessGate.tsx` — controle de acesso
-- `DesempenhoLayout.tsx` — layout com sidebar
-- `CicloFormModal.tsx` — criar/editar ciclo
-- `CicloDetailModal.tsx` — detalhe com gauge e análise semestral
-- `MetaFormModal.tsx` — criar/editar meta com KPIs
-- `MetaProgressModal.tsx` — atualizar progresso
-- `MetaClassificacaoModal.tsx` — classificação final
-- `AnaliseSemestralModal.tsx` — análise semestral por membro
-- `FeedbackFormModal.tsx` — registrar feedback
-- `Reuniao1a1FormModal.tsx` — registrar 1:1 com itens de ação
-- `PPRProjectionCard.tsx` — card de projeção PPR
-- `ContributionHeatmap.tsx` — heatmap estilo GitHub
-
----
-
-### 7. Rotas em `App.tsx`
-
-6 novas rotas, todas protegidas por `DesempenhoAccessGate`:
-
-```
-/gerencial/desempenho/ → DesempenhoVisaoGeral
-/gerencial/desempenho/ciclos/ → DesempenhoCiclos
-/gerencial/desempenho/metas/ → DesempenhoMetas
-/gerencial/desempenho/feedbacks/ → DesempenhoFeedbacks
-/gerencial/desempenho/1a1/ → DesempenhoReuniones1a1
-/gerencial/desempenho/evolucao/ → DesempenhoEvolucao
+```sql
+CREATE TABLE performance_preferencias (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id uuid UNIQUE,
+  periodo_padrao text CHECK (periodo_padrao IN ('7d','30d','90d','ciclo')) DEFAULT '30d',
+  area_padrao text DEFAULT 'todas',
+  widgets_ocultos text[] DEFAULT '{}',
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE performance_preferencias ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Usuario acessa proprias prefs" ON performance_preferencias FOR ALL USING (auth.uid() = usuario_id);
+CREATE TRIGGER update_performance_preferencias_updated_at BEFORE UPDATE ON performance_preferencias FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
 ---
 
-### 8. Registro em `protectedPages.ts`
+### 2. Navegação e acesso
 
-6 entradas com category `'gestao'`, `requires_admin: false`, `requires_team_member: true`.
+**`GestaoLayout.tsx`** — adicionar item `{ icon: BarChart3, label: 'Performance', path: '/gerencial/performance' }` no `navItems`, visível apenas para `isAdmin || isLider` (ao lado do item Desempenho existente).
 
----
+**`App.tsx`** — 1 rota nova: `/gerencial/performance` protegida por `DesempenhoAccessGate` (reutiliza o gate existente que valida `isAdmin || isLider`).
 
-### 9. `useAuditLog.ts`
-
-Adicionar entity types: `'ciclo_avaliacao'`, `'meta'`, `'kpi_meta'`, `'feedback'`, `'reuniao_1a1'`, `'analise_semestral'`.
+**`protectedPages.ts`** — 1 entrada nova com category `gestao`.
 
 ---
 
-### Arquivos afetados (resumo)
+### 3. Hook — `usePerformanceData.ts`
+
+Hook agregador que recebe `periodo` e `area` como parâmetros e executa queries paralelas para:
+
+- `tax_projects` + `fiscal_tasks` (projetos ativos, status, tarefas no período)
+- `tickets` (chamados abertos/resolvidos)
+- `estrutura_equipe_membros` + `profiles` (membros ativos)
+- `project_processes` + `process_improvements` (dados de ROI — se existirem)
+- `ciclos_avaliacao` + `metas` (ciclo ativo + metas — se existirem)
+- `performance_preferencias` (preferências do usuário)
+
+Retorna dados estruturados por bloco. Cada sub-query é independente (falha de um bloco não afeta os outros).
+
+Também exporta `useSavePerformancePrefs()` mutation para persistir preferências.
+
+---
+
+### 4. Página — `PerformanceDashboard.tsx`
+
+Arquivo único em `src/pages/gerencial/performance/PerformanceDashboard.tsx`. Usa `GestaoLayout` como wrapper (mantém sidebar do Gerencial, não cria layout próprio).
+
+Layout vertical contínuo sem sub-navegação:
+
+**Barra de controles global** (sticky abaixo do header):
+- Toggle de período: 7d / 30d / 90d / Ciclo atual
+- Dropdown de área: Todas / Tax / OSG / Dev
+- Botão "Atualizar" com timestamp da última atualização
+- Persiste seleção via `useSavePerformancePrefs`
+
+**Bloco 1 — Overview (KPI cards)**: 6 cards horizontais com scroll em mobile. Dados: projetos ativos, tarefas do período, chamados, membros ativos, ROI acumulado, metas do ciclo. Cada card com número principal, sub-indicadores e linha de cor no topo.
+
+**Bloco 2 — Projetos**: Toggle tabela/cards. Tabela com colunas expandíveis (drill-down inline com mini donut Recharts, membros, log de atividade, tarefas atrasadas). Cards em grid 3/2/1 colunas responsivo. Filtro por busca, status e classificação automática (em dia / em risco / atrasado baseado nas regras de % tarefas atrasadas).
+
+**Bloco 3 — Comparativo por Área**: 3 cards lado a lado (Tax/OSG/Dev) com projetos, tarefas concluídas, tempo médio e carga da equipe. Gráfico de barras agrupadas (Recharts) com evolução mensal dos últimos 3 meses.
+
+**Bloco 4 — Contribuição Individual**: Tabela de membros com tarefas concluídas, pontualidade, projetos ativos, última atividade, metas PPR e tendência. Heatmap de atividade estilo GitHub (90 dias) abaixo da tabela, filtrável por membro ao clicar na tabela.
+
+**Bloco 5 — Impacto das Automações**: 3 cards de resumo (economia, ROI médio, automações ativas) + tabela de automações + gráfico de área acumulada Recharts. Estado vazio se sem dados de ROI.
+
+**Bloco 6 — Metas do Ciclo**: Header com nome do ciclo + barra temporal. 4 cards de distribuição (no prazo/em risco/atrasadas/concluídas). Donut por dimensão. Tabela de projeções PPR por membro (clicável → navega para evolução). 5 próximos prazos críticos. Estado vazio com link para `/gerencial/desempenho/ciclos` se sem ciclo ativo.
+
+**Estados especiais**: Skeletons progressivos por bloco, estados vazios individuais com mensagem e link de ação, carregamento independente por seção.
+
+---
+
+### 5. Componentes auxiliares (em `src/components/performance/`)
+
+| Componente | Responsabilidade |
+|------------|-----------------|
+| `PerformanceKPICards.tsx` | 6 cards do Bloco 1 |
+| `ProjectsBlock.tsx` | Bloco 2 completo (tabela + cards + drill-down) |
+| `AreaComparisonBlock.tsx` | Bloco 3 (cards de área + gráfico barras) |
+| `TeamContributionBlock.tsx` | Bloco 4 (tabela membros + heatmap) |
+| `AutomationImpactBlock.tsx` | Bloco 5 (ROI cards + tabela + gráfico área) |
+| `CycleGoalsBlock.tsx` | Bloco 6 (metas ciclo + donut + PPR) |
+| `ActivityHeatmap.tsx` | Heatmap estilo GitHub reutilizável |
+
+---
+
+### Arquivos afetados
 
 | Ação | Arquivo |
 |------|---------|
-| Novo | Migration SQL (8 tabelas) |
-| Novo | `src/components/desempenho/DesempenhoAccessGate.tsx` |
-| Novo | `src/components/desempenho/DesempenhoLayout.tsx` |
-| Novo | `src/components/desempenho/CicloFormModal.tsx` |
-| Novo | `src/components/desempenho/CicloDetailModal.tsx` |
-| Novo | `src/components/desempenho/MetaFormModal.tsx` |
-| Novo | `src/components/desempenho/MetaProgressModal.tsx` |
-| Novo | `src/components/desempenho/MetaClassificacaoModal.tsx` |
-| Novo | `src/components/desempenho/AnaliseSemestralModal.tsx` |
-| Novo | `src/components/desempenho/FeedbackFormModal.tsx` |
-| Novo | `src/components/desempenho/Reuniao1a1FormModal.tsx` |
-| Novo | `src/components/desempenho/PPRProjectionCard.tsx` |
-| Novo | `src/components/desempenho/ContributionHeatmap.tsx` |
-| Novo | `src/hooks/useCiclosAvaliacao.ts` |
-| Novo | `src/hooks/useMetasDesempenho.ts` |
-| Novo | `src/hooks/useKpisMeta.ts` |
-| Novo | `src/hooks/useFeedbacksDesempenho.ts` |
-| Novo | `src/hooks/useReunioes1a1.ts` |
-| Novo | `src/hooks/useAnalisesSemestrais.ts` |
-| Novo | `src/hooks/useDesempenhoOverview.ts` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoReuniones1a1.tsx` |
-| Novo | `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` |
-| Editar | `src/App.tsx` (6 rotas) |
-| Editar | `src/components/gestao/GestaoLayout.tsx` (1 item sidebar condicional) |
-| Editar | `src/config/protectedPages.ts` (6 entradas) |
-| Editar | `src/hooks/useAuditLog.ts` (entity types) |
+| Novo | Migration SQL (1 tabela) |
+| Novo | `src/hooks/usePerformanceData.ts` |
+| Novo | `src/pages/gerencial/performance/PerformanceDashboard.tsx` |
+| Novo | `src/components/performance/PerformanceKPICards.tsx` |
+| Novo | `src/components/performance/ProjectsBlock.tsx` |
+| Novo | `src/components/performance/AreaComparisonBlock.tsx` |
+| Novo | `src/components/performance/TeamContributionBlock.tsx` |
+| Novo | `src/components/performance/AutomationImpactBlock.tsx` |
+| Novo | `src/components/performance/CycleGoalsBlock.tsx` |
+| Novo | `src/components/performance/ActivityHeatmap.tsx` |
+| Editar | `src/App.tsx` (1 rota) |
+| Editar | `src/components/gestao/GestaoLayout.tsx` (1 item sidebar) |
+| Editar | `src/config/protectedPages.ts` (1 entrada) |
 
 ### O que NÃO muda
-- Nenhuma aba, rota ou componente existente é alterado funcionalmente
-- Nenhuma tabela existente é modificada
-- GestaoAccessGate permanece inalterado
-- Todas as rotas `/gestao/*` continuam funcionando normalmente
-
-### Estratégia de implementação
-Devido ao volume (~30 arquivos novos), a implementação será dividida em 3 blocos sequenciais:
-1. **Bloco 1**: Migration + Access Gate + Layout + Hooks + Rotas
-2. **Bloco 2**: Páginas Visão Geral + Ciclos + Metas (com todos os modais)
-3. **Bloco 3**: Páginas Feedbacks + 1:1s + Evolução (com gráficos Recharts)
+- Nenhuma aba, rota ou componente existente
+- Nenhuma tabela existente
+- Módulo Desempenho permanece intacto e independente
 
