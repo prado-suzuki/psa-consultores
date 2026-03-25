@@ -50,6 +50,7 @@ const DesempenhoMetas = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   const cicloId = selectedCicloId || cicloAtivo?.id;
+  const { data: pprRegras } = usePprRegras(cicloId);
   const { data: metas, isLoading } = useMetas({ ciclo_id: cicloId, nivel: nivelFilter || undefined, dimensao: dimensaoFilter || undefined, responsavel_id: responsavelFilter || undefined, status: statusFilter || undefined });
   const createMeta = useCreateMeta();
   const updateMeta = useUpdateMeta();
