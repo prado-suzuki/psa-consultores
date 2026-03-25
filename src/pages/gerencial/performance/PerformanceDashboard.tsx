@@ -8,20 +8,20 @@ import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useBoardFilters } from '@/hooks/useBoardFilters';
+import { BoardFilterBar, FilterEmptyState } from '@/components/board/BoardFilterBar';
 
-const PERIODS = [
-  { value: '7d', label: '7d' },
-  { value: '30d', label: '30d' },
-  { value: '90d', label: '90d' },
-  { value: 'ciclo', label: 'Ciclo' },
-];
+const DEFAULTS = { periodo: '30d', area: 'todas', search: '', statusFilter: 'todos', ordenacao: 'prazo_asc' };
 
 const PerformanceDashboard = () => {
-  const [periodo, setPeriodo] = useState('30d');
-  const [area, setArea] = useState('todas');
+  const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'performance', defaults: DEFAULTS });
+  const periodo = filters.periodo as string;
+  const area = filters.area as string;
+  const searchTerm = filters.search as string;
+  const statusFilter = filters.statusFilter as string;
+  const ordenacao = filters.ordenacao as string;
+
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('todos');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -36,13 +36,14 @@ const PerformanceDashboard = () => {
   useEffect(() => {
     if (prefsQuery.data) {
       const prefs = prefsQuery.data as any;
-      if (prefs.periodo_padrao) setPeriodo(prefs.periodo_padrao);
-      if (prefs.area_padrao) setArea(prefs.area_padrao);
+      if (prefs.periodo_padrao && prefs.periodo_padrao !== periodo) setFilter('periodo', prefs.periodo_padrao);
+      if (prefs.area_padrao && prefs.area_padrao !== area) setFilter('area', prefs.area_padrao);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsQuery.data]);
 
-  const handlePeriodChange = (v: string) => { setPeriodo(v); savePrefs.mutate({ periodo_padrao: v }); };
-  const handleAreaChange = (v: string) => { setArea(v); savePrefs.mutate({ area_padrao: v }); };
+  const handlePeriodChange = (v: string) => { setFilter('periodo', v); savePrefs.mutate({ periodo_padrao: v }); };
+  const handleAreaChange = (v: string) => { setFilter('area', v); savePrefs.mutate({ area_padrao: v }); };
   const handleRefresh = () => {
     queryClient.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === 'string' && ((q.queryKey[0] as string).startsWith('perf') || (q.queryKey[0] as string).startsWith('board-')) });
     setLastUpdate(new Date());
@@ -63,7 +64,6 @@ const PerformanceDashboard = () => {
   const atrasados = projects.filter(p => p.computed_status === 'atrasado').length;
 
   const totalSavingsYear = roiData.reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
-
   const pontualidade = projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0;
 
   const tempoMedio = useMemo(() => {
@@ -84,7 +84,6 @@ const PerformanceDashboard = () => {
 
   const metasEmRisco = metas.filter((m: any) => m.progresso_atual < 70 && m.status === 'ativa').length;
 
-  // Bar chart data (3 months)
   const barChartData = useMemo(() => {
     const months: Record<string, { name: string; Tax: number; OSG: number; Dev: number }> = {};
     last3MonthsTasks.forEach((t: any) => {
@@ -92,13 +91,11 @@ const PerformanceDashboard = () => {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = format(d, "MMM/yy", { locale: ptBR });
       if (!months[key]) months[key] = { name: label, Tax: 0, OSG: 0, Dev: 0 };
-      // Approximate area categorization from task data
       months[key].Tax++;
     });
     return Object.values(months).slice(-3);
   }, [last3MonthsTasks]);
 
-  // Individual contribution
   const contribution = useMemo(() => {
     const map = new Map<string, { tasks: number; onTime: number }>();
     periodTasks.forEach((t: any) => {
@@ -118,11 +115,23 @@ const PerformanceDashboard = () => {
     }).filter(x => x.tasks > 0 || x.ppr > 0).sort((a, b) => b.ppr - a.ppr);
   }, [periodTasks, profiles, metas]);
 
-  const filteredProjects = projects.filter(p => {
-    if (statusFilter !== 'todos' && p.computed_status !== statusFilter) return false;
-    if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
+  // Filtered projects for table
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter(p => {
+      if (statusFilter !== 'todos' && p.computed_status !== statusFilter) return false;
+      if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !(p.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    });
+    // Sort
+    switch (ordenacao) {
+      case 'nome_az': result = [...result].sort((a, b) => a.name.localeCompare(b.name)); break;
+      case 'progresso_asc': result = [...result].sort((a, b) => (a.total_tasks > 0 ? a.completed_tasks / a.total_tasks : 0) - (b.total_tasks > 0 ? b.completed_tasks / b.total_tasks : 0)); break;
+      case 'progresso_desc': result = [...result].sort((a, b) => (b.total_tasks > 0 ? b.completed_tasks / b.total_tasks : 0) - (a.total_tasks > 0 ? a.completed_tasks / a.total_tasks : 0)); break;
+      case 'prazo_desc': result = [...result].sort((a, b) => new Date(b.end_date || 0).getTime() - new Date(a.end_date || 0).getTime()); break;
+      default: result = [...result].sort((a, b) => new Date(a.end_date || 0).getTime() - new Date(b.end_date || 0).getTime()); break;
+    }
+    return result;
+  }, [projects, statusFilter, searchTerm, ordenacao]);
 
   const getAreaChip = (a: string | null) => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'c-tax' : x.includes('osg') ? 'c-osg' : 'c-dev'; };
   const getStatusChip = (s: string) => s === 'em_dia' ? 'c-ok' : s === 'em_risco' ? 'c-w' : 'c-er';
@@ -144,34 +153,35 @@ const PerformanceDashboard = () => {
         <div className="pgt" style={{ marginBottom: 2 }}>Performance</div>
         <div className="pgs">Visao consolidada de projetos, equipe e ROI — dados em tempo real</div>
 
-        {/* Filter Bar */}
-        <div className="v3-card mb12" style={{ padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase' as const, color: 'var(--t4)' }}>Periodo</span>
-          <div className="v3-segs">
-            {PERIODS.map(p => (
-              <button key={p.value} className={`v3-seg ${periodo === p.value ? 'on' : ''}`} onClick={() => handlePeriodChange(p.value)}>{p.label}</button>
-            ))}
-          </div>
-          <div style={{ width: 1, height: 18, background: 'var(--bdr)' }} />
-          <span style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase' as const, color: 'var(--t4)' }}>Area</span>
-          <select className="v3-fi" value={area} onChange={e => handleAreaChange(e.target.value)} style={{ padding: '4px 9px' }}>
-            <option value="todas">Todas as areas</option>
-            <option value="tax">Tax</option>
-            <option value="osg">OSG</option>
-            <option value="dev">Dev</option>
-          </select>
-          <span style={{ fontSize: 11, color: 'var(--t4)', marginLeft: 'auto' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
-          <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
-            <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
-          </button>
-        </div>
+        {/* Global Filter Bar */}
+        <BoardFilterBar
+          filters={[
+            { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+            { key: 'area', label: 'Área', type: 'select', options: [{ value: 'todas', label: 'Todas as áreas' }, { value: 'tax', label: 'Tax' }, { value: 'osg', label: 'OSG' }, { value: 'dev', label: 'Dev' }] },
+          ]}
+          activeFilters={filters}
+          onFilterChange={(key, value) => {
+            if (key === 'periodo') handlePeriodChange(value as string);
+            else if (key === 'area') handleAreaChange(value as string);
+            else setFilter(key, value);
+          }}
+          onReset={resetFilters}
+          activeCount={activeCount}
+          rightSlot={
+            <>
+              <span style={{ fontSize: 11, color: 'var(--t4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
+              <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
+                <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
+              </button>
+            </>
+          }
+        />
 
         {/* KPIs */}
         {isLoading ? (
           <div className="g5 mb12">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[120px] rounded-xl" />)}</div>
         ) : (
           <div className="g5 mb12">
-            {/* Projetos Ativos */}
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--in)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{projects.length}</div>
@@ -182,28 +192,24 @@ const PerformanceDashboard = () => {
                 <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{atrasados} atrasados</div>
               </div>
             </div>
-            {/* Pontualidade */}
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--gr)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{pontualidade}%</div>
               <div className="kl" style={{ fontSize: '9.5px' }}>Taxa Pontualidade</div>
               <div className="ksubs"><span className="v3-tr v3-tr-u">+5pp vs anterior</span></div>
             </div>
-            {/* Tempo Medio */}
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--am)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{tempoMedio}</div>
               <div className="kl" style={{ fontSize: '9.5px' }}>Tempo Medio Tarefa</div>
               <div className="ksubs"><span className="v3-tr v3-tr-n">estavel</span></div>
             </div>
-            {/* ROI */}
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--cy)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>R${(totalSavingsYear / 1000).toFixed(0)}k</div>
               <div className="kl" style={{ fontSize: '9.5px' }}>ROI Acumulado</div>
               <div className="ksubs"><span className="v3-tr v3-tr-u">{totalSavingsYear > 0 ? '173' : '0'}% ROI</span></div>
             </div>
-            {/* Metas */}
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--pu)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{progressoMetas}%</div>
@@ -260,66 +266,61 @@ const PerformanceDashboard = () => {
 
         {/* Projects Table */}
         <div className="v3-card mb12">
-          <div className="sct">
-            Projetos — Tabela Completa
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="v3-fi" placeholder="Buscar projeto..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ maxWidth: 160 }} />
-              <select className="v3-fi" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                <option value="todos">Todos os status</option>
-                <option value="em_dia">Em dia</option>
-                <option value="em_risco">Em risco</option>
-                <option value="atrasado">Atrasado</option>
-              </select>
+          <div className="sct">Projetos — Tabela Completa</div>
+          {/* Table filters */}
+          <BoardFilterBar
+            filters={[
+              { key: 'search', label: 'Busca', type: 'search', placeholder: 'Buscar projeto ou cliente...' },
+              { key: 'statusFilter', label: 'Status', type: 'select', options: [{ value: 'todos', label: 'Todos os status' }, { value: 'em_dia', label: 'Em dia' }, { value: 'em_risco', label: 'Em risco' }, { value: 'atrasado', label: 'Atrasado' }] },
+              { key: 'ordenacao', label: 'Ordenar', type: 'select', options: [{ value: 'prazo_asc', label: 'Prazo ↑' }, { value: 'prazo_desc', label: 'Prazo ↓' }, { value: 'nome_az', label: 'Nome A–Z' }, { value: 'progresso_asc', label: 'Progresso ↑' }, { value: 'progresso_desc', label: 'Progresso ↓' }] },
+            ]}
+            activeFilters={filters}
+            onFilterChange={setFilter}
+            activeCount={[searchTerm, statusFilter !== 'todos' ? statusFilter : '', ordenacao !== 'prazo_asc' ? ordenacao : ''].filter(Boolean).length}
+            resultCount={filteredProjects.length}
+            totalCount={projects.length}
+          />
+          {filteredProjects.length === 0 ? (
+            <FilterEmptyState onReset={() => { setFilter('search', ''); setFilter('statusFilter', 'todos'); }} />
+          ) : (
+            <div className="v3-tw">
+              <table>
+                <thead><tr><th>Projeto</th><th>Cliente/Area</th><th>Area</th><th>Responsavel</th><th>Progresso</th><th>Prazo</th><th>Status</th></tr></thead>
+                <tbody>
+                  {filteredProjects.map(p => {
+                    const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
+                    const daysLeft = p.end_date ? differenceInDays(new Date(p.end_date), new Date()) : null;
+                    return (
+                      <tr key={p.id}>
+                        <td>{p.name}</td>
+                        <td style={{ color: 'var(--t3)' }}>{p.client_name || '—'}</td>
+                        <td><span className={`ch ${getAreaChip(p.area_name)}`}>{p.area_name || 'N/A'}</span></td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div className="av av-xs" style={{ background: 'linear-gradient(135deg, #5B6EF0, #3680F6)' }}>{p.responsible_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '??'}</div>
+                            <span>{p.responsible_name?.split(' ')[0] || '—'}</span>
+                          </div>
+                        </td>
+                        <td style={{ minWidth: 100 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div className="v3-pb v3-pb6" style={{ flex: 1 }}><div className={`v3-pbf ${getPbColor(pct)}`} style={{ width: `${pct}%` }} /></div>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: getTextColor(pct) }}>{pct}%</span>
+                          </div>
+                        </td>
+                        <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--re)' : daysLeft !== null && daysLeft < 15 ? 'var(--am)' : 'var(--t3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
+                        <td><span className={`ch ${getStatusChip(p.computed_status)}`}>{getStatusLabel(p.computed_status)}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-          <div className="v3-tw">
-            <table>
-              <thead><tr><th>Projeto</th><th>Cliente/Area</th><th>Area</th><th>Responsavel</th><th>Progresso</th><th>Prazo</th><th>Status</th></tr></thead>
-              <tbody>
-                {filteredProjects.map(p => {
-                  const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
-                  const daysLeft = p.end_date ? differenceInDays(new Date(p.end_date), new Date()) : null;
-                  return (
-                    <tr key={p.id}>
-                      <td>{p.name}</td>
-                      <td style={{ color: 'var(--t3)' }}>{p.client_name || '—'}</td>
-                      <td><span className={`ch ${getAreaChip(p.area_name)}`}>{p.area_name || 'N/A'}</span></td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div className="av av-xs" style={{ background: 'linear-gradient(135deg, #5B6EF0, #3680F6)' }}>{p.responsible_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '??'}</div>
-                          <span>{p.responsible_name?.split(' ')[0] || '—'}</span>
-                        </div>
-                      </td>
-                      <td style={{ minWidth: 100 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <div className="v3-pb v3-pb6" style={{ flex: 1 }}><div className={`v3-pbf ${getPbColor(pct)}`} style={{ width: `${pct}%` }} /></div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: getTextColor(pct) }}>{pct}%</span>
-                        </div>
-                      </td>
-                      <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--re)' : daysLeft !== null && daysLeft < 15 ? 'var(--am)' : 'var(--t3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
-                      <td><span className={`ch ${getStatusChip(p.computed_status)}`}>{getStatusLabel(p.computed_status)}</span></td>
-                    </tr>
-                  );
-                })}
-                {filteredProjects.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>Nenhum projeto encontrado.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+          )}
         </div>
 
         {/* Individual Contribution */}
         <div className="v3-card">
-          <div className="sct">
-            Contribuicao Individual — {periodo}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select className="v3-fi" style={{ fontSize: 11, padding: '4px 8px' }} value={area} onChange={e => handleAreaChange(e.target.value)}>
-                <option value="todas">Todas as areas</option>
-                <option value="tax">Tax</option>
-                <option value="osg">OSG</option>
-                <option value="dev">Dev</option>
-              </select>
-            </div>
-          </div>
+          <div className="sct">Contribuicao Individual — {periodo}</div>
           {contribution.map((m, idx) => {
             const classif = getClassifChip(m.ppr);
             return (
