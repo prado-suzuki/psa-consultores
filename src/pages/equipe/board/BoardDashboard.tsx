@@ -110,7 +110,7 @@ const BoardDashboard = () => {
         sintese: `Com ${projects.length} projetos ativos e ${emRisco + atrasados} em risco, o foco deve ser desbloqueio dos projetos criticos. ROI acumulado de R$${(totalSavingsYear / 1000).toFixed(0)}k/ano com ${roiFerramentas} ferramentas.`,
         bullets: [
           `${emRisco + atrasados} projetos em risco concentrados — acao imediata necessaria.`,
-          `Media de metas em ${progressoMetas}% — ${metasEmRisco > 0 ? `${metasEmRisco} metas em risco` : 'dentro do esperado'}.`,
+          `Media de metas em ${progressoMetas}%.`,
           `${members.length} membros ativos de ${profiles.length} cadastrados.`,
         ],
       });
@@ -189,7 +189,7 @@ const BoardDashboard = () => {
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--am)' }}>{progressoMetas}%</div>
               <div className="snum-label">Metas do Ciclo</div>
-              <div className="snum-sub">{overview?.metasEmRisco ?? 0} de {overview?.totalMetas ?? 0} em risco</div>
+              <div className="snum-sub">{overview?.totalMetas ?? 0} metas cadastradas</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pa" style={{ width: `${progressoMetas}%` }} /></div></div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
