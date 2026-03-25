@@ -420,7 +420,7 @@ const FiscalProjetosCadastro = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Projeto</TableHead>
-                  <TableHead>Serviço</TableHead>
+                  <TableHead>Produto</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Área</TableHead>
                   <TableHead>Responsável</TableHead>
