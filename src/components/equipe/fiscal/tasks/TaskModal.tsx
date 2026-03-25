@@ -52,7 +52,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useTaxProjectsList } from '@/hooks/useTaxProjects';
-import { useTaxAreas } from '@/hooks/useTaxAreas';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const taskSchema = z.object({
@@ -120,24 +119,17 @@ export const TaskModal = ({
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: projects = [] } = useTaxProjectsList(true);
-  const { data: taxAreas = [] } = useTaxAreas();
 
-  // Resolve estrutura_area_id from the selected project's tax_area
+  // Resolve estrutura_area_id directly from the selected project
   const watchedProjectId = form.watch('project_id') as string | undefined;
   
   const selectedProjectAreaId = useMemo(() => {
     if (!watchedProjectId) return null;
     const proj = projects.find(p => p.id === watchedProjectId);
-    return proj?.area_id || null;
+    return proj?.estrutura_area_id || null;
   }, [watchedProjectId, projects]);
 
-  const estruturaAreaId = useMemo(() => {
-    if (!selectedProjectAreaId) return null;
-    const area = taxAreas.find(a => a.id === selectedProjectAreaId);
-    return area?.estrutura_area_id || null;
-  }, [selectedProjectAreaId, taxAreas]);
-
-  const { allMemberIds: areaMemberIds } = useEstruturaArea(estruturaAreaId);
+  const { allMemberIds: areaMemberIds } = useEstruturaArea(selectedProjectAreaId);
 
   // ── Queries que permanecem inline ────────────────────────────────────
 

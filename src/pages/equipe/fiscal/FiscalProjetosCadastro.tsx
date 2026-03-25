@@ -59,7 +59,7 @@ import {
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { useTaxAreas } from '@/hooks/useTaxAreas';
+import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
   useTaxProjects,
   useProjectMembers,
@@ -88,7 +88,7 @@ const FiscalProjetosCadastro = () => {
     leader_ids: [] as string[],
     sublider_ids: [] as string[],
     external_client_id: '',
-    area_id: '',
+    estrutura_area_id: '',
     objective: '',
     category_ids: [] as string[],
     member_ids: [] as string[],
@@ -96,15 +96,14 @@ const FiscalProjetosCadastro = () => {
   });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
-  const { data: taxAreas = [] } = useTaxAreas();
+  const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
   const { data: projects = [], isLoading } = useTaxProjects();
   const { data: projectHours = {} } = useProjectHours();
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
   const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
 
-  // Derive estruturaAreaId from selected tax area
-  const selectedTaxArea = taxAreas.find(a => a.id === formData.area_id);
-  const estruturaAreaId = selectedTaxArea?.estrutura_area_id || null;
+  // Use estrutura_area_id directly
+  const estruturaAreaId = formData.estrutura_area_id || null;
 
   const {
     liderIds: areaLiderIds,
@@ -135,7 +134,7 @@ const FiscalProjetosCadastro = () => {
       return filtered.length > 0 ? filtered : allLideres;
     }
     return allLideres;
-  }, [teamMembers, userRoles, estruturaAreaId, areaLiderIds, formData.leader_ids]);
+  }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
 
   const sublideres = useMemo(() => {
     const subliderRoleIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
@@ -146,7 +145,7 @@ const FiscalProjetosCadastro = () => {
       return filtered.length > 0 ? filtered : allSublideres;
     }
     return allSublideres;
-  }, [teamMembers, userRoles, estruturaAreaId, areaSubliderIds, formData.sublider_ids]);
+  }, [teamMembers, userRoles, formData.estrutura_area_id, areaSubliderIds, formData.sublider_ids]);
 
   const { data: filteredMemberIds = [] } = useSubliderTeamMembers(
     formData.sublider_ids,
@@ -189,25 +188,25 @@ const FiscalProjetosCadastro = () => {
     }));
   }, [selectedOsId]);
 
-  // Track previous area_id to detect user-driven changes
+  // Track previous estrutura_area_id to detect user-driven changes
   const [prevAreaId, setPrevAreaId] = useState('');
 
-  // Filter categories by selected area
+  // Filter categories by selected area (using estrutura_area_id from area_servicos)
   const filteredCategories = useMemo(() => {
-    if (!formData.area_id) return [];
+    if (!formData.estrutura_area_id) return [];
     const validCategoryIds = areaCategoryLinks
-      .filter(link => link.area_id === formData.area_id)
+      .filter(link => link.estrutura_area_id === formData.estrutura_area_id)
       .map(link => link.servico_id);
     return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
-  }, [formData.area_id, taxCategorias, areaCategoryLinks]);
+  }, [formData.estrutura_area_id, taxCategorias, areaCategoryLinks]);
 
   // Clear fields when area changes by user action
   useEffect(() => {
-    if (prevAreaId && formData.area_id && prevAreaId !== formData.area_id) {
+    if (prevAreaId && formData.estrutura_area_id && prevAreaId !== formData.estrutura_area_id) {
       setFormData(prev => ({ ...prev, leader_ids: [], sublider_ids: [], member_ids: [], category_ids: [] }));
     }
-    setPrevAreaId(formData.area_id);
-  }, [formData.area_id]);
+    setPrevAreaId(formData.estrutura_area_id);
+  }, [formData.estrutura_area_id]);
 
   // Auto-fill leader when area has exactly 1 leader (only on create)
   useEffect(() => {
@@ -266,8 +265,7 @@ const FiscalProjetosCadastro = () => {
         leader_ids: [],
         sublider_ids: [],
         external_client_id: project.external_client_id || '',
-        
-        area_id: project.area_id || '',
+        estrutura_area_id: project.estrutura_area_id || '',
         objective: project.objective || '',
         category_ids: [],
         member_ids: [],
@@ -279,7 +277,7 @@ const FiscalProjetosCadastro = () => {
         name: '', description: '', status: 'active',
         start_date: '', end_date: '',
         leader_ids: [], sublider_ids: [], external_client_id: '',
-        area_id: '', objective: '', category_ids: [], member_ids: [],
+        estrutura_area_id: '', objective: '', category_ids: [], member_ids: [],
         ordem_servico_id: '',
       });
     }
@@ -293,7 +291,7 @@ const FiscalProjetosCadastro = () => {
       name: '', description: '', status: 'active',
       start_date: '', end_date: '',
       leader_ids: [], sublider_ids: [], external_client_id: '',
-      area_id: '', objective: '', category_ids: [], member_ids: [],
+      estrutura_area_id: '', objective: '', category_ids: [], member_ids: [],
       ordem_servico_id: '',
     });
   };
@@ -374,7 +372,7 @@ const FiscalProjetosCadastro = () => {
 
 
   const getAreaLabel = (project: any) => {
-    if (project.area_ref) return project.area_ref.nome;
+    if (project.area_ref) return project.area_ref.name;
     return '-';
   };
 
@@ -652,15 +650,15 @@ const FiscalProjetosCadastro = () => {
                   <div>
                     <Label>Área</Label>
                     <Select
-                      value={formData.area_id}
-                      onValueChange={(value) => setFormData({ ...formData, area_id: value })}
+                      value={formData.estrutura_area_id}
+                      onValueChange={(value) => setFormData({ ...formData, estrutura_area_id: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a área" />
                       </SelectTrigger>
                       <SelectContent>
-                        {taxAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.nome}</SelectItem>
+                        {estruturaAreas.map(area => (
+                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -924,7 +922,7 @@ const FiscalProjetosCadastro = () => {
               {/* Categories (multi-select dropdown) */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
-                {!formData.area_id ? (
+                {!formData.estrutura_area_id ? (
                   <p className="text-sm text-muted-foreground">Selecione uma área para ver as categorias disponíveis.</p>
                 ) : filteredCategories.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhuma categoria vinculada a esta área.</p>
