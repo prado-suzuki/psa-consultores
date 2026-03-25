@@ -23,7 +23,7 @@ const DesempenhoVisaoGeral = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiData, setAiData] = useState<{ sintese: string; bullets: string[] } | null>(null);
 
-  const cicloId = selectedCicloId || cicloAtivo?.id;
+  const cicloId = (filters.ciclo as string) || cicloAtivo?.id;
   const selectedCiclo = ciclos?.find(c => c.id === cicloId);
   const { data: overview, isLoading } = useDesempenhoOverview(cicloId);
   const { data: metasIndividuais } = useMetas({ ciclo_id: cicloId, nivel: 'individual' });
@@ -160,7 +160,7 @@ const DesempenhoVisaoGeral = () => {
               {selectedCiclo?.status === 'em_andamento' ? ' · Em andamento' : ''}
             </div>
           </div>
-          <select className="v3-fi" value={cicloId ?? ''} onChange={e => setSelectedCicloId(e.target.value)}>
+          <select className="v3-fi" value={cicloId ?? ''} onChange={e => setFilter('ciclo', e.target.value)}>
             {ciclos?.map(c => (
               <option key={c.id} value={c.id}>{c.nome}{c.status === 'em_andamento' ? ' (Ativo)' : ''}</option>
             ))}
