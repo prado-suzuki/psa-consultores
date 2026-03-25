@@ -163,7 +163,7 @@ const BoardDashboard = () => {
         />
 
         {/* Strategic Numbers */}
-        {isLoading ? (
+        {isProjectsLoading ? (
           <div className="g5 mb12">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[140px] rounded-xl" />)}</div>
         ) : (
           <div className="g5 mb12">

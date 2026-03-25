@@ -97,7 +97,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
           area:estrutura_areas!tax_projects_estrutura_area_id_fkey(name, color)
         `).eq('is_active', true),
         supabase.from('fiscal_tasks').select('id, status, due_date, project_id, assigned_to, updated_at'),
-        supabase.from('tax_project_members').select('project_id, user_id, profiles:profiles!tax_project_members_user_id_fkey(first_name, last_name)'),
+        supabase.from('tax_project_members').select('project_id, user_id'),
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
