@@ -9,7 +9,7 @@ type AuditEntityType =
   | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
   | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
   | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico'
-  | 'regra_pis_cofins';
+  | 'regra_pis_cofins' | 'procedimento';
 
 interface AuditLogEntry {
   area: AuditArea;

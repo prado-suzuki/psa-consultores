@@ -104,9 +104,9 @@ export function useCreateProcedimento() {
 
       logAction({
         action: 'created',
-        entityType: 'procedimento',
-        entityId: id,
-        entityName: input.source_url || input.arquivo_path || 'Novo procedimento',
+        entity_type: 'procedimento',
+        entity_id: id,
+        entity_name: input.source_url || input.arquivo_path || 'Novo procedimento',
         area: 'dev',
       });
 
