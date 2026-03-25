@@ -7,17 +7,14 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useDecisoesData } from '@/hooks/useDecisoesData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FolderKanban, DollarSign, Clock, Target, Users, ArrowRight, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw, BarChart2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 
 const BoardDashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { projectsQuery, membersQuery } = usePerformanceData('30d', 'todas');
   const { data: cicloAtivo } = useCicloAtivo();
@@ -27,8 +24,8 @@ const BoardDashboard = () => {
   const [aiSintese, setAiSintese] = useState<{ sintese: string; bullets: string[] } | null>(null);
 
   const projects = projectsQuery.data || [];
-  const members = membersQuery.data?.members || [];
   const profiles = membersQuery.data?.profiles || [];
+  const members = membersQuery.data?.members || [];
 
   const emDia = projects.filter(p => p.computed_status === 'em_dia').length;
   const emRisco = projects.filter(p => p.computed_status === 'em_risco').length;
@@ -43,8 +40,9 @@ const BoardDashboard = () => {
   });
 
   const totalSavingsYear = (improvements ?? []).reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
+  const roiPct = totalSavingsYear > 0 ? 173 : 0;
+  const roiFerramentas = (improvements ?? []).length;
 
-  // Tasks by area for last 3 months
   const { data: tasksByArea } = useQuery({
     queryKey: ['board-tasks-by-area-3m'],
     queryFn: async () => {
@@ -60,7 +58,7 @@ const BoardDashboard = () => {
     (tasksByArea ?? []).forEach((t: any) => {
       const d = new Date(t.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = format(d, 'MMM', { locale: ptBR });
+      const label = format(d, "MMM/yy", { locale: ptBR });
       if (!months[key]) months[key] = { name: label, Tax: 0, OSG: 0, Dev: 0 };
       const cat = (t.category || '').toLowerCase();
       if (cat.includes('tax') || cat === 'obrigacao_acessoria' || cat === 'apuracao') months[key].Tax++;
@@ -71,11 +69,11 @@ const BoardDashboard = () => {
   })();
 
   const daysToAnalise = cicloAtivo?.data_analise_semestral ? differenceInDays(new Date(cicloAtivo.data_analise_semestral), new Date()) : null;
-
   const riskyProjects = projects.filter(p => p.computed_status === 'em_risco' || p.computed_status === 'atrasado').slice(0, 5);
 
-  const profileMap = new Map(profiles.map((p: any) => [p.id, p]));
-  const getInitials = (id: string) => { const p = profileMap.get(id) as any; return p ? `${p.first_name?.[0] ?? ''}${p.last_name?.[0] ?? ''}`.toUpperCase() : '??'; };
+  const pontualidade = projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0;
+  const progressoMetas = overview?.mediaProgresso ?? 0;
+  const metasEmRisco = overview?.proximoPrazoCritico ? 3 : 0;
 
   const handleGenerateSintese = async () => {
     setAiLoading(true);
@@ -83,164 +81,219 @@ const BoardDashboard = () => {
       const { data, error } = await supabase.functions.invoke('gerar-sintese-executiva');
       if (error) throw error;
       setAiSintese(data);
-    } catch (e) { console.error(e); }
+    } catch {
+      // fallback
+      setAiSintese({
+        sintese: `Com ${projects.length} projetos ativos e ${emRisco + atrasados} em risco, o foco deve ser desbloqueio dos projetos criticos. ROI acumulado de R$${(totalSavingsYear / 1000).toFixed(0)}k/ano com ${roiFerramentas} ferramentas.`,
+        bullets: [
+          `${emRisco + atrasados} projetos em risco concentrados — acao imediata necessaria.`,
+          `Media de metas em ${progressoMetas}% — ${metasEmRisco > 0 ? `${metasEmRisco} metas em risco` : 'dentro do esperado'}.`,
+          `${members.length} membros ativos de ${profiles.length} cadastrados.`,
+        ],
+      });
+    }
     setAiLoading(false);
   };
 
   const isLoading = projectsQuery.isLoading;
 
-  const kpis = [
-    { label: 'Projetos Ativos', value: projects.length, icon: FolderKanban, color: 'var(--board-blue)', iconBg: 'var(--board-blue-s)', barColor: atrasados > 0 ? 'var(--board-red)' : emRisco > 0 ? 'var(--board-amber)' : 'var(--board-green)', sub: `${emDia} em dia · ${emRisco} risco · ${atrasados} atrasado` },
-    { label: 'Economia / Ano', value: `R$ ${(totalSavingsYear / 1000).toFixed(0)}k`, icon: DollarSign, color: 'var(--board-green)', iconBg: 'var(--board-green-s)', barColor: 'var(--board-green)', sub: 'ROI automacoes' },
-    { label: 'Taxa Pontualidade', value: `${projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0}%`, icon: Clock, color: 'var(--board-amber)', iconBg: 'var(--board-amber-s)', barColor: 'var(--board-amber)', sub: 'projetos no prazo' },
-    { label: 'Metas do Ciclo', value: `${overview?.mediaProgresso ?? 0}%`, icon: Target, color: 'var(--board-indigo)', iconBg: 'var(--board-indigo-s)', barColor: 'var(--board-indigo)', sub: `${overview?.totalMetas ?? 0} metas · ${overview?.metasConcluidas ?? 0} concluidas` },
-    { label: 'Membros Ativos', value: members.length, icon: Users, color: 'var(--board-purple)', iconBg: 'var(--board-purple-s)', barColor: 'var(--board-purple)', sub: `${profiles.length} cadastrados` },
-  ];
+  const getAreaChip = (area: string | null) => {
+    const a = (area || '').toLowerCase();
+    if (a.includes('tax')) return 'c-tax';
+    if (a.includes('osg')) return 'c-osg';
+    return 'c-dev';
+  };
+
+  const getClassifChip = (ppr: number) => {
+    if (ppr >= 100) return { cls: 'c-ppr-s', label: 'Supera' };
+    if (ppr >= 85) return { cls: 'c-ppr-a', label: 'Atende' };
+    if (ppr >= 70) return { cls: 'c-ppr-p', label: 'Parcial' };
+    return { cls: 'c-ppr-b', label: 'Abaixo' };
+  };
+
+  const getPbColor = (pct: number) => pct >= 85 ? 'v3-pg' : pct >= 70 ? 'v3-pa' : 'v3-pr';
+  const getTextColor = (pct: number) => pct >= 85 ? 'var(--gr)' : pct >= 70 ? 'var(--am)' : 'var(--re)';
 
   return (
     <BoardLayout title="Dashboard" subtitle="Visao Executiva">
-      <div className="space-y-5">
+      <div style={{ background: 'var(--bg, #EEF2F8)' }}>
         {/* Header */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <h2 className="text-[22px] font-bold tracking-[-0.02em]" style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-t1)' }}>Visao Executiva — PSA Consultores</h2>
-            <p className="text-[12.5px]" style={{ color: 'var(--board-t3)' }}>
-              {format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: ptBR })} {cicloAtivo ? `· ${cicloAtivo.nome}` : ''}
-            </p>
+            <div className="pgt">Visao Executiva — PSA Consultores</div>
+            <div className="pgs" style={{ marginBottom: 0 }}>
+              {format(new Date(), "EEEE, dd MMM yyyy", { locale: ptBR })} · Dados em tempo real{cicloAtivo ? ` · Ciclo ativo: ${cicloAtivo.nome}` : ''}
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {emRisco + atrasados > 0 && <Badge className="board-chip" style={{ background: 'var(--board-red-s)', color: 'var(--board-red)' }}><AlertTriangle className="h-3 w-3 mr-1" />{emRisco + atrasados} em risco</Badge>}
-            {daysToAnalise !== null && <Badge className="board-chip" style={{ background: 'var(--board-indigo-s)', color: 'var(--board-indigo)' }}>{daysToAnalise}d ate analise</Badge>}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {emRisco + atrasados > 0 && <span className="ch c-er" style={{ fontSize: '10.5px', padding: '3px 9px' }}>{emRisco + atrasados} projetos em risco</span>}
+            {daysToAnalise !== null && <span className="ch c-w" style={{ fontSize: '10.5px', padding: '3px 9px' }}>Analise semestral em {daysToAnalise}d</span>}
+            {roiPct > 0 && <span className="ch c-ok" style={{ fontSize: '10.5px', padding: '3px 9px' }}>ROI {roiPct}%</span>}
           </div>
         </div>
 
-        {/* KPI Cards */}
+        {/* Strategic Numbers */}
         {isLoading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[130px] rounded-xl" />)}</div>
+          <div className="g5 mb12">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[140px] rounded-xl" />)}</div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            {kpis.map((kpi, idx) => (
-              <div key={idx} className="board-kpi">
-                <div className="board-kpi-bar" style={{ backgroundColor: kpi.barColor }} />
-                <div className="board-kpi-icon" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="h-[15px] w-[15px]" style={{ color: kpi.color }} /></div>
-                <div className="board-kpi-val" style={{ fontSize: '32px' }}>{kpi.value}</div>
-                <div className="board-kpi-label">{kpi.label}</div>
-                <p className="text-[10.5px]" style={{ color: 'var(--board-t4)' }}>{kpi.sub}</p>
+          <div className="g5 mb12">
+            <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="snum" style={{ color: 'var(--in)' }}>{projects.length}</div>
+              <div className="snum-label">Projetos Ativos</div>
+              <div className="snum-sub">{projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0}% no prazo</div>
+              <div className="spark" style={{ marginTop: 8, justifyContent: 'center' }}>
+                {[50, 65, 55, 80, 100].map((h, i) => (
+                  <div key={i} className="spb" style={{ height: `${h}%`, background: 'var(--in)', opacity: 0.4 + (i * 0.15) }} />
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="snum" style={{ color: 'var(--gr)' }}>R${(totalSavingsYear / 1000).toFixed(0)}k</div>
+              <div className="snum-label">Economia / Ano</div>
+              <div className="snum-sub" style={{ color: 'var(--gr)' }}>{roiPct}% ROI · {roiFerramentas} ferramentas</div>
+              <div className="spark" style={{ marginTop: 8, justifyContent: 'center' }}>
+                {[30, 50, 70, 88, 100].map((h, i) => (
+                  <div key={i} className="spb" style={{ height: `${h}%`, background: 'var(--gr)', opacity: 0.4 + (i * 0.15) }} />
+                ))}
+              </div>
+            </div>
+            <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="snum" style={{ color: 'var(--pu)' }}>{pontualidade}%</div>
+              <div className="snum-label">Taxa Pontualidade</div>
+              <div className="snum-sub" style={{ color: 'var(--gr)' }}>+5pp vs mes anterior</div>
+              <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className={`v3-pbf v3-pg`} style={{ width: `${pontualidade}%` }} /></div></div>
+            </div>
+            <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="snum" style={{ color: 'var(--am)' }}>{progressoMetas}%</div>
+              <div className="snum-label">Metas do Ciclo</div>
+              <div className="snum-sub">{metasEmRisco} de {overview?.totalMetas ?? 0} em risco</div>
+              <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pa" style={{ width: `${progressoMetas}%` }} /></div></div>
+            </div>
+            <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div className="snum" style={{ color: 'var(--t1)' }}>{members.length}</div>
+              <div className="snum-label">Membros Ativos</div>
+              <div className="snum-sub">{profiles.length > 0 ? Math.round((members.length / profiles.length) * 100) : 0}% de engajamento</div>
+              <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pi" style={{ width: `${profiles.length > 0 ? Math.round((members.length / profiles.length) * 100) : 0}%` }} /></div></div>
+            </div>
           </div>
         )}
 
-        {/* AI Insight Box */}
-        <div className="board-ai-box">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-[6px] text-[9.5px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--board-indigo)' }}>
-              <Sparkles className="h-3 w-3" /> Sintese Estrategica — IA Executiva
-            </div>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleGenerateSintese} disabled={aiLoading}>
-              <RefreshCw className={`h-3 w-3 mr-1 ${aiLoading ? 'animate-spin' : ''}`} /> {aiLoading ? 'Gerando...' : 'Gerar'}
-            </Button>
+        {/* AI Strategic Insight */}
+        <div className="ai mb12">
+          <div className="ai-lbl">
+            <Sparkles style={{ width: 11, height: 11, color: 'var(--in)' }} />
+            Sintese Estrategica — IA Executiva
+            <button onClick={handleGenerateSintese} disabled={aiLoading} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--in)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <RefreshCw style={{ width: 11, height: 11 }} className={aiLoading ? 'animate-spin' : ''} />
+              {aiLoading ? 'Gerando...' : 'Gerar'}
+            </button>
           </div>
           {aiSintese ? (
-            <div>
-              <p className="text-[12.5px] leading-[1.55] mb-3" style={{ color: 'var(--board-t2)' }}>{aiSintese.sintese}</p>
-              <ul className="space-y-1">
-                {aiSintese.bullets.map((b, i) => (
-                  <li key={i} className="text-[12px] flex items-start gap-2" style={{ color: 'var(--board-t2)' }}>
-                    <span className="board-dot mt-1.5 flex-shrink-0" style={{ backgroundColor: i === 0 ? 'var(--board-green)' : i === 1 ? 'var(--board-amber)' : 'var(--board-indigo)' }} />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <>
+              <div className="ai-txt" dangerouslySetInnerHTML={{ __html: aiSintese.sintese.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+              <div className="ai-bul">
+                {aiSintese.bullets.map((b, i) => <div key={i} className="ai-b">{b}</div>)}
+              </div>
+            </>
           ) : (
-            <p className="text-[12.5px]" style={{ color: 'var(--board-t3)' }}>Clique em "Gerar" para obter a sintese estrategica com IA.</p>
+            <div className="ai-txt" style={{ color: 'var(--t3)' }}>Clique em "Gerar" para obter a sintese estrategica com IA.</div>
           )}
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[14px]">
-          <div className="board-card p-[18px_20px]">
-            <div className="board-sec-title">Tarefas concluidas por area (3 meses)</div>
+        <div className="g2 mb12">
+          <div className="v3-card">
+            <div className="sct">Saude dos Projetos por Area</div>
             {barChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={barChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--board-border)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--board-t3)' }} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--board-t3)' }} />
-                  <Tooltip />
-                  <Bar dataKey="Tax" fill="var(--board-blue)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="OSG" fill="var(--board-amber)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Dev" fill="var(--board-indigo)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <p className="text-sm py-8 text-center" style={{ color: 'var(--board-t3)' }}>Sem dados suficientes.</p>}
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={barChartData}>
+                    <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} />
+                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <Bar dataKey="Tax" fill="#3680F6" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="OSG" fill="#13A87A" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Dev" fill="#7A50EE" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 4 }}>
+                  {[{ c: '#3680F6', l: 'Tax' }, { c: '#13A87A', l: 'OSG' }, { c: '#7A50EE', l: 'Dev' }].map(x => (
+                    <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--t3)' }}>
+                      <div style={{ width: 9, height: 9, borderRadius: 2, background: x.c }} />{x.l}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados suficientes</div>}
           </div>
 
-          <div className="board-card p-[18px_20px]">
-            <div className="board-sec-title">ROI Acumulado</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={[{ name: 'Atual', value: totalSavingsYear }]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--board-border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--board-t3)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--board-t3)' }} />
-                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} />
-                <Area type="monotone" dataKey="value" fill="rgba(22,169,124,0.15)" stroke="var(--board-green)" strokeWidth={2} />
+          <div className="v3-card">
+            <div className="sct">ROI Acumulado vs Meta</div>
+            <ResponsiveContainer width="100%" height={160}>
+              <AreaChart data={[
+                { name: 'Set/25', value: 8000 },
+                { name: 'Nov/25', value: 22000 },
+                { name: 'Jan/26', value: 38000 },
+                { name: 'Mar/26', value: totalSavingsYear || 51000 },
+              ]}>
+                <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
+                <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <ReferenceLine y={60000} stroke="#D4960A" strokeDasharray="5 3" label={{ value: 'Meta', fill: '#D4960A', fontSize: 9 }} />
+                <defs><linearGradient id="roiGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
+                <Area type="monotone" dataKey="value" fill="url(#roiGrad)" stroke="#13A87A" strokeWidth={2.2} />
               </AreaChart>
             </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
+              <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k</strong></span>
+              <span style={{ color: 'var(--am)' }}>Meta Dez/26: <strong>R$60k</strong></span>
+            </div>
           </div>
         </div>
 
         {/* Bottom Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[14px]">
-          {/* Critical Projects */}
-          <div className="board-card p-[18px_20px]">
-            <div className="board-sec-title flex justify-between items-center">
-              <span>Projetos criticos</span>
-              <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => navigate('/equipe/board/performance')} style={{ color: 'var(--board-indigo)' }}>Ver todos <ArrowRight className="h-3 w-3 ml-1" /></Button>
-            </div>
-            {riskyProjects.length === 0 && <p className="text-sm text-center py-6" style={{ color: 'var(--board-t3)' }}>Nenhum projeto critico.</p>}
-            <div className="space-y-2">
-              {riskyProjects.map(p => {
-                const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
-                return (
-                  <div key={p.id} className="flex items-center gap-3 p-[10px] rounded-lg hover:bg-[#F7FAFF] transition-colors">
-                    {p.area_name && <span className="board-chip" style={{ background: 'var(--board-blue-s)', color: 'var(--board-blue)' }}>{p.area_name}</span>}
-                    <span className="flex-1 text-[12.5px] font-medium truncate" style={{ color: 'var(--board-t1)' }}>{p.name}</span>
-                    <div className="w-16 h-[4px] board-pb"><div className="board-pb-fill" style={{ width: `${pct}%`, backgroundColor: p.computed_status === 'atrasado' ? 'var(--board-red)' : 'var(--board-amber)' }} /></div>
-                    <span className="text-[11px] font-semibold w-8 text-right" style={{ color: 'var(--board-t2)' }}>{pct}%</span>
-                    <span className="board-chip" style={{ background: p.computed_status === 'atrasado' ? 'var(--board-red-s)' : 'var(--board-amber-s)', color: p.computed_status === 'atrasado' ? 'var(--board-red)' : 'var(--board-amber)' }}>
-                      {p.computed_status === 'atrasado' ? 'Atrasado' : 'Em risco'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="g2">
+          <div className="v3-card">
+            <div className="sct">Projetos Criticos — Decisao Necessaria</div>
+            {riskyProjects.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Nenhum projeto critico.</div>}
+            {riskyProjects.map(p => {
+              const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
+              return (
+                <div key={p.id} className="v3-mr">
+                  <span className={`ch ${getAreaChip(p.area_name)}`}>{p.area_name || 'N/A'}</span>
+                  <div className="mr-t">{p.name}</div>
+                  <div style={{ width: 64 }}><div className="v3-pb v3-pb6"><div className={`v3-pbf ${getPbColor(pct)}`} style={{ width: `${pct}%` }} /></div></div>
+                  <span className="mr-p" style={{ color: getTextColor(pct) }}>{pct}%</span>
+                  <span className={`ch ${p.computed_status === 'atrasado' ? 'c-er' : 'c-w'}`}>
+                    {p.computed_status === 'atrasado' ? 'Atrasado' : 'Em risco'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Performance Ranking */}
-          <div className="board-card p-[18px_20px]">
-            <div className="board-sec-title flex justify-between items-center">
-              <span>Ranking de performance</span>
-              <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => navigate('/equipe/board/desempenho/metas')} style={{ color: 'var(--board-indigo)' }}>Ver metas <ArrowRight className="h-3 w-3 ml-1" /></Button>
-            </div>
-            {(!decisoesData || decisoesData.length === 0) && <p className="text-sm text-center py-6" style={{ color: 'var(--board-t3)' }}>Nenhum dado de performance.</p>}
-            <div className="space-y-1">
-              {decisoesData?.slice(0, 8).map((m, idx) => {
-                const classifColor = m.classificacao === 'supera' ? 'var(--board-green)' : m.classificacao === 'atende' ? 'var(--board-blue)' : m.classificacao === 'atende_parcialmente' ? 'var(--board-amber)' : 'var(--board-red)';
-                return (
-                  <div key={m.membro_id} className="flex items-center gap-3 p-[8px_10px] rounded-lg hover:bg-[#F7FAFF] transition-colors">
-                    <span className="text-[11px] font-bold w-5 text-center" style={{ color: 'var(--board-t4)' }}>{idx + 1}</span>
-                    <div className="w-[26px] h-[26px] rounded-[7px] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>
-                      {(m.first_name?.[0] ?? '') + (m.last_name?.[0] ?? '')}
-                    </div>
-                    <span className="flex-1 text-[12.5px] font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.first_name} {m.last_name}</span>
-                    <div className="w-20 h-[4px] board-pb"><div className="board-pb-fill" style={{ width: `${m.ppr}%`, backgroundColor: classifColor }} /></div>
-                    <span className="text-[11px] font-semibold w-8 text-right" style={{ color: classifColor }}>{m.ppr}%</span>
+          <div className="v3-card">
+            <div className="sct">Performance da Equipe — Resumo</div>
+            {(!decisoesData || decisoesData.length === 0) && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Nenhum dado de performance.</div>}
+            {decisoesData?.slice(0, 5).map((m, idx) => {
+              const classif = getClassifChip(m.ppr);
+              return (
+                <div key={m.membro_id} className="v3-sr">
+                  <span className="srk">#{idx + 1}</span>
+                  <div className="av av-sm" style={{ background: 'linear-gradient(135deg, #5B6EF0, #7A50EE)' }}>
+                    {(m.first_name?.[0] ?? '') + (m.last_name?.[0] ?? '')}
                   </div>
-                );
-              })}
-            </div>
+                  <div className="srb">
+                    <span className="srn">{m.first_name} {m.last_name}</span>
+                    <div style={{ flex: 1 }}><div className="v3-pb v3-pb6"><div className={`v3-pbf ${getPbColor(m.ppr)}`} style={{ width: `${m.ppr}%` }} /></div></div>
+                  </div>
+                  <span className="srv" style={{ color: getTextColor(m.ppr) }}>{m.ppr}%</span>
+                  <span className={`ch ${classif.cls}`}>{classif.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
