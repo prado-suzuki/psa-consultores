@@ -707,6 +707,32 @@ const FiscalProjetosCadastro = () => {
                   </div>
                 )}
 
+                {/* Serviço (filtrado pelo produto da OS selecionada) */}
+                {selectedOsId && (
+                  <div>
+                    <Label>Serviço</Label>
+                    <Select
+                      value={formData.servico_id}
+                      onValueChange={(value) => setFormData({ ...formData, servico_id: value === '_none' ? '' : value })}
+                      disabled={!selectedProdutoId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          !selectedProdutoId
+                            ? "OS sem produto cadastrado"
+                            : "Selecione o serviço"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {servicosByProduto.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* Nome do Projeto */}
                 <div>
                   <Label>Nome do Projeto *</Label>
