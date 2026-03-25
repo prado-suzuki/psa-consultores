@@ -1,44 +1,171 @@
 
 
-## Três melhorias nos Procedimentos
+## Módulo Desempenho — /gerencial/desempenho/
 
-### 1. Excluir procedimento
+### Escopo
+Novo módulo completo de gestão de performance com 8 tabelas, 6 páginas, múltiplos modais e gráficos Recharts. Acesso exclusivo Admin + Líder.
 
-**Hook** (`useProcedimentos.ts`): Adicionar `useDeleteProcedimento()` que faz `supabase.from('procedimentos').delete().eq('id', id)` + deleta o arquivo do storage se `arquivo_path` existir + `logAction` com action `'deleted'`.
+### Nota sobre rotas
+O sistema existente usa `/gestao/` para o módulo gerencial. As rotas `/gerencial/desempenho/` serão criadas como rotas independentes, protegidas por um novo `DesempenhoAccessGate` que valida `isAdmin || isLider`.
 
-**Card** (`ProcedimentoCard.tsx`): Adicionar botão de lixeira (ícone `Trash2`) no footer do card, visível apenas para `isLeaderOrAdmin`. Ao clicar, abre `AlertDialog` de confirmação antes de executar a exclusão.
+---
 
-**Página** (`ProcedimentosDev.tsx`): Passar callback `onDelete` para o card e conectar à mutation.
+### 1. Migration SQL (1 arquivo)
 
-### 2. Arquivo anexado disponível para abrir/baixar
+Criar as 8 tabelas com RLS usando `has_role()` (não `auth.role()` genérico):
 
-Atualmente, o botão "Abrir documento" só aparece quando `source_url` existe. Para arquivos (PDF/DOCX) uploaded via storage, o botão não aparece.
+- `ciclos_avaliacao` — ciclos de avaliação
+- `metas` — metas hierárquicas (empresa/equipe/individual)
+- `kpis_meta` — KPIs vinculados a metas
+- `atualizacoes_meta` — histórico de progresso
+- `analises_semestrais` — análises semestrais por membro
+- `feedbacks` — feedbacks contínuos
+- `reunioes_1a1` — registros de reuniões 1:1
+- `itens_acao_1a1` — itens de ação das 1:1s
 
-**Card** (`ProcedimentoCard.tsx`): Quando `arquivo_path` existe e `source_url` é null, gerar URL assinada via `supabase.storage.from('sop-documents').createSignedUrl(arquivo_path, 3600)` e exibir botão "Baixar documento" (ícone `Download`). O botão ficará no mesmo local do "Abrir documento", cobrindo ambos os cenários.
+Políticas RLS para todas: SELECT/INSERT/UPDATE/DELETE restrito a `has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'lider')`.
 
-**ReviewModal** (`ReviewProcedimentoModal.tsx`): Adicionar link para abrir/baixar o documento fonte na seção de preview.
+Triggers `update_updated_at_column` em todas as tabelas com `updated_at`.
 
-### 3. Gerar imagem de capa com IA
+---
 
-**Migration SQL**: Adicionar coluna `ai_cover_url text` na tabela `procedimentos`.
+### 2. Controle de acesso
 
-**Edge Function** (`processar-procedimento/index.ts`): Após a análise de texto bem-sucedida (Step 2), adicionar Step 3 que gera uma imagem de capa usando o modelo `google/gemini-3.1-flash-image-preview`:
-- Prompt baseado no título e processos retornados pela IA (ex: "Create a professional cover illustration for a tax procedure about: {titulo}. Style: clean, modern, flat illustration with blue/teal tones.")
-- Upload da imagem gerada para o bucket `sop-documents` no path `procedimentos/covers/{id}.png`
-- Salvar o `arquivo_path` da capa no campo `ai_cover_url`
+**`DesempenhoAccessGate`** (`src/components/desempenho/DesempenhoAccessGate.tsx`):
+- Verifica `isAdmin || isLider` do AuthContext
+- Se não autorizado, redireciona para `/equipe/digital` silenciosamente
+- Se não logado, mostra tela de login (reutiliza padrão GestaoAccessGate)
 
-**Hook** (`useProcedimentos.ts`): Adicionar `ai_cover_url` na interface `Procedimento`.
+---
 
-**Card** (`ProcedimentoCard.tsx`): Renderizar a imagem de capa no topo do card (antes dos chips de processo), com aspect-ratio fixo e `object-cover`. Se não existir, manter o layout atual sem imagem.
+### 3. Layout e navegação
 
-### Arquivos afetados
+**`DesempenhoLayout`** (`src/components/desempenho/DesempenhoLayout.tsx`):
+- Sidebar com 6 itens: Visão Geral, Ciclos, Metas, Feedbacks, 1:1s, Evolução
+- Ícone `Target` no header
+- Mesmo padrão visual do GestaoLayout (sidebar colapsável, header com ações)
+
+**`GestaoLayout.tsx`** — adicionar item "Desempenho" (ícone `Target`) no `navItems`, visível apenas para admin/lider (verificação via useAuth).
+
+---
+
+### 4. Hooks (novos arquivos em `src/hooks/`)
+
+| Hook | Responsabilidade |
+|------|-----------------|
+| `useCiclosAvaliacao.ts` | CRUD ciclos + encerramento |
+| `useMetasDesempenho.ts` | CRUD metas + atualização progresso + classificação |
+| `useKpisMeta.ts` | CRUD KPIs vinculados a metas |
+| `useFeedbacksDesempenho.ts` | CRUD feedbacks |
+| `useReunioes1a1.ts` | CRUD reuniões + itens de ação |
+| `useAnalisesSemestrais.ts` | CRUD análises semestrais |
+| `useDesempenhoOverview.ts` | Dados agregados para Visão Geral |
+
+Todos com `useAuditLog.logAction` nas mutações.
+
+---
+
+### 5. Páginas (em `src/pages/gerencial/desempenho/`)
+
+| Página | Rota | Conteúdo |
+|--------|------|----------|
+| `DesempenhoVisaoGeral.tsx` | `/gerencial/desempenho/` | KPIs, metas equipe, progresso individual, alertas |
+| `DesempenhoCiclos.tsx` | `/gerencial/desempenho/ciclos/` | Tabela ciclos, modal novo ciclo, detalhe com gauge |
+| `DesempenhoMetas.tsx` | `/gerencial/desempenho/metas/` | Árvore hierárquica, filtros, modais CRUD/progresso/classificação |
+| `DesempenhoFeedbacks.tsx` | `/gerencial/desempenho/feedbacks/` | Duas abas, tabela, modal registro |
+| `DesempenhoReuniones1a1.tsx` | `/gerencial/desempenho/1a1/` | Grid membros, histórico, modal registro, painel ações |
+| `DesempenhoEvolucao.tsx` | `/gerencial/desempenho/evolucao/` | Gráficos Recharts, heatmap, projeção PPR |
+
+---
+
+### 6. Componentes (em `src/components/desempenho/`)
+
+- `DesempenhoAccessGate.tsx` — controle de acesso
+- `DesempenhoLayout.tsx` — layout com sidebar
+- `CicloFormModal.tsx` — criar/editar ciclo
+- `CicloDetailModal.tsx` — detalhe com gauge e análise semestral
+- `MetaFormModal.tsx` — criar/editar meta com KPIs
+- `MetaProgressModal.tsx` — atualizar progresso
+- `MetaClassificacaoModal.tsx` — classificação final
+- `AnaliseSemestralModal.tsx` — análise semestral por membro
+- `FeedbackFormModal.tsx` — registrar feedback
+- `Reuniao1a1FormModal.tsx` — registrar 1:1 com itens de ação
+- `PPRProjectionCard.tsx` — card de projeção PPR
+- `ContributionHeatmap.tsx` — heatmap estilo GitHub
+
+---
+
+### 7. Rotas em `App.tsx`
+
+6 novas rotas, todas protegidas por `DesempenhoAccessGate`:
+
+```
+/gerencial/desempenho/ → DesempenhoVisaoGeral
+/gerencial/desempenho/ciclos/ → DesempenhoCiclos
+/gerencial/desempenho/metas/ → DesempenhoMetas
+/gerencial/desempenho/feedbacks/ → DesempenhoFeedbacks
+/gerencial/desempenho/1a1/ → DesempenhoReuniones1a1
+/gerencial/desempenho/evolucao/ → DesempenhoEvolucao
+```
+
+---
+
+### 8. Registro em `protectedPages.ts`
+
+6 entradas com category `'gestao'`, `requires_admin: false`, `requires_team_member: true`.
+
+---
+
+### 9. `useAuditLog.ts`
+
+Adicionar entity types: `'ciclo_avaliacao'`, `'meta'`, `'kpi_meta'`, `'feedback'`, `'reuniao_1a1'`, `'analise_semestral'`.
+
+---
+
+### Arquivos afetados (resumo)
 
 | Ação | Arquivo |
 |------|---------|
-| Migration | Nova migration (ADD COLUMN `ai_cover_url`) |
-| Editar | `supabase/functions/processar-procedimento/index.ts` |
-| Editar | `src/hooks/useProcedimentos.ts` |
-| Editar | `src/components/equipe/dev/procedimentos/ProcedimentoCard.tsx` |
-| Editar | `src/components/equipe/dev/procedimentos/ReviewProcedimentoModal.tsx` |
-| Editar | `src/pages/equipe/dev/ProcedimentosDev.tsx` |
+| Novo | Migration SQL (8 tabelas) |
+| Novo | `src/components/desempenho/DesempenhoAccessGate.tsx` |
+| Novo | `src/components/desempenho/DesempenhoLayout.tsx` |
+| Novo | `src/components/desempenho/CicloFormModal.tsx` |
+| Novo | `src/components/desempenho/CicloDetailModal.tsx` |
+| Novo | `src/components/desempenho/MetaFormModal.tsx` |
+| Novo | `src/components/desempenho/MetaProgressModal.tsx` |
+| Novo | `src/components/desempenho/MetaClassificacaoModal.tsx` |
+| Novo | `src/components/desempenho/AnaliseSemestralModal.tsx` |
+| Novo | `src/components/desempenho/FeedbackFormModal.tsx` |
+| Novo | `src/components/desempenho/Reuniao1a1FormModal.tsx` |
+| Novo | `src/components/desempenho/PPRProjectionCard.tsx` |
+| Novo | `src/components/desempenho/ContributionHeatmap.tsx` |
+| Novo | `src/hooks/useCiclosAvaliacao.ts` |
+| Novo | `src/hooks/useMetasDesempenho.ts` |
+| Novo | `src/hooks/useKpisMeta.ts` |
+| Novo | `src/hooks/useFeedbacksDesempenho.ts` |
+| Novo | `src/hooks/useReunioes1a1.ts` |
+| Novo | `src/hooks/useAnalisesSemestrais.ts` |
+| Novo | `src/hooks/useDesempenhoOverview.ts` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoReuniones1a1.tsx` |
+| Novo | `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` |
+| Editar | `src/App.tsx` (6 rotas) |
+| Editar | `src/components/gestao/GestaoLayout.tsx` (1 item sidebar condicional) |
+| Editar | `src/config/protectedPages.ts` (6 entradas) |
+| Editar | `src/hooks/useAuditLog.ts` (entity types) |
+
+### O que NÃO muda
+- Nenhuma aba, rota ou componente existente é alterado funcionalmente
+- Nenhuma tabela existente é modificada
+- GestaoAccessGate permanece inalterado
+- Todas as rotas `/gestao/*` continuam funcionando normalmente
+
+### Estratégia de implementação
+Devido ao volume (~30 arquivos novos), a implementação será dividida em 3 blocos sequenciais:
+1. **Bloco 1**: Migration + Access Gate + Layout + Hooks + Rotas
+2. **Bloco 2**: Páginas Visão Geral + Ciclos + Metas (com todos os modais)
+3. **Bloco 3**: Páginas Feedbacks + 1:1s + Evolução (com gráficos Recharts)
 
