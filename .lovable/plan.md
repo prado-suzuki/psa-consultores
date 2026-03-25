@@ -1,106 +1,160 @@
 
 
-## Plano: Refatorar 3 paginas do Board para Design System v3 com dados reais
+## Plano: Filtros consistentes, persistentes e responsivos no modulo Board
 
-Substituir o conteudo visual das paginas Dashboard, Performance e Desempenho/Visao Geral para corresponder exatamente ao HTML de referencia v3, mantendo os hooks de dados existentes e sem alterar nenhuma outra pagina ou rota.
-
----
-
-### Fase 1 — CSS: Adicionar classes v3 faltantes ao `index.css`
-
-Adicionar ~120 linhas de classes que existem no HTML de referencia mas nao no CSS atual. As classes `board-*` existentes (v2) permanecem para compatibilidade com outras paginas. Novas classes v3 usam nomes curtos do HTML:
-
-- **Tipografia**: `.pgt`, `.pgs`, `.sct`, `.scl` — titulos/subtitulos de pagina e secao
-- **KPI v3**: `.kpi`, `.ktb`, `.ki`, `.kv`, `.kl`, `.ksubs`, `.ksub`, `.dot`, `.tr`, `.tr-u`, `.tr-d`, `.tr-n` — cards com topbar colorida e trend badges
-- **Chips**: `.ch`, `.c-tax`, `.c-osg`, `.c-dev`, `.c-ok`, `.c-w`, `.c-er`, `.c-in`, `.c-ppr-s/a/p/b` — chips coloridos por area e classificacao
-- **Progress**: `.pb`, `.pb6`, `.pb4`, `.pb3`, `.pbf`, `.pg`, `.pa`, `.pr`, `.pi`, `.pp` — barras de progresso com cores semanticas
-- **AI Box**: `.ai`, `.ai-lbl`, `.ai-txt`, `.ai-bul`, `.ai-b` — caixa de analise IA
-- **Alertas**: `.al`, `.al-r`, `.al-a`, `.al-b`, `.al-t`, `.al-d`, `.al-act` — cards de alerta com borda colorida
-- **Tabela**: `.tw`, `table/thead/tbody` v3 styles — tabela nativa estilizada
-- **Score/Ranking**: `.sr`, `.srk`, `.srb`, `.srn`, `.srv` — linhas de ranking com posicao, barra e valor
-- **Member cards**: `.mc`, `.mc.warn`, `.mch`, `.mc-n`, `.mc-r`, `.mcs`, `.mcs-v`, `.mcs-l` — cards de membro
-- **Filtros**: `.fi`, `.fi-s`, `.segs`, `.seg`, `.seg.on`, `.fbar` — controles nativos estilizados
-- **Cycle bar**: `.cyb`, `.cyb-n`, `.cyb-m`, `.cyb-pb`, `.cyb-pbf`, `.cyb-bt` — barra de progresso do ciclo
-- **Strategic numbers**: `.snum`, `.snum-label`, `.snum-sub` — numeros grandes 42px
-- **Sparkline**: `.spark`, `.spb` — mini barras de tendencia
-- **Heatmap**: `.hm`, `.hmc`, `.hmc.h1/h2/h3/h4` — celulas de mapa de calor
-- **Metric row**: `.mr`, `.mr-t`, `.mr-m`, `.mr-p` — linhas de metrica
-- **Avatars**: `.av`, `.av-xs/sm/md/lg/xl`, `.av-pm/ba/gf/ac/hs/mc` — avatares com gradientes por pessoa
-- **Grids**: `.g2`, `.g3`, `.g4`, `.g5`, `.mb12`, `.mb16` — helpers de layout
-- **Cards**: `.card`, `.card-p0` — card base v3
-
-Todas essas classes replicam exatamente o CSS do HTML de referencia (linhas 8-390).
+Adicionar `BoardFilterBar` reutilizavel, hook `useBoardFilters` com persistencia em sessionStorage, e integrar filtros funcionais em todas as 10 paginas do Board. Nenhuma rota, hook de dados ou logica existente sera removida.
 
 ---
 
-### Fase 2 — Dashboard Estrategico (`BoardDashboard.tsx`)
+### Fase 1 — Infraestrutura (2 arquivos novos)
 
-Reescrever o componente mantendo os hooks existentes (`usePerformanceData`, `useCicloAtivo`, `useDesempenhoOverview`, `useDecisoesData`).
+**`src/hooks/useBoardFilters.ts`**
+- Recebe `pageKey` e `defaultValues: Record<string, string | string[]>`
+- Inicializa estado a partir de `sessionStorage.getItem('board-filters-{pageKey}')` ou defaults
+- `setFilter(key, value)`, `resetFilters()`, `activeCount` (filtros != default)
+- `useEffect` para persistir em sessionStorage a cada mudanca
+- Exporta `filters`, `setFilter`, `resetFilters`, `activeCount`
 
-**Mudancas visuais:**
-- Header: usar `.pgt` e `.pgs` em vez de classes inline. Chips de status com `.ch .c-er`, `.ch .c-w`, `.ch .c-ok`
-- KPIs: trocar de 5 cards `.board-kpi` para 5 cards `.card` com `.snum` (42px Syne), `.snum-label`, `.snum-sub` e `.spark`/`.spb` para sparklines. Cores: Projetos=#5B6EF0, Economia=#13A87A, Pontualidade=#7A50EE, Metas=#E8920A, Membros=#0A1020
-- AI Box: trocar de `.board-ai-box` para `.ai` com `.ai-lbl`, `.ai-txt`, `.ai-bul`, `.ai-b`
-- Charts: manter Recharts BarChart e AreaChart mas ajustar cores para v3 (#3680F6 Tax, #13A87A OSG, #7A50EE Dev) e dimensoes (height=160)
-- Projetos Criticos: trocar para `.mr` rows com `.ch` de area, `.pb .pb6` de progresso, `.mr-p` de percentual e `.ch .c-er/.c-w` de decisao
-- Performance Ranking: trocar para `.sr` rows com `.srk`, avatar `.av .av-sm`, `.srb`, `.srn`, `.pb .pb6`, `.srv` e `.ch .c-ppr-*`
-
-**Dados:** Nenhuma mudanca nos hooks — apenas no template JSX.
-
----
-
-### Fase 3 — Performance (`PerformanceDashboard.tsx`)
-
-Reescrever completamente, integrando toda a logica dos sub-componentes inline (eliminar imports de `PerformanceKPICards`, `ProjectsBlock`, `AreaComparisonBlock`, `TeamContributionBlock`, `AutomationImpactBlock`, `CycleGoalsBlock`). Os arquivos dos sub-componentes permanecem no disco para nao quebrar outros imports, mas o dashboard nao os usa mais.
-
-**Layout v3:**
-1. **Filter bar**: `.card` com `.segs`/`.seg` para periodo, divider vertical, label "AREA" com `<select class="fi">`, timestamp e botao "Atualizar" com `.btn .btn-g`
-2. **5 KPIs**: Grid 5 colunas com `.kpi`, `.ktb`, `.ki`, `.kv`, `.kl`, `.ksubs`, `.ksub`, `.dot`, `.tr`
-3. **Grid g2 charts**: BarChart (3 meses Tax/OSG/Dev) com `.card`/`.sct` + AreaChart ROI vs Meta com ReferenceLine dourada
-4. **Tabela de Projetos**: `.card` com `.sct` + `.fi`/`.segs` inline, `<table>` nativa com `.tw`, `.pb .pb6`, `.ch .c-tax/osg/dev`, avatar `.av .av-xs`, `.ch .c-ok/.c-w/.c-er`
-5. **Contribuicao Individual**: `.card` com `.sct` + `.fi`/`.segs`, `.sr` rows com ranking, avatar, barra, valor, chip PPR. Heatmap abaixo com `.hm`/`.hmc` classes
-
-**Dados:** Usa `usePerformanceData` existente. Calculos de metrica (pontualidade, tempo medio, etc.) inline no componente.
+**`src/components/board/BoardFilterBar.tsx`**
+- Props: `FilterConfig[]`, `activeFilters`, `onFilterChange`, `onReset`, `rightSlot`, `resultCount?`, `totalCount?`
+- Renderiza filtros em linha com `flex-wrap gap-8px` dentro de card branco v3
+- Tipos: `select` (native `<select class="fi">`), `multiselect` (popover com checkboxes), `search` (input com debounce 300ms), `daterange` (dois inputs date), `segmented` (`.v3-segs`/`.v3-seg`)
+- Badge "N filtros ativos" em indigo quando `activeCount > 0`
+- Botao "Limpar filtros" condicional
+- Texto "Exibindo N de M itens" quando `resultCount < totalCount`
+- Estado vazio: icone FilterX + "Nenhum resultado" + botao limpar
+- **Mobile (<768px)**: Colapsa em botao "Filtros (N)" que abre Drawer com filtros empilhados verticalmente, botoes "Aplicar" e "Limpar" fixos no rodape
+- Acessibilidade: `aria-label` em selects, `aria-live="polite"` no badge de contagem
 
 ---
 
-### Fase 4 — Desempenho/Visao Geral (`DesempenhoVisaoGeral.tsx`)
+### Fase 2 — Dashboard Estrategico
 
-Reescrever o componente mantendo todos os hooks existentes (`useCiclosAvaliacao`, `useCicloAtivo`, `useDesempenhoOverview`, `useMetas`, `useFeedbacks`, `useReunioes`, `useAllOpenItensAcao`).
-
-**Layout v3:**
-1. **Header**: `.pgt` + `.pgs` com fases do ciclo. `<select class="fi">` para ciclo alinhado a direita
-2. **Cycle bar**: `.cyb` com gradiente escuro, `.cyb-n` nome, `.cyb-m` info, `.cyb-pb`/`.cyb-pbf` barra, `.cyb-bt` rodape com 3 spans
-3. **4 KPIs**: Grid `.g4` com `.kpi`, `.ktb`, `.kv` (20px), `.kl`, `.ksubs`, `.dot`, `.tr` — Total Metas (indigo), Media Progresso (ambar), Feedbacks (roxo), 1:1s (ciano)
-4. **Grid g2**: AI box (`.ai`) com analise do ciclo + Alertas card (`.card`) com `.al .al-r/.al-a/.al-b` rows
-5. **Member cards**: `.scl` label + `.g3` grid com `.mc` cards — avatar `.av .av-lg`, `.mc-n`, `.mc-r`, `.ch .c-ppr-*`, `.pb .pb6`, `.mcs`/`.mcs-v`/`.mcs-l` para metricas inline. Cards com `.mc.warn` quando classificacao < atende
-
-**AI box:** Chamar edge function `gerar-sintese-executiva` existente. Fallback: texto estatico baseado em dados calculados (% decorrido, media, membros em risco).
-
-**Dados:** Mantidos como estao. O `pprPorMembro` e os `alertas` ja sao calculados — apenas o template muda.
+Adicionar `useBoardFilters('dashboard', { periodo: '30d', area: 'todas' })`.
+- **Periodo** (segmented): Filtra `usePerformanceData(periodo, area)` — ja aceita esses params
+- **Area** (select): Filtra projetos criticos e ranking de equipe via `useMemo`
+- Graficos nao filtram por area (apenas periodo)
 
 ---
 
-### Fase 5 — Heatmap (`ActivityHeatmap.tsx`)
+### Fase 3 — Performance
 
-Refatorar para usar classes v3 `.hm`/`.hmc`/`.hmc.h1/h2/h3/h4` em vez de cores inline verdes. Grid 13x7 (13 semanas). Cores em tons de indigo (rgba(91,110,240,.2/.45/.68/.92)) conforme HTML.
+Substituir os estados `periodo`/`area`/`searchTerm`/`statusFilter` por `useBoardFilters('performance', ...)`.
+- **Filtros globais**: Periodo (segmented) + Area (select) — ja passados ao `usePerformanceData`
+- **Filtros da tabela de projetos**: Search (debounce 300ms), Status (multiselect), Area local, Responsavel (select extraido dos dados), Ordenacao (select)
+- **Filtros de contribuicao**: Area local, Metrica (segmented: Tarefas/Pontualidade/Projetos)
+- Todos filtram via `useMemo` sobre os dados ja carregados — sem queries adicionais
 
 ---
 
-### Arquivos modificados
+### Fase 4 — Desempenho Visao Geral
+
+Substituir `selectedCicloId` por `useBoardFilters('desempenho-geral', { ciclo: '', area: 'todas', alertas: 'todos' })`.
+- **Ciclo** (select): Ja existe, integrar no BoardFilterBar
+- **Area** (select): Filtra `pprPorMembro` via `useMemo`
+- **Status de alerta** (segmented): Todos / Com alertas — filtra member cards
+
+---
+
+### Fase 5 — Desempenho Metas
+
+Substituir filtros existentes (`nivelFilter`, `dimensaoFilter`, etc.) por `useBoardFilters('desempenho-metas', ...)`.
+- **Ciclo**, **Nivel** (multiselect), **Dimensao** (multiselect com chips coloridos), **Responsavel**, **Status**, **Progresso** (select faixas)
+- Filtros ja existem parcialmente — migrar para BoardFilterBar e adicionar Progresso
+
+---
+
+### Fase 6 — Desempenho Decisoes
+
+Adicionar `useBoardFilters('desempenho-decisoes', { ciclo: '', tipo: [], area: 'todas', status: 'pendentes' })`.
+- **Tipo recomendacao** (multiselect com chips coloridos)
+- **Area** (select)
+- **Status** (segmented): Todas/Pendentes/Confirmadas/Ignoradas
+- Filtrar cards via `useMemo`
+
+---
+
+### Fase 7 — Desempenho Relatorios
+
+Integrar controles existentes (`selectedMembro`, `selectedCiclo`, `selectedTipo`) com `useBoardFilters('desempenho-relatorios', ...)`.
+- Tornar coerente com BoardFilterBar visual
+- Botao "Gerar com IA" habilitado apenas quando membro selecionado
+- "Exportar PDF" visivel apenas apos geracao
+
+---
+
+### Fase 8 — Desempenho Evolucao
+
+Adicionar `useBoardFilters('desempenho-evolucao', { membro: '', ciclos: [], foco: 'geral' })`.
+- **Membro** (select obrigatorio com avatar)
+- **Ciclos exibidos** (multiselect)
+- **Foco** (segmented): Geral/Metas/Feedbacks/1:1s — colapsa blocos nao focados
+- Empty state quando nenhum membro selecionado
+
+---
+
+### Fase 9 — Desempenho Feedbacks
+
+Adicionar `useBoardFilters('desempenho-feedbacks', { ciclo: '', tipo: [], de: '', para: '', anonimo: 'todos' })`.
+- **Ciclo**, **Tipo** (multiselect chips), **De** (select avatar), **Para** (select avatar), **Anonimo** (segmented)
+- Filtrar feedbacks via `useMemo`
+- Na aba "Por membro": filtros de Tipo e Periodo se aplicam simultaneamente
+
+---
+
+### Fase 10 — Desempenho 1:1s
+
+Adicionar `useBoardFilters('desempenho-1a1', { ciclo: '', membro: '', cadencia: 'todos', itens: 'qualquer', agrupamento: 'membro', statusItem: ['aberto','vencido'] })`.
+- **Membro** (select): Filtra cards e abre historico automaticamente
+- **Status cadencia** (segmented): Em dia/Atencao/Critico
+- **Itens de acao** (segmented): Com/Sem abertos
+- **Agrupamento** do painel de itens (segmented): Por membro/Por prazo
+- **Status item** (multiselect)
+
+---
+
+### Fase 11 — Minha Evolucao
+
+Adicionar `useBoardFilters('minha-evolucao', { ciclo: '', dimensao: [], statusMeta: 'todas' })`.
+- **Ciclo** (select): Ja existe, migrar
+- **Dimensao** (multiselect): Filtra lista de metas
+- **Status** (segmented): Todas/Em andamento/Concluidas/Em risco
+
+---
+
+### Fase 12 — CSS
+
+Adicionar ao `index.css`:
+- `.v3-fbar` — wrapper da filter bar
+- `.v3-fi-badge` — badge de filtros ativos
+- `.v3-fi-count` — texto de contagem de resultados
+- `.v3-fi-empty` — estado vazio por filtro
+- `.v3-fi-drawer` — drawer mobile
+- Media query `@media (max-width: 767px)` para colapso dos filtros
+
+---
+
+### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Editar | `src/index.css` — adicionar ~120 linhas de classes v3 |
-| Reescrever | `src/pages/equipe/board/BoardDashboard.tsx` |
-| Reescrever | `src/pages/gerencial/performance/PerformanceDashboard.tsx` |
-| Reescrever | `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` |
-| Editar | `src/components/performance/ActivityHeatmap.tsx` — usar classes v3 |
+| Criar | `src/hooks/useBoardFilters.ts` |
+| Criar | `src/components/board/BoardFilterBar.tsx` |
+| Editar | `src/pages/equipe/board/BoardDashboard.tsx` |
+| Editar | `src/pages/gerencial/performance/PerformanceDashboard.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoDecisoes.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoRelatorios.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` |
+| Editar | `src/pages/gerencial/desempenho/MinhaEvolucao.tsx` |
+| Editar | `src/index.css` |
 
 ### O que NAO muda
-- Nenhuma rota
-- Nenhum hook de dados
-- Sub-componentes em `src/components/performance/` permanecem no disco (outros imports podem depender deles)
-- Todas as demais paginas do sistema
-- Sidebar, layout, navegacao
+- Nenhuma rota ou navegacao
+- Nenhum hook de dados existente (usePerformanceData, useMetas, etc.)
+- Nenhuma tabela Supabase
+- Sidebar, layout, componentes UI reutilizaveis
 
