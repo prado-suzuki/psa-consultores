@@ -2305,6 +2305,7 @@ export type Database = {
       performance_preferencias: {
         Row: {
           area_padrao: string | null
+          dashboard_layout: Json | null
           id: string
           periodo_padrao: string | null
           updated_at: string | null
@@ -2313,6 +2314,7 @@ export type Database = {
         }
         Insert: {
           area_padrao?: string | null
+          dashboard_layout?: Json | null
           id?: string
           periodo_padrao?: string | null
           updated_at?: string | null
@@ -2321,6 +2323,7 @@ export type Database = {
         }
         Update: {
           area_padrao?: string | null
+          dashboard_layout?: Json | null
           id?: string
           periodo_padrao?: string | null
           updated_at?: string | null
