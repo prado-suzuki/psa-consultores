@@ -44,8 +44,6 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
     { icon: Newspaper, label: 'Novidades', path: '/gestao' },
     { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
     { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
-    ...((isAdmin || isLider) ? [{ icon: Target, label: 'Desempenho', path: '/gerencial/desempenho' }] : []),
-    ...((isAdmin || isLider) ? [{ icon: BarChart3, label: 'Performance', path: '/gerencial/performance' }] : []),
   ];
 
   const handleSignOut = async () => {
