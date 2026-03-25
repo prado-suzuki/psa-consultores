@@ -99,20 +99,17 @@ export type Database = {
       }
       area_servicos: {
         Row: {
-          area_id: string
-          estrutura_area_id: string | null
+          estrutura_area_id: string
           id: string
           servico_id: string
         }
         Insert: {
-          area_id: string
-          estrutura_area_id?: string | null
+          estrutura_area_id: string
           id?: string
           servico_id: string
         }
         Update: {
-          area_id?: string
-          estrutura_area_id?: string | null
+          estrutura_area_id?: string
           id?: string
           servico_id?: string
         }
@@ -122,13 +119,6 @@ export type Database = {
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_area_categorias_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "tax_areas"
             referencedColumns: ["id"]
           },
           {
@@ -3933,32 +3923,6 @@ export type Database = {
           },
         ]
       }
-      tax_areas: {
-        Row: {
-          estrutura_area_id: string | null
-          id: string
-          nome: string
-        }
-        Insert: {
-          estrutura_area_id?: string | null
-          id?: string
-          nome: string
-        }
-        Update: {
-          estrutura_area_id?: string | null
-          id?: string
-          nome?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_areas_estrutura_area_id_fkey"
-            columns: ["estrutura_area_id"]
-            isOneToOne: false
-            referencedRelation: "estrutura_areas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tax_project_members: {
         Row: {
           created_at: string
@@ -3993,7 +3957,6 @@ export type Database = {
       }
       tax_projects: {
         Row: {
-          area_id: string | null
           contribuinte_id: string | null
           created_at: string | null
           created_by: string | null
@@ -4013,7 +3976,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          area_id?: string | null
           contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4033,7 +3995,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          area_id?: string | null
           contribuinte_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4053,13 +4014,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "tax_projects_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "tax_areas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "tax_projects_created_by_fkey"
             columns: ["created_by"]
