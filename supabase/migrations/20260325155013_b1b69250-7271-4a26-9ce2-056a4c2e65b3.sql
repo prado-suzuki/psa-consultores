@@ -1,0 +1,1 @@
+ALTER TABLE public.tax_projects ADD COLUMN servico_id uuid REFERENCES public.servicos_prestados(id);

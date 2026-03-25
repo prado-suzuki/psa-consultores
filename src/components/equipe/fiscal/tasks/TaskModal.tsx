@@ -65,7 +65,6 @@ const taskSchema = z.object({
   parent_task_id: z.string().optional(),
   project_id: z.string().min(1, 'Projeto é obrigatório'),
   client_id: z.string().optional(),
-  servico_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0').optional().or(z.literal('')),
 });
@@ -199,57 +198,6 @@ export const TaskModal = ({
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
     : parentTasks;
 
-  // Local interfaces for type safety
-  interface OrdemServicoRow { id: string; id_produto_segmento: string | null }
-  interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
-
-  // Step 1: fetch projeto → ordem_servico_id → id_produto_segmento
-  const { data: produtoSegmentoId } = useQuery({
-    queryKey: ['project-os-produto', watchedProjectId],
-    queryFn: async () => {
-      const { data: proj } = await supabase
-        .from('tax_projects')
-        .select('ordem_servico_id')
-        .eq('id', watchedProjectId!)
-        .single();
-      if (!proj?.ordem_servico_id) return null;
-
-      const { data: os } = await supabase
-        .from('ordem_servico')
-        .select('id, id_produto_segmento')
-        .eq('id', proj.ordem_servico_id)
-        .single() as { data: OrdemServicoRow | null; error: unknown };
-      return os?.id_produto_segmento || null;
-    },
-    enabled: open && !!watchedProjectId,
-  });
-
-  // Step 2: fetch serviços vinculados ao produto via produto_servico
-  const { data: categorias = [] } = useQuery({
-    queryKey: ['fiscal-task-servicos-by-produto', produtoSegmentoId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('produto_servico')
-        .select('servico_prestado_id, servico:servicos_prestados(id, nome)')
-        .eq('produto_segmento_id', produtoSegmentoId!) as {
-          data: ProdutoServicoRow[] | null; error: unknown;
-        };
-      if (error) throw error;
-      return (data || [])
-        .map(r => r.servico)
-        .filter((s): s is { id: string; nome: string } => !!s);
-    },
-    enabled: open && !!produtoSegmentoId,
-  });
-
-  // Derived state for the Serviço field
-  const servicoFieldDisabled = !!watchedProjectId && !produtoSegmentoId;
-  const servicoPlaceholder = !watchedProjectId
-    ? "Selecione um projeto primeiro"
-    : servicoFieldDisabled
-      ? "Cadastre uma OS com produto no projeto"
-      : "Selecione o serviço";
-
   // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {
     if (isResettingRef.current) {
@@ -260,9 +208,6 @@ export const TaskModal = ({
     if (prevProjectIdRef.current === watchedProjectId) return;
     prevProjectIdRef.current = watchedProjectId;
 
-    if (form.getValues('servico_id') !== undefined) {
-      form.setValue('servico_id', undefined);
-    }
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
@@ -302,7 +247,6 @@ export const TaskModal = ({
         parent_task_id: task.parent_task_id || undefined,
         project_id: task.project_id || '',
         client_id: task.client_id || undefined,
-        servico_id: task.servico_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
       });
@@ -323,7 +267,6 @@ export const TaskModal = ({
           parent_task_id: defaultParentId || undefined,
           project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
-          servico_id: undefined,
         });
       }
     }
@@ -354,7 +297,6 @@ export const TaskModal = ({
       parent_task_id: values.parent_task_id,
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
-      servico_id: values.servico_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
     };
@@ -485,33 +427,6 @@ export const TaskModal = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="servico_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serviço</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                      value={field.value || '_none'}
-                      disabled={!watchedProjectId || servicoFieldDisabled}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={servicoPlaceholder} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="_none">Nenhum</SelectItem>
-                        {categorias.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* ── SEÇÃO 2: TAREFA ───────────────────────────────────── */}

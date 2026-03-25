@@ -47,6 +47,7 @@ export interface TaxProjectFormData {
   estrutura_area_id: string;
   member_ids: string[];
   ordem_servico_id: string;
+  servico_id: string;
 }
 
 // ── Queries ────────────────────────────────────────────────────────────
@@ -201,6 +202,7 @@ export const useCreateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
         ordem_servico_id: data.ordem_servico_id || null,
+        servico_id: data.servico_id || null,
         created_by: user?.id || null,
       }).select('id').single();
       if (error) throw error;
@@ -256,6 +258,7 @@ export const useUpdateTaxProject = () => {
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
         ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
+        ['servico_id', (oldProject as any).servico_id || null, data.servico_id || null],
       ];
       for (const [field, oldVal, newVal] of comparisons) {
         if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
@@ -281,6 +284,7 @@ export const useUpdateTaxProject = () => {
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
         ordem_servico_id: data.ordem_servico_id || null,
+        servico_id: data.servico_id || null,
       }).eq('id', id);
       if (error) throw error;
 

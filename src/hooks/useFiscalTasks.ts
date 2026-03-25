@@ -29,16 +29,14 @@ export interface FiscalTask {
    parent_task_id: string | null;
   start_date: string | null;
   project_id: string | null;
-   client_id: string | null;
-   servico_id: string | null;
-   contribuinte_id: string | null;
+    client_id: string | null;
+    contribuinte_id: string | null;
     created_at: string;
     updated_at: string;
    // Joined data
    project?: { id: string; name: string } | null;
-   client?: { id: string; nome: string } | null;
-   servico?: { id: string; nome: string } | null;
-  contribuinte?: { id: string; nome_razao_social: string } | null;
+    client?: { id: string; nome: string } | null;
+   contribuinte?: { id: string; nome_razao_social: string } | null;
  }
  
  export interface FiscalTaskComment {
@@ -80,9 +78,8 @@ export interface TaskFilters {
    estimated_hours?: number;
    parent_task_id?: string;
   project_id?: string;
-  client_id?: string;
-   servico_id?: string;
-   contribuinte_id?: string;
+   client_id?: string;
+    contribuinte_id?: string;
  }
  
  export const useFiscalTasks = (filters?: TaskFilters) => {
@@ -93,13 +90,12 @@ export interface TaskFilters {
      queryFn: async () => {
        let query = supabase
          .from('fiscal_tasks')
-         .select(`
-            *,
-            project:tax_projects(id, name),
-            client:cliente(id, nome),
-            servico:servicos_prestados(id, nome),
-            contribuinte:contribuinte(id, nome_razao_social)
-          `)
+          .select(`
+             *,
+             project:tax_projects(id, name),
+             client:cliente(id, nome),
+             contribuinte:contribuinte(id, nome_razao_social)
+           `)
          .order('created_at', { ascending: false });
  
        if (filters?.search) {

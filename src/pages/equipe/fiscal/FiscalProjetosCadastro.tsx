@@ -51,6 +51,8 @@ import {
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
@@ -76,6 +78,7 @@ const emptyForm = {
   estrutura_area_id: '',
   member_ids: [] as string[],
   ordem_servico_id: '',
+  servico_id: '',
 };
 
 const FiscalProjetosCadastro = () => {
@@ -191,6 +194,29 @@ const FiscalProjetosCadastro = () => {
 
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
 
+  // Resolve produto from selected OS for service filtering
+  const selectedOs = useMemo(() => clienteOS.find(o => getOsId(o) === selectedOsId), [clienteOS, selectedOsId]);
+  const selectedProdutoId = selectedOs?.id_produto_segmento || null;
+
+  // Fetch serviços vinculados ao produto da OS selecionada
+  interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
+  const { data: servicosByProduto = [] } = useQuery({
+    queryKey: ['project-servicos-by-produto', selectedProdutoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('produto_servico')
+        .select('servico_prestado_id, servico:servicos_prestados(id, nome)')
+        .eq('produto_segmento_id', selectedProdutoId!) as {
+          data: ProdutoServicoRow[] | null; error: unknown;
+        };
+      if (error) throw error;
+      return (data || [])
+        .map(r => r.servico)
+        .filter((s): s is { id: string; nome: string } => !!s);
+    },
+    enabled: !!selectedProdutoId,
+  });
+
   // Auto-select when single OS
   useEffect(() => {
     if (!formData.external_client_id) {
@@ -202,9 +228,9 @@ const FiscalProjetosCadastro = () => {
     }
   }, [clienteOS, formData.external_client_id]);
 
-  // Sync ordem_servico_id + auto-fill dates from selected OS
+  // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico
   useEffect(() => {
-    setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '' }));
+    setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
     if (!selectedOsId || editingProject) return;
     const os = clienteOS.find((o) => getOsId(o) === selectedOsId);
     if (!os) return;
@@ -287,6 +313,7 @@ const FiscalProjetosCadastro = () => {
         estrutura_area_id: project.estrutura_area_id || '',
         member_ids: [],
         ordem_servico_id: project.ordem_servico_id || '',
+        servico_id: (project as any).servico_id || '',
       });
     } else {
       setEditingProject(null);
@@ -677,6 +704,32 @@ const FiscalProjetosCadastro = () => {
                         </p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Serviço (filtrado pelo produto da OS selecionada) */}
+                {selectedOsId && (
+                  <div>
+                    <Label>Serviço</Label>
+                    <Select
+                      value={formData.servico_id}
+                      onValueChange={(value) => setFormData({ ...formData, servico_id: value === '_none' ? '' : value })}
+                      disabled={!selectedProdutoId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          !selectedProdutoId
+                            ? "OS sem produto cadastrado"
+                            : "Selecione o serviço"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {servicosByProduto.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
