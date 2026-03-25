@@ -32,7 +32,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchDebounce, setSearchDebounce] = useState<Record<string, string>>({});
-  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const handleSearchChange = useCallback((key: string, value: string) => {
     setSearchDebounce(prev => ({ ...prev, [key]: value }));
