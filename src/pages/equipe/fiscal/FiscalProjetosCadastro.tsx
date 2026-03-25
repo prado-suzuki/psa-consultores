@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -87,6 +87,8 @@ const FiscalProjetosCadastro = () => {
   const [filterCliente, setFilterCliente] = useState('');
   const [filterProduto, setFilterProduto] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
@@ -112,14 +114,51 @@ const FiscalProjetosCadastro = () => {
     };
   }, [projects]);
 
+  const getSortValue = (project: any, col: string): string => {
+    switch (col) {
+      case 'name': return project.name || '';
+      case 'produto': return project.servico_contratado || '';
+      case 'cliente': return project.external_client?.nome || '';
+      case 'area': return project.area_ref?.name || '';
+      case 'responsavel': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'status': return project.status || '';
+      default: return '';
+    }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground/50" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3.5 w-3.5 ml-1 text-primary" />
+      : <ArrowDown className="h-3.5 w-3.5 ml-1 text-primary" />;
+  };
+
   const filteredProjects = useMemo(() => {
-    return projects.filter(p => {
+    const filtered = projects.filter(p => {
       if (filterCliente && p.external_client_id !== filterCliente) return false;
       if (filterProduto && p.servico_contratado !== filterProduto) return false;
       if (filterStatus && p.status !== filterStatus) return false;
       return true;
     });
-  }, [projects, filterCliente, filterProduto, filterStatus]);
+    if (sortColumn) {
+      filtered.sort((a, b) => {
+        const valA = getSortValue(a, sortColumn).toLowerCase();
+        const valB = getSortValue(b, sortColumn).toLowerCase();
+        const cmp = valA.localeCompare(valB, 'pt-BR');
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+    }
+    return filtered;
+  }, [projects, filterCliente, filterProduto, filterStatus, sortColumn, sortDirection]);
 
   const hasActiveFilters = !!(filterCliente || filterProduto || filterStatus);
   const clearFilters = () => { setFilterCliente(''); setFilterProduto(''); setFilterStatus(''); };
@@ -426,12 +465,24 @@ const FiscalProjetosCadastro = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                    <div className="flex items-center">Projeto<SortIcon column="name" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                    <div className="flex items-center">Produto<SortIcon column="produto" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                    <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('area')}>
+                    <div className="flex items-center">Área<SortIcon column="area" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('responsavel')}>
+                    <div className="flex items-center">Responsável<SortIcon column="responsavel" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('status')}>
+                    <div className="flex items-center">Status<SortIcon column="status" /></div>
+                  </TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Término</TableHead>
                   <TableHead>Horas</TableHead>
