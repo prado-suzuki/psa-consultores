@@ -70,6 +70,15 @@ import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
+import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGate";
+
+// Desempenho pages
+import DesempenhoVisaoGeral from "./pages/gerencial/desempenho/DesempenhoVisaoGeral";
+import DesempenhoCiclos from "./pages/gerencial/desempenho/DesempenhoCiclos";
+import DesempenhoMetas from "./pages/gerencial/desempenho/DesempenhoMetas";
+import DesempenhoFeedbacks from "./pages/gerencial/desempenho/DesempenhoFeedbacks";
+import DesempenhoReunioes1a1 from "./pages/gerencial/desempenho/DesempenhoReunioes1a1";
+import DesempenhoEvolucao from "./pages/gerencial/desempenho/DesempenhoEvolucao";
 
 // New Area Dashboards
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
