@@ -21,6 +21,8 @@ function getDateRange(periodo: string, cicloInicio?: string, cicloFim?: string) 
   return { from, to };
 }
 
+const STABLE_STALE = 5 * 60 * 1000; // 5 min for stable queries
+
 // ── Types ──
 export interface PerformanceProject {
   id: string;
@@ -49,13 +51,14 @@ export const usePerformanceData = (periodo: string, area: string) => {
     queryFn: async () => {
       if (!user?.id) return null;
       const { data } = await supabase
-        .from('performance_preferencias' as any) // table not yet in generated types
+        .from('performance_preferencias' as any)
         .select('*')
         .eq('usuario_id', user.id)
         .maybeSingle();
       return data as any;
     },
     enabled: !!user?.id,
+    staleTime: STABLE_STALE,
   });
 
   // Active cycle
@@ -70,6 +73,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
         .maybeSingle();
       return data;
     },
+    staleTime: STABLE_STALE,
   });
 
   const ciclo = cicloQuery.data;
@@ -79,56 +83,37 @@ export const usePerformanceData = (periodo: string, area: string) => {
     ciclo?.data_fim
   );
 
-  // Projects + tasks
+  // Projects + tasks + members — PARALLELIZED
   const projectsQuery = useQuery({
     queryKey: ['perf-projects', area, periodFrom],
     queryFn: async () => {
-      const { data: projects, error } = await (supabase
-        .from('tax_projects') as any)
-        .select(`
+      // Fire all 3 queries in parallel
+      const [projectsRes, tasksRes, membersRes] = await Promise.all([
+        (supabase.from('tax_projects') as any).select(`
           id, name, status, start_date, end_date,
           external_client_id,
           estrutura_area_id,
           cliente:cliente!tax_projects_external_client_id_fkey(nome),
           area:estrutura_areas!tax_projects_estrutura_area_id_fkey(name, color)
-        `)
-        .eq('is_active', true);
-      if (error) throw error;
+        `).eq('is_active', true),
+        supabase.from('fiscal_tasks').select('id, status, due_date, project_id, assigned_to, updated_at'),
+        supabase.from('tax_project_members').select('project_id, user_id, profiles:profiles!tax_project_members_user_id_fkey(first_name, last_name)'),
+      ]);
 
-      const projectIds = (projects || []).map((p: any) => p.id);
-      let tasks: any[] = [];
-      if (projectIds.length > 0) {
-        const chunks = [];
-        for (let i = 0; i < projectIds.length; i += 50) {
-          chunks.push(projectIds.slice(i, i + 50));
-        }
-        for (const chunk of chunks) {
-          const { data } = await supabase
-            .from('fiscal_tasks')
-            .select('id, status, due_date, project_id, assigned_to, updated_at')
-            .in('project_id', chunk);
-          if (data) tasks.push(...data);
-        }
-      }
+      if (projectsRes.error) throw projectsRes.error;
 
-      let members: any[] = [];
-      if (projectIds.length > 0) {
-        const chunks = [];
-        for (let i = 0; i < projectIds.length; i += 50) {
-          chunks.push(projectIds.slice(i, i + 50));
-        }
-        for (const chunk of chunks) {
-          const { data } = await supabase
-            .from('tax_project_members')
-            .select('project_id, user_id, profiles:profiles!tax_project_members_user_id_fkey(first_name, last_name)')
-            .in('project_id', chunk);
-          if (data) members.push(...data);
-        }
-      }
+      const projects = projectsRes.data || [];
+      const allTasks = tasksRes.data || [];
+      const allMembers = membersRes.data || [];
+      const projectIds = new Set(projects.map((p: any) => p.id));
+
+      // Filter tasks/members to only relevant projects client-side
+      const tasks = allTasks.filter((t: any) => projectIds.has(t.project_id));
+      const members = allMembers.filter((m: any) => projectIds.has(m.project_id));
 
       const now = new Date();
 
-      const enriched: PerformanceProject[] = (projects || []).map((p: any) => {
+      const enriched: PerformanceProject[] = projects.map((p: any) => {
         const pTasks = tasks.filter((t: any) => t.project_id === p.id);
         const total = pTasks.length;
         const completed = pTasks.filter((t: any) => t.status === 'done').length;
@@ -203,21 +188,19 @@ export const usePerformanceData = (periodo: string, area: string) => {
   const membersQuery = useQuery({
     queryKey: ['perf-members', area],
     queryFn: async () => {
-      const { data: allMembers } = await supabase
-        .from('estrutura_equipe_membros')
-        .select(`
+      const [membersRes, profilesRes] = await Promise.all([
+        supabase.from('estrutura_equipe_membros').select(`
           user_id,
           equipe:estrutura_equipes!estrutura_equipe_membros_equipe_id_fkey(
             area:estrutura_areas!estrutura_equipes_area_id_fkey(name)
           )
-        `);
+        `),
+        supabase.from('profiles').select('id, first_name, last_name'),
+      ]);
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name');
-
-      return { members: allMembers || [], profiles: profiles || [] };
+      return { members: membersRes.data || [], profiles: profilesRes.data || [] };
     },
+    staleTime: STABLE_STALE,
   });
 
   // Metas do ciclo ativo
@@ -282,6 +265,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
         .select('*');
       return data || [];
     },
+    staleTime: STABLE_STALE,
   });
 
   return {

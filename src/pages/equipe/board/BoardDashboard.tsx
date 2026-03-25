@@ -118,7 +118,9 @@ const BoardDashboard = () => {
     setAiLoading(false);
   };
 
-  const isLoading = projectsQuery.isLoading;
+  const isProjectsLoading = projectsQuery.isLoading;
+  const isImprovementsLoading = !improvements;
+  const isMembersLoading = membersQuery.isLoading;
 
   const getAreaChip = (a: string | null) => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'c-tax' : x.includes('osg') ? 'c-osg' : 'c-dev'; };
   const getClassifChip = (ppr: number) => {
