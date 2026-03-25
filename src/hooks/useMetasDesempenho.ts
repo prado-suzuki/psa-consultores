@@ -15,7 +15,7 @@ export interface Meta {
   prazo: string | null;
   peso: number;
   responsavel_id: string | null;
-  area_id: string | null;
+  
   progresso_atual: number;
   classificacao_final: string | null;
   ajuste_qualitativo: string | null;

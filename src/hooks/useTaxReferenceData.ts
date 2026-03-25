@@ -20,12 +20,6 @@ export interface TaxCategoria {
   nome: string;
 }
 
-export interface TaxAreaCategoria {
-  id: string;
-  area_id: string;
-  servico_id: string;
-  estrutura_area_id: string | null;
-}
 
 export interface ExternalClient {
   id: string;
@@ -72,19 +66,6 @@ export function useServicosPrestados() {
   });
 }
 
-/** Links entre áreas e serviços */
-export function useAreaServicos() {
-  return useQuery({
-    queryKey: ['area-servicos'],
-    queryFn: async () => {
-      // as any: tabela 'area_servicos' ausente do schema tipado gerado
-      const { data, error } = await (supabase.from('area_servicos' as any) as any)
-        .select('id, area_id, servico_id, estrutura_area_id');
-      if (error) throw error;
-      return data as TaxAreaCategoria[];
-    },
-  });
-}
 
 /** Perfis seguros para dropdowns de seleção de pessoas */
 export function useTeamProfilesSafe() {
