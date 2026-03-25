@@ -1,31 +1,46 @@
 
 
-## Filtros no header de Cadastro de Projetos
+## Ordenação por coluna na tabela de Projetos
 
 ### Resumo
-Adicionar 3 selects (Cliente, Produto, Status) + botão "Limpar" direto no componente `FiscalProjetosCadastro.tsx`. Sem hook novo — filtragem local sobre dados já carregados.
+Adicionar ordenação clicável nos headers da tabela. Clicar na coluna "Cliente" (ou qualquer outra) ordena a lista alfabeticamente; clicar de novo inverte a ordem.
 
 ### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-**1. Estado dos filtros (~linha 86):**
+**1. Estado de ordenação (~linha 88):**
 ```typescript
-const [filterCliente, setFilterCliente] = useState('');
-const [filterProduto, setFilterProduto] = useState('');
-const [filterStatus, setFilterStatus] = useState('');
+const [sortColumn, setSortColumn] = useState<string | null>(null);
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 ```
 
-**2. Memo para opções únicas e lista filtrada (~linha 91):**
-- Extrair clientes únicos, produtos únicos e status únicos do array `projects`
-- Aplicar os 3 filtros para gerar `filteredProjects`
+**2. Função de toggle:**
+```typescript
+const handleSort = (column: string) => {
+  if (sortColumn === column) {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    setSortColumn(column);
+    setSortDirection('asc');
+  }
+};
+```
 
-**3. UI — linha de filtros entre header e tabela (~linha 331):**
-Três `Select` (já importado) lado a lado + botão "Limpar filtros". Layout `flex gap-3 items-end`.
+**3. Aplicar sort no `filteredProjects` (no useMemo existente ou novo):**
+Após filtrar, ordenar com base em `sortColumn` — extraindo o valor textual de cada coluna (ex: `project.external_client?.nome` para Cliente, `project.name` para Projeto, etc.) e usando `localeCompare`.
 
-**4. Substituir `projects` por `filteredProjects`** no map da tabela e no contador.
+**4. Headers clicáveis (linhas 428-439):**
+Substituir os `<TableHead>` estáticos por botões clicáveis com ícone de seta (ArrowUpDown do lucide-react) indicando a direção da ordenação ativa.
+
+### Colunas com ordenação
+- Projeto → `project.name`
+- Produto → `project.servico_contratado`
+- Cliente → `project.external_client?.nome`
+- Área → `getAreaLabel(project)`
+- Responsável → `project.responsible?.first_name`
+- Status → `project.status`
 
 ### Escopo
 - Apenas `FiscalProjetosCadastro.tsx`
-- Zero hooks novos, zero migrations
-- Componentes `Select`, `Button` já importados
-- Adicionar ícone `Search` ou `Filter` do lucide-react
+- Zero migrations, zero hooks novos
+- Importar `ArrowUpDown` (ou `ChevronUp`/`ChevronDown`) do lucide-react
 
