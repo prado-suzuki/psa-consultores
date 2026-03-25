@@ -42,7 +42,7 @@ const BoardDashboard = () => {
   const { data: improvements } = useQuery({
     queryKey: ['board-improvements-roi'],
     queryFn: async () => {
-      const { data } = await supabase.from('process_improvements' as any).select('id, total_savings_monthly, status');
+      const { data } = await supabase.from('process_improvements' as any).select('id, total_savings_monthly, status, created_at');
       return (data ?? []) as any[];
     },
   });
