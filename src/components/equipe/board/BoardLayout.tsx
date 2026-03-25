@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,7 +10,9 @@ import {
   ChevronRight,
   Menu,
   ArrowLeft,
-  User
+  User,
+  BarChart3,
+  Target,
 } from 'lucide-react';
 
 interface BoardLayoutProps {
@@ -20,10 +22,27 @@ interface BoardLayoutProps {
   headerActions?: React.ReactNode;
 }
 
+interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+}
+
 export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardLayoutProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+
+  const navItems: NavItem[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/board/dashboard' },
+    ...((isAdmin || isLider) ? [
+      { icon: BarChart3, label: 'Performance', path: '/equipe/board/performance' },
+      { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho' },
+    ] : []),
+  ];
+
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   const handleSignOut = async () => {
     await signOut();
@@ -68,9 +87,24 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
-        {/* Navigation - Empty for now */}
+        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {/* Navigation items will be added here later */}
+          {navItems.map((item) => (
+            <Button
+              key={item.path}
+              variant="ghost"
+              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.path)
+                  ? 'bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/15'
+                  : 'text-slate-700 hover:bg-slate-50 hover:text-indigo-600'
+              }`}
+              onClick={() => navigate(item.path)}
+              title={collapsed ? item.label : undefined}
+            >
+              <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+              {!collapsed && item.label}
+            </Button>
+          ))}
         </nav>
 
         {/* Footer Actions */}

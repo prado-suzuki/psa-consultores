@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GestaoLayout } from '@/components/gestao/GestaoLayout';
+import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
@@ -39,6 +39,7 @@ const PerformanceDashboard = () => {
   const {
     prefsQuery, cicloQuery, projectsQuery, ticketsQuery,
     membersQuery, metasQuery, periodTasksQuery, roiQuery,
+    heatmapTasksQuery, last3MonthsTasksQuery,
   } = usePerformanceData(periodo, area);
 
   // Load saved preferences
@@ -61,13 +62,11 @@ const PerformanceDashboard = () => {
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['perf-'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-projects'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-tickets'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-members'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-metas'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-period-tasks'] });
-    queryClient.invalidateQueries({ queryKey: ['perf-roi'] });
+    queryClient.invalidateQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === 'string' &&
+        (query.queryKey[0] as string).startsWith('perf'),
+    });
     setLastUpdate(new Date());
   };
 
@@ -77,16 +76,18 @@ const PerformanceDashboard = () => {
   const profiles = membersQuery.data?.profiles || [];
   const metas = metasQuery.data || [];
   const periodTasks = periodTasksQuery.data || [];
+  const heatmapTasks = heatmapTasksQuery.data || [];
+  const last3MonthsTasks = last3MonthsTasksQuery.data || [];
   const roiData = roiQuery.data || [];
   const ciclo = cicloQuery.data;
 
   const isInitialLoading = projectsQuery.isLoading && ticketsQuery.isLoading;
 
   return (
-    <GestaoLayout title="Performance" subtitle="Visão executiva consolidada">
+    <BoardLayout title="Performance" subtitle="Visão executiva consolidada">
       <div className="space-y-8">
         {/* Global controls */}
-        <div className="flex flex-wrap items-center gap-3 sticky top-0 z-10 bg-[#F8F9FA] py-3 -mx-6 px-6 border-b border-border/40">
+        <div className="flex flex-wrap items-center gap-3 sticky top-0 z-10 bg-slate-50 py-3 -mx-6 px-6 border-b border-border/40">
           <div className="flex border rounded-lg overflow-hidden">
             {PERIODS.map(p => (
               <Button
@@ -132,14 +133,15 @@ const PerformanceDashboard = () => {
         {/* Block 2 — Projects */}
         <ProjectsBlock projects={projects} isLoading={projectsQuery.isLoading} />
 
-        {/* Block 3 — Area Comparison */}
-        <AreaComparisonBlock projects={projects} periodTasks={periodTasks} isLoading={projectsQuery.isLoading || periodTasksQuery.isLoading} />
+        {/* Block 3 — Area Comparison (uses independent 3-month tasks) */}
+        <AreaComparisonBlock projects={projects} periodTasks={last3MonthsTasks} isLoading={projectsQuery.isLoading || last3MonthsTasksQuery.isLoading} />
 
-        {/* Block 4 — Team Contribution */}
+        {/* Block 4 — Team Contribution (heatmap uses independent 90-day tasks) */}
         <TeamContributionBlock
           members={members}
           profiles={profiles}
           periodTasks={periodTasks}
+          heatmapTasks={heatmapTasks}
           metas={metas}
           isLoading={membersQuery.isLoading || periodTasksQuery.isLoading}
         />
@@ -150,7 +152,7 @@ const PerformanceDashboard = () => {
         {/* Block 6 — Cycle Goals */}
         <CycleGoalsBlock ciclo={ciclo} metas={metas} profiles={profiles} isLoading={cicloQuery.isLoading} />
       </div>
-    </GestaoLayout>
+    </BoardLayout>
   );
 };
 
