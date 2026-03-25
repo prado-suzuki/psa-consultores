@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.processar-procedimento]
 verify_jwt = false
+
+[functions.gerar-sintese-executiva]
+verify_jwt = false
+
+[functions.gerar-recomendacoes-pessoas]
+verify_jwt = false
+
+[functions.gerar-relatorio-individual]
+verify_jwt = false
