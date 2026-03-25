@@ -45,6 +45,7 @@ const BoardDashboard = () => {
       const { data } = await supabase.from('process_improvements' as any).select('id, total_savings_monthly, status, created_at');
       return (data ?? []) as any[];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const totalSavingsYear = (improvements ?? []).reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
@@ -59,6 +60,7 @@ const BoardDashboard = () => {
       const { data: tasks } = await supabase.from('fiscal_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
       return (tasks ?? []) as any[];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const barChartData = useMemo(() => {
@@ -121,6 +123,7 @@ const BoardDashboard = () => {
   const isProjectsLoading = projectsQuery.isLoading;
   const isImprovementsLoading = !improvements;
   const isMembersLoading = membersQuery.isLoading;
+  const isOverviewLoading = !overview && !!cicloAtivo;
 
   const getAreaChip = (a: string | null) => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'c-tax' : x.includes('osg') ? 'c-osg' : 'c-dev'; };
   const getClassifChip = (ppr: number) => {
@@ -163,10 +166,9 @@ const BoardDashboard = () => {
         />
 
         {/* Strategic Numbers */}
-        {isProjectsLoading ? (
-          <div className="g5 mb12">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[140px] rounded-xl" />)}</div>
-        ) : (
-          <div className="g5 mb12">
+        <div className="g5 mb12">
+          {/* Card 1: Projetos Ativos */}
+          {isProjectsLoading ? <Skeleton className="h-[140px] rounded-xl" /> : (
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--in)' }}>{projects.length}</div>
               <div className="snum-label">Projetos Ativos</div>
@@ -177,31 +179,47 @@ const BoardDashboard = () => {
                 <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{atrasados} atrasados</div>
               </div>
             </div>
+          )}
+
+          {/* Card 2: ROI */}
+          {isImprovementsLoading ? <Skeleton className="h-[140px] rounded-xl" /> : (
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--gr)' }}>R${(totalSavingsYear / 1000).toFixed(0)}k</div>
               <div className="snum-label">Economia / Ano</div>
               <div className="snum-sub" style={{ color: 'var(--gr)' }}>{roiFerramentas} ferramentas · R${(totalSavingsYear / 12000).toFixed(1)}k/mes</div>
             </div>
+          )}
+
+          {/* Card 3: Pontualidade */}
+          {isProjectsLoading ? <Skeleton className="h-[140px] rounded-xl" /> : (
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--pu)' }}>{pontualidade}%</div>
               <div className="snum-label">Taxa Pontualidade</div>
               <div className="snum-sub" style={{ color: pontualidade >= 85 ? 'var(--gr)' : 'var(--am)' }}>{pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta'}</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pg" style={{ width: `${pontualidade}%` }} /></div></div>
             </div>
+          )}
+
+          {/* Card 4: Metas */}
+          {isOverviewLoading ? <Skeleton className="h-[140px] rounded-xl" /> : (
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--am)' }}>{progressoMetas}%</div>
               <div className="snum-label">Metas do Ciclo</div>
               <div className="snum-sub">{overview?.totalMetas ?? 0} metas cadastradas</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pa" style={{ width: `${progressoMetas}%` }} /></div></div>
             </div>
+          )}
+
+          {/* Card 5: Membros */}
+          {isMembersLoading ? <Skeleton className="h-[140px] rounded-xl" /> : (
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--t1)' }}>{members.length}</div>
               <div className="snum-label">Membros Ativos</div>
               <div className="snum-sub">{profiles.length > 0 ? Math.round((members.length / profiles.length) * 100) : 0}% de engajamento</div>
               <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pi" style={{ width: `${profiles.length > 0 ? Math.round((members.length / profiles.length) * 100) : 0}%` }} /></div></div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* AI Strategic Insight */}
         <div className="ai mb12">

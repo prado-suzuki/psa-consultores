@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { subDays, startOfDay, differenceInDays, parseISO, isAfter, isBefore, subMonths, startOfMonth } from 'date-fns';
+import { useMemo } from 'react';
 
 // ── helpers ──
 function getPeriodDays(periodo: string) {
@@ -11,13 +12,16 @@ function getPeriodDays(periodo: string) {
   return 30;
 }
 
-function getDateRange(periodo: string, cicloInicio?: string, cicloFim?: string) {
+function getStableDateRange(periodo: string, cicloInicio?: string, cicloFim?: string) {
   if (periodo === 'ciclo' && cicloInicio && cicloFim) {
     return { from: cicloInicio, to: cicloFim };
   }
   const days = getPeriodDays(periodo);
   const from = startOfDay(subDays(new Date(), days)).toISOString();
-  const to = new Date().toISOString();
+  // Snap "to" to end-of-current-minute to avoid unstable keys
+  const now = new Date();
+  now.setSeconds(0, 0);
+  const to = now.toISOString();
   return { from, to };
 }
 
@@ -77,10 +81,9 @@ export const usePerformanceData = (periodo: string, area: string) => {
   });
 
   const ciclo = cicloQuery.data;
-  const { from: periodFrom, to: periodTo } = getDateRange(
-    periodo,
-    ciclo?.data_inicio,
-    ciclo?.data_fim
+  const { from: periodFrom, to: periodTo } = useMemo(
+    () => getStableDateRange(periodo, ciclo?.data_inicio, ciclo?.data_fim),
+    [periodo, ciclo?.data_inicio, ciclo?.data_fim]
   );
 
   // Projects + tasks + members — PARALLELIZED
