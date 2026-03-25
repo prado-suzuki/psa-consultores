@@ -13,7 +13,6 @@ export const ActivityHeatmap = ({ tasks, days = 90, selectedMemberId }: Props) =
   const cells = useMemo(() => {
     const now = new Date();
     const result = [];
-
     for (let i = days - 1; i >= 0; i--) {
       const day = startOfDay(subDays(now, i));
       const count = tasks.filter(t => {
@@ -28,16 +27,16 @@ export const ActivityHeatmap = ({ tasks, days = 90, selectedMemberId }: Props) =
 
   const maxCount = Math.max(...cells.map(c => c.count), 1);
 
-  const getColor = (count: number) => {
-    if (count === 0) return 'hsl(var(--muted))';
-    const intensity = Math.min(count / maxCount, 1);
-    if (intensity < 0.25) return '#86EFAC';
-    if (intensity < 0.5) return '#4ADE80';
-    if (intensity < 0.75) return '#22C55E';
-    return '#16A34A';
+  const getHeatClass = (count: number) => {
+    if (count === 0) return '';
+    const intensity = count / maxCount;
+    if (intensity < 0.25) return 'h1';
+    if (intensity < 0.5) return 'h2';
+    if (intensity < 0.75) return 'h3';
+    return 'h4';
   };
 
-  // Group into weeks (7 rows)
+  // Group into weeks (columns of 7)
   const weeks: typeof cells[] = [];
   for (let i = 0; i < cells.length; i += 7) {
     weeks.push(cells.slice(i, i + 7));
@@ -45,26 +44,21 @@ export const ActivityHeatmap = ({ tasks, days = 90, selectedMemberId }: Props) =
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex gap-[3px]">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-[3px]">
-            {week.map((cell, di) => (
-              <Tooltip key={di}>
-                <TooltipTrigger asChild>
-                  <div
-                    className="w-3 h-3 rounded-[2px] transition-colors"
-                    style={{ backgroundColor: getColor(cell.count) }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">
-                    {format(cell.date, "dd 'de' MMM", { locale: ptBR })}: {cell.count} movimentação(ões)
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        ))}
+      <div className="hm" style={{ gridTemplateColumns: `repeat(${weeks.length}, 1fr)` }}>
+        {weeks.map((week, wi) =>
+          week.map((cell, di) => (
+            <Tooltip key={`${wi}-${di}`}>
+              <TooltipTrigger asChild>
+                <div className={`hmc ${getHeatClass(cell.count)}`} />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  {format(cell.date, "dd 'de' MMM", { locale: ptBR })}: {cell.count} mov.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ))
+        )}
       </div>
     </div>
   );

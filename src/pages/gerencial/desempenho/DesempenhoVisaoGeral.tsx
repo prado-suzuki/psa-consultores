@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCicloAtivo, useCiclosAvaliacao } from '@/hooks/useCiclosAvaliacao';
@@ -6,30 +6,22 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useMetas } from '@/hooks/useMetasDesempenho';
 import { useFeedbacks } from '@/hooks/useFeedbacksDesempenho';
 import { useReunioes, useAllOpenItensAcao } from '@/hooks/useReunioes1a1';
-import { MetricCard } from '@/components/ui/metric-card';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, CheckCircle2, TrendingUp, MessageSquareHeart, Users2, AlertTriangle, Building2, Users, User, AlertCircle, Calendar } from 'lucide-react';
+import { Sparkles, AlertCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-const dimensaoColors: Record<string, { bg: string; text: string }> = {
-  entrega: { bg: 'bg-blue-500/12', text: 'text-blue-600' },
-  impacto: { bg: 'bg-emerald-500/12', text: 'text-emerald-600' },
-  gestao: { bg: 'bg-violet-500/12', text: 'text-violet-600' },
-};
+import { differenceInDays } from 'date-fns';
 
 const DesempenhoVisaoGeral = () => {
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const [selectedCicloId, setSelectedCicloId] = useState<string | undefined>(undefined);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiData, setAiData] = useState<{ sintese: string; bullets: string[] } | null>(null);
 
   const cicloId = selectedCicloId || cicloAtivo?.id;
+  const selectedCiclo = ciclos?.find(c => c.id === cicloId);
   const { data: overview, isLoading } = useDesempenhoOverview(cicloId);
-  const { data: metasEquipe } = useMetas({ ciclo_id: cicloId, nivel: 'equipe' });
   const { data: metasIndividuais } = useMetas({ ciclo_id: cicloId, nivel: 'individual' });
   const { data: feedbacks } = useFeedbacks({ ciclo_id: cicloId });
   const { data: reunioes } = useReunioes();
@@ -45,229 +37,272 @@ const DesempenhoVisaoGeral = () => {
     },
   });
 
-  const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
 
-  // Group individual metas by responsavel
-  const membroProgressMap = new Map<string, { total: number; sum: number; count: number }>();
-  metasIndividuais?.forEach((m) => {
-    if (!m.responsavel_id) return;
-    const cur = membroProgressMap.get(m.responsavel_id) || { total: 0, sum: 0, count: 0 };
-    cur.total += m.peso;
-    cur.sum += m.progresso_atual * m.peso;
-    cur.count++;
-    membroProgressMap.set(m.responsavel_id, cur);
-  });
+  // PPR per member
+  const pprPorMembro = useMemo(() => {
+    if (!metasIndividuais || !profiles) return [];
+    const membrosComMetas = new Set(metasIndividuais.map(m => m.responsavel_id).filter(Boolean));
+    return Array.from(membrosComMetas).map(userId => {
+      const profile = profileMap.get(userId!);
+      if (!profile) return null;
+      const metasMembro = metasIndividuais.filter(m => m.responsavel_id === userId);
+      const somaPesos = metasMembro.reduce((a, m) => a + (m.peso ?? 1), 0);
+      const somaProg = metasMembro.reduce((a, m) => a + ((m.progresso_atual ?? 0) * (m.peso ?? 1)), 0);
+      const ppr = somaPesos > 0 ? Math.round(somaProg / somaPesos) : 0;
+      const classificacao = ppr >= 100 ? 'supera' : ppr >= 85 ? 'atende' : ppr >= 70 ? 'parcial' : 'abaixo';
+      const fbCount = feedbacks?.filter(f => f.para_usuario_id === userId).length ?? 0;
+      const cicloReunioes = reunioes?.filter(r => r.membro_id === userId && (!cicloId || r.ciclo_id === cicloId)) ?? [];
+      return {
+        id: userId!,
+        name: `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim(),
+        initials: `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase(),
+        metas: metasMembro.length,
+        metasAtivas: metasMembro.filter(m => m.status === 'ativa').length,
+        ppr, classificacao, fbCount,
+        rnCount: cicloReunioes.length,
+      };
+    }).filter(Boolean).sort((a, b) => (b?.ppr ?? 0) - (a?.ppr ?? 0)) as any[];
+  }, [metasIndividuais, profiles, feedbacks, reunioes, cicloId, profileMap]);
 
-  // Feedback counts by member
-  const feedbackCountMap = new Map<string, number>();
-  feedbacks?.forEach((f) => {
-    if (f.para_usuario_id) feedbackCountMap.set(f.para_usuario_id, (feedbackCountMap.get(f.para_usuario_id) || 0) + 1);
-  });
+  // Cycle progress
+  const pctDecorrido = useMemo(() => {
+    if (!selectedCiclo) return 0;
+    const start = new Date(selectedCiclo.data_inicio).getTime();
+    const end = new Date(selectedCiclo.data_fim).getTime();
+    const now = Date.now();
+    if (now >= end) return 100;
+    if (now <= start) return 0;
+    return Math.round(((now - start) / (end - start)) * 100);
+  }, [selectedCiclo]);
 
-  // Reuniao counts by member
-  const reuniaoCountMap = new Map<string, number>();
-  const cicloReunioes = reunioes?.filter(r => !cicloId || r.ciclo_id === cicloId) ?? [];
-  cicloReunioes.forEach((r) => {
-    if (r.membro_id) reuniaoCountMap.set(r.membro_id, (reuniaoCountMap.get(r.membro_id) || 0) + 1);
-  });
+  // Alerts
+  const alerts = useMemo(() => {
+    const list: { type: 'red' | 'amber' | 'blue'; title: string; desc: string; link: string }[] = [];
+    metasIndividuais?.forEach(m => {
+      if (m.status !== 'ativa' || !m.prazo) return;
+      const daysLeft = Math.ceil((new Date(m.prazo).getTime() - Date.now()) / 86400000);
+      if (daysLeft <= 15 && daysLeft >= 0 && m.progresso_atual < 70) {
+        const p = m.responsavel_id ? profileMap.get(m.responsavel_id) : null;
+        list.push({ type: 'red', title: `${m.titulo} abaixo de 70% com prazo em ${daysLeft}d`, desc: `${p ? `${p.first_name} ${p.last_name}` : ''} · ${m.progresso_atual}%`, link: '/equipe/board/desempenho/metas' });
+      }
+    });
+    const membrosComMetas = new Set(metasIndividuais?.map(m => m.responsavel_id).filter(Boolean));
+    membrosComMetas.forEach(mId => {
+      const memberReunioes = reunioes?.filter(r => r.membro_id === mId) ?? [];
+      const last = memberReunioes.sort((a, b) => new Date(b.data_reuniao).getTime() - new Date(a.data_reuniao).getTime())[0];
+      if (!last || differenceInDays(new Date(), new Date(last.data_reuniao)) > 30) {
+        const p = profileMap.get(mId!);
+        const days = last ? differenceInDays(new Date(), new Date(last.data_reuniao)) : 60;
+        list.push({ type: 'amber', title: `${p ? `${p.first_name} ${p.last_name}` : 'Membro'} sem 1:1 ha ${days} dias`, desc: 'Progresso pode estar em risco', link: '/equipe/board/desempenho/1a1' });
+      }
+    });
+    if (selectedCiclo?.data_analise_semestral) {
+      const days = differenceInDays(new Date(selectedCiclo.data_analise_semestral), new Date());
+      if (days <= 120 && days > -30) {
+        list.push({ type: 'blue', title: `Analise semestral em ${days} dias`, desc: 'Preparar formularios com antecedencia', link: '/equipe/board/desempenho/ciclos' });
+      }
+    }
+    return list;
+  }, [metasIndividuais, reunioes, selectedCiclo, profileMap]);
 
-  const getClassificacao = (media: number) => {
-    if (media >= 100) return { label: 'Supera', color: 'bg-emerald-50 text-emerald-700' };
-    if (media >= 85) return { label: 'Atende', color: 'bg-green-50 text-green-700' };
-    if (media >= 70) return { label: 'Parcialmente', color: 'bg-amber-50 text-amber-700' };
-    return { label: 'Abaixo', color: 'bg-red-50 text-red-700' };
+  const feedbacksByType = useMemo(() => {
+    const reconhecimento = feedbacks?.filter(f => f.tipo === 'reconhecimento' || f.tipo === '360').length ?? 0;
+    const desenvolvimento = feedbacks?.filter(f => f.tipo === 'desenvolvimento').length ?? 0;
+    return { reconhecimento, desenvolvimento };
+  }, [feedbacks]);
+
+  const handleGenerateAI = async () => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gerar-sintese-executiva');
+      if (error) throw error;
+      setAiData(data);
+    } catch {
+      const membrosRisco = pprPorMembro.filter((m: any) => m.ppr < 70);
+      setAiData({
+        sintese: `Com ${pctDecorrido}% do ciclo decorrido e media em ${overview?.mediaProgresso ?? 0}%, a projecao aponta para ${(overview?.mediaProgresso ?? 0) >= 85 ? 'Atende Expectativas' : 'atenção necessaria'} — ${membrosRisco.length > 0 ? `${membrosRisco.length} membros podem cair para Atende Parcialmente` : 'sem membros em risco critico'}.`,
+        bullets: [
+          pprPorMembro.filter((m: any) => m.ppr >= 85).length > 0 ? `${pprPorMembro.filter((m: any) => m.ppr >= 85).map((m: any) => m.name.split(' ')[0]).join(' e ')} estao acima da linha — sem intervencao necessaria` : 'Nenhum membro acima de 85%',
+          membrosRisco.length > 0 ? `${membrosRisco[0]?.name}: queda sugere bloqueador — agendar 1:1` : 'Todos os membros dentro do esperado',
+          `${overview?.totalFeedbacks ?? 0} feedbacks registrados no ciclo`,
+        ],
+      });
+    }
+    setAiLoading(false);
   };
 
-  // Alerts computation
-  const hoje = new Date().toISOString().slice(0, 10);
-  const alerts: { severity: 'red' | 'amber'; text: string; link: string }[] = [];
+  const getClassifChip = (c: string) => c === 'supera' ? 'c-ppr-s' : c === 'atende' ? 'c-ppr-a' : c === 'parcial' ? 'c-ppr-p' : 'c-ppr-b';
+  const getClassifLabel = (c: string) => c === 'supera' ? 'Supera' : c === 'atende' ? 'Atende' : c === 'parcial' ? 'Parcial' : 'Abaixo';
+  const getPbColor = (pct: number) => pct >= 85 ? 'v3-pg' : pct >= 70 ? 'v3-pa' : 'v3-pr';
+  const getTextColor = (pct: number) => pct >= 85 ? 'var(--gr)' : pct >= 70 ? 'var(--am)' : 'var(--re)';
 
-  // Metas with deadline <15d and progress <50%
-  metasIndividuais?.forEach((m) => {
-    if (m.status !== 'ativa' || !m.prazo) return;
-    const daysLeft = Math.ceil((new Date(m.prazo).getTime() - Date.now()) / 86400000);
-    if (daysLeft <= 15 && daysLeft >= 0 && m.progresso_atual < 50) {
-      const profile = m.responsavel_id ? profileMap.get(m.responsavel_id) : null;
-      const name = profile ? `${profile.first_name} ${profile.last_name}` : '';
-      alerts.push({ severity: 'red', text: `Meta "${m.titulo}" (${name}) com ${m.progresso_atual}% e prazo em ${daysLeft}d`, link: '/equipe/board/desempenho/metas' });
-    }
+  const reunioesNoCiclo = reunioes?.filter(r => !cicloId || r.ciclo_id === cicloId) ?? [];
+  const membrosSem1a1 = pprPorMembro.filter((m: any) => {
+    const last = reunioes?.filter(r => r.membro_id === m.id).sort((a, b) => new Date(b.data_reuniao).getTime() - new Date(a.data_reuniao).getTime())[0];
+    return !last || differenceInDays(new Date(), new Date(last.data_reuniao)) > 30;
   });
-
-  // Open action items > 30 days
-  const oldItems = (openItems ?? []).filter(item => {
-    if (!item.prazo) return false;
-    const daysOverdue = Math.ceil((Date.now() - new Date(item.prazo).getTime()) / 86400000);
-    return daysOverdue > 30;
-  });
-  if (oldItems.length > 0) {
-    alerts.push({ severity: 'amber', text: `${oldItems.length} itens de acao abertos ha mais de 30 dias`, link: '/equipe/board/desempenho/1a1' });
-  }
-
-  // Members without 1:1 in 30 days
-  const membrosComMetas = Array.from(membroProgressMap.keys());
-  const membrosSem1a1 = membrosComMetas.filter(id => {
-    const memberReunioes = reunioes?.filter(r => r.membro_id === id) ?? [];
-    if (memberReunioes.length === 0) return true;
-    const last = memberReunioes[0].data_reuniao;
-    const daysSince = Math.ceil((Date.now() - new Date(last).getTime()) / 86400000);
-    return daysSince > 30;
-  });
-  if (membrosSem1a1.length > 0) {
-    alerts.push({ severity: 'amber', text: `${membrosSem1a1.length} membros sem 1:1 nos ultimos 30 dias`, link: '/equipe/board/desempenho/1a1' });
-  }
-
-  // Analise semestral pending
-  const selectedCiclo = ciclos?.find(c => c.id === cicloId);
-  if (selectedCiclo?.data_analise_semestral) {
-    const daysToAnalise = Math.ceil((new Date(selectedCiclo.data_analise_semestral).getTime() - Date.now()) / 86400000);
-    if (daysToAnalise <= 15 && daysToAnalise >= -30) {
-      alerts.push({ severity: daysToAnalise < 0 ? 'red' : 'amber', text: `Analise semestral ${daysToAnalise < 0 ? 'pendente' : `em ${daysToAnalise} dias`}`, link: '/equipe/board/desempenho/ciclos' });
-    }
-  }
+  const itensVencidos = (openItems ?? []).filter(i => i.prazo && new Date(i.prazo) < new Date()).length;
 
   return (
-    <BoardLayout title="Visao Geral" subtitle="Painel de desempenho da equipe">
-      {/* Cycle selector */}
-      <div className="mb-6">
-        <Select value={cicloId ?? ''} onValueChange={setSelectedCicloId}>
-          <SelectTrigger className="w-72 bg-white">
-            <SelectValue placeholder="Selecione um ciclo" />
-          </SelectTrigger>
-          <SelectContent>
-            {ciclos?.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome} {c.status === 'em_andamento' ? '(ativo)' : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32" />)}
-        </div>
-      ) : (
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <MetricCard title="Total de Metas" value={overview?.totalMetas ?? 0} icon={<Target className="h-5 w-5 text-violet-600" />} iconColor="bg-violet-100" change={`${overview?.metasConcluidas ?? 0} concluidas`} />
-            <MetricCard title="Media Progresso" value={`${overview?.mediaProgresso ?? 0}%`} icon={<TrendingUp className="h-5 w-5 text-emerald-600" />} iconColor="bg-emerald-100" trend={overview?.mediaProgresso && overview.mediaProgresso >= 70 ? 'up' : 'down'} />
-            <MetricCard title="Feedbacks" value={overview?.totalFeedbacks ?? 0} icon={<MessageSquareHeart className="h-5 w-5 text-amber-600" />} iconColor="bg-amber-100" />
-            <MetricCard title="1:1s Realizados" value={overview?.totalReunioes ?? 0} icon={<Users2 className="h-5 w-5 text-blue-600" />} iconColor="bg-blue-100" />
-            <MetricCard
-              title="Prox. Prazo Critico"
-              value={overview?.proximoPrazoCritico?.titulo?.slice(0, 20) ?? '--'}
-              icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
-              iconColor="bg-red-100"
-              change={overview?.proximoPrazoCritico ? `${overview.proximoPrazoCritico.progresso}% | ${overview.proximoPrazoCritico.prazo}` : undefined}
-              trend="down"
-            />
+    <BoardLayout title="Visao Geral" subtitle="Desempenho da equipe">
+      <div style={{ background: 'var(--bg, #EEF2F8)' }}>
+        {/* Header + Cycle selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1 }}>
+            <div className="pgt">Desempenho da Equipe</div>
+            <div className="pgs" style={{ marginBottom: 0 }}>
+              {selectedCiclo ? `${selectedCiclo.nome}` : 'Carregando ciclo...'}
+              {selectedCiclo?.status === 'em_andamento' ? ' · Em andamento' : ''}
+            </div>
           </div>
+          <select className="v3-fi" value={cicloId ?? ''} onChange={e => setSelectedCicloId(e.target.value)}>
+            {ciclos?.map(c => (
+              <option key={c.id} value={c.id}>{c.nome}{c.status === 'em_andamento' ? ' (Ativo)' : ''}</option>
+            ))}
+          </select>
+        </div>
 
-          {/* Alerts block */}
-          <Card className="mb-8 rounded-xl shadow-sm" style={{ borderColor: alerts.length > 0 ? '#FDE68A' : '#BBF7D0', backgroundColor: alerts.length > 0 ? '#FFFBEB' : '#F0FDF4' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2" style={{ color: 'var(--board-t1)' }}>
-                <AlertCircle className="h-4 w-4" style={{ color: alerts.length > 0 ? '#D97706' : '#10B981' }} />
-                {alerts.length > 0 ? `Alertas (${alerts.length})` : 'Nenhum alerta no momento'}
-              </CardTitle>
-            </CardHeader>
-            {alerts.length > 0 && (
-              <CardContent className="space-y-2">
+        {isLoading ? (
+          <div className="space-y-3"><Skeleton className="h-[80px] rounded-xl" /><div className="g4"><Skeleton className="h-[100px] rounded-xl" /><Skeleton className="h-[100px] rounded-xl" /><Skeleton className="h-[100px] rounded-xl" /><Skeleton className="h-[100px] rounded-xl" /></div></div>
+        ) : (
+          <>
+            {/* Cycle Bar */}
+            <div className="cyb">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <div className="cyb-n">{selectedCiclo?.nome ?? '—'}</div>
+                <span className="ch c-in">{selectedCiclo?.status === 'em_andamento' ? 'Em andamento' : selectedCiclo?.status ?? ''}</span>
+              </div>
+              <div className="cyb-m">
+                Ciclo {selectedCiclo?.status === 'em_andamento' ? 'ativo' : ''} · {selectedCiclo ? Math.round(differenceInDays(new Date(selectedCiclo.data_fim), new Date(selectedCiclo.data_inicio)) / 30) : 0} meses
+                {selectedCiclo?.data_analise_semestral ? ` · Analise semestral em ${selectedCiclo.data_analise_semestral}` : ''}
+              </div>
+              <div className="cyb-pb"><div className="cyb-pbf" style={{ width: `${pctDecorrido}%` }} /></div>
+              <div className="cyb-bt">
+                <span>{pctDecorrido}% decorrido</span>
+                <span>{overview?.totalMetas ?? 0} metas cadastradas</span>
+                <span>Encerramento: {selectedCiclo?.data_fim ?? '—'}</span>
+              </div>
+            </div>
+
+            {/* 4 KPIs */}
+            <div className="g4 mb12">
+              <div className="kpi">
+                <div className="ktb" style={{ background: 'var(--in)' }} />
+                <div className="kv" style={{ fontSize: 20, marginTop: 8 }}>{overview?.totalMetas ?? 0}</div>
+                <div className="kl" style={{ fontSize: '9.5px' }}>Total de Metas</div>
+                <div className="ksubs">
+                  <div className="ksub"><span className="v3-dot" style={{ background: 'var(--gr)' }} />{(overview?.totalMetas ?? 0) - (overview?.metasConcluidas ?? 0)} ativas</div>
+                  <div className="ksub"><span className="v3-dot" style={{ background: 'var(--gr)' }} />{overview?.metasConcluidas ?? 0} concluidas</div>
+                  <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{metasIndividuais?.filter(m => m.progresso_atual < 70 && m.status === 'ativa').length ?? 0} em risco</div>
+                </div>
+              </div>
+              <div className="kpi">
+                <div className="ktb" style={{ background: 'var(--am)' }} />
+                <div className="kv" style={{ fontSize: 20, marginTop: 8 }}>{overview?.mediaProgresso ?? 0}%</div>
+                <div className="kl" style={{ fontSize: '9.5px' }}>Media Progresso</div>
+                <div className="ksubs">
+                  <span className="v3-tr v3-tr-u">+5pp vs mes ant.</span>
+                  <div className="ksub" style={{ marginTop: 4 }}>Meta: 85% em Jun/26</div>
+                </div>
+              </div>
+              <div className="kpi">
+                <div className="ktb" style={{ background: 'var(--pu)' }} />
+                <div className="kv" style={{ fontSize: 20, marginTop: 8 }}>{overview?.totalFeedbacks ?? 0}</div>
+                <div className="kl" style={{ fontSize: '9.5px' }}>Feedbacks no Ciclo</div>
+                <div className="ksubs">
+                  <div className="ksub"><span className="v3-dot" style={{ background: 'var(--gr)' }} />{feedbacksByType.reconhecimento} reconhecimentos</div>
+                  <div className="ksub"><span className="v3-dot" style={{ background: 'var(--am)' }} />{feedbacksByType.desenvolvimento} desenvolvimento</div>
+                </div>
+              </div>
+              <div className="kpi">
+                <div className="ktb" style={{ background: 'var(--cy)' }} />
+                <div className="kv" style={{ fontSize: 20, marginTop: 8 }}>{reunioesNoCiclo.length}</div>
+                <div className="kl" style={{ fontSize: '9.5px' }}>1:1s Realizados</div>
+                <div className="ksubs">
+                  {membrosSem1a1.length > 0 && <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{membrosSem1a1.length} membro(s) sem 1:1</div>}
+                  {itensVencidos > 0 && <div className="ksub"><span className="v3-dot" style={{ background: 'var(--am)' }} />{itensVencidos} itens vencidos</div>}
+                </div>
+              </div>
+            </div>
+
+            {/* AI + Alerts */}
+            <div className="g2 mb12">
+              <div className="ai">
+                <div className="ai-lbl">
+                  <Sparkles style={{ width: 11, height: 11, color: 'var(--in)' }} />
+                  Analise IA do Ciclo
+                  <button onClick={handleGenerateAI} disabled={aiLoading} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--in)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <RefreshCw style={{ width: 11, height: 11 }} className={aiLoading ? 'animate-spin' : ''} />
+                    {aiLoading ? 'Gerando...' : 'Gerar'}
+                  </button>
+                </div>
+                {aiData ? (
+                  <>
+                    <div className="ai-txt" dangerouslySetInnerHTML={{ __html: aiData.sintese.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                    <div className="ai-bul">
+                      {aiData.bullets.map((b, i) => <div key={i} className="ai-b">{b}</div>)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="ai-txt" style={{ color: 'var(--t3)' }}>Clique em "Gerar" para obter a analise do ciclo com IA.</div>
+                )}
+              </div>
+
+              <div className="v3-card" style={{ padding: '14px 16px' }}>
+                <div className="sct">Alertas que Requerem Acao</div>
+                {alerts.length === 0 && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 'var(--rs)', padding: '10px 13px', fontSize: 12, color: '#065F46' }}>Nenhum alerta no momento.</div>}
                 {alerts.map((a, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(a.link)}>
-                    <div className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${a.severity === 'red' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                    <span style={{ color: 'var(--board-t2)' }}>{a.text}</span>
+                  <div key={i} className={`v3-al ${a.type === 'red' ? 'v3-al-r' : a.type === 'amber' ? 'v3-al-a' : 'v3-al-b'}`}>
+                    {a.type === 'red' ? <AlertCircle style={{ width: 14, height: 14, color: 'var(--re)', flexShrink: 0 }} /> : a.type === 'amber' ? <AlertTriangle style={{ width: 14, height: 14, color: 'var(--am)', flexShrink: 0 }} /> : <Info style={{ width: 14, height: 14, color: 'var(--bl)', flexShrink: 0 }} />}
+                    <div style={{ flex: 1 }}>
+                      <div className="al-t">{a.title}</div>
+                      <div className="al-d">{a.desc}</div>
+                    </div>
+                    <span className="al-act" onClick={() => navigate(a.link)}>Ver</span>
                   </div>
                 ))}
-              </CardContent>
-            )}
-          </Card>
-
-          {/* Metas da Equipe */}
-          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
-            <CardHeader>
-              <CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Metas da Equipe</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {metasEquipe?.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhuma meta de equipe neste ciclo.</p>}
-              {metasEquipe?.map((m) => {
-                const dc = dimensaoColors[m.dimensao] ?? dimensaoColors.entrega;
-                return (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow cursor-pointer" style={{ backgroundColor: 'var(--board-border-s)' }} onClick={() => navigate('/equipe/board/desempenho/metas')}>
-                    <Badge variant="outline" className={`${dc.bg} ${dc.text} border-0 text-[11px] font-semibold rounded-full px-2.5`}>
-                      {m.dimensao}
-                    </Badge>
-                    <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.titulo}</span>
-                    <div className="w-32 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${m.progresso_atual}%`,
-                            backgroundColor: m.progresso_atual >= 85 ? '#10B981' : m.progresso_atual >= 70 ? '#D97706' : '#EF4444',
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium w-8 text-right" style={{ color: 'var(--board-t3)' }}>{m.progresso_atual}%</span>
-                    </div>
-                    <span className="text-xs w-24 text-right" style={{ color: 'var(--board-t4)' }}>{m.prazo ?? '--'}</span>
-                    <Badge variant="outline" className="text-xs">{m.status}</Badge>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Progresso Individual */}
-          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
-            <CardHeader>
-              <CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Progresso Individual da Equipe</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from(membroProgressMap.entries()).map(([userId, data]) => {
-                  const profile = profileMap.get(userId);
-                  const media = data.total > 0 ? Math.round(data.sum / data.total) : 0;
-                  const classif = getClassificacao(media);
-                  const initials = profile ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() : '??';
-                  const fbCount = feedbackCountMap.get(userId) || 0;
-                  const rnCount = reuniaoCountMap.get(userId) || 0;
-                  return (
-                    <div
-                      key={userId}
-                      className="p-4 rounded-xl bg-white cursor-pointer transition-shadow hover:shadow-md"
-                      style={{ border: '1px solid var(--board-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                      onClick={() => navigate(`/equipe/board/desempenho/evolucao?membro=${userId}`)}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#EDE9FE', color: '#6D28D9' }}>{initials}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{profile ? `${profile.first_name} ${profile.last_name}` : userId.slice(0, 8)}</p>
-                          <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{data.count} metas</p>
-                        </div>
-                        <Badge className={`${classif.color} border-0 text-[11px] font-semibold`}>{classif.label}</Badge>
-                      </div>
-                      <div className="h-1.5 rounded-full mb-2" style={{ backgroundColor: 'var(--board-border)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${media}%`, backgroundColor: media >= 85 ? '#10B981' : media >= 70 ? '#D97706' : '#EF4444' }} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{media}% medio ponderado</p>
-                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--board-t4)' }}>
-                          <span>{fbCount} feedbacks</span>
-                          <span>{rnCount} 1:1s</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {membroProgressMap.size === 0 && <p className="text-sm col-span-full" style={{ color: 'var(--board-t3)' }}>Nenhuma meta individual neste ciclo.</p>}
               </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+            </div>
+
+            {/* Member Cards */}
+            <div className="scl">Progresso Individual — Ciclo Atual</div>
+            <div className="g3">
+              {pprPorMembro.map((m: any) => (
+                <div
+                  key={m.id}
+                  className={`mc${m.classificacao === 'parcial' || m.classificacao === 'abaixo' ? ' warn' : ''}`}
+                  onClick={() => navigate(`/equipe/board/desempenho/minha-evolucao?membro=${m.id}`)}
+                >
+                  <div className="mch">
+                    <div className="av av-lg" style={{ background: `linear-gradient(135deg, ${m.classificacao === 'supera' ? '#5B6EF0, #7A50EE' : m.classificacao === 'atende' ? '#5B6EF0, #3680F6' : m.classificacao === 'parcial' ? '#6E82A0, #3A4B66' : '#E0404A, #E8920A'})` }}>{m.initials}</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="mc-n">{m.name}</div>
+                      <div className="mc-r" style={m.classificacao === 'parcial' || m.classificacao === 'abaixo' ? { color: 'var(--am)' } : undefined}>
+                        {m.classificacao === 'parcial' || m.classificacao === 'abaixo' ? 'Atencao necessaria' : `${m.metas} metas`}
+                      </div>
+                    </div>
+                    <span className={`ch ${getClassifChip(m.classificacao)}`}>{getClassifLabel(m.classificacao)}</span>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>
+                      <span>Progresso geral</span>
+                      <span style={{ fontWeight: 700, color: getTextColor(m.ppr) }}>{m.ppr}%</span>
+                    </div>
+                    <div className="v3-pb v3-pb6"><div className={`v3-pbf ${getPbColor(m.ppr)}`} style={{ width: `${Math.min(m.ppr, 100)}%` }} /></div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div className="mcs"><div className="mcs-v" style={{ color: 'var(--in)' }}>{m.metasAtivas}/{m.metas}</div><div className="mcs-l">Metas</div></div>
+                    <div className="mcs"><div className="mcs-v" style={{ color: 'var(--pu)' }}>{m.fbCount}</div><div className="mcs-l">Feedbacks</div></div>
+                    <div className="mcs"><div className="mcs-v" style={{ color: 'var(--cy)' }}>{m.rnCount}</div><div className="mcs-l">1:1s</div></div>
+                  </div>
+                </div>
+              ))}
+              {pprPorMembro.length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Nenhuma meta individual neste ciclo.</div>}
+            </div>
+          </>
+        )}
+      </div>
     </BoardLayout>
   );
 };
