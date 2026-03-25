@@ -79,6 +79,9 @@ import DesempenhoMetas from "./pages/gerencial/desempenho/DesempenhoMetas";
 import DesempenhoFeedbacks from "./pages/gerencial/desempenho/DesempenhoFeedbacks";
 import DesempenhoReunioes1a1 from "./pages/gerencial/desempenho/DesempenhoReunioes1a1";
 import DesempenhoEvolucao from "./pages/gerencial/desempenho/DesempenhoEvolucao";
+import DesempenhoDecisoes from "./pages/gerencial/desempenho/DesempenhoDecisoes";
+import DesempenhoRelatorios from "./pages/gerencial/desempenho/DesempenhoRelatorios";
+import MinhaEvolucao from "./pages/gerencial/desempenho/MinhaEvolucao";
 
 // Performance page
 import PerformanceDashboard from "./pages/gerencial/performance/PerformanceDashboard";
@@ -204,6 +207,9 @@ const App = () => (
             <Route path="/equipe/board/desempenho/feedbacks" element={<TeamRoute><DesempenhoAccessGate><DesempenhoFeedbacks /></DesempenhoAccessGate></TeamRoute>} />
             <Route path="/equipe/board/desempenho/1a1" element={<TeamRoute><DesempenhoAccessGate><DesempenhoReunioes1a1 /></DesempenhoAccessGate></TeamRoute>} />
             <Route path="/equipe/board/desempenho/evolucao" element={<TeamRoute><DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate></TeamRoute>} />
+            <Route path="/equipe/board/desempenho/decisoes" element={<TeamRoute><DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate></TeamRoute>} />
+            <Route path="/equipe/board/desempenho/relatorios" element={<TeamRoute><DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate></TeamRoute>} />
+            <Route path="/equipe/board/desempenho/minha-evolucao" element={<TeamRoute><MinhaEvolucao /></TeamRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

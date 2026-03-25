@@ -459,6 +459,56 @@ export type Database = {
           },
         ]
       }
+      comentarios_avaliacao: {
+        Row: {
+          autor_id: string
+          ciclo_id: string | null
+          conteudo: string
+          created_at: string | null
+          destinatario_id: string | null
+          id: string
+          lido: boolean | null
+          lido_em: string | null
+          tipo: string
+          updated_at: string | null
+          visivel_para_membro: boolean | null
+        }
+        Insert: {
+          autor_id: string
+          ciclo_id?: string | null
+          conteudo: string
+          created_at?: string | null
+          destinatario_id?: string | null
+          id?: string
+          lido?: boolean | null
+          lido_em?: string | null
+          tipo: string
+          updated_at?: string | null
+          visivel_para_membro?: boolean | null
+        }
+        Update: {
+          autor_id?: string
+          ciclo_id?: string | null
+          conteudo?: string
+          created_at?: string | null
+          destinatario_id?: string | null
+          id?: string
+          lido?: boolean | null
+          lido_em?: string | null
+          tipo?: string
+          updated_at?: string | null
+          visivel_para_membro?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_avaliacao_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contatos: {
         Row: {
           atendido_por: string | null
@@ -1892,9 +1942,11 @@ export type Database = {
       metas: {
         Row: {
           ajuste_qualitativo: string | null
+          ajuste_qualitativo_publico: string | null
           area_id: string | null
           ciclo_id: string | null
           classificacao_final: string | null
+          comentario_membro: string | null
           created_at: string | null
           created_by: string | null
           criterio_evidencia: string | null
@@ -1906,16 +1958,20 @@ export type Database = {
           peso: number | null
           prazo: string | null
           progresso_atual: number | null
+          recomendacao_decisao: string | null
           responsavel_id: string | null
           status: string | null
           titulo: string
+          ultima_atualizacao_membro: string | null
           updated_at: string | null
         }
         Insert: {
           ajuste_qualitativo?: string | null
+          ajuste_qualitativo_publico?: string | null
           area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
+          comentario_membro?: string | null
           created_at?: string | null
           created_by?: string | null
           criterio_evidencia?: string | null
@@ -1927,16 +1983,20 @@ export type Database = {
           peso?: number | null
           prazo?: string | null
           progresso_atual?: number | null
+          recomendacao_decisao?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo: string
+          ultima_atualizacao_membro?: string | null
           updated_at?: string | null
         }
         Update: {
           ajuste_qualitativo?: string | null
+          ajuste_qualitativo_publico?: string | null
           area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
+          comentario_membro?: string | null
           created_at?: string | null
           created_by?: string | null
           criterio_evidencia?: string | null
@@ -1948,9 +2008,11 @@ export type Database = {
           peso?: number | null
           prazo?: string | null
           progresso_atual?: number | null
+          recomendacao_decisao?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo?: string
+          ultima_atualizacao_membro?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2447,6 +2509,47 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ppr_regras_ciclo: {
+        Row: {
+          ciclo_id: string | null
+          classificacao: string
+          created_at: string | null
+          descricao_publica: string | null
+          faixa_maxima: number | null
+          faixa_minima: number
+          id: string
+          multiplicador_bonus: number
+        }
+        Insert: {
+          ciclo_id?: string | null
+          classificacao: string
+          created_at?: string | null
+          descricao_publica?: string | null
+          faixa_maxima?: number | null
+          faixa_minima: number
+          id?: string
+          multiplicador_bonus?: number
+        }
+        Update: {
+          ciclo_id?: string | null
+          classificacao?: string
+          created_at?: string | null
+          descricao_publica?: string | null
+          faixa_maxima?: number | null
+          faixa_minima?: number
+          id?: string
+          multiplicador_bonus?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ppr_regras_ciclo_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       procedimentos: {
         Row: {
@@ -3345,6 +3448,47 @@ export type Database = {
             columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relatorios_gerados: {
+        Row: {
+          ciclo_id: string | null
+          conteudo_ia: string | null
+          gerado_em: string | null
+          gerado_por: string | null
+          id: string
+          membro_id: string | null
+          status: string | null
+          tipo: string
+        }
+        Insert: {
+          ciclo_id?: string | null
+          conteudo_ia?: string | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          id?: string
+          membro_id?: string | null
+          status?: string | null
+          tipo: string
+        }
+        Update: {
+          ciclo_id?: string | null
+          conteudo_ia?: string | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          id?: string
+          membro_id?: string | null
+          status?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_gerados_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
             referencedColumns: ["id"]
           },
         ]
