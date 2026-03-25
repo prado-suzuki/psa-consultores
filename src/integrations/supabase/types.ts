@@ -1943,7 +1943,6 @@ export type Database = {
         Row: {
           ajuste_qualitativo: string | null
           ajuste_qualitativo_publico: string | null
-          area_id: string | null
           ciclo_id: string | null
           classificacao_final: string | null
           comentario_membro: string | null
@@ -1968,7 +1967,6 @@ export type Database = {
         Insert: {
           ajuste_qualitativo?: string | null
           ajuste_qualitativo_publico?: string | null
-          area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
           comentario_membro?: string | null
@@ -1993,7 +1991,6 @@ export type Database = {
         Update: {
           ajuste_qualitativo?: string | null
           ajuste_qualitativo_publico?: string | null
-          area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
           comentario_membro?: string | null

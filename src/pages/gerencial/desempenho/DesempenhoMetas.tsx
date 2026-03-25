@@ -103,7 +103,7 @@ const DesempenhoMetas = () => {
     const payload = {
       ciclo_id: cicloId, nivel: form.nivel as any, dimensao: form.dimensao as any, titulo: form.titulo,
       descricao: form.descricao || null, criterio_evidencia: form.criterio_evidencia || null, prazo: form.prazo || null,
-      peso: parseFloat(form.peso) || 1, meta_pai_id: form.meta_pai_id || null, responsavel_id: form.responsavel_id || null, area_id: null, status: 'ativa',
+      peso: parseFloat(form.peso) || 1, meta_pai_id: form.meta_pai_id || null, responsavel_id: form.responsavel_id || null, status: 'ativa',
     };
     if (editingMeta) {
       updateMeta.mutate({ id: editingMeta.id, ...payload }, { onSuccess: () => { setShowForm(false); resetForm(); } });
