@@ -18,13 +18,13 @@ export interface TaxProject {
   leader_id: string | null;
   external_client_id: string | null;
   contribuinte_id: string | null;
-  area_id: string | null;
+  estrutura_area_id: string | null;
   objective: string | null;
   ordem_servico_id: string | null;
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
-  area_ref?: { id: string; nome: string } | null;
+  area_ref?: { id: string; name: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
   servico_contratado?: string | null;
@@ -45,7 +45,7 @@ export interface TaxProjectFormData {
   sublider_ids: string[];
   external_client_id: string;
   contribuinte_id?: string;
-  area_id: string;
+  estrutura_area_id: string;
   objective: string;
   category_ids: string[];
   member_ids: string[];
@@ -66,7 +66,7 @@ export const useTaxProjects = () => {
           *,
           responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:tax_areas!tax_projects_area_id_fkey(id, nome)
+          area_ref:estrutura_areas!tax_projects_estrutura_area_id_fkey(id, name)
         `)
         .order('name');
       if (error) throw error;
@@ -125,7 +125,7 @@ export const useTaxProjectsList = (onlyActive = true) => {
   return useQuery({
     queryKey: ['tax-projects-list', onlyActive],
     queryFn: async () => {
-      let query = supabase.from('tax_projects').select('id, name, external_client_id, area_id').order('name');
+      let query = supabase.from('tax_projects').select('id, name, external_client_id, estrutura_area_id').order('name');
       if (onlyActive) query = query.eq('status', 'active');
       const { data, error } = await query;
       if (error) throw error;
@@ -204,7 +204,7 @@ export const useCreateTaxProject = () => {
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
-        area_id: data.area_id || null,
+        estrutura_area_id: data.estrutura_area_id || null,
         objective: data.objective || null,
         ordem_servico_id: data.ordem_servico_id || null,
         created_by: user?.id || null,
@@ -263,7 +263,7 @@ export const useUpdateTaxProject = () => {
         ['status', oldProject.status, data.status],
         ['start_date', oldProject.start_date || null, data.start_date || null],
         ['end_date', oldProject.end_date || null, data.end_date || null],
-        ['area_id', oldProject.area_id || null, data.area_id || null],
+        ['estrutura_area_id', oldProject.estrutura_area_id || null, data.estrutura_area_id || null],
         ['description', oldProject.description || null, data.description || null],
         ['responsible_id', oldProject.responsible_id || null, data.leader_ids[0] || null],
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
@@ -301,7 +301,7 @@ export const useUpdateTaxProject = () => {
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
-        area_id: data.area_id || null,
+        estrutura_area_id: data.estrutura_area_id || null,
         objective: data.objective || null,
         ordem_servico_id: data.ordem_servico_id || null,
       }).eq('id', id);
