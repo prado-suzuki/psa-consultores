@@ -45,6 +45,7 @@ const BoardDashboard = () => {
       const { data } = await supabase.from('process_improvements' as any).select('id, total_savings_monthly, status, created_at');
       return (data ?? []) as any[];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const totalSavingsYear = (improvements ?? []).reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
@@ -59,6 +60,7 @@ const BoardDashboard = () => {
       const { data: tasks } = await supabase.from('fiscal_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
       return (tasks ?? []) as any[];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const barChartData = useMemo(() => {
