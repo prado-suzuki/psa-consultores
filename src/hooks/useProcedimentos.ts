@@ -143,11 +143,10 @@ export function useUpdateProcedimento() {
 
       logAction({
         action: 'updated',
-        entityType: 'procedimento',
-        entityId: id,
-        entityName: updates.ai_titulo || id,
+        entity_type: 'procedimento',
+        entity_id: id,
+        entity_name: updates.ai_titulo || id,
         area: 'dev',
-        changedFields: updates,
       });
     },
     onSuccess: () => {
@@ -180,9 +179,9 @@ export function useConfirmProcedimento() {
 
       logAction({
         action: 'updated',
-        entityType: 'procedimento',
-        entityId: id,
-        entityName: updates.ai_titulo || id,
+        entity_type: 'procedimento',
+        entity_id: id,
+        entity_name: updates.ai_titulo || id,
         area: 'dev',
         details: 'Procedimento confirmado e publicado',
       });
