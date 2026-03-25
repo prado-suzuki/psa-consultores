@@ -193,6 +193,14 @@ const App = () => (
             {/* Board Routes */}
             <Route path="/equipe/board/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate></TeamRoute>} />
             
+            {/* Desempenho Routes */}
+            <Route path="/gerencial/desempenho" element={<DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate>} />
+            <Route path="/gerencial/desempenho/ciclos" element={<DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate>} />
+            <Route path="/gerencial/desempenho/metas" element={<DesempenhoAccessGate><DesempenhoMetas /></DesempenhoAccessGate>} />
+            <Route path="/gerencial/desempenho/feedbacks" element={<DesempenhoAccessGate><DesempenhoFeedbacks /></DesempenhoAccessGate>} />
+            <Route path="/gerencial/desempenho/1a1" element={<DesempenhoAccessGate><DesempenhoReunioes1a1 /></DesempenhoAccessGate>} />
+            <Route path="/gerencial/desempenho/evolucao" element={<DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate>} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
