@@ -42,17 +42,12 @@ export interface TaxProjectFormData {
   start_date: string;
   end_date: string;
   leader_ids: string[];
-  sublider_ids: string[];
   external_client_id: string;
   contribuinte_id?: string;
   estrutura_area_id: string;
-  objective: string;
-  category_ids: string[];
   member_ids: string[];
   ordem_servico_id: string;
 }
-
-// ── Helper constants ───────────────────────────────────────────────────
 
 // ── Queries ────────────────────────────────────────────────────────────
 
@@ -205,18 +200,10 @@ export const useCreateTaxProject = () => {
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
-        objective: data.objective || null,
         ordem_servico_id: data.ordem_servico_id || null,
         created_by: user?.id || null,
       }).select('id').single();
       if (error) throw error;
-
-      // Insert project servicos
-      if (data.category_ids.length > 0) {
-        const rows = data.category_ids.map(catId => ({ project_id: project.id, servico_id: catId }));
-        const { error: catError } = await (supabase.from('project_servicos' as any) as any).insert(rows);
-        if (catError) throw catError;
-      }
 
       // Insert project members
       const members = buildMembersList(project.id, data);
@@ -248,13 +235,12 @@ export const useUpdateTaxProject = () => {
 
   return useMutation({
     mutationFn: async ({
-      id, data, oldProject, oldMembers, oldCategoryIds,
+      id, data, oldProject, oldMembers,
     }: {
       id: string;
       data: TaxProjectFormData;
       oldProject: TaxProject;
       oldMembers: TaxProjectMember[];
-      oldCategoryIds: string[];
     }) => {
       // Build changed fields diff
       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
@@ -269,18 +255,10 @@ export const useUpdateTaxProject = () => {
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
-        ['objective', oldProject.objective || null, data.objective || null],
         ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
       ];
       for (const [field, oldVal, newVal] of comparisons) {
         if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
-      }
-
-      // Compare category_ids arrays
-      const sortedOld = [...oldCategoryIds].sort();
-      const sortedNew = [...data.category_ids].sort();
-      if (JSON.stringify(sortedOld) !== JSON.stringify(sortedNew)) {
-        changedFields.category_ids = { old: sortedOld, new: sortedNew };
       }
 
       // Compare member_ids arrays
@@ -302,20 +280,9 @@ export const useUpdateTaxProject = () => {
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
-        objective: data.objective || null,
         ordem_servico_id: data.ordem_servico_id || null,
       }).eq('id', id);
       if (error) throw error;
-
-      // Upsert project servicos + remove stale ones
-      if (data.category_ids.length > 0) {
-        const rows = data.category_ids.map(catId => ({ project_id: id, servico_id: catId }));
-        await (supabase.from('project_servicos' as any) as any).upsert(rows, { onConflict: 'project_id,servico_id' });
-      }
-      const removedCats = oldCategoryIds.filter(cid => !data.category_ids.includes(cid));
-      if (removedCats.length > 0) {
-        await (supabase.from('project_servicos' as any) as any).delete().eq('project_id', id).in('servico_id', removedCats);
-      }
 
       // Upsert project members + remove stale ones
       const members = buildMembersList(id, data);
@@ -342,7 +309,6 @@ export const useUpdateTaxProject = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tax-projects'] });
       queryClient.invalidateQueries({ queryKey: ['tax-project-members'] });
-      queryClient.invalidateQueries({ queryKey: ['project-servicos'] });
       toast.success('Projeto atualizado');
     },
     onError: (error) => {
@@ -381,11 +347,6 @@ function buildMembersList(projectId: string, data: TaxProjectFormData) {
   const members: { project_id: string; user_id: string; role: string }[] = [];
   for (const uid of data.leader_ids) {
     members.push({ project_id: projectId, user_id: uid, role: 'leader' });
-  }
-  for (const uid of data.sublider_ids) {
-    if (!members.some(m => m.user_id === uid)) {
-      members.push({ project_id: projectId, user_id: uid, role: 'sublider' });
-    }
   }
   for (const uid of data.member_ids) {
     if (!members.some(m => m.user_id === uid)) {
