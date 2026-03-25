@@ -11,11 +11,15 @@ import { Sparkles, AlertCircle, AlertTriangle, Info, RefreshCw } from 'lucide-re
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
+import { useBoardFilters } from '@/hooks/useBoardFilters';
+import { BoardFilterBar } from '@/components/board/BoardFilterBar';
+
+const DEFAULTS = { ciclo: '', area: 'todas', alertas: 'todos' };
 
 const DesempenhoVisaoGeral = () => {
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
-  const [selectedCicloId, setSelectedCicloId] = useState<string | undefined>(undefined);
+  const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'desempenho-geral', defaults: DEFAULTS });
   const [aiLoading, setAiLoading] = useState(false);
   const [aiData, setAiData] = useState<{ sintese: string; bullets: string[] } | null>(null);
 
