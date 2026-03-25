@@ -10,7 +10,7 @@ import { useProcedimentosList, Procedimento } from '@/hooks/useProcedimentos';
 import { ProcedimentoCard } from '@/components/equipe/dev/procedimentos/ProcedimentoCard';
 import { AddProcedimentoModal } from '@/components/equipe/dev/procedimentos/AddProcedimentoModal';
 import { ReviewProcedimentoModal } from '@/components/equipe/dev/procedimentos/ReviewProcedimentoModal';
-import { useRetryProcedimento } from '@/hooks/useProcedimentos';
+import { useRetryProcedimento, useDeleteProcedimento } from '@/hooks/useProcedimentos';
 
 const PROCESSOS = [
   'EFD', 'XMLs', 'PERDCOMP', 'Selic', 'IBS/CBS',
@@ -43,6 +43,7 @@ const ProcedimentosDev = () => {
   );
 
   const retryMutation = useRetryProcedimento();
+  const deleteMutation = useDeleteProcedimento();
 
   return (
     <DevLayout title="Biblioteca de Procedimentos" subtitle="Procedimentos técnicos gerados por IA">
@@ -126,6 +127,7 @@ const ProcedimentosDev = () => {
               isLeaderOrAdmin={isLeaderOrAdmin}
               onRetry={(id) => retryMutation.mutate(id)}
               onReview={(proc) => setReviewProc(proc)}
+              onDelete={(proc) => deleteMutation.mutate(proc)}
             />
           ))}
         </div>

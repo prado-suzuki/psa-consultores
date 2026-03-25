@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, X, Plus, BarChart3 } from 'lucide-react';
-import { Procedimento, useConfirmProcedimento, useUpdateProcedimento, useRetryProcedimento } from '@/hooks/useProcedimentos';
+import { Loader2, X, Plus, BarChart3, ExternalLink, Download } from 'lucide-react';
+import { Procedimento, useConfirmProcedimento, useUpdateProcedimento, useRetryProcedimento, useGetSignedUrl } from '@/hooks/useProcedimentos';
 
 const PROCESSOS = [
   'EFD', 'XMLs', 'PERDCOMP', 'Selic', 'IBS/CBS',
@@ -46,6 +46,24 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
   const confirmMutation = useConfirmProcedimento();
   const updateMutation = useUpdateProcedimento();
   const retryMutation = useRetryProcedimento();
+  const getSignedUrl = useGetSignedUrl();
+
+  const handleOpenSource = async () => {
+    if (!procedimento) return;
+    if (procedimento.source_url) {
+      window.open(procedimento.source_url, '_blank');
+    } else if (procedimento.arquivo_path) {
+      try {
+        const url = await getSignedUrl(procedimento.arquivo_path);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = procedimento.arquivo_path.split('/').pop() || 'documento';
+        a.click();
+      } catch (err) {
+        console.error('Download error:', err);
+      }
+    }
+  };
 
   useEffect(() => {
     if (procedimento) {
@@ -113,7 +131,18 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-2">
           {/* Preview Column (40%) */}
           <div className="md:col-span-2 bg-slate-50 rounded-xl p-5 space-y-3">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preview</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preview</h4>
+              {procedimento && (procedimento.source_url || procedimento.arquivo_path) && (
+                <Button size="sm" variant="ghost" className="text-xs h-7" onClick={handleOpenSource}>
+                  {procedimento.source_url ? (
+                    <><ExternalLink className="h-3 w-3 mr-1" /> Abrir link</>
+                  ) : (
+                    <><Download className="h-3 w-3 mr-1" /> Baixar documento</>
+                  )}
+                </Button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {processos.map((proc) => {
                 const color = PROCESSO_COLORS[proc] || '#6B7280';

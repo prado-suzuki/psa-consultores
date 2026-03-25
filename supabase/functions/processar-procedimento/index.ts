@@ -62,13 +62,12 @@ serve(async (req) => {
       try {
         const res = await fetch(proc.source_url);
         const html = await res.text();
-        // Strip HTML tags for plain text extraction
         content = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
           .replace(/<[^>]+>/g, " ")
           .replace(/\s+/g, " ")
           .trim()
-          .substring(0, 50000); // Limit content size
+          .substring(0, 50000);
       } catch (e) {
         throw new Error(`Failed to fetch URL: ${e.message}`);
       }
@@ -91,7 +90,7 @@ serve(async (req) => {
       throw new Error("Content too short or empty to analyze");
     }
 
-    // Step 2: Call Lovable AI Gateway
+    // Step 2: Call Lovable AI Gateway for text analysis
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -125,7 +124,62 @@ serve(async (req) => {
 
     const parsed = JSON.parse(jsonStr);
 
-    // Step 3: Update record with success
+    // Step 3: Generate cover image using AI
+    let aiCoverUrl: string | null = null;
+    try {
+      const titulo = parsed.titulo || "Procedimento tributário";
+      const processosStr = (parsed.processos || []).join(", ");
+      const imagePrompt = `Create a professional, clean cover illustration for a tax procedure document titled "${titulo}". Related areas: ${processosStr}. Style: modern flat illustration, professional blue and teal color tones, abstract geometric shapes representing data analysis and compliance, no text in the image, suitable as a card thumbnail.`;
+
+      const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-image-preview",
+          messages: [{ role: "user", content: imagePrompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (imageResponse.ok) {
+        const imageData = await imageResponse.json();
+        const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+        if (base64Url && base64Url.startsWith("data:image/")) {
+          // Extract base64 data and upload to storage
+          const base64Match = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (base64Match) {
+            const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
+            const base64Data = base64Match[2];
+            const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+            const coverPath = `procedimentos/covers/${id}.${ext}`;
+
+            const { error: uploadErr } = await supabase.storage
+              .from("sop-documents")
+              .upload(coverPath, binaryData, {
+                contentType: `image/${base64Match[1]}`,
+                upsert: true,
+              });
+
+            if (!uploadErr) {
+              aiCoverUrl = coverPath;
+            } else {
+              console.error("Cover upload error:", uploadErr);
+            }
+          }
+        }
+      } else {
+        console.error("Image generation failed:", await imageResponse.text());
+      }
+    } catch (imgErr) {
+      console.error("Cover image generation error:", imgErr);
+      // Non-fatal: proceed without cover
+    }
+
+    // Step 4: Update record with success
     const { error: updateErr } = await supabase
       .from("procedimentos")
       .update({
@@ -135,6 +189,7 @@ serve(async (req) => {
         ai_complexidade: parsed.complexidade || "intermediario",
         ai_tags: parsed.tags || [],
         processos_associados: parsed.processos || [],
+        ai_cover_url: aiCoverUrl,
         status_geracao: "gerado",
         erro_mensagem: null,
       })

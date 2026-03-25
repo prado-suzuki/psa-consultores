@@ -15,6 +15,7 @@ export interface Procedimento {
   ai_etapas: string[];
   ai_complexidade: 'simples' | 'intermediario' | 'avancado' | null;
   ai_tags: string[];
+  ai_cover_url: string | null;
   status_geracao: 'processando' | 'gerado' | 'erro';
   status_publicacao: 'ativo' | 'em_revisao' | 'arquivado';
   erro_mensagem: string | null;
@@ -235,4 +236,54 @@ export function useUploadProcedimentoFile() {
       toast.error('Erro no upload: ' + err.message);
     },
   });
+}
+
+export function useDeleteProcedimento() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (proc: Procedimento) => {
+      // Delete cover from storage if exists
+      if (proc.ai_cover_url) {
+        await supabase.storage.from('sop-documents').remove([proc.ai_cover_url]);
+      }
+      // Delete attached file from storage if exists
+      if (proc.arquivo_path) {
+        await supabase.storage.from('sop-documents').remove([proc.arquivo_path]);
+      }
+      // Delete the record
+      const { error } = await supabase
+        .from('procedimentos' as any)
+        .delete()
+        .eq('id', proc.id);
+
+      if (error) throw error;
+
+      logAction({
+        action: 'deleted',
+        entity_type: 'procedimento',
+        entity_id: proc.id,
+        entity_name: proc.ai_titulo || proc.source_url || 'Procedimento',
+        area: 'dev',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
+      toast.success('Procedimento excluído');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir: ' + err.message);
+    },
+  });
+}
+
+export function useGetSignedUrl() {
+  return async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('sop-documents')
+      .createSignedUrl(path, 3600);
+    if (error) throw error;
+    return data.signedUrl;
+  };
 }
