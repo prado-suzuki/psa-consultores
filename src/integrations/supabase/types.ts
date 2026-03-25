@@ -1942,9 +1942,11 @@ export type Database = {
       metas: {
         Row: {
           ajuste_qualitativo: string | null
+          ajuste_qualitativo_publico: string | null
           area_id: string | null
           ciclo_id: string | null
           classificacao_final: string | null
+          comentario_membro: string | null
           created_at: string | null
           created_by: string | null
           criterio_evidencia: string | null
@@ -1956,16 +1958,20 @@ export type Database = {
           peso: number | null
           prazo: string | null
           progresso_atual: number | null
+          recomendacao_decisao: string | null
           responsavel_id: string | null
           status: string | null
           titulo: string
+          ultima_atualizacao_membro: string | null
           updated_at: string | null
         }
         Insert: {
           ajuste_qualitativo?: string | null
+          ajuste_qualitativo_publico?: string | null
           area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
+          comentario_membro?: string | null
           created_at?: string | null
           created_by?: string | null
           criterio_evidencia?: string | null
@@ -1977,16 +1983,20 @@ export type Database = {
           peso?: number | null
           prazo?: string | null
           progresso_atual?: number | null
+          recomendacao_decisao?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo: string
+          ultima_atualizacao_membro?: string | null
           updated_at?: string | null
         }
         Update: {
           ajuste_qualitativo?: string | null
+          ajuste_qualitativo_publico?: string | null
           area_id?: string | null
           ciclo_id?: string | null
           classificacao_final?: string | null
+          comentario_membro?: string | null
           created_at?: string | null
           created_by?: string | null
           criterio_evidencia?: string | null
@@ -1998,9 +2008,11 @@ export type Database = {
           peso?: number | null
           prazo?: string | null
           progresso_atual?: number | null
+          recomendacao_decisao?: string | null
           responsavel_id?: string | null
           status?: string | null
           titulo?: string
+          ultima_atualizacao_membro?: string | null
           updated_at?: string | null
         }
         Relationships: [
