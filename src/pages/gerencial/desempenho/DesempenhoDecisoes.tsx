@@ -55,9 +55,10 @@ const DesempenhoDecisoes = () => {
   const handleConfirm = async () => {
     if (!confirmModal || !cicloAtivo?.id) return;
     const decisao = confirmForm.tipo === 'promocao' ? 'promover' : confirmForm.tipo === 'reajuste' ? 'reajustar' : 'manter';
-    // Update all metas for this member
-    const { data: metas } = await supabase.from('metas' as any).select('id').eq('ciclo_id', cicloAtivo.id).eq('responsavel_id', confirmModal.membro_id).eq('nivel', 'individual');
-    for (const m of (metas ?? [])) {
+    // Update all metas for this member - using 'as any' for untyped table
+    const { data: metasData } = await supabase.from('metas' as any).select('id').eq('ciclo_id', cicloAtivo.id).eq('responsavel_id', confirmModal.membro_id).eq('nivel', 'individual');
+    const metasList = (metasData ?? []) as unknown as { id: string }[];
+    for (const m of metasList) {
       await supabase.from('metas' as any).update({ recomendacao_decisao: decisao }).eq('id', m.id);
     }
     // Create comment
