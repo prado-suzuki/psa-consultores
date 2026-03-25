@@ -27,12 +27,12 @@ interface DesempenhoLayoutProps {
 }
 
 const navItems = [
-  { icon: BarChart3, label: 'Visão Geral', path: '/gerencial/desempenho' },
-  { icon: CalendarRange, label: 'Ciclos', path: '/gerencial/desempenho/ciclos' },
-  { icon: Crosshair, label: 'Metas', path: '/gerencial/desempenho/metas' },
-  { icon: MessageSquareHeart, label: 'Feedbacks', path: '/gerencial/desempenho/feedbacks' },
-  { icon: Users2, label: '1:1s', path: '/gerencial/desempenho/1a1' },
-  { icon: TrendingUp, label: 'Evolução', path: '/gerencial/desempenho/evolucao' },
+  { icon: BarChart3, label: 'Visão Geral', path: '/equipe/board/desempenho' },
+  { icon: CalendarRange, label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' },
+  { icon: Crosshair, label: 'Metas', path: '/equipe/board/desempenho/metas' },
+  { icon: MessageSquareHeart, label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' },
+  { icon: Users2, label: '1:1s', path: '/equipe/board/desempenho/1a1' },
+  { icon: TrendingUp, label: 'Evolução', path: '/equipe/board/desempenho/evolucao' },
 ];
 
 export const DesempenhoLayout = ({ children, title, subtitle, headerActions }: DesempenhoLayoutProps) => {
@@ -125,7 +125,7 @@ export const DesempenhoLayout = ({ children, title, subtitle, headerActions }: D
           <Button
             variant="ghost"
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-violet-600 transition-colors`}
-            onClick={() => navigate('/equipe/digital')}
+            onClick={() => navigate('/equipe/board/dashboard')}
             title={collapsed ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />

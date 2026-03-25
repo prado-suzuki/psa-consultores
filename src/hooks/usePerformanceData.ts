@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { subDays, startOfDay, differenceInDays, parseISO, isAfter, isBefore, format, subMonths } from 'date-fns';
+import { subDays, startOfDay, differenceInDays, parseISO, isAfter, isBefore, subMonths, startOfMonth } from 'date-fns';
 
 // ── helpers ──
 function getPeriodDays(periodo: string) {
   if (periodo === '7d') return 7;
   if (periodo === '30d') return 30;
   if (periodo === '90d') return 90;
-  return 30; // ciclo uses dynamic range
+  return 30;
 }
 
 function getDateRange(periodo: string, cicloInicio?: string, cicloFim?: string) {
@@ -39,25 +39,13 @@ export interface PerformanceProject {
   computed_status: 'em_dia' | 'em_risco' | 'atrasado';
 }
 
-export interface PerformanceMember {
-  id: string;
-  name: string;
-  area: string | null;
-  tasks_completed: number;
-  tasks_on_time: number;
-  tasks_total: number;
-  projects_active: number;
-  last_activity: string | null;
-  meta_progress: number | null;
-}
-
 // ── Main hook ──
 export const usePerformanceData = (periodo: string, area: string) => {
   const { user } = useAuth();
 
   // Preferences
   const prefsQuery = useQuery({
-    queryKey: ['performance-prefs', user?.id],
+    queryKey: ['perf-prefs', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       const { data } = await supabase
@@ -107,7 +95,6 @@ export const usePerformanceData = (periodo: string, area: string) => {
         .eq('is_active', true);
       if (error) throw error;
 
-      // Fetch tasks for these projects
       const projectIds = (projects || []).map((p: any) => p.id);
       let tasks: any[] = [];
       if (projectIds.length > 0) {
@@ -124,7 +111,6 @@ export const usePerformanceData = (periodo: string, area: string) => {
         }
       }
 
-      // Fetch members
       let members: any[] = [];
       if (projectIds.length > 0) {
         const chunks = [];
@@ -261,6 +247,32 @@ export const usePerformanceData = (periodo: string, area: string) => {
     },
   });
 
+  // Heatmap tasks — fixed 90-day window independent of global period
+  const heatmap90From = startOfDay(subDays(new Date(), 90)).toISOString();
+  const heatmapTasksQuery = useQuery({
+    queryKey: ['perf-heatmap-tasks', heatmap90From],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('fiscal_tasks')
+        .select('id, status, due_date, assigned_to, updated_at, project_id')
+        .gte('updated_at', heatmap90From);
+      return data || [];
+    },
+  });
+
+  // Last 3 months tasks — fixed window for area comparison chart
+  const last3MonthsFrom = startOfMonth(subMonths(new Date(), 2)).toISOString();
+  const last3MonthsTasksQuery = useQuery({
+    queryKey: ['perf-last3months-tasks', last3MonthsFrom],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('fiscal_tasks')
+        .select('id, status, due_date, assigned_to, updated_at, project_id')
+        .gte('updated_at', last3MonthsFrom);
+      return data || [];
+    },
+  });
+
   // Process improvements for ROI
   const roiQuery = useQuery({
     queryKey: ['perf-roi'],
@@ -280,6 +292,8 @@ export const usePerformanceData = (periodo: string, area: string) => {
     membersQuery,
     metasQuery,
     periodTasksQuery,
+    heatmapTasksQuery,
+    last3MonthsTasksQuery,
     roiQuery,
     periodFrom,
     periodTo,
@@ -306,7 +320,7 @@ export const useSavePerformancePrefs = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['performance-prefs'] });
+      queryClient.invalidateQueries({ queryKey: ['perf-prefs'] });
     },
   });
 };

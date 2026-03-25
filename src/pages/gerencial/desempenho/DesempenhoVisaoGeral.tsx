@@ -112,7 +112,7 @@ const DesempenhoVisaoGeral = () => {
                 const dc = dimensaoColors[m.dimensao] ?? dimensaoColors.entrega;
                 const barColor = m.progresso_atual >= 85 ? 'bg-emerald-500' : m.progresso_atual >= 70 ? 'bg-amber-500' : 'bg-red-500';
                 return (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate('/gerencial/desempenho/metas')}>
+                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate('/equipe/board/desempenho/metas')}>
                     <Badge variant="outline" className={`${dc.bg} ${dc.text} border-0 text-[11px] font-semibold rounded-full px-2.5`}>
                       {m.dimensao}
                     </Badge>
@@ -145,7 +145,7 @@ const DesempenhoVisaoGeral = () => {
                     <div
                       key={userId}
                       className="p-4 rounded-xl bg-white border border-slate-200/60 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/gerencial/desempenho/evolucao?membro=${userId}`)}
+                      onClick={() => navigate(`/equipe/board/desempenho/evolucao?membro=${userId}`)}
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center text-sm font-semibold text-violet-700">{initials}</div>

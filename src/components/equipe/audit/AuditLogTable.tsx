@@ -80,18 +80,12 @@ function useLookupMaps(): LookupMaps {
     },
   });
 
-  // Dual lookup: estrutura_areas first, tax_areas as fallback for historical logs
   const { data: areas = {} } = useQuery({
     queryKey: ['audit-lookup-areas'],
     queryFn: async () => {
-      const [estruturaRes, taxRes] = await Promise.all([
-        supabase.from('estrutura_areas').select('id, name'),
-        supabase.from('tax_areas').select('id, nome'),
-      ]);
+      const { data } = await supabase.from('estrutura_areas').select('id, name');
       const map: Record<string, string> = {};
-      // tax_areas first (fallback), then estrutura_areas overrides
-      (taxRes.data || []).forEach(d => { map[d.id] = d.nome; });
-      (estruturaRes.data || []).forEach(d => { map[d.id] = d.name; });
+      (data || []).forEach(d => { map[d.id] = d.name; });
       return map;
     },
   });

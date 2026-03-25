@@ -49,7 +49,7 @@ export const CycleGoalsBlock = ({ ciclo, metas, profiles, isLoading }: Props) =>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Target className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
             <p className="mb-3">Nenhum ciclo ativo encontrado.</p>
-            <Button variant="outline" size="sm" onClick={() => navigate('/gerencial/desempenho/ciclos')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/equipe/board/desempenho/ciclos')}>
               Cadastrar primeiro ciclo <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </CardContent>
@@ -177,7 +177,7 @@ export const CycleGoalsBlock = ({ ciclo, metas, profiles, isLoading }: Props) =>
                       key={p.userId}
                       className="flex items-center justify-between p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                       style={{ backgroundColor: colors.bg }}
-                      onClick={() => navigate(`/gerencial/desempenho/evolucao?membro=${p.userId}`)}
+                      onClick={() => navigate(`/equipe/board/desempenho/evolucao?membro=${p.userId}`)}
                     >
                       <span className="text-sm font-medium" style={{ color: colors.text }}>{p.name}</span>
                       <div className="flex items-center gap-2">
