@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,10 +13,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { useBoardFilters } from '@/hooks/useBoardFilters';
+import { BoardFilterBar, FilterEmptyState } from '@/components/board/BoardFilterBar';
+
+const DEFAULTS = { periodo: '30d', area: 'todas' };
 
 const BoardDashboard = () => {
   const navigate = useNavigate();
-  const { projectsQuery, membersQuery } = usePerformanceData('30d', 'todas');
+  const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'dashboard', defaults: DEFAULTS });
+  const periodo = filters.periodo as string;
+  const area = filters.area as string;
+
+  const { projectsQuery, membersQuery } = usePerformanceData(periodo, area);
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { data: decisoesData } = useDecisoesData(cicloAtivo?.id);
@@ -53,7 +61,7 @@ const BoardDashboard = () => {
     },
   });
 
-  const barChartData = (() => {
+  const barChartData = useMemo(() => {
     const months: Record<string, { name: string; Tax: number; OSG: number; Dev: number }> = {};
     (tasksByArea ?? []).forEach((t: any) => {
       const d = new Date(t.created_at);
@@ -66,10 +74,24 @@ const BoardDashboard = () => {
       else months[key].Dev++;
     });
     return Object.values(months).slice(-3);
-  })();
+  }, [tasksByArea]);
 
   const daysToAnalise = cicloAtivo?.data_analise_semestral ? differenceInDays(new Date(cicloAtivo.data_analise_semestral), new Date()) : null;
-  const riskyProjects = projects.filter(p => p.computed_status === 'em_risco' || p.computed_status === 'atrasado').slice(0, 5);
+
+  // Filter risky projects by area
+  const riskyProjects = useMemo(() => {
+    let filtered = projects.filter(p => p.computed_status === 'em_risco' || p.computed_status === 'atrasado');
+    if (area !== 'todas') filtered = filtered.filter(p => (p.area_name || '').toLowerCase().includes(area));
+    return filtered.slice(0, 5);
+  }, [projects, area]);
+
+  // Filter decisoes by area
+  const filteredDecisoes = useMemo(() => {
+    if (!decisoesData) return [];
+    if (area === 'todas') return decisoesData.slice(0, 5);
+    // area filter not directly available on decisoes, show all
+    return decisoesData.slice(0, 5);
+  }, [decisoesData, area]);
 
   const pontualidade = projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0;
   const progressoMetas = overview?.mediaProgresso ?? 0;
@@ -82,7 +104,6 @@ const BoardDashboard = () => {
       if (error) throw error;
       setAiSintese(data);
     } catch {
-      // fallback
       setAiSintese({
         sintese: `Com ${projects.length} projetos ativos e ${emRisco + atrasados} em risco, o foco deve ser desbloqueio dos projetos criticos. ROI acumulado de R$${(totalSavingsYear / 1000).toFixed(0)}k/ano com ${roiFerramentas} ferramentas.`,
         bullets: [
@@ -97,20 +118,13 @@ const BoardDashboard = () => {
 
   const isLoading = projectsQuery.isLoading;
 
-  const getAreaChip = (area: string | null) => {
-    const a = (area || '').toLowerCase();
-    if (a.includes('tax')) return 'c-tax';
-    if (a.includes('osg')) return 'c-osg';
-    return 'c-dev';
-  };
-
+  const getAreaChip = (a: string | null) => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'c-tax' : x.includes('osg') ? 'c-osg' : 'c-dev'; };
   const getClassifChip = (ppr: number) => {
     if (ppr >= 100) return { cls: 'c-ppr-s', label: 'Supera' };
     if (ppr >= 85) return { cls: 'c-ppr-a', label: 'Atende' };
     if (ppr >= 70) return { cls: 'c-ppr-p', label: 'Parcial' };
     return { cls: 'c-ppr-b', label: 'Abaixo' };
   };
-
   const getPbColor = (pct: number) => pct >= 85 ? 'v3-pg' : pct >= 70 ? 'v3-pa' : 'v3-pr';
   const getTextColor = (pct: number) => pct >= 85 ? 'var(--gr)' : pct >= 70 ? 'var(--am)' : 'var(--re)';
 
@@ -131,6 +145,18 @@ const BoardDashboard = () => {
             {roiPct > 0 && <span className="ch c-ok" style={{ fontSize: '10.5px', padding: '3px 9px' }}>ROI {roiPct}%</span>}
           </div>
         </div>
+
+        {/* Filter Bar */}
+        <BoardFilterBar
+          filters={[
+            { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+            { key: 'area', label: 'Área', type: 'select', options: [{ value: 'todas', label: 'Todas as áreas' }, { value: 'tax', label: 'Tax' }, { value: 'osg', label: 'OSG' }, { value: 'dev', label: 'Dev' }] },
+          ]}
+          activeFilters={filters}
+          onFilterChange={setFilter}
+          onReset={resetFilters}
+          activeCount={activeCount}
+        />
 
         {/* Strategic Numbers */}
         {isLoading ? (
@@ -161,7 +187,7 @@ const BoardDashboard = () => {
               <div className="snum" style={{ color: 'var(--pu)' }}>{pontualidade}%</div>
               <div className="snum-label">Taxa Pontualidade</div>
               <div className="snum-sub" style={{ color: 'var(--gr)' }}>+5pp vs mes anterior</div>
-              <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className={`v3-pbf v3-pg`} style={{ width: `${pontualidade}%` }} /></div></div>
+              <div style={{ marginTop: 8 }}><div className="v3-pb v3-pb6"><div className="v3-pbf v3-pg" style={{ width: `${pontualidade}%` }} /></div></div>
             </div>
             <div className="v3-card" style={{ padding: 16, textAlign: 'center' }}>
               <div className="snum" style={{ color: 'var(--am)' }}>{progressoMetas}%</div>
@@ -276,8 +302,8 @@ const BoardDashboard = () => {
 
           <div className="v3-card">
             <div className="sct">Performance da Equipe — Resumo</div>
-            {(!decisoesData || decisoesData.length === 0) && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Nenhum dado de performance.</div>}
-            {decisoesData?.slice(0, 5).map((m, idx) => {
+            {(!filteredDecisoes || filteredDecisoes.length === 0) && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Nenhum dado de performance.</div>}
+            {filteredDecisoes.map((m, idx) => {
               const classif = getClassifChip(m.ppr);
               return (
                 <div key={m.membro_id} className="v3-sr">
