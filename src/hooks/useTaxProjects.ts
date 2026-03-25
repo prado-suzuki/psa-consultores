@@ -88,24 +88,24 @@ export const useTaxProjects = () => {
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
       }
 
-      // Resolve servico_contratado via ordem_servico → id_servico → servicos_prestados
+      // Resolve servico_contratado via ordem_servico → id_produto_segmento → produto_segmento
       const osIds = [...new Set((data || []).filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
       const servicoMap: Record<string, string> = {};
 
       if (osIds.length > 0) {
-        // Cast needed: ordem_servico not in generated types
-        const { data: osRows } = await (supabase.from('ordem_servico' as any) as any)
-          .select('id, id_servico')
+        const { data: osRows } = await supabase
+          .from('ordem_servico')
+          .select('id, id_produto_segmento')
           .in('id', osIds);
-        const servicoIds = [...new Set((osRows || []).filter((o: any) => o.id_servico).map((o: any) => o.id_servico as string))];
-        let servicoNames: Record<string, string> = {};
-        if (servicoIds.length > 0) {
-          const { data: servicos } = await supabase.from('servicos_prestados').select('id, nome').in('id', servicoIds as string[]);
-          (servicos || []).forEach((s: any) => { servicoNames[s.id] = s.nome; });
+        const produtoIds = [...new Set((osRows || []).filter(o => o.id_produto_segmento).map(o => o.id_produto_segmento as string))];
+        const produtoNames: Record<string, string> = {};
+        if (produtoIds.length > 0) {
+          const { data: produtos } = await supabase.from('produto_segmento').select('id, codigo, nome').in('id', produtoIds);
+          (produtos || []).forEach(p => { produtoNames[p.id] = `${p.codigo} — ${p.nome}`; });
         }
-        (osRows || []).forEach((o: any) => {
-          if (o.id_servico && servicoNames[o.id_servico]) {
-            servicoMap[o.id] = servicoNames[o.id_servico];
+        (osRows || []).forEach(o => {
+          if (o.id_produto_segmento && produtoNames[o.id_produto_segmento]) {
+            servicoMap[o.id] = produtoNames[o.id_produto_segmento];
           }
         });
       }
