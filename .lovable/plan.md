@@ -1,110 +1,124 @@
 
 
-## Plano: Reposicionar Performance e Desempenho para /equipe/board + Corrigir bugs + Limpeza
+## Plano: Reestruturar Board Layout + Completar Desempenho + Dashboard Funcional
 
-### 1. Mover rotas no App.tsx
-
-Remover as 7 rotas `/gerencial/*` (linhas 200-208) e registrá-las sob `/equipe/board/*`:
-
-```
-/equipe/board/performance → DesempenhoAccessGate + PerformanceDashboard
-/equipe/board/desempenho → DesempenhoAccessGate + DesempenhoVisaoGeral
-/equipe/board/desempenho/ciclos → DesempenhoAccessGate + DesempenhoCiclos
-/equipe/board/desempenho/metas → DesempenhoAccessGate + DesempenhoMetas
-/equipe/board/desempenho/feedbacks → DesempenhoAccessGate + DesempenhoFeedbacks
-/equipe/board/desempenho/1a1 → DesempenhoAccessGate + DesempenhoReunioes1a1
-/equipe/board/desempenho/evolucao → DesempenhoAccessGate + DesempenhoEvolucao
-```
-
-Manter `TeamRoute` como wrapper pai para consistência com as demais rotas `/equipe/*`.
-
-### 2. Adicionar itens no sidebar do BoardLayout.tsx
-
-Importar `BarChart3`, `Target` e `useAuth`. Adicionar nav items condicionais (apenas para `isAdmin || isLider`):
-- Performance → `/equipe/board/performance` (BarChart3)
-- Desempenho → `/equipe/board/desempenho` (Target)
-- Dashboard (existente) → `/equipe/board/dashboard` (LayoutDashboard)
-
-Adicionar lógica `isActive` com `useLocation`.
-
-### 3. Remover itens do GestaoLayout.tsx
-
-Remover as duas entradas condicionais de Desempenho e Performance do array `navItems` (linha 47-48). Remover imports de `Target` e `BarChart3` se não usados por outros itens.
-
-### 4. Atualizar PerformanceDashboard.tsx
-
-Trocar `GestaoLayout` por `BoardLayout` como wrapper. Ajustar props (`title`, `subtitle`).
-
-### 5. Atualizar DesempenhoLayout.tsx
-
-Atualizar todos os 6 paths no array `navItems` de `/gerencial/desempenho/*` para `/equipe/board/desempenho/*`. Atualizar o botão "Trocar área" para navegar a `/equipe/board/dashboard`.
-
-### 6. Atualizar protectedPages.ts
-
-Trocar os 7 `page_path` de `/gerencial/*` para `/equipe/board/*`. Mudar category de `'gestao'` para `'board'`.
-
-### 7. Atualizar referências internas
-
-- `CycleGoalsBlock.tsx`: `/gerencial/desempenho/ciclos` → `/equipe/board/desempenho/ciclos` e `/gerencial/desempenho/evolucao` → `/equipe/board/desempenho/evolucao`
-- `DesempenhoVisaoGeral.tsx`: `/gerencial/desempenho/metas` → `/equipe/board/desempenho/metas` e `/gerencial/desempenho/evolucao` → `/equipe/board/desempenho/evolucao`
-
-### 8. Corrigir bug — ActivityHeatmap dados incompletos
-
-Em `usePerformanceData.ts`, adicionar query `heatmapTasksQuery` com janela fixa de 90 dias (independente do filtro `periodo`). Expor no retorno. Em `PerformanceDashboard.tsx`, passar `heatmapTasks` ao `TeamContributionBlock` separadamente.
-
-### 9. Corrigir bug — handleRefresh
-
-Substituir o bloco `handleRefresh` por:
-```ts
-queryClient.invalidateQueries({
-  predicate: (query) =>
-    typeof query.queryKey[0] === 'string' &&
-    (query.queryKey[0] as string).startsWith('perf')
-});
-```
-Renomear `performance-prefs` para `perf-prefs` para consistência.
-
-### 10. Corrigir bug — Gráfico 3 meses truncado
-
-Em `usePerformanceData.ts`, adicionar query `last3MonthsTasksQuery` cobrindo sempre os últimos 3 meses completos. Expor no retorno. Em `PerformanceDashboard.tsx`, passar ao `AreaComparisonBlock`.
-
-### 11. Limpeza de código legado
-
-- **Deletar** `src/hooks/useTaxAreas.ts` (sem imports ativos)
-- **AuditLogTable.tsx** (linhas 83-96): Remover a query `tax_areas` e usar apenas `estrutura_areas`
-- **usePerformanceData.ts**: Remover `as any` casts em `performance_preferencias` — usar tipo gerado
-- **ProjectsBlock.tsx**: Corrigir fragments sem key para `React.Fragment key={...}`
-
-### 12. Features faltantes do Performance
-
-- **ProjectsBlock.tsx**: Adicionar colunas "Área" (chip colorido) e "Responsável" (iniciais + nome) na tabela
-- **TeamContributionBlock.tsx**: Adicionar dropdown filtro por área + botões segmentados de métrica
-- **AutomationImpactBlock.tsx**: Adicionar `AreaChart` Recharts abaixo da tabela com ROI acumulado mês a mês, gradiente verde, linha de referência "Meta projetada"
+Este plano cobre a unificação do layout, eliminação do DesempenhoLayout, ativação do Dashboard com dados reais, e completude das ~15 funcionalidades faltantes do Desempenho. Dado o volume, será implementado em lotes sequenciais.
 
 ---
 
-### Arquivos modificados
+### Migration necessária
+
+Adicionar coluna `dashboard_layout` na tabela `performance_preferencias`:
+
+```sql
+ALTER TABLE performance_preferencias
+  ADD COLUMN IF NOT EXISTS dashboard_layout jsonb DEFAULT '{}';
+```
+
+---
+
+### Lote 1 — Novo BoardLayout unificado + Remoção do DesempenhoLayout
+
+**Arquivos:** `BoardLayout.tsx` (reescrever), deletar `DesempenhoLayout.tsx`, atualizar 6 páginas Desempenho + PerformanceDashboard
+
+Novo `BoardLayout.tsx`:
+- Sidebar escura (#0F172A) com 240px desktop, 64px (ícones) em tablet, drawer em mobile
+- Topo: nome do sistema + card do usuário (avatar iniciais, nome, papel)
+- Nav com labels de grupo uppercase 11px (#475569): "VISAO GERAL" (Dashboard) e "GERENCIAL" (Performance, Desempenho com sub-itens)
+- Sub-itens do Desempenho (Visão Geral, Ciclos, Metas, Feedbacks, 1:1s, Evolução) auto-expandem quando rota contém `/desempenho/`, indentados 16px, indicador indigo 2px na esquerda para ativo
+- Itens Performance/Desempenho condicionais a `isAdmin || isLider`
+- Rodapé: "Voltar ao Portal" → `/equipe/`
+- Header interno branco com breadcrumb + título + headerActions
+- Conteúdo com padding 32/24/16px por breakpoint
+- Responsividade: ≥1280px sidebar fixa, 768-1279 colapsada com hover, <768 drawer
+
+**Atualizar 8 páginas** para trocar `<DesempenhoLayout>` por `<BoardLayout>`:
+- `DesempenhoVisaoGeral.tsx`, `DesempenhoCiclos.tsx`, `DesempenhoMetas.tsx`, `DesempenhoFeedbacks.tsx`, `DesempenhoReunioes1a1.tsx`, `DesempenhoEvolucao.tsx`
+- `PerformanceDashboard.tsx` (já usa BoardLayout, manter)
+
+---
+
+### Lote 2 — Dashboard funcional (`BoardDashboard.tsx`)
+
+Reescrever o placeholder com dados reais via hooks existentes (`usePerformanceData`, `useDesempenhoOverview`, `useCicloAtivo`):
+
+- Header: saudação + data + "atualizado agora"
+- 4 KPI cards: Projetos ativos (sub: em dia/risco/atrasados), Tarefas abertas vs concluídas (30d), Chamados abertos vs resolvidos, Membros ativos 7d
+- Bloco "Projetos em risco": top 5 projetos com status em_risco/atrasado, link para Performance
+- Bloco "Próximas entregas críticas": 5 tarefas mais urgentes não concluídas
+- Bloco "Metas do ciclo ativo": nome do ciclo + progresso temporal + 3 métricas inline; empty state se sem ciclo
+- Bloco "Atividade recente": últimas 10 ações do audit_log
+- Botão "Personalizar" (Settings2) → modo edição com drag handles, toggle visibilidade, salvar em `performance_preferencias.dashboard_layout`
+
+---
+
+### Lote 3 — Completar funcionalidades do Desempenho
+
+**3.1 Visão Geral — Alertas + contagens**
+- Novo bloco "Alertas" em `DesempenhoVisaoGeral.tsx`: metas com prazo <15d e progresso <50%, itens ação abertos >30d, membros sem 1:1 >30d, análise semestral pendente <15d
+- Expandir `useDesempenhoOverview.ts` para retornar dados de alertas
+- Adicionar contagem de feedbacks e 1:1s nos cards individuais (queries adicionais para feedbacks e reunioes filtrados por ciclo)
+
+**3.2 Ciclos — Drill-down + Análise Semestral**
+- Em `DesempenhoCiclos.tsx`: ao clicar linha, abrir Sheet (drawer 480px) com resumo de metas por nível/dimensão, gauge RadialBarChart, barra temporal, botão "Encerrar ciclo" (valida classificação_final), botão "Abrir análise semestral"
+- Modal de análise semestral: dropdown de membro, 5 textareas, "Salvar e próximo", indicador "Membro 1 de N"
+- Hook `useAnalisesSemestrais` já existe — usar para criar/atualizar
+
+**3.3 Metas — Filtros + KPIs + Classificação + Editar/Arquivar**
+- Adicionar filtros: responsável (dropdown profiles), status (Ativa/Pausada/Concluída/Cancelada)
+- Modal Nova Meta: seção expansível "KPIs vinculados" com "+ Adicionar KPI" (nome, valor alvo, unidade, valor atual)
+- Modal de classificação final: radio 4 opções, ajuste qualitativo obrigatório se diferir da calculada
+- Menu MoreHorizontal por linha: "Editar" (pré-preenche modal), "Arquivar" (confirm → status cancelada)
+- Hook `useKpisMeta` já existe — usar para CRUD de KPIs
+
+**3.4 Feedbacks — Expansão na aba Por Membro**
+- Em `DesempenhoFeedbacks.tsx` aba "Por membro": tornar cada item expansível com contexto/comportamento/impacto completos
+
+**3.5 1:1s — Contagem itens abertos + itens por reunião + agrupamento**
+- Cards de membros: adicionar badge com itens abertos (âmbar se >0)
+- Histórico por membro: cada reunião mostra itens de ação com descrição, responsável, prazo, status (chip colorido), prazo vencido em vermelho
+- Painel de itens abertos no topo: agrupar por membro com header de nome
+
+**3.6 Evolução — Ajuste qualitativo + taxa conclusão**
+- Bloco PPR: campo textarea editável "Ajuste qualitativo do líder" → salva em `metas.ajuste_qualitativo`
+- Bloco Cadência 1:1s: métrica "Taxa de conclusão de itens de ação" (concluídos/total) com barra de progresso
+
+---
+
+### Lote 4 — Padronização visual
+
+- Remover emojis do sentimento em 1:1s (`sentimentEmojis` → labels textuais com cores)
+- Padronizar em todos os componentes Board:
+  - Fundos: páginas #F8FAFC, cards #FFFFFF com border-radius 12px, sombra 0 1px 3px rgba(0,0,0,0.08)
+  - Hover: sombra 0 4px 12px rgba(0,0,0,0.12), transition 0.2s
+  - Labels grupo: 11px uppercase, letter-spacing 0.08em, #64748B
+  - Títulos bloco: 15px semibold, #0F172A
+  - Chips dimensão: Entrega #3B82F6, Impacto #10B981, Gestão #8B5CF6 — fundo 12% opacidade
+  - Barras progresso: verde ≥85%, âmbar 70-84%, vermelho <70%, 6px altura
+  - Estados vazios: ícone 32px #CBD5E1, texto 14px #64748B, sem emojis
+
+---
+
+### Arquivos afetados (resumo)
 
 | Arquivo | Ação |
 |---------|------|
-| `src/App.tsx` | Mover rotas de /gerencial/* para /equipe/board/* |
-| `src/components/equipe/board/BoardLayout.tsx` | Adicionar nav items Performance + Desempenho |
-| `src/components/gestao/GestaoLayout.tsx` | Remover itens Performance + Desempenho |
-| `src/pages/gerencial/performance/PerformanceDashboard.tsx` | Usar BoardLayout |
-| `src/components/desempenho/DesempenhoLayout.tsx` | Atualizar paths |
-| `src/config/protectedPages.ts` | Atualizar paths |
-| `src/components/performance/CycleGoalsBlock.tsx` | Atualizar links |
-| `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | Atualizar links |
-| `src/hooks/usePerformanceData.ts` | Adicionar queries independentes + fix refresh + remover as any |
-| `src/components/performance/TeamContributionBlock.tsx` | Filtros de área/métrica |
-| `src/components/performance/ProjectsBlock.tsx` | Colunas Área + Responsável + fix fragments |
-| `src/components/performance/AutomationImpactBlock.tsx` | AreaChart ROI acumulado |
-| `src/hooks/useTaxAreas.ts` | Deletar |
-| `src/components/equipe/audit/AuditLogTable.tsx` | Remover query tax_areas |
+| `src/components/equipe/board/BoardLayout.tsx` | Reescrever completo |
+| `src/components/desempenho/DesempenhoLayout.tsx` | Deletar |
+| `src/pages/equipe/board/BoardDashboard.tsx` | Reescrever com dados reais |
+| `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | Alertas + contagens + trocar layout |
+| `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` | Drill-down + análise semestral + trocar layout |
+| `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` | Filtros + KPIs + classificação + editar/arquivar + trocar layout |
+| `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | Expansão por membro + trocar layout |
+| `src/pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | Itens por membro/reunião + remover emojis + trocar layout |
+| `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | Ajuste qualitativo + taxa conclusão + trocar layout |
+| `src/hooks/useDesempenhoOverview.ts` | Expandir com dados de alertas |
+| `src/App.tsx` | Sem alteração (rotas já corretas) |
 
 ### O que NAO muda
-- Nenhuma tabela, migration ou RLS
-- GestaoLayout mantém seus 4 itens originais (Novidades, Chamados, Contatos, Acessos)
-- Todas as rotas existentes do sistema permanecem intactas
-- DesempenhoAccessGate continua protegendo tudo (admin + lider only)
+- Nenhuma rota existente
+- Nenhum hook de dados base (useCiclosAvaliacao, useMetas, useFeedbacks, useReunioes1a1, useKpisMeta, useAnalisesSemestrais)
+- Nenhuma tabela (apenas 1 coluna adicionada via migration)
+- Performance module (PerformanceDashboard + blocos) permanece intacto
+- Todo o restante do sistema fora do Board
 
