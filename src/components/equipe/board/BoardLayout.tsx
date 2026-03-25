@@ -17,7 +17,12 @@ import {
   Menu,
   Eye,
   ChevronRight,
+  CheckCircle,
+  FileText,
+  User,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -30,24 +35,27 @@ interface NavItem {
   icon: any;
   label: string;
   path: string;
-  children?: { icon: any; label: string; path: string }[];
+  children?: { icon: any; label: string; path: string; badge?: number }[];
   adminOnly?: boolean;
+  badge?: number | 'amber';
 }
 
-const desempenhoSubItems = [
+const buildDesempenhoSubItems = (pendingDecisions: number) => [
   { icon: Eye, label: 'Visao Geral', path: '/equipe/board/desempenho' },
   { icon: CalendarRange, label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' },
-  { icon: Crosshair, label: 'Metas', path: '/equipe/board/desempenho/metas' },
+  { icon: Crosshair, label: 'Metas e PPR', path: '/equipe/board/desempenho/metas' },
+  { icon: CheckCircle, label: 'Decisoes', path: '/equipe/board/desempenho/decisoes', badge: pendingDecisions },
+  { icon: FileText, label: 'Relatorios', path: '/equipe/board/desempenho/relatorios' },
+  { icon: TrendingUp, label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' },
   { icon: MessageSquareHeart, label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' },
   { icon: Users2, label: '1:1s', path: '/equipe/board/desempenho/1a1' },
-  { icon: TrendingUp, label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' },
 ];
 
-const buildNavItems = (isAdmin: boolean, isLider: boolean): NavItem[] => [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/board/dashboard' },
+const buildNavItems = (isAdmin: boolean, isLider: boolean, pendingDecisions: number): NavItem[] => [
+  { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   ...((isAdmin || isLider) ? [
     { icon: BarChart3, label: 'Performance', path: '/equipe/board/performance', adminOnly: true },
-    { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: desempenhoSubItems },
+    { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) },
   ] : []),
 ];
 
@@ -58,9 +66,12 @@ const getBreadcrumb = (pathname: string) => {
   } else if (pathname.includes('/desempenho')) {
     segments.push({ label: 'Desempenho', path: '/equipe/board/desempenho' });
     if (pathname.includes('/ciclos')) segments.push({ label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' });
-    else if (pathname.includes('/metas')) segments.push({ label: 'Metas', path: '/equipe/board/desempenho/metas' });
+    else if (pathname.includes('/metas')) segments.push({ label: 'Metas e PPR', path: '/equipe/board/desempenho/metas' });
+    else if (pathname.includes('/decisoes')) segments.push({ label: 'Decisoes', path: '/equipe/board/desempenho/decisoes' });
+    else if (pathname.includes('/relatorios')) segments.push({ label: 'Relatorios', path: '/equipe/board/desempenho/relatorios' });
     else if (pathname.includes('/feedbacks')) segments.push({ label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' });
     else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
+    else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
   } else if (pathname.includes('/dashboard')) {
     segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
@@ -75,8 +86,53 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const navItems = buildNavItems(isAdmin, isLider);
+  // Count pending decisions for badge
+  const { data: pendingDecisions = 0 } = useQuery({
+    queryKey: ['pending-decisions-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('metas' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('nivel', 'individual')
+        .is('recomendacao_decisao', null)
+        .eq('status', 'ativa');
+      return count ?? 0;
+    },
+    enabled: isAdmin || isLider,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Check unread leader comments for "Minha Evolucao" badge
+  const { data: hasUnreadOrOverdue = false } = useQuery({
+    queryKey: ['minha-evolucao-badge', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data: unread } = await supabase
+        .from('comentarios_avaliacao' as any)
+        .select('id')
+        .eq('destinatario_id', user.id)
+        .eq('tipo', 'lider_para_membro')
+        .eq('lido', false)
+        .limit(1);
+      if (unread?.length) return true;
+      const { data: overdue } = await supabase
+        .from('metas' as any)
+        .select('id')
+        .eq('responsavel_id', user.id)
+        .eq('nivel', 'individual')
+        .eq('status', 'ativa')
+        .lt('prazo', new Date().toISOString().split('T')[0])
+        .lt('progresso_atual', 100)
+        .limit(1);
+      return (overdue?.length ?? 0) > 0;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const navItems = buildNavItems(isAdmin, isLider, pendingDecisions);
   const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
+  const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
   const breadcrumb = getBreadcrumb(location.pathname);
 
   const isActive = (path: string) => {
@@ -130,11 +186,11 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-[14px]">
-        {/* VISAO GERAL group */}
+        {/* DIRETORIA group */}
         <div className="mb-5">
           {!collapsed && (
             <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
-              Visao Geral
+              Diretoria
             </p>
           )}
           {navItems.filter(i => !i.adminOnly).map((item) => (
@@ -205,7 +261,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
                           <div className="absolute left-[-11px] top-1/2 -translate-y-1/2 w-[3px] h-3 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
                         )}
                         <sub.icon className="h-[14px] w-[14px] flex-shrink-0" style={{ opacity: isActive(sub.path) ? 1 : 0.75 }} />
-                        <span>{sub.label}</span>
+                        <span className="flex-1 text-left">{sub.label}</span>
+                        {sub.badge !== undefined && sub.badge > 0 && (
+                          <span className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: 'var(--board-red)' }}>
+                            {sub.badge}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -214,6 +275,34 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
             ))}
           </div>
         )}
+
+        {/* MINHA AREA group */}
+        <div className="mb-5">
+          {!collapsed && (
+            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+              Minha Area
+            </p>
+          )}
+          <button
+            onClick={() => { navigate('/equipe/board/desempenho/minha-evolucao'); setMobileOpen(false); }}
+            className={`w-full flex items-center gap-[9px] rounded-lg text-[13px] font-[450] transition-all duration-150 relative mb-px ${collapsed ? 'justify-center px-2 py-[7px]' : 'px-[10px] py-[7px]'}`}
+            style={{
+              backgroundColor: isMiEvolucaoRoute ? 'var(--board-sb-active)' : 'transparent',
+              color: isMiEvolucaoRoute ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
+              fontWeight: isMiEvolucaoRoute ? 500 : 450,
+            }}
+            title={collapsed ? 'Minha Evolucao' : undefined}
+          >
+            {isMiEvolucaoRoute && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
+            )}
+            <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.75 }} />
+            {!collapsed && <span className="flex-1 text-left">Minha Evolucao</span>}
+            {!collapsed && hasUnreadOrOverdue && (
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--board-amber)' }} />
+            )}
+          </button>
+        </div>
       </ScrollArea>
 
       {/* Footer */}
