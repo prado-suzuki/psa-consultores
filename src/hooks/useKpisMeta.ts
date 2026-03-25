@@ -23,7 +23,7 @@ export const useKpisMeta = (metaId?: string) => {
     queryFn: async () => {
       const { data, error } = await supabase.from(TABLE).select('*').eq('meta_id', metaId!).order('created_at');
       if (error) throw error;
-      return (data ?? []) as KpiMeta[];
+      return (data ?? []) as unknown as KpiMeta[];
     },
     enabled: !!metaId,
   });
@@ -37,7 +37,7 @@ export const useCreateKpi = () => {
     mutationFn: async (input: Omit<KpiMeta, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase.from(TABLE).insert(input).select().single();
       if (error) throw error;
-      return data as KpiMeta;
+      return data as unknown as KpiMeta;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['kpis_meta'] });
@@ -54,7 +54,7 @@ export const useUpdateKpi = () => {
     mutationFn: async ({ id, ...updates }: Partial<KpiMeta> & { id: string }) => {
       const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).select().single();
       if (error) throw error;
-      return data as KpiMeta;
+      return data as unknown as KpiMeta;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['kpis_meta'] });

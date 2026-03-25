@@ -29,7 +29,7 @@ export const useFeedbacks = (filters?: { ciclo_id?: string; para_usuario_id?: st
       if (filters?.para_usuario_id) q = q.eq('para_usuario_id', filters.para_usuario_id);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Feedback[];
+      return (data ?? []) as unknown as Feedback[];
     },
   });
 };
@@ -44,7 +44,7 @@ export const useCreateFeedback = () => {
       const payload = { ...input, de_usuario_id: input.anonimo ? null : (input.de_usuario_id ?? user?.id) };
       const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
       if (error) throw error;
-      return data as Feedback;
+      return data as unknown as Feedback;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['feedbacks'] });

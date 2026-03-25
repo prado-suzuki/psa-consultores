@@ -39,7 +39,7 @@ export const useMetas = (filters?: { ciclo_id?: string; nivel?: string; dimensao
       if (filters?.status) q = q.eq('status', filters.status);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Meta[];
+      return (data ?? []) as unknown as Meta[];
     },
     enabled: !!filters?.ciclo_id,
   });
@@ -53,7 +53,7 @@ export const useCreateMeta = () => {
     mutationFn: async (input: Omit<Meta, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'progresso_atual' | 'classificacao_final' | 'ajuste_qualitativo'>) => {
       const { data, error } = await supabase.from(TABLE).insert(input).select().single();
       if (error) throw error;
-      return data as Meta;
+      return data as unknown as Meta;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['metas'] });
@@ -72,7 +72,7 @@ export const useUpdateMeta = () => {
     mutationFn: async ({ id, ...updates }: Partial<Meta> & { id: string }) => {
       const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).select().single();
       if (error) throw error;
-      return data as Meta;
+      return data as unknown as Meta;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['metas'] });
@@ -90,13 +90,11 @@ export const useUpdateMetaProgress = () => {
 
   return useMutation({
     mutationFn: async ({ meta_id, progresso_anterior, progresso_novo, comentario }: { meta_id: string; progresso_anterior: number; progresso_novo: number; comentario: string }) => {
-      // Insert update record
       const { error: logErr } = await supabase.from(UPDATES_TABLE).insert({ meta_id, progresso_anterior, progresso_novo, comentario });
       if (logErr) throw logErr;
-      // Update meta
       const { data, error } = await supabase.from(TABLE).update({ progresso_atual: progresso_novo }).eq('id', meta_id).select().single();
       if (error) throw error;
-      return data as Meta;
+      return data as unknown as Meta;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['metas'] });

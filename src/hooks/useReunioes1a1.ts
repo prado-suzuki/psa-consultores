@@ -38,7 +38,7 @@ export const useReunioes = (membroId?: string) => {
       if (membroId) q = q.eq('membro_id', membroId);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Reuniao1a1[];
+      return (data ?? []) as unknown as Reuniao1a1[];
     },
   });
 };
@@ -49,19 +49,19 @@ export const useItensAcao = (reuniaoId?: string) => {
     queryFn: async () => {
       const { data, error } = await supabase.from(I_TABLE).select('*').eq('reuniao_id', reuniaoId!).order('created_at');
       if (error) throw error;
-      return (data ?? []) as ItemAcao1a1[];
+      return (data ?? []) as unknown as ItemAcao1a1[];
     },
     enabled: !!reuniaoId,
   });
 };
 
 export const useAllOpenItensAcao = () => {
-  return useQuery<(ItemAcao1a1 & { reuniao?: Reuniao1a1 })[]>({
+  return useQuery<ItemAcao1a1[]>({
     queryKey: ['itens_acao_1a1_open'],
     queryFn: async () => {
       const { data, error } = await supabase.from(I_TABLE).select('*').in('status', ['aberto', 'em_andamento']).order('prazo');
       if (error) throw error;
-      return (data ?? []) as ItemAcao1a1[];
+      return (data ?? []) as unknown as ItemAcao1a1[];
     },
   });
 };
@@ -74,7 +74,7 @@ export const useCreateReuniao = () => {
     mutationFn: async (input: { reuniao: Omit<Reuniao1a1, 'id' | 'created_at' | 'updated_at'>; itens: Omit<ItemAcao1a1, 'id' | 'created_at' | 'updated_at' | 'reuniao_id'>[] }) => {
       const { data: r, error: rErr } = await supabase.from(R_TABLE).insert(input.reuniao).select().single();
       if (rErr) throw rErr;
-      const reuniao = r as Reuniao1a1;
+      const reuniao = r as unknown as Reuniao1a1;
       if (input.itens.length > 0) {
         const itensPayload = input.itens.map((i) => ({ ...i, reuniao_id: reuniao.id }));
         const { error: iErr } = await supabase.from(I_TABLE).insert(itensPayload);
@@ -100,7 +100,7 @@ export const useUpdateItemAcao = () => {
     mutationFn: async ({ id, ...updates }: Partial<ItemAcao1a1> & { id: string }) => {
       const { data, error } = await supabase.from(I_TABLE).update(updates).eq('id', id).select().single();
       if (error) throw error;
-      return data as ItemAcao1a1;
+      return data as unknown as ItemAcao1a1;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itens_acao_1a1'] });

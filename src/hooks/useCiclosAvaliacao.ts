@@ -26,7 +26,7 @@ export const useCiclosAvaliacao = (filters?: { status?: string }) => {
       if (filters?.status) q = q.eq('status', filters.status);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as CicloAvaliacao[];
+      return (data ?? []) as unknown as CicloAvaliacao[];
     },
   });
 };
@@ -42,7 +42,8 @@ export const useCicloAtivo = () => {
         .order('data_inicio', { ascending: false })
         .limit(1);
       if (error) throw error;
-      return (data?.[0] as CicloAvaliacao) ?? null;
+      const arr = (data ?? []) as unknown as CicloAvaliacao[];
+      return arr[0] ?? null;
     },
   });
 };
@@ -55,7 +56,7 @@ export const useCreateCiclo = () => {
     mutationFn: async (input: Omit<CicloAvaliacao, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
       const { data, error } = await supabase.from(TABLE).insert(input).select().single();
       if (error) throw error;
-      return data as CicloAvaliacao;
+      return data as unknown as CicloAvaliacao;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['ciclos_avaliacao'] });
@@ -75,7 +76,7 @@ export const useUpdateCiclo = () => {
     mutationFn: async ({ id, ...updates }: Partial<CicloAvaliacao> & { id: string }) => {
       const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).select().single();
       if (error) throw error;
-      return data as CicloAvaliacao;
+      return data as unknown as CicloAvaliacao;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['ciclos_avaliacao'] });

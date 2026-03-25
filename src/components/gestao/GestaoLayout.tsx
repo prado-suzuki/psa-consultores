@@ -33,17 +33,18 @@ interface NavItem {
   path: string;
 }
 
-const navItems: NavItem[] = [
-  { icon: Newspaper, label: 'Novidades', path: '/gestao' },
-  { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
-  { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
-];
-
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+
+  const navItems: NavItem[] = [
+    { icon: Newspaper, label: 'Novidades', path: '/gestao' },
+    { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
+    { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
+    ...((isAdmin || isLider) ? [{ icon: Target, label: 'Desempenho', path: '/gerencial/desempenho' }] : []),
+  ];
 
   const handleSignOut = async () => {
     await signOut();

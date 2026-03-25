@@ -27,7 +27,7 @@ export const useAnalisesSemestrais = (cicloId?: string) => {
       if (cicloId) q = q.eq('ciclo_id', cicloId);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as AnaliseSemestral[];
+      return (data ?? []) as unknown as AnaliseSemestral[];
     },
   });
 };
@@ -42,11 +42,11 @@ export const useUpsertAnalise = () => {
         const { id, ...updates } = input;
         const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).select().single();
         if (error) throw error;
-        return data as AnaliseSemestral;
+        return data as unknown as AnaliseSemestral;
       }
       const { data, error } = await supabase.from(TABLE).insert(input).select().single();
       if (error) throw error;
-      return data as AnaliseSemestral;
+      return data as unknown as AnaliseSemestral;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['analises_semestrais'] });
