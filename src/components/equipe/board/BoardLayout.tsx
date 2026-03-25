@@ -85,7 +85,13 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('board-sidebar-collapsed') === 'true'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch {}
+  }, [collapsed]);
 
   // Count pending decisions for badge
   const { data: pendingDecisions = 0 } = useQuery({
