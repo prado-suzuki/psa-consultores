@@ -3,6 +3,8 @@ import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
 import { useCreateKpi, useDeleteKpi } from '@/hooks/useKpisMeta';
+import { usePprRegras } from '@/hooks/usePprRegras';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,7 @@ const classifLabels: Record<string, string> = { supera: 'Supera', atende: 'Atend
 const classifColors: Record<string, string> = { supera: 'bg-emerald-50 text-emerald-700', atende: 'bg-green-50 text-green-700', atende_parcialmente: 'bg-amber-50 text-amber-700', abaixo: 'bg-red-50 text-red-700' };
 
 const DesempenhoMetas = () => {
+  const { isAdmin, isLider } = useAuth();
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const [selectedCicloId, setSelectedCicloId] = useState<string | undefined>(undefined);
