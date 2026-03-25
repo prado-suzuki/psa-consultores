@@ -1,124 +1,76 @@
 
 
-## Plano: Reestruturar Board Layout + Completar Desempenho + Dashboard Funcional
+## Plano: Ajustar visual do Board para match com o HTML v2
 
-Este plano cobre a unificação do layout, eliminação do DesempenhoLayout, ativação do Dashboard com dados reais, e completude das ~15 funcionalidades faltantes do Desempenho. Dado o volume, será implementado em lotes sequenciais.
+O HTML de referencia define uma paleta e um sistema de design bem especifico. As mudancas sao puramente visuais — nenhuma logica de dados ou rota sera alterada.
+
+### Principais diferencas visuais identificadas
+
+1. **Paleta de cores** — O HTML usa tons mais frios e profundos: sidebar `#0C1222` (vs `#0F172A` atual), textos `#3D4D6A` / `#7A8BA8` / `#A8B8CC`, borders `#E4EAF2` / `#F0F4F8`, fundo `#F0F4F8` (vs `#F8FAFC`), indigo `#5B6EF0` (vs `#6366F1`)
+2. **Tipografia** — Titulos usam fonte `Syne` (bold, letter-spacing negativo), corpo usa `DM Sans`, dados mono usam `DM Mono`
+3. **KPI cards** — Barra colorida no topo (3px), icone em caixa com fundo suave, valor grande em Syne, label uppercase 11px, sub-indicadores com dots coloridos, trend badges
+4. **Sidebar** — Radial gradient decorativo no canto inferior, marca com icone quadrado indigo, sub-itens com borda-esquerda e indicador vertical na ativo, badges de contagem, font-sizes menores
+5. **Topbar** — Altura 52px (vs 64px), estilo de breadcrumb mais compacto
+6. **Cards** — Shadow `0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04)`, hover com shadow-md e translateY(-1px)
+7. **AI Insight Box** — Gradiente indigo/purple sutil, icone de sol, bullets com dot indigo
+8. **Alerts** — Border-left 3px colorido, fundo suave por severidade
+9. **Progress bars** — Fundo `#E8EFF7`, cores: green `#16A97C`, amber `#E8930A`, red `#E5424A`
+10. **Tabelas** — Thead com fundo `#FAFCFF`, th uppercase 10px, hover `#F7FAFF`
 
 ---
 
-### Migration necessária
+### Arquivos a modificar
 
-Adicionar coluna `dashboard_layout` na tabela `performance_preferencias`:
+| Arquivo | Mudanca |
+|---------|---------|
+| `index.html` | Adicionar fontes Syne, DM Sans, DM Mono via Google Fonts |
+| `src/index.css` | Adicionar CSS variables do board v2 (cores, shadows, radii) e classes utilitarias `.board-*` |
+| `src/components/equipe/board/BoardLayout.tsx` | Aplicar paleta v2 na sidebar (cores, radial gradient, font sizes, topbar 52px, breadcrumb compacto) |
+| `src/pages/equipe/board/BoardDashboard.tsx` | Reescrever KPIs para match v2 (barra topo, dots, trends), adicionar AI Insight box, ajustar cards de projetos/atividade, feed items com avatares |
+| `src/pages/gerencial/performance/PerformanceDashboard.tsx` | Ajustar barra de controles para estilo `.pctrl` do v2, segmented buttons |
+| `src/components/performance/PerformanceKPICards.tsx` | Aplicar estilo KPI v2 com barra topo, sparks, font Syne nos valores |
+| `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | Aplicar KPI v2, AI box, alertas com border-left, member cards com stats (Metas/Feedbacks/1:1s), progress bars v2 |
+| `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` | Cycle bar escura (gradient `#0C1222` → `#172038`), 3 cards de contagem centralizados com Syne, tabela com estilo v2 |
+| `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` | Tree rows com niveis (l0/l1/l2, indentation), filtros com estilo `.fi`, chips de dimensao, progress inline |
+| `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | AI box de feedbacks, chart SVG de distribuicao, tabela com avatares em row |
+| `src/pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | Alert bar de itens abertos, member cards `.oc` com botao primario para urgente, historico com barras de sentimento (5 segmentos indigo), item de acao com chips coloridos |
+| `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | PPR hero card com gradient por classificacao, dims com barras brancas, charts com gradients SVG, heatmap de 1:1s, ajuste qualitativo em caixa bg |
 
-```sql
-ALTER TABLE performance_preferencias
-  ADD COLUMN IF NOT EXISTS dashboard_layout jsonb DEFAULT '{}';
+### Detalhes de implementacao
+
+**Fontes** — Adicionar no `<head>` do `index.html`:
+```html
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300..600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 ```
 
----
+**CSS Variables** — Adicionar bloco `:root` no `index.css` com todas as variaveis do HTML v2 (prefixadas com `--board-*` para nao conflitar):
+```css
+--board-sb: #0C1222;
+--board-indigo: #5B6EF0;
+--board-green: #16A97C;
+--board-amber: #E8930A;
+--board-red: #E5424A;
+--board-bg: #F0F4F8;
+--board-border: #E4EAF2;
+--board-t1: #0C1222;
+--board-t2: #3D4D6A;
+--board-t3: #7A8BA8;
+--board-t4: #A8B8CC;
+--board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
+--board-shadow-md: 0 4px 16px rgba(12,18,34,.1), 0 0 0 1px rgba(12,18,34,.04);
+```
 
-### Lote 1 — Novo BoardLayout unificado + Remoção do DesempenhoLayout
+**BoardLayout** — Sidebar usa `#0C1222`, pseudo-element radial gradient no fundo, marca com caixa indigo `#5B6EF0`, user card com gradiente, nav items 13px com `#6B7FA3`, ativo com `#1A2540` + barra 3px indigo, sub-items com `border-left: 1px solid rgba(255,255,255,.08)`, topbar 52px, breadcrumb 12px.
 
-**Arquivos:** `BoardLayout.tsx` (reescrever), deletar `DesempenhoLayout.tsx`, atualizar 6 páginas Desempenho + PerformanceDashboard
+**KPI Cards** — Componente reutilizavel com: barra topo 3px colorida, icone em caixa 32px com fundo suave, valor em font-family Syne 26px bold, label 11px uppercase, sub-items com dot 5px, trend badge pill.
 
-Novo `BoardLayout.tsx`:
-- Sidebar escura (#0F172A) com 240px desktop, 64px (ícones) em tablet, drawer em mobile
-- Topo: nome do sistema + card do usuário (avatar iniciais, nome, papel)
-- Nav com labels de grupo uppercase 11px (#475569): "VISAO GERAL" (Dashboard) e "GERENCIAL" (Performance, Desempenho com sub-itens)
-- Sub-itens do Desempenho (Visão Geral, Ciclos, Metas, Feedbacks, 1:1s, Evolução) auto-expandem quando rota contém `/desempenho/`, indentados 16px, indicador indigo 2px na esquerda para ativo
-- Itens Performance/Desempenho condicionais a `isAdmin || isLider`
-- Rodapé: "Voltar ao Portal" → `/equipe/`
-- Header interno branco com breadcrumb + título + headerActions
-- Conteúdo com padding 32/24/16px por breakpoint
-- Responsividade: ≥1280px sidebar fixa, 768-1279 colapsada com hover, <768 drawer
+**AI Insight Box** — Componente reutilizavel: `background: linear-gradient(135deg, rgba(91,110,240,.06), rgba(128,84,240,.06))`, border `rgba(91,110,240,.18)`, label com icone SVG, bullets com `::before` dot indigo.
 
-**Atualizar 8 páginas** para trocar `<DesempenhoLayout>` por `<BoardLayout>`:
-- `DesempenhoVisaoGeral.tsx`, `DesempenhoCiclos.tsx`, `DesempenhoMetas.tsx`, `DesempenhoFeedbacks.tsx`, `DesempenhoReunioes1a1.tsx`, `DesempenhoEvolucao.tsx`
-- `PerformanceDashboard.tsx` (já usa BoardLayout, manter)
-
----
-
-### Lote 2 — Dashboard funcional (`BoardDashboard.tsx`)
-
-Reescrever o placeholder com dados reais via hooks existentes (`usePerformanceData`, `useDesempenhoOverview`, `useCicloAtivo`):
-
-- Header: saudação + data + "atualizado agora"
-- 4 KPI cards: Projetos ativos (sub: em dia/risco/atrasados), Tarefas abertas vs concluídas (30d), Chamados abertos vs resolvidos, Membros ativos 7d
-- Bloco "Projetos em risco": top 5 projetos com status em_risco/atrasado, link para Performance
-- Bloco "Próximas entregas críticas": 5 tarefas mais urgentes não concluídas
-- Bloco "Metas do ciclo ativo": nome do ciclo + progresso temporal + 3 métricas inline; empty state se sem ciclo
-- Bloco "Atividade recente": últimas 10 ações do audit_log
-- Botão "Personalizar" (Settings2) → modo edição com drag handles, toggle visibilidade, salvar em `performance_preferencias.dashboard_layout`
-
----
-
-### Lote 3 — Completar funcionalidades do Desempenho
-
-**3.1 Visão Geral — Alertas + contagens**
-- Novo bloco "Alertas" em `DesempenhoVisaoGeral.tsx`: metas com prazo <15d e progresso <50%, itens ação abertos >30d, membros sem 1:1 >30d, análise semestral pendente <15d
-- Expandir `useDesempenhoOverview.ts` para retornar dados de alertas
-- Adicionar contagem de feedbacks e 1:1s nos cards individuais (queries adicionais para feedbacks e reunioes filtrados por ciclo)
-
-**3.2 Ciclos — Drill-down + Análise Semestral**
-- Em `DesempenhoCiclos.tsx`: ao clicar linha, abrir Sheet (drawer 480px) com resumo de metas por nível/dimensão, gauge RadialBarChart, barra temporal, botão "Encerrar ciclo" (valida classificação_final), botão "Abrir análise semestral"
-- Modal de análise semestral: dropdown de membro, 5 textareas, "Salvar e próximo", indicador "Membro 1 de N"
-- Hook `useAnalisesSemestrais` já existe — usar para criar/atualizar
-
-**3.3 Metas — Filtros + KPIs + Classificação + Editar/Arquivar**
-- Adicionar filtros: responsável (dropdown profiles), status (Ativa/Pausada/Concluída/Cancelada)
-- Modal Nova Meta: seção expansível "KPIs vinculados" com "+ Adicionar KPI" (nome, valor alvo, unidade, valor atual)
-- Modal de classificação final: radio 4 opções, ajuste qualitativo obrigatório se diferir da calculada
-- Menu MoreHorizontal por linha: "Editar" (pré-preenche modal), "Arquivar" (confirm → status cancelada)
-- Hook `useKpisMeta` já existe — usar para CRUD de KPIs
-
-**3.4 Feedbacks — Expansão na aba Por Membro**
-- Em `DesempenhoFeedbacks.tsx` aba "Por membro": tornar cada item expansível com contexto/comportamento/impacto completos
-
-**3.5 1:1s — Contagem itens abertos + itens por reunião + agrupamento**
-- Cards de membros: adicionar badge com itens abertos (âmbar se >0)
-- Histórico por membro: cada reunião mostra itens de ação com descrição, responsável, prazo, status (chip colorido), prazo vencido em vermelho
-- Painel de itens abertos no topo: agrupar por membro com header de nome
-
-**3.6 Evolução — Ajuste qualitativo + taxa conclusão**
-- Bloco PPR: campo textarea editável "Ajuste qualitativo do líder" → salva em `metas.ajuste_qualitativo`
-- Bloco Cadência 1:1s: métrica "Taxa de conclusão de itens de ação" (concluídos/total) com barra de progresso
-
----
-
-### Lote 4 — Padronização visual
-
-- Remover emojis do sentimento em 1:1s (`sentimentEmojis` → labels textuais com cores)
-- Padronizar em todos os componentes Board:
-  - Fundos: páginas #F8FAFC, cards #FFFFFF com border-radius 12px, sombra 0 1px 3px rgba(0,0,0,0.08)
-  - Hover: sombra 0 4px 12px rgba(0,0,0,0.12), transition 0.2s
-  - Labels grupo: 11px uppercase, letter-spacing 0.08em, #64748B
-  - Títulos bloco: 15px semibold, #0F172A
-  - Chips dimensão: Entrega #3B82F6, Impacto #10B981, Gestão #8B5CF6 — fundo 12% opacidade
-  - Barras progresso: verde ≥85%, âmbar 70-84%, vermelho <70%, 6px altura
-  - Estados vazios: ícone 32px #CBD5E1, texto 14px #64748B, sem emojis
-
----
-
-### Arquivos afetados (resumo)
-
-| Arquivo | Ação |
-|---------|------|
-| `src/components/equipe/board/BoardLayout.tsx` | Reescrever completo |
-| `src/components/desempenho/DesempenhoLayout.tsx` | Deletar |
-| `src/pages/equipe/board/BoardDashboard.tsx` | Reescrever com dados reais |
-| `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | Alertas + contagens + trocar layout |
-| `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` | Drill-down + análise semestral + trocar layout |
-| `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` | Filtros + KPIs + classificação + editar/arquivar + trocar layout |
-| `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | Expansão por membro + trocar layout |
-| `src/pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | Itens por membro/reunião + remover emojis + trocar layout |
-| `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | Ajuste qualitativo + taxa conclusão + trocar layout |
-| `src/hooks/useDesempenhoOverview.ts` | Expandir com dados de alertas |
-| `src/App.tsx` | Sem alteração (rotas já corretas) |
+**Cards** — Border `1px solid #F0F4F8`, shadow v2, hover com shadow-md + `translateY(-1px)`, border-radius 12px.
 
 ### O que NAO muda
-- Nenhuma rota existente
-- Nenhum hook de dados base (useCiclosAvaliacao, useMetas, useFeedbacks, useReunioes1a1, useKpisMeta, useAnalisesSemestrais)
-- Nenhuma tabela (apenas 1 coluna adicionada via migration)
-- Performance module (PerformanceDashboard + blocos) permanece intacto
-- Todo o restante do sistema fora do Board
+- Nenhuma rota, hook, query ou logica de dados
+- Nenhuma funcionalidade existente
+- Nenhum arquivo fora do modulo Board
+- Estrutura de navegacao e controle de acesso
 
