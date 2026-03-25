@@ -103,7 +103,7 @@ export function useCreateProcedimento() {
       }).catch((err) => console.error('Edge function invoke error:', err));
 
       logAction({
-        action: 'create',
+        action: 'created',
         entityType: 'procedimento',
         entityId: id,
         entityName: input.source_url || input.arquivo_path || 'Novo procedimento',
@@ -142,7 +142,7 @@ export function useUpdateProcedimento() {
       if (error) throw error;
 
       logAction({
-        action: 'update',
+        action: 'updated',
         entityType: 'procedimento',
         entityId: id,
         entityName: updates.ai_titulo || id,
@@ -179,7 +179,7 @@ export function useConfirmProcedimento() {
       if (error) throw error;
 
       logAction({
-        action: 'update',
+        action: 'updated',
         entityType: 'procedimento',
         entityId: id,
         entityName: updates.ai_titulo || id,
