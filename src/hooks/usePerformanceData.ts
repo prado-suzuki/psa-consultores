@@ -95,8 +95,8 @@ export const usePerformanceData = (periodo: string, area: string) => {
   const projectsQuery = useQuery({
     queryKey: ['perf-projects', area, periodFrom],
     queryFn: async () => {
-      let q = supabase
-        .from('tax_projects')
+      const { data: projects, error } = await (supabase
+        .from('tax_projects') as any)
         .select(`
           id, name, status, start_date, end_date,
           external_client_id,
