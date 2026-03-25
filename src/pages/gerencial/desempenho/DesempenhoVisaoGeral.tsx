@@ -206,8 +206,9 @@ const DesempenhoVisaoGeral = () => {
                 <div className="kv" style={{ fontSize: 20, marginTop: 8 }}>{overview?.mediaProgresso ?? 0}%</div>
                 <div className="kl" style={{ fontSize: '9.5px' }}>Media Progresso</div>
                 <div className="ksubs">
-                  <span className="v3-tr v3-tr-u">+5pp vs mes ant.</span>
-                  <div className="ksub" style={{ marginTop: 4 }}>Meta: 85% em Jun/26</div>
+                  <span className={`v3-tr ${(overview?.mediaProgresso ?? 0) >= 85 ? 'v3-tr-u' : (overview?.mediaProgresso ?? 0) >= 70 ? 'v3-tr-n' : 'v3-tr-d'}`}>
+                    {(overview?.mediaProgresso ?? 0) >= 85 ? 'Dentro da meta' : (overview?.mediaProgresso ?? 0) >= 70 ? 'Em progresso' : 'Atenção necessária'}
+                  </span>
                 </div>
               </div>
               <div className="kpi">

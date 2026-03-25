@@ -67,7 +67,7 @@ const PerformanceDashboard = () => {
   const pontualidade = projects.length > 0 ? Math.round((emDia / projects.length) * 100) : 0;
 
   const tempoMedio = useMemo(() => {
-    const done = periodTasks.filter((t: any) => t.status === 'concluida' && t.updated_at && t.due_date);
+    const done = periodTasks.filter((t: any) => t.status === 'done' && t.updated_at && t.due_date);
     if (done.length === 0) return '—';
     const avg = done.reduce((a: number, t: any) => {
       const diff = Math.max(1, differenceInDays(parseISO(t.updated_at), parseISO(t.due_date)));
@@ -86,15 +86,21 @@ const PerformanceDashboard = () => {
 
   const barChartData = useMemo(() => {
     const months: Record<string, { name: string; Tax: number; OSG: number; Dev: number }> = {};
-    last3MonthsTasks.forEach((t: any) => {
+    const doneTasks = last3MonthsTasks.filter((t: any) => t.status === 'done');
+    doneTasks.forEach((t: any) => {
       const d = new Date(t.updated_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = format(d, "MMM/yy", { locale: ptBR });
       if (!months[key]) months[key] = { name: label, Tax: 0, OSG: 0, Dev: 0 };
-      months[key].Tax++;
+      const proj = projects.find(p => p.id === t.project_id);
+      const areaName = (proj?.area_name || '').toLowerCase();
+      if (areaName.includes('tax') || areaName.includes('fiscal')) months[key].Tax++;
+      else if (areaName.includes('osg') || areaName.includes('societar')) months[key].OSG++;
+      else if (areaName.includes('dev') || areaName.includes('digital')) months[key].Dev++;
+      else months[key].Tax++;
     });
     return Object.values(months).slice(-3);
-  }, [last3MonthsTasks]);
+  }, [last3MonthsTasks, projects]);
 
   const contribution = useMemo(() => {
     const map = new Map<string, { tasks: number; onTime: number }>();
@@ -102,7 +108,7 @@ const PerformanceDashboard = () => {
       if (!t.assigned_to) return;
       const cur = map.get(t.assigned_to) || { tasks: 0, onTime: 0 };
       cur.tasks++;
-      if (t.status === 'concluida') cur.onTime++;
+      if (t.status === 'done') cur.onTime++;
       map.set(t.assigned_to, cur);
     });
     return profiles.map((p: any) => {
@@ -196,7 +202,7 @@ const PerformanceDashboard = () => {
               <div className="ktb" style={{ background: 'var(--gr)' }} />
               <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{pontualidade}%</div>
               <div className="kl" style={{ fontSize: '9.5px' }}>Taxa Pontualidade</div>
-              <div className="ksubs"><span className="v3-tr v3-tr-u">+5pp vs anterior</span></div>
+              <div className="ksubs"><span className={`v3-tr ${pontualidade >= 85 ? 'v3-tr-u' : 'v3-tr-d'}`}>{pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta'}</span></div>
             </div>
             <div className="kpi">
               <div className="ktb" style={{ background: 'var(--am)' }} />
@@ -245,22 +251,37 @@ const PerformanceDashboard = () => {
             ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados</div>}
           </div>
           <div className="v3-card">
-            <div className="sct">ROI Acumulado vs Meta</div>
-            <ResponsiveContainer width="100%" height={150}>
-              <AreaChart data={[{ name: 'Set/25', value: 8000 }, { name: 'Nov/25', value: 22000 }, { name: 'Jan/26', value: 38000 }, { name: 'Mar/26', value: totalSavingsYear || 51000 }]}>
-                <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
-                <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                <ReferenceLine y={60000} stroke="#D4960A" strokeDasharray="5 3" label={{ value: 'Meta', fill: '#D4960A', fontSize: 9 }} />
-                <defs><linearGradient id="roiGradP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
-                <Area type="monotone" dataKey="value" fill="url(#roiGradP)" stroke="#13A87A" strokeWidth={2.2} />
-              </AreaChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
-              <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k</strong></span>
-              <span style={{ color: 'var(--am)' }}>Meta: <strong>R$60k</strong></span>
-            </div>
+            <div className="sct">ROI Acumulado</div>
+            {totalSavingsYear > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={150}>
+                  <AreaChart data={(() => {
+                    const sorted = [...roiData].sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+                    let cumulative = 0;
+                    const points = sorted.map((imp: any) => {
+                      cumulative += (imp.total_savings_monthly || 0) * 12;
+                      return { name: imp.created_at ? format(new Date(imp.created_at), "MMM/yy", { locale: ptBR }) : '?', value: Math.round(cumulative) };
+                    });
+                    return points.length > 0 ? points : [{ name: 'Atual', value: totalSavingsYear }];
+                  })()}>
+                    <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <defs><linearGradient id="roiGradP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
+                    <Area type="monotone" dataKey="value" fill="url(#roiGradP)" stroke="#13A87A" strokeWidth={2.2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
+                  <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k/ano</strong></span>
+                  <span style={{ color: 'var(--t3)' }}>{roiData.length} ferramentas</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}>
+                <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados de ROI
+              </div>
+            )}
           </div>
         </div>
 
