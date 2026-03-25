@@ -1,10 +1,10 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
-import { CalendarIcon, X } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -25,8 +25,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Select,
@@ -63,16 +61,12 @@ const taskSchema = z.object({
   assigned_to_name: z.string().optional(),
   start_date: z.date().optional(),
   due_date: z.date().optional(),
-  is_recurring: z.boolean(),
-  recurrence_type: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
-  category: z.enum(['task', 'fixed_event']),
   parent_task_id: z.string().optional(),
   project_id: z.string().min(1, 'Projeto é obrigatório'),
   client_id: z.string().optional(),
   servico_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0').optional().or(z.literal('')),
-  tags: z.array(z.string()).optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -101,7 +95,6 @@ export const TaskModal = ({
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
 
-  const [tagInput, setTagInput] = useState('');
   const [showDraftNotice, setShowDraftNotice] = useState(false);
 
   const form = useForm<TaskFormValues>({
@@ -111,16 +104,12 @@ export const TaskModal = ({
       description: '',
       status: 'todo',
       priority: 'medium',
-      is_recurring: false,
-      category: 'task',
-      tags: [],
     },
   });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: projects = [] } = useTaxProjectsList(true);
 
-  // Resolve estrutura_area_id directly from the selected project
   const watchedProjectId = form.watch('project_id') as string | undefined;
   
   const selectedProjectAreaId = useMemo(() => {
@@ -131,7 +120,7 @@ export const TaskModal = ({
 
   const { allMemberIds: areaMemberIds } = useEstruturaArea(selectedProjectAreaId);
 
-  // ── Queries que permanecem inline ────────────────────────────────────
+  // ── Queries ────────────────────────────────────────────────────────
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-for-tasks'],
@@ -306,16 +295,12 @@ export const TaskModal = ({
         assigned_to_name: task.assigned_to_name || undefined,
         start_date: (task as any).start_date ? parseDate((task as any).start_date) : undefined,
         due_date: task.due_date ? parseDate(task.due_date) : undefined,
-        is_recurring: task.is_recurring,
-        recurrence_type: task.recurrence_type || undefined,
-        category: task.category,
         parent_task_id: task.parent_task_id || undefined,
         project_id: task.project_id || '',
         client_id: task.client_id || undefined,
         servico_id: task.servico_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
-        tags: task.tags || [],
       });
     } else {
       isResettingRef.current = true;
@@ -331,13 +316,10 @@ export const TaskModal = ({
           description: '',
           status: 'todo',
           priority: 'medium',
-          is_recurring: false,
-          category: 'task',
           parent_task_id: defaultParentId || undefined,
           project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
           servico_id: undefined,
-          tags: [],
         });
       }
     }
@@ -365,16 +347,12 @@ export const TaskModal = ({
       assigned_to_name: values.assigned_to_name,
       due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
       start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
-      is_recurring: values.is_recurring,
-      recurrence_type: values.recurrence_type,
-      category: values.category,
       parent_task_id: values.parent_task_id,
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
       servico_id: values.servico_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
-      tags: values.tags && values.tags.length > 0 ? values.tags : undefined,
     };
 
     try {
@@ -389,8 +367,6 @@ export const TaskModal = ({
       console.error('Error saving task:', error);
     }
   };
-
-  const isRecurring = form.watch('is_recurring');
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
@@ -415,9 +391,12 @@ export const TaskModal = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* 1. Cliente + Projeto */}
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+            {/* ── SEÇÃO 1: CONTEXTO ─────────────────────────────────── */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contexto</h3>
+
               <FormField
                 control={form.control}
                 name="client_id"
@@ -471,123 +450,30 @@ export const TaskModal = ({
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Contribuinte (filtered by client) */}
-            <FormField
-              control={form.control}
-              name="contribuinte_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contribuinte</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                    value={field.value || '_none'}
-                    disabled={!watchedClientId}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={watchedClientId ? "Selecione o contribuinte" : "Selecione um cliente primeiro"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="_none">Nenhum</SelectItem>
-                      {contribuintesTask.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* 2. Serviço (via OS → Produto → produto_servico) */}
-            <FormField
-              control={form.control}
-              name="servico_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Serviço</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                    value={field.value || '_none'}
-                    disabled={!watchedProjectId || servicoFieldDisabled}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={servicoPlaceholder} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="_none">Nenhum</SelectItem>
-                      {categorias.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* 3. Título */}
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Título <RequiredMark /></FormLabel>
-                  <FormControl>
-                    <Input placeholder="Título da tarefa" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* 4. Descrição */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Descreva a tarefa..." 
-                      rows={3}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* 5. Status + Prioridade */}
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="status"
+                name="contribuinte_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status <RequiredMark /></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Contribuinte</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+                      value={field.value || '_none'}
+                      disabled={!watchedClientId}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder={watchedClientId ? "Selecione o contribuinte" : "Selecione um cliente primeiro"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="backlog">Backlog</SelectItem>
-                        <SelectItem value="waiting_client">Pendente Cliente</SelectItem>
-                        <SelectItem value="todo">A Fazer</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="review">Revisão</SelectItem>
-                        <SelectItem value="done">Concluído</SelectItem>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {contribuintesTask.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_razao_social} {c.cpf_cnpj && `(${c.cpf_cnpj})`}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -597,21 +483,25 @@ export const TaskModal = ({
 
               <FormField
                 control={form.control}
-                name="priority"
+                name="servico_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prioridade <RequiredMark /></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Serviço</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+                      value={field.value || '_none'}
+                      disabled={!watchedProjectId || servicoFieldDisabled}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder={servicoPlaceholder} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="low">Baixa</SelectItem>
-                        <SelectItem value="medium">Média</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
-                        <SelectItem value="urgent">Urgente</SelectItem>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {categorias.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -620,96 +510,19 @@ export const TaskModal = ({
               />
             </div>
 
-            {/* Horas estimadas */}
-            <FormField
-              control={form.control}
-              name="estimated_hours"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Horas estimadas</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      placeholder="Ex: 4"
-                      {...field}
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* ── SEÇÃO 2: TAREFA ───────────────────────────────────── */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Tarefa</h3>
 
-            {/* 6. Responsável */}
-            <FormField
-              control={form.control}
-              name="assigned_to"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Responsável</FormLabel>
-                  <Select 
-                    onValueChange={handleAssigneeChange} 
-                    value={field.value || '_none'}
-                  >
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título <RequiredMark /></FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
+                      <Input placeholder="Título da tarefa" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="_none">Nenhum</SelectItem>
-                      {filteredTeamMembers.map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* 7. Data de Início + Data de Vencimento */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Início</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy")
-                            ) : (
-                              <span>Selecione</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -717,194 +530,241 @@ export const TaskModal = ({
 
               <FormField
                 control={form.control}
-                name="due_date"
+                name="description"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Vencimento</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy")
-                            ) : (
-                              <span>Selecione</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* 8. Evento Fixo + Recorrente */}
-            <div className="flex items-center gap-6">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-3">
-                    <FormLabel className="mt-2">Evento Fixo</FormLabel>
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value === 'fixed_event'}
-                        onCheckedChange={(checked) => 
-                          field.onChange(checked ? 'fixed_event' : 'task')
-                        }
+                      <Textarea 
+                        placeholder="Descreva a tarefa..." 
+                        rows={2}
+                        {...field} 
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
               <FormField
                 control={form.control}
-                name="is_recurring"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-3">
-                    <FormLabel className="mt-2">Recorrente</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* 9. Frequência (condicional) */}
-            {isRecurring && (
-              <FormField
-                control={form.control}
-                name="recurrence_type"
+                name="parent_task_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Frequência</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Tarefa Pai (subtarefa de)</FormLabel>
+                    <Select 
+                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
+                      value={field.value || '_none'}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder="Nenhuma (tarefa principal)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="daily">Diária</SelectItem>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="monthly">Mensal</SelectItem>
-                        <SelectItem value="yearly">Anual</SelectItem>
+                        <SelectItem value="_none">Nenhuma</SelectItem>
+                        {filteredParentTasks.map(pt => (
+                          <SelectItem key={pt.id} value={pt.id}>
+                            {pt.title}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
+            </div>
 
-            {/* 10. Tarefa Pai */}
-            <FormField
-              control={form.control}
-              name="parent_task_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tarefa Pai (subtarefa de)</FormLabel>
-                  <Select 
-                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
-                    value={field.value || '_none'}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Nenhuma (tarefa principal)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="_none">Nenhuma</SelectItem>
-                      {filteredParentTasks.map(pt => (
-                        <SelectItem key={pt.id} value={pt.id}>
-                          {pt.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* ── SEÇÃO 3: EXECUÇÃO ─────────────────────────────────── */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Execução</h3>
 
-            {/* 11. Tags */}
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => {
-                const currentTags = field.value || [];
-                const addTag = () => {
-                  const trimmed = tagInput.trim();
-                  if (trimmed && !currentTags.includes(trimmed)) {
-                    field.onChange([...currentTags, trimmed]);
-                  }
-                  setTagInput('');
-                };
-                const removeTag = (tag: string) => {
-                  field.onChange(currentTags.filter(t => t !== tag));
-                };
-                return (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status <RequiredMark /></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="backlog">Backlog</SelectItem>
+                          <SelectItem value="waiting_client">Pendente Cliente</SelectItem>
+                          <SelectItem value="todo">A Fazer</SelectItem>
+                          <SelectItem value="in_progress">Em Progresso</SelectItem>
+                          <SelectItem value="review">Revisão</SelectItem>
+                          <SelectItem value="done">Concluído</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prioridade <RequiredMark /></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Baixa</SelectItem>
+                          <SelectItem value="medium">Média</SelectItem>
+                          <SelectItem value="high">Alta</SelectItem>
+                          <SelectItem value="urgent">Urgente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="assigned_to"
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Digite e pressione Enter..."
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addTag();
-                            }
-                          }}
-                        />
-                        <Button type="button" variant="outline" size="sm" onClick={addTag}>
-                          Adicionar
-                        </Button>
-                      </div>
-                      {currentTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {currentTags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="gap-1 text-xs">
-                              {tag}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() => removeTag(tag)}
-                              />
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <FormLabel>Responsável</FormLabel>
+                    <Select 
+                      onValueChange={handleAssigneeChange} 
+                      value={field.value || '_none'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {filteredTeamMembers.map(member => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="estimated_hours"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Horas estimadas</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        placeholder="Ex: 4"
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Início</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecione</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Vencimento</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecione</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button 
