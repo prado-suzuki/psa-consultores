@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { NotificationPopover } from '@/components/notifications/NotificationPopover';
-import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
-import { 
-  LayoutDashboard, 
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { NotificationPopover } from "@/components/notifications/NotificationPopover";
+import { PendingTicketsAlert } from "@/components/notifications/PendingTicketsAlert";
+import {
+  LayoutDashboard,
   LogOut,
   ExternalLink,
   ChevronLeft,
@@ -27,8 +27,8 @@ import {
   BookOpen,
   HandCoins,
   Layers,
-  ScanSearch
-} from 'lucide-react';
+  ScanSearch,
+} from "lucide-react";
 
 interface DevLayoutProps {
   children: React.ReactNode;
@@ -45,32 +45,32 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dev' },
-  { icon: Plus, label: 'Nova ferramenta', path: '/equipe/dev/nova-ferramenta' },
-  { icon: Wrench, label: 'Consulta de XMLs', path: '/equipe/dev/consulta-xmls' },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/equipe/dev" },
+  { icon: Plus, label: "Nova ferramenta", path: "/equipe/dev/nova-ferramenta" },
+  { icon: Wrench, label: "Consulta de XMLs", path: "/equipe/dev/consulta-xmls" },
 ];
 
 const spedSubItems: NavItem[] = [
-  { icon: FileText, label: 'EFD Contribuições', path: '/equipe/dev/consulta-efd' },
-  { icon: FileText, label: 'EFD ICMS', path: '/equipe/dev/consulta-efd-icms' },
-  { icon: FileText, label: 'ECD', path: '/equipe/dev/consulta-ecd' },
-  { icon: FileText, label: 'ECF', path: '/equipe/dev/consulta-ecf' },
+  { icon: FileText, label: "EFD Contribuições", path: "/equipe/dev/consulta-efd" },
+  { icon: FileText, label: "EFD ICMS", path: "/equipe/dev/consulta-efd-icms" },
+  { icon: FileText, label: "ECD", path: "/equipe/dev/consulta-ecd" },
+  { icon: FileText, label: "ECF", path: "/equipe/dev/consulta-ecf" },
 ];
 
-  const pisCofinsSubItems: NavItem[] = [
-    { icon: Layers, label: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
-    { icon: Calculator, label: 'Apuração do cliente', path: '/equipe/dev/apuracao-pis-cofins' },
-    { icon: ScanSearch, label: 'Auditoria Cruzada', path: '/equipe/dev/cruzamento-dados' },
-    { icon: FileText, label: 'Correções no SPED', path: '/equipe/dev/correcoes-sped' },
-  ];
+const pisCofinsSubItems: NavItem[] = [
+  { icon: Layers, label: "Mapa NCM (PIS/COFINS)", path: "/equipe/dev/mapa-ncm-pis-cofins" },
+  { icon: Calculator, label: "Apuração do cliente", path: "/equipe/dev/apuracao-pis-cofins" },
+  { icon: ScanSearch, label: "Auditoria Cruzada", path: "/equipe/dev/cruzamento-dados" },
+  { icon: FileText, label: "Revisão de Registros", path: "/equipe/dev/correcoes-sped" },
+];
 
 const navItemsAfterSped: NavItem[] = [
-  { icon: Calculator, label: 'DIFAL Inteligente', path: '/equipe/dev/auditoria-fiscal' },
-  { icon: Calculator, label: 'Calculadora IBS/CBS', path: '/equipe/dev/calculadora-ibs-cbs' },
-  { icon: FileSpreadsheet, label: 'Controle PERDCOMP', path: '/equipe/dev/controle-perdcomp' },
-  { icon: FileText, label: 'Controle Balancetes', path: '/equipe/dev/controle-balancetes' },
-  
-  { icon: Database, label: 'Gerenciar dados', path: '/equipe/dev/gerenciar-dados' },
+  { icon: Calculator, label: "DIFAL Inteligente", path: "/equipe/dev/auditoria-fiscal" },
+  { icon: Calculator, label: "Calculadora IBS/CBS", path: "/equipe/dev/calculadora-ibs-cbs" },
+  { icon: FileSpreadsheet, label: "Controle PERDCOMP", path: "/equipe/dev/controle-perdcomp" },
+  { icon: FileText, label: "Controle Balancetes", path: "/equipe/dev/controle-balancetes" },
+
+  { icon: Database, label: "Gerenciar dados", path: "/equipe/dev/gerenciar-dados" },
 ];
 
 export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
@@ -81,28 +81,26 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
-  const [spedOpen, setSpedOpen] = useState(() => 
-    spedSubItems.some(item => location.pathname === item.path)
-  );
+  const [spedOpen, setSpedOpen] = useState(() => spedSubItems.some((item) => location.pathname === item.path));
   const [pisCofinsOpen, setPisCofinsOpen] = useState(() =>
-    pisCofinsSubItems.some(item => location.pathname === item.path)
+    pisCofinsSubItems.some((item) => location.pathname === item.path),
   );
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  const isSpedActive = spedSubItems.some(item => location.pathname === item.path);
-  const isPisCofinsActive = pisCofinsSubItems.some(item => location.pathname === item.path);
+  const isSpedActive = spedSubItems.some((item) => location.pathname === item.path);
+  const isPisCofinsActive = pisCofinsSubItems.some((item) => location.pathname === item.path);
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
-      <aside 
-        className={`${collapsed ? 'w-16' : 'w-64'} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0`}
+      <aside
+        className={`${collapsed ? "w-16" : "w-64"} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0`}
       >
         {/* Header */}
         <div className="p-6 border-b border-slate-200/60">
@@ -130,7 +128,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
           variant="ghost"
           size="icon"
           className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
-          style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
+          style={{ "--sidebar-width": collapsed ? "64px" : "256px" } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -142,15 +140,15 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+              className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.path)
+                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
               }`}
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+              <item.icon className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
               {!collapsed && item.label}
             </Button>
           ))}
@@ -161,10 +159,10 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               variant="ghost"
               className={`w-full justify-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isSpedActive
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
               }`}
-              onClick={() => navigate('/equipe/dev/consulta-efd')}
+              onClick={() => navigate("/equipe/dev/consulta-efd")}
               title="Consulta SPED"
             >
               <BookOpen className="h-4 w-4" />
@@ -176,13 +174,15 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isSpedActive
-                      ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                      ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
                 >
                   <BookOpen className="h-4 w-4 mr-3" />
                   <span className="flex-1 text-left">Consulta SPED</span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
+                  />
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
@@ -192,8 +192,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     variant="ghost"
                     className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-teal-600'
+                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                     onClick={() => navigate(item.path)}
                   >
@@ -211,10 +211,10 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               variant="ghost"
               className={`w-full justify-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isPisCofinsActive
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
               }`}
-              onClick={() => navigate('/equipe/dev/apuracao-pis-cofins')}
+              onClick={() => navigate("/equipe/dev/apuracao-pis-cofins")}
               title="Levantamento de Créditos"
             >
               <HandCoins className="h-4 w-4" />
@@ -226,13 +226,15 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isPisCofinsActive
-                      ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                      : 'text-slate-700 hover:text-teal-600'
+                      ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                      : "text-slate-700 hover:text-teal-600"
                   }`}
                 >
                   <HandCoins className="h-4 w-4 mr-3" />
                   <span className="flex-1 text-left">Levantamento de Créditos</span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
+                  />
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
@@ -242,8 +244,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     variant="ghost"
                     className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-teal-600'
+                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                     onClick={() => navigate(item.path)}
                   >
@@ -259,15 +261,15 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             <Button
               key={item.path}
               variant="ghost"
-              className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+              className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.path)
+                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
               }`}
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+              <item.icon className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
               {!collapsed && item.label}
             </Button>
           ))}
@@ -282,31 +284,29 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <User className="h-4 w-4 text-teal-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
-                  {user?.email?.split('@')[0] || 'Usuário'}
-                </p>
+                <p className="text-sm font-medium text-slate-900 truncate">{user?.email?.split("@")[0] || "Usuário"}</p>
                 <p className="text-xs text-slate-500">Digital Dev</p>
               </div>
             </div>
           )}
-          
-          <Button 
-            variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors`}
-            onClick={() => navigate('/equipe/digital')}
-            title={collapsed ? 'Voltar para Digital' : undefined}
+
+          <Button
+            variant="ghost"
+            className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors`}
+            onClick={() => navigate("/equipe/digital")}
+            title={collapsed ? "Voltar para Digital" : undefined}
           >
-            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Voltar para Digital'}
+            <ArrowLeft className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
+            {!collapsed && "Voltar para Digital"}
           </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
+          <Button
+            variant="ghost"
+            className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
             onClick={handleSignOut}
-            title={collapsed ? 'Sair' : undefined}
+            title={collapsed ? "Sair" : undefined}
           >
-            <LogOut className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Sair'}
+            <LogOut className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
+            {!collapsed && "Sair"}
           </Button>
         </div>
       </aside>
@@ -332,8 +332,12 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   {sopUrl && (
                     <>
                       <span className="mx-2">|</span>
-                      <a href={sopUrl} target="_blank" rel="noopener noreferrer"
-                         className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-medium">
+                      <a
+                        href={sopUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-medium"
+                      >
                         Acessar SOP desta ferramenta
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
@@ -354,9 +358,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6">
-            {children}
-          </div>
+          <div className="p-6">{children}</div>
         </ScrollArea>
       </main>
     </div>
