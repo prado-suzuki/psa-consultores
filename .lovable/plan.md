@@ -1,59 +1,123 @@
 
 
-## Mover campo Serviço de Tarefas para Projetos
+## Biblioteca de Procedimentos — Módulo Dev
 
-### Contexto
-Hoje o campo "Serviço" fica no `TaskModal` (tarefas). A lógica atual: projeto → OS → produto → filtra serviços via `produto_servico`. Você quer mover essa mesma lógica para o formulário de projeto, e remover o campo de tarefas.
+### Resumo
+Adicionar aba "Procedimentos" no sidebar Dev com biblioteca de procedimentos técnicos gerados por IA a partir de links ou uploads de documentos. Inclui tabela no banco, Edge Function com Lovable AI, página de listagem com cards, modal de adição e modal de revisão/confirmação.
 
-### Fluxo proposto
-1. Usuário cadastra cliente com OS (já tem produto na OS)
-2. No formulário de projeto, seleciona cliente → OS (já existe)
-3. **Novo**: Após selecionar a OS, aparece o campo "Serviço" filtrado pelos serviços vinculados ao produto da OS selecionada (via `produto_servico`)
-4. O serviço fica persistido no projeto (`tax_projects.servico_id`)
-5. Tarefas herdam o serviço do projeto (sem campo próprio)
+### 1. Migration SQL
 
-### Mudanças
+Criar tabela `procedimentos` com os campos descritos (id, source_url, source_type, arquivo_path, processos_associados, ai_titulo, ai_resumo, ai_etapas, ai_complexidade, ai_tags, status_geracao, status_publicacao, erro_mensagem, confirmado_por, confirmado_em, created_by, updated_at, created_at).
 
-**1. Migration — adicionar coluna `servico_id` em `tax_projects`**
-```sql
-ALTER TABLE public.tax_projects
-ADD COLUMN servico_id uuid REFERENCES public.servicos_prestados(id);
+RLS com 4 políticas usando `has_role`:
+- **SELECT**: roles `team_member`, `admin`, `lider`, `sublider` (membros veem apenas `status_publicacao = 'ativo'` com `confirmado_por IS NOT NULL`, líderes/admins veem tudo)
+- **INSERT**: `admin`, `lider`
+- **UPDATE**: `admin`, `lider`
+- **DELETE**: `admin`, `lider`
+
+Trigger `update_updated_at_column` na tabela.
+
+**Nota**: As políticas de CHECK propostas no pedido usam `auth.role() = 'authenticated'` que é muito permissivo. Vou usar `has_role()` seguindo o padrão do sistema para restringir corretamente por papel.
+
+### 2. Edge Function — `processar-procedimento`
+
+**Arquivo**: `supabase/functions/processar-procedimento/index.ts`
+
+Fluxo:
+1. Recebe `{ id }` no body
+2. Busca o registro em `procedimentos` via service role client
+3. Extrai conteúdo:
+   - `link`: fetch da URL e extração de texto
+   - `pdf`/`docx`: download do storage via `arquivo_path`
+4. Chama Lovable AI Gateway (`google/gemini-3-flash-preview`) com o prompt de sistema descrito
+5. Parseia o JSON retornado e atualiza o registro com `ai_titulo`, `ai_resumo`, `ai_etapas`, `ai_complexidade`, `ai_tags`, `processos_associados`, `status_geracao = 'gerado'`
+6. Em caso de erro: `status_geracao = 'erro'` + `erro_mensagem`
+
+**Config**: Adicionar bloco `[functions.processar-procedimento]` em `supabase/config.toml` com `verify_jwt = false`.
+
+### 3. Hook — `useProcedimentos.ts`
+
+**Arquivo**: `src/hooks/useProcedimentos.ts`
+
+Encapsula todas as operações CRUD + invocação da Edge Function:
+- `useProcedimentosList()` — query com filtros
+- `useCreateProcedimento()` — mutation INSERT + invoca Edge Function + audit log
+- `useUpdateProcedimento()` — mutation UPDATE + audit log
+- `useRetryProcedimento(id)` — reinvoca a Edge Function
+- `useConfirmProcedimento()` — atualiza `confirmado_por`, `confirmado_em`, `status_publicacao`
+- Upload de arquivo para bucket `sop-documents` (reutiliza bucket existente)
+
+### 4. Sidebar Dev — `DevLayout.tsx`
+
+Adicionar item `{ icon: BookOpen, label: "Procedimentos", path: "/equipe/dev/procedimentos" }` no array `navItemsAfterSped`, antes de "Gerenciar dados". Usar ícone `ClipboardList` (para não conflitar com `BookOpen` já usado em Consulta SPED).
+
+### 5. Rota — `App.tsx`
+
+Adicionar rota:
+```
+/equipe/dev/procedimentos → TeamRoute > PageAccessGate > ProcedimentosDev
 ```
 
-**2. `FiscalProjetosCadastro.tsx` — formulário de projeto**
-- Adicionar `servico_id` ao `emptyForm` e ao `formData`
-- Quando `selectedOsId` muda, buscar o `id_produto_segmento` da OS e carregar os serviços vinculados via `produto_servico` (mesma lógica que hoje está no TaskModal)
-- Renderizar um `Select` de "Serviço" logo abaixo da seleção de OS, dentro da seção Identificação
-- Limpar `servico_id` quando a OS muda
-- Persistir `servico_id` no create/update
+### 6. Registro em `protectedPages.ts`
 
-**3. `useTaxProjects.ts` — hook de projetos**
-- Incluir `servico_id` no select, no create e no update
-- Adicionar ao tipo `TaxProject` e `CreateTaxProjectInput`
-- Incluir na comparação de auditoria do update
+Adicionar entrada para `/equipe/dev/procedimentos` com category `dev`.
 
-**4. `TaskModal.tsx` — remover campo Serviço**
-- Remover do schema zod (`servico_id`)
-- Remover as queries `project-os-produto` e `fiscal-task-servicos-by-produto`
-- Remover o `FormField` de Serviço do JSX
-- Remover variáveis derivadas (`servicoFieldDisabled`, `servicoPlaceholder`)
-- Remover o `form.setValue('servico_id', undefined)` do effect de troca de projeto
+### 7. Página Principal — `ProcedimentosDev.tsx`
 
-**5. `useFiscalTasks.ts` — limpar referência**
-- Remover `servico_id` do tipo `FiscalTask` e `CreateFiscalTaskInput`
-- Remover do payload de create/update (a coluna no banco pode ficar por retrocompatibilidade, mas não será mais preenchida por novas tarefas)
+**Arquivo**: `src/pages/equipe/dev/ProcedimentosDev.tsx`
 
-**6. Listagem de projetos (tabela)**
-- Opcionalmente exibir o nome do serviço na tabela de projetos (já exibe o produto/OS, pode adicionar uma coluna "Serviço" se desejado)
+- Usa `DevLayout` como wrapper
+- Header: "Biblioteca de Procedimentos" + botão "Adicionar procedimento" (visível só para admin/lider)
+- Filtros: busca textual, dropdown processo, toggle complexidade, filtro status publicação (admin/lider only)
+- Grid responsivo de cards (3/2/1 colunas)
+- Cards com 3 estados visuais: normal, processando (skeleton), erro (fundo vermelho)
+- Cards não confirmados: borda tracejada âmbar + badge (visível admin/lider)
+- Polling a cada 3s para cards em estado `processando`
 
-### Arquivos afetados
-- `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
-- `src/hooks/useTaxProjects.ts`
-- `src/components/equipe/fiscal/tasks/TaskModal.tsx`
-- `src/hooks/useFiscalTasks.ts`
-- Migration SQL (1 coluna)
+### 8. Modal de Adição — `AddProcedimentoModal.tsx`
+
+**Arquivo**: `src/components/equipe/dev/procedimentos/AddProcedimentoModal.tsx`
+
+- Toggle link/upload
+- Campo URL ou dropzone PDF/DOCX (10MB)
+- Checkboxes opcionais dos 9 processos
+- Ao submeter: cria registro → invoca Edge Function → fecha modal
+
+### 9. Modal de Revisão — `ReviewProcedimentoModal.tsx`
+
+**Arquivo**: `src/components/equipe/dev/procedimentos/ReviewProcedimentoModal.tsx`
+
+- Duas colunas: preview (40%) + formulário editável (60%)
+- Campos: título, resumo (300 chars), etapas (lista editável), processos (checkboxes), complexidade (radio), tags (chips)
+- Ações: Confirmar e publicar, Solicitar regeneração, Preencher manualmente, Cancelar
+
+### 10. Card Component — `ProcedimentoCard.tsx`
+
+**Arquivo**: `src/components/equipe/dev/procedimentos/ProcedimentoCard.tsx`
+
+- Chips de processo com cores fixas conforme spec
+- Título (2 linhas max), resumo (3 linhas), etapas (3 visíveis + "N mais")
+- Footer: complexidade colorida, tags, data relativa, botão "Abrir documento"
+- Estados: processando (skeleton), erro (fundo vermelho + retry), aguardando confirmação (borda âmbar)
+
+### Arquivos afetados (resumo)
+
+| Ação | Arquivo |
+|------|---------|
+| Novo | `src/pages/equipe/dev/ProcedimentosDev.tsx` |
+| Novo | `src/hooks/useProcedimentos.ts` |
+| Novo | `src/components/equipe/dev/procedimentos/AddProcedimentoModal.tsx` |
+| Novo | `src/components/equipe/dev/procedimentos/ReviewProcedimentoModal.tsx` |
+| Novo | `src/components/equipe/dev/procedimentos/ProcedimentoCard.tsx` |
+| Novo | `supabase/functions/processar-procedimento/index.ts` |
+| Novo | Migration SQL |
+| Editar | `src/components/equipe/dev/DevLayout.tsx` (1 item no sidebar) |
+| Editar | `src/App.tsx` (1 rota) |
+| Editar | `src/config/protectedPages.ts` (1 entrada) |
+| Editar | `supabase/config.toml` (1 bloco) |
 
 ### O que NÃO muda
-- A tabela `fiscal_tasks` mantém a coluna `servico_id` no banco (retrocompatibilidade com dados existentes)
-- A lógica de filtro produto → serviços via `produto_servico` é a mesma, só muda de lugar
+- Nenhuma aba, rota ou componente existente é alterado
+- Nenhuma tabela existente é modificada
+- Buckets de storage existentes reutilizados (`sop-documents`)
 
