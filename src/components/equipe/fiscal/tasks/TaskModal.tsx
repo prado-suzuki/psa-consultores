@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { CalendarIcon } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { currentAmbiente } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
@@ -129,6 +130,7 @@ export const TaskModal = ({
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
       return data as { id: string; nome: string }[];
@@ -164,6 +166,7 @@ export const TaskModal = ({
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', watchedClientId)
         .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       return data || [];
     },
