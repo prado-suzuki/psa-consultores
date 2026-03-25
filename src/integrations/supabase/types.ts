@@ -47,6 +47,56 @@ export type Database = {
         }
         Relationships: []
       }
+      analises_semestrais: {
+        Row: {
+          ajustes_necessarios: string | null
+          ciclo_id: string | null
+          comentario_avaliado: string | null
+          comentario_lider: string | null
+          created_at: string | null
+          entregas_realizadas: string | null
+          id: string
+          responsavel_id: string | null
+          riscos_identificados: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ajustes_necessarios?: string | null
+          ciclo_id?: string | null
+          comentario_avaliado?: string | null
+          comentario_lider?: string | null
+          created_at?: string | null
+          entregas_realizadas?: string | null
+          id?: string
+          responsavel_id?: string | null
+          riscos_identificados?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ajustes_necessarios?: string | null
+          ciclo_id?: string | null
+          comentario_avaliado?: string | null
+          comentario_lider?: string | null
+          created_at?: string | null
+          entregas_realizadas?: string | null
+          id?: string
+          responsavel_id?: string | null
+          riscos_identificados?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analises_semestrais_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       area_servicos: {
         Row: {
           area_id: string
@@ -86,6 +136,44 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atualizacoes_meta: {
+        Row: {
+          autor_id: string | null
+          comentario: string | null
+          created_at: string | null
+          id: string
+          meta_id: string | null
+          progresso_anterior: number | null
+          progresso_novo: number | null
+        }
+        Insert: {
+          autor_id?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          id?: string
+          meta_id?: string | null
+          progresso_anterior?: number | null
+          progresso_novo?: number | null
+        }
+        Update: {
+          autor_id?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          id?: string
+          meta_id?: string | null
+          progresso_anterior?: number | null
+          progresso_novo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atualizacoes_meta_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "metas"
             referencedColumns: ["id"]
           },
         ]
@@ -194,6 +282,45 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           nome?: string
+        }
+        Relationships: []
+      }
+      ciclos_avaliacao: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_analise_semestral: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          id: string
+          nome: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_analise_semestral?: string | null
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_analise_semestral?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1241,6 +1368,56 @@ export type Database = {
         }
         Relationships: []
       }
+      feedbacks: {
+        Row: {
+          anonimo: boolean | null
+          ciclo_id: string | null
+          comportamento: string
+          contexto: string
+          created_at: string | null
+          de_usuario_id: string | null
+          id: string
+          impacto: string
+          para_usuario_id: string | null
+          tipo: string
+          visivel_para_avaliado: boolean | null
+        }
+        Insert: {
+          anonimo?: boolean | null
+          ciclo_id?: string | null
+          comportamento: string
+          contexto: string
+          created_at?: string | null
+          de_usuario_id?: string | null
+          id?: string
+          impacto: string
+          para_usuario_id?: string | null
+          tipo: string
+          visivel_para_avaliado?: boolean | null
+        }
+        Update: {
+          anonimo?: boolean | null
+          ciclo_id?: string | null
+          comportamento?: string
+          contexto?: string
+          created_at?: string | null
+          de_usuario_id?: string | null
+          id?: string
+          impacto?: string
+          para_usuario_id?: string | null
+          tipo?: string
+          visivel_para_avaliado?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_task_comments: {
         Row: {
           comment: string
@@ -1604,6 +1781,47 @@ export type Database = {
         }
         Relationships: []
       }
+      itens_acao_1a1: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          prazo: string | null
+          responsavel_id: string | null
+          reuniao_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          reuniao_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          reuniao_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_acao_1a1_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "reunioes_1a1"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_roles: {
         Row: {
           category: string | null
@@ -1636,6 +1854,131 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      kpis_meta: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          meta_id: string | null
+          nome: string
+          unidade: string | null
+          updated_at: string | null
+          valor_alvo: number
+          valor_atual: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          meta_id?: string | null
+          nome: string
+          unidade?: string | null
+          updated_at?: string | null
+          valor_alvo: number
+          valor_atual?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          meta_id?: string | null
+          nome?: string
+          unidade?: string | null
+          updated_at?: string | null
+          valor_alvo?: number
+          valor_atual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpis_meta_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas: {
+        Row: {
+          ajuste_qualitativo: string | null
+          area_id: string | null
+          ciclo_id: string | null
+          classificacao_final: string | null
+          created_at: string | null
+          created_by: string | null
+          criterio_evidencia: string | null
+          descricao: string | null
+          dimensao: string
+          id: string
+          meta_pai_id: string | null
+          nivel: string
+          peso: number | null
+          prazo: string | null
+          progresso_atual: number | null
+          responsavel_id: string | null
+          status: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ajuste_qualitativo?: string | null
+          area_id?: string | null
+          ciclo_id?: string | null
+          classificacao_final?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          criterio_evidencia?: string | null
+          descricao?: string | null
+          dimensao: string
+          id?: string
+          meta_pai_id?: string | null
+          nivel: string
+          peso?: number | null
+          prazo?: string | null
+          progresso_atual?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ajuste_qualitativo?: string | null
+          area_id?: string | null
+          ciclo_id?: string | null
+          classificacao_final?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          criterio_evidencia?: string | null
+          descricao?: string | null
+          dimensao?: string
+          id?: string
+          meta_pai_id?: string | null
+          nivel?: string
+          peso?: number | null
+          prazo?: string | null
+          progresso_atual?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_meta_pai_id_fkey"
+            columns: ["meta_pai_id"]
+            isOneToOne: false
+            referencedRelation: "metas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       novidades: {
         Row: {
@@ -2982,6 +3325,53 @@ export type Database = {
             columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reunioes_1a1: {
+        Row: {
+          ciclo_id: string | null
+          created_at: string | null
+          data_reuniao: string
+          id: string
+          lider_id: string | null
+          membro_id: string | null
+          observacoes_lider: string | null
+          sentimento: number | null
+          temas_discutidos: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ciclo_id?: string | null
+          created_at?: string | null
+          data_reuniao: string
+          id?: string
+          lider_id?: string | null
+          membro_id?: string | null
+          observacoes_lider?: string | null
+          sentimento?: number | null
+          temas_discutidos?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ciclo_id?: string | null
+          created_at?: string | null
+          data_reuniao?: string
+          id?: string
+          lider_id?: string | null
+          membro_id?: string | null
+          observacoes_lider?: string | null
+          sentimento?: number | null
+          temas_discutidos?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reunioes_1a1_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_avaliacao"
             referencedColumns: ["id"]
           },
         ]
