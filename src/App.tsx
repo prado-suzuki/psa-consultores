@@ -80,6 +80,9 @@ import DesempenhoFeedbacks from "./pages/gerencial/desempenho/DesempenhoFeedback
 import DesempenhoReunioes1a1 from "./pages/gerencial/desempenho/DesempenhoReunioes1a1";
 import DesempenhoEvolucao from "./pages/gerencial/desempenho/DesempenhoEvolucao";
 
+// Performance page
+import PerformanceDashboard from "./pages/gerencial/performance/PerformanceDashboard";
+
 // New Area Dashboards
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
@@ -200,6 +203,9 @@ const App = () => (
             <Route path="/gerencial/desempenho/feedbacks" element={<DesempenhoAccessGate><DesempenhoFeedbacks /></DesempenhoAccessGate>} />
             <Route path="/gerencial/desempenho/1a1" element={<DesempenhoAccessGate><DesempenhoReunioes1a1 /></DesempenhoAccessGate>} />
             <Route path="/gerencial/desempenho/evolucao" element={<DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate>} />
+
+            {/* Performance Route */}
+            <Route path="/gerencial/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
