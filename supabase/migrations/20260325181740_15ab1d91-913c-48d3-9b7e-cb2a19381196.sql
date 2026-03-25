@@ -1,0 +1,1 @@
+ALTER TABLE performance_preferencias ADD COLUMN IF NOT EXISTS dashboard_layout jsonb DEFAULT '{}';
