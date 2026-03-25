@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
   Menu,
   Eye,
   ChevronRight,
+  ChevronLeft,
   CheckCircle,
   FileText,
   User,
@@ -84,7 +85,13 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('board-sidebar-collapsed') === 'true'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch {}
+  }, [collapsed]);
 
   // Count pending decisions for badge
   const { data: pendingDecisions = 0 } = useQuery({
@@ -323,19 +330,24 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
 
   return (
     <div className="min-h-screen flex w-full" style={{ backgroundColor: 'var(--board-bg)' }}>
-      {/* Desktop sidebar (>=1280px) */}
-      <aside className="hidden xl:flex flex-col flex-shrink-0 w-[232px] fixed top-0 left-0 h-screen z-30">
-        <SidebarContent />
-      </aside>
-
-      {/* Tablet sidebar (768-1279px) */}
+      {/* Desktop/Tablet sidebar (md+) */}
       <aside
-        className="hidden md:flex xl:hidden flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300"
-        style={{ width: hovered ? 232 : 64 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[232px]'}`}
       >
-        <SidebarContent collapsed={!hovered} />
+        <SidebarContent collapsed={collapsed} />
+        {/* Toggle button */}
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="absolute top-[22px] -right-3 z-40 w-6 h-6 rounded-full flex items-center justify-center border transition-colors"
+          style={{
+            backgroundColor: 'var(--board-sb)',
+            borderColor: 'rgba(255,255,255,.12)',
+            color: 'var(--board-sb-txt)',
+          }}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
       </aside>
 
       {/* Mobile sidebar (drawer) */}
@@ -346,7 +358,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
       </Sheet>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden xl:ml-[232px] md:ml-[64px] ml-0">
+      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[64px]' : 'md:ml-[232px]'}`}>
         {/* Topbar — 52px */}
         <header className="h-[52px] min-h-[52px] flex items-center px-6 gap-[14px] flex-shrink-0" style={{ backgroundColor: 'var(--board-card)', borderBottom: '1px solid var(--board-border)' }}>
           <div className="flex items-center gap-3">
