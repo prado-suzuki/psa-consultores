@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -84,11 +84,49 @@ const FiscalProjetosCadastro = () => {
   const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ ...emptyForm });
+  const [filterCliente, setFilterCliente] = useState('');
+  const [filterProduto, setFilterProduto] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
   const { data: projects = [], isLoading } = useTaxProjects();
   const { data: projectHours = {} } = useProjectHours();
+
+  // ── Filtros locais ───────────────────────────────────────────────────
+  const filterOptions = useMemo(() => {
+    const clientesMap = new Map<string, string>();
+    const produtosSet = new Set<string>();
+    const statusSet = new Set<string>();
+    for (const p of projects) {
+      if (p.external_client_id && p.external_client?.nome) {
+        clientesMap.set(p.external_client_id, p.external_client.nome);
+      }
+      if (p.servico_contratado) produtosSet.add(p.servico_contratado);
+      if (p.status) statusSet.add(p.status);
+    }
+    return {
+      clientes: Array.from(clientesMap, ([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome)),
+      produtos: Array.from(produtosSet).sort(),
+      status: Array.from(statusSet),
+    };
+  }, [projects]);
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      if (filterCliente && p.external_client_id !== filterCliente) return false;
+      if (filterProduto && p.servico_contratado !== filterProduto) return false;
+      if (filterStatus && p.status !== filterStatus) return false;
+      return true;
+    });
+  }, [projects, filterCliente, filterProduto, filterStatus]);
+
+  const hasActiveFilters = !!(filterCliente || filterProduto || filterStatus);
+  const clearFilters = () => { setFilterCliente(''); setFilterProduto(''); setFilterStatus(''); };
+
+  const statusLabelMap: Record<string, string> = {
+    active: 'Ativo', completed: 'Concluído', on_hold: 'Pausado', cancelled: 'Cancelado',
+  };
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
 
   const estruturaAreaId = formData.estrutura_area_id || null;
@@ -320,13 +358,66 @@ const FiscalProjetosCadastro = () => {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Projetos Tax</h2>
-              <p className="text-sm text-slate-500">{projects.length} projetos cadastrados</p>
+              <p className="text-sm text-muted-foreground">
+                {hasActiveFilters
+                  ? `${filteredProjects.length} de ${projects.length} projetos`
+                  : `${projects.length} projetos cadastrados`}
+              </p>
             </div>
           </div>
           <Button onClick={() => handleOpenModal()} className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterCliente} onValueChange={v => setFilterCliente(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-52">
+              <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {filterOptions.clientes.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterProduto} onValueChange={v => setFilterProduto(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-52">
+              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Produto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os produtos</SelectItem>
+              {filterOptions.produtos.map(p => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterStatus} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {filterOptions.status.map(s => (
+                <SelectItem key={s} value={s}>{statusLabelMap[s] || s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
+              <X className="h-4 w-4" />
+              Limpar
+            </Button>
+          )}
         </div>
 
         {/* Projects Table */}
@@ -354,14 +445,14 @@ const FiscalProjetosCadastro = () => {
                       Carregando projetos...
                     </TableCell>
                   </TableRow>
-                ) : projects.length === 0 ? (
+                ) : filteredProjects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      Nenhum projeto cadastrado.
+                      {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  projects.map((project: any) => (
+                  filteredProjects.map((project: any) => (
                     <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                       <TableCell>
                         <div className="flex items-center gap-2">
