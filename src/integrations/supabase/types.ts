@@ -2088,6 +2088,7 @@ export type Database = {
       procedimentos: {
         Row: {
           ai_complexidade: string | null
+          ai_cover_url: string | null
           ai_etapas: Json | null
           ai_resumo: string | null
           ai_tags: string[] | null
@@ -2108,6 +2109,7 @@ export type Database = {
         }
         Insert: {
           ai_complexidade?: string | null
+          ai_cover_url?: string | null
           ai_etapas?: Json | null
           ai_resumo?: string | null
           ai_tags?: string[] | null
@@ -2128,6 +2130,7 @@ export type Database = {
         }
         Update: {
           ai_complexidade?: string | null
+          ai_cover_url?: string | null
           ai_etapas?: Json | null
           ai_resumo?: string | null
           ai_tags?: string[] | null
