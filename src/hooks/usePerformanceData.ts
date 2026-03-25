@@ -105,13 +105,6 @@ export const usePerformanceData = (periodo: string, area: string) => {
           area:estrutura_areas!tax_projects_estrutura_area_id_fkey(name, color)
         `)
         .eq('is_active', true);
-
-      if (area !== 'todas') {
-        // filter by area name
-        // We'll filter client-side since we can't easily filter join
-      }
-
-      const { data: projects, error } = await q;
       if (error) throw error;
 
       // Fetch tasks for these projects
