@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
 import { usePerformanceData, useSavePerformancePrefs } from '@/hooks/usePerformanceData';
 import { PerformanceKPICards } from '@/components/performance/PerformanceKPICards';
@@ -22,7 +21,7 @@ const PERIODS = [
 ];
 
 const AREAS = [
-  { value: 'todas', label: 'Todas as áreas' },
+  { value: 'todas', label: 'Todas' },
   { value: 'tax', label: 'Tax' },
   { value: 'osg', label: 'OSG' },
   { value: 'dev', label: 'Dev' },
@@ -42,7 +41,6 @@ const PerformanceDashboard = () => {
     heatmapTasksQuery, last3MonthsTasksQuery,
   } = usePerformanceData(periodo, area);
 
-  // Load saved preferences
   useEffect(() => {
     if (prefsQuery.data) {
       const prefs = prefsQuery.data as any;
@@ -84,40 +82,56 @@ const PerformanceDashboard = () => {
   const isInitialLoading = projectsQuery.isLoading && ticketsQuery.isLoading;
 
   return (
-    <BoardLayout title="Performance" subtitle="Visão executiva consolidada">
-      <div className="space-y-8">
-        {/* Global controls */}
-        <div className="flex flex-wrap items-center gap-3 sticky top-0 z-10 bg-slate-50 py-3 -mx-6 px-6 border-b border-border/40">
-          <div className="flex border rounded-lg overflow-hidden">
+    <BoardLayout title="Performance" subtitle="Visao executiva consolidada">
+      <div className="space-y-6">
+        {/* Controls bar */}
+        <div className="flex flex-wrap items-center gap-3 sticky top-0 z-10 py-3 -mx-6 px-6" style={{ backgroundColor: 'var(--board-bg)', borderBottom: '1px solid var(--board-border)' }}>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
             {PERIODS.map(p => (
-              <Button
+              <button
                 key={p.value}
-                variant={periodo === p.value ? 'secondary' : 'ghost'}
-                size="sm"
                 onClick={() => handlePeriodChange(p.value)}
-                className="rounded-none text-xs"
+                className="px-3 py-[5px] text-[12px] font-medium transition-all"
+                style={{
+                  backgroundColor: periodo === p.value ? 'var(--board-indigo)' : 'var(--board-card)',
+                  color: periodo === p.value ? '#fff' : 'var(--board-t2)',
+                  borderRight: '1px solid var(--board-border)',
+                }}
               >
                 {p.label}
-              </Button>
+              </button>
             ))}
           </div>
-          <Select value={area} onValueChange={handleAreaChange}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {AREAS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
+            {AREAS.map(a => (
+              <button
+                key={a.value}
+                onClick={() => handleAreaChange(a.value)}
+                className="px-3 py-[5px] text-[12px] font-medium transition-all"
+                style={{
+                  backgroundColor: area === a.value ? 'var(--board-indigo)' : 'var(--board-card)',
+                  color: area === a.value ? '#fff' : 'var(--board-t2)',
+                  borderRight: '1px solid var(--board-border)',
+                }}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px]" style={{ color: 'var(--board-t4)' }}>
               Atualizado: {format(lastUpdate, "HH:mm", { locale: ptBR })}
             </span>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-1" /> Atualizar
-            </Button>
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-[6px] px-3 py-[5px] rounded-lg text-[12px] font-medium transition-all"
+              style={{ border: '1px solid var(--board-border)', color: 'var(--board-t2)', backgroundColor: 'var(--board-card)' }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+            </button>
           </div>
         </div>
 
-        {/* Block 1 — KPIs */}
         <PerformanceKPICards
           projects={projects}
           tickets={tickets}
@@ -130,13 +144,8 @@ const PerformanceDashboard = () => {
           isLoading={isInitialLoading}
         />
 
-        {/* Block 2 — Projects */}
         <ProjectsBlock projects={projects} isLoading={projectsQuery.isLoading} />
-
-        {/* Block 3 — Area Comparison (uses independent 3-month tasks) */}
         <AreaComparisonBlock projects={projects} periodTasks={last3MonthsTasks} isLoading={projectsQuery.isLoading || last3MonthsTasksQuery.isLoading} />
-
-        {/* Block 4 — Team Contribution (heatmap uses independent 90-day tasks) */}
         <TeamContributionBlock
           members={members}
           profiles={profiles}
@@ -145,11 +154,7 @@ const PerformanceDashboard = () => {
           metas={metas}
           isLoading={membersQuery.isLoading || periodTasksQuery.isLoading}
         />
-
-        {/* Block 5 — Automation Impact */}
         <AutomationImpactBlock roiData={roiData} isLoading={roiQuery.isLoading} />
-
-        {/* Block 6 — Cycle Goals */}
         <CycleGoalsBlock ciclo={ciclo} metas={metas} profiles={profiles} isLoading={cicloQuery.isLoading} />
       </div>
     </BoardLayout>

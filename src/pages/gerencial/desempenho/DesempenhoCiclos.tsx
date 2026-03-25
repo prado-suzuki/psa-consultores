@@ -134,7 +134,7 @@ const DesempenhoCiclos = () => {
       <Button onClick={() => setShowForm(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Ciclo</Button>
     }>
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -144,8 +144,8 @@ const DesempenhoCiclos = () => {
                 {ciclos?.map((c) => (
                   <TableRow key={c.id} className="hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => setSelectedCiclo(c)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell className="text-sm" style={{ color: '#64748B' }}>{c.data_inicio} -- {c.data_fim}</TableCell>
-                    <TableCell className="text-sm" style={{ color: '#64748B' }}>{c.data_analise_semestral ?? '--'}</TableCell>
+                    <TableCell className="text-sm" style={{ color: 'var(--board-t3)' }}>{c.data_inicio} -- {c.data_fim}</TableCell>
+                    <TableCell className="text-sm" style={{ color: 'var(--board-t3)' }}>{c.data_analise_semestral ?? '--'}</TableCell>
                     <TableCell><Badge className={`${statusColors[c.status] ?? ''} border-0 text-xs font-semibold`}>{statusLabels[c.status] ?? c.status}</Badge></TableCell>
                     <TableCell onClick={e => e.stopPropagation()}>
                       <div className="flex gap-1">
@@ -157,7 +157,7 @@ const DesempenhoCiclos = () => {
                   </TableRow>
                 ))}
                 {(!ciclos || ciclos.length === 0) && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8" style={{ color: '#64748B' }}>Nenhum ciclo cadastrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center py-8" style={{ color: 'var(--board-t3)' }}>Nenhum ciclo cadastrado</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -173,17 +173,17 @@ const DesempenhoCiclos = () => {
               <SheetHeader><SheetTitle>{selectedCiclo.nome}</SheetTitle></SheetHeader>
               <div className="space-y-6 mt-4">
                 <div>
-                  <p className="text-sm" style={{ color: '#64748B' }}>{selectedCiclo.data_inicio} -- {selectedCiclo.data_fim}</p>
+                  <p className="text-sm" style={{ color: 'var(--board-t3)' }}>{selectedCiclo.data_inicio} -- {selectedCiclo.data_fim}</p>
                   <Badge className={`${statusColors[selectedCiclo.status]} border-0 text-xs mt-1`}>{statusLabels[selectedCiclo.status]}</Badge>
                 </div>
 
                 {/* Temporal progress */}
                 <div>
-                  <p className="text-xs font-medium mb-1" style={{ color: '#64748B' }}>Progresso temporal</p>
-                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0' }}>
-                    <div className="h-full rounded-full" style={{ width: `${getTemporalProgress(selectedCiclo)}%`, backgroundColor: '#6366F1' }} />
+                  <p className="text-xs font-medium mb-1" style={{ color: 'var(--board-t3)' }}>Progresso temporal</p>
+                  <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${getTemporalProgress(selectedCiclo)}%`, backgroundColor: 'var(--board-indigo)' }} />
                   </div>
-                  <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{getTemporalProgress(selectedCiclo)}% do ciclo decorrido</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--board-t4)' }}>{getTemporalProgress(selectedCiclo)}% do ciclo decorrido</p>
                 </div>
 
                 {/* Gauge */}
@@ -195,16 +195,16 @@ const DesempenhoCiclos = () => {
                       </RadialBarChart>
                     </ResponsiveContainer>
                   </div>
-                  <p className="text-2xl font-bold ml-2" style={{ color: '#0F172A' }}>{avgProgress}%</p>
+                  <p className="text-2xl font-bold ml-2" style={{ color: 'var(--board-t1)' }}>{avgProgress}%</p>
                 </div>
 
                 {/* Counts by level */}
                 <div className="grid grid-cols-3 gap-3">
                   {[{ label: 'Empresa', count: empresaCount }, { label: 'Equipe', count: equipeCount }, { label: 'Individual', count: individualCount }].map(x => (
-                    <Card key={x.label} className="bg-white rounded-xl" style={{ border: '1px solid #E2E8F0' }}>
+                    <Card key={x.label} className="bg-white rounded-xl" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="p-3 text-center">
-                        <p className="text-xl font-bold" style={{ color: '#0F172A' }}>{x.count}</p>
-                        <p className="text-[11px]" style={{ color: '#64748B' }}>{x.label}</p>
+                        <p className="text-xl font-bold" style={{ color: 'var(--board-t1)' }}>{x.count}</p>
+                        <p className="text-[11px]" style={{ color: 'var(--board-t3)' }}>{x.label}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -239,13 +239,13 @@ const DesempenhoCiclos = () => {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Analise Semestral</DialogTitle>
-            <p className="text-sm" style={{ color: '#64748B' }}>Membro {analiseMembroIdx + 1} de {membrosUnicos.length}</p>
+            <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Membro {analiseMembroIdx + 1} de {membrosUnicos.length}</p>
           </DialogHeader>
-          <div className="h-1.5 rounded-full mb-4" style={{ backgroundColor: '#E2E8F0' }}>
-            <div className="h-full rounded-full" style={{ width: `${((analiseMembroIdx + 1) / membrosUnicos.length) * 100}%`, backgroundColor: '#6366F1' }} />
+          <div className="h-1.5 rounded-full mb-4" style={{ backgroundColor: 'var(--board-border)' }}>
+            <div className="h-full rounded-full" style={{ width: `${((analiseMembroIdx + 1) / membrosUnicos.length) * 100}%`, backgroundColor: 'var(--board-indigo)' }} />
           </div>
           <div className="mb-4">
-            <p className="text-sm font-medium" style={{ color: '#0F172A' }}>
+            <p className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>
               {(() => { const p = profileMap.get(membrosUnicos[analiseMembroIdx]); return p ? `${p.first_name} ${p.last_name}` : '--'; })()}
             </p>
           </div>

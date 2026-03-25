@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const sentimentLabels = ['Muito ruim', 'Ruim', 'Neutro', 'Bom', 'Muito bom'];
-const sentimentColors = ['#EF4444', '#F97316', '#94A3B8', '#10B981', '#059669'];
+const sentimentColors = ['#EF4444', '#F97316', 'var(--board-t4)', '#10B981', '#059669'];
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-amber-100 text-amber-700',
@@ -101,7 +101,7 @@ const DesempenhoReunioes1a1 = () => {
           <CardContent className="space-y-4">
             {Array.from(openItemsByMembro.entries()).map(([membroId, items]) => (
               <div key={membroId}>
-                <p className="text-xs font-semibold mb-1" style={{ color: '#334155' }}>{getName(membroId)}</p>
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--board-t2)' }}>{getName(membroId)}</p>
                 <div className="space-y-1.5">
                   {items?.slice(0, 5).map(item => {
                     const vencido = item.prazo && item.prazo < new Date().toISOString().slice(0, 10);
@@ -109,7 +109,7 @@ const DesempenhoReunioes1a1 = () => {
                     return (
                       <div key={item.id} className="flex items-center gap-3 text-sm">
                         <span className="flex-1">{item.descricao}</span>
-                        <span className={`text-xs ${vencido ? 'font-semibold' : ''}`} style={{ color: vencido ? '#EF4444' : '#94A3B8' }}>
+                        <span className={`text-xs ${vencido ? 'font-semibold' : ''}`} style={{ color: vencido ? '#EF4444' : 'var(--board-t4)' }}>
                           {item.prazo ?? '--'} {vencido && diasAtraso > 0 ? `(${diasAtraso}d atraso)` : ''}
                         </span>
                         <Badge className={`${statusColors[item.status] ?? ''} border-0 text-xs`}>{item.status}</Badge>
@@ -135,13 +135,13 @@ const DesempenhoReunioes1a1 = () => {
                 const lastDate = reunioes[0]?.data_reuniao ?? '--';
                 const openCount = openCountByMembro.get(membroId) || 0;
                 return (
-                  <Card key={membroId} className="bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid #E2E8F0' }} onClick={() => setSelectedMembro(membroId)}>
+                  <Card key={membroId} className="bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
                     <CardContent className="pt-5 flex items-center gap-4">
                       <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#EDE9FE', color: '#6D28D9' }}>{initials}</div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm" style={{ color: '#0F172A' }}>{getName(membroId)}</p>
-                        <p className="text-xs" style={{ color: '#94A3B8' }}>Ultimo 1:1: {lastDate}</p>
-                        <p className="text-xs" style={{ color: '#94A3B8' }}>{reunioes.length} reunioes registradas</p>
+                        <p className="font-medium text-sm" style={{ color: 'var(--board-t1)' }}>{getName(membroId)}</p>
+                        <p className="text-xs" style={{ color: 'var(--board-t4)' }}>Ultimo 1:1: {lastDate}</p>
+                        <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{reunioes.length} reunioes registradas</p>
                       </div>
                       {openCount > 0 && (
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{openCount} abertos</Badge>
@@ -155,41 +155,41 @@ const DesempenhoReunioes1a1 = () => {
               })}
               {membroMap.size === 0 && (
                 <div className="col-span-full flex flex-col items-center py-12">
-                  <Users className="h-8 w-8 mb-2" style={{ color: '#CBD5E1' }} />
-                  <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma 1:1 registrada ainda.</p>
+                  <Users className="h-8 w-8 mb-2" style={{ color: 'var(--board-t4)' }} />
+                  <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhuma 1:1 registrada ainda.</p>
                 </div>
               )}
             </div>
           ) : (
             <div>
               <Button variant="ghost" className="mb-4" onClick={() => setSelectedMembro(null)}>Voltar para todos</Button>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: '#0F172A' }}>Historico de 1:1s -- {getName(selectedMembro)}</h2>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--board-t1)' }}>Historico de 1:1s -- {getName(selectedMembro)}</h2>
               <div className="space-y-4">
                 {filteredReunioes.map(r => {
                   const reuniaoItens = allItens?.filter(i => i.reuniao_id === r.id) ?? [];
                   return (
-                    <Card key={r.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+                    <Card key={r.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="text-sm font-medium" style={{ color: '#0F172A' }}>{r.data_reuniao}</span>
+                          <span className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{r.data_reuniao}</span>
                           {r.sentimento && (
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${sentimentColors[r.sentimento - 1]}20`, color: sentimentColors[r.sentimento - 1] }}>
                               {sentimentLabels[r.sentimento - 1]}
                             </span>
                           )}
                         </div>
-                        {r.temas_discutidos && <p className="text-sm mb-3" style={{ color: '#64748B' }}>{r.temas_discutidos}</p>}
+                        {r.temas_discutidos && <p className="text-sm mb-3" style={{ color: 'var(--board-t3)' }}>{r.temas_discutidos}</p>}
                         {reuniaoItens.length > 0 && (
-                          <div className="mt-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
-                            <p className="text-xs font-semibold mb-2" style={{ color: '#475569' }}>Itens de acao</p>
+                          <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--board-border)' }}>
+                            <p className="text-xs font-semibold mb-2" style={{ color: 'var(--board-sb-grp)' }}>Itens de acao</p>
                             <div className="space-y-1.5">
                               {reuniaoItens.map(item => {
                                 const vencido = item.prazo && item.status === 'aberto' && item.prazo < new Date().toISOString().slice(0, 10);
                                 return (
                                   <div key={item.id} className="flex items-center gap-3 text-sm">
                                     <span className="flex-1">{item.descricao}</span>
-                                    {item.responsavel_id && <span className="text-xs" style={{ color: '#94A3B8' }}>{getName(item.responsavel_id)}</span>}
-                                    <span className="text-xs" style={{ color: vencido ? '#EF4444' : '#94A3B8' }}>{item.prazo ?? '--'}</span>
+                                    {item.responsavel_id && <span className="text-xs" style={{ color: 'var(--board-t4)' }}>{getName(item.responsavel_id)}</span>}
+                                    <span className="text-xs" style={{ color: vencido ? '#EF4444' : 'var(--board-t4)' }}>{item.prazo ?? '--'}</span>
                                     <Badge className={`${statusColors[item.status] ?? 'bg-slate-100 text-slate-600'} border-0 text-xs`}>{item.status}</Badge>
                                   </div>
                                 );
