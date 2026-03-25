@@ -1,76 +1,167 @@
 
 
-## Plano: Ajustar visual do Board para match com o HTML v2
+## Plano: Expansao do Board — Novas paginas, migrations, Edge Functions e Dashboard Estrategico
 
-O HTML de referencia define uma paleta e um sistema de design bem especifico. As mudancas sao puramente visuais — nenhuma logica de dados ou rota sera alterada.
-
-### Principais diferencas visuais identificadas
-
-1. **Paleta de cores** — O HTML usa tons mais frios e profundos: sidebar `#0C1222` (vs `#0F172A` atual), textos `#3D4D6A` / `#7A8BA8` / `#A8B8CC`, borders `#E4EAF2` / `#F0F4F8`, fundo `#F0F4F8` (vs `#F8FAFC`), indigo `#5B6EF0` (vs `#6366F1`)
-2. **Tipografia** — Titulos usam fonte `Syne` (bold, letter-spacing negativo), corpo usa `DM Sans`, dados mono usam `DM Mono`
-3. **KPI cards** — Barra colorida no topo (3px), icone em caixa com fundo suave, valor grande em Syne, label uppercase 11px, sub-indicadores com dots coloridos, trend badges
-4. **Sidebar** — Radial gradient decorativo no canto inferior, marca com icone quadrado indigo, sub-itens com borda-esquerda e indicador vertical na ativo, badges de contagem, font-sizes menores
-5. **Topbar** — Altura 52px (vs 64px), estilo de breadcrumb mais compacto
-6. **Cards** — Shadow `0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04)`, hover com shadow-md e translateY(-1px)
-7. **AI Insight Box** — Gradiente indigo/purple sutil, icone de sol, bullets com dot indigo
-8. **Alerts** — Border-left 3px colorido, fundo suave por severidade
-9. **Progress bars** — Fundo `#E8EFF7`, cores: green `#16A97C`, amber `#E8930A`, red `#E5424A`
-10. **Tabelas** — Thead com fundo `#FAFCFF`, th uppercase 10px, hover `#F7FAFF`
+Este plano expande o modulo Board com 3 migrations, 3 Edge Functions, 1 refatoracao do Dashboard e 3 novas paginas. Nenhuma rota, aba ou logica existente sera removida.
 
 ---
 
-### Arquivos a modificar
+### Fase 1 — Migrations (4 execucoes)
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `index.html` | Adicionar fontes Syne, DM Sans, DM Mono via Google Fonts |
-| `src/index.css` | Adicionar CSS variables do board v2 (cores, shadows, radii) e classes utilitarias `.board-*` |
-| `src/components/equipe/board/BoardLayout.tsx` | Aplicar paleta v2 na sidebar (cores, radial gradient, font sizes, topbar 52px, breadcrumb compacto) |
-| `src/pages/equipe/board/BoardDashboard.tsx` | Reescrever KPIs para match v2 (barra topo, dots, trends), adicionar AI Insight box, ajustar cards de projetos/atividade, feed items com avatares |
-| `src/pages/gerencial/performance/PerformanceDashboard.tsx` | Ajustar barra de controles para estilo `.pctrl` do v2, segmented buttons |
-| `src/components/performance/PerformanceKPICards.tsx` | Aplicar estilo KPI v2 com barra topo, sparks, font Syne nos valores |
-| `src/pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | Aplicar KPI v2, AI box, alertas com border-left, member cards com stats (Metas/Feedbacks/1:1s), progress bars v2 |
-| `src/pages/gerencial/desempenho/DesempenhoCiclos.tsx` | Cycle bar escura (gradient `#0C1222` → `#172038`), 3 cards de contagem centralizados com Syne, tabela com estilo v2 |
-| `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` | Tree rows com niveis (l0/l1/l2, indentation), filtros com estilo `.fi`, chips de dimensao, progress inline |
-| `src/pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | AI box de feedbacks, chart SVG de distribuicao, tabela com avatares em row |
-| `src/pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | Alert bar de itens abertos, member cards `.oc` com botao primario para urgente, historico com barras de sentimento (5 segmentos indigo), item de acao com chips coloridos |
-| `src/pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | PPR hero card com gradient por classificacao, dims com barras brancas, charts com gradients SVG, heatmap de 1:1s, ajuste qualitativo em caixa bg |
+**Migration 1:** Criar `ppr_regras_ciclo`, `comentarios_avaliacao`, `relatorios_gerados` com RLS conforme especificado no prompt.
 
-### Detalhes de implementacao
+**Migration 2:** Alterar tabela `metas` — adicionar colunas `ajuste_qualitativo_publico`, `recomendacao_decisao`, `ultima_atualizacao_membro`, `comentario_membro`.
 
-**Fontes** — Adicionar no `<head>` do `index.html`:
-```html
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300..600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+**Migration 3:** Alterar `comentarios_avaliacao` — adicionar `lido boolean default false`, `lido_em timestamptz`.
+
+**Migration 4:** Seed de regras PPR padrao para ciclo ativo (INSERT condicional).
+
+---
+
+### Fase 2 — Hooks de dados (5 novos hooks)
+
+| Hook | Tabela | Descricao |
+|------|--------|-----------|
+| `usePprRegras` | `ppr_regras_ciclo` | CRUD regras PPR por ciclo |
+| `useComentariosAvaliacao` | `comentarios_avaliacao` | Listar, criar, editar, marcar como lido |
+| `useRelatoriosGerados` | `relatorios_gerados` | Listar historico, criar, atualizar status |
+| `useMinhaEvolucao` | metas + feedbacks + reunioes + comentarios | Dados consolidados do usuario logado |
+| `useDecisoesData` | metas + profiles + feedbacks + reunioes | Dados para pagina de decisoes |
+
+Todos seguem o padrao existente: encapsulados em `src/hooks/`, com `useAuditLog.logAction` nas mutacoes, usando `as any` para tabelas nao tipadas.
+
+---
+
+### Fase 3 — Edge Functions (3 funcoes)
+
+**`gerar-sintese-executiva`**: Busca projetos, tarefas, metas do ciclo, ROI. Monta prompt e chama Lovable AI (`google/gemini-3-flash-preview`). Retorna `{ sintese, bullets }`. Cacheia em `relatorios_gerados` por 6h.
+
+**`gerar-recomendacoes-pessoas`**: Recebe `{ ciclo_id }`. Busca metas ponderadas, feedbacks, 1:1s por membro. Chama Lovable AI com tool calling para retornar JSON estruturado (array de recomendacoes). Salva em `relatorios_gerados`.
+
+**`gerar-relatorio-individual`**: Recebe `{ member_id, ciclo_id, tipo }`. Busca todos os dados do membro e chama Lovable AI. Salva resultado em `relatorios_gerados`.
+
+Todas validam JWT em codigo, usam `LOVABLE_API_KEY` + Lovable AI Gateway, e retornam erros 429/402 com mensagens claras.
+
+---
+
+### Fase 4 — Refatorar Dashboard (`BoardDashboard.tsx`)
+
+Transformar de operacional para visao executiva estrategica:
+
+- **Header**: "Visao Executiva — PSA Consultores", data + ciclo ativo, chips de status (projetos em risco, dias ate analise, ROI)
+- **5 Strategic KPI cards** em grid: Projetos Ativos (com sparkline), Economia/Ano (ROI acumulado), Taxa Pontualidade, Metas do Ciclo, Membros Ativos — usando Syne 42px para valores, sparklines de 5 barras
+- **AI Insight Box**: Chama `gerar-sintese-executiva` via `supabase.functions.invoke`, exibe sintese + 3 bullets
+- **Grid 2 colunas**: Recharts BarChart (tarefas Tax/OSG/Dev 3 meses) + Recharts AreaChart (ROI acumulado vs meta)
+- **Grid 2 colunas inferior**: Projetos Criticos (lista compacta com chips de decisao) + Ranking Performance (posicao, avatar, barra, % , chip PPR)
+
+Dados vem dos hooks existentes: `usePerformanceData`, `useDesempenhoOverview`, `useCicloAtivo`, `useMetas`.
+
+---
+
+### Fase 5 — Expandir Metas e PPR (`DesempenhoMetas.tsx`)
+
+Adicionar acima da arvore de metas existente:
+
+- **Bloco Regras PPR**: Card com header escuro (gradiente), 4 linhas (Supera/Atende/Parcial/Abaixo) com faixas coloridas, barras, multiplicadores. Usa `usePprRegras`. Empty state com botao "Configurar regras" para admin/lider.
+- **Coluna "Decisao"** nas linhas individuais: dropdown inline Promover/Reajustar/Monitorar/Manter → salva em `metas.recomendacao_decisao`
+- **Botao "Classificar"** condicional quando ciclo em `em_avaliacao`
+
+Toda logica existente de filtros, modais e arvore permanece intacta.
+
+---
+
+### Fase 6 — Nova pagina Decisoes (`DesempenhoDecisoes.tsx`)
+
+Rota: `/equipe/board/desempenho/decisoes`
+
+- **AI Synthesis box**: Chama `gerar-recomendacoes-pessoas`, exibe texto de sintese
+- **Cards de recomendacao**: Um por membro, fundo/borda por tipo (Promocao verde, Reajuste ambar, Acompanhamento vermelho). Header com avatar, nome, chip. Metricas: PPR, historico, feedbacks. Botoes "Confirmar decisao" e "Ignorar"
+- **Modal de confirmacao**: Radio tipo, campo cargo/percentual condicional, data vigencia, observacoes. Salva em `metas.recomendacao_decisao` + cria `comentarios_avaliacao`
+
+---
+
+### Fase 7 — Nova pagina Relatorios (`DesempenhoRelatorios.tsx`)
+
+Rota: `/equipe/board/desempenho/relatorios`
+
+- **Controles**: Dropdowns membro, ciclo, tipo + "Gerar com IA" + "Exportar PDF"
+- **Historico**: Lista compacta de relatorios ja gerados com botao "Carregar"
+- **Painel gerado**: Header escuro com avatar, metricas. Corpo em 2 colunas: esquerda (dimensoes + historico ciclos), direita (pontos fortes + desenvolvimento + recomendacao RH). Rodape com confidencialidade.
+- **Skeleton** durante geracao
+
+---
+
+### Fase 8 — Nova pagina Minha Evolucao (`MinhaEvolucao.tsx`)
+
+Rota: `/equipe/board/desempenho/minha-evolucao` — acessivel a todos os papeis (nao apenas admin/lider).
+
+- **Header escuro**: Avatar, nome, cargo, classificacao PPR, 6 metricas inline
+- **Seletor de ciclo**: Dropdown padrao ciclo ativo
+- **Minhas Metas**: Lista com botao "Atualizar progresso" por meta (modal slider + comentario). Bloco PPR calculado com tabela Meta/Peso/Contribuicao
+- **Consideracoes do Lider**: Comentarios `lider_para_membro`, indicador nao lido, area de resposta `membro_resposta`
+- **Meus Pontos de Vista**: Textarea para `membro_ponto_vista`, lista dos existentes, edicao ate encerramento
+- **Historico PPR**: Recharts LineChart por ciclo encerrado
+- **Feedbacks Recebidos**: Lista expansivel dos ultimos 5
+
+---
+
+### Fase 9 — Sidebar e Rotas
+
+**BoardLayout.tsx** — Atualizar sidebar:
+
+- Renomear grupo "Visao Geral" → "Diretoria" com label "Dashboard Estrategico"
+- Grupo "Gerencial": Performance + Desempenho com sub-itens expandidos (Visao Geral, Metas e PPR, Decisoes com badge, Relatorios, Evolucao, Feedbacks, 1:1s)
+- Novo grupo "Minha Area": item "Minha Evolucao" com badge ambar (comentarios nao lidos ou metas vencidas)
+- Breadcrumb: adicionar mapeamentos para novas rotas
+
+**App.tsx** — Adicionar 3 rotas:
+```
+/equipe/board/desempenho/decisoes → DesempenhoAccessGate
+/equipe/board/desempenho/relatorios → DesempenhoAccessGate
+/equipe/board/desempenho/minha-evolucao → TeamRoute (sem DesempenhoAccessGate)
 ```
 
-**CSS Variables** — Adicionar bloco `:root` no `index.css` com todas as variaveis do HTML v2 (prefixadas com `--board-*` para nao conflitar):
-```css
---board-sb: #0C1222;
---board-indigo: #5B6EF0;
---board-green: #16A97C;
---board-amber: #E8930A;
---board-red: #E5424A;
---board-bg: #F0F4F8;
---board-border: #E4EAF2;
---board-t1: #0C1222;
---board-t2: #3D4D6A;
---board-t3: #7A8BA8;
---board-t4: #A8B8CC;
---board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
---board-shadow-md: 0 4px 16px rgba(12,18,34,.1), 0 0 0 1px rgba(12,18,34,.04);
-```
+**protectedPages.ts** — Registrar 3 novas paginas na categoria `board`.
 
-**BoardLayout** — Sidebar usa `#0C1222`, pseudo-element radial gradient no fundo, marca com caixa indigo `#5B6EF0`, user card com gradiente, nav items 13px com `#6B7FA3`, ativo com `#1A2540` + barra 3px indigo, sub-items com `border-left: 1px solid rgba(255,255,255,.08)`, topbar 52px, breadcrumb 12px.
+---
 
-**KPI Cards** — Componente reutilizavel com: barra topo 3px colorida, icone em caixa 32px com fundo suave, valor em font-family Syne 26px bold, label 11px uppercase, sub-items com dot 5px, trend badge pill.
+### Fase 10 — CSS e Visual
 
-**AI Insight Box** — Componente reutilizavel: `background: linear-gradient(135deg, rgba(91,110,240,.06), rgba(128,84,240,.06))`, border `rgba(91,110,240,.18)`, label com icone SVG, bullets com `::before` dot indigo.
+Atualizar `src/index.css` com classes v3 do HTML de referencia:
+- Variaveis atualizadas: `--board-sb: #0A1020`, novas cores `--board-cyan`, `--board-gold`
+- Classes: `.board-strategic-num`, `.board-sparkline`, `.board-ppr-hero`, `.board-cycle-bar`, `.board-rec-box`, `.board-self-header`, `.board-comment-box`, `.board-rule-row`, `.board-report`
+- Estilos de decisao cards, report preview, sentiment dots
 
-**Cards** — Border `1px solid #F0F4F8`, shadow v2, hover com shadow-md + `translateY(-1px)`, border-radius 12px.
+---
+
+### Arquivos criados/modificados
+
+| Acao | Arquivo |
+|------|---------|
+| Migration | 4 migrations SQL |
+| Criar | `src/hooks/usePprRegras.ts` |
+| Criar | `src/hooks/useComentariosAvaliacao.ts` |
+| Criar | `src/hooks/useRelatoriosGerados.ts` |
+| Criar | `src/hooks/useMinhaEvolucao.ts` |
+| Criar | `src/hooks/useDecisoesData.ts` |
+| Criar | `supabase/functions/gerar-sintese-executiva/index.ts` |
+| Criar | `supabase/functions/gerar-recomendacoes-pessoas/index.ts` |
+| Criar | `supabase/functions/gerar-relatorio-individual/index.ts` |
+| Criar | `src/pages/gerencial/desempenho/DesempenhoDecisoes.tsx` |
+| Criar | `src/pages/gerencial/desempenho/DesempenhoRelatorios.tsx` |
+| Criar | `src/pages/gerencial/desempenho/MinhaEvolucao.tsx` |
+| Editar | `src/pages/equipe/board/BoardDashboard.tsx` |
+| Editar | `src/pages/gerencial/desempenho/DesempenhoMetas.tsx` |
+| Editar | `src/components/equipe/board/BoardLayout.tsx` |
+| Editar | `src/App.tsx` |
+| Editar | `src/config/protectedPages.ts` |
+| Editar | `src/index.css` |
+| Config | `supabase/config.toml` (3 novas funcoes) |
 
 ### O que NAO muda
-- Nenhuma rota, hook, query ou logica de dados
-- Nenhuma funcionalidade existente
-- Nenhum arquivo fora do modulo Board
-- Estrutura de navegacao e controle de acesso
+- Nenhuma rota existente
+- Nenhum hook existente (useMetas, useFeedbacks, useReunioes, etc.)
+- Nenhuma tabela existente (apenas colunas adicionadas via migration)
+- Paginas de Performance, Ciclos, Visao Geral, Feedbacks, 1:1s, Evolucao existentes
+- Todo o sistema fora do modulo Board
 
