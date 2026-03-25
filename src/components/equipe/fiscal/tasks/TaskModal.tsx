@@ -247,7 +247,6 @@ export const TaskModal = ({
         parent_task_id: task.parent_task_id || undefined,
         project_id: task.project_id || '',
         client_id: task.client_id || undefined,
-        servico_id: task.servico_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
       });
@@ -268,7 +267,6 @@ export const TaskModal = ({
           parent_task_id: defaultParentId || undefined,
           project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
-          servico_id: undefined,
         });
       }
     }
@@ -299,7 +297,6 @@ export const TaskModal = ({
       parent_task_id: values.parent_task_id,
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
-      servico_id: values.servico_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
     };
@@ -430,33 +427,6 @@ export const TaskModal = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="servico_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serviço</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                      value={field.value || '_none'}
-                      disabled={!watchedProjectId || servicoFieldDisabled}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={servicoPlaceholder} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="_none">Nenhum</SelectItem>
-                        {categorias.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* ── SEÇÃO 2: TAREFA ───────────────────────────────────── */}
