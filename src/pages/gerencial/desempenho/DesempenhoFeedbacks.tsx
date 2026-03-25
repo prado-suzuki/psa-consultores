@@ -69,15 +69,15 @@ const DesempenhoFeedbacks = () => {
         <div className="flex justify-between items-center">
           <Badge className={`${tipoColors[f.tipo]} border-0 text-xs`}>{tipoLabels[f.tipo]}</Badge>
           <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color: '#94A3B8' }}>{f.created_at?.slice(0, 10)}</span>
-            {isExpanded ? <ChevronUp className="h-3 w-3" style={{ color: '#94A3B8' }} /> : <ChevronDown className="h-3 w-3" style={{ color: '#94A3B8' }} />}
+            <span className="text-xs" style={{ color: 'var(--board-t4)' }}>{f.created_at?.slice(0, 10)}</span>
+            {isExpanded ? <ChevronUp className="h-3 w-3" style={{ color: 'var(--board-t4)' }} /> : <ChevronDown className="h-3 w-3" style={{ color: 'var(--board-t4)' }} />}
           </div>
         </div>
-        <p className={`mt-1 ${isExpanded ? '' : 'line-clamp-2'}`} style={{ color: '#64748B' }}>{f.contexto}</p>
+        <p className={`mt-1 ${isExpanded ? '' : 'line-clamp-2'}`} style={{ color: 'var(--board-t3)' }}>{f.contexto}</p>
         {isExpanded && (
-          <div className="mt-2 space-y-1.5 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
-            <div><span className="font-medium" style={{ color: '#334155' }}>Comportamento:</span> <span style={{ color: '#64748B' }}>{f.comportamento}</span></div>
-            <div><span className="font-medium" style={{ color: '#334155' }}>Impacto:</span> <span style={{ color: '#64748B' }}>{f.impacto}</span></div>
+          <div className="mt-2 space-y-1.5 pt-2" style={{ borderTop: '1px solid var(--board-border)' }}>
+            <div><span className="font-medium" style={{ color: 'var(--board-t2)' }}>Comportamento:</span> <span style={{ color: 'var(--board-t3)' }}>{f.comportamento}</span></div>
+            <div><span className="font-medium" style={{ color: 'var(--board-t2)' }}>Impacto:</span> <span style={{ color: 'var(--board-t3)' }}>{f.impacto}</span></div>
           </div>
         )}
       </div>
@@ -93,7 +93,7 @@ const DesempenhoFeedbacks = () => {
 
         <TabsContent value="todos">
           {isLoading ? <Skeleton className="h-64" /> : (
-            <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+            <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader><TableRow><TableHead>De</TableHead><TableHead>Para</TableHead><TableHead>Tipo</TableHead><TableHead>Contexto</TableHead><TableHead>Data</TableHead><TableHead /></TableRow></TableHeader>
@@ -104,13 +104,13 @@ const DesempenhoFeedbacks = () => {
                           <TableCell className="text-sm">{f.anonimo ? 'Anonimo' : getName(f.de_usuario_id)}</TableCell>
                           <TableCell className="text-sm">{getName(f.para_usuario_id)}</TableCell>
                           <TableCell><Badge className={`${tipoColors[f.tipo] ?? ''} border-0 text-xs`}>{tipoLabels[f.tipo] ?? f.tipo}</Badge></TableCell>
-                          <TableCell className="text-sm max-w-xs truncate" style={{ color: '#64748B' }}>{f.contexto}</TableCell>
-                          <TableCell className="text-xs" style={{ color: '#94A3B8' }}>{f.created_at?.slice(0, 10)}</TableCell>
+                          <TableCell className="text-sm max-w-xs truncate" style={{ color: 'var(--board-t3)' }}>{f.contexto}</TableCell>
+                          <TableCell className="text-xs" style={{ color: 'var(--board-t4)' }}>{f.created_at?.slice(0, 10)}</TableCell>
                           <TableCell>{expandedId === f.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</TableCell>
                         </TableRow>
                         {expandedId === f.id && (
                           <TableRow>
-                            <TableCell colSpan={6} style={{ backgroundColor: '#F8FAFC' }}>
+                            <TableCell colSpan={6} style={{ backgroundColor: 'var(--board-bg)' }}>
                               <div className="space-y-2 p-2 text-sm">
                                 <div><strong>Contexto:</strong> {f.contexto}</div>
                                 <div><strong>Comportamento:</strong> {f.comportamento}</div>
@@ -121,7 +121,7 @@ const DesempenhoFeedbacks = () => {
                         )}
                       </React.Fragment>
                     ))}
-                    {(!feedbacks || feedbacks.length === 0) && <TableRow><TableCell colSpan={6} className="text-center py-8" style={{ color: '#64748B' }}>Nenhum feedback registrado</TableCell></TableRow>}
+                    {(!feedbacks || feedbacks.length === 0) && <TableRow><TableCell colSpan={6} className="text-center py-8" style={{ color: 'var(--board-t3)' }}>Nenhum feedback registrado</TableCell></TableRow>}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -138,18 +138,18 @@ const DesempenhoFeedbacks = () => {
           </div>
           {membroFeedbacks && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
-                  <h3 className="font-semibold text-sm mb-3" style={{ color: '#0F172A' }}>Recebidos ({membroFeedbacks.recebidos.length})</h3>
+                  <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Recebidos ({membroFeedbacks.recebidos.length})</h3>
                   {membroFeedbacks.recebidos.map(f => renderFeedbackCard(f))}
-                  {membroFeedbacks.recebidos.length === 0 && <p className="text-sm" style={{ color: '#64748B' }}>Nenhum feedback recebido.</p>}
+                  {membroFeedbacks.recebidos.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhum feedback recebido.</p>}
                 </CardContent>
               </Card>
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
-                  <h3 className="font-semibold text-sm mb-3" style={{ color: '#0F172A' }}>Enviados ({membroFeedbacks.enviados.length})</h3>
+                  <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Enviados ({membroFeedbacks.enviados.length})</h3>
                   {membroFeedbacks.enviados.map(f => renderFeedbackCard(f))}
-                  {membroFeedbacks.enviados.length === 0 && <p className="text-sm" style={{ color: '#64748B' }}>Nenhum feedback enviado.</p>}
+                  {membroFeedbacks.enviados.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhum feedback enviado.</p>}
                 </CardContent>
               </Card>
             </div>

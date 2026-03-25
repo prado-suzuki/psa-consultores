@@ -141,14 +141,14 @@ const DesempenhoMetas = () => {
     const barColor = m.progresso_atual >= 85 ? '#10B981' : m.progresso_atual >= 70 ? '#D97706' : '#EF4444';
 
     return (
-      <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow" style={{ marginLeft: indent, backgroundColor: indent === 0 ? '#FAFAFA' : 'transparent' }}>
-        <Icon className="h-4 w-4 flex-shrink-0" style={{ color: '#94A3B8' }} />
+      <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow" style={{ marginLeft: indent, backgroundColor: indent === 0 ? 'var(--board-border-s)' : 'transparent' }}>
+        <Icon className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--board-t4)' }} />
         <Badge variant="outline" className={`${dc.bg} ${dc.text} border-0 text-[11px] font-semibold rounded-full px-2.5 flex-shrink-0`}>{dc.label}</Badge>
-        <span className="flex-1 text-sm font-medium truncate" style={{ color: '#1E293B' }}>{m.titulo}</span>
-        {profile && <span className="text-xs flex-shrink-0" style={{ color: '#94A3B8' }}>{profile.first_name} {profile.last_name}</span>}
-        <span className="text-xs w-20 text-right flex-shrink-0" style={{ color: '#94A3B8' }}>{m.prazo ?? '--'}</span>
+        <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.titulo}</span>
+        {profile && <span className="text-xs flex-shrink-0" style={{ color: 'var(--board-t4)' }}>{profile.first_name} {profile.last_name}</span>}
+        <span className="text-xs w-20 text-right flex-shrink-0" style={{ color: 'var(--board-t4)' }}>{m.prazo ?? '--'}</span>
         <div className="w-28 flex items-center gap-1 flex-shrink-0">
-          <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0' }}>
+          <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
             <div className="h-full rounded-full" style={{ width: `${m.progresso_atual}%`, backgroundColor: barColor }} />
           </div>
           <span className="text-xs font-semibold w-8 text-right" style={{ color: barColor }}>{m.progresso_atual}%</span>
@@ -204,7 +204,7 @@ const DesempenhoMetas = () => {
       </div>
 
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-4 space-y-1">
             {empresaMetas.map(em => (
               <div key={em.id}>
@@ -224,7 +224,7 @@ const DesempenhoMetas = () => {
               </div>
             ))}
             {individualMetas.filter(ind => !ind.meta_pai_id || !equipeMetas.find(eq => eq.id === ind.meta_pai_id)).map(ind => renderMeta(ind, 0))}
-            {(!metas || metas.length === 0) && <p className="text-sm text-center py-8" style={{ color: '#64748B' }}>Nenhuma meta neste ciclo.</p>}
+            {(!metas || metas.length === 0) && <p className="text-sm text-center py-8" style={{ color: 'var(--board-t3)' }}>Nenhuma meta neste ciclo.</p>}
           </CardContent>
         </Card>
       )}
@@ -250,7 +250,7 @@ const DesempenhoMetas = () => {
             {/* KPIs section - only on create */}
             {!editingMeta && (
               <Collapsible>
-                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium" style={{ color: '#6366F1' }}>
+                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--board-indigo)' }}>
                   <ChevronDown className="h-4 w-4" /> KPIs vinculados ({kpis.length})
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
@@ -279,7 +279,7 @@ const DesempenhoMetas = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Atualizar Progresso</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm" style={{ color: '#64748B' }}>{showProgress?.titulo}</p>
+            <p className="text-sm" style={{ color: 'var(--board-t3)' }}>{showProgress?.titulo}</p>
             <div className="flex items-center gap-4"><Slider value={[progressValue]} onValueChange={([v]) => setProgressValue(v)} max={100} step={1} className="flex-1" /><Input type="number" className="w-20" value={progressValue} onChange={e => setProgressValue(Number(e.target.value))} min={0} max={100} /></div>
             <div><Label>Comentario *</Label><Textarea value={progressComment} onChange={e => setProgressComment(e.target.value)} placeholder="Descreva o avanco realizado" /></div>
           </div>
@@ -296,11 +296,11 @@ const DesempenhoMetas = () => {
           <DialogHeader><DialogTitle>Classificacao Final</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium" style={{ color: '#0F172A' }}>{showClassif?.titulo}</p>
-              {showClassif?.responsavel_id && <p className="text-xs" style={{ color: '#64748B' }}>{(() => { const p = profileMap.get(showClassif.responsavel_id); return p ? `${p.first_name} ${p.last_name}` : ''; })()}</p>}
+              <p className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{showClassif?.titulo}</p>
+              {showClassif?.responsavel_id && <p className="text-xs" style={{ color: 'var(--board-t3)' }}>{(() => { const p = profileMap.get(showClassif.responsavel_id); return p ? `${p.first_name} ${p.last_name}` : ''; })()}</p>}
             </div>
             <div>
-              <p className="text-xs mb-1" style={{ color: '#64748B' }}>Classificacao calculada automaticamente:</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--board-t3)' }}>Classificacao calculada automaticamente:</p>
               <Badge className={`${classifColors[getAutoClassif(showClassif?.progresso_atual ?? 0)]} border-0 text-sm font-semibold`}>{classifLabels[getAutoClassif(showClassif?.progresso_atual ?? 0)]}</Badge>
             </div>
             <RadioGroup value={classifValue} onValueChange={setClassifValue} className="space-y-2">

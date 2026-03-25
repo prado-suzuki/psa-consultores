@@ -143,37 +143,37 @@ const DesempenhoEvolucao = () => {
 
       {!selectedMembro ? (
         <div className="flex flex-col items-center py-12">
-          <TrendingUpIcon className="h-8 w-8 mb-2" style={{ color: '#CBD5E1' }} />
-          <p className="text-sm" style={{ color: '#64748B' }}>Selecione um membro para ver sua evolucao.</p>
+          <TrendingUpIcon className="h-8 w-8 mb-2" style={{ color: 'var(--board-t4)' }} />
+          <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Selecione um membro para ver sua evolucao.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Block 1: Performance chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: '#0F172A' }}>Performance por Ciclo</CardTitle></CardHeader>
+          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Performance por Ciclo</CardTitle></CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="media" stroke="#6366F1" strokeWidth={2} dot={{ r: 4 }} /></LineChart>
+                  <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="media" stroke="var(--board-indigo)" strokeWidth={2} dot={{ r: 4 }} /></LineChart>
                 </ResponsiveContainer>
-              ) : <p className="text-sm" style={{ color: '#64748B' }}>Sem dados suficientes.</p>}
+              ) : <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Sem dados suficientes.</p>}
             </CardContent>
           </Card>
 
           {/* Block 2: Feedback chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: '#0F172A' }}>Historico de Feedbacks</CardTitle></CardHeader>
+          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Historico de Feedbacks</CardTitle></CardHeader>
             <CardContent>
               {feedbackChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={feedbackChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Legend /><Bar dataKey="Reconhecimento" stackId="a" fill="#10B981" /><Bar dataKey="Desenvolvimento" stackId="a" fill="#D97706" /><Bar dataKey="360" stackId="a" fill="#3B82F6" /></BarChart>
                 </ResponsiveContainer>
-              ) : <p className="text-sm" style={{ color: '#64748B' }}>Sem feedbacks registrados.</p>}
+              ) : <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Sem feedbacks registrados.</p>}
               <div className="mt-4 space-y-2">
                 {feedbacks?.slice(0, 5).map(f => (
-                  <div key={f.id} className="p-2 rounded-lg text-sm" style={{ backgroundColor: '#F8FAFC' }}>
-                    <div className="flex justify-between"><Badge className="text-xs">{f.tipo}</Badge><span className="text-xs" style={{ color: '#94A3B8' }}>{f.created_at?.slice(0, 10)}</span></div>
-                    <p className="mt-1 line-clamp-2" style={{ color: '#64748B' }}>{f.contexto}</p>
+                  <div key={f.id} className="p-2 rounded-lg text-sm" style={{ backgroundColor: 'var(--board-bg)' }}>
+                    <div className="flex justify-between"><Badge className="text-xs">{f.tipo}</Badge><span className="text-xs" style={{ color: 'var(--board-t4)' }}>{f.created_at?.slice(0, 10)}</span></div>
+                    <p className="mt-1 line-clamp-2" style={{ color: 'var(--board-t3)' }}>{f.contexto}</p>
                   </div>
                 ))}
               </div>
@@ -181,8 +181,8 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 3: 1:1 cadence + action items completion */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: '#0F172A' }}>Cadencia de 1:1s</CardTitle></CardHeader>
+          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+            <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Cadencia de 1:1s</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-1 mb-4">
                 {Array.from({ length: 12 }).map((_, i) => {
@@ -190,38 +190,38 @@ const DesempenhoEvolucao = () => {
                   const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                   const has = reuniaoMonths.has(key);
                   return (
-                    <div key={key} className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? '#10B981' : '#F1F5F9', color: has ? '#FFFFFF' : '#94A3B8' }} title={key}>
+                    <div key={key} className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? '#10B981' : '#F1F5F9', color: has ? '#FFFFFF' : 'var(--board-t4)' }} title={key}>
                       {d.toLocaleString('pt-BR', { month: 'short' }).slice(0, 3)}
                     </div>
                   );
                 })}
               </div>
-              <p className="text-sm mb-4" style={{ color: '#64748B' }}>Total no ciclo ativo: <strong>{reunioes?.filter(r => r.ciclo_id === currentCiclo?.id).length ?? 0}</strong></p>
+              <p className="text-sm mb-4" style={{ color: 'var(--board-t3)' }}>Total no ciclo ativo: <strong>{reunioes?.filter(r => r.ciclo_id === currentCiclo?.id).length ?? 0}</strong></p>
               {/* Action item completion rate */}
-              <div className="pt-3" style={{ borderTop: '1px solid #E2E8F0' }}>
+              <div className="pt-3" style={{ borderTop: '1px solid var(--board-border)' }}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-medium" style={{ color: '#334155' }}>Taxa de conclusao de itens de acao</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--board-t2)' }}>Taxa de conclusao de itens de acao</p>
                   <span className="text-sm font-semibold" style={{ color: taxaConclusao >= 85 ? '#10B981' : taxaConclusao >= 70 ? '#D97706' : '#EF4444' }}>{taxaConclusao}%</span>
                 </div>
-                <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0' }}>
+                <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
                   <div className="h-full rounded-full" style={{ width: `${taxaConclusao}%`, backgroundColor: taxaConclusao >= 85 ? '#10B981' : taxaConclusao >= 70 ? '#D97706' : '#EF4444' }} />
                 </div>
-                <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{concluidos} de {totalItens} itens concluidos</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--board-t4)' }}>{concluidos} de {totalItens} itens concluidos</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Block 4: PPR Projection + qualitative adjustment */}
-          <Card className={`rounded-xl shadow-sm ${pprConfig?.bg ?? 'bg-slate-50'}`} style={{ border: '1px solid #E2E8F0' }}>
+          <Card className={`rounded-xl shadow-sm ${pprConfig?.bg ?? 'bg-slate-50'}`} style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className={`text-[15px] font-semibold ${pprConfig?.text ?? ''}`}>{currentCiclo?.status === 'encerrado' ? 'Resultado Oficial' : 'Projecao de PPR'}</CardTitle></CardHeader>
             <CardContent>
               <p className={`text-3xl font-bold ${pprConfig?.text ?? ''}`}>{pprConfig?.label ?? '--'}</p>
-              <p className="text-sm mt-1" style={{ color: '#64748B' }}>{pprMedia}% medio ponderado</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--board-t3)' }}>{pprMedia}% medio ponderado</p>
               <div className="mt-4 space-y-2">
                 {dimensionProgress.map(dp => (
                   <div key={dp.dimensao} className="flex items-center gap-3">
-                    <span className="text-sm w-20 capitalize" style={{ color: '#334155' }}>{dp.dimensao}</span>
-                    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0' }}>
+                    <span className="text-sm w-20 capitalize" style={{ color: 'var(--board-t2)' }}>{dp.dimensao}</span>
+                    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
                       <div className="h-full rounded-full" style={{ width: `${dp.media}%`, backgroundColor: dp.media >= 85 ? '#10B981' : dp.media >= 70 ? '#D97706' : '#EF4444' }} />
                     </div>
                     <span className="text-sm font-medium w-10 text-right">{dp.media}%</span>
@@ -230,7 +230,7 @@ const DesempenhoEvolucao = () => {
               </div>
               {/* Qualitative adjustment */}
               <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.1)' }}>
-                <Label className="text-sm font-medium" style={{ color: '#334155' }}>Ajuste qualitativo do lider</Label>
+                <Label className="text-sm font-medium" style={{ color: 'var(--board-t2)' }}>Ajuste qualitativo do lider</Label>
                 <Textarea
                   className="mt-1 bg-white"
                   placeholder="Descreva ajustes qualitativos..."
@@ -247,12 +247,12 @@ const DesempenhoEvolucao = () => {
           {/* Analises semestrais */}
           {memberAnalises.length > 0 && (
             <Collapsible>
-              <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: '#334155' }}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: 'var(--board-t2)' }}>
                 <ChevronDown className="h-4 w-4" /> Analises Semestrais ({memberAnalises.length})
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3">
                 {memberAnalises.map(a => (
-                  <Card key={a.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+                  <Card key={a.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                     <CardContent className="pt-4 space-y-2 text-sm">
                       <Badge variant="outline">{a.status}</Badge>
                       {a.entregas_realizadas && <div><strong>Entregas:</strong> {a.entregas_realizadas}</div>}

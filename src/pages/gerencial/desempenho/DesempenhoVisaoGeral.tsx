@@ -168,7 +168,7 @@ const DesempenhoVisaoGeral = () => {
           {/* Alerts block */}
           <Card className="mb-8 rounded-xl shadow-sm" style={{ borderColor: alerts.length > 0 ? '#FDE68A' : '#BBF7D0', backgroundColor: alerts.length > 0 ? '#FFFBEB' : '#F0FDF4' }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold flex items-center gap-2" style={{ color: '#0F172A' }}>
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2" style={{ color: 'var(--board-t1)' }}>
                 <AlertCircle className="h-4 w-4" style={{ color: alerts.length > 0 ? '#D97706' : '#10B981' }} />
                 {alerts.length > 0 ? `Alertas (${alerts.length})` : 'Nenhum alerta no momento'}
               </CardTitle>
@@ -178,7 +178,7 @@ const DesempenhoVisaoGeral = () => {
                 {alerts.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(a.link)}>
                     <div className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${a.severity === 'red' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                    <span style={{ color: '#334155' }}>{a.text}</span>
+                    <span style={{ color: 'var(--board-t2)' }}>{a.text}</span>
                   </div>
                 ))}
               </CardContent>
@@ -186,22 +186,22 @@ const DesempenhoVisaoGeral = () => {
           </Card>
 
           {/* Metas da Equipe */}
-          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader>
-              <CardTitle className="text-[15px] font-semibold" style={{ color: '#0F172A' }}>Metas da Equipe</CardTitle>
+              <CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Metas da Equipe</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {metasEquipe?.length === 0 && <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma meta de equipe neste ciclo.</p>}
+              {metasEquipe?.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhuma meta de equipe neste ciclo.</p>}
               {metasEquipe?.map((m) => {
                 const dc = dimensaoColors[m.dimensao] ?? dimensaoColors.entrega;
                 return (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow cursor-pointer" style={{ backgroundColor: '#FAFAFA' }} onClick={() => navigate('/equipe/board/desempenho/metas')}>
+                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow cursor-pointer" style={{ backgroundColor: 'var(--board-border-s)' }} onClick={() => navigate('/equipe/board/desempenho/metas')}>
                     <Badge variant="outline" className={`${dc.bg} ${dc.text} border-0 text-[11px] font-semibold rounded-full px-2.5`}>
                       {m.dimensao}
                     </Badge>
-                    <span className="flex-1 text-sm font-medium truncate" style={{ color: '#1E293B' }}>{m.titulo}</span>
+                    <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.titulo}</span>
                     <div className="w-32 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0' }}>
+                      <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -210,9 +210,9 @@ const DesempenhoVisaoGeral = () => {
                           }}
                         />
                       </div>
-                      <span className="text-xs font-medium w-8 text-right" style={{ color: '#64748B' }}>{m.progresso_atual}%</span>
+                      <span className="text-xs font-medium w-8 text-right" style={{ color: 'var(--board-t3)' }}>{m.progresso_atual}%</span>
                     </div>
-                    <span className="text-xs w-24 text-right" style={{ color: '#94A3B8' }}>{m.prazo ?? '--'}</span>
+                    <span className="text-xs w-24 text-right" style={{ color: 'var(--board-t4)' }}>{m.prazo ?? '--'}</span>
                     <Badge variant="outline" className="text-xs">{m.status}</Badge>
                   </div>
                 );
@@ -221,9 +221,9 @@ const DesempenhoVisaoGeral = () => {
           </Card>
 
           {/* Progresso Individual */}
-          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
+          <Card className="mb-8 bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader>
-              <CardTitle className="text-[15px] font-semibold" style={{ color: '#0F172A' }}>Progresso Individual da Equipe</CardTitle>
+              <CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Progresso Individual da Equipe</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -238,23 +238,23 @@ const DesempenhoVisaoGeral = () => {
                     <div
                       key={userId}
                       className="p-4 rounded-xl bg-white cursor-pointer transition-shadow hover:shadow-md"
-                      style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                      style={{ border: '1px solid var(--board-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
                       onClick={() => navigate(`/equipe/board/desempenho/evolucao?membro=${userId}`)}
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#EDE9FE', color: '#6D28D9' }}>{initials}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: '#1E293B' }}>{profile ? `${profile.first_name} ${profile.last_name}` : userId.slice(0, 8)}</p>
-                          <p className="text-xs" style={{ color: '#94A3B8' }}>{data.count} metas</p>
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{profile ? `${profile.first_name} ${profile.last_name}` : userId.slice(0, 8)}</p>
+                          <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{data.count} metas</p>
                         </div>
                         <Badge className={`${classif.color} border-0 text-[11px] font-semibold`}>{classif.label}</Badge>
                       </div>
-                      <div className="h-1.5 rounded-full mb-2" style={{ backgroundColor: '#E2E8F0' }}>
+                      <div className="h-1.5 rounded-full mb-2" style={{ backgroundColor: 'var(--board-border)' }}>
                         <div className="h-full rounded-full transition-all" style={{ width: `${media}%`, backgroundColor: media >= 85 ? '#10B981' : media >= 70 ? '#D97706' : '#EF4444' }} />
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-xs" style={{ color: '#94A3B8' }}>{media}% medio ponderado</p>
-                        <div className="flex items-center gap-2 text-xs" style={{ color: '#94A3B8' }}>
+                        <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{media}% medio ponderado</p>
+                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--board-t4)' }}>
                           <span>{fbCount} feedbacks</span>
                           <span>{rnCount} 1:1s</span>
                         </div>
@@ -262,7 +262,7 @@ const DesempenhoVisaoGeral = () => {
                     </div>
                   );
                 })}
-                {membroProgressMap.size === 0 && <p className="text-sm col-span-full" style={{ color: '#64748B' }}>Nenhuma meta individual neste ciclo.</p>}
+                {membroProgressMap.size === 0 && <p className="text-sm col-span-full" style={{ color: 'var(--board-t3)' }}>Nenhuma meta individual neste ciclo.</p>}
               </div>
             </CardContent>
           </Card>
