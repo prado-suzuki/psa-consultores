@@ -17,8 +17,6 @@ import {
   Users,
   User,
   MessageCircle,
-  Target,
-  BarChart3
 } from 'lucide-react';
 
 interface GestaoLayoutProps {
