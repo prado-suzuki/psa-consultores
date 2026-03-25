@@ -9,8 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -46,13 +44,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  useServicosPrestados,
-  useAreaServicos,
   useTeamProfilesSafe,
   useTeamRolesForProjects,
-  useSubliderTeamMembers,
   useExternalClients,
-  
   useClienteOrdens,
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
@@ -63,7 +57,6 @@ import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
   useTaxProjects,
   useProjectMembers,
-  useProjectServicos,
   useProjectHours,
   useCreateTaxProject,
   useUpdateTaxProject,
@@ -71,96 +64,54 @@ import {
   TaxProject,
 } from '@/hooks/useTaxProjects';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
-import { useServicosContratados } from '@/hooks/useServicosContratados';
 
+const emptyForm = {
+  name: '',
+  description: '',
+  status: 'active',
+  start_date: '',
+  end_date: '',
+  leader_ids: [] as string[],
+  external_client_id: '',
+  estrutura_area_id: '',
+  member_ids: [] as string[],
+  ordem_servico_id: '',
+};
 
 const FiscalProjetosCadastro = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    status: 'active',
-    start_date: '',
-    end_date: '',
-    leader_ids: [] as string[],
-    sublider_ids: [] as string[],
-    external_client_id: '',
-    estrutura_area_id: '',
-    objective: '',
-    category_ids: [] as string[],
-    member_ids: [] as string[],
-    ordem_servico_id: '',
-  });
+  const [formData, setFormData] = useState({ ...emptyForm });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
   const { data: projects = [], isLoading } = useTaxProjects();
   const { data: projectHours = {} } = useProjectHours();
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
-  const { data: currentProjectCategories = [] } = useProjectServicos(editingProject?.id);
 
-  // Use estrutura_area_id directly
   const estruturaAreaId = formData.estrutura_area_id || null;
 
   const {
     liderIds: areaLiderIds,
-    subliderIds: areaSubliderIds,
     memberIds: areaMemberIds,
   } = useEstruturaArea(estruturaAreaId);
-
-  const { suggestedCategoryIds } = useServicosContratados(formData.external_client_id || null);
-  const suggestedSet = useMemo(() => new Set(suggestedCategoryIds), [suggestedCategoryIds]);
 
   const createProject = useCreateTaxProject();
   const updateProject = useUpdateTaxProject();
   const deleteProjectMut = useDeleteTaxProject();
 
-  // ── Queries centralizadas via hooks ────────────────────────────────────
-  const { data: taxCategorias = [] } = useServicosPrestados();
-  const { data: areaCategoryLinks = [] } = useAreaServicos();
   const { data: teamMembers = [] } = useTeamProfilesSafe();
   const { data: userRoles = [] } = useTeamRolesForProjects();
 
-  // Filtered lists based on roles + area structure
-  const lideres = useMemo(() => {
-    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
-    const allLideres = teamMembers.filter(m => liderIds.includes(m.id));
-    if (estruturaAreaId && areaLiderIds.length > 0) {
-      const selectedSet = new Set(formData.leader_ids);
-      const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
-      return filtered.length > 0 ? filtered : allLideres;
-    }
-    return allLideres;
-  }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
-
-  const sublideres = useMemo(() => {
-    const subliderRoleIds = userRoles.filter(r => r.role === 'sublider').map(r => r.user_id);
-    const allSublideres = teamMembers.filter(m => subliderRoleIds.includes(m.id));
-    if (estruturaAreaId && areaSubliderIds.length > 0) {
-      const selectedSet = new Set(formData.sublider_ids);
-      const filtered = allSublideres.filter(m => areaSubliderIds.includes(m.id) || selectedSet.has(m.id));
-      return filtered.length > 0 ? filtered : allSublideres;
-    }
-    return allSublideres;
-  }, [teamMembers, userRoles, formData.estrutura_area_id, areaSubliderIds, formData.sublider_ids]);
-
-  const { data: filteredMemberIds = [] } = useSubliderTeamMembers(
-    formData.sublider_ids,
-    !estruturaAreaId && formData.sublider_ids.length > 0,
-  );
   const { data: externalClients = [] } = useExternalClients(editingProject?.external_client_id);
   const { data: clienteOS = [] } = useClienteOrdens(formData.external_client_id || null);
   const { produtoSegmentoFullOptions } = useClientFormOptions();
 
-  // Helper to get OS fields via typed interface
   const getOsId = (os: OrdemServico): string => os.id;
   const getOsLabel = (os: OrdemServico): string => os.numero_os || 'Sem número';
-  const getOsValue = (os: OrdemServico): number | null => os.valor_projeto;
 
-  // State for selected OS
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
 
   // Auto-select when single OS
@@ -191,19 +142,10 @@ const FiscalProjetosCadastro = () => {
   // Track previous estrutura_area_id to detect user-driven changes
   const [prevAreaId, setPrevAreaId] = useState('');
 
-  // Filter categories by selected area (using estrutura_area_id from area_servicos)
-  const filteredCategories = useMemo(() => {
-    if (!formData.estrutura_area_id) return [];
-    const validCategoryIds = areaCategoryLinks
-      .filter(link => link.estrutura_area_id === formData.estrutura_area_id)
-      .map(link => link.servico_id);
-    return taxCategorias.filter(cat => validCategoryIds.includes(cat.id));
-  }, [formData.estrutura_area_id, taxCategorias, areaCategoryLinks]);
-
   // Clear fields when area changes by user action
   useEffect(() => {
     if (prevAreaId && formData.estrutura_area_id && prevAreaId !== formData.estrutura_area_id) {
-      setFormData(prev => ({ ...prev, leader_ids: [], sublider_ids: [], member_ids: [], category_ids: [] }));
+      setFormData(prev => ({ ...prev, leader_ids: [], member_ids: [] }));
     }
     setPrevAreaId(formData.estrutura_area_id);
   }, [formData.estrutura_area_id]);
@@ -221,36 +163,37 @@ const FiscalProjetosCadastro = () => {
     }
   }, [estruturaAreaId, areaLiderIds, editingProject]);
 
-  // When editing, load current members — migrate roles based on current user_roles
+  // When editing, load current members
   useEffect(() => {
     if (editingProject && currentProjectMembers.length > 0 && userRoles.length > 0) {
       const roleMap = new Map(userRoles.map(r => [r.user_id, r.role]));
       const leaderUserIds: string[] = [];
-      const subliderUserIds: string[] = [];
       const memberUserIds: string[] = [];
 
       for (const m of currentProjectMembers) {
         const currentRole = roleMap.get(m.user_id);
         if (currentRole === 'lider') {
           leaderUserIds.push(m.user_id);
-        } else if (currentRole === 'sublider') {
-          subliderUserIds.push(m.user_id);
         } else {
           memberUserIds.push(m.user_id);
         }
       }
 
-      setFormData(prev => ({ ...prev, leader_ids: leaderUserIds, sublider_ids: subliderUserIds, member_ids: memberUserIds }));
+      setFormData(prev => ({ ...prev, leader_ids: leaderUserIds, member_ids: memberUserIds }));
     }
   }, [editingProject, currentProjectMembers, userRoles]);
 
-  // When editing, load current categories into form
-  useEffect(() => {
-    if (editingProject && currentProjectCategories.length > 0) {
-      const catIds = currentProjectCategories.map((c: any) => c.servico_id);
-      setFormData(prev => ({ ...prev, category_ids: catIds }));
+  // Filtered lists based on roles + area structure
+  const lideres = useMemo(() => {
+    const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
+    const allLideres = teamMembers.filter(m => liderIds.includes(m.id));
+    if (estruturaAreaId && areaLiderIds.length > 0) {
+      const selectedSet = new Set(formData.leader_ids);
+      const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
+      return filtered.length > 0 ? filtered : allLideres;
     }
-  }, [editingProject, currentProjectCategories]);
+    return allLideres;
+  }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
 
   const handleOpenModal = (project?: any) => {
     if (project) {
@@ -263,23 +206,14 @@ const FiscalProjetosCadastro = () => {
         start_date: project.start_date || '',
         end_date: project.end_date || '',
         leader_ids: [],
-        sublider_ids: [],
         external_client_id: project.external_client_id || '',
         estrutura_area_id: project.estrutura_area_id || '',
-        objective: project.objective || '',
-        category_ids: [],
         member_ids: [],
         ordem_servico_id: project.ordem_servico_id || '',
       });
     } else {
       setEditingProject(null);
-      setFormData({ 
-        name: '', description: '', status: 'active',
-        start_date: '', end_date: '',
-        leader_ids: [], sublider_ids: [], external_client_id: '',
-        estrutura_area_id: '', objective: '', category_ids: [], member_ids: [],
-        ordem_servico_id: '',
-      });
+      setFormData({ ...emptyForm });
     }
     setIsModalOpen(true);
   };
@@ -287,13 +221,7 @@ const FiscalProjetosCadastro = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProject(null);
-    setFormData({ 
-      name: '', description: '', status: 'active',
-      start_date: '', end_date: '',
-      leader_ids: [], sublider_ids: [], external_client_id: '',
-      estrutura_area_id: '', objective: '', category_ids: [], member_ids: [],
-      ordem_servico_id: '',
-    });
+    setFormData({ ...emptyForm });
   };
 
   const handleSubmit = () => {
@@ -312,22 +240,12 @@ const FiscalProjetosCadastro = () => {
           data: formData,
           oldProject: editingProject,
           oldMembers: currentProjectMembers,
-          oldCategoryIds: currentProjectCategories.map((c: any) => c.servico_id),
         },
         { onSuccess: handleCloseModal }
       );
     } else {
       createProject.mutate(formData, { onSuccess: handleCloseModal });
     }
-  };
-
-  const handleCategoryToggle = (categoryId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      category_ids: prev.category_ids.includes(categoryId)
-        ? prev.category_ids.filter(c => c !== categoryId)
-        : [...prev.category_ids, categoryId],
-    }));
   };
 
   const handleMemberToggle = (memberId: string) => {
@@ -370,14 +288,13 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
-
   const getAreaLabel = (project: any) => {
     if (project.area_ref) return project.area_ref.name;
     return '-';
   };
 
   const availableMembers = useMemo(() => {
-    const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+    const excludeIds = new Set(formData.leader_ids);
     const selectedSet = new Set(formData.member_ids);
 
     if (estruturaAreaId) {
@@ -387,11 +304,10 @@ const FiscalProjetosCadastro = () => {
       );
     }
 
-    if (formData.sublider_ids.length === 0 && selectedSet.size === 0) return [];
-    return teamMembers.filter(
-      m => !excludeIds.has(m.id) && (filteredMemberIds.includes(m.id) || selectedSet.has(m.id))
-    );
-  }, [teamMembers, formData.leader_ids, formData.sublider_ids, formData.member_ids, filteredMemberIds, estruturaAreaId, areaMemberIds]);
+    // No area selected — show only already-selected members
+    if (selectedSet.size === 0) return [];
+    return teamMembers.filter(m => !excludeIds.has(m.id) && selectedSet.has(m.id));
+  }, [teamMembers, formData.leader_ids, formData.member_ids, estruturaAreaId, areaMemberIds]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -524,111 +440,131 @@ const FiscalProjetosCadastro = () => {
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-y-auto pr-4">
             <div className="space-y-6">
-              {/* 1. Cliente */}
+
+              {/* ── SEÇÃO 1: IDENTIFICAÇÃO ─────────────────────────── */}
               <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Identificação
+                </h3>
+
+                {/* Cliente */}
+                <div>
+                  <Label>Cliente *</Label>
+                  <Select
+                    value={formData.external_client_id}
+                    onValueChange={(value) => setFormData({ ...formData, external_client_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {externalClients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* OS vinculadas (read-only) */}
+                {formData.external_client_id && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      Ordens de Serviço Vinculadas
+                    </Label>
+                    {clienteOS.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nenhuma OS encontrada para este cliente.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {clienteOS.map((os: any) => {
+                          const osId = getOsId(os);
+                          const isSelected = selectedOsId === osId;
+                          return (
+                            <div
+                              key={osId}
+                              onClick={() => setSelectedOsId(osId)}
+                              className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
+                                  : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="font-medium text-sm">
+                                  {(() => {
+                                    const p = os.id_produto_segmento
+                                      ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
+                                      : null;
+                                    return p
+                                      ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
+                                      : `OS: ${getOsLabel(os)}`;
+                                  })()}
+                                </span>
+                                {getOsSituacaoBadge(os.situacao)}
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                {os.data_emissao && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Emissão: {format(new Date(os.data_emissao + 'T00:00:00'), 'dd/MM/yyyy')}
+                                  </span>
+                                )}
+                                {os.data_inicio && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Início: {format(new Date(os.data_inicio + 'T00:00:00'), 'dd/MM/yyyy')}
+                                  </span>
+                                )}
+                                {os.data_fim && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <p className="text-xs text-muted-foreground">
+                          {clienteOS.length > 1
+                            ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.`
+                            : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Nome do Projeto */}
+                <div>
+                  <Label>Nome do Projeto *</Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Nome do projeto"
+                  />
+                </div>
+
+                {/* Área + Status */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Cliente *</Label>
+                  <div>
+                    <Label>Área *</Label>
                     <Select
-                      value={formData.external_client_id}
-                      onValueChange={(value) => setFormData({ ...formData, external_client_id: value })}
+                      value={formData.estrutura_area_id}
+                      onValueChange={(value) => setFormData({ ...formData, estrutura_area_id: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
+                        <SelectValue placeholder="Selecione a área" />
                       </SelectTrigger>
                       <SelectContent>
-                        {externalClients.map(client => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.nome}
-                          </SelectItem>
+                        {estruturaAreas.map(area => (
+                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. OS vinculadas (read-only) */}
-              {formData.external_client_id && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Ordens de Serviço Vinculadas
-                  </h3>
-                  {clienteOS.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma OS encontrada para este cliente.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {clienteOS.map((os: any) => {
-                        const osId = getOsId(os);
-                        const isSelected = selectedOsId === osId;
-                        return (
-                          <div
-                            key={osId}
-                            onClick={() => setSelectedOsId(osId)}
-            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                              isSelected
-                                ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
-                                : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="font-medium text-sm">
-                                {(() => {
-                                  const p = os.id_produto_segmento
-                                    ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
-                                    : null;
-                                  return p
-                                    ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
-                                    : `OS: ${getOsLabel(os)}`;
-                                })()}
-                              </span>
-                              {getOsSituacaoBadge(os.situacao)}
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                              {os.data_emissao && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Emissão: {format(new Date(os.data_emissao + 'T00:00:00'), 'dd/MM/yyyy')}
-                                </span>
-                              )}
-                              {os.data_inicio && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Início: {format(new Date(os.data_inicio + 'T00:00:00'), 'dd/MM/yyyy')}
-                                </span>
-                              )}
-                              {os.data_fim && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <p className="text-xs text-muted-foreground">
-                        {clienteOS.length > 1
-                          ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.`
-                          : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 3. Informações Básicas */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Informações Básicas</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Nome do Projeto *</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Nome do projeto"
-                    />
                   </div>
                   <div>
                     <Label>Status</Label>
@@ -647,22 +583,16 @@ const FiscalProjetosCadastro = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>Área</Label>
-                    <Select
-                      value={formData.estrutura_area_id}
-                      onValueChange={(value) => setFormData({ ...formData, estrutura_area_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a área" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {estruturaAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                </div>
+              </div>
+
+              {/* ── SEÇÃO 2: PERÍODO ───────────────────────────────── */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Período
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Data de Início</Label>
                     <Input
@@ -682,18 +612,16 @@ const FiscalProjetosCadastro = () => {
                 </div>
               </div>
 
-              {/* 4. Integrantes */}
+              {/* ── SEÇÃO 3: EQUIPE ────────────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Integrantes
-                  </div>
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Equipe
                 </h3>
 
-                {/* Líder Geral (multi-select dropdown) */}
+                {/* Líder Geral */}
                 <div>
-                  <Label>Líder Geral</Label>
+                  <Label>Líder Geral *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
@@ -744,60 +672,7 @@ const FiscalProjetosCadastro = () => {
                   </Popover>
                 </div>
 
-                {/* Sublíder (multi-select dropdown) */}
-                <div>
-                  <Label>Sublíder</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
-                        {formData.sublider_ids.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {formData.sublider_ids.map(id => {
-                              const m = teamMembers.find(t => t.id === id);
-                              return m ? (
-                                <Badge key={id} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {m.first_name} {m.last_name}
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Selecionar sublíderes...</span>
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar sublíder..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum sublíder encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {sublideres.map(member => (
-                              <CommandItem
-                                key={member.id}
-                                value={`${member.first_name} ${member.last_name}`}
-                                onSelect={() => {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    sublider_ids: prev.sublider_ids.includes(member.id)
-                                      ? prev.sublider_ids.filter(id => id !== member.id)
-                                      : [...prev.sublider_ids, member.id],
-                                  }));
-                                }}
-                              >
-                                <Check className={`mr-2 h-4 w-4 ${formData.sublider_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
-                                {member.first_name} {member.last_name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Membros do Projeto (multi-select dropdown) */}
+                {/* Membros do Projeto */}
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>Membros do Projeto</Label>
@@ -808,7 +683,7 @@ const FiscalProjetosCadastro = () => {
                         size="sm"
                         className="h-7 text-xs gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
                         onClick={() => {
-                          const excludeIds = new Set([...formData.leader_ids, ...formData.sublider_ids]);
+                          const excludeIds = new Set(formData.leader_ids);
                           const eligibleIds = areaMemberIds.filter(id => !excludeIds.has(id));
                           setFormData(prev => ({
                             ...prev,
@@ -821,9 +696,9 @@ const FiscalProjetosCadastro = () => {
                       </Button>
                     )}
                   </div>
-                  {!estruturaAreaId && formData.sublider_ids.length === 0 && formData.member_ids.length === 0 ? (
+                  {!estruturaAreaId && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Selecione ao menos um sublíder para ver os membros disponíveis.
+                      Selecione uma área para ver os membros disponíveis.
                     </p>
                   ) : estruturaAreaId && areaMemberIds.length === 0 && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -896,86 +771,21 @@ const FiscalProjetosCadastro = () => {
                 </div>
               </div>
 
-              {/* 5. Objetivo, Descrição e Categorias */}
+              {/* ── SEÇÃO 4: DETALHES ──────────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Objetivo e Descrição</h3>
+                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Detalhes</h3>
                 <div>
-                  <Label>Objetivo do Projeto</Label>
-                  <Textarea
-                    value={formData.objective}
-                    onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
-                    placeholder="Descreva o objetivo principal do projeto"
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <Label>Descrição Detalhada</Label>
+                  <Label>Descrição do Projeto</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Descrição completa do projeto"
+                    placeholder="Descrição do projeto"
                     rows={3}
                   />
                 </div>
               </div>
 
-              {/* Categories (multi-select dropdown) */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Categorias</h3>
-                {!formData.estrutura_area_id ? (
-                  <p className="text-sm text-muted-foreground">Selecione uma área para ver as categorias disponíveis.</p>
-                ) : filteredCategories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma categoria vinculada a esta área.</p>
-                ) : (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-auto min-h-10">
-                        {formData.category_ids.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {formData.category_ids.map(id => {
-                              const cat = filteredCategories.find(c => c.id === id);
-                              return cat ? (
-                                <Badge key={id} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                  {cat.nome}
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Selecionar categorias...</span>
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar categoria..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            {filteredCategories.map(category => (
-                              <CommandItem
-                                key={category.id}
-                                value={category.nome}
-                                onSelect={() => handleCategoryToggle(category.id)}
-                              >
-                                <Check className={`mr-2 h-4 w-4 ${formData.category_ids.includes(category.id) ? 'opacity-100' : 'opacity-0'}`} />
-                                {category.nome}
-                                {suggestedSet.has(category.id) && (
-                                  <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0 hover:bg-emerald-100">
-                                    Contratado
-                                  </Badge>
-                                )}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-              {/* Bottom padding so last fields aren't hidden behind footer */}
+              {/* Bottom padding */}
               <div className="pb-4" />
             </div>
           </div>
