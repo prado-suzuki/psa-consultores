@@ -206,20 +206,56 @@ export const TaskModal = ({
     ? parentTasks.filter(t => t.project_id === watchedProjectId)
     : parentTasks;
 
-  // Fetch servicos linked to the selected project
-  const { data: categorias = [] } = useQuery({
-    queryKey: ['fiscal-task-servicos', watchedProjectId],
+  // Local interfaces for type safety
+  interface OrdemServicoRow { id: string; id_produto_segmento: string | null }
+  interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
+
+  // Step 1: fetch projeto → ordem_servico_id → id_produto_segmento
+  const { data: produtoSegmentoId } = useQuery({
+    queryKey: ['project-os-produto', watchedProjectId],
     queryFn: async () => {
-      if (!watchedProjectId) return [];
-      const { data } = await (supabase.from('project_servicos' as any) as any)
-        .select('servico_id, servico:servicos_prestados(id, nome)')
-        .eq('project_id', watchedProjectId);
-      return (data || [])
-        .map((r: any) => r.servico)
-        .filter(Boolean) as { id: string; nome: string }[];
+      const { data: proj } = await supabase
+        .from('tax_projects')
+        .select('ordem_servico_id')
+        .eq('id', watchedProjectId!)
+        .single();
+      if (!proj?.ordem_servico_id) return null;
+
+      const { data: os } = await supabase
+        .from('ordem_servico')
+        .select('id, id_produto_segmento')
+        .eq('id', proj.ordem_servico_id)
+        .single() as { data: OrdemServicoRow | null; error: unknown };
+      return os?.id_produto_segmento || null;
     },
     enabled: open && !!watchedProjectId,
   });
+
+  // Step 2: fetch serviços vinculados ao produto via produto_servico
+  const { data: categorias = [] } = useQuery({
+    queryKey: ['fiscal-task-servicos-by-produto', produtoSegmentoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('produto_servico')
+        .select('servico_prestado_id, servico:servicos_prestados(id, nome)')
+        .eq('produto_segmento_id', produtoSegmentoId!) as {
+          data: ProdutoServicoRow[] | null; error: unknown;
+        };
+      if (error) throw error;
+      return (data || [])
+        .map(r => r.servico)
+        .filter((s): s is { id: string; nome: string } => !!s);
+    },
+    enabled: open && !!produtoSegmentoId,
+  });
+
+  // Derived state for the Serviço field
+  const servicoFieldDisabled = !!watchedProjectId && !produtoSegmentoId;
+  const servicoPlaceholder = !watchedProjectId
+    ? "Selecione um projeto primeiro"
+    : servicoFieldDisabled
+      ? "Cadastre uma OS com produto no projeto"
+      : "Selecione o serviço";
 
   // Effect A: When project changes by user action, clear dependent fields
   useEffect(() => {
@@ -468,35 +504,34 @@ export const TaskModal = ({
               )}
             />
 
-            {/* 2. Serviço (condicional) */}
-            {watchedProjectId && (
-              <FormField
-                control={form.control}
-                name="servico_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serviço</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
-                      value={field.value || '_none'}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o serviço" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="_none">Nenhum</SelectItem>
-                        {categorias.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            {/* 2. Serviço (via OS → Produto → produto_servico) */}
+            <FormField
+              control={form.control}
+              name="servico_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Serviço</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
+                    value={field.value || '_none'}
+                    disabled={!watchedProjectId || servicoFieldDisabled}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={servicoPlaceholder} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {categorias.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* 3. Título */}
             <FormField
