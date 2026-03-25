@@ -1,0 +1,1 @@
+ALTER TABLE public.procedimentos ADD COLUMN ai_cover_url text;
