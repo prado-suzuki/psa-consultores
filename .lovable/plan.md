@@ -1,45 +1,36 @@
 
 
-## Fix SOPConfigModal: upload error + data replication
+## Fix: clientes duplicados no TaskModal (falta filtro de ambiente)
 
-### File: `src/components/equipe/SOPConfigModal.tsx`
+### Causa raiz
+A query de clientes na linha 128-132 do `TaskModal.tsx` não aplica `.eq('ambiente', currentAmbiente)`, trazendo registros de **prod** e **dev** simultaneamente — gerando nomes duplicados.
 
-**Change 1 — Line 1:** Add `useEffect` to imports
+A query de contribuintes (linha 162-167) tem o mesmo problema.
+
+### Arquivo: `src/components/equipe/fiscal/tasks/TaskModal.tsx`
+
+**Correção 1 — Query de clientes (linha 131):** adicionar filtro de ambiente
 ```typescript
-import { useState, useRef, useEffect } from 'react';
+.eq('ativo', true)
+.eq('ambiente', currentAmbiente)  // ← adicionar
+.order('nome');
 ```
 
-**Change 2 — After line 153 (after `const [saving, setSaving] = useState(false);`):** Add state reset effect
+**Correção 2 — Query de contribuintes (linha 166):** adicionar filtro de ambiente
 ```typescript
-useEffect(() => {
-  if (open) {
-    setBefore({
-      link: currentBeforeLink || '',
-      file: null,
-      existingDocPath: currentBeforeDocumentPath || null,
-      content: currentBeforeContent || '',
-    });
-    setAfter({
-      link: currentLink || '',
-      file: null,
-      existingDocPath: currentDocumentPath || null,
-      content: currentFormattedContent || '',
-    });
-  }
-}, [open, processId]);
+.eq('cliente_id', watchedClientId)
+.eq('excluido', false)
+.eq('ambiente', currentAmbiente)  // ← adicionar
+.order('nome_razao_social');
 ```
 
-**Change 3 — Line 156:** Sanitize filename in `uploadFile`
+**Correção 3 — Import:** adicionar `currentAmbiente` aos imports de `@/config/api` (se ainda não importado)
 ```typescript
-const safeName = file.name
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-zA-Z0-9._-]/g, '_');
-const filePath = `${processId}/${prefix}_${safeName}`;
+import { currentAmbiente } from '@/config/api';
 ```
 
-### Scope
-- Only `SOPConfigModal.tsx`
-- No database changes
-- No other files
+### Escopo
+- Apenas `TaskModal.tsx`
+- Zero migração
+- Duas linhas adicionadas + 1 import
 
