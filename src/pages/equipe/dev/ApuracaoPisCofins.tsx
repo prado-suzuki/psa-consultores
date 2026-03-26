@@ -67,6 +67,11 @@ const ApuracaoPisCofins = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
+  // Committed filter values — only updated when "Consultar" is clicked
+  const [committedMesInicio, setCommittedMesInicio] = useState<{ month: number; year: number } | null>(null);
+  const [committedMesFim, setCommittedMesFim] = useState<{ month: number; year: number } | null>(null);
+  const [committedContribuinte, setCommittedContribuinte] = useState('');
+
   // New UI state
   const [activeTab, setActiveTab] = useState<'resumo' | 'debitos' | 'creditos' | 'apuracao' | 'rateio'>('resumo');
   const [expandedYear, setExpandedYear] = useState<string | null>(null);
@@ -115,14 +120,14 @@ const ApuracaoPisCofins = () => {
   }, [selectedCliente]);
 
   // ── Fetch de dados ──
-  const dataInicio = monthYearToDateString(mesInicio, 'start');
-  const dataFim = monthYearToDateString(mesFim, 'end');
+  const committedDataInicio = monthYearToDateString(committedMesInicio, 'start');
+  const committedDataFim = monthYearToDateString(committedMesFim, 'end');
 
   const { data: apiData, isLoading, error } = usePisCofinsApuracao({
-    idContribuinte: selectedContribuinte,
-    dtIni: dataInicio,
-    dtFim: dataFim,
-    enabled: searchTriggered && !!selectedContribuinte,
+    idContribuinte: committedContribuinte,
+    dtIni: committedDataInicio,
+    dtFim: committedDataFim,
+    enabled: searchTriggered && !!committedContribuinte,
   });
 
   // ── Calculator + Headers ──
@@ -157,6 +162,10 @@ const ApuracaoPisCofins = () => {
         return;
       }
     }
+    // Commit current filter values so the query uses them
+    setCommittedContribuinte(selectedContribuinte);
+    setCommittedMesInicio(mesInicio);
+    setCommittedMesFim(mesFim);
     setSearchTriggered(true);
   };
 
@@ -165,6 +174,9 @@ const ApuracaoPisCofins = () => {
     setSelectedContribuinte('');
     setMesInicio(null);
     setMesFim(null);
+    setCommittedContribuinte('');
+    setCommittedMesInicio(null);
+    setCommittedMesFim(null);
     setSearchTriggered(false);
     setExpandedYear(null);
   };
@@ -237,12 +249,12 @@ const ApuracaoPisCofins = () => {
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Início</label>
-            <MonthYearPicker value={mesInicio} onChange={v => { setMesInicio(v); setSearchTriggered(false); }} placeholder="Mês/Ano" />
+            <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Fim</label>
-            <MonthYearPicker value={mesFim} onChange={v => { setMesFim(v); setSearchTriggered(false); }} placeholder="Mês/Ano" />
+            <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
           </div>
 
           {tipoApuracao === 'BALANCETE' && (
