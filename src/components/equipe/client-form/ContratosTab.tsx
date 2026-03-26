@@ -13,7 +13,7 @@ import { Plus, X, Pencil, Trash2, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked, generateNextOsNumber } from "./constants";
-import type { DraftContract } from "@/types/clientForm";
+import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
 import DateFieldWithInput from "./DateFieldWithInput";
 import CurrencyField from "./CurrencyField";
@@ -22,8 +22,8 @@ import FieldPair from "./FieldPair";
 type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
 
 export interface ContratosTabProps {
-  contracts: DraftContract[];
-  setContracts: React.Dispatch<React.SetStateAction<DraftContract[]>>;
+  contracts: DraftOrdemServico[];
+  setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
   draftContract: DraftContractState;
   setDraftContract: React.Dispatch<React.SetStateAction<DraftContractState>>;
   isReadOnly: boolean;
@@ -31,6 +31,162 @@ export interface ContratosTabProps {
   allClusters: Array<{ id: string; name: string }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; codigo: string; nome: string; label: string }>;
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────
+
+function getProductLabel(id: string, options: ContratosTabProps['produtoSegmentoFullOptions']) {
+  const p = options.find(o => o.id === id);
+  return p ? `${p.codigo} — ${p.nome}` : id;
+}
+
+function getProductCodigos(produtos: DraftProdutoContratado[], options: ContratosTabProps['produtoSegmentoFullOptions']) {
+  return produtos
+    .map(pc => options.find(o => o.id === pc.produto_segmento_id))
+    .filter(Boolean)
+    .map(p => p!.codigo)
+    .join(', ');
+}
+
+function getOsHeaderLabel(cont: DraftOrdemServico, options: ContratosTabProps['produtoSegmentoFullOptions']) {
+  const codigos = getProductCodigos(cont.produtos_contratados || [], options);
+  return codigos ? `OS ${cont.ordem_servico} — ${codigos}` : `OS ${cont.ordem_servico}`;
+}
+
+// ── Repeatable product block ──────────────────────────────────────────
+
+function ProdutoContratadoBlock({
+  produtos,
+  onChange,
+  produtoOptions,
+  allClusters,
+  readOnly,
+  clusterFilter,
+  onClusterFilterChange,
+}: {
+  produtos: DraftProdutoContratado[];
+  onChange: (produtos: DraftProdutoContratado[]) => void;
+  produtoOptions: ContratosTabProps['produtoSegmentoFullOptions'];
+  allClusters: ContratosTabProps['allClusters'];
+  readOnly?: boolean;
+  clusterFilter: string;
+  onClusterFilterChange: (v: string) => void;
+}) {
+  const filteredProducts = useMemo(() => {
+    if (clusterFilter === "__all__") return produtoOptions;
+    return produtoOptions.filter(p => p.cluster_id === clusterFilter);
+  }, [produtoOptions, clusterFilter]);
+
+  const [addingProductId, setAddingProductId] = useState<string>("__none__");
+
+  const handleAdd = () => {
+    if (addingProductId === "__none__") return;
+    if (produtos.some(p => p.produto_segmento_id === addingProductId)) {
+      toast.error("Este produto já foi adicionado a esta OS");
+      return;
+    }
+    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId }]);
+    setAddingProductId("__none__");
+  };
+
+  const handleRemove = (idx: number) => {
+    onChange(produtos.filter((_, i) => i !== idx));
+  };
+
+  const renderGroupedSelect = () => {
+    const withCluster = filteredProducts.filter(p => p.estrutura_clusters?.name);
+    const withoutCluster = filteredProducts.filter(p => !p.estrutura_clusters?.name);
+    const groups = withCluster.reduce((acc: Record<string, typeof filteredProducts>, p) => {
+      const cName = p.estrutura_clusters!.name;
+      if (!acc[cName]) acc[cName] = [];
+      acc[cName].push(p);
+      return acc;
+    }, {});
+    return (
+      <>
+        {Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([name, prods]) => (
+          <SelectGroup key={name}>
+            <SelectLabel className="text-xs font-semibold text-muted-foreground">{name}</SelectLabel>
+            {prods.map(p => <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>)}
+          </SelectGroup>
+        ))}
+        {withoutCluster.length > 0 && (
+          <SelectGroup>
+            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+            {withoutCluster.map(p => <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>)}
+          </SelectGroup>
+        )}
+      </>
+    );
+  };
+
+  if (readOnly) {
+    return (
+      <div>
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Produtos Contratados</p>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {produtos.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
+          {produtos.map((pc, idx) => (
+            <Badge key={idx} variant="secondary" className="text-xs">
+              {getProductLabel(pc.produto_segmento_id, produtoOptions)}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Empresa filter */}
+      <div>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+        <Select value={clusterFilter} onValueChange={onClusterFilterChange}>
+          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas as empresas</SelectItem>
+            {allClusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Existing products badges */}
+      {produtos.length > 0 && (
+        <div>
+          <Label className="text-xs font-semibold uppercase text-muted-foreground">Produtos Adicionados</Label>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {produtos.map((pc, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs gap-1.5 pr-1">
+                {getProductLabel(pc.produto_segmento_id, produtoOptions)}
+                <button type="button" className="ml-1 rounded-full hover:bg-destructive/20 p-0.5" onClick={() => handleRemove(idx)}>
+                  <X size={12} className="text-destructive" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add product */}
+      <div>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Adicionar Produto *</Label>
+        <div className="flex gap-2 mt-1">
+          <Select value={addingProductId} onValueChange={setAddingProductId}>
+            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Selecione...</SelectItem>
+              {renderGroupedSelect()}
+            </SelectContent>
+          </Select>
+          <Button type="button" size="sm" variant="outline" className="gap-1 h-8 shrink-0" onClick={handleAdd} disabled={addingProductId === "__none__"}>
+            <Plus size={14} /> Adicionar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────
 
 export default function ContratosTab({
   contracts, setContracts,
@@ -40,66 +196,32 @@ export default function ContratosTab({
 }: ContratosTabProps) {
   const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
-  const [editingContractData, setEditingContractData] = useState<Partial<DraftContract> | null>(null);
+  const [editingContractData, setEditingContractData] = useState<Partial<DraftOrdemServico> | null>(null);
   const [isAddingContract, setIsAddingContract] = useState(false);
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
 
-  const filteredCatalogProducts = useMemo(() => {
-    if (osClusterFilter === "__all__") return produtoSegmentoFullOptions;
-    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osClusterFilter);
-  }, [produtoSegmentoFullOptions, osClusterFilter]);
-
-  const filteredEditCatalogProducts = useMemo(() => {
-    if (osEditClusterFilter === "__all__") return produtoSegmentoFullOptions;
-    return produtoSegmentoFullOptions.filter((p) => p.cluster_id === osEditClusterFilter);
-  }, [produtoSegmentoFullOptions, osEditClusterFilter]);
-
-  const startEditContract = (c: DraftContract) => { setEditingContractId(c._id); setEditingContractData({ ...c }); };
+  const startEditContract = (c: DraftOrdemServico) => { setEditingContractId(c._id); setEditingContractData({ ...c }); };
   const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
   const saveEditContract = () => {
     if (!editingContractData || editingContractId == null) return;
-    setContracts(contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftContract) : c)));
+    setContracts(contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftOrdemServico) : c)));
     setEditingContractId(null); setEditingContractData(null);
     toast.success("OS atualizada");
   };
 
   const addContract = async () => {
-    if (!draftContract.id_produto_segmento) { toast.error("Selecione um Produto/Serviço Contratado"); return; }
+    if (!draftContract.produtos_contratados || draftContract.produtos_contratados.length === 0) {
+      toast.error("Adicione ao menos um Produto Contratado");
+      return;
+    }
     setIsAddingContract(true);
     try {
-      const osNumber = await generateNextOsNumber(contracts);
-      const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as DraftContract;
+      const osNumber = await generateNextOsNumber(contracts as any);
+      const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
       setContracts([...contracts, newContract]);
-      setDraftContract({ ordem_servico: "", data_emissao: "", data_inicio_projeto: "", data_fim_projeto: "", valor_projeto: 0, valor_reembolso_km: 0, valor_reembolso_refeicao: 0, situacao_projeto: "em_andamento", observacoes_projeto: "", id_servico: "", id_produto_segmento: "", distribuicao_receita: [] });
+      setDraftContract(createDefaultDraftContract());
     } finally { setIsAddingContract(false); }
-  };
-
-  const renderProductSelect = (source: typeof produtoSegmentoFullOptions) => {
-    const withCluster = source.filter((p) => p.estrutura_clusters?.name);
-    const withoutCluster = source.filter((p) => !p.estrutura_clusters?.name);
-    const clusterGroups = withCluster.reduce((acc: Record<string, typeof source>, p) => {
-      const cName = p.estrutura_clusters!.name;
-      if (!acc[cName]) acc[cName] = [];
-      acc[cName].push(p);
-      return acc;
-    }, {} as Record<string, typeof source>);
-    return (
-      <>
-        {Object.entries(clusterGroups).sort(([a], [b]) => a.localeCompare(b)).map(([clusterName, prods]) => (
-          <SelectGroup key={clusterName}>
-            <SelectLabel className="text-xs font-semibold text-muted-foreground">{clusterName}</SelectLabel>
-            {prods.map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>)}
-          </SelectGroup>
-        ))}
-        {withoutCluster.length > 0 && (
-          <SelectGroup>
-            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
-            {withoutCluster.map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>)}
-          </SelectGroup>
-        )}
-      </>
-    );
   };
 
   return (
@@ -121,14 +243,7 @@ export default function ContratosTab({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
-                          {(() => {
-                            const p = cont.id_produto_segmento
-                              ? produtoSegmentoFullOptions.find(ps => ps.id === cont.id_produto_segmento)
-                              : null;
-                            return p
-                              ? `OS ${cont.ordem_servico} — ${p.codigo} — ${p.nome}`
-                              : `OS ${cont.ordem_servico}`;
-                          })()}
+                          {getOsHeaderLabel(cont, produtoSegmentoFullOptions)}
                         </span>
                       </div>
                       <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
@@ -140,47 +255,46 @@ export default function ContratosTab({
                   {isExpanded && !isEditingThis && (
                     <div className="px-4 pb-4 border-t pt-3">
                       <div className="flex justify-end gap-2 mb-3">
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}><Pencil size={12} /> Editar</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setContracts(contracts.filter((c) => c._id !== cont._id)); setExpandedContractId(null); }}>Remover</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {!isReadOnly && (
+                          <>
+                            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}><Pencil size={12} /> Editar</Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setContracts(contracts.filter((c) => c._id !== cont._id)); setExpandedContractId(null); }}>Remover</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                         <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
                         <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
                         <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
-                        {cont.id_produto_segmento && (
-                          <FieldPair label="Tipo de Produto/Segmento" value={(() => { const p = produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento); return p ? `${p.codigo} - ${p.nome}` : "—"; })()} />
-                        )}
                         <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
-                        <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === (cont as any).situacao_projeto)?.label || "—"} />
+                        <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
                         <div className="col-span-2 grid grid-cols-2 gap-4">
                           <FieldPair label="Reembolso por KM" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
                           <FieldPair label="Reembolso Refeição" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
                         </div>
-                        {cont.id_produto_segmento && (
-                          <div className="col-span-2 md:col-span-3">
-                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">Empresa</p>
-                            <span className="text-sm">{produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento)?.estrutura_clusters?.name || "—"}</span>
-                          </div>
-                        )}
-                        {cont.id_produto_segmento && (
-                          <div className="col-span-2 md:col-span-3">
-                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">Produto/Serviço Contratado</p>
-                            <Badge variant="secondary" className="text-xs mt-1">
-                              {(() => { const p = produtoSegmentoFullOptions.find((p) => p.id === cont.id_produto_segmento); return p ? `${p.codigo} — ${p.nome}` : cont.id_produto_segmento; })()}
-                            </Badge>
-                          </div>
-                        )}
+                        {/* Produtos contratados */}
+                        <div className="col-span-2 md:col-span-3">
+                          <ProdutoContratadoBlock
+                            produtos={cont.produtos_contratados || []}
+                            onChange={() => {}}
+                            produtoOptions={produtoSegmentoFullOptions}
+                            allClusters={allClusters}
+                            readOnly
+                            clusterFilter="__all__"
+                            onClusterFilterChange={() => {}}
+                          />
+                        </div>
                         {cont.distribuicao_receita?.length > 0 && (
                           <div className="col-span-2 md:col-span-3">
                             <p className="text-[10px] uppercase font-semibold text-muted-foreground">Distribuição de Receita</p>
@@ -192,8 +306,8 @@ export default function ContratosTab({
                             </div>
                           </div>
                         )}
-                        {(cont as any).observacoes_projeto && (
-                          <div className="col-span-2 md:col-span-3"><FieldPair label="Observações" value={(cont as any).observacoes_projeto} /></div>
+                        {cont.observacoes_projeto && (
+                          <div className="col-span-2 md:col-span-3"><FieldPair label="Observações" value={cont.observacoes_projeto} /></div>
                         )}
                       </div>
                     </div>
@@ -207,23 +321,11 @@ export default function ContratosTab({
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label><div className="mt-1"><DateFieldWithInput value={ec.data_inicio_projeto || ""} onChange={(v) => setEditingContractData({ ...ec, data_inicio_projeto: v })} /></div></div>
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={ec.data_fim_projeto || ""} onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })} /></div></div>
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={ec.data_emissao || ""} onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })} /></div></div>
-                        <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo de Produto/Segmento</Label>
-                          <div className="mt-1">
-                            <Select value={(ec as any).id_produto_segmento || "__none__"} onValueChange={(v) => setEditingContractData({ ...ec, id_produto_segmento: v === "__none__" ? "" : v } as any)}>
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {produtoSegmentoFullOptions.map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_projeto || 0} onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })} /></div></div>
                         <div>
                           <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto</Label>
                           <div className="mt-1">
-                            <Select value={(ec as any).situacao_projeto || "em_andamento"} onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v } as any)}>
+                            <Select value={ec.situacao_projeto || "em_andamento"} onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v })}>
                               <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                               <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                             </Select>
@@ -232,26 +334,19 @@ export default function ContratosTab({
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_reembolso_km || 0} onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_km: v })} /></div></div>
                         <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} /></div></div>
                       </div>
+
+                      {/* Produtos contratados (editable) */}
                       <div className="mt-4">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
-                        <Select value={osEditClusterFilter} onValueChange={setOsEditClusterFilter}>
-                          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">Todas as empresas</SelectItem>
-                            {allClusters.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <ProdutoContratadoBlock
+                          produtos={(ec.produtos_contratados || []) as DraftProdutoContratado[]}
+                          onChange={(prods) => setEditingContractData({ ...ec, produtos_contratados: prods })}
+                          produtoOptions={produtoSegmentoFullOptions}
+                          allClusters={allClusters}
+                          clusterFilter={osEditClusterFilter}
+                          onClusterFilterChange={setOsEditClusterFilter}
+                        />
                       </div>
-                      <div className="mt-4">
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Produto/Serviço Contratado *</Label>
-                        <Select value={(ec as any).id_produto_segmento || "__none__"} onValueChange={(v) => setEditingContractData({ ...ec, id_produto_segmento: v === "__none__" ? "" : v } as any)}>
-                          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Selecione...</SelectItem>
-                            {renderProductSelect(filteredEditCatalogProducts)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+
                       {/* Distribuição de Receita */}
                       <div className="border border-dashed rounded-lg p-3 mt-4">
                         <div className="flex items-center justify-between mb-2">
@@ -281,7 +376,7 @@ export default function ContratosTab({
                       </div>
                       <div className="mt-4">
                         <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
-                        <Textarea value={(ec as any).observacoes_projeto || ""} onChange={(e) => setEditingContractData({ ...ec, observacoes_projeto: e.target.value } as any)} placeholder="Insira observações relevantes sobre o projeto..." className="min-h-[60px]" />
+                        <Textarea value={ec.observacoes_projeto || ""} onChange={(e) => setEditingContractData({ ...ec, observacoes_projeto: e.target.value })} placeholder="Insira observações relevantes sobre o projeto..." className="min-h-[60px]" />
                       </div>
                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
@@ -309,18 +404,6 @@ export default function ContratosTab({
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Data Início</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_inicio_projeto: v }))} /></div></div>
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_fim_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_fim_projeto: v }))} /></div></div>
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_emissao} onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))} /></div></div>
-              <div>
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo de Produto/Segmento</Label>
-                <div className="mt-1">
-                  <Select value={draftContract.id_produto_segmento || "__none__"} onValueChange={(v) => setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))}>
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Selecione...</SelectItem>
-                      {produtoSegmentoFullOptions.map((p) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={draftContract.valor_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))} /></div></div>
               <div>
                 <Label className="text-xs font-semibold uppercase text-muted-foreground"> Situação do Projeto</Label>
@@ -335,28 +418,16 @@ export default function ContratosTab({
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={(v) => setDraftContract(prev => ({ ...prev, valor_reembolso_refeicao: v }))} /></div></div>
             </div>
 
-            {/* Empresa */}
+            {/* Produtos contratados (editable) */}
             <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
-              <Select value={osClusterFilter} onValueChange={setOsClusterFilter}>
-                <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todas as empresas</SelectItem>
-                  {allClusters.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Produto/Serviço */}
-            <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase text-muted-foreground">Produto/Serviço Contratado *</Label>
-              <Select value={draftContract.id_produto_segmento || "__none__"} onValueChange={(v) => setDraftContract(prev => ({ ...prev, id_produto_segmento: v === "__none__" ? "" : v }))}>
-                <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Selecione...</SelectItem>
-                  {renderProductSelect(filteredCatalogProducts)}
-                </SelectContent>
-              </Select>
+              <ProdutoContratadoBlock
+                produtos={draftContract.produtos_contratados}
+                onChange={(prods) => setDraftContract(prev => ({ ...prev, produtos_contratados: prods }))}
+                produtoOptions={produtoSegmentoFullOptions}
+                allClusters={allClusters}
+                clusterFilter={osClusterFilter}
+                onClusterFilterChange={setOsClusterFilter}
+              />
             </div>
 
             {/* Distribuição de Receita */}
