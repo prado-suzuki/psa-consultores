@@ -46,7 +46,7 @@ export function useCorrecoesSped(params: UseCorrecoesSpedParams) {
 export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
   return useCorrecoesQuery<A170Response>(
     'correcoes-a170',
-    '/api/v1/pis_cofins/revisao/a170',
+    '/api/v1/pis_cofins/revisao/servicos-notas',
     params,
   );
 }
@@ -54,7 +54,7 @@ export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
 export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
   return useCorrecoesQuery<D100Response>(
     'correcoes-d100',
-    '/api/v1/pis_cofins/revisao/d100',
+    '/api/v1/pis_cofins/revisao/transportes',
     params,
   );
 }
@@ -62,7 +62,7 @@ export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
 export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
   return useCorrecoesQuery<F100Response>(
     'correcoes-f100',
-    '/api/v1/pis_cofins/revisao/f100',
+    '/api/v1/pis_cofins/revisao/outros-documentos',
     params,
   );
 }
