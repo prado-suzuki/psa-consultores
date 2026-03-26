@@ -1,32 +1,17 @@
 
 
-## Plano: Separar Líder Geral e Responsável Executor
+## Plano: Adicionar SOPs e remover ícones no Hub de Ferramentas
 
-### Alterações
+### Alterações em `src/pages/equipe/dev/DevDashboard.tsx`
 
-**1. `src/hooks/useTaxProjects.ts`**
-- Adicionar `responsible_id: string` ao `TaxProjectFormData`
-- `useCreateTaxProject`: `responsible_id` recebe `data.responsible_id` (não mais `leader_ids[0]`)
-- `useUpdateTaxProject`: idem no diff e no update; comparação de `responsible_id` usa `data.responsible_id`
+**1. Adicionar `sopUrl` às ferramentas:**
+- EFD ICMS/IPI: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/`
+- ECD: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/`
+- ECF: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/`
+- Controle PER/DCOMP: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp`
 
-**2. `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`**
-
-*Estado e validação:*
-- Adicionar `responsible_id: ''` ao `emptyForm`
-- `handleOpenModal`: preencher `responsible_id: project.responsible_id || ''`
-- `handleSubmit`: validar campo obrigatório
-
-*Novo useMemo `executores`:*
-- Filtrar `teamMembers` cujo user_id tenha role `team_member` ou `sublider` (via `userRoles`)
-- Excluir explicitamente quem tem role `lider` ou `admin`
-- Se `estruturaAreaId` selecionada, restringir aos membros da área
-
-*Formulário — após bloco Líder Geral (~L922):*
-- Select simples "Responsável Executor *" com lista `executores`
-
-*Tabela:*
-- Renomear "Responsável" → "Executor" (L531)
-- Adicionar coluna "Líder" após "Executor" com sort
-- `getSortValue`: renomear case `responsavel` → `executor`, adicionar case `lider`
-- `colSpan`: 11 → 12
+**2. Remover ícones de todas as ferramentas:**
+- Remover props `icon` e `iconBg` do tipo `ToolEntry` e de cada item do array `tools`
+- Remover o `<div>` com ícone no card (`tool.iconBg` / `tool.icon`)
+- Remover imports de ícones Lucide não utilizados (FileText, ShieldAlert, BookOpen, Calculator, Database, BarChart3, FileCheck, Receipt)
 
