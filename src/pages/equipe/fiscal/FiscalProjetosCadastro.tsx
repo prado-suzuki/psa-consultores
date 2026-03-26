@@ -51,11 +51,14 @@ import {
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
+import { useOsProdutosContratados, groupByOs } from '@/hooks/useOsProdutosContratados';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
+import {
 import {
   useTaxProjects,
   useProjectMembers,

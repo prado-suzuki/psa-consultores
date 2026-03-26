@@ -84,26 +84,32 @@ export const useTaxProjects = () => {
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
       }
 
-      // Resolve servico_contratado via ordem_servico → id_produto_segmento → produto_segmento
+      // Resolve servico_contratado via os_produtos_contratados → produto_segmento
       const osIds = [...new Set((data || []).filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
       const servicoMap: Record<string, string> = {};
 
       if (osIds.length > 0) {
-        const { data: osRows } = await supabase
-          .from('ordem_servico')
-          .select('id, id_produto_segmento')
-          .in('id', osIds);
-        const produtoIds = [...new Set((osRows || []).filter(o => o.id_produto_segmento).map(o => o.id_produto_segmento as string))];
-        const produtoNames: Record<string, string> = {};
-        if (produtoIds.length > 0) {
-          const { data: produtos } = await supabase.from('produto_segmento').select('id, codigo, nome').in('id', produtoIds);
-          (produtos || []).forEach(p => { produtoNames[p.id] = `${p.codigo} — ${p.nome}`; });
-        }
-        (osRows || []).forEach(o => {
-          if (o.id_produto_segmento && produtoNames[o.id_produto_segmento]) {
-            servicoMap[o.id] = produtoNames[o.id_produto_segmento];
+        // os_produtos_contratados não está no schema tipado — cast justificado
+        const { data: osProdutos } = await (supabase
+          .from('os_produtos_contratados' as any) as any)
+          .select('ordem_servico_id, produto_segmento_id, produto_segmento:produto_segmento(id, codigo, nome)')
+          .in('ordem_servico_id', osIds);
+
+        // Group by OS and concatenate product codes
+        const osProductMap: Record<string, string[]> = {};
+        for (const row of (osProdutos || []) as any[]) {
+          const osId = row.ordem_servico_id as string;
+          const label = row.produto_segmento
+            ? `${row.produto_segmento.codigo} — ${row.produto_segmento.nome}`
+            : null;
+          if (label) {
+            if (!osProductMap[osId]) osProductMap[osId] = [];
+            osProductMap[osId].push(label);
           }
-        });
+        }
+        for (const [osId, labels] of Object.entries(osProductMap)) {
+          servicoMap[osId] = labels.join(', ');
+        }
       }
 
       return (data || []).map(p => ({
