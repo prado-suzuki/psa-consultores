@@ -321,6 +321,25 @@ const FiscalProjetosCadastro = () => {
     return allLideres;
   }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
 
+  // Executores: only team_member or sublider (never lider/admin)
+  const executores = useMemo(() => {
+    const excludedRoles = new Set(['lider', 'admin']);
+    const allowedRoles = new Set(['team_member', 'sublider']);
+    const roleMap = new Map(userRoles.map(r => [r.user_id, r.role]));
+    const eligible = teamMembers.filter(m => {
+      const role = roleMap.get(m.id);
+      if (!role) return false;
+      if (excludedRoles.has(role)) return false;
+      return allowedRoles.has(role);
+    });
+    if (estruturaAreaId && areaMemberIds.length > 0) {
+      const areaSet = new Set(areaMemberIds);
+      const filtered = eligible.filter(m => areaSet.has(m.id) || m.id === formData.responsible_id);
+      return filtered.length > 0 ? filtered : eligible;
+    }
+    return eligible;
+  }, [teamMembers, userRoles, estruturaAreaId, areaMemberIds, formData.responsible_id]);
+
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
