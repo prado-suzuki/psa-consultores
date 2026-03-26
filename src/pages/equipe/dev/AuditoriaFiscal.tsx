@@ -290,14 +290,18 @@ const AuditoriaFiscal = () => {
   // A API retorna qtd_validados e qtd_pendentes como valores absolutos (globais)
   useEffect(() => {
     if (apiGroupedData && searchTriggered) {
-      const totalCalculado = (apiGroupedData.qtdValidados || 0) + (apiGroupedData.qtdPendentes || 0);
-      setGlobalStats({
-        total: totalCalculado,
-        validados: apiGroupedData.qtdValidados,
-        pendentes: apiGroupedData.qtdPendentes,
-      });
+      // Só atualizar stats globais quando não há filtro de status ativo,
+      // para que os cards mantenham os valores corretos ao filtrar
+      if (statusFilter === 'all') {
+        const totalCalculado = (apiGroupedData.qtdValidados || 0) + (apiGroupedData.qtdPendentes || 0);
+        setGlobalStats({
+          total: totalCalculado,
+          validados: apiGroupedData.qtdValidados,
+          pendentes: apiGroupedData.qtdPendentes,
+        });
+      }
     }
-  }, [apiGroupedData, searchTriggered]);
+  }, [apiGroupedData, searchTriggered, statusFilter]);
 
   // Converter itens da API para formato da UI
   const groupedItemsFromApi = useMemo(() => {
