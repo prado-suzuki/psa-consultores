@@ -249,12 +249,12 @@ const ApuracaoPisCofins = () => {
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Início</label>
-            <MonthYearPicker value={mesInicio} onChange={v => { setMesInicio(v); setSearchTriggered(false); }} placeholder="Mês/Ano" />
+            <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Fim</label>
-            <MonthYearPicker value={mesFim} onChange={v => { setMesFim(v); setSearchTriggered(false); }} placeholder="Mês/Ano" />
+            <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
           </div>
 
           {tipoApuracao === 'BALANCETE' && (
