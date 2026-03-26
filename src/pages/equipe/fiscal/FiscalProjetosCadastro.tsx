@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -538,10 +538,10 @@ const FiscalProjetosCadastro = () => {
             <Table className="table-fixed min-w-[900px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead style={{ width: '20%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <TableHead style={{ width: '21%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Projeto<SortIcon column="name" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '16%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <TableHead style={{ width: '17%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
                   <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
@@ -553,7 +553,7 @@ const FiscalProjetosCadastro = () => {
                   <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
+                  <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
                     <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
                   </TableHead>
                   <TableHead style={{ width: '5%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
@@ -612,18 +612,23 @@ const FiscalProjetosCadastro = () => {
                         <TableCell className="whitespace-nowrap">
                           <span className="text-sm">{getAreaLabel(project)}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell
+                          title={[
+                            executorName ? `${executorName} (executor)` : null,
+                            liderName ? `${liderName} (líder)` : null,
+                          ].filter(Boolean).join(' / ')}
+                        >
                           <div className="space-y-0.5">
-                            {executorName ? (
-                              <div>
-                                <span className="text-sm break-words">{executorName}</span>
-                                <span className="text-xs text-muted-foreground ml-1">(executor)</span>
+                            {executorName && project.responsible ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{`${project.responsible.first_name} ${project.responsible.last_name.charAt(0)}.`}</span>
                               </div>
                             ) : null}
-                            {liderName ? (
-                              <div>
-                                <span className="text-sm break-words">{liderName}</span>
-                                <span className="text-xs text-muted-foreground ml-1">(líder)</span>
+                            {liderName && liderName !== executorName && project.leader ? (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Crown className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{`${project.leader.first_name} ${project.leader.last_name.charAt(0)}.`}</span>
                               </div>
                             ) : null}
                             {!executorName && !liderName && <span className="text-muted-foreground">-</span>}
