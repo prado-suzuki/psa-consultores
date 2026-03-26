@@ -1,25 +1,21 @@
 
 
-## Plano: Remover ícones dos itens de navegação do Digital Dev
+## Plano: Adicionar coluna "Serviço" entre Produto e Cliente
 
-Arquivo único: `src/components/equipe/dev/DevLayout.tsx`
+### Contexto
+Cada projeto TAX armazena um `servico_id` (referência a `servicos_prestados`), mas esse valor não é resolvido para nome na listagem. A coluna "Produto" já mostra o produto comercial da OS; a nova coluna "Serviço" mostrará o serviço operacional selecionado no projeto.
 
 ### Alterações
 
-1. **L151**: Remover `<item.icon className={...} />` dos navItems (Dashboard, Nova ferramenta, Consulta de XMLs)
-2. **L168**: Remover `<BookOpen>` do botão collapsed de Consulta SPED
-3. **L181**: Remover `<BookOpen>` do trigger expanded de Consulta SPED
-4. **L200**: Remover `<item.icon>` dos sub-itens SPED (EFD Contribuições, EFD ICMS, ECD, ECF)
-5. **L220**: Remover `<HandCoins>` do botão collapsed de Levantamento de Créditos
-6. **L233**: Remover `<HandCoins>` do trigger expanded de Levantamento de Créditos
-7. **L252**: Remover `<item.icon>` dos sub-itens PIS/COFINS (Mapa NCM, Apuração, Auditoria Cruzada, Revisão de Registros)
-8. **L272**: Remover `<item.icon>` dos navItemsAfterSped (DIFAL, Calculadora IBS/CBS, Controle PERDCOMP, Controle Balancetes, Procedimentos, Gerenciar dados)
+**Arquivo 1: `src/hooks/useTaxProjects.ts`**
+- Adicionar `servico_nome?: string | null` na interface `TaxProject`
+- No `queryFn` de `useTaxProjects`, coletar os `servico_id` únicos dos projetos
+- Fazer query em `servicos_prestados` para resolver `id → nome`
+- Mapear `servico_nome` no retorno de cada projeto
 
-### O que NÃO muda
-- Ícones do header (Code2), footer (User, ArrowLeft, LogOut), toggle (ChevronLeft/Right), e chevrons de collapsible (ChevronDown) permanecem
-- Cores, fontes, espaçamentos, ordem e estrutura intactos
-- Quando collapsed, os botões ficam sem ícone — exibirão apenas o `title` tooltip no hover
-
-### Nota técnica
-Ao remover os ícones, o `mr-3` que estava no ícone some junto, mantendo o texto alinhado ao início do botão sem espaço fantasma.
+**Arquivo 2: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`**
+- Adicionar `<TableHead>` "Serviço" (com sort) entre "Produto" e "Cliente" (após L519)
+- Adicionar `<TableCell>` correspondente entre as células de Produto e Cliente (após L562)
+- Atualizar `getSortValue` para incluir o case `'servico'`
+- Atualizar `colSpan` de 10 para 11
 
