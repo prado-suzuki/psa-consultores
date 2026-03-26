@@ -19,18 +19,6 @@ type NcmFilter = 'all' | 'with' | 'without';
 
 
 
-const relacaoBadge = (tipo: string) => {
-  switch (tipo) {
-    case '1:1':
-      return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[11px]">1:1</Badge>;
-    case 'SEM_NFE':
-      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-[11px]">SEM NFE</Badge>;
-    case 'CONSOLIDADO':
-      return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-[11px]">CONSOLIDADO</Badge>;
-    default:
-      return <Badge variant="outline" className="text-[11px]">{tipo}</Badge>;
-  }
-};
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -239,7 +227,7 @@ const CorrecoesSped = () => {
                           <TableHead className="text-[11px] text-right min-w-[70px]">% COF</TableHead>
                           <TableHead className="text-[11px] text-right min-w-[100px]">VL COF</TableHead>
                           <TableHead className="text-[11px] min-w-[90px]">Conta</TableHead>
-                          <TableHead className="text-[11px] text-center min-w-[100px]">Auditoria</TableHead>
+                          
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -273,11 +261,27 @@ const CorrecoesSped = () => {
                             </TableCell>
                             <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
                               {xml ? (
-                                <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
-                                  {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
-                                  {xml.ncm}
-                                </code>
-                              ) : <span className="text-xs text-muted-foreground italic">—</span>}
+                                <button
+                                  onClick={() => setSelectedItem(item)}
+                                  className="cursor-pointer hover:underline text-left"
+                                >
+                                  <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
+                                    {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
+                                    {xml.ncm}
+                                  </code>
+                                </button>
+                              ) : item.tipo_relacao === 'CONSOLIDADO' ? (
+                                <button
+                                  onClick={() => setSelectedItem(item)}
+                                  className="cursor-pointer hover:opacity-80"
+                                >
+                                  <Badge className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">
+                                    Consolidado
+                                  </Badge>
+                                </button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">—</span>
+                              )}
                             </TableCell>
                             <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-900/5 ${valueDivergent ? 'text-amber-600' : ''}`}>
                               {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground italic">—</span>}
@@ -289,14 +293,6 @@ const CorrecoesSped = () => {
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{item.aliq_cofins.toFixed(2)}</TableCell>
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.vl_cofins)}</TableCell>
                             <TableCell className="text-xs py-1.5 font-mono">{item.cod_cta}</TableCell>
-                            <TableCell className="text-center py-1.5">
-                              <button
-                                onClick={() => setSelectedItem(item)}
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
-                              >
-                                {relacaoBadge(item.tipo_relacao)}
-                              </button>
-                            </TableCell>
                           </TableRow>
                           );
                         })}
