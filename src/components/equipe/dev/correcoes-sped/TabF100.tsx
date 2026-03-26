@@ -4,15 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import type { F100Response, F100Item } from '@/types/correcoesSped';
+import type { F100Item } from '@/types/correcoesSped';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const Dash = () => <span className="text-muted-foreground/50 italic text-center block text-xs">—</span>;
-
 interface TabF100Props {
-  data: F100Response | undefined;
+  data: F100Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
   hasQueried: boolean;
@@ -23,13 +21,13 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
-    let items = data?.itens ?? [];
+    let items = data ?? [];
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.nome.toLowerCase().includes(s) ||
-          i.cpf_cnpj.includes(s)
+          i.NOME.toLowerCase().includes(s) ||
+          i.CPF_CNPJ.includes(s)
       );
     }
     return items;
@@ -80,7 +78,6 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                 <TableHeader>
                   <TableRow className="border-b-0">
                     <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML</TableHead>
                     <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
@@ -89,10 +86,6 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] min-w-[120px]">CPF/CNPJ</TableHead>
                     <TableHead className="text-[11px] min-w-[60px]">Tipo</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                    {/* XML placeholder */}
-                    <TableHead className="text-[11px] min-w-[120px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">—</TableHead>
-                    <TableHead className="text-[11px] min-w-[80px] bg-emerald-50/60 dark:bg-emerald-950/20">—</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[80px] bg-emerald-50/60 dark:bg-emerald-950/20">—</TableHead>
                     {/* Taxes */}
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
@@ -104,27 +97,23 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => (
-                    <TableRow key={`f100-${item.cpf_cnpj}-${idx}`} className="group">
-                      <TableCell className="text-xs py-1.5 font-mono">{item.dt_oper}</TableCell>
-                      <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item.nome}>{item.nome}</TableCell>
-                      <TableCell className="text-xs py-1.5 font-mono">{item.cpf_cnpj}</TableCell>
+                    <TableRow key={`f100-${item.CPF_CNPJ}-${idx}`} className="group">
+                      <TableCell className="text-xs py-1.5 font-mono">{item.DT_OPER}</TableCell>
+                      <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item.NOME}>{item.NOME}</TableCell>
+                      <TableCell className="text-xs py-1.5 font-mono">{item.CPF_CNPJ}</TableCell>
                       <TableCell className="py-1.5">
                         <Badge variant="outline" className="text-[10px] font-medium">
-                          {item.tipo_pessoa}
+                          {item.TIPO_PESSOA}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.vl_oper)}</TableCell>
-                      {/* XML zone — empty for F100 */}
-                      <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5"><Dash /></TableCell>
-                      <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5"><Dash /></TableCell>
-                      <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5"><Dash /></TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.VL_OPER)}</TableCell>
                       {/* Tax zone */}
-                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.cst_pis}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_pis.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_pis)}</TableCell>
-                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cst_cofins}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_cofins.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_cofins)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_PIS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_COFINS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

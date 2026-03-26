@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, FileSearch, BookOpen, Network } from 'lucide-react';
+import { AlertCircle, BookOpen } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import type { A170Response, FlatA170Item, A170ItemEfd } from '@/types/correcoesSped';
+import type { A170Item } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -12,7 +12,7 @@ const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface TabA170Props {
-  data: A170Response | undefined;
+  data: A170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
   hasQueried: boolean;
@@ -24,33 +24,21 @@ interface TabA170Props {
 export default function TabA170({ data, isLoading, error, hasQueried, ncmFilter, searchText, onSelectNcm }: TabA170Props) {
   const [page, setPage] = useState(0);
 
-  const flatItems: FlatA170Item[] = useMemo(() => {
-    if (!data?.notas) return [];
-    return data.notas.flatMap((nota) =>
-      nota.itens_efd.map((item) => ({
-        ...item,
-        chv_nfse: nota.chv_nfse,
-        dt_doc: nota.dt_doc,
-        tipo_relacao: nota.tipo_relacao,
-      }))
-    );
-  }, [data]);
-
   const filtered = useMemo(() => {
-    let items = flatItems;
-    if (ncmFilter === 'with') items = items.filter((i) => !!i.cod_ncm);
-    if (ncmFilter === 'without') items = items.filter((i) => !i.cod_ncm);
+    let items = data ?? [];
+    if (ncmFilter === 'with') items = items.filter((i) => !!i.COD_CTA);
+    if (ncmFilter === 'without') items = items.filter((i) => !i.COD_CTA);
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.descr_item.toLowerCase().includes(s) ||
-          (i.chv_nfse && i.chv_nfse.includes(s)) ||
-          (i.cod_ncm && i.cod_ncm.includes(s))
+          i.DESCR_ITEM.toLowerCase().includes(s) ||
+          (i.CHV_NFSE && i.CHV_NFSE.includes(s)) ||
+          i.COD_CTA.includes(s)
       );
     }
     return items;
-  }, [flatItems, ncmFilter, searchText]);
+  }, [data, ncmFilter, searchText]);
 
   useMemo(() => setPage(0), [ncmFilter, searchText]);
 
@@ -90,93 +78,65 @@ export default function TabA170({ data, isLoading, error, hasQueried, ncmFilter,
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
-                {' '}· {data.notas.length} notas
               </span>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={2} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML (NFSe)</TableHead>
-                    <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={4} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
+                    <TableHead colSpan={8} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
+                    <TableHead className="text-[11px] min-w-[120px]">CHV NFSe</TableHead>
                     <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                    {/* XML NFSe */}
-                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descrição Serviço</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20">Valor Serviço</TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]">Conta</TableHead>
                     {/* Taxes */}
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">BC PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[90px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((item, idx) => {
-                    const xml = item.tipo_relacao === '1:1' && item.nfse_itens[0] ? item.nfse_itens[0] : null;
-                    const valueDivergent = xml && Math.abs(item.vl_item - xml.vServ) > 0.01;
-                    return (
-                      <TableRow key={`${item.chv_nfse}-${item.num_item}-${idx}`} className="group">
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.descr_item}>
-                          {item.descr_item}
-                        </TableCell>
-                        <TableCell className="py-1.5">
-                          {item.cod_ncm ? (
-                            <Badge
-                              variant="outline"
-                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800"
-                              onClick={() => onSelectNcm(item.cod_ncm!)}
-                            >
-                              <BookOpen className="h-3 w-3 shrink-0" />
-                              {item.cod_ncm}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {formatCurrency(item.vl_item)}
-                        </TableCell>
-                        {/* XML NFSe zone */}
-                        <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xServ}>
-                          {xml ? (
-                            <Badge
-                              variant="outline"
-                              className="gap-1 text-[11px] max-w-[190px] border-emerald-200 dark:border-emerald-800"
-                            >
-                              <FileSearch className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{xml.xServ}</span>
-                            </Badge>
-                          ) : item.tipo_relacao === 'CONSOLIDADO' ? (
-                            <Badge className="gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
-                              <Network className="h-3 w-3 shrink-0" />
-                              Consolidado
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 dark:bg-emerald-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
-                          {xml ? formatCurrency(xml.vServ) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
-                        </TableCell>
-                        {/* Tax zone */}
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.cst_pis}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_pis.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_pis)}</TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cst_cofins}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_cofins.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_cofins)}</TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cod_cta}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {paged.map((item, idx) => (
+                    <TableRow key={`a170-${item.CHV_NFSE}-${idx}`} className="group">
+                      <TableCell className="py-1.5">
+                        {item.CHV_NFSE ? (
+                          <code className="text-[10px] font-mono text-muted-foreground" title={item.CHV_NFSE}>
+                            {item.CHV_NFSE.slice(0, 12)}…
+                          </code>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_ITEM}>
+                        {item.DESCR_ITEM}
+                      </TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
+                        {formatCurrency(item.VL_ITEM)}
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <span className="text-[10px] font-mono text-muted-foreground" title={item.DESCRICAO_CONTA}>
+                          {item.COD_CTA}
+                        </span>
+                      </TableCell>
+                      {/* Tax zone */}
+                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_BC_PIS)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_PIS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_BC_COFINS)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_COFINS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
