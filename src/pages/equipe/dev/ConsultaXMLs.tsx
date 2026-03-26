@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import SmartDatePicker from "@/components/ui/smart-date-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Search,
@@ -22,7 +23,7 @@ import {
   RefreshCw,
   Info,
   FileX2,
-  
+  CalendarIcon,
   ArrowDownLeft,
   ArrowUpRight,
   Download,
@@ -714,27 +715,71 @@ const ConsultaXMLs = () => {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Início</label>
-                <SmartDatePicker
-                  mode="day"
-                  selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : null}
-                  onChange={(date) => {
-                    setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
-                    setSearchTriggered(false);
-                  }}
-                  placeholder="Selecione"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                        !dataInicio && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataInicio ? (
+                        format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      ) : (
+                        <span>Selecione</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
+                        setSearchTriggered(false);
+                      }}
+                      initialFocus
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim</label>
-                <SmartDatePicker
-                  mode="day"
-                  selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : null}
-                  onChange={(date) => {
-                    setDataFim(date ? format(date, "yyyy-MM-dd") : "");
-                    setSearchTriggered(false);
-                  }}
-                  placeholder="Selecione"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                        !dataFim && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataFim ? (
+                        format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                      ) : (
+                        <span>Selecione</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataFim(date ? format(date, "yyyy-MM-dd") : "");
+                        setSearchTriggered(false);
+                      }}
+                      initialFocus
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Emitente</label>
