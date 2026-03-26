@@ -43,6 +43,7 @@ export interface TaxProjectFormData {
   start_date: string;
   end_date: string;
   leader_ids: string[];
+  responsible_id: string;
   external_client_id: string;
   contribuinte_id?: string;
   estrutura_area_id: string;
@@ -215,7 +216,7 @@ export const useCreateTaxProject = () => {
         status: data.status,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
-        responsible_id: data.leader_ids[0] || null,
+        responsible_id: data.responsible_id || null,
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
@@ -272,7 +273,7 @@ export const useUpdateTaxProject = () => {
         ['end_date', oldProject.end_date || null, data.end_date || null],
         ['estrutura_area_id', oldProject.estrutura_area_id || null, data.estrutura_area_id || null],
         ['description', oldProject.description || null, data.description || null],
-        ['responsible_id', oldProject.responsible_id || null, data.leader_ids[0] || null],
+        ['responsible_id', oldProject.responsible_id || null, data.responsible_id || null],
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
@@ -297,7 +298,7 @@ export const useUpdateTaxProject = () => {
         status: data.status,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
-        responsible_id: data.leader_ids[0] || null,
+        responsible_id: data.responsible_id || null,
         leader_id: data.leader_ids[0] || null,
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
