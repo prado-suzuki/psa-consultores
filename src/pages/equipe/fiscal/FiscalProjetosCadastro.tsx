@@ -127,8 +127,7 @@ const FiscalProjetosCadastro = () => {
       case 'servico': return project.servico_nome || '';
       case 'cliente': return project.external_client?.nome || '';
       case 'area': return project.area_ref?.name || '';
-      case 'executor': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
-      case 'lider': return project.leader ? `${project.leader.first_name} ${project.leader.last_name}` : '';
+      case 'equipe': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
       case 'status': return project.status || '';
       default: return '';
     }
@@ -535,131 +534,125 @@ const FiscalProjetosCadastro = () => {
 
         {/* Projects Table */}
         <Card>
-          <CardContent className="p-0">
-             <Table className="table-fixed">
+          <CardContent className="p-0 overflow-x-auto">
+            <Table className="table-fixed min-w-[900px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <TableHead style={{ width: '20%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Projeto<SortIcon column="name" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '15%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <TableHead style={{ width: '16%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '13%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                  <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
                     <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                  <TableHead style={{ width: '13%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                     <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                   </TableHead>
                   <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('executor')}>
-                    <div className="flex items-center">Executor<SortIcon column="executor" /></div>
+                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
+                    <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('lider')}>
-                    <div className="flex items-center">Líder<SortIcon column="lider" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
+                  <TableHead style={{ width: '5%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
                   </TableHead>
-                  <TableHead className="whitespace-nowrap">Início</TableHead>
-                  <TableHead className="whitespace-nowrap">Término</TableHead>
-                  <TableHead>Horas</TableHead>
+                  <TableHead style={{ width: '5%' }} className="whitespace-nowrap">Início</TableHead>
+                  <TableHead style={{ width: '5%' }} className="whitespace-nowrap">Término</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Carregando projetos...
                     </TableCell>
                   </TableRow>
                 ) : filteredProjects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProjects.map((project: any) => (
-                    <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
-                      <TableCell className="truncate max-w-0" title={project.name}>
-                        <div className="flex items-center gap-2 truncate">
-                          <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
-                          <span className="font-medium truncate">{project.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="truncate max-w-0" title={project.servico_contratado || '-'}>
-                        <span className="text-sm truncate block">{project.servico_contratado || '-'}</span>
-                      </TableCell>
-                      <TableCell className="truncate max-w-0" title={project.servico_nome || '-'}>
-                        <span className="text-sm truncate block">{project.servico_nome || '-'}</span>
-                      </TableCell>
-                      <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
-                        {project.external_client ? (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="text-sm truncate">{project.external_client.nome}</span>
+                  filteredProjects.map((project: any) => {
+                    const executorName = project.responsible
+                      ? `${project.responsible.first_name} ${project.responsible.last_name}`
+                      : null;
+                    const liderName = project.leader
+                      ? `${project.leader.first_name} ${project.leader.last_name}`
+                      : null;
+                    return (
+                      <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
+                        <TableCell className="truncate max-w-0" title={project.name}>
+                          <div className="flex items-center gap-2 truncate">
+                            <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <span className="font-medium truncate">{project.name}</span>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span className="text-sm">{getAreaLabel(project)}</span>
-                      </TableCell>
-                      <TableCell className="break-words">
-                        {project.responsible ? (
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="text-sm break-words">
-                              {project.responsible.first_name} {project.responsible.last_name}
-                            </span>
+                        </TableCell>
+                        <TableCell className="truncate max-w-0" title={project.servico_contratado || '-'}>
+                          <span className="text-sm truncate block">{project.servico_contratado || '-'}</span>
+                        </TableCell>
+                        <TableCell className="truncate max-w-0" title={project.servico_nome || '-'}>
+                          <span className="text-sm truncate block">{project.servico_nome || '-'}</span>
+                        </TableCell>
+                        <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
+                          {project.external_client ? (
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              <span className="text-sm truncate">{project.external_client.nome}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="text-sm">{getAreaLabel(project)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            {executorName ? (
+                              <div>
+                                <span className="text-sm break-words">{executorName}</span>
+                                <span className="text-xs text-muted-foreground ml-1">(executor)</span>
+                              </div>
+                            ) : null}
+                            {liderName ? (
+                              <div>
+                                <span className="text-sm break-words">{liderName}</span>
+                                <span className="text-xs text-muted-foreground ml-1">(líder)</span>
+                              </div>
+                            ) : null}
+                            {!executorName && !liderName && <span className="text-muted-foreground">-</span>}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="break-words">
-                        {project.leader ? (
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="text-sm break-words">
-                              {project.leader.first_name} {project.leader.last_name}
-                            </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost" size="icon"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => setDeleteProjectId(project.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => setDeleteProjectId(project.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
