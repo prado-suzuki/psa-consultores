@@ -43,7 +43,7 @@ function getProductCodigos(produtos: DraftProdutoContratado[], options: Contrato
   return produtos
     .map(pc => options.find(o => o.id === pc.produto_segmento_id))
     .filter(Boolean)
-    .map(p => p!.codigo)
+    .map(p => `${p!.codigo} — ${p!.nome}`)
     .join(', ');
 }
 

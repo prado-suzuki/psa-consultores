@@ -673,7 +673,7 @@ const FiscalProjetosCadastro = () => {
                           const isSelected = selectedOsId === osId;
                           const osProdList = osProdutosByOs[osId] || [];
                           const prodLabel = osProdList.length > 0
-                            ? osProdList.map(p => p.produto_codigo).filter(Boolean).join(', ')
+                            ? osProdList.map(p => [p.produto_codigo, p.produto_nome].filter(Boolean).join(' — ')).join(', ')
                             : null;
                           return (
                             <div
@@ -727,7 +727,7 @@ const FiscalProjetosCadastro = () => {
                 )}
 
                 {/* Produto Contratado (seletor derivado da OS) */}
-                {selectedOsId && selectedOsProdutos.length > 1 && (
+                {selectedOsId && selectedOsProdutos.length >= 1 && (
                   <div>
                     <Label>Produto Contratado *</Label>
                     <Select
