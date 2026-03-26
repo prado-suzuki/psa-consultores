@@ -2,15 +2,15 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, FileSearch, Network } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import type { D100Response, FlatD100Item } from '@/types/correcoesSped';
+import type { D100Item } from '@/types/correcoesSped';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface TabD100Props {
-  data: D100Response | undefined;
+  data: D100Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
   hasQueried: boolean;
@@ -20,31 +20,18 @@ interface TabD100Props {
 export default function TabD100({ data, isLoading, error, hasQueried, searchText }: TabD100Props) {
   const [page, setPage] = useState(0);
 
-  const flatItems: FlatD100Item[] = useMemo(() => {
-    if (!data?.notas) return [];
-    return data.notas.flatMap((nota) =>
-      nota.itens_efd.map((item) => ({
-        ...item,
-        chv_cte: nota.chv_cte,
-        dt_doc: nota.dt_doc,
-        tipo_relacao: nota.tipo_relacao,
-      }))
-    );
-  }, [data]);
-
   const filtered = useMemo(() => {
-    let items = flatItems;
+    let items = data ?? [];
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.descr_item.toLowerCase().includes(s) ||
-          i.chv_cte.includes(s) ||
-          i.cnpj_efd.includes(s)
+          i.CHV_CTE.toLowerCase().includes(s) ||
+          i.CNPJ_EFD.includes(s)
       );
     }
     return items;
-  }, [flatItems, searchText]);
+  }, [data, searchText]);
 
   useMemo(() => setPage(0), [searchText]);
 
@@ -84,24 +71,21 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
-                {' '}· {data.notas.length} notas
               </span>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={2} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML (CTe)</TableHead>
+                    <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
                     <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
+                    <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
                     <TableHead className="text-[11px] min-w-[140px]">CHV CTe</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                    {/* XML CTe */}
-                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descrição Serviço</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20">Valor Prestação</TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]">CNPJ</TableHead>
+                    <TableHead className="text-[11px] min-w-[70px]">Simples</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px]">Valor Doc</TableHead>
                     {/* Taxes */}
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
@@ -112,54 +96,32 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((item, idx) => {
-                    const xml = item.tipo_relacao === '1:1' && item.cte_itens[0] ? item.cte_itens[0] : null;
-                    const valueDivergent = xml && Math.abs(item.vl_item - xml.vPrest) > 0.01;
-                    return (
-                      <TableRow key={`${item.chv_cte}-${item.num_item}-${idx}`} className="group">
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.descr_item}>
-                          {item.descr_item}
-                        </TableCell>
-                        <TableCell className="py-1.5">
-                          <code className="text-[10px] font-mono text-muted-foreground" title={item.chv_cte}>
-                            {item.chv_cte.slice(0, 12)}…
-                          </code>
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {formatCurrency(item.vl_item)}
-                        </TableCell>
-                        {/* XML CTe zone */}
-                        <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xServ}>
-                          {xml ? (
-                            <Badge
-                              variant="outline"
-                              className="gap-1 text-[11px] max-w-[190px] border-emerald-200 dark:border-emerald-800"
-                            >
-                              <FileSearch className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{xml.xServ}</span>
-                            </Badge>
-                          ) : item.tipo_relacao === 'CONSOLIDADO' ? (
-                            <Badge className="gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
-                              <Network className="h-3 w-3 shrink-0" />
-                              Consolidado
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 dark:bg-emerald-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
-                          {xml ? formatCurrency(xml.vPrest) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
-                        </TableCell>
-                        {/* Tax zone */}
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.cst_pis}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_pis.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_pis)}</TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cst_cofins}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_cofins.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_cofins)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {paged.map((item, idx) => (
+                    <TableRow key={`d100-${item.CHV_CTE}-${idx}`} className="group">
+                      <TableCell className="text-xs py-1.5 font-mono">{item.DT_DOC}</TableCell>
+                      <TableCell className="py-1.5">
+                        <code className="text-[10px] font-mono text-muted-foreground" title={item.CHV_CTE}>
+                          {item.CHV_CTE.slice(0, 12)}…
+                        </code>
+                      </TableCell>
+                      <TableCell className="text-xs py-1.5 font-mono">{item.CNPJ_EFD}</TableCell>
+                      <TableCell className="py-1.5">
+                        <Badge variant="outline" className="text-[10px] font-medium">
+                          {item.SIMPLES}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
+                        {formatCurrency(item.VL_DOC)}
+                      </TableCell>
+                      {/* Tax zone */}
+                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_PIS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.ALIQ_COFINS.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
