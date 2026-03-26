@@ -76,6 +76,7 @@ const emptyForm = {
   start_date: '',
   end_date: '',
   leader_ids: [] as string[],
+  responsible_id: '',
   external_client_id: '',
   estrutura_area_id: '',
   member_ids: [] as string[],
@@ -126,7 +127,8 @@ const FiscalProjetosCadastro = () => {
       case 'servico': return project.servico_nome || '';
       case 'cliente': return project.external_client?.nome || '';
       case 'area': return project.area_ref?.name || '';
-      case 'responsavel': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'executor': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'lider': return project.leader ? `${project.leader.first_name} ${project.leader.last_name}` : '';
       case 'status': return project.status || '';
       default: return '';
     }
@@ -330,6 +332,7 @@ const FiscalProjetosCadastro = () => {
         start_date: project.start_date || '',
         end_date: project.end_date || '',
         leader_ids: [],
+        responsible_id: project.responsible_id || '',
         external_client_id: project.external_client_id || '',
         estrutura_area_id: project.estrutura_area_id || '',
         member_ids: [],
@@ -356,6 +359,10 @@ const FiscalProjetosCadastro = () => {
     }
     if (formData.leader_ids.length === 0) {
       toast.error('Selecione ao menos um Líder Geral');
+      return;
+    }
+    if (!formData.responsible_id) {
+      toast.error('Selecione o Responsável Executor');
       return;
     }
     if (editingProject) {
