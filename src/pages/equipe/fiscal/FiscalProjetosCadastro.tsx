@@ -59,7 +59,6 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
-import {
   useTaxProjects,
   useProjectMembers,
   useProjectHours,
