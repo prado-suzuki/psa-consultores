@@ -75,7 +75,7 @@ export const useTaxProjects = () => {
       const contribMap: Record<string, string> = {};
 
       if (clientIds.length > 0) {
-        const { data: clients } = await supabase.from('cliente').select('id, nome').in('id', clientIds);
+        const { data: clients } = await supabase.from('cliente').select('id, nome').in('id', clientIds).eq('excluido', false);
         (clients || []).forEach(c => { clientMap[c.id] = c.nome; });
       }
 

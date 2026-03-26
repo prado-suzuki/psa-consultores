@@ -131,6 +131,7 @@ const CalculadoraIbsCbs = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("excluido", false)
         .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
         .order("nome");
 
@@ -149,6 +150,7 @@ const CalculadoraIbsCbs = () => {
         .select("id, nome_razao_social, cpf_cnpj")
         .eq("cliente_id", selectedCliente)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
 
       if (error) throw error;

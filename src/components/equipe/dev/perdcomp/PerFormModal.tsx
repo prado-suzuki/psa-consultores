@@ -163,6 +163,7 @@ export function PerFormModal({
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
@@ -179,6 +180,7 @@ export function PerFormModal({
         .from('contribuinte')
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedClienteId)
+        .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;

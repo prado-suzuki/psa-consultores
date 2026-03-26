@@ -81,6 +81,7 @@ const ApuracaoPisCofins = () => {
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
       return (data || []) as { id: string; nome: string }[];
@@ -95,6 +96,7 @@ const ApuracaoPisCofins = () => {
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', selectedCliente)
         .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       return (data || []) as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
     },

@@ -95,7 +95,9 @@ function useLookupMaps(): LookupMaps {
     queryFn: async () => {
       const { data } = await supabase
         .from('cliente')
-        .select('id, nome');
+        .select('id, nome')
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
   });
@@ -106,7 +108,8 @@ function useLookupMaps(): LookupMaps {
       const { data } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social')
-        .eq('excluido', false);
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
     },
   });

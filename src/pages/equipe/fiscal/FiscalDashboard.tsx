@@ -46,7 +46,7 @@ const FiscalDashboard = () => {
   const { data: clients = [] } = useQuery({
     queryKey: ['fiscal-dash-clients'],
     queryFn: async () => {
-      const { data } = await supabase.from('cliente').select('id, nome');
+      const { data } = await supabase.from('cliente').select('id, nome').eq('excluido', false).eq('ambiente', currentAmbiente);
       return data || [];
     },
   });
