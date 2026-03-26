@@ -67,6 +67,11 @@ const ApuracaoPisCofins = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
+  // Committed filter values — only updated when "Consultar" is clicked
+  const [committedMesInicio, setCommittedMesInicio] = useState<{ month: number; year: number } | null>(null);
+  const [committedMesFim, setCommittedMesFim] = useState<{ month: number; year: number } | null>(null);
+  const [committedContribuinte, setCommittedContribuinte] = useState('');
+
   // New UI state
   const [activeTab, setActiveTab] = useState<'resumo' | 'debitos' | 'creditos' | 'apuracao' | 'rateio'>('resumo');
   const [expandedYear, setExpandedYear] = useState<string | null>(null);
