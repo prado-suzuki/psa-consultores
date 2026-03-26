@@ -120,14 +120,14 @@ const ApuracaoPisCofins = () => {
   }, [selectedCliente]);
 
   // ── Fetch de dados ──
-  const dataInicio = monthYearToDateString(mesInicio, 'start');
-  const dataFim = monthYearToDateString(mesFim, 'end');
+  const committedDataInicio = monthYearToDateString(committedMesInicio, 'start');
+  const committedDataFim = monthYearToDateString(committedMesFim, 'end');
 
   const { data: apiData, isLoading, error } = usePisCofinsApuracao({
-    idContribuinte: selectedContribuinte,
-    dtIni: dataInicio,
-    dtFim: dataFim,
-    enabled: searchTriggered && !!selectedContribuinte,
+    idContribuinte: committedContribuinte,
+    dtIni: committedDataInicio,
+    dtFim: committedDataFim,
+    enabled: searchTriggered && !!committedContribuinte,
   });
 
   // ── Calculator + Headers ──
