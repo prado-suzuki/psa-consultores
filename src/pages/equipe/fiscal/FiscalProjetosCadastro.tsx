@@ -962,7 +962,27 @@ const FiscalProjetosCadastro = () => {
                   </Popover>
                 </div>
 
-                {/* Membros do Projeto */}
+                {/* Responsável Executor */}
+                <div>
+                  <Label>Responsável Executor *</Label>
+                  <Select
+                    value={formData.responsible_id}
+                    onValueChange={(value) => setFormData({ ...formData, responsible_id: value === '_none' ? '' : value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Selecione o executor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Selecione...</SelectItem>
+                      {executores.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.first_name} {member.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>Membros do Projeto</Label>
