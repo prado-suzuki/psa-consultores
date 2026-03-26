@@ -33,13 +33,13 @@ export const useServicosContratados = (clientId: string | null | undefined) => {
 
       if (!produtosData?.length) return [];
 
-      const produtoIds = [...new Set(produtosData.map((p: any) => p.produto_segmento_id as string))];
+      const produtoIds: string[] = [...new Set(produtosData.map((p: any) => p.produto_segmento_id as string))];
 
       // 3. Buscar servicos vinculados a esses produtos via produto_servico
-      const { data: produtoServicos } = await supabase
+      const { data: produtoServicos } = await (supabase
         .from('produto_servico')
         .select('servico_prestado_id')
-        .in('produto_segmento_id', produtoIds);
+        .in('produto_segmento_id', produtoIds) as any);
 
       if (!produtoServicos?.length) return [];
 
