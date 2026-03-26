@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, X, AlertCircle, FileSearch, Package } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, BookOpen, Network } from 'lucide-react';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesSped } from '@/hooks/useCorrecoesSped';
@@ -204,32 +204,36 @@ const CorrecoesSped = () => {
                 </div>
               ) : (
                 <>
-                  <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
-                      {' '}({query.data.notas.length} notas)
-                    </span>
-                  </div>
+                  <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
+                     <span className="text-xs font-medium text-muted-foreground">
+                       {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
+                       {' '}· {query.data.notas.length} notas
+                     </span>
+                   </div>
                   <div className="overflow-auto">
-                    <Table>
+                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-[11px] min-w-[200px]">Descrição (EFD)</TableHead>
-                          <TableHead className="text-[11px] min-w-[100px]">NCM (EFD)</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[110px]">Valor (EFD)</TableHead>
-                          <TableHead className="text-[11px] min-w-[200px] border-l border-dashed border-border bg-blue-50/50 dark:bg-blue-900/10">Descrição (XML)</TableHead>
-                          <TableHead className="text-[11px] min-w-[100px] bg-blue-50/50 dark:bg-blue-900/10">NCM (XML)</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[110px] bg-blue-50/50 dark:bg-blue-900/10">Valor (XML)</TableHead>
-                          <TableHead className="text-[11px] text-center min-w-[60px]">CST PIS</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[70px]">% PIS</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[100px]">VL PIS</TableHead>
-                          <TableHead className="text-[11px] text-center min-w-[60px]">CST COF</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[70px]">% COF</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[100px]">VL COF</TableHead>
-                          <TableHead className="text-[11px] min-w-[90px]">Conta</TableHead>
-                          
-                        </TableRow>
-                      </TableHeader>
+                         <TableRow className="border-b-0">
+                           <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
+                           <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-blue-600/70 dark:text-blue-400/70 pb-0 pt-2 border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20">XML</TableHead>
+                           <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                         </TableRow>
+                         <TableRow>
+                           <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
+                           <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
+                           <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20">Descrição</TableHead>
+                           <TableHead className="text-[11px] min-w-[100px] bg-blue-50/60 dark:bg-blue-950/20">NCM</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[110px] bg-blue-50/60 dark:bg-blue-950/20">Valor</TableHead>
+                           <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
+                           <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
+                           <TableHead className="text-[11px] min-w-[90px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
+                         </TableRow>
+                       </TableHeader>
                       <TableBody>
                         {paged.map((item, idx) => {
                           const xml = item.tipo_relacao === '1:1' && item.nfe_itens[0] ? item.nfe_itens[0] : null;
@@ -241,60 +245,68 @@ const CorrecoesSped = () => {
                               {item.descr_item}
                             </TableCell>
                             <TableCell className="py-1.5">
-                              {item.cod_ncm ? (
-                                <button
-                                  onClick={() => setSelectedNcm(item.cod_ncm)}
-                                  className="cursor-pointer hover:underline"
-                                >
-                                  <code className="text-xs font-mono text-teal-700">{item.cod_ncm}</code>
-                                </button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">—</span>
-                              )}
-                            </TableCell>
+                               {item.cod_ncm ? (
+                                 <Badge
+                                   variant="outline"
+                                   className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800"
+                                   onClick={() => setSelectedNcm(item.cod_ncm)}
+                                 >
+                                   <BookOpen className="h-3 w-3 shrink-0" />
+                                   {item.cod_ncm}
+                                 </Badge>
+                               ) : (
+                                 <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
+                               )}
+                             </TableCell>
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
                               {formatCurrency(item.vl_item)}
                             </TableCell>
                             {/* --- Colunas XML --- */}
-                            <TableCell className="text-xs py-1.5 max-w-[200px] truncate border-l border-dashed border-border bg-blue-50/20 dark:bg-blue-900/5" title={xml?.xProd}>
-                              {xml ? (
-                                <button
-                                  onClick={() => setSelectedItem(item)}
-                                  className="cursor-pointer hover:underline text-left truncate max-w-[200px] block"
-                                >
-                                  {xml.xProd}
-                                </button>
-                              ) : item.tipo_relacao === 'CONSOLIDADO' ? (
-                                <button
-                                  onClick={() => setSelectedItem(item)}
-                                  className="cursor-pointer hover:opacity-80"
-                                >
-                                  <Badge className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">
-                                    Consolidado
-                                  </Badge>
-                                </button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
-                              {xml ? (
-                                <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
-                                  {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
-                                  {xml.ncm}
-                                </code>
-                              ) : <span className="text-xs text-muted-foreground italic">—</span>}
-                            </TableCell>
-                            <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-900/5 ${valueDivergent ? 'text-amber-600' : ''}`}>
-                              {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground italic">—</span>}
-                            </TableCell>
-                            <TableCell className="text-xs text-center py-1.5 font-mono">{item.cst_pis}</TableCell>
-                            <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{item.aliq_pis.toFixed(2)}</TableCell>
-                            <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.vl_pis)}</TableCell>
-                            <TableCell className="text-xs text-center py-1.5 font-mono">{item.cst_cofins}</TableCell>
-                            <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{item.aliq_cofins.toFixed(2)}</TableCell>
-                            <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.vl_cofins)}</TableCell>
-                            <TableCell className="text-xs py-1.5 font-mono">{item.cod_cta}</TableCell>
+                             <TableCell className="py-1.5 border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/20 dark:bg-blue-950/5" title={xml?.xProd}>
+                               {xml ? (
+                                 <Badge
+                                   variant="outline"
+                                   className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-blue-50 dark:hover:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+                                   onClick={() => setSelectedItem(item)}
+                                 >
+                                   <FileSearch className="h-3 w-3 shrink-0" />
+                                   <span className="truncate">{xml.xProd}</span>
+                                 </Badge>
+                               ) : item.tipo_relacao === 'CONSOLIDADO' ? (
+                                 <Badge
+                                   className="cursor-pointer gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800"
+                                   onClick={() => setSelectedItem(item)}
+                                 >
+                                   <Network className="h-3 w-3 shrink-0" />
+                                   Consolidado
+                                 </Badge>
+                               ) : (
+                                 <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
+                               )}
+                             </TableCell>
+                             <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-950/5">
+                               {xml ? (
+                                 ncmDivergent ? (
+                                   <Badge variant="outline" className="font-mono text-[11px] border-red-200 text-red-600 bg-red-50/50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800 gap-1">
+                                     <AlertCircle className="h-3 w-3 shrink-0" />
+                                     {xml.ncm}
+                                   </Badge>
+                                 ) : (
+                                   <code className="text-xs font-mono text-muted-foreground">{xml.ncm}</code>
+                                 )
+                               ) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
+                             </TableCell>
+                             <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
+                               {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
+                             </TableCell>
+                             {/* --- Zona Impostos --- */}
+                             <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.cst_pis}</TableCell>
+                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_pis.toFixed(2)}</TableCell>
+                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_pis)}</TableCell>
+                             <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cst_cofins}</TableCell>
+                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_cofins.toFixed(2)}</TableCell>
+                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_cofins)}</TableCell>
+                             <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cod_cta}</TableCell>
                           </TableRow>
                           );
                         })}
