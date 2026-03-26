@@ -535,33 +535,33 @@ const FiscalProjetosCadastro = () => {
         {/* Projects Table */}
         <Card>
           <CardContent className="p-0 overflow-x-auto">
-            <Table className="table-fixed min-w-[900px]">
+            <Table className="table-fixed min-w-[1000px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead style={{ width: '21%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Projeto<SortIcon column="name" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '17%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
                     <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '13%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                  <TableHead style={{ width: '11%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                     <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
+                  <TableHead style={{ width: '8%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
+                  <TableHead style={{ width: '9%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
                     <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '5%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
+                  <TableHead style={{ width: '7%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
                   </TableHead>
-                  <TableHead style={{ width: '5%' }} className="whitespace-nowrap">Início</TableHead>
-                  <TableHead style={{ width: '5%' }} className="whitespace-nowrap">Término</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Início</TableHead>
+                  <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Término</TableHead>
+                  <TableHead style={{ width: '7%' }} className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -588,10 +588,7 @@ const FiscalProjetosCadastro = () => {
                     return (
                       <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                         <TableCell className="whitespace-normal break-words">
-                          <div className="flex items-center gap-2">
-                            <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
-                            <span className="font-medium">{project.name}</span>
-                          </div>
+                          <span className="font-medium">{project.name}</span>
                         </TableCell>
                         <TableCell className="whitespace-normal break-words">
                           <span className="text-sm">{project.servico_contratado || '-'}</span>
@@ -636,10 +633,10 @@ const FiscalProjetosCadastro = () => {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
+                          {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yy') : '-'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
+                          {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yy') : '-'}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
