@@ -148,7 +148,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
               {!collapsed && item.label}
             </Button>
           ))}
@@ -165,7 +164,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               onClick={() => navigate("/equipe/dev/consulta-efd")}
               title="Consulta SPED"
             >
-              <BookOpen className="h-4 w-4" />
+              SPED
             </Button>
           ) : (
             <Collapsible open={spedOpen} onOpenChange={setSpedOpen}>
@@ -178,7 +177,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                       : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
                 >
-                  <BookOpen className="h-4 w-4 mr-3" />
                   <span className="flex-1 text-left">Consulta SPED</span>
                   <ChevronDown
                     className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
@@ -197,7 +195,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     }`}
                     onClick={() => navigate(item.path)}
                   >
-                    <item.icon className="h-3.5 w-3.5 mr-3" />
                     {item.label}
                   </Button>
                 ))}
@@ -217,7 +214,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               onClick={() => navigate("/equipe/dev/apuracao-pis-cofins")}
               title="Levantamento de Créditos"
             >
-              <HandCoins className="h-4 w-4" />
+              LC
             </Button>
           ) : (
             <Collapsible open={pisCofinsOpen} onOpenChange={setPisCofinsOpen}>
@@ -230,7 +227,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                       : "text-slate-700 hover:text-teal-600"
                   }`}
                 >
-                  <HandCoins className="h-4 w-4 mr-3" />
                   <span className="flex-1 text-left">Levantamento de Créditos</span>
                   <ChevronDown
                     className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
@@ -249,7 +245,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     }`}
                     onClick={() => navigate(item.path)}
                   >
-                    <item.icon className="h-3.5 w-3.5 mr-3" />
                     {item.label}
                   </Button>
                 ))}
@@ -269,7 +264,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
               {!collapsed && item.label}
             </Button>
           ))}
