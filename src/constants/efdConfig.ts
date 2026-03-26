@@ -8,6 +8,10 @@ export const EFD_HIDDEN_COLUMNS = [
   'ID_ARQUIVO',
   'ID_PAI',
   'UUID',
+  'ID_CONTRIBUINTE',
+  'TIMESTAMP_INGESTAO',
+  'GS_PATH',
+  'ADICIONADO_POR',
 ];
 
 // Descrições dos blocos SPED
