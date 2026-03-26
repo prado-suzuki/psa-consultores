@@ -6,28 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Clock,
   Search,
   ArrowRight,
-  Wrench,
   ExternalLink,
 } from 'lucide-react';
 
-/* ── mock: sessões pendentes ─────────────────────────────── */
-const pendingSessions = [
-  {
-    tool: 'DIFAL Inteligente',
-    path: '/equipe/dev/auditoria-fiscal',
-    lastModified: '08/03/2026',
-    desc: '3 auditorias pendentes de revisão',
-  },
-  {
-    tool: 'EFD Contribuições',
-    path: '/equipe/dev/consulta-efd',
-    lastModified: '07/03/2026',
-    desc: 'Análise CNPJ 12.345.678/0001-99 em andamento',
-  },
-];
 
 /* ── catálogo de ferramentas ─────────────────────────────── */
 interface ToolEntry {
@@ -174,45 +157,6 @@ const DevDashboard = () => {
         </div>
       )}
 
-      {/* ── Sessões em Andamento ──────────────────────────── */}
-      {pendingSessions.length > 0 && (
-        <Card className="mt-6 border-teal-200 bg-teal-50/60">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="text-sm text-slate-900 flex items-center gap-2">
-              Sessões em Andamento
-            </CardTitle>
-            <CardDescription className="text-slate-700 text-xs">
-              Você tem trabalhos não finalizados
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-2">
-            {pendingSessions.map((s) => (
-              <div
-                key={s.tool}
-                className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-2"
-              >
-                <div className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5 text-amber-500" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-900">{s.tool}</p>
-                    <p className="text-[11px] text-slate-600">
-                      {s.desc} · Último acesso: {s.lastModified}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(s.path)}
-                  className="gap-1 h-7 text-xs px-2"
-                >
-                  Retomar
-                  <ArrowRight className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </DevLayout>
   );
 };
