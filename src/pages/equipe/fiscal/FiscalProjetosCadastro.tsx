@@ -535,8 +535,11 @@ const FiscalProjetosCadastro = () => {
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('responsavel')}>
-                    <div className="flex items-center">Responsável<SortIcon column="responsavel" /></div>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('executor')}>
+                    <div className="flex items-center">Executor<SortIcon column="executor" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('lider')}>
+                    <div className="flex items-center">Líder<SortIcon column="lider" /></div>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
@@ -550,13 +553,13 @@ const FiscalProjetosCadastro = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       Carregando projetos...
                     </TableCell>
                   </TableRow>
                 ) : filteredProjects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
                     </TableCell>
                   </TableRow>
