@@ -112,8 +112,7 @@ const DevDashboard = () => {
     >
       {/* ── Hub de Ferramentas ────────────────────────────── */}
       <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-base font-semibold text-slate-700 flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-teal-600" />
+        <h2 className="text-base font-semibold text-slate-700">
           Ferramentas
         </h2>
         <Badge variant="secondary" className="text-[11px]">
@@ -180,7 +179,6 @@ const DevDashboard = () => {
         <Card className="mt-6 border-teal-200 bg-teal-50/60">
           <CardHeader className="p-3 pb-2">
             <CardTitle className="text-sm text-slate-900 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-teal-600" />
               Sessões em Andamento
             </CardTitle>
             <CardDescription className="text-slate-700 text-xs">

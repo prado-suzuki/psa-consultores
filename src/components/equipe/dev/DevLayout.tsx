@@ -107,14 +107,11 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
           {collapsed ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <Code2 className="h-5 w-5 text-teal-600" />
+                <span className="text-sm font-bold text-teal-600">DD</span>
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <Code2 className="h-5 w-5 text-teal-600" />
-              </div>
               <div>
                 <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
                 <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
