@@ -1,43 +1,53 @@
 
 
-## Plano: Otimizar tabela de projetos — unificar colunas e responsividade
+## Plano: Simplificar coluna Equipe na tabela de projetos
 
 ### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-**1. Unificar "Executor" e "Líder" em coluna "Equipe"**
+**1. Import** — adicionar `Crown` do lucide-react.
 
-Substituir as duas colunas separadas por uma única que empilha as informações:
-
-```text
-Ricardo Migueis
-  (executor)
-Felipe Matias
-  (líder)
+**2. Helper de abreviação** — criar função inline:
+```ts
+const shortName = (first: string, last: string) =>
+  `${first} ${last.charAt(0)}.`;
 ```
 
-- Nome em `text-sm`, label em `text-xs text-muted-foreground`
-- Sorting pela coluna "equipe" ordena pelo nome do executor (primário)
+**3. Coluna Equipe (width 12% → 10%)** — alterar `TableHead` style para `width: '10%'`.
 
-**2. Remover coluna "Horas"** (todos exibem "-", sem dados úteis)
+**4. Célula Equipe** (linhas ~615-631) — substituir por:
+```tsx
+<TableCell
+  title={[
+    executorName ? `${executorName} (executor)` : null,
+    liderName ? `${liderName} (líder)` : null,
+  ].filter(Boolean).join(' / ')}
+>
+  <div className="space-y-0.5">
+    {executorName && (
+      <div className="flex items-center gap-1 text-sm">
+        <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <span className="truncate">{shortName(project.responsible.first_name, project.responsible.last_name)}</span>
+      </div>
+    )}
+    {liderName && liderName !== executorName && (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Crown className="h-3 w-3 shrink-0" />
+        <span className="truncate">{shortName(project.leader.first_name, project.leader.last_name)}</span>
+      </div>
+    )}
+    {!executorName && !liderName && <span className="text-muted-foreground">-</span>}
+  </div>
+</TableCell>
+```
 
-**3. Larguras revisadas** (table-fixed mantido):
+- Executor = líder → mostra só 1 linha (ícone User)
+- Nomes abreviados: "Ricardo M." em vez de "Ricardo Migueis"
+- Tooltip nativo com nomes completos + papel
+- Ícone `User` para executor, `Crown` para líder
+- Segunda linha em `text-xs text-muted-foreground`
 
-| Coluna | Largura |
-|--------|---------|
-| Projeto | 20% |
-| Produto | 16% |
-| Serviço | 14% |
-| Cliente | 13% |
-| Área | 10% |
-| Equipe | 12% |
-| Status | 5% |
-| Início | 5% |
-| Término | 5% |
-
-**4. Scroll horizontal** — adicionar `overflow-x-auto` e `min-w-[900px]` na tabela para telas pequenas não comprimirem.
-
-**5. Ajustes menores:**
-- Atualizar `colSpan` das linhas de loading/empty de 12 para 9
-- Remover referência a `projectHours` na tabela (hook pode continuar importado se usado em outro lugar)
-- Atualizar `getSortValue` para remover case `lider` separado e usar `executor` na coluna equipe
+**5. Redistribuir larguras** — com Equipe a 10%, sobram 2% extras. Redistribuir:
+- Projeto: 20% → 21%
+- Produto: 16% → 17%
+- Restante mantido
 
