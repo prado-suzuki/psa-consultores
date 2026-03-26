@@ -45,7 +45,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/equipe/dev" },
+  { icon: LayoutDashboard, label: "Início", path: "/equipe/dev" },
   { icon: Plus, label: "Nova ferramenta", path: "/equipe/dev/nova-ferramenta" },
   { icon: Wrench, label: "Consulta de XMLs", path: "/equipe/dev/consulta-xmls" },
 ];

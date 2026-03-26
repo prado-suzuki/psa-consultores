@@ -107,50 +107,9 @@ const DevDashboard = () => {
 
   return (
     <DevLayout
-      title="Hub de Ferramentas"
+      title="Início"
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
-      {/* ── Sessões em Andamento ──────────────────────────── */}
-      {pendingSessions.length > 0 && (
-        <Card className="mb-4 border-amber-200 bg-amber-50/60">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="text-sm text-amber-800 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Sessões em Andamento
-            </CardTitle>
-            <CardDescription className="text-amber-700/80 text-xs">
-              Você tem trabalhos não finalizados
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-2">
-            {pendingSessions.map((s) => (
-              <div
-                key={s.tool}
-                className="flex items-center justify-between rounded-lg border border-amber-200 bg-white p-2"
-              >
-                <div className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5 text-amber-500" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-700">{s.tool}</p>
-                    <p className="text-[11px] text-slate-500">
-                      {s.desc} · Último acesso: {s.lastModified}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(s.path)}
-                  className="gap-1 h-7 text-xs px-2"
-                >
-                  Retomar
-                  <ArrowRight className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       {/* ── Hub de Ferramentas ────────────────────────────── */}
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-base font-semibold text-slate-700 flex items-center gap-2">
