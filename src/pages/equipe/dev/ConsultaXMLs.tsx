@@ -320,7 +320,7 @@ const ConsultaXMLs = () => {
     error: errorNfe,
     refetch: refetchNfe,
   } = useQuery({
-    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, chaveAcesso],
+    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, committedChave],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -334,7 +334,7 @@ const ConsultaXMLs = () => {
       if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
-      if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
+      if (chaveAcesso) params.append("chave", committedChave.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/nfes?${params.toString()}`;
       const response = await fetchWithAuth(url, { method: "GET" });
@@ -359,7 +359,7 @@ const ConsultaXMLs = () => {
     error: errorCte,
     refetch: refetchCte,
   } = useQuery({
-    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, chaveAcesso],
+    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, committedChave],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
@@ -373,7 +373,7 @@ const ConsultaXMLs = () => {
       if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
-      if (chaveAcesso) params.append("chave", chaveAcesso.replace(/\D/g, ""));
+      if (chaveAcesso) params.append("chave", committedChave.replace(/\D/g, ""));
 
       const url = `${baseUrl}/${selectedContribuinte}/ctes?${params.toString()}`;
       const response = await fetchWithAuth(url, { method: "GET" });
@@ -447,6 +447,7 @@ const ConsultaXMLs = () => {
 
   const handleSearch = () => {
     setCurrentPage(1);
+    setCommittedChave(chaveAcesso);
     setSearchTriggered(true);
     if (searchTriggered) {
       refetch();
