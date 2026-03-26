@@ -1,77 +1,65 @@
 
 
-## Plano: Mover ação do modal para coluna NCM (XML) e remover coluna Auditoria
+## Plano: Reformular cabeçalho do RegraCard em NcmRegrasModal.tsx
 
-### Alterações em `src/pages/equipe/dev/CorrecoesSped.tsx`
+### Arquivo: `src/components/equipe/dev/pis-cofins/NcmRegrasModal.tsx`
 
-**1. Remover coluna Auditoria**
+### Alteração no CollapsibleTrigger (L48-70)
 
-- L242: deletar `<TableHead ...>Auditoria</TableHead>`
-- L292-299: deletar o `<TableCell>` inteiro com o botão + relacaoBadge
-
-**2. Remover função `relacaoBadge`** (L22-32) — único uso era na célula removida.
-
-**3. Ajustar lógica do `const xml`** (L247)
-
-Hoje só extrai XML para `1:1`. Manter essa variável para dados, mas a célula NCM (XML) agora também trata CONSOLIDADO:
-
+**De:**
 ```tsx
-const xml = item.tipo_relacao === '1:1' && item.nfe_itens[0] ? item.nfe_itens[0] : null;
-```
-Sem mudança nesta linha.
-
-**4. Refatorar TableCell NCM (XML)** (L274-281)
-
-De:
-```tsx
-<TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
-  {xml ? (
-    <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
-      {ncmDivergent && <AlertCircle ... />}
-      {xml.ncm}
-    </code>
-  ) : <span ...>—</span>}
-</TableCell>
+<button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+  <div className="flex flex-1 items-center gap-3 min-w-0">
+    <span className="text-sm font-medium truncate">{setorNome}</span>
+    <Badge variant="outline" className="font-mono text-[11px] shrink-0">
+      CST {regra.cst_pis}
+    </Badge>
+    {regra.permite_credito === 'S' ? (
+      <Badge className="bg-emerald-100 text-emerald-700 ...">Crédito</Badge>
+    ) : (
+      <Badge variant="secondary" className="text-[11px] shrink-0">Sem crédito</Badge>
+    )}
+  </div>
+  <ChevronDown ... />
+</button>
 ```
 
-Para:
+**Para:**
 ```tsx
-<TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
-  {xml ? (
-    <button
-      onClick={() => setSelectedItem(item)}
-      className="cursor-pointer hover:underline text-left"
-    >
-      <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
-        {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
-        {xml.ncm}
-      </code>
-    </button>
-  ) : item.tipo_relacao === 'CONSOLIDADO' ? (
-    <button
-      onClick={() => setSelectedItem(item)}
-      className="cursor-pointer hover:opacity-80"
-    >
-      <Badge className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">
-        Consolidado
-      </Badge>
-    </button>
-  ) : (
-    <span className="text-xs text-muted-foreground italic">—</span>
-  )}
-</TableCell>
+<button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+  <div className="flex flex-1 items-center gap-3 min-w-0">
+    <Badge variant="outline" className="font-mono text-[11px] shrink-0">
+      CST {regra.cst_pis}
+    </Badge>
+    <span className="text-xs text-muted-foreground truncate min-w-0 max-w-[200px]">
+      {regra.desc_cst || '—'}
+    </span>
+    {regra.permite_credito === 'S' ? (
+      <Badge className="bg-emerald-100 text-emerald-700 ...">Crédito</Badge>
+    ) : (
+      <Badge variant="secondary" className="text-[11px] shrink-0">Sem crédito</Badge>
+    )}
+    {regra.base_legal && (
+      <span className="text-[11px] text-muted-foreground/70 truncate min-w-0 max-w-[250px] hidden sm:inline" title={regra.base_legal}>
+        {regra.base_legal}
+      </span>
+    )}
+  </div>
+  <ChevronDown ... />
+</button>
 ```
 
-**5. Colunas Descrição (XML) e Valor (XML)** — sem mudança. Já renderizam `—` quando `xml` é null (cobre CONSOLIDADO e SEM_NFE).
+### Mudanças:
+| Acao | Detalhe |
+|------|---------|
+| Remover | `setorNome` do cabeçalho |
+| Adicionar | `desc_cst` truncado após badge CST |
+| Adicionar | `base_legal` truncado no final, com `hidden sm:inline` para responsividade |
+| Manter | Badge de crédito inalterado |
 
-### Resumo
+### Prop `setorNome` do RegraCard
+Remover a prop `setorNome` da interface e da chamada no componente pai (L171), já que não é mais usada no cabeçalho. A área expandida também não usa — o campo "Setor" não aparece no grid interno.
 
-| Ação | Linhas |
-|------|--------|
-| Deletar | `relacaoBadge` (L22-32) |
-| Deletar | TableHead "Auditoria" (L242) |
-| Deletar | TableCell Auditoria (L292-299) |
-| Refatorar | TableCell NCM (XML) (L274-281) — 3 estados: 1:1 clicável, CONSOLIDADO badge clicável, SEM_NFE traço |
-
-Apenas `src/pages/equipe/dev/CorrecoesSped.tsx` será editado.
+### Limpeza no componente pai (L171)
+Remover `setorNome={setorMap[regra.id_segmento ?? '']?.nome ?? 'Sem setor'}` da invocação de `<RegraCard>`.
 
