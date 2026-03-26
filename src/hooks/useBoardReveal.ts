@@ -1,15 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 export function useBoardReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+  const applied = useRef(new WeakSet<Element>());
 
-  useEffect(() => {
-    if (!ref.current) return;
-    const els = ref.current.querySelectorAll('[data-reveal]');
-    els.forEach((el, i) => {
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const els = node.querySelectorAll('[data-reveal]');
+    let idx = 0;
+    els.forEach((el) => {
+      if (applied.current.has(el)) return;
+      applied.current.add(el);
       const htmlEl = el as HTMLElement;
-      htmlEl.style.animationDelay = `${i * 55}ms`;
+      htmlEl.style.animationDelay = `${idx * 40}ms`;
       htmlEl.classList.add('fu');
+      idx++;
     });
   }, []);
 
