@@ -43,7 +43,7 @@ export const useServicosContratados = (clientId: string | null | undefined) => {
 
       if (!produtoServicos?.length) return [];
 
-      return [...new Set(produtoServicos.map(ps => ps.servico_prestado_id))] as string[];
+      return [...new Set(produtoServicos.map(ps => ps.servico_prestado_id as string))] as string[];
     },
     enabled: !!clientId,
   });
