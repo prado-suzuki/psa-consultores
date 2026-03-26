@@ -37,9 +37,9 @@ export const useServicosContratados = (clientId: string | null | undefined) => {
 
       // 3. Buscar servicos vinculados a esses produtos via produto_servico
       const { data: produtoServicos } = await (supabase
-        .from('produto_servico')
+        .from('produto_servico') as any)
         .select('servico_prestado_id')
-        .in('produto_segmento_id', produtoIds) as any);
+        .in('produto_segmento_id', produtoIds);
 
       if (!produtoServicos?.length) return [];
 
