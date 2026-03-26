@@ -196,7 +196,7 @@ const CorrecoesSped = () => {
 
         {/* Results */}
         {hasQueried && !query.isFetching && !query.error && query.data && (
-          <Card>
+          <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
             <CardContent className="p-0">
               {filtered.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
