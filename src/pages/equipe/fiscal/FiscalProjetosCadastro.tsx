@@ -585,63 +585,63 @@ const FiscalProjetosCadastro = () => {
                 ) : (
                   filteredProjects.map((project: any) => (
                     <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FolderKanban className="h-4 w-4 text-emerald-600" />
-                          <span className="font-medium">{project.name}</span>
+                      <TableCell className="truncate max-w-0" title={project.name}>
+                        <div className="flex items-center gap-2 truncate">
+                          <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
+                          <span className="font-medium truncate">{project.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{project.servico_contratado || '-'}</span>
+                      <TableCell className="truncate max-w-0" title={project.servico_contratado || '-'}>
+                        <span className="text-sm truncate block">{project.servico_contratado || '-'}</span>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{project.servico_nome || '-'}</span>
+                      <TableCell className="truncate max-w-0" title={project.servico_nome || '-'}>
+                        <span className="text-sm truncate block">{project.servico_nome || '-'}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
                         {project.external_client ? (
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">{project.external_client.nome}</span>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm truncate">{project.external_client.nome}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span className="text-sm">{getAreaLabel(project)}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="break-words">
                         {project.responsible ? (
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm break-words">
                               {project.responsible.first_name} {project.responsible.last_name}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="break-words">
                         {project.leader ? (
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm break-words">
                               {project.leader.first_name} {project.leader.last_name}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{getStatusBadge(project.status)}</TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
