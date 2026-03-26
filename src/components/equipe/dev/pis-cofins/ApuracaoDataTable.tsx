@@ -61,7 +61,7 @@ export function ApuracaoDataTable({
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs text-sm font-normal">
+                <TooltipContent side="right" className="max-w-xs text-sm font-normal normal-case">
                   {titleTooltip}
                 </TooltipContent>
               </Tooltip>
