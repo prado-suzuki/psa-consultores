@@ -393,7 +393,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-[22px] md:p-6 lg:p-6">
+          <div className="p-[22px] md:p-6 lg:p-6" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
             {children}
           </div>
         </div>

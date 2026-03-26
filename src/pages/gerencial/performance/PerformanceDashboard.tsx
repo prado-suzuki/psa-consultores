@@ -6,14 +6,19 @@ import { ActivityHeatmap } from '@/components/performance/ActivityHeatmap';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
-import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar, FilterEmptyState } from '@/components/board/BoardFilterBar';
+import { BoardStatStrip } from '@/components/board/BoardStatStrip';
+import { BoardChip } from '@/components/board/BoardChip';
+import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
+import { useBoardReveal } from '@/hooks/useBoardReveal';
 
 const DEFAULTS = { periodo: '30d', area: 'todas', search: '', statusFilter: 'todos', ordenacao: 'prazo_asc' };
 
 const PerformanceDashboard = () => {
+  const revealRef = useBoardReveal();
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'performance', defaults: DEFAULTS });
   const periodo = filters.periodo as string;
   const area = filters.area as string;
@@ -57,7 +62,6 @@ const PerformanceDashboard = () => {
   const heatmapTasks = heatmapTasksQuery.data || [];
   const last3MonthsTasks = last3MonthsTasksQuery.data || [];
   const roiData = roiQuery.data || [];
-  const ciclo = cicloQuery.data;
 
   const emDia = projects.filter(p => p.computed_status === 'em_dia').length;
   const emRisco = projects.filter(p => p.computed_status === 'em_risco').length;
@@ -121,14 +125,12 @@ const PerformanceDashboard = () => {
     }).filter(x => x.tasks > 0 || x.ppr > 0).sort((a, b) => b.ppr - a.ppr);
   }, [periodTasks, profiles, metas]);
 
-  // Filtered projects for table
   const filteredProjects = useMemo(() => {
     let result = projects.filter(p => {
       if (statusFilter !== 'todos' && p.computed_status !== statusFilter) return false;
       if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !(p.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
     });
-    // Sort
     switch (ordenacao) {
       case 'nome_az': result = [...result].sort((a, b) => a.name.localeCompare(b.name)); break;
       case 'progresso_asc': result = [...result].sort((a, b) => (a.total_tasks > 0 ? a.completed_tasks / a.total_tasks : 0) - (b.total_tasks > 0 ? b.completed_tasks / b.total_tasks : 0)); break;
@@ -139,27 +141,30 @@ const PerformanceDashboard = () => {
     return result;
   }, [projects, statusFilter, searchTerm, ordenacao]);
 
-  const getAreaChip = (a: string | null) => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'c-tax' : x.includes('osg') ? 'c-osg' : 'c-dev'; };
-  const getStatusChip = (s: string) => s === 'em_dia' ? 'c-ok' : s === 'em_risco' ? 'c-w' : 'c-er';
+  const getAreaChip = (a: string | null): 'tax' | 'osg' | 'dev' => { const x = (a || '').toLowerCase(); return x.includes('tax') ? 'tax' : x.includes('osg') ? 'osg' : 'dev'; };
+  const getStatusChip = (s: string): 'go' | 'warn' | 'risk' => s === 'em_dia' ? 'go' : s === 'em_risco' ? 'warn' : 'risk';
   const getStatusLabel = (s: string) => s === 'em_dia' ? 'Em dia' : s === 'em_risco' ? 'Em risco' : 'Atrasado';
-  const getPbColor = (pct: number) => pct >= 85 ? 'v3-pg' : pct >= 70 ? 'v3-pa' : 'v3-pr';
-  const getTextColor = (pct: number) => pct >= 85 ? 'var(--gr)' : pct >= 70 ? 'var(--am)' : 'var(--re)';
+  const getPbColor = (pct: number) => pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
+  const getTextColor = (pct: number) => pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
   const getClassifChip = (ppr: number) => {
-    if (ppr >= 100) return { cls: 'c-ppr-s', label: 'Supera' };
-    if (ppr >= 85) return { cls: 'c-ppr-a', label: 'Atende' };
-    if (ppr >= 70) return { cls: 'c-ppr-p', label: 'Parcial' };
-    return { cls: 'c-ppr-b', label: 'Abaixo' };
+    if (ppr >= 100) return { variant: 'ppr-s' as const, label: 'Supera' };
+    if (ppr >= 85) return { variant: 'ppr-a' as const, label: 'Atende' };
+    if (ppr >= 70) return { variant: 'ppr-p' as const, label: 'Parcial' };
+    return { variant: 'ppr-b' as const, label: 'Abaixo' };
   };
 
   const isLoading = projectsQuery.isLoading && membersQuery.isLoading;
 
   return (
     <BoardLayout title="Performance" subtitle="Visao consolidada">
-      <div style={{ background: 'var(--bg, #EEF2F8)' }}>
-        <div className="pgt" style={{ marginBottom: 2 }}>Performance</div>
-        <div className="pgs">Visao consolidada de projetos, equipe e ROI — dados em tempo real</div>
+      <div ref={revealRef} style={{ background: 'var(--board-v4-page)' }}>
+        {/* Header */}
+        <div className="pg-head" data-reveal>
+          <div className="pg-title">Performance</div>
+          <div className="pg-sub">Visao consolidada de projetos, equipe e ROI — dados em tempo real</div>
+        </div>
 
-        {/* Global Filter Bar */}
+        {/* Filter Bar */}
         <BoardFilterBar
           filters={[
             { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
@@ -175,7 +180,7 @@ const PerformanceDashboard = () => {
           activeCount={activeCount}
           rightSlot={
             <>
-              <span style={{ fontSize: 11, color: 'var(--t4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
+              <span style={{ fontSize: 11, color: 'var(--board-v4-ink4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
               <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
                 <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
               </button>
@@ -183,112 +188,98 @@ const PerformanceDashboard = () => {
           }
         />
 
-        {/* KPIs */}
+        {/* Stat Strip */}
         {isLoading ? (
-          <div className="g5 mb12">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[120px] rounded-xl" />)}</div>
+          <Skeleton className="h-[120px] rounded-xl mb-4" />
         ) : (
-          <div className="g5 mb12">
-            <div className="kpi">
-              <div className="ktb" style={{ background: 'var(--in)' }} />
-              <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{projects.length}</div>
-              <div className="kl" style={{ fontSize: '9.5px' }}>Projetos Ativos</div>
-              <div className="ksubs">
-                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--gr)' }} />{emDia} no prazo</div>
-                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--am)' }} />{emRisco} em risco</div>
-                <div className="ksub"><span className="v3-dot" style={{ background: 'var(--re)' }} />{atrasados} atrasados</div>
-              </div>
-            </div>
-            <div className="kpi">
-              <div className="ktb" style={{ background: 'var(--gr)' }} />
-              <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{pontualidade}%</div>
-              <div className="kl" style={{ fontSize: '9.5px' }}>Taxa Pontualidade</div>
-              <div className="ksubs"><span className={`v3-tr ${pontualidade >= 85 ? 'v3-tr-u' : 'v3-tr-d'}`}>{pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta'}</span></div>
-            </div>
-            <div className="kpi">
-              <div className="ktb" style={{ background: 'var(--am)' }} />
-              <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{tempoMedio}</div>
-              <div className="kl" style={{ fontSize: '9.5px' }}>Tempo Medio Tarefa</div>
-              <div className="ksubs"><span className="v3-tr v3-tr-n">estavel</span></div>
-            </div>
-            <div className="kpi">
-              <div className="ktb" style={{ background: 'var(--cy)' }} />
-              <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>R${(totalSavingsYear / 1000).toFixed(0)}k</div>
-              <div className="kl" style={{ fontSize: '9.5px' }}>ROI Acumulado</div>
-              <div className="ksubs"><span className="v3-tr v3-tr-u">{totalSavingsYear > 0 ? '173' : '0'}% ROI</span></div>
-            </div>
-            <div className="kpi">
-              <div className="ktb" style={{ background: 'var(--pu)' }} />
-              <div className="kv" style={{ fontSize: 22, marginTop: 6 }}>{progressoMetas}%</div>
-              <div className="kl" style={{ fontSize: '9.5px' }}>Metas do Ciclo</div>
-              <div className="ksubs">{metasEmRisco > 0 ? <span className="v3-tr v3-tr-d">{metasEmRisco} em risco</span> : <span className="v3-tr v3-tr-u">No alvo</span>}</div>
-            </div>
-          </div>
+          <BoardStatStrip
+            cols={5}
+            items={[
+              {
+                value: projects.length, label: 'Projetos Ativos', color: 'var(--board-v4-accent)',
+                dots: [
+                  { color: 'var(--board-v4-go)', text: `${emDia} no prazo` },
+                  { color: 'var(--board-v4-warn)', text: `${emRisco} em risco` },
+                  { color: 'var(--board-v4-risk)', text: `${atrasados} atrasados` },
+                ],
+              },
+              {
+                value: pontualidade, suffix: '%', label: 'Taxa Pontualidade', color: 'var(--board-v4-go)',
+                pill: { text: pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo', variant: pontualidade >= 85 ? 'up' : 'down' },
+              },
+              {
+                value: tempoMedio, label: 'Tempo Médio', color: 'var(--board-v4-warn)', animateCount: false,
+                pill: { text: 'estável', variant: 'neutral' },
+              },
+              {
+                value: Math.round(totalSavingsYear / 1000), prefix: 'R$', suffix: 'k', label: 'ROI Acumulado',
+                color: 'var(--board-v4-cyan)',
+                pill: { text: totalSavingsYear > 0 ? '173% ROI' : '0%', variant: 'up' },
+              },
+              {
+                value: progressoMetas, suffix: '%', label: 'Metas do Ciclo', color: 'var(--board-v4-purple)',
+                subText: metasEmRisco > 0 ? `${metasEmRisco} em risco` : 'No alvo',
+                barValue: progressoMetas,
+              },
+            ]}
+          />
         )}
 
         {/* Charts */}
-        <div className="g2 mb12">
-          <div className="v3-card">
-            <div className="sct">Desempenho por Area — Ultimos 3 Meses</div>
+        <div className="v4-g2">
+          <div className="v4-card" data-reveal>
+            <div className="v4-card-title">Desempenho por Área — Últimos 3 Meses</div>
             {barChartData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={150}>
                   <BarChart data={barChartData}>
-                    <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
-                    <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <Bar dataKey="Tax" fill="#3680F6" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="OSG" fill="#13A87A" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="Dev" fill="#7A50EE" radius={[3, 3, 0, 0]} />
+                    <CartesianGrid {...GRID_STYLE} />
+                    <XAxis dataKey="name" {...AXIS_STYLE} />
+                    <YAxis {...AXIS_STYLE} />
+                    <Tooltip {...TOOLTIP_STYLE} />
+                    <Bar dataKey="Tax" fill={CHART_COLORS.tax} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="OSG" fill={CHART_COLORS.osg} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Dev" fill={CHART_COLORS.dev} radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 4 }}>
-                  {[{ c: '#3680F6', l: 'Tax' }, { c: '#13A87A', l: 'OSG' }, { c: '#7A50EE', l: 'Dev' }].map(x => (
-                    <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--t3)' }}><div style={{ width: 9, height: 9, borderRadius: 2, background: x.c }} />{x.l}</div>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 6 }}>
+                  {[{ c: CHART_COLORS.tax, l: 'Tax' }, { c: CHART_COLORS.osg, l: 'OSG' }, { c: CHART_COLORS.dev, l: 'Dev' }].map(x => (
+                    <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--board-v4-ink3)' }}>
+                      <div style={{ width: 9, height: 9, borderRadius: 2, background: x.c }} />{x.l}
+                    </div>
                   ))}
                 </div>
               </>
-            ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados</div>}
+            ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados</div>}
           </div>
-          <div className="v3-card">
-            <div className="sct">ROI Acumulado</div>
-            {totalSavingsYear > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={150}>
-                  <AreaChart data={(() => {
-                    const sorted = [...roiData].sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
-                    let cumulative = 0;
-                    const points = sorted.map((imp: any) => {
-                      cumulative += (imp.total_savings_monthly || 0) * 12;
-                      return { name: imp.created_at ? format(new Date(imp.created_at), "MMM/yy", { locale: ptBR }) : '?', value: Math.round(cumulative) };
-                    });
-                    return points.length > 0 ? points : [{ name: 'Atual', value: totalSavingsYear }];
-                  })()}>
-                    <CartesianGrid strokeDasharray="4 3" stroke="#E0EAF4" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#A4B5CC' }} />
-                    <YAxis tick={{ fontSize: 9, fill: '#A4B5CC' }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR')}`} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                    <defs><linearGradient id="roiGradP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#13A87A" stopOpacity={0.28} /><stop offset="100%" stopColor="#13A87A" stopOpacity={0} /></linearGradient></defs>
-                    <Area type="monotone" dataKey="value" fill="url(#roiGradP)" stroke="#13A87A" strokeWidth={2.2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11 }}>
-                  <span style={{ color: 'var(--gr)' }}>Atual: <strong>R${(totalSavingsYear / 1000).toFixed(0)}k/ano</strong></span>
-                  <span style={{ color: 'var(--t3)' }}>{roiData.length} ferramentas</span>
+
+          <div className="v4-card" data-reveal>
+            <div className="v4-card-title">Contribuição Individual — {periodo}</div>
+            {contribution.map((m, idx) => {
+              const classif = getClassifChip(m.ppr);
+              return (
+                <div key={m.id} className="v4-srow" style={{ cursor: 'pointer' }} onClick={() => setSelectedMemberId(selectedMemberId === m.id ? null : m.id)}>
+                  <span className="v4-srk">#{idx + 1}</span>
+                  <div className="v4-av v4-av-sm" style={{ background: 'linear-gradient(135deg, #4B63F7, #6B46E8)' }}>{m.initials}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span className="v4-srn">{m.name}</span>
+                    <div style={{ flex: 1 }}><div className="v4-pb v4-pb6"><div className={`v4-pbf ${getPbColor(m.ppr)}`} style={{ width: `${Math.min(m.ppr, 100)}%` }} /></div></div>
+                  </div>
+                  <span className="v4-srv" style={{ color: getTextColor(m.ppr) }}>{m.ppr}</span>
+                  <BoardChip variant={classif.variant}>{classif.label}</BoardChip>
                 </div>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 12 }}>
-                <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados de ROI
-              </div>
-            )}
+              );
+            })}
+            {contribution.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>Sem dados de contribuição no período.</div>}
+
+            <div className="v4-slabel" style={{ marginTop: 16 }}>Atividade — Últimos 90 dias {selectedMemberId && '(filtrado)'}</div>
+            <ActivityHeatmap tasks={heatmapTasks} selectedMemberId={selectedMemberId} />
           </div>
         </div>
 
         {/* Projects Table */}
-        <div className="v3-card mb12">
-          <div className="sct">Projetos — Tabela Completa</div>
-          {/* Table filters */}
+        <div className="v4-card" style={{ marginBottom: 16 }} data-reveal>
+          <div className="v4-card-title">Projetos — Tabela Completa</div>
           <BoardFilterBar
             filters={[
               { key: 'search', label: 'Busca', type: 'search', placeholder: 'Buscar projeto ou cliente...' },
@@ -306,7 +297,7 @@ const PerformanceDashboard = () => {
           ) : (
             <div className="v3-tw">
               <table>
-                <thead><tr><th>Projeto</th><th>Cliente/Area</th><th>Area</th><th>Responsavel</th><th>Progresso</th><th>Prazo</th><th>Status</th></tr></thead>
+                <thead><tr><th>Projeto</th><th>Cliente/Área</th><th>Área</th><th>Responsável</th><th>Progresso</th><th>Prazo</th><th>Status</th></tr></thead>
                 <tbody>
                   {filteredProjects.map(p => {
                     const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
@@ -314,22 +305,22 @@ const PerformanceDashboard = () => {
                     return (
                       <tr key={p.id}>
                         <td>{p.name}</td>
-                        <td style={{ color: 'var(--t3)' }}>{p.client_name || '—'}</td>
-                        <td><span className={`ch ${getAreaChip(p.area_name)}`}>{p.area_name || 'N/A'}</span></td>
+                        <td style={{ color: 'var(--board-v4-ink3)' }}>{p.client_name || '—'}</td>
+                        <td><BoardChip variant={getAreaChip(p.area_name)}>{p.area_name || 'N/A'}</BoardChip></td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div className="av av-xs" style={{ background: 'linear-gradient(135deg, #5B6EF0, #3680F6)' }}>{p.responsible_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '??'}</div>
+                            <div className="v4-av v4-av-sm" style={{ background: 'linear-gradient(135deg, #4B63F7, #3478F5)', width: 22, height: 22, fontSize: 9, borderRadius: 5 }}>{p.responsible_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '??'}</div>
                             <span>{p.responsible_name?.split(' ')[0] || '—'}</span>
                           </div>
                         </td>
                         <td style={{ minWidth: 100 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <div className="v3-pb v3-pb6" style={{ flex: 1 }}><div className={`v3-pbf ${getPbColor(pct)}`} style={{ width: `${pct}%` }} /></div>
+                            <div className="v4-pb v4-pb6" style={{ flex: 1 }}><div className={`v4-pbf ${getPbColor(pct)}`} style={{ width: `${pct}%` }} /></div>
                             <span style={{ fontSize: 11, fontWeight: 700, color: getTextColor(pct) }}>{pct}%</span>
                           </div>
                         </td>
-                        <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--re)' : daysLeft !== null && daysLeft < 15 ? 'var(--am)' : 'var(--t3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
-                        <td><span className={`ch ${getStatusChip(p.computed_status)}`}>{getStatusLabel(p.computed_status)}</span></td>
+                        <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--board-v4-risk)' : daysLeft !== null && daysLeft < 15 ? 'var(--board-v4-warn)' : 'var(--board-v4-ink3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
+                        <td><BoardChip variant={getStatusChip(p.computed_status)}>{getStatusLabel(p.computed_status)}</BoardChip></td>
                       </tr>
                     );
                   })}
@@ -337,30 +328,6 @@ const PerformanceDashboard = () => {
               </table>
             </div>
           )}
-        </div>
-
-        {/* Individual Contribution */}
-        <div className="v3-card">
-          <div className="sct">Contribuicao Individual — {periodo}</div>
-          {contribution.map((m, idx) => {
-            const classif = getClassifChip(m.ppr);
-            return (
-              <div key={m.id} className="v3-sr" style={{ cursor: 'pointer' }} onClick={() => setSelectedMemberId(selectedMemberId === m.id ? null : m.id)}>
-                <span className="srk">#{idx + 1}</span>
-                <div className="av av-sm" style={{ background: 'linear-gradient(135deg, #5B6EF0, #7A50EE)' }}>{m.initials}</div>
-                <div className="srb">
-                  <span className="srn">{m.name}</span>
-                  <div style={{ flex: 1 }}><div className="v3-pb v3-pb6"><div className={`v3-pbf ${getPbColor(m.ppr)}`} style={{ width: `${Math.min(m.ppr, 100)}%` }} /></div></div>
-                </div>
-                <span className="srv" style={{ color: getTextColor(m.ppr) }}>{m.ppr}</span>
-                <span className={`ch ${classif.cls}`}>{classif.label}</span>
-              </div>
-            );
-          })}
-          {contribution.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 12 }}>Sem dados de contribuicao no periodo.</div>}
-          
-          <div className="scl" style={{ marginTop: 16 }}>Atividade — Ultimos 90 dias {selectedMemberId && '(filtrado)'}</div>
-          <ActivityHeatmap tasks={heatmapTasks} selectedMemberId={selectedMemberId} />
         </div>
       </div>
     </BoardLayout>
