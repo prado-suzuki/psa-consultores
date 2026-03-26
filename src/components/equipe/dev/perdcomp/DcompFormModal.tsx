@@ -44,13 +44,25 @@ const normalizeMesAno = (value: string): string => {
   return value;
 };
 
-// Format DCOMP document number: XXXXX.XXXXX/XXXX-XX (16 digits)
+// Format DCOMP document number: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX (26 digits)
 const formatDcompNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 16);
-  let formatted = digits;
-  if (digits.length > 5) formatted = digits.slice(0, 5) + '.' + digits.slice(5);
-  if (digits.length > 10) formatted = formatted.slice(0, 11) + '/' + digits.slice(10);
-  if (digits.length > 14) formatted = formatted.slice(0, 16) + '-' + digits.slice(14);
+  const digits = value.replace(/\D/g, '').slice(0, 26);
+  const parts = [
+    digits.slice(0, 5),
+    digits.slice(5, 10),
+    digits.slice(10, 16),
+    digits.slice(16, 17),
+    digits.slice(17, 18),
+    digits.slice(18, 20),
+  ];
+  const lastPart = digits.slice(20, 24);
+  let formatted = parts[0];
+  if (digits.length > 5) formatted += '.' + parts[1];
+  if (digits.length > 10) formatted += '.' + parts[2];
+  if (digits.length > 16) formatted += '.' + parts[3];
+  if (digits.length > 17) formatted += '.' + parts[4];
+  if (digits.length > 18) formatted += '.' + parts[5];
+  if (digits.length > 20) formatted += '-' + lastPart;
   return formatted;
 };
 
@@ -290,7 +302,7 @@ export function DcompFormModal({
                     <Input
                       {...field}
                       disabled={isEditing}
-                      placeholder="XXXXX.XXXXX/XXXX-XX"
+                      placeholder="00000.00000.000000.0.0.00-0000"
                       onChange={(e) => {
                         const formatted = formatDcompNumber(e.target.value);
                         field.onChange(formatted);
