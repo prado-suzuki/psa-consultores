@@ -28,6 +28,7 @@ export interface TaxProject {
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
   servico_contratado?: string | null;
+  servico_nome?: string | null;
 }
 
 export interface TaxProjectMember {
@@ -112,11 +113,23 @@ export const useTaxProjects = () => {
         }
       }
 
+      // Resolve servico_id → nome via servicos_prestados
+      const servicoIds = [...new Set((data || []).filter(p => p.servico_id).map(p => p.servico_id as string))];
+      const servicoNomeMap: Record<string, string> = {};
+
+      if (servicoIds.length > 0) {
+        const { data: servicos } = await (supabase.from('servicos_prestados' as any) as any)
+          .select('id, nome')
+          .in('id', servicoIds);
+        (servicos || []).forEach((s: any) => { servicoNomeMap[s.id] = s.nome; });
+      }
+
       return (data || []).map(p => ({
         ...p,
         external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
         contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
         servico_contratado: p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null,
+        servico_nome: p.servico_id ? servicoNomeMap[p.servico_id] || null : null,
       })) as TaxProject[];
     },
   });
