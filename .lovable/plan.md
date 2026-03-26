@@ -1,21 +1,32 @@
 
 
-## Plano: Adicionar coluna "Serviço" entre Produto e Cliente
-
-### Contexto
-Cada projeto TAX armazena um `servico_id` (referência a `servicos_prestados`), mas esse valor não é resolvido para nome na listagem. A coluna "Produto" já mostra o produto comercial da OS; a nova coluna "Serviço" mostrará o serviço operacional selecionado no projeto.
+## Plano: Separar Líder Geral e Responsável Executor
 
 ### Alterações
 
-**Arquivo 1: `src/hooks/useTaxProjects.ts`**
-- Adicionar `servico_nome?: string | null` na interface `TaxProject`
-- No `queryFn` de `useTaxProjects`, coletar os `servico_id` únicos dos projetos
-- Fazer query em `servicos_prestados` para resolver `id → nome`
-- Mapear `servico_nome` no retorno de cada projeto
+**1. `src/hooks/useTaxProjects.ts`**
+- Adicionar `responsible_id: string` ao `TaxProjectFormData`
+- `useCreateTaxProject`: `responsible_id` recebe `data.responsible_id` (não mais `leader_ids[0]`)
+- `useUpdateTaxProject`: idem no diff e no update; comparação de `responsible_id` usa `data.responsible_id`
 
-**Arquivo 2: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`**
-- Adicionar `<TableHead>` "Serviço" (com sort) entre "Produto" e "Cliente" (após L519)
-- Adicionar `<TableCell>` correspondente entre as células de Produto e Cliente (após L562)
-- Atualizar `getSortValue` para incluir o case `'servico'`
-- Atualizar `colSpan` de 10 para 11
+**2. `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`**
+
+*Estado e validação:*
+- Adicionar `responsible_id: ''` ao `emptyForm`
+- `handleOpenModal`: preencher `responsible_id: project.responsible_id || ''`
+- `handleSubmit`: validar campo obrigatório
+
+*Novo useMemo `executores`:*
+- Filtrar `teamMembers` cujo user_id tenha role `team_member` ou `sublider` (via `userRoles`)
+- Excluir explicitamente quem tem role `lider` ou `admin`
+- Se `estruturaAreaId` selecionada, restringir aos membros da área
+
+*Formulário — após bloco Líder Geral (~L922):*
+- Select simples "Responsável Executor *" com lista `executores`
+
+*Tabela:*
+- Renomear "Responsável" → "Executor" (L531)
+- Adicionar coluna "Líder" após "Executor" com sort
+- `getSortValue`: renomear case `responsavel` → `executor`, adicionar case `lider`
+- `colSpan`: 11 → 12
 
