@@ -1,6 +1,8 @@
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import type { PivotRowGeneric } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
@@ -8,6 +10,7 @@ const formatCurrency = (value: number) =>
 
 interface ApuracaoDataTableProps {
   title?: string;
+  titleTooltip?: string;
   data: PivotRowGeneric[];
   columnsData: { periods: string[]; yearsMap: Map<string, string[]> };
   expandedYear: string | null;
