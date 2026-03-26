@@ -44,6 +44,12 @@ export interface DraftParticipant {
   acesso_chamados: boolean;
 }
 
+export interface DraftProdutoContratado {
+  _id: number;
+  _dbId?: string;
+  produto_segmento_id: string;
+}
+
 export interface DraftOrdemServico {
   _id: number;
   _dbId?: string;
@@ -57,7 +63,9 @@ export interface DraftOrdemServico {
   situacao_projeto: string;
   observacoes_projeto: string;
   id_servico: string;
+  /** @deprecated Legado — usar produtos_contratados */
   id_produto_segmento: string;
+  produtos_contratados: DraftProdutoContratado[];
   distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
 }
 

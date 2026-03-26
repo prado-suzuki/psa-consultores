@@ -51,10 +51,12 @@ import {
   type OrdemServico,
 } from '@/hooks/useTaxReferenceData';
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
+import { useOsProdutosContratados, groupByOs } from '@/hooks/useOsProdutosContratados';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { parseDate } from '@/lib/dateUtils';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
   useTaxProjects,
@@ -193,12 +195,29 @@ const FiscalProjetosCadastro = () => {
   const getOsLabel = (os: OrdemServico): string => os.numero_os || 'Sem número';
 
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
+  const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
 
-  // Resolve produto from selected OS for service filtering
-  const selectedOs = useMemo(() => clienteOS.find(o => getOsId(o) === selectedOsId), [clienteOS, selectedOsId]);
-  const selectedProdutoId = selectedOs?.id_produto_segmento || null;
+  // Fetch produtos contratados for all OS of the selected client
+  const osIds = useMemo(() => clienteOS.map(os => getOsId(os)), [clienteOS]);
+  const { data: osProdutos = [] } = useOsProdutosContratados(osIds);
+  const osProdutosByOs = useMemo(() => groupByOs(osProdutos), [osProdutos]);
 
-  // Fetch serviços vinculados ao produto da OS selecionada
+  // Products of the selected OS
+  const selectedOsProdutos = useMemo(
+    () => selectedOsId ? (osProdutosByOs[selectedOsId] || []) : [],
+    [osProdutosByOs, selectedOsId]
+  );
+
+  // Auto-select produto if OS has exactly 1 product
+  useEffect(() => {
+    if (selectedOsProdutos.length === 1) {
+      setSelectedProdutoId(selectedOsProdutos[0].produto_segmento_id);
+    } else {
+      setSelectedProdutoId(null);
+    }
+  }, [selectedOsProdutos]);
+
+  // Fetch serviços vinculados ao produto selecionado
   interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
   const { data: servicosByProduto = [] } = useQuery({
     queryKey: ['project-servicos-by-produto', selectedProdutoId],
@@ -228,9 +247,10 @@ const FiscalProjetosCadastro = () => {
     }
   }, [clienteOS, formData.external_client_id]);
 
-  // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico
+  // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico + clear produto
   useEffect(() => {
     setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
+    setSelectedProdutoId(null);
     if (!selectedOsId || editingProject) return;
     const os = clienteOS.find((o) => getOsId(o) === selectedOsId);
     if (!os) return;
@@ -568,10 +588,10 @@ const FiscalProjetosCadastro = () => {
                       </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {project.start_date ? format(new Date(project.start_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                        {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {project.end_date ? format(new Date(project.end_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                        {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
@@ -651,6 +671,10 @@ const FiscalProjetosCadastro = () => {
                         {clienteOS.map((os: any) => {
                           const osId = getOsId(os);
                           const isSelected = selectedOsId === osId;
+                          const osProdList = osProdutosByOs[osId] || [];
+                          const prodLabel = osProdList.length > 0
+                            ? osProdList.map(p => p.produto_codigo).filter(Boolean).join(', ')
+                            : null;
                           return (
                             <div
                               key={osId}
@@ -663,14 +687,9 @@ const FiscalProjetosCadastro = () => {
                             >
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="font-medium text-sm">
-                                  {(() => {
-                                    const p = os.id_produto_segmento
-                                      ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
-                                      : null;
-                                    return p
-                                      ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
-                                      : `OS: ${getOsLabel(os)}`;
-                                  })()}
+                                  {prodLabel
+                                    ? `OS: ${getOsLabel(os)} — ${prodLabel}`
+                                    : `OS: ${getOsLabel(os)}`}
                                 </span>
                                 {getOsSituacaoBadge(os.situacao)}
                               </div>
@@ -678,19 +697,19 @@ const FiscalProjetosCadastro = () => {
                                 {os.data_emissao && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Emissão: {format(new Date(os.data_emissao + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Emissão: {format(parseDate(os.data_emissao), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                                 {os.data_inicio && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Início: {format(new Date(os.data_inicio + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Início: {format(parseDate(os.data_inicio), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                                 {os.data_fim && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Fim: {format(parseDate(os.data_fim), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                               </div>
@@ -707,7 +726,33 @@ const FiscalProjetosCadastro = () => {
                   </div>
                 )}
 
-                {/* Serviço (filtrado pelo produto da OS selecionada) */}
+                {/* Produto Contratado (seletor derivado da OS) */}
+                {selectedOsId && selectedOsProdutos.length > 1 && (
+                  <div>
+                    <Label>Produto Contratado *</Label>
+                    <Select
+                      value={selectedProdutoId || '_none'}
+                      onValueChange={(value) => {
+                        setSelectedProdutoId(value === '_none' ? null : value);
+                        setFormData(prev => ({ ...prev, servico_id: '' }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Selecione...</SelectItem>
+                        {selectedOsProdutos.map((p) => (
+                          <SelectItem key={p.produto_segmento_id} value={p.produto_segmento_id}>
+                            {p.produto_codigo} — {p.produto_nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Serviço (filtrado pelo produto selecionado) */}
                 {selectedOsId && (
                   <div>
                     <Label>Serviço</Label>
@@ -719,7 +764,9 @@ const FiscalProjetosCadastro = () => {
                       <SelectTrigger>
                         <SelectValue placeholder={
                           !selectedProdutoId
-                            ? "OS sem produto cadastrado"
+                            ? selectedOsProdutos.length === 0
+                              ? "OS sem produto cadastrado"
+                              : "Selecione um produto primeiro"
                             : "Selecione o serviço"
                         } />
                       </SelectTrigger>

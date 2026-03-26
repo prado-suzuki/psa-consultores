@@ -275,7 +275,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita ---
+      // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita + produtos_contratados ---
       const buildOsFields = (c: DraftOrdemServico) => ({
         id_cliente: clienteId,
         numero_os: c.ordem_servico || null,
@@ -287,7 +287,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
         situacao: c.situacao_projeto || "em_andamento",
         observacoes: c.observacoes_projeto || null,
-        id_produto_segmento: c.id_produto_segmento || null,
+        // id_produto_segmento removido do payload — agora usa os_produtos_contratados
       });
 
       for (const c of contracts) {
@@ -317,6 +317,65 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               if (distError) throw distError;
             }
           }
+
+          // Persist os_produtos_contratados: selective upsert preserving _dbId
+          const draftProdutos = c.produtos_contratados || [];
+          // os_produtos_contratados não está no schema tipado — cast justificado
+          const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
+            .select("id, produto_segmento_id")
+            .eq("ordem_servico_id", osId);
+          const existingMap = new Map((existingProdutos || []).map((p: any) => [p.id, p.produto_segmento_id]));
+
+          // Determine which to keep, insert, and delete
+          const draftDbIds = new Set(draftProdutos.filter(p => p._dbId).map(p => p._dbId!));
+          const toDelete = (existingProdutos || []).filter((p: any) => !draftDbIds.has(p.id)).map((p: any) => p.id);
+
+          // Delete removed
+          if (toDelete.length > 0) {
+            await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
+            for (const delId of toDelete) {
+              const delProdId = existingMap.get(delId);
+              logAction({
+                area: 'dev',
+                entity_type: 'ordem_servico',
+                entity_id: osId!,
+                entity_name: c.ordem_servico || '(sem número)',
+                action: 'updated',
+                details: `Produto removido da OS: ${delProdId}`,
+              });
+            }
+          }
+
+          // Insert new (no _dbId)
+          const toInsert = draftProdutos.filter(p => !p._dbId);
+          if (toInsert.length > 0) {
+            const insertPayload = toInsert.map(p => ({
+              ordem_servico_id: osId,
+              produto_segmento_id: p.produto_segmento_id,
+            }));
+            const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
+            if (insErr) throw insErr;
+            for (const ins of toInsert) {
+              logAction({
+                area: 'dev',
+                entity_type: 'ordem_servico',
+                entity_id: osId!,
+                entity_name: c.ordem_servico || '(sem número)',
+                action: 'updated',
+                details: `Produto adicionado à OS: ${ins.produto_segmento_id}`,
+              });
+            }
+          }
+
+          // Update existing (with _dbId) — only if produto_segmento_id changed
+          for (const dp of draftProdutos.filter(p => p._dbId)) {
+            const oldProdId = existingMap.get(dp._dbId!);
+            if (oldProdId && oldProdId !== dp.produto_segmento_id) {
+              await (supabase.from("os_produtos_contratados" as any) as any)
+                .update({ produto_segmento_id: dp.produto_segmento_id })
+                .eq("id", dp._dbId);
+            }
+          }
         }
       }
 
@@ -343,6 +402,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
+      queryClient.invalidateQueries({ queryKey: ["os-produtos-contratados"] });
 
       // ─── Audit logs ───────────────────────────────────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
@@ -419,7 +479,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const handleSave = useCallback(() => {
     const pendingTabs = getDraftPendingTabs();
     if (pendingTabs.length > 0) {
-      // Return pending tabs for the component to show a warning
       return pendingTabs;
     }
     executeSave();

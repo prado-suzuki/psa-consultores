@@ -144,6 +144,8 @@ export const useClientEditData = (
           .eq("excluido", false);
         if (existingOS && existingOS.length > 0) {
           const osIds = existingOS.map((os: any) => os.id);
+
+          // Carregar distribuicao_receita
           const { data: distData } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("*")
             .in("id_ordem_servico", osIds)
@@ -153,6 +155,22 @@ export const useClientEditData = (
             if (!distMap[d.id_ordem_servico]) distMap[d.id_ordem_servico] = [];
             distMap[d.id_ordem_servico].push({ id_centro_custo: d.id_centro_custo, percentual_rateio: Number(d.percentual_rateio), _dbId: d.id });
           });
+
+          // Carregar produtos contratados de os_produtos_contratados
+          // os_produtos_contratados não está no schema tipado — cast justificado
+          const { data: produtosData } = await (supabase.from("os_produtos_contratados" as any) as any)
+            .select("id, ordem_servico_id, produto_segmento_id")
+            .in("ordem_servico_id", osIds);
+          const produtosMap: Record<string, Array<{ _id: number; _dbId: string; produto_segmento_id: string }>> = {};
+          (produtosData || []).forEach((p: any) => {
+            if (!produtosMap[p.ordem_servico_id]) produtosMap[p.ordem_servico_id] = [];
+            produtosMap[p.ordem_servico_id].push({
+              _id: Date.now() + Math.random(),
+              _dbId: p.id,
+              produto_segmento_id: p.produto_segmento_id,
+            });
+          });
+
           setters.setContracts(
             existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
@@ -168,6 +186,7 @@ export const useClientEditData = (
               observacoes_projeto: os.observacoes || "",
               id_servico: os.id_servico || "",
               id_produto_segmento: os.id_produto_segmento || "",
+              produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
             })),
           );

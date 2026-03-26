@@ -40,12 +40,15 @@ export interface OrdemServico {
   valor_projeto: number | null;
   data_inicio: string | null;
   data_fim: string | null;
+  data_emissao: string | null;
   situacao: string | null;
   id_cliente: string;
   id_servico: string | null;
+  /** @deprecated Legado — usar produtos_contratados */
   id_produto_segmento: string | null;
   excluido: boolean;
   created_at: string;
+  produtos_contratados?: Array<{ id: string; produto_segmento_id: string }>;
   [key: string]: unknown;
 }
 

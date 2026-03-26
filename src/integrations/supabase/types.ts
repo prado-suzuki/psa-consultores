@@ -2161,6 +2161,42 @@ export type Database = {
           },
         ]
       }
+      os_produtos_contratados: {
+        Row: {
+          created_at: string | null
+          id: string
+          ordem_servico_id: string
+          produto_segmento_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ordem_servico_id: string
+          produto_segmento_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ordem_servico_id?: string
+          produto_segmento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_produtos_contratados_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_produtos_contratados_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_permissions: {
         Row: {
           category: string
