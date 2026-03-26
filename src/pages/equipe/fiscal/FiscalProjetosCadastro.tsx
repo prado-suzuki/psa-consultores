@@ -587,17 +587,17 @@ const FiscalProjetosCadastro = () => {
                       : null;
                     return (
                       <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
-                        <TableCell className="truncate max-w-0" title={project.name}>
-                          <div className="flex items-center gap-2 truncate">
+                        <TableCell className="whitespace-normal break-words">
+                          <div className="flex items-center gap-2">
                             <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
-                            <span className="font-medium truncate">{project.name}</span>
+                            <span className="font-medium">{project.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="truncate max-w-0" title={project.servico_contratado || '-'}>
-                          <span className="text-sm truncate block">{project.servico_contratado || '-'}</span>
+                        <TableCell className="whitespace-normal break-words">
+                          <span className="text-sm">{project.servico_contratado || '-'}</span>
                         </TableCell>
-                        <TableCell className="truncate max-w-0" title={project.servico_nome || '-'}>
-                          <span className="text-sm truncate block">{project.servico_nome || '-'}</span>
+                        <TableCell className="whitespace-normal break-words">
+                          <span className="text-sm">{project.servico_nome || '-'}</span>
                         </TableCell>
                         <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
                           {project.external_client ? (
