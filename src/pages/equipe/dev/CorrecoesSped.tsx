@@ -17,8 +17,7 @@ import type { FlatItemEfd, ItemEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
-const formatChaveNfe = (chv: string) =>
-  chv.replace(/(.{4})/g, '$1 ').trim();
+
 
 const relacaoBadge = (tipo: string) => {
   switch (tipo) {
