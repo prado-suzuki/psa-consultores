@@ -195,12 +195,29 @@ const FiscalProjetosCadastro = () => {
   const getOsLabel = (os: OrdemServico): string => os.numero_os || 'Sem número';
 
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
+  const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
 
-  // Resolve produto from selected OS for service filtering
-  const selectedOs = useMemo(() => clienteOS.find(o => getOsId(o) === selectedOsId), [clienteOS, selectedOsId]);
-  const selectedProdutoId = selectedOs?.id_produto_segmento || null;
+  // Fetch produtos contratados for all OS of the selected client
+  const osIds = useMemo(() => clienteOS.map(os => getOsId(os)), [clienteOS]);
+  const { data: osProdutos = [] } = useOsProdutosContratados(osIds);
+  const osProdutosByOs = useMemo(() => groupByOs(osProdutos), [osProdutos]);
 
-  // Fetch serviços vinculados ao produto da OS selecionada
+  // Products of the selected OS
+  const selectedOsProdutos = useMemo(
+    () => selectedOsId ? (osProdutosByOs[selectedOsId] || []) : [],
+    [osProdutosByOs, selectedOsId]
+  );
+
+  // Auto-select produto if OS has exactly 1 product
+  useEffect(() => {
+    if (selectedOsProdutos.length === 1) {
+      setSelectedProdutoId(selectedOsProdutos[0].produto_segmento_id);
+    } else {
+      setSelectedProdutoId(null);
+    }
+  }, [selectedOsProdutos]);
+
+  // Fetch serviços vinculados ao produto selecionado
   interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
   const { data: servicosByProduto = [] } = useQuery({
     queryKey: ['project-servicos-by-produto', selectedProdutoId],
