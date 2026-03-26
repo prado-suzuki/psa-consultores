@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import type { CorrecoesSpedResponse } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, A170Response, D100Response, F100Response } from '@/types/correcoesSped';
 
 interface UseCorrecoesSpedParams {
   id_contribuinte: string;
@@ -9,24 +9,60 @@ interface UseCorrecoesSpedParams {
   dt_fin: string;
 }
 
-export function useCorrecoesSped(params: UseCorrecoesSpedParams) {
+function useCorrecoesQuery<T>(
+  key: string,
+  endpoint: string,
+  params: UseCorrecoesSpedParams,
+) {
   const { fetchWithAuth } = useApiAuth();
 
-  return useQuery<CorrecoesSpedResponse>({
-    queryKey: ['correcoes-sped', params.id_contribuinte, params.dt_ini, params.dt_fin],
+  return useQuery<T>({
+    queryKey: [key, params.id_contribuinte, params.dt_ini, params.dt_fin],
     queryFn: async () => {
       const searchParams = new URLSearchParams({
         id_contribuinte: params.id_contribuinte,
         dt_ini: params.dt_ini,
         dt_fin: params.dt_fin,
       });
-      const url = getApiUrl(`/api/v1/pis_cofins/revisao/notas-itens?${searchParams}`);
+      const url = getApiUrl(`${endpoint}?${searchParams}`);
       const response = await fetchWithAuth(url);
       if (!response.ok) {
-        throw new Error(`Erro ao consultar correções SPED: ${response.status}`);
+        throw new Error(`Erro ao consultar ${key}: ${response.status}`);
       }
       return response.json();
     },
     enabled: false,
   });
+}
+
+export function useCorrecoesSped(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<CorrecoesSpedResponse>(
+    'correcoes-sped',
+    '/api/v1/pis_cofins/revisao/notas-itens',
+    params,
+  );
+}
+
+export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<A170Response>(
+    'correcoes-a170',
+    '/api/v1/pis_cofins/revisao/a170',
+    params,
+  );
+}
+
+export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<D100Response>(
+    'correcoes-d100',
+    '/api/v1/pis_cofins/revisao/d100',
+    params,
+  );
+}
+
+export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<F100Response>(
+    'correcoes-f100',
+    '/api/v1/pis_cofins/revisao/f100',
+    params,
+  );
 }
