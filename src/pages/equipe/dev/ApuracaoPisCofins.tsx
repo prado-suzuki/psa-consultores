@@ -315,8 +315,8 @@ const ApuracaoPisCofins = () => {
               {/* ══════════════ Tab: DÉBITOS ══════════════ */}
               {activeTab === 'debitos' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <ApuracaoDataTable title="Débitos" data={tables.debitosData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Isenções e Exclusões" data={tables.isencoesData} emptyMessage="Nenhuma isenção/exclusão encontrada." {...dataTableProps} />
+                  <ApuracaoDataTable title="Débitos" titleTooltip="CSTs 01 a 10" data={tables.debitosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções e Exclusões" titleTooltip="CSTs 04 a 09" data={tables.isencoesData} emptyMessage="Nenhuma isenção/exclusão encontrada." {...dataTableProps} />
                   <ApuracaoDataTable title="Outras Saídas" data={tables.outrasSaidasData} emptyMessage="Nenhuma outra saída encontrada." {...dataTableProps} />
 
                   <section>
@@ -344,8 +344,8 @@ const ApuracaoPisCofins = () => {
               {/* ══════════════ Tab: CRÉDITOS ══════════════ */}
               {activeTab === 'creditos' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <ApuracaoDataTable title="Créditos" data={tables.creditosData} {...dataTableProps} />
-                  <ApuracaoDataTable title="Isenções e Exclusões do Crédito" data={tables.isencoesCreditoData} emptyMessage="Nenhuma isenção/exclusão de crédito encontrada." {...dataTableProps} />
+                  <ApuracaoDataTable title="Créditos" titleTooltip="CSTs 50 a 66" data={tables.creditosData} {...dataTableProps} />
+                  <ApuracaoDataTable title="Isenções e Exclusões do Crédito" titleTooltip="CSTs 70 a 99" data={tables.isencoesCreditoData} emptyMessage="Nenhuma isenção/exclusão de crédito encontrada." {...dataTableProps} />
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>

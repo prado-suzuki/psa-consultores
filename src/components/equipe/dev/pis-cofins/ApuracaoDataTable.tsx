@@ -1,6 +1,8 @@
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import type { PivotRowGeneric } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
@@ -8,6 +10,7 @@ const formatCurrency = (value: number) =>
 
 interface ApuracaoDataTableProps {
   title?: string;
+  titleTooltip?: string;
   data: PivotRowGeneric[];
   columnsData: { periods: string[]; yearsMap: Map<string, string[]> };
   expandedYear: string | null;
@@ -19,6 +22,7 @@ interface ApuracaoDataTableProps {
 
 export function ApuracaoDataTable({
   title,
+  titleTooltip,
   data,
   columnsData,
   expandedYear,
@@ -48,7 +52,23 @@ export function ApuracaoDataTable({
 
   return (
     <section>
-      {title && <h2 className="text-lg font-bold uppercase mb-4 text-primary">{title}</h2>}
+      {title && (
+        <h2 className="text-lg font-bold uppercase mb-4 text-primary flex items-center gap-1.5">
+          {title}
+          {titleTooltip && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs text-sm">
+                  {titleTooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </h2>
+      )}
       <div className="rounded-md border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
