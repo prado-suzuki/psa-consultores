@@ -587,10 +587,10 @@ const FiscalProjetosCadastro = () => {
                       </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {project.start_date ? format(new Date(project.start_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                        {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {project.end_date ? format(new Date(project.end_date + 'T00:00:00'), 'dd/MM/yyyy') : '-'}
+                        {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
@@ -670,6 +670,10 @@ const FiscalProjetosCadastro = () => {
                         {clienteOS.map((os: any) => {
                           const osId = getOsId(os);
                           const isSelected = selectedOsId === osId;
+                          const osProdList = osProdutosByOs[osId] || [];
+                          const prodLabel = osProdList.length > 0
+                            ? osProdList.map(p => p.produto_codigo).filter(Boolean).join(', ')
+                            : null;
                           return (
                             <div
                               key={osId}
@@ -682,14 +686,9 @@ const FiscalProjetosCadastro = () => {
                             >
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="font-medium text-sm">
-                                  {(() => {
-                                    const p = os.id_produto_segmento
-                                      ? produtoSegmentoFullOptions.find(ps => ps.id === os.id_produto_segmento)
-                                      : null;
-                                    return p
-                                      ? `OS: ${getOsLabel(os)} — ${p.codigo} — ${p.nome}`
-                                      : `OS: ${getOsLabel(os)}`;
-                                  })()}
+                                  {prodLabel
+                                    ? `OS: ${getOsLabel(os)} — ${prodLabel}`
+                                    : `OS: ${getOsLabel(os)}`}
                                 </span>
                                 {getOsSituacaoBadge(os.situacao)}
                               </div>
@@ -697,19 +696,19 @@ const FiscalProjetosCadastro = () => {
                                 {os.data_emissao && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Emissão: {format(new Date(os.data_emissao + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Emissão: {format(parseDate(os.data_emissao), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                                 {os.data_inicio && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Início: {format(new Date(os.data_inicio + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Início: {format(parseDate(os.data_inicio), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                                 {os.data_fim && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Fim: {format(new Date(os.data_fim + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    Fim: {format(parseDate(os.data_fim), 'dd/MM/yyyy')}
                                   </span>
                                 )}
                               </div>
@@ -726,7 +725,33 @@ const FiscalProjetosCadastro = () => {
                   </div>
                 )}
 
-                {/* Serviço (filtrado pelo produto da OS selecionada) */}
+                {/* Produto Contratado (seletor derivado da OS) */}
+                {selectedOsId && selectedOsProdutos.length > 1 && (
+                  <div>
+                    <Label>Produto Contratado *</Label>
+                    <Select
+                      value={selectedProdutoId || '_none'}
+                      onValueChange={(value) => {
+                        setSelectedProdutoId(value === '_none' ? null : value);
+                        setFormData(prev => ({ ...prev, servico_id: '' }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Selecione...</SelectItem>
+                        {selectedOsProdutos.map((p) => (
+                          <SelectItem key={p.produto_segmento_id} value={p.produto_segmento_id}>
+                            {p.produto_codigo} — {p.produto_nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Serviço (filtrado pelo produto selecionado) */}
                 {selectedOsId && (
                   <div>
                     <Label>Serviço</Label>
@@ -738,7 +763,9 @@ const FiscalProjetosCadastro = () => {
                       <SelectTrigger>
                         <SelectValue placeholder={
                           !selectedProdutoId
-                            ? "OS sem produto cadastrado"
+                            ? selectedOsProdutos.length === 0
+                              ? "OS sem produto cadastrado"
+                              : "Selecione um produto primeiro"
                             : "Selecione o serviço"
                         } />
                       </SelectTrigger>
