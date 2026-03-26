@@ -17,8 +17,7 @@ import type { FlatItemEfd, ItemEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
-const formatChaveNfe = (chv: string) =>
-  chv.replace(/(.{4})/g, '$1 ').trim();
+
 
 const relacaoBadge = (tipo: string) => {
   switch (tipo) {
@@ -227,11 +226,12 @@ const CorrecoesSped = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          
-                          <TableHead className="text-[11px] min-w-[300px]">Chave NFe</TableHead>
-                          <TableHead className="text-[11px] min-w-[200px]">Descrição EFD</TableHead>
-                          <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
-                          <TableHead className="text-[11px] text-right min-w-[110px]">Valor EFD</TableHead>
+                          <TableHead className="text-[11px] min-w-[200px]">Descrição (EFD)</TableHead>
+                          <TableHead className="text-[11px] min-w-[100px]">NCM (EFD)</TableHead>
+                          <TableHead className="text-[11px] text-right min-w-[110px]">Valor (EFD)</TableHead>
+                          <TableHead className="text-[11px] min-w-[200px] border-l border-dashed border-border bg-blue-50/50 dark:bg-blue-900/10">Descrição (XML)</TableHead>
+                          <TableHead className="text-[11px] min-w-[100px] bg-blue-50/50 dark:bg-blue-900/10">NCM (XML)</TableHead>
+                          <TableHead className="text-[11px] text-right min-w-[110px] bg-blue-50/50 dark:bg-blue-900/10">Valor (XML)</TableHead>
                           <TableHead className="text-[11px] text-center min-w-[60px]">CST PIS</TableHead>
                           <TableHead className="text-[11px] text-right min-w-[70px]">% PIS</TableHead>
                           <TableHead className="text-[11px] text-right min-w-[100px]">VL PIS</TableHead>
@@ -243,14 +243,12 @@ const CorrecoesSped = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paged.map((item, idx) => (
+                        {paged.map((item, idx) => {
+                          const xml = item.tipo_relacao === '1:1' && item.nfe_itens[0] ? item.nfe_itens[0] : null;
+                          const ncmDivergent = xml && item.cod_ncm && item.cod_ncm !== xml.ncm;
+                          const valueDivergent = xml && Math.abs(item.vl_item - xml.vProd) > 0.01;
+                          return (
                           <TableRow key={`${item.chv_nfe}-${item.num_item}-${idx}`} className="group">
-                            
-                            <TableCell className="py-1.5">
-                              <code className="text-[10px] font-mono text-muted-foreground leading-tight break-all">
-                                {formatChaveNfe(item.chv_nfe)}
-                              </code>
-                            </TableCell>
                             <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.descr_item}>
                               {item.descr_item}
                             </TableCell>
@@ -269,6 +267,21 @@ const CorrecoesSped = () => {
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
                               {formatCurrency(item.vl_item)}
                             </TableCell>
+                            {/* --- Colunas XML --- */}
+                            <TableCell className="text-xs py-1.5 max-w-[200px] truncate border-l border-dashed border-border bg-blue-50/20 dark:bg-blue-900/5" title={xml?.xProd}>
+                              {xml ? xml.xProd : <span className="text-xs text-muted-foreground italic">—</span>}
+                            </TableCell>
+                            <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
+                              {xml ? (
+                                <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
+                                  {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
+                                  {xml.ncm}
+                                </code>
+                              ) : <span className="text-xs text-muted-foreground italic">—</span>}
+                            </TableCell>
+                            <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-900/5 ${valueDivergent ? 'text-amber-600' : ''}`}>
+                              {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground italic">—</span>}
+                            </TableCell>
                             <TableCell className="text-xs text-center py-1.5 font-mono">{item.cst_pis}</TableCell>
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{item.aliq_pis.toFixed(2)}</TableCell>
                             <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.vl_pis)}</TableCell>
@@ -285,7 +298,8 @@ const CorrecoesSped = () => {
                               </button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
