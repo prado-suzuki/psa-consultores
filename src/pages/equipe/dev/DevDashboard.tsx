@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +11,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-
-/* ── catálogo de ferramentas ─────────────────────────────── */
 interface ToolEntry {
   name: string;
   description: string;
@@ -20,63 +18,103 @@ interface ToolEntry {
   sopUrl?: string;
 }
 
-const tools: ToolEntry[] = [
+interface ToolGroup {
+  label: string;
+  tools: ToolEntry[];
+}
+
+const toolGroups: ToolGroup[] = [
   {
-    name: 'Consulta de XMLs',
-    description: 'Busque e visualize documentos fiscais eletrônicos',
-    path: '/equipe/dev/consulta-xmls',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
+    label: 'Consulta SPED',
+    tools: [
+      {
+        name: 'EFD Contribuições',
+        description: 'Consulta e análise de escrituração fiscal digital',
+        path: '/equipe/dev/consulta-efd',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
+      },
+      {
+        name: 'EFD ICMS/IPI',
+        description: 'Consulta de EFD ICMS/IPI por contribuinte',
+        path: '/equipe/dev/consulta-efd-icms',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
+      },
+      {
+        name: 'ECD',
+        description: 'Consulta de Escrituração Contábil Digital',
+        path: '/equipe/dev/consulta-ecd',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
+      },
+      {
+        name: 'ECF',
+        description: 'Consulta de Escrituração Contábil Fiscal',
+        path: '/equipe/dev/consulta-ecf',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
+      },
+    ],
   },
   {
-    name: 'DIFAL Inteligente',
-    description: 'Auditoria automatizada de DIFAL por NCM',
-    path: '/equipe/dev/auditoria-fiscal',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
+    label: 'Levantamento de Créditos',
+    tools: [
+      {
+        name: 'Mapa NCM (PIS/COFINS)',
+        description: 'Regras de crédito por NCM para PIS e COFINS',
+        path: '/equipe/dev/mapa-ncm-pis-cofins',
+      },
+      {
+        name: 'Apuração PIS/COFINS',
+        description: 'Cálculo de apuração do cliente',
+        path: '/equipe/dev/apuracao-pis-cofins',
+      },
+      {
+        name: 'Auditoria Cruzada',
+        description: 'Cruzamento de dados fiscais e contábeis',
+        path: '/equipe/dev/cruzamento-dados',
+      },
+      {
+        name: 'Revisão de Registros',
+        description: 'Revisão e correção de registros SPED',
+        path: '/equipe/dev/correcoes-sped',
+      },
+    ],
   },
   {
-    name: 'EFD Contribuições',
-    description: 'Consulta e análise de escrituração fiscal digital',
-    path: '/equipe/dev/consulta-efd',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
+    label: 'DIFAL Inteligente',
+    tools: [
+      {
+        name: 'DIFAL Inteligente',
+        description: 'Auditoria automatizada de DIFAL por NCM',
+        path: '/equipe/dev/auditoria-fiscal',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
+      },
+    ],
   },
   {
-    name: 'EFD ICMS/IPI',
-    description: 'Consulta de EFD ICMS/IPI por contribuinte',
-    path: '/equipe/dev/consulta-efd-icms',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
-  },
-  {
-    name: 'ECD',
-    description: 'Consulta de Escrituração Contábil Digital',
-    path: '/equipe/dev/consulta-ecd',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
-  },
-  {
-    name: 'ECF',
-    description: 'Consulta de Escrituração Contábil Fiscal',
-    path: '/equipe/dev/consulta-ecf',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
-  },
-  {
-    name: 'Calculadora IBS/CBS',
-    description: 'Simulador de cálculo da reforma tributária',
-    path: '/equipe/dev/calculadora-ibs-cbs',
-  },
-  {
-    name: 'Controle PER/DCOMP',
-    description: 'Gestão de pedidos de restituição e compensação',
-    path: '/equipe/dev/controle-perdcomp',
-    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp',
-  },
-  {
-    name: 'Controle de Balancetes',
-    description: 'Upload e gestão de balancetes contábeis',
-    path: '/equipe/dev/controle-balancetes',
-  },
-  {
-    name: 'Gerenciar dados',
-    description: 'Importe ou limpe tabelas cliente/contribuinte',
-    path: '/equipe/dev/gerenciar-dados',
+    label: 'Outros',
+    tools: [
+      {
+        name: 'Consulta de XMLs',
+        description: 'Busque e visualize documentos fiscais eletrônicos',
+        path: '/equipe/dev/consulta-xmls',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
+      },
+      {
+        name: 'Calculadora IBS/CBS',
+        description: 'Simulador de cálculo da reforma tributária',
+        path: '/equipe/dev/calculadora-ibs-cbs',
+      },
+      {
+        name: 'Controle PER/DCOMP',
+        description: 'Gestão de pedidos de restituição e compensação',
+        path: '/equipe/dev/controle-perdcomp',
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp',
+      },
+      {
+        name: 'Controle de Balancetes',
+        description: 'Upload e gestão de balancetes contábeis',
+        path: '/equipe/dev/controle-balancetes',
+      },
+    ],
   },
 ];
 
@@ -84,26 +122,31 @@ const DevDashboard = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
-  const filteredTools = tools.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredGroups = useMemo(() => {
+    const q = search.toLowerCase();
+    return toolGroups
+      .map((group) => ({
+        ...group,
+        tools: group.tools.filter((t) => t.name.toLowerCase().includes(q)),
+      }))
+      .filter((group) => group.tools.length > 0);
+  }, [search]);
+
+  const totalFiltered = filteredGroups.reduce((sum, g) => sum + g.tools.length, 0);
 
   return (
     <DevLayout
       title="Início"
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
-      {/* ── Hub de Ferramentas ────────────────────────────── */}
       <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-base font-semibold text-slate-700">
-          Ferramentas
-        </h2>
+        <h2 className="text-base font-semibold text-slate-700">Ferramentas</h2>
         <Badge variant="secondary" className="text-[11px]">
-          {filteredTools.length}
+          {totalFiltered}
         </Badge>
       </div>
 
-      <div className="relative mb-4">
+      <div className="relative mb-5">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           placeholder="Buscar ferramenta pelo nome..."
@@ -113,50 +156,65 @@ const DevDashboard = () => {
         />
       </div>
 
-      {filteredTools.length === 0 ? (
+      {filteredGroups.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Search className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p>Nenhuma ferramenta encontrada para "{search}"</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filteredTools.map((tool) => (
-            <Card
-              key={tool.path}
-              className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="p-3 pb-1">
-                <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
-                <CardDescription className="text-[11px] text-slate-500 mt-0.5">
-                  {tool.description}
-                </CardDescription>
+        <div className="space-y-4">
+          {filteredGroups.map((group) => (
+            <Card key={group.label} className="shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold text-slate-700">
+                    {group.label}
+                  </CardTitle>
+                  <Badge variant="outline" className="text-[10px]">
+                    {group.tools.length}
+                  </Badge>
+                </div>
               </CardHeader>
-              <CardContent className="p-3 pt-0 flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  onClick={() => navigate(tool.path)}
-                  className="gap-1 h-7 text-xs px-2"
-                >
-                  Acessar
-                  <ArrowRight className="h-3 w-3" />
-                </Button>
-                {tool.sopUrl && (
-                  <a
-                    href={tool.sopUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-teal-600 hover:text-teal-700 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
-                  >
-                    SOP
-                    <ExternalLink className="h-2.5 w-2.5" />
-                  </a>
-                )}
+              <CardContent className="p-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {group.tools.map((tool) => (
+                    <Card
+                      key={tool.path}
+                      className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{tool.description}</p>
+                      </CardHeader>
+                      <CardContent className="p-3 pt-0 flex items-center gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(tool.path)}
+                          className="gap-1 h-7 text-xs px-2"
+                        >
+                          Acessar
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
+                        {tool.sopUrl && (
+                          <a
+                            href={tool.sopUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal-600 hover:text-teal-700 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
+                          >
+                            SOP
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-
     </DevLayout>
   );
 };
