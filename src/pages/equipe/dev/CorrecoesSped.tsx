@@ -257,18 +257,12 @@ const CorrecoesSped = () => {
                             </TableCell>
                             {/* --- Colunas XML --- */}
                             <TableCell className="text-xs py-1.5 max-w-[200px] truncate border-l border-dashed border-border bg-blue-50/20 dark:bg-blue-900/5" title={xml?.xProd}>
-                              {xml ? xml.xProd : <span className="text-xs text-muted-foreground italic">—</span>}
-                            </TableCell>
-                            <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
                               {xml ? (
                                 <button
                                   onClick={() => setSelectedItem(item)}
-                                  className="cursor-pointer hover:underline text-left"
+                                  className="cursor-pointer hover:underline text-left truncate max-w-[200px] block"
                                 >
-                                  <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
-                                    {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
-                                    {xml.ncm}
-                                  </code>
+                                  {xml.xProd}
                                 </button>
                               ) : item.tipo_relacao === 'CONSOLIDADO' ? (
                                 <button
@@ -282,6 +276,14 @@ const CorrecoesSped = () => {
                               ) : (
                                 <span className="text-xs text-muted-foreground italic">—</span>
                               )}
+                            </TableCell>
+                            <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-900/5">
+                              {xml ? (
+                                <code className={`text-xs font-mono ${ncmDivergent ? 'text-red-600' : ''}`}>
+                                  {ncmDivergent && <AlertCircle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
+                                  {xml.ncm}
+                                </code>
+                              ) : <span className="text-xs text-muted-foreground italic">—</span>}
                             </TableCell>
                             <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-900/5 ${valueDivergent ? 'text-amber-600' : ''}`}>
                               {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground italic">—</span>}
