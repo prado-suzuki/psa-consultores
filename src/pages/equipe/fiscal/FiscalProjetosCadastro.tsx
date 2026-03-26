@@ -536,22 +536,22 @@ const FiscalProjetosCadastro = () => {
         {/* Projects Table */}
         <Card>
           <CardContent className="p-0">
-            <Table>
+             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Projeto<SortIcon column="name" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <TableHead style={{ width: '15%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                  <TableHead style={{ width: '13%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
                     <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                     <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('area')}>
+                  <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('executor')}>
@@ -560,11 +560,11 @@ const FiscalProjetosCadastro = () => {
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('lider')}>
                     <div className="flex items-center">Líder<SortIcon column="lider" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('status')}>
+                  <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
                   </TableHead>
-                  <TableHead>Início</TableHead>
-                  <TableHead>Término</TableHead>
+                  <TableHead className="whitespace-nowrap">Início</TableHead>
+                  <TableHead className="whitespace-nowrap">Término</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -585,63 +585,63 @@ const FiscalProjetosCadastro = () => {
                 ) : (
                   filteredProjects.map((project: any) => (
                     <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FolderKanban className="h-4 w-4 text-emerald-600" />
-                          <span className="font-medium">{project.name}</span>
+                      <TableCell className="truncate max-w-0" title={project.name}>
+                        <div className="flex items-center gap-2 truncate">
+                          <FolderKanban className="h-4 w-4 shrink-0 text-emerald-600" />
+                          <span className="font-medium truncate">{project.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{project.servico_contratado || '-'}</span>
+                      <TableCell className="truncate max-w-0" title={project.servico_contratado || '-'}>
+                        <span className="text-sm truncate block">{project.servico_contratado || '-'}</span>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{project.servico_nome || '-'}</span>
+                      <TableCell className="truncate max-w-0" title={project.servico_nome || '-'}>
+                        <span className="text-sm truncate block">{project.servico_nome || '-'}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
                         {project.external_client ? (
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">{project.external_client.nome}</span>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm truncate">{project.external_client.nome}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span className="text-sm">{getAreaLabel(project)}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="break-words">
                         {project.responsible ? (
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm break-words">
                               {project.responsible.first_name} {project.responsible.last_name}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="break-words">
                         {project.leader ? (
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-sm">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-sm break-words">
                               {project.leader.first_name} {project.leader.last_name}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{getStatusBadge(project.status)}</TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yyyy') : '-'}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {projectHours[project.id] ? `${projectHours[project.id]}h` : '-'}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
