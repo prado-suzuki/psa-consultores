@@ -536,22 +536,22 @@ const FiscalProjetosCadastro = () => {
         {/* Projects Table */}
         <Card>
           <CardContent className="p-0">
-            <Table>
+             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Projeto<SortIcon column="name" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <TableHead style={{ width: '15%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                  <TableHead style={{ width: '13%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
                     <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                     <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('area')}>
+                  <TableHead style={{ width: '10%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('executor')}>
@@ -560,11 +560,11 @@ const FiscalProjetosCadastro = () => {
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('lider')}>
                     <div className="flex items-center">Líder<SortIcon column="lider" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('status')}>
+                  <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
                   </TableHead>
-                  <TableHead>Início</TableHead>
-                  <TableHead>Término</TableHead>
+                  <TableHead className="whitespace-nowrap">Início</TableHead>
+                  <TableHead className="whitespace-nowrap">Término</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
