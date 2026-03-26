@@ -123,6 +123,7 @@ const FiscalProjetosCadastro = () => {
     switch (col) {
       case 'name': return project.name || '';
       case 'produto': return project.servico_contratado || '';
+      case 'servico': return project.servico_nome || '';
       case 'cliente': return project.external_client?.nome || '';
       case 'area': return project.area_ref?.name || '';
       case 'responsavel': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
@@ -518,6 +519,9 @@ const FiscalProjetosCadastro = () => {
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
                     <div className="flex items-center">Produto<SortIcon column="produto" /></div>
                   </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                    <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
+                  </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                     <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                   </TableHead>
@@ -560,6 +564,9 @@ const FiscalProjetosCadastro = () => {
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">{project.servico_contratado || '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{project.servico_nome || '-'}</span>
                       </TableCell>
                       <TableCell>
                         {project.external_client ? (
