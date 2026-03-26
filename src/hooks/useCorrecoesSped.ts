@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import type { CorrecoesSpedResponse, A170Response, D100Response, F100Response } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, A170Item, D100Item, F100Item } from '@/types/correcoesSped';
 
 interface UseCorrecoesSpedParams {
   id_contribuinte: string;
@@ -44,25 +44,25 @@ export function useCorrecoesSped(params: UseCorrecoesSpedParams) {
 }
 
 export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<A170Response>(
+  return useCorrecoesQuery<A170Item[]>(
     'correcoes-a170',
-    '/api/v1/pis_cofins/revisao/servicos-notas',
+    '/api/v1/pis_cofins/revisao/servicos_itens',
     params,
   );
 }
 
 export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<D100Response>(
+  return useCorrecoesQuery<D100Item[]>(
     'correcoes-d100',
-    '/api/v1/pis_cofins/revisao/transportes',
+    '/api/v1/pis_cofins/revisao/transp',
     params,
   );
 }
 
 export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<F100Response>(
+  return useCorrecoesQuery<F100Item[]>(
     'correcoes-f100',
-    '/api/v1/pis_cofins/revisao/outros-documentos',
+    '/api/v1/pis_cofins/revisao/transp_outros',
     params,
   );
 }
