@@ -133,7 +133,7 @@ const AuditoriaFiscal = () => {
         .eq("ativo", true)
         .eq("excluido", false)
         .eq("ambiente", currentAmbiente)
-        .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
+        .or(CLIENTES_PERMITIDOS_NOMES.map(n => `nome.ilike.${n}`).join(','))
         .order("nome");
 
       if (error) throw error;
