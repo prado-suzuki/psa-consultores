@@ -162,6 +162,10 @@ const ApuracaoPisCofins = () => {
         return;
       }
     }
+    // Commit current filter values so the query uses them
+    setCommittedContribuinte(selectedContribuinte);
+    setCommittedMesInicio(mesInicio);
+    setCommittedMesFim(mesFim);
     setSearchTriggered(true);
   };
 
@@ -170,6 +174,9 @@ const ApuracaoPisCofins = () => {
     setSelectedContribuinte('');
     setMesInicio(null);
     setMesFim(null);
+    setCommittedContribuinte('');
+    setCommittedMesInicio(null);
+    setCommittedMesFim(null);
     setSearchTriggered(false);
     setExpandedYear(null);
   };
