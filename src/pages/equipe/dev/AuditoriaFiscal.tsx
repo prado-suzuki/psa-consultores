@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useApiAuth } from "@/hooks/useApiAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { currentAmbiente } from "@/config/api";
 import { API_BASE_URL } from "@/config/api";
 import { cn } from "@/lib/utils";
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -130,6 +131,8 @@ const AuditoriaFiscal = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
         .order("nome");
 
@@ -148,6 +151,7 @@ const AuditoriaFiscal = () => {
         .select("id, nome_razao_social, cpf_cnpj")
         .eq("cliente_id", selectedCliente)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .order("nome_razao_social");
 
       if (error) throw error;

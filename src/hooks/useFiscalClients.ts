@@ -25,6 +25,7 @@ export function useFiscalClientsList() {
         .from('cliente')
         .select('*')
         .eq('ativo', true)
+        .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
 

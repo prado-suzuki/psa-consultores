@@ -60,6 +60,7 @@ export const useContribuintesByCliente = (clienteId: string | null | undefined) 
         .select('id, nome_razao_social, cpf_cnpj')
         .eq('cliente_id', clienteId)
         .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
       return (data || []) as ContribuinteListItem[];
@@ -77,6 +78,7 @@ export const useExternalClients = (editingClientId?: string | null) => {
         .from('cliente')
         .select('id, nome, setor_cliente')
         .eq('ativo', true)
+        .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;

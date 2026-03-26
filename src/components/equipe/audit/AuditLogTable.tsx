@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
@@ -95,7 +96,9 @@ function useLookupMaps(): LookupMaps {
     queryFn: async () => {
       const { data } = await supabase
         .from('cliente')
-        .select('id, nome');
+        .select('id, nome')
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
     },
   });
@@ -106,7 +109,8 @@ function useLookupMaps(): LookupMaps {
       const { data } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social')
-        .eq('excluido', false);
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente);
       return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
     },
   });
