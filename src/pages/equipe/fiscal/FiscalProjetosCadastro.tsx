@@ -247,9 +247,10 @@ const FiscalProjetosCadastro = () => {
     }
   }, [clienteOS, formData.external_client_id]);
 
-  // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico
+  // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico + clear produto
   useEffect(() => {
     setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
+    setSelectedProdutoId(null);
     if (!selectedOsId || editingProject) return;
     const os = clienteOS.find((o) => getOsId(o) === selectedOsId);
     if (!os) return;
