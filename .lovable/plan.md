@@ -1,31 +1,43 @@
 
 
-## Plano: Ajustar espaçamentos e larguras na tabela de projetos
+## Plano: Otimizar tabela de projetos — unificar colunas e responsividade
 
 ### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-A coluna "Serviço" já existe na tabela e o `servico_nome` já é resolvido no hook. O ajuste é apenas de larguras e truncamento.
+**1. Unificar "Executor" e "Líder" em coluna "Equipe"**
 
-**Alterações nas colunas do `TableHeader` e `TableBody`:**
+Substituir as duas colunas separadas por uma única que empilha as informações:
 
-| Coluna | width | Truncamento |
-|--------|-------|-------------|
-| Projeto | 18% | `truncate max-w-0` + `title` |
-| Produto | 15% | `truncate max-w-0` + `title` |
-| Serviço | 13% | `truncate max-w-0` + `title` |
-| Cliente | 12% | `truncate max-w-0` + `title` |
-| Área | 10% | `whitespace-nowrap` |
-| Executor | w-auto | `break-words` (responsável) |
-| Líder | w-auto | `break-words` |
-| Status | w-auto | `whitespace-nowrap` |
-| Início | w-auto | `whitespace-nowrap` |
-| Término | w-auto | `whitespace-nowrap` |
-| Horas | w-auto | — |
-| Ações | w-auto | — |
+```text
+Ricardo Migueis
+  (executor)
+Felipe Matias
+  (líder)
+```
 
-**Implementação:**
-- Adicionar `style={{ width: 'X%' }}` nos `TableHead` das colunas principais
-- Nas `TableCell` correspondentes, usar `className="truncate max-w-0"` e envolver o conteúdo com `title={texto}` para tooltip nativo
-- Para Executor/Líder, usar `break-all` ou `break-words`
-- Adicionar `table-fixed` na `Table` para forçar larguras proporcionais
+- Nome em `text-sm`, label em `text-xs text-muted-foreground`
+- Sorting pela coluna "equipe" ordena pelo nome do executor (primário)
+
+**2. Remover coluna "Horas"** (todos exibem "-", sem dados úteis)
+
+**3. Larguras revisadas** (table-fixed mantido):
+
+| Coluna | Largura |
+|--------|---------|
+| Projeto | 20% |
+| Produto | 16% |
+| Serviço | 14% |
+| Cliente | 13% |
+| Área | 10% |
+| Equipe | 12% |
+| Status | 5% |
+| Início | 5% |
+| Término | 5% |
+
+**4. Scroll horizontal** — adicionar `overflow-x-auto` e `min-w-[900px]` na tabela para telas pequenas não comprimirem.
+
+**5. Ajustes menores:**
+- Atualizar `colSpan` das linhas de loading/empty de 12 para 9
+- Remover referência a `projectHours` na tabela (hook pode continuar importado se usado em outro lugar)
+- Atualizar `getSortValue` para remover case `lider` separado e usar `executor` na coluna equipe
 
