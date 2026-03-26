@@ -1,84 +1,31 @@
 
 
-## Plano: Agrupar ferramentas em categorias no Hub
+## Plano: Ajustar espaçamentos e larguras na tabela de projetos
 
-### Alterações em `src/pages/equipe/dev/DevDashboard.tsx`
+### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-**1. Estrutura de dados** — substituir o array flat `tools` por `toolGroups`:
+A coluna "Serviço" já existe na tabela e o `servico_nome` já é resolvido no hook. O ajuste é apenas de larguras e truncamento.
 
-```ts
-interface ToolGroup {
-  label: string;
-  tools: ToolEntry[];
-}
+**Alterações nas colunas do `TableHeader` e `TableBody`:**
 
-const toolGroups: ToolGroup[] = [
-  {
-    label: 'Consulta SPED',
-    tools: [
-      { name: 'EFD Contribuições', description: '...', path: '...', sopUrl: '...' },
-      { name: 'EFD ICMS/IPI', ... },
-      { name: 'ECD', ... },
-      { name: 'ECF', ... },
-    ],
-  },
-  {
-    label: 'Levantamento de Créditos',
-    tools: [
-      { name: 'Mapa NCM (PIS/COFINS)', path: '/equipe/dev/mapa-ncm-pis-cofins' },
-      { name: 'Apuração PIS/COFINS', path: '/equipe/dev/apuracao-pis-cofins' },
-      { name: 'Auditoria Cruzada', path: '/equipe/dev/cruzamento-dados' },
-      { name: 'Revisão de Registros', path: '/equipe/dev/correcoes-sped' },
-    ],
-  },
-  {
-    label: 'DIFAL Inteligente',
-    tools: [
-      { name: 'DIFAL Inteligente', description: 'Auditoria automatizada de DIFAL por NCM', ... },
-    ],
-  },
-  {
-    label: 'Outros',
-    tools: [
-      { name: 'Consulta de XMLs', ... },
-      { name: 'Calculadora IBS/CBS', ... },
-      { name: 'Controle PER/DCOMP', ... },
-      { name: 'Controle de Balancetes', ... },
-    ],
-  },
-];
-```
+| Coluna | width | Truncamento |
+|--------|-------|-------------|
+| Projeto | 18% | `truncate max-w-0` + `title` |
+| Produto | 15% | `truncate max-w-0` + `title` |
+| Serviço | 13% | `truncate max-w-0` + `title` |
+| Cliente | 12% | `truncate max-w-0` + `title` |
+| Área | 10% | `whitespace-nowrap` |
+| Executor | w-auto | `break-words` (responsável) |
+| Líder | w-auto | `break-words` |
+| Status | w-auto | `whitespace-nowrap` |
+| Início | w-auto | `whitespace-nowrap` |
+| Término | w-auto | `whitespace-nowrap` |
+| Horas | w-auto | — |
+| Ações | w-auto | — |
 
-Nota: **Gerenciar dados** removido do hub. **DIFAL Inteligente** fica como card de grupo proprio (mesmo com 1 ferramenta).
-
-**2. Busca global** — filtrar ferramentas dentro de cada grupo pelo texto digitado; ocultar grupos sem correspondencia; badge no topo mostra total filtrado somando todos os grupos.
-
-**3. Layout visual**:
-
-```text
-┌─ Consulta SPED ─────────────────────────────────┐
-│  ┌──────────┐ ┌──────────┐ ┌─────┐ ┌─────┐     │
-│  │EFD Contr.│ │EFD ICMS  │ │ ECD │ │ ECF │     │
-│  └──────────┘ └──────────┘ └─────┘ └─────┘     │
-└─────────────────────────────────────────────────┘
-┌─ Levantamento de Créditos ──────────────────────┐
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────┐ │
-│  │Mapa NCM  │ │Apuração  │ │Audit.Cruz│ │Rev.│ │
-│  └──────────┘ └──────────┘ └──────────┘ └────┘ │
-└─────────────────────────────────────────────────┘
-┌─ DIFAL Inteligente ─────────────────────────────┐
-│  ┌────────────────────┐                         │
-│  │DIFAL Inteligente   │                         │
-│  └────────────────────┘                         │
-└─────────────────────────────────────────────────┘
-┌─ Outros ────────────────────────────────────────┐
-│  ┌────────┐ ┌──────────┐ ┌──────────┐ ┌──────┐ │
-│  │XMLs    │ │IBS/CBS   │ │PERDCOMP  │ │Bal.  │ │
-│  └────────┘ └──────────┘ └──────────┘ └──────┘ │
-└─────────────────────────────────────────────────┘
-```
-
-Cada grupo e um `Card` com `CardHeader` (titulo + badge de contagem) e `CardContent` com grid responsivo (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`). Dentro do grid, cada ferramenta mantem o mini-card atual (nome, descricao, botao Acessar, link SOP).
-
-**4. Mensagem vazia** — se a busca global nao encontrar nada em nenhum grupo, mostrar o placeholder "Nenhuma ferramenta encontrada".
+**Implementação:**
+- Adicionar `style={{ width: 'X%' }}` nos `TableHead` das colunas principais
+- Nas `TableCell` correspondentes, usar `className="truncate max-w-0"` e envolver o conteúdo com `title={texto}` para tooltip nativo
+- Para Executor/Líder, usar `break-all` ou `break-words`
+- Adicionar `table-fixed` na `Table` para forçar larguras proporcionais
 
