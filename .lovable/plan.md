@@ -1,17 +1,19 @@
 
 
-## Plano: Adicionar SOPs e remover ícones no Hub de Ferramentas
+## Plano: Reorganizar aba Início do Dev Hub
 
-### Alterações em `src/pages/equipe/dev/DevDashboard.tsx`
+### Alterações
 
-**1. Adicionar `sopUrl` às ferramentas:**
-- EFD ICMS/IPI: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/`
-- ECD: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/`
-- ECF: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/`
-- Controle PER/DCOMP: `https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp`
+**Arquivo 1: `src/components/equipe/dev/DevLayout.tsx`**
+- Renomear label `"Dashboard"` para `"Início"` no `navItems` (L48)
 
-**2. Remover ícones de todas as ferramentas:**
-- Remover props `icon` e `iconBg` do tipo `ToolEntry` e de cada item do array `tools`
-- Remover o `<div>` com ícone no card (`tool.iconBg` / `tool.icon`)
-- Remover imports de ícones Lucide não utilizados (FileText, ShieldAlert, BookOpen, Calculator, Database, BarChart3, FileCheck, Receipt)
+**Arquivo 2: `src/pages/equipe/dev/DevDashboard.tsx`**
+- Trocar título do `DevLayout` de `"Hub de Ferramentas"` para `"Início"`
+- Reorganizar layout: ferramentas no topo, sessões em andamento embaixo
+- Seção "Sessões em Andamento":
+  - Card externo: trocar `border-amber-200 bg-amber-50/60` para `border-teal-200 bg-teal-50/60` (verde claro, tom da marca)
+  - Título e descrição: fonte preta (`text-slate-900` / `text-slate-700`)
+  - Cada card interno de ferramenta pendente: manter fundo amarelo (`bg-amber-50 border-amber-200`) para destacar o item em aberto
+  - Ícone Clock interno: manter amarelo
+  - Manter botão "Retomar"
 
