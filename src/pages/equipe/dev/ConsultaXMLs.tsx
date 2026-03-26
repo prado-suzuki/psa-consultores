@@ -227,6 +227,7 @@ const ConsultaXMLs = () => {
     setEmitente("");
     setDestinatario("");
     setChaveAcesso("");
+    setCommittedChave("");
     setSearchTriggered(false);
     setCurrentPage(1);
     toast({
