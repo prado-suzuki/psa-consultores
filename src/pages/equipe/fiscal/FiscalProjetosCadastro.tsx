@@ -76,6 +76,7 @@ const emptyForm = {
   start_date: '',
   end_date: '',
   leader_ids: [] as string[],
+  responsible_id: '',
   external_client_id: '',
   estrutura_area_id: '',
   member_ids: [] as string[],
@@ -126,7 +127,8 @@ const FiscalProjetosCadastro = () => {
       case 'servico': return project.servico_nome || '';
       case 'cliente': return project.external_client?.nome || '';
       case 'area': return project.area_ref?.name || '';
-      case 'responsavel': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'executor': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'lider': return project.leader ? `${project.leader.first_name} ${project.leader.last_name}` : '';
       case 'status': return project.status || '';
       default: return '';
     }
@@ -319,6 +321,25 @@ const FiscalProjetosCadastro = () => {
     return allLideres;
   }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
 
+  // Executores: only team_member or sublider (never lider/admin)
+  const executores = useMemo(() => {
+    const excludedRoles = new Set(['lider', 'admin']);
+    const allowedRoles = new Set(['team_member', 'sublider']);
+    const roleMap = new Map(userRoles.map(r => [r.user_id, r.role]));
+    const eligible = teamMembers.filter(m => {
+      const role = roleMap.get(m.id);
+      if (!role) return false;
+      if (excludedRoles.has(role)) return false;
+      return allowedRoles.has(role);
+    });
+    if (estruturaAreaId && areaMemberIds.length > 0) {
+      const areaSet = new Set(areaMemberIds);
+      const filtered = eligible.filter(m => areaSet.has(m.id) || m.id === formData.responsible_id);
+      return filtered.length > 0 ? filtered : eligible;
+    }
+    return eligible;
+  }, [teamMembers, userRoles, estruturaAreaId, areaMemberIds, formData.responsible_id]);
+
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
@@ -330,6 +351,7 @@ const FiscalProjetosCadastro = () => {
         start_date: project.start_date || '',
         end_date: project.end_date || '',
         leader_ids: [],
+        responsible_id: project.responsible_id || '',
         external_client_id: project.external_client_id || '',
         estrutura_area_id: project.estrutura_area_id || '',
         member_ids: [],
@@ -356,6 +378,10 @@ const FiscalProjetosCadastro = () => {
     }
     if (formData.leader_ids.length === 0) {
       toast.error('Selecione ao menos um Líder Geral');
+      return;
+    }
+    if (!formData.responsible_id) {
+      toast.error('Selecione o Responsável Executor');
       return;
     }
     if (editingProject) {
@@ -528,8 +554,11 @@ const FiscalProjetosCadastro = () => {
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('area')}>
                     <div className="flex items-center">Área<SortIcon column="area" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('responsavel')}>
-                    <div className="flex items-center">Responsável<SortIcon column="responsavel" /></div>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('executor')}>
+                    <div className="flex items-center">Executor<SortIcon column="executor" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('lider')}>
+                    <div className="flex items-center">Líder<SortIcon column="lider" /></div>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('status')}>
                     <div className="flex items-center">Status<SortIcon column="status" /></div>
@@ -543,13 +572,13 @@ const FiscalProjetosCadastro = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       Carregando projetos...
                     </TableCell>
                   </TableRow>
                 ) : filteredProjects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
                     </TableCell>
                   </TableRow>
@@ -587,6 +616,18 @@ const FiscalProjetosCadastro = () => {
                             <User className="h-3.5 w-3.5 text-slate-400" />
                             <span className="text-sm">
                               {project.responsible.first_name} {project.responsible.last_name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {project.leader ? (
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-sm">
+                              {project.leader.first_name} {project.leader.last_name}
                             </span>
                           </div>
                         ) : (
@@ -921,7 +962,27 @@ const FiscalProjetosCadastro = () => {
                   </Popover>
                 </div>
 
-                {/* Membros do Projeto */}
+                {/* Responsável Executor */}
+                <div>
+                  <Label>Responsável Executor *</Label>
+                  <Select
+                    value={formData.responsible_id}
+                    onValueChange={(value) => setFormData({ ...formData, responsible_id: value === '_none' ? '' : value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Selecione o executor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Selecione...</SelectItem>
+                      {executores.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.first_name} {member.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>Membros do Projeto</Label>
