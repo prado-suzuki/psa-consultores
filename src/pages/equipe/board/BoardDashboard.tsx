@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -137,9 +137,14 @@ const BoardDashboard = () => {
   const getPbColor = (pct: number) => pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
   const getTextColor = (pct: number) => pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
 
+  // Re-trigger reveal when loading finishes
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    revealRef(node);
+  }, [anyLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <BoardLayout title="Dashboard" subtitle="Visao Executiva">
-      <div ref={revealRef} style={{ background: 'var(--board-v4-page)' }}>
+      <div ref={containerRef} style={{ background: 'var(--board-v4-page)' }}>
         {/* Header */}
         <div className="pg-head" data-reveal>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
