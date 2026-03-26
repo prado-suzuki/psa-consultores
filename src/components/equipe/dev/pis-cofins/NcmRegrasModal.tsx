@@ -32,11 +32,9 @@ interface NcmRegrasModalProps {
 /* ── Card colapsável de regra ── */
 const RegraCard = ({
   regra,
-  setorNome,
   onEdit,
 }: {
   regra: RegraNCMRow;
-  setorNome: string;
   onEdit: () => void;
 }) => {
   const [open, setOpen] = useState(false);
@@ -47,10 +45,12 @@ const RegraCard = ({
         <CollapsibleTrigger asChild>
           <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              <span className="text-sm font-medium truncate">{setorNome}</span>
               <Badge variant="outline" className="font-mono text-[11px] shrink-0">
                 CST {regra.cst_pis}
               </Badge>
+              <span className="text-xs text-muted-foreground truncate min-w-0 max-w-[200px]">
+                {regra.desc_cst || '—'}
+              </span>
               {regra.permite_credito === 'S' ? (
                 <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[11px] shrink-0">
                   Crédito
@@ -59,6 +59,11 @@ const RegraCard = ({
                 <Badge variant="secondary" className="text-[11px] shrink-0">
                   Sem crédito
                 </Badge>
+              )}
+              {regra.base_legal && (
+                <span className="text-[11px] text-muted-foreground/70 truncate min-w-0 max-w-[250px] hidden sm:inline" title={regra.base_legal}>
+                  {regra.base_legal}
+                </span>
               )}
             </div>
             <ChevronDown
@@ -201,7 +206,6 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm }: NcmRegrasModalProps)
                 <RegraCard
                   key={regra.id}
                   regra={regra}
-                  setorNome={setorMap[regra.id_segmento ?? '']?.nome ?? 'Sem setor'}
                   onEdit={() => openEdit(regra)}
                 />
               ))
