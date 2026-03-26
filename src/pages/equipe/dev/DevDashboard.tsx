@@ -8,17 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import {
   Clock,
   Search,
-  FileText,
-  ShieldAlert,
-  BookOpen,
-  Calculator,
-  Database,
-  BarChart3,
-  FileCheck,
-  ExternalLink,
   ArrowRight,
   Wrench,
-  Receipt,
+  ExternalLink,
 } from 'lucide-react';
 
 /* ── mock: sessões pendentes ─────────────────────────────── */
@@ -42,8 +34,6 @@ interface ToolEntry {
   name: string;
   description: string;
   path: string;
-  icon: React.ReactNode;
-  iconBg: string;
   sopUrl?: string;
 }
 
@@ -52,74 +42,58 @@ const tools: ToolEntry[] = [
     name: 'Consulta de XMLs',
     description: 'Busque e visualize documentos fiscais eletrônicos',
     path: '/equipe/dev/consulta-xmls',
-    icon: <FileText className="h-5 w-5 text-blue-600" />,
-    iconBg: 'bg-blue-100',
     sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
   },
   {
     name: 'DIFAL Inteligente',
     description: 'Auditoria automatizada de DIFAL por NCM',
     path: '/equipe/dev/auditoria-fiscal',
-    icon: <ShieldAlert className="h-5 w-5 text-rose-600" />,
-    iconBg: 'bg-rose-100',
     sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
   },
   {
     name: 'EFD Contribuições',
     description: 'Consulta e análise de escrituração fiscal digital',
     path: '/equipe/dev/consulta-efd',
-    icon: <BookOpen className="h-5 w-5 text-emerald-600" />,
-    iconBg: 'bg-emerald-100',
     sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
   },
   {
     name: 'EFD ICMS/IPI',
     description: 'Consulta de EFD ICMS/IPI por contribuinte',
     path: '/equipe/dev/consulta-efd-icms',
-    icon: <BarChart3 className="h-5 w-5 text-violet-600" />,
-    iconBg: 'bg-violet-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
   },
   {
     name: 'ECD',
     description: 'Consulta de Escrituração Contábil Digital',
     path: '/equipe/dev/consulta-ecd',
-    icon: <FileCheck className="h-5 w-5 text-cyan-600" />,
-    iconBg: 'bg-cyan-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
   },
   {
     name: 'ECF',
     description: 'Consulta de Escrituração Contábil Fiscal',
     path: '/equipe/dev/consulta-ecf',
-    icon: <FileCheck className="h-5 w-5 text-indigo-600" />,
-    iconBg: 'bg-indigo-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
   },
   {
     name: 'Calculadora IBS/CBS',
     description: 'Simulador de cálculo da reforma tributária',
     path: '/equipe/dev/calculadora-ibs-cbs',
-    icon: <Calculator className="h-5 w-5 text-amber-600" />,
-    iconBg: 'bg-amber-100',
   },
   {
     name: 'Controle PER/DCOMP',
     description: 'Gestão de pedidos de restituição e compensação',
     path: '/equipe/dev/controle-perdcomp',
-    icon: <Receipt className="h-5 w-5 text-teal-600" />,
-    iconBg: 'bg-teal-100',
+    sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp',
   },
   {
     name: 'Controle de Balancetes',
     description: 'Upload e gestão de balancetes contábeis',
     path: '/equipe/dev/controle-balancetes',
-    icon: <BarChart3 className="h-5 w-5 text-orange-600" />,
-    iconBg: 'bg-orange-100',
   },
   {
     name: 'Gerenciar dados',
     description: 'Importe ou limpe tabelas cliente/contribuinte',
     path: '/equipe/dev/gerenciar-dados',
-    icon: <Database className="h-5 w-5 text-purple-600" />,
-    iconBg: 'bg-purple-100',
   },
 ];
 
@@ -211,10 +185,7 @@ const DevDashboard = () => {
               className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
             >
               <CardHeader className="p-3 pb-1">
-                <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-md ${tool.iconBg}`}>{tool.icon}</div>
-                  <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
-                </div>
+                <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
                 <CardDescription className="text-[11px] text-slate-500 mt-0.5">
                   {tool.description}
                 </CardDescription>
