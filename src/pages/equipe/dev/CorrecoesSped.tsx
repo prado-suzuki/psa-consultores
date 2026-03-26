@@ -299,7 +299,8 @@ const CorrecoesSped = () => {
                               </button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
