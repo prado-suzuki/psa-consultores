@@ -133,6 +133,7 @@ const CalculadoraIbsCbs = () => {
         .select("id, nome")
         .eq("ativo", true)
         .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
         .filter("nome", "in", `(${CLIENTES_PERMITIDOS_NOMES.join(",")})`)
         .order("nome");
 
