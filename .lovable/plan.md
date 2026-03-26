@@ -1,46 +1,25 @@
 
 
-## Plano: Corrigir Máscara de DCOMP para formato completo
+## Plano: Remover ícones dos itens de navegação do Digital Dev
 
-### Situação atual
-
-| Componente | Campo | Formato atual | Correto? |
-|---|---|---|---|
-| `PerFormModal.tsx` | `numero_processo_per` (PER) | `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX` (26 dígitos) | Sim |
-| `DcompFormModal.tsx` | `nr_documento` (DCOMP) | `XXXXX.XXXXX/XXXX-XX` (16 dígitos) | **Errado** |
-| `CargaPerdcompCSV.tsx` | Exemplos CSV de DCOMP | `DC123456` (sem máscara) | Desatualizado |
-
-O PER já usa o formato correto de 26 dígitos. O DCOMP usa um formato antigo de 16 dígitos com barra.
-
-### Formato alvo (igual ao PER)
-
-```
-00452.02945.200226.1.3.18-4556
-```
-Padrão: `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX` — 26 dígitos nuéricos.
-
----
+Arquivo único: `src/components/equipe/dev/DevLayout.tsx`
 
 ### Alterações
 
-#### 1. `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`
-- **L47-55**: Substituir `formatDcompNumber` pela mesma lógica de `formatProcessNumber` do PerFormModal (26 dígitos, separadores por ponto e traço)
-- **L293**: Atualizar placeholder de `XXXXX.XXXXX/XXXX-XX` para `00000.00000.000000.0.0.00-0000`
+1. **L151**: Remover `<item.icon className={...} />` dos navItems (Dashboard, Nova ferramenta, Consulta de XMLs)
+2. **L168**: Remover `<BookOpen>` do botão collapsed de Consulta SPED
+3. **L181**: Remover `<BookOpen>` do trigger expanded de Consulta SPED
+4. **L200**: Remover `<item.icon>` dos sub-itens SPED (EFD Contribuições, EFD ICMS, ECD, ECF)
+5. **L220**: Remover `<HandCoins>` do botão collapsed de Levantamento de Créditos
+6. **L233**: Remover `<HandCoins>` do trigger expanded de Levantamento de Créditos
+7. **L252**: Remover `<item.icon>` dos sub-itens PIS/COFINS (Mapa NCM, Apuração, Auditoria Cruzada, Revisão de Registros)
+8. **L272**: Remover `<item.icon>` dos navItemsAfterSped (DIFAL, Calculadora IBS/CBS, Controle PERDCOMP, Controle Balancetes, Procedimentos, Gerenciar dados)
 
-#### 2. `src/components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx`
-- **L405-407**: Atualizar exemplos CSV de DCOMP para usar o formato correto (`00452.02945.200226.1.3.18-4556` em vez de `DC123456`)
+### O que NÃO muda
+- Ícones do header (Code2), footer (User, ArrowLeft, LogOut), toggle (ChevronLeft/Right), e chevrons de collapsible (ChevronDown) permanecem
+- Cores, fontes, espaçamentos, ordem e estrutura intactos
+- Quando collapsed, os botões ficam sem ícone — exibirão apenas o `title` tooltip no hover
 
-#### 3. `src/components/equipe/dev/perdcomp/PerDetailModal.tsx`
-- Verificar se exibe `nr_documento` dos DCOMPs — se sim, sem alteração necessária pois exibe o valor salvo no banco
-
-#### 4. `src/pages/equipe/dev/ControlePerdcomp.tsx`
-- Sem alteração — exibe valores do banco diretamente
-
-### Nota importante
-
-Dados existentes no banco com formato antigo (`XXXXX.XXXXX/XXXX-XX`) continuarão sendo exibidos como estão. A máscara nova aplica-se apenas a novos registros e edições.
-
----
-
-4 pontos de edição em 2 arquivos (`DcompFormModal.tsx` e `CargaPerdcompCSV.tsx`).
+### Nota técnica
+Ao remover os ícones, o `mr-3` que estava no ícone some junto, mantendo o texto alinhado ao início do botão sem espaço fantasma.
 
