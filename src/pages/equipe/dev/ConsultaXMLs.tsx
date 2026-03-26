@@ -197,6 +197,7 @@ const ConsultaXMLs = () => {
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [chaveAcesso, setChaveAcesso] = useState("");
+  const [committedChave, setCommittedChave] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [downloadingBatch, setDownloadingBatch] = useState(false);
