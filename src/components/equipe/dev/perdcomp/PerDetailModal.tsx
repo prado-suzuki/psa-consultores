@@ -2,7 +2,9 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
-import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2 } from 'lucide-react';
+import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -769,11 +771,17 @@ export function PerDetailModal({
             </div>
             <div className="space-y-2">
               <Label>Data do Pagamento</Label>
-              <Input
-                type="date"
-                value={ressarcimentoData}
-                onChange={(e) => setRessarcimentoData(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !ressarcimentoData && "text-muted-foreground")}>
+                    {ressarcimentoData ? format(new Date(ressarcimentoData + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : '')} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Percentual Aplicado (%)</Label>

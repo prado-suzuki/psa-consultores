@@ -1,14 +1,19 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesSped, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100 } from '@/hooks/useCorrecoesSped';
@@ -104,11 +109,31 @@ const CorrecoesSped = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
-                <Input type="date" value={dtIni} onChange={(e) => setDtIni(e.target.value)} className="h-8 text-sm" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtIni && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dtIni ? format(new Date(dtIni + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dtIni ? new Date(dtIni + 'T00:00:00') : undefined} onSelect={(d) => setDtIni(d ? format(d, 'yyyy-MM-dd') : '')} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Fim</Label>
-                <Input type="date" value={dtFin} onChange={(e) => setDtFin(e.target.value)} className="h-8 text-sm" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtFin && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {dtFin ? format(new Date(dtFin + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dtFin ? new Date(dtFin + 'T00:00:00') : undefined} onSelect={(d) => setDtFin(d ? format(d, 'yyyy-MM-dd') : '')} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">NCM</Label>
