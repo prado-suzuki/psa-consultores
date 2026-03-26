@@ -810,7 +810,6 @@ const ConsultaXMLs = () => {
                   value={chaveAcesso}
                   onChange={(e) => {
                     setChaveAcesso(e.target.value);
-                    setSearchTriggered(false);
                   }}
                   className="h-11 font-mono text-sm"
                   maxLength={50}
