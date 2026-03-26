@@ -12,6 +12,14 @@ const formatCurrency = (v: number | null | undefined) =>
 const safeFixed = (v: number | null | undefined, d = 2) =>
   (v ?? 0).toFixed(d);
 
+const SIMPLES_LABELS: Record<string, string> = {
+  A: 'Ausente',
+  O: 'Optante',
+  N: 'Não Optante',
+};
+const formatSimples = (code: string | null | undefined) =>
+  SIMPLES_LABELS[code ?? ''] ?? code ?? '—';
+
 interface TabF100Props {
   data: F100Item[] | undefined;
   isLoading: boolean;
@@ -80,7 +88,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
+                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
                     <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
@@ -88,6 +96,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] min-w-[180px]">Nome</TableHead>
                     <TableHead className="text-[11px] min-w-[120px]">CPF/CNPJ</TableHead>
                     <TableHead className="text-[11px] min-w-[60px]">Tipo</TableHead>
+                    <TableHead className="text-[11px] min-w-[80px]">Simples</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
                     {/* Taxes */}
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
@@ -107,6 +116,11 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                       <TableCell className="py-1.5">
                         <Badge variant="outline" className="text-[10px] font-medium">
                           {item.TIPO_PESSOA}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <Badge variant="outline" className="text-[10px] font-medium">
+                          {formatSimples(item.SIMPLES)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.VL_OPER)}</TableCell>

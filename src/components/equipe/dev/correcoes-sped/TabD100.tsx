@@ -12,6 +12,14 @@ const formatCurrency = (v: number | null | undefined) =>
 const safeFixed = (v: number | null | undefined, d = 2) =>
   (v ?? 0).toFixed(d);
 
+const SIMPLES_LABELS: Record<string, string> = {
+  A: 'Ausente',
+  O: 'Optante',
+  N: 'Não Optante',
+};
+const formatSimples = (code: string | null | undefined) =>
+  SIMPLES_LABELS[code ?? ''] ?? code ?? '—';
+
 interface TabD100Props {
   data: D100Item[] | undefined;
   isLoading: boolean;
@@ -110,7 +118,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                       <TableCell className="text-xs py-1.5 font-mono">{item.CNPJ_EFD}</TableCell>
                       <TableCell className="py-1.5">
                         <Badge variant="outline" className="text-[10px] font-medium">
-                          {item.SIMPLES}
+                          {formatSimples(item.SIMPLES)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
