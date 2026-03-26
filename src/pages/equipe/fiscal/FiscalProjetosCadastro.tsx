@@ -603,6 +603,18 @@ const FiscalProjetosCadastro = () => {
                           <span className="text-slate-400">-</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {project.leader ? (
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-sm">
+                              {project.leader.first_name} {project.leader.last_name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yyyy') : '-'}
