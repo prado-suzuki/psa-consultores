@@ -215,16 +215,16 @@ const CorrecoesSped = () => {
                       <TableHeader>
                          <TableRow className="border-b-0">
                            <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                           <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-blue-600/70 dark:text-blue-400/70 pb-0 pt-2 border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20">XML</TableHead>
+                           <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML</TableHead>
                            <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                          </TableRow>
                          <TableRow>
                            <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
                            <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
                            <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                           <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20">Descrição</TableHead>
-                           <TableHead className="text-[11px] min-w-[100px] bg-blue-50/60 dark:bg-blue-950/20">NCM</TableHead>
-                           <TableHead className="text-[11px] text-right min-w-[110px] bg-blue-50/60 dark:bg-blue-950/20">Valor</TableHead>
+                           <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descrição</TableHead>
+                           <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20">NCM</TableHead>
+                           <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20">Valor</TableHead>
                            <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                            <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
                            <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
@@ -262,11 +262,11 @@ const CorrecoesSped = () => {
                               {formatCurrency(item.vl_item)}
                             </TableCell>
                             {/* --- Colunas XML --- */}
-                             <TableCell className="py-1.5 border-l-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/20 dark:bg-blue-950/5" title={xml?.xProd}>
+                             <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
                                {xml ? (
                                  <Badge
                                    variant="outline"
-                                   className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-blue-50 dark:hover:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+                                   className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
                                    onClick={() => setSelectedItem(item)}
                                  >
                                    <FileSearch className="h-3 w-3 shrink-0" />
@@ -284,7 +284,7 @@ const CorrecoesSped = () => {
                                  <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
                                )}
                              </TableCell>
-                             <TableCell className="py-1.5 bg-blue-50/20 dark:bg-blue-950/5">
+                             <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5">
                                {xml ? (
                                  ncmDivergent ? (
                                    <Badge variant="outline" className="font-mono text-[11px] border-red-200 text-red-600 bg-red-50/50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800 gap-1">
@@ -296,7 +296,7 @@ const CorrecoesSped = () => {
                                  )
                                ) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
                              </TableCell>
-                             <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-blue-50/20 dark:bg-blue-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
+                             <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 dark:bg-emerald-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
                                {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
                              </TableCell>
                              {/* --- Zona Impostos --- */}
