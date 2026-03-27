@@ -274,6 +274,7 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                 <DetailField label="Código NCM" value={regra.cod_ncm} />
                 <DetailField label="Setor/Segmento" value={setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento} />
                 <DetailField label="CST PIS/COFINS" value={regra.cst_pis} />
+                <DetailField label="Descrição CST" value={regra.desc_cst} />
                 <div>
                   <span className="text-xs font-medium text-muted-foreground">Permite Crédito</span>
                   <div className="mt-1">
@@ -333,6 +334,46 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
                   )} />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="permite_credito" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Permite Crédito</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="S">Sim</SelectItem>
+                          <SelectItem value="N">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="tipo_credito" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Crédito</FormLabel>
+                      <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <FormField control={form.control} name="cst_pis" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CST PIS/COFINS</FormLabel>
+                    <FormControl>
+                      <CstCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        onSyncDesc={(desc) => form.setValue('desc_cst', desc)}
+                        mode="code"
+                        placeholder="Selecione o CST..."
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
                 <FormField control={form.control} name="base_legal" render={({ field }) => (
                   <FormItem>
