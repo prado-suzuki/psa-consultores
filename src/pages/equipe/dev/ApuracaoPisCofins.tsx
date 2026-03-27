@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
 import { RequiredMark } from '@/components/ui/required-mark';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { useQuery } from '@tanstack/react-query';
+import type { StickyColumnConfig } from '@/components/equipe/dev/pis-cofins/ApuracaoDataTable';
 import type { ResultadoPeriodo, RateioResultado } from '@/types/pisCofins';
 
 /* ── Formatters ── */
@@ -56,6 +57,69 @@ const getRateioColValue = (
     .filter(r => dataKeys.includes(r.dt_ini.substring(0, 7)) && r.rateio)
     .reduce((sum, r) => sum + accessor(r.rateio!), 0);
 };
+
+/* ── Sticky config for single-column inline tables ── */
+const SINGLE_STICKY: StickyColumnConfig[] = [
+  { label: 'Descrição', width: 250, left: 0, isLast: true },
+];
+
+const RATEIO_STICKY: StickyColumnConfig[] = [
+  { label: 'Rateio das receitas', width: 250, left: 0, isLast: true },
+];
+
+const TWO_COL_STICKY: StickyColumnConfig[] = [
+  { label: 'Conta', width: 100, left: 0, isLast: false },
+  { label: 'Descrição', width: 250, left: 100, isLast: true },
+];
+
+/* ── Inline table wrapper (single scroll container, no shadcn Table wrapper) ── */
+const InlineTableWrapper = ({ children }: { children: React.ReactNode }) => (
+  <Card className="overflow-x-auto max-w-full">
+    <table className="w-full caption-bottom text-sm min-w-max">
+      {children}
+    </table>
+  </Card>
+);
+
+/* ── Sticky first cell helper ── */
+const StickyCell = ({
+  config,
+  className,
+  children,
+  ...props
+}: {
+  config: StickyColumnConfig;
+  className?: string;
+  children: React.ReactNode;
+} & React.TdHTMLAttributes<HTMLTableCellElement>) => (
+  <TableCell
+    className={`sticky z-10 bg-card ${config.isLast ? 'shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]' : ''} ${className || ''}`}
+    style={{ left: config.left, minWidth: config.width }}
+    {...props}
+  >
+    {children}
+  </TableCell>
+);
+
+/* ── Sticky cell for highlighted rows ── */
+const StickyCellMuted = ({
+  config,
+  className,
+  children,
+  ...props
+}: {
+  config: StickyColumnConfig;
+  className?: string;
+  children: React.ReactNode;
+} & React.TdHTMLAttributes<HTMLTableCellElement>) => (
+  <TableCell
+    className={`sticky z-10 bg-muted/50 ${config.isLast ? 'shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]' : ''} ${className || ''}`}
+    style={{ left: config.left, minWidth: config.width }}
+    {...props}
+  >
+    {children}
+  </TableCell>
+);
 
 /* ── Main page ── */
 
@@ -185,6 +249,15 @@ const ApuracaoPisCofins = () => {
   const dataTableProps = {
     columnsData,
     expandedYear,
+    setExpandedYear,
+  };
+
+  // Shared header props for inline tables
+  const inlineHeaderProps = {
+    headerRow1,
+    headerRow2,
+    hasExpandedYear,
+    headerRowsCount,
     setExpandedYear,
   };
 
@@ -333,20 +406,18 @@ const ApuracaoPisCofins = () => {
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo Após Isenções/Exclusões</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-semibold">Base Normal</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseDebito.baseNormal))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.receitaBruta)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Base Normal</StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseDebito.baseNormal))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.receitaBruta)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
                 </div>
               )}
@@ -359,45 +430,41 @@ const ApuracaoPisCofins = () => {
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-semibold">Base Normal</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseCredito.baseNormal))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.baseCredito)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Base Normal</StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.baseCredito.baseNormal))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.baseCredito)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Crédito do Mês</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-semibold">PIS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-semibold">COFINS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">PIS</StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">COFINS</StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
                 </div>
               )}
@@ -407,133 +474,127 @@ const ApuracaoPisCofins = () => {
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow className="bg-muted/50 font-bold">
-                              <TableCell className="font-bold">Valor Devido PIS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
-                            </TableRow>
-                            <TableRow className="bg-muted/50 font-bold">
-                              <TableCell className="font-bold">Valor Devido COFINS</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
-                            </TableRow>
-                            <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-lg">
-                              <TableCell className="font-bold text-primary">Total Devido</TableCell>
-                              {headerBottom.map((col) => (
-                                <TableCell key={col.id} className="text-right font-mono font-bold text-primary">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue)))}</TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">{formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">Valor Devido PIS</StickyCellMuted>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">Valor Devido COFINS</StickyCellMuted>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-lg">
+                          <TableCell className="font-bold text-primary sticky left-0 z-10 bg-primary/5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" style={{ minWidth: 250 }}>Total Devido</TableCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono font-bold text-primary">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue)))}</TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">{formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-semibold">Contribuição Bruta (Débito)</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsContribuicaoBruta))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.cofinsContribuicaoBruta)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-semibold">Crédito do Mês</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-semibold">Crédito Anterior (Carryforward)</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoAnterior))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
-                            </TableRow>
-                            <TableRow className="bg-muted/50 font-bold">
-                              <TableCell className="font-bold">Valor Devido</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
-                            </TableRow>
-                            <TableRow className="text-muted-foreground">
-                              <TableCell>Saldo Acumulado p/ Próximo Mês</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsSaldoAcumulado))}</TableCell>))}
-                              <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Contribuição Bruta (Débito)</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsContribuicaoBruta))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.cofinsContribuicaoBruta)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Crédito do Mês</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoMes))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.cofinsCreditoMes)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Crédito Anterior (Carryforward)</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsCreditoAnterior))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">Valor Devido</StickyCellMuted>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsDue))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.cofinsDue)}</TableCell>
+                        </TableRow>
+                        <TableRow className="text-muted-foreground">
+                          <StickyCell config={SINGLE_STICKY[0]}>Saldo Acumulado p/ Próximo Mês</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.cofinsSaldoAcumulado))}</TableCell>))}
+                          <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-semibold">Contribuição Bruta (Débito)</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisContribuicaoBruta))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.pisContribuicaoBruta)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-semibold">Crédito do Mês</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-semibold">Crédito Anterior (Carryforward)</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoAnterior))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
-                            </TableRow>
-                            <TableRow className="bg-muted/50 font-bold">
-                              <TableCell className="font-bold">Valor Devido</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
-                            </TableRow>
-                            <TableRow className="text-muted-foreground">
-                              <TableCell>Saldo Acumulado p/ Próximo Mês</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisSaldoAcumulado))}</TableCell>))}
-                              <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Contribuição Bruta (Débito)</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-destructive">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisContribuicaoBruta))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">{formatCurrency(totais.pisContribuicaoBruta)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Crédito do Mês</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoMes))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">{formatCurrency(totais.pisCreditoMes)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">Crédito Anterior (Carryforward)</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono text-green-600">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisCreditoAnterior))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">Valor Devido</StickyCellMuted>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisDue))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(totais.pisDue)}</TableCell>
+                        </TableRow>
+                        <TableRow className="text-muted-foreground">
+                          <StickyCell config={SINGLE_STICKY[0]}>Saldo Acumulado p/ Próximo Mês</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getResultadoColValue(resultados, col.dataKeys, r => r.resultado.pisSaldoAcumulado))}</TableCell>))}
+                          <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Isenções e Exclusões</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Conta' }, { label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            {[...tables.isencoesData, ...tables.isencoesCreditoData].length > 0 ? (
-                              [...tables.isencoesData, ...tables.isencoesCreditoData].map((row) => (
-                                <TableRow key={row.key}>
-                                  <TableCell className="font-mono text-xs">{row.cod_cta}</TableCell>
-                                  <TableCell className="text-sm truncate max-w-[250px]" title={row.descricao_conta}>{row.descricao_conta}</TableCell>
-                                  {headerBottom.map((col) => (
-                                    <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/30">{formatCurrency(col.dataKeys.reduce((sum, key) => sum + ((row[key] as number) || 0), 0))}</TableCell>
-                                  ))}
-                                  <TableCell className="text-right font-mono font-bold text-sm bg-muted/30">{formatCurrency(row.total)}</TableCell>
-                                </TableRow>
-                              ))
-                            ) : (
-                              <TableRow>
-                                <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">Nenhuma isenção/exclusão encontrada.</TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                    </Card>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={TWO_COL_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        {[...tables.isencoesData, ...tables.isencoesCreditoData].length > 0 ? (
+                          [...tables.isencoesData, ...tables.isencoesCreditoData].map((row) => (
+                            <TableRow key={row.key}>
+                              <StickyCell config={TWO_COL_STICKY[0]} className="font-mono text-xs">{row.cod_cta}</StickyCell>
+                              <StickyCell config={TWO_COL_STICKY[1]} className="text-sm">
+                                <span className="block truncate" style={{ maxWidth: 250 }} title={row.descricao_conta}>{row.descricao_conta}</span>
+                              </StickyCell>
+                              {headerBottom.map((col) => (
+                                <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/30">{formatCurrency(col.dataKeys.reduce((sum, key) => sum + ((row[key] as number) || 0), 0))}</TableCell>
+                              ))}
+                              <TableCell className="text-right font-mono font-bold text-sm bg-muted/30">{formatCurrency(row.total)}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">Nenhuma isenção/exclusão encontrada.</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
                 </div>
               )}
@@ -543,100 +604,99 @@ const ApuracaoPisCofins = () => {
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio</h2>
-                    <Card className="overflow-x-auto max-w-full">
-                        <Table>
-                          <DynamicTableHeader firstColumns={[{ label: 'Rateio das receitas' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
-                          <TableBody>
-                            <TableRow>
-                              <TableCell className="font-bold">Total de Receitas apuradas</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-bold">Total Tributadas</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-bold">Total Não Tributadas</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                            </TableRow>
-                            <TableRow>
-                              <TableCell className="font-bold">Total Não Tributadas - Exp.</TableCell>
-                              {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp))}</TableCell>))}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                            </TableRow>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={RATEIO_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={RATEIO_STICKY[0]} className="font-bold">Total de Receitas apuradas</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={RATEIO_STICKY[0]} className="font-bold">Total Tributadas</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={RATEIO_STICKY[0]} className="font-bold">Total Não Tributadas</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={RATEIO_STICKY[0]} className="font-bold">Total Não Tributadas - Exp.</StickyCell>
+                          {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp))}</TableCell>))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                        </TableRow>
 
-                            <TableRow className="bg-primary text-primary-foreground uppercase text-xs hover:bg-primary">
-                              <TableCell className="font-bold" colSpan={headerBottom.length + 2}>Percentual de rateio</TableCell>
-                            </TableRow>
-                            {[
-                              { label: 'Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_trib_mi },
-                              { label: 'Não Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_nt_mi },
-                              { label: 'Não Tributado - Exportação', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_exp },
-                            ].map((row) => (
-                              <TableRow key={row.label}>
-                                <TableCell className="font-bold">{row.label}</TableCell>
-                                {headerBottom.map((col) => {
-                                  const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
-                                  const val = getRateioReceitasColValue(resultados, col.dataKeys, row.accessor);
-                                  const perc = total > 0 ? val / total : 0;
-                                  return (<TableCell key={col.id} className="text-right font-mono">{(perc * 100).toFixed(2)}%</TableCell>);
-                                })}
-                                <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                              </TableRow>
-                            ))}
-                            <TableRow className="bg-muted text-muted-foreground uppercase text-xs">
-                              <TableCell className="font-bold text-right">Total % Apurado</TableCell>
-                              {headerBottom.map((col) => {
-                                const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
-                                const trib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi);
-                                const naoTrib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi);
-                                const exp = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp);
-                                const perc = total > 0 ? (trib + naoTrib + exp) / total : 0;
-                                return (<TableCell key={col.id} className="text-right font-mono font-bold">{(perc * 100).toFixed(2)}%</TableCell>);
-                              })}
-                              <TableCell className="text-right font-mono font-bold bg-muted/30" />
-                            </TableRow>
+                        <TableRow className="bg-primary text-primary-foreground uppercase text-xs hover:bg-primary">
+                          <TableCell className="font-bold sticky left-0 z-10 bg-primary" style={{ minWidth: 250 }} colSpan={1}>Percentual de rateio</TableCell>
+                          <TableCell colSpan={headerBottom.length + 1} />
+                        </TableRow>
+                        {[
+                          { label: 'Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_trib_mi },
+                          { label: 'Não Tributado', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_nt_mi },
+                          { label: 'Não Tributado - Exportação', accessor: (r: NonNullable<ResultadoPeriodo['rateio_receitas']>) => r.rec_bru_ncum_exp },
+                        ].map((row) => (
+                          <TableRow key={row.label}>
+                            <StickyCell config={RATEIO_STICKY[0]} className="font-bold">{row.label}</StickyCell>
+                            {headerBottom.map((col) => {
+                              const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
+                              const val = getRateioReceitasColValue(resultados, col.dataKeys, row.accessor);
+                              const perc = total > 0 ? val / total : 0;
+                              return (<TableCell key={col.id} className="text-right font-mono">{(perc * 100).toFixed(2)}%</TableCell>);
+                            })}
+                            <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-muted text-muted-foreground uppercase text-xs">
+                          <StickyCellMuted config={RATEIO_STICKY[0]} className="font-bold text-right bg-muted">Total % Apurado</StickyCellMuted>
+                          {headerBottom.map((col) => {
+                            const total = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_total);
+                            const trib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_trib_mi);
+                            const naoTrib = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_nt_mi);
+                            const exp = getRateioReceitasColValue(resultados, col.dataKeys, r => r.rec_bru_ncum_exp);
+                            const perc = total > 0 ? (trib + naoTrib + exp) / total : 0;
+                            return (<TableCell key={col.id} className="text-right font-mono font-bold">{(perc * 100).toFixed(2)}%</TableCell>);
+                          })}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30" />
+                        </TableRow>
 
-                            <TableRow className="bg-transparent border-none hover:bg-transparent">
-                              <TableCell colSpan={headerBottom.length + 2} className="p-2" />
-                            </TableRow>
-                            {[
-                              { label: 'PIS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'pis101' as const },
-                              { label: 'PIS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'pis201' as const },
-                              { label: 'PIS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'pis301' as const },
-                            ].map((row) => (
-                              <TableRow key={row.field} className="bg-muted/50 text-xs">
-                                <TableCell className="font-bold">{row.label}</TableCell>
-                                {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
-                                <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
-                              </TableRow>
-                            ))}
+                        <TableRow className="bg-transparent border-none hover:bg-transparent">
+                          <TableCell colSpan={headerBottom.length + 2} className="p-2" />
+                        </TableRow>
+                        {[
+                          { label: 'PIS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'pis101' as const },
+                          { label: 'PIS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'pis201' as const },
+                          { label: 'PIS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'pis301' as const },
+                        ].map((row) => (
+                          <TableRow key={row.field} className="bg-muted/50 text-xs">
+                            <StickyCellMuted config={RATEIO_STICKY[0]} className="font-bold">{row.label}</StickyCellMuted>
+                            {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
+                            <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
+                          </TableRow>
+                        ))}
 
-                            <TableRow className="bg-transparent border-none hover:bg-transparent">
-                              <TableCell colSpan={headerBottom.length + 2} className="p-2" />
-                            </TableRow>
-                            {[
-                              { label: 'COFINS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'cofins101' as const },
-                              { label: 'COFINS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'cofins201' as const },
-                              { label: 'COFINS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'cofins301' as const },
-                            ].map((row) => (
-                              <TableRow key={row.field} className="bg-muted/50 text-xs">
-                                <TableCell className="font-bold">{row.label}</TableCell>
-                                {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
-                                <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                    </Card>
+                        <TableRow className="bg-transparent border-none hover:bg-transparent">
+                          <TableCell colSpan={headerBottom.length + 2} className="p-2" />
+                        </TableRow>
+                        {[
+                          { label: 'COFINS - 101 (Créditos Vinculados a Receita Tributada M.I.)', field: 'cofins101' as const },
+                          { label: 'COFINS - 201 (Créditos Vinculados a Receita Não Tributada M.I.)', field: 'cofins201' as const },
+                          { label: 'COFINS - 301 (Créditos Vinculados a Receita de Exportação)', field: 'cofins301' as const },
+                        ].map((row) => (
+                          <TableRow key={row.field} className="bg-muted/50 text-xs">
+                            <StickyCellMuted config={RATEIO_STICKY[0]} className="font-bold">{row.label}</StickyCellMuted>
+                            {headerBottom.map((col) => (<TableCell key={col.id} className="text-right font-mono">{formatCurrency(getRateioColValue(resultados, col.dataKeys, r => r[row.field]))}</TableCell>))}
+                            <TableCell className="text-right font-mono font-bold bg-muted/30">{formatCurrency(resultados.reduce((sum, r) => sum + (r.rateio?.[row.field] || 0), 0))}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </InlineTableWrapper>
                   </section>
                 </div>
               )}
 
-              {/* Tab: Apuração */}
+              {/* Tab: Apuração (placeholder) */}
               {activeTab === 'apuracao' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   {/* Tabelas detalhadas de apuração serão adicionadas aqui */}

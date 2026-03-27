@@ -1,12 +1,28 @@
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { PivotRowGeneric } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+/* ── Sticky column width constants ── */
+const STICKY_WIDTHS: Record<string, number> = {
+  CST: 80,
+  Conta: 100,
+  'Descrição': 250,
+  Bloco: 80,
+};
+
+export interface StickyColumnConfig {
+  label: string;
+  width: number;
+  left: number;
+  isLast: boolean;
+}
 
 interface ApuracaoDataTableProps {
   title?: string;
@@ -46,9 +62,24 @@ export function ApuracaoDataTable({
   firstColumns.push({ label: 'Descrição' });
   if (showBloco) firstColumns.push({ label: 'Bloco' });
 
+  // Build sticky config with cumulative left offsets
+  const stickyConfig: StickyColumnConfig[] = firstColumns.map((col, i) => {
+    const w = STICKY_WIDTHS[col.label] || 100;
+    const left = firstColumns.slice(0, i).reduce((sum, c) => sum + (STICKY_WIDTHS[c.label] || 100), 0);
+    const isLast = i === firstColumns.length - 1;
+    return { label: col.label, width: w, left, isLast };
+  });
+
   const getColValue = (row: PivotRowGeneric, dataKeys: string[]) => {
     return dataKeys.reduce((sum, key) => sum + ((row[key] as number) || 0), 0);
   };
+
+  const stickyCell = (config: StickyColumnConfig, extraClass?: string) =>
+    cn(
+      "sticky z-10 bg-card",
+      config.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
+      extraClass
+    );
 
   return (
     <section>
@@ -70,43 +101,71 @@ export function ApuracaoDataTable({
         </h2>
       )}
       <div className="rounded-md border bg-card overflow-x-auto max-w-full">
-          <Table>
-            <DynamicTableHeader 
-              firstColumns={firstColumns}
-              headerRow1={headerRow1}
-              headerRow2={headerRow2}
-              hasExpandedYear={hasExpandedYear}
-              headerRowsCount={headerRowsCount}
-              setExpandedYear={setExpandedYear}
-            />
-            <TableBody>
-              {data.length > 0 ? (
-                data.map((row) => (
-                  <TableRow key={row.key} className="hover:bg-slate-50/50">
-                    {showCst && <TableCell className="font-mono text-xs">{row.cst_pis}</TableCell>}
-                    <TableCell className="font-mono text-xs">{row.cod_cta}</TableCell>
-                    <TableCell className="text-sm truncate max-w-[250px]" title={row.descricao_conta}>{row.descricao_conta}</TableCell>
-                    {showBloco && <TableCell className="font-mono text-xs">{row.bloco_efd}</TableCell>}
+        <table className="w-full caption-bottom text-sm min-w-max">
+          <DynamicTableHeader 
+            stickyConfig={stickyConfig}
+            headerRow1={headerRow1}
+            headerRow2={headerRow2}
+            hasExpandedYear={hasExpandedYear}
+            headerRowsCount={headerRowsCount}
+            setExpandedYear={setExpandedYear}
+          />
+          <TableBody>
+            {data.length > 0 ? (
+              data.map((row) => {
+                let colIdx = 0;
+                return (
+                  <TableRow key={row.key} className="hover:bg-muted/30">
+                    {showCst && (
+                      <TableCell
+                        className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
+                        style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                      >
+                        {row.cst_pis}
+                      </TableCell>
+                    )}
+                    <TableCell
+                      className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
+                      style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                    >
+                      {row.cod_cta}
+                    </TableCell>
+                    <TableCell
+                      className={stickyCell(stickyConfig[colIdx], "text-sm")}
+                      style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx].width, maxWidth: stickyConfig[colIdx++].width }}
+                      title={row.descricao_conta}
+                    >
+                      <span className="block truncate">{row.descricao_conta}</span>
+                    </TableCell>
+                    {showBloco && (
+                      <TableCell
+                        className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
+                        style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                      >
+                        {row.bloco_efd}
+                      </TableCell>
+                    )}
                     
                     {headerBottom.map((col) => (
-                      <TableCell key={col.id} className="text-right font-mono text-sm border-r border-slate-100">
+                      <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20">
                         {formatCurrency(getColValue(row, col.dataKeys))}
                       </TableCell>
                     ))}
-                    <TableCell className="text-right font-mono font-bold text-sm bg-slate-50/50 border-l">
+                    <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l">
                       {formatCurrency(row.total)}
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">
-                    {emptyMessage}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </table>
       </div>
     </section>
   );
