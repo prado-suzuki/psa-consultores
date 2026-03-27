@@ -1,43 +1,121 @@
 
 
-## Plano: RequiredMark Consistente + Reordenar Endereço
+## Plano: Agrupamento Dinâmico na Listagem de Projetos
 
-### 3.1 — RequiredMark consistente (ContribuintesTab.tsx e ContratosTab.tsx)
+### Resumo
 
-**ContribuintesTab.tsx** — Importar `RequiredMark` e substituir `*` textual pelo componente. Campos obrigatórios (conforme validação):
+Adicionar um Select "Agrupar por" ao lado dos filtros existentes com 3 opções (Nenhum, Cliente, Área). Quando ativo, os projetos filtrados são organizados em seções colapsáveis com header visual (nome do grupo, contador, barra de progresso de conclusão).
 
-| Campo | Formulário novo (linha) | Edição inline (linha) | Ação |
-|-------|------------------------|----------------------|------|
-| CPF/CNPJ | L440 `"CPF/CNPJ *"` | L253 `"CPF/CNPJ"` (falta!) | Ambos → `CPF/CNPJ<RequiredMark />` |
-| Razão Social/Nome | L450 `"Razão Social *"` | L263 `"Razão Social *"` | Ambos → usar `<RequiredMark />` |
-| CNAE (PJ) | L504 `"CNAE *"` | L341 `"CNAE"` (falta!) | Ambos → `CNAE<RequiredMark />` |
-| Simples Nacional (PJ) | L516 `"Simples Nacional *"` | L353 `"Simples Nacional *"` | Ambos → usar `<RequiredMark />` |
-| CEP | L527 `"CEP *"` | L364 `"CEP *"` | Ambos → `<RequiredMark />` |
-| UF | L536 `"UF *"` | L373 `"UF"` (falta!) | Ambos → `UF<RequiredMark />` |
-| Município | L540 `"Município *"` | L377 `"Município"` (falta!) | Ambos → `<RequiredMark />` |
-| Bairro | L544 `"Bairro *"` | L381 `"Bairro"` (falta!) | Ambos → `<RequiredMark />` |
-| Logradouro | L548 `"Logradouro *"` | L385 `"Logradouro"` (falta!) | Ambos → `<RequiredMark />` |
+### Alterações (arquivo único: `FiscalProjetosCadastro.tsx`)
 
-Campos SEM asterisco (corretos): Tipo, Nome Fantasia, Telefone, Número, Complemento, Contribuinte de Faturamento.
+**1. Imports adicionais**
 
-**ContratosTab.tsx** — Importar `RequiredMark`. Único campo obrigatório na validação: `Produtos Contratados` (L171 já tem `"Adicionar Produto *"` textual → substituir por `<RequiredMark />`).
+- `ChevronDown`, `ChevronRight` de `lucide-react`
+- `Progress` de `@/components/ui/progress`
+- `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` de `@/components/ui/collapsible`
 
-### 3.2 — Reordenar campos de endereço (ContribuintesTab.tsx)
+**2. Novo estado**
 
-Ordem atual (novo e edição): CEP → UF → Município → Bairro → Logradouro → Número → Complemento
+```tsx
+const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'area'>('none');
+```
 
-Ordem desejada: **CEP → Logradouro → Número → Complemento → Bairro → Município → UF**
+**3. Função `groupProjects` (dentro do componente, como `useMemo`)**
 
-Aplicar em **dois blocos**:
-1. **Formulário novo** (L525-557): Reordenar os 7 campos de endereço
-2. **Edição inline** (L362-394): Reordenar os 7 campos de endereço
+```tsx
+const groupedProjects = useMemo(() => {
+  if (groupBy === 'none') return null;
+  const map = new Map<string, { label: string; projects: TaxProject[] }>();
+  for (const p of filteredProjects) {
+    let key: string;
+    let label: string;
+    if (groupBy === 'cliente') {
+      key = p.external_client_id || '__none__';
+      label = p.external_client?.nome || 'Sem cliente';
+    } else {
+      key = p.estrutura_area_id || '__none__';
+      label = p.area_ref?.name || 'Sem área';
+    }
+    if (!map.has(key)) map.set(key, { label, projects: [] });
+    map.get(key)!.projects.push(p);
+  }
+  // Sort: named groups alphabetically, "Sem ..." at the end
+  return Array.from(map.values()).sort((a, b) => {
+    const aIsNone = a.label.startsWith('Sem ');
+    const bIsNone = b.label.startsWith('Sem ');
+    if (aIsNone !== bIsNone) return aIsNone ? 1 : -1;
+    return a.label.localeCompare(b.label, 'pt-BR');
+  });
+}, [filteredProjects, groupBy]);
+```
 
-A reordenação é apenas mover blocos de JSX — sem alterar lógica.
+**4. Estado de colapso dos grupos**
+
+```tsx
+const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+const toggleGroup = (label: string) => {
+  setCollapsedGroups(prev => {
+    const next = new Set(prev);
+    next.has(label) ? next.delete(label) : next.add(label);
+    return next;
+  });
+};
+```
+
+Reset `collapsedGroups` quando `groupBy` muda (via `useEffect`).
+
+**5. Select "Agrupar por" na barra de filtros (~L487)**
+
+Inserir após o Select de Status e antes do botão "Limpar":
+
+```tsx
+<Select value={groupBy} onValueChange={v => setGroupBy(v as 'none' | 'cliente' | 'area')}>
+  <SelectTrigger className="w-44">
+    <SelectValue placeholder="Agrupar por" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="none">Sem agrupamento</SelectItem>
+    <SelectItem value="cliente">Agrupar por Cliente</SelectItem>
+    <SelectItem value="area">Agrupar por Área</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+**6. Renderização condicional da tabela (~L536-662)**
+
+- **Quando `groupBy === 'none'`**: manter renderização atual (tabela plana com `filteredProjects`)
+- **Quando agrupado**: renderizar `groupedProjects.map(group => ...)`, onde cada grupo é:
+
+```text
+┌──────────────────────────────────────────────────────┐
+│ ▼  Grupo Zugair                     3 projetos  ██░░│
+├──────────────────────────────────────────────────────┤
+│ <Table> com mesmas colunas e rows do grupo           │
+└──────────────────────────────────────────────────────┘
+  mb-4
+┌──────────────────────────────────────────────────────┐
+│ ▼  Outro Cliente                    5 projetos  ██░░│
+│ ...                                                  │
+└──────────────────────────────────────────────────────┘
+```
+
+Cada header de grupo:
+- `div` com `bg-muted rounded-lg px-4 py-2.5 cursor-pointer` + `onClick={toggleGroup}`
+- Chevron à esquerda (Down/Right)
+- Nome do grupo em `font-semibold`
+- Badge com `{n} projeto(s)`
+- Barra `<Progress>` fina (h-1.5, w-24) mostrando % de projetos `completed`
+- Abaixo, `Card` com a tabela (mesma estrutura atual), condicionada a `!collapsedGroups.has(label)`
+
+A tabela dentro de cada grupo reutiliza exatamente o mesmo `<Table>` + `<TableHeader>` + rows, apenas iterando sobre `group.projects` em vez de `filteredProjects`.
+
+**7. Extrair bloco de renderização de row**
+
+Para evitar duplicação, extrair o JSX de uma `<TableRow>` (L581-657) para uma função local `renderProjectRow(project: TaxProject)` que ambos os modos (plano e agrupado) chamam.
 
 ### Arquivos modificados
 
 | Arquivo | Alterações |
 |---------|-----------|
-| `ContribuintesTab.tsx` | Import `RequiredMark`; substituir `*` textual por componente em ~18 labels; adicionar `<RequiredMark />` em 5 labels do inline edit que faltavam; reordenar campos de endereço em 2 blocos |
-| `ContratosTab.tsx` | Import `RequiredMark`; substituir `*` textual no label "Adicionar Produto" |
+| `FiscalProjetosCadastro.tsx` | +imports (Chevron, Progress, Collapsible); +estado `groupBy`/`collapsedGroups`; +`useMemo` grouping; +Select na barra de filtros; renderização condicional tabela plana vs agrupada; função `renderProjectRow` extraída |
 
