@@ -80,8 +80,8 @@ export default function ParticipantesTab({
         return;
       }
     }
-    if (draftParticipant.observacoes?.trim() && draftParticipant.observacoes.trim().length < 20) {
-      toast.error("Observações deve ter no mínimo 20 caracteres");
+    if (draftParticipant.observacoes?.trim() && draftParticipant.observacoes.trim().length < 3) {
+      toast.error("Observações deve ter no mínimo 3 caracteres");
       return;
     }
 
@@ -203,21 +203,7 @@ export default function ParticipantesTab({
                         </div>
                         <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                           <Button size="sm" variant="outline" onClick={cancelEditParticipant}>Cancelar</Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Check size={14} /> Aplicar</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Aplicar alterações</AlertDialogTitle>
-                                <AlertDialogDescription>Deseja aplicar as alterações feitas neste participante?</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditParticipant}>Aplicar</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={saveEditParticipant}><Check size={14} /> Aplicar</Button>
                         </div>
                       </div>
                     </div>

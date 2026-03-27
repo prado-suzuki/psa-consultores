@@ -380,13 +380,7 @@ export default function ContratosTab({
                       </div>
                       <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                         <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Check size={14} /> Aplicar</Button></AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Aplicar alterações</AlertDialogTitle><AlertDialogDescription>Deseja aplicar as alterações feitas nesta OS?</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEditContract}>Aplicar</AlertDialogAction></AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={saveEditContract}><Check size={14} /> Aplicar</Button>
                       </div>
                     </div>
                   )}
