@@ -1,28 +1,43 @@
 
 
-## Plano: Adicionar validação de IE no saveEditEntity
+## Plano: RequiredMark Consistente + Reordenar Endereço
 
-### Problema
-`saveEditEntity()` não valida Inscrições Estaduais. As IEs durante edição ficam no `inscricoesMap` (chave = `_dbId || _id`), não em `editingEntityData`.
+### 3.1 — RequiredMark consistente (ContribuintesTab.tsx e ContratosTab.tsx)
 
-### Alteração (ContribuintesTab.tsx, linha 75→76)
+**ContribuintesTab.tsx** — Importar `RequiredMark` e substituir `*` textual pelo componente. Campos obrigatórios (conforme validação):
 
-Inserir após a validação de Simples Nacional (L74) e antes do `setEntities` (L76):
+| Campo | Formulário novo (linha) | Edição inline (linha) | Ação |
+|-------|------------------------|----------------------|------|
+| CPF/CNPJ | L440 `"CPF/CNPJ *"` | L253 `"CPF/CNPJ"` (falta!) | Ambos → `CPF/CNPJ<RequiredMark />` |
+| Razão Social/Nome | L450 `"Razão Social *"` | L263 `"Razão Social *"` | Ambos → usar `<RequiredMark />` |
+| CNAE (PJ) | L504 `"CNAE *"` | L341 `"CNAE"` (falta!) | Ambos → `CNAE<RequiredMark />` |
+| Simples Nacional (PJ) | L516 `"Simples Nacional *"` | L353 `"Simples Nacional *"` | Ambos → usar `<RequiredMark />` |
+| CEP | L527 `"CEP *"` | L364 `"CEP *"` | Ambos → `<RequiredMark />` |
+| UF | L536 `"UF *"` | L373 `"UF"` (falta!) | Ambos → `UF<RequiredMark />` |
+| Município | L540 `"Município *"` | L377 `"Município"` (falta!) | Ambos → `<RequiredMark />` |
+| Bairro | L544 `"Bairro *"` | L381 `"Bairro"` (falta!) | Ambos → `<RequiredMark />` |
+| Logradouro | L548 `"Logradouro *"` | L385 `"Logradouro"` (falta!) | Ambos → `<RequiredMark />` |
 
-```tsx
-// Validar IEs do contribuinte em edição
-const ieKey = editingEntityData._dbId || String(editingEntityId);
-const editingIEs = inscricoesMap[ieKey] || [];
-for (const ie of editingIEs) {
-  if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
-  if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
-}
-```
+Campos SEM asterisco (corretos): Tipo, Nome Fantasia, Telefone, Número, Complemento, Contribuinte de Faturamento.
 
-Nota: usa `inscricoesMap` (onde as IEs ficam durante edição inline) em vez de `editingEntityData.inscricoes_estaduais` que não existe nessa estrutura.
+**ContratosTab.tsx** — Importar `RequiredMark`. Único campo obrigatório na validação: `Produtos Contratados` (L171 já tem `"Adicionar Produto *"` textual → substituir por `<RequiredMark />`).
 
-### Arquivo modificado
-| Arquivo | Alteração |
+### 3.2 — Reordenar campos de endereço (ContribuintesTab.tsx)
+
+Ordem atual (novo e edição): CEP → UF → Município → Bairro → Logradouro → Número → Complemento
+
+Ordem desejada: **CEP → Logradouro → Número → Complemento → Bairro → Município → UF**
+
+Aplicar em **dois blocos**:
+1. **Formulário novo** (L525-557): Reordenar os 7 campos de endereço
+2. **Edição inline** (L362-394): Reordenar os 7 campos de endereço
+
+A reordenação é apenas mover blocos de JSX — sem alterar lógica.
+
+### Arquivos modificados
+
+| Arquivo | Alterações |
 |---------|-----------|
-| `ContribuintesTab.tsx` | +6 linhas entre L75 e L76 |
+| `ContribuintesTab.tsx` | Import `RequiredMark`; substituir `*` textual por componente em ~18 labels; adicionar `<RequiredMark />` em 5 labels do inline edit que faltavam; reordenar campos de endereço em 2 blocos |
+| `ContratosTab.tsx` | Import `RequiredMark`; substituir `*` textual no label "Adicionar Produto" |
 
