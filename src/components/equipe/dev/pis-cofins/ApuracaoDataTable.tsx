@@ -69,8 +69,7 @@ export function ApuracaoDataTable({
           )}
         </h2>
       )}
-      <div className="rounded-md border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-md border bg-card overflow-x-auto max-w-full">
           <Table>
             <DynamicTableHeader 
               firstColumns={firstColumns}
@@ -108,7 +107,6 @@ export function ApuracaoDataTable({
               )}
             </TableBody>
           </Table>
-        </div>
       </div>
     </section>
   );
