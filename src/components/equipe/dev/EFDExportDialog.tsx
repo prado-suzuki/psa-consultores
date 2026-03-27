@@ -60,6 +60,7 @@ interface JobStatus {
   url?: string;
   error?: string;
   progress?: number;
+  file_name?: string;
 }
 
 export function EFDExportDialog({ 
