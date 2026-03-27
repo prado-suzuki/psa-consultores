@@ -147,7 +147,8 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
     setSearch('');
   };
 
-  const displayValue = value || '';
+  const selectedOpt = CST_OPTIONS.find(o => mode === 'code' ? o.code === value : o.description === value);
+  const displayValue = selectedOpt ? `${selectedOpt.code} — ${selectedOpt.description}` : value || '';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
