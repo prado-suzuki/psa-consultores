@@ -602,7 +602,7 @@ const AuditoriaFiscal = () => {
       if (total && response.body) {
         let loaded = 0;
         const reader = response.body.getReader();
-        const chunks: Uint8Array[] = [];
+        const chunks: BlobPart[] = [];
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
