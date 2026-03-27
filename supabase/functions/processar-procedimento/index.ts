@@ -111,7 +111,15 @@ serve(async (req) => {
       throw new Error(`AI gateway error [${aiResponse.status}]: ${errText}`);
     }
 
-    const aiData = await aiResponse.json();
+    const aiText = await aiResponse.text();
+    let aiData: any;
+    try {
+      aiData = JSON.parse(aiText);
+    } catch {
+      console.error("AI gateway returned non-JSON:", aiText.substring(0, 500));
+      throw new Error("AI gateway returned invalid JSON response");
+    }
+
     const rawContent = aiData.choices?.[0]?.message?.content;
     if (!rawContent) throw new Error("Empty AI response");
 
@@ -122,7 +130,31 @@ serve(async (req) => {
       jsonStr = jsonMatch[1].trim();
     }
 
-    const parsed = JSON.parse(jsonStr);
+    // Find JSON boundaries
+    const jsonStart = jsonStr.search(/[\{\[]/);
+    const jsonEnd = jsonStr.lastIndexOf(jsonStart !== -1 && jsonStr[jsonStart] === "[" ? "]" : "}");
+    if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+      console.error("No JSON found in AI content:", jsonStr.substring(0, 500));
+      throw new Error("AI response does not contain valid JSON");
+    }
+    jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // Fix common issues: trailing commas, control characters
+      jsonStr = jsonStr
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        .replace(/[\x00-\x1F\x7F]/g, "");
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch (e2) {
+        console.error("Failed to parse AI JSON after cleanup:", jsonStr.substring(0, 500));
+        throw new Error("AI returned malformed JSON that could not be repaired");
+      }
+    }
 
     // Step 3: Generate cover image using AI
     let aiCoverUrl: string | null = null;
