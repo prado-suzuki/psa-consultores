@@ -35,7 +35,7 @@ interface Balancete {
   [key: string]: unknown;
 }
 
-const COL_COUNT = 7;
+const COL_COUNT = 6;
 
 const ControleBalancetes = () => {
   const { fetchWithAuth } = useApiAuth();
@@ -374,7 +374,7 @@ const ControleBalancetes = () => {
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Início</TableHead>
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Fim</TableHead>
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Adicionado por</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center">Linhas</TableHead>
+                  
                   <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -396,9 +396,6 @@ const ControleBalancetes = () => {
                       <TableCell className="text-slate-700">{formatDate(b.periodo_inicio)}</TableCell>
                       <TableCell className="text-slate-700">{formatDate(b.periodo_fim)}</TableCell>
                       <TableCell className="text-slate-700">{b.adicionado_por || '-'}</TableCell>
-                      <TableCell className="text-center text-slate-600">
-                        {b.qtd_linhas ?? b.total_linhas ?? '—'}
-                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider>
