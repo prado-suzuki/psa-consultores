@@ -60,6 +60,7 @@ interface JobStatus {
   url?: string;
   error?: string;
   progress?: number;
+  file_name?: string;
 }
 
 export function EFDExportDialog({ 
@@ -391,7 +392,6 @@ export function EFDExportDialog({
     setStatusMessage('Iniciando geração do relatório...');
 
     try {
-      // 1. Iniciar job de exportação
       const registrosCodigos = Array.from(selectedRegistros).map(r => r.replace('REG_', ''));
       
       const exportUrl = getApiUrl(
@@ -411,108 +411,102 @@ export function EFDExportDialog({
         throw new Error('Falha ao iniciar exportação');
       }
 
-      const startData = await startResponse.json();
-      
-      // Cenário 1: Cache hit - retorna URL imediatamente
-      if (startData.status === 'completed' && startData.url) {
-        setExportStatus('completed');
-        setStatusMessage('Download pronto!');
+      const contentType = startResponse.headers.get('content-type') || '';
 
-        // Download direto via location.href - funciona com URLs assinadas do GCS
-        window.location.href = startData.url;
+      // Cache hit: JSON com URL
+      if (contentType.includes('json')) {
+        const data = await startResponse.json();
+        const downloadUrl = data.url || data.download_url;
 
-        toast({
-          title: 'Exportação concluída',
-          description: 'Arquivo Excel baixado com sucesso!',
-        });
-
-        setTimeout(() => setOpen(false), 1000);
-        return;
-      }
-
-      // Cenário 2: Cache miss - precisa de polling
-      const newJobId = startData.job_id || startData.id;
-      
-      if (!newJobId) {
-        throw new Error('ID do job não retornado');
-      }
-
-      setJobId(newJobId);
-      setExportStatus('processing');
-      setStatusMessage('Gerando arquivo no servidor...');
-
-      // Polling para verificar status
-      const pollStatus = async () => {
-        if (signal.aborted) {
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-          }
+        if (downloadUrl) {
+          setExportStatus('completed');
+          setStatusMessage('Download pronto!');
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = data.file_name || 'export.xlsx';
+          a.click();
+          toast({ title: 'Exportação concluída', description: 'Arquivo Excel baixado com sucesso!' });
+          setTimeout(() => setOpen(false), 1000);
           return;
         }
 
-        const status = await checkJobStatus(newJobId, signal);
-        
-        if (!status || signal.aborted) return;
-
-        // Aceitar tanto 'url' quanto 'download_url' da API
-        const downloadUrl = status.download_url || status.url;
-
-        if (status.status === 'completed' && downloadUrl) {
-          // Job concluído - fazer download
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
-
-          setExportStatus('completed');
-          setStatusMessage('Download pronto!');
-
-          // Download direto via location.href - funciona com URLs assinadas do GCS
-          window.location.href = downloadUrl;
-
-          toast({
-            title: 'Exportação concluída',
-            description: 'Arquivo Excel baixado com sucesso!',
-          });
-
-          setTimeout(() => setOpen(false), 1000);
-        } else if (status.status === 'failed') {
-          // Job falhou
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
-
-          setExportStatus('error');
-          setStatusMessage(status.error || 'Erro na geração do arquivo');
-          
-          toast({
-            title: 'Erro na exportação',
-            description: status.error || 'Falha ao gerar arquivo no servidor.',
-            variant: 'destructive',
-          });
-        } else if (status.progress !== undefined) {
-          setStatusMessage(`Processando... ${Math.round(status.progress * 100)}%`);
+        // Fallback: resposta JSON com job_id (jobs antigos ainda no BQ)
+        const newJobId = data.job_id || data.id;
+        if (newJobId) {
+          setJobId(newJobId);
+          setExportStatus('processing');
+          setStatusMessage('Gerando arquivo no servidor...');
+          const pollStatus = async () => {
+            if (signal.aborted) { if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current); return; }
+            const status = await checkJobStatus(newJobId, signal);
+            if (!status || signal.aborted) return;
+            const url = status.download_url || status.url;
+            if (status.status === 'completed' && url) {
+              if (pollingIntervalRef.current) { clearInterval(pollingIntervalRef.current); pollingIntervalRef.current = null; }
+              setExportStatus('completed'); setStatusMessage('Download pronto!');
+              const a = document.createElement('a'); a.href = url; a.download = status.file_name || 'export.xlsx'; a.click();
+              toast({ title: 'Exportação concluída', description: 'Arquivo Excel baixado com sucesso!' });
+              setTimeout(() => setOpen(false), 1000);
+            } else if (status.status === 'failed') {
+              if (pollingIntervalRef.current) { clearInterval(pollingIntervalRef.current); pollingIntervalRef.current = null; }
+              setExportStatus('error'); setStatusMessage(status.error || 'Erro na geração do arquivo');
+              toast({ title: 'Erro na exportação', description: status.error || 'Falha ao gerar arquivo.', variant: 'destructive' });
+            } else if (status.progress !== undefined) {
+              setStatusMessage(`Processando... ${Math.round(status.progress * 100)}%`);
+            }
+          };
+          pollingIntervalRef.current = setInterval(pollStatus, 2000);
+          pollStatus();
+          return;
         }
-      };
 
-      // Iniciar polling (a cada 2 segundos)
-      pollingIntervalRef.current = setInterval(pollStatus, 2000);
-      // Primeira verificação imediata
-      pollStatus();
+        throw new Error('Resposta inesperada do servidor');
+      }
+
+      // Cache miss: streaming binário direto
+      setExportStatus('processing');
+      const contentLength = startResponse.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      if (total && startResponse.body) {
+        let loaded = 0;
+        const reader = startResponse.body.getReader();
+        const chunks: BlobPart[] = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          const pct = Math.round((loaded / total) * 100);
+          setStatusMessage(`Baixando... ${pct}%`);
+        }
+        const blob = new Blob(chunks, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const disposition = startResponse.headers.get('content-disposition');
+        const fileName = disposition?.match(/filename="(.+)"/)?.[1] ?? 'export.xlsx';
+        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        setStatusMessage('Baixando arquivo...');
+        const blob = await startResponse.blob();
+        const url = URL.createObjectURL(blob);
+        const disposition = startResponse.headers.get('content-disposition');
+        const fileName = disposition?.match(/filename="(.+)"/)?.[1] ?? 'export.xlsx';
+        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      setExportStatus('completed');
+      setStatusMessage('Download pronto!');
+      toast({ title: 'Exportação concluída', description: 'Arquivo Excel baixado com sucesso!' });
+      setTimeout(() => setOpen(false), 1000);
 
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
+      if (error instanceof Error && error.name === 'AbortError') return;
       console.error('Erro ao exportar:', error);
       setExportStatus('error');
       setStatusMessage('Erro ao iniciar exportação');
-      toast({
-        title: 'Erro na exportação',
-        description: 'Não foi possível iniciar a geração do arquivo.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro na exportação', description: 'Não foi possível iniciar a geração do arquivo.', variant: 'destructive' });
     }
   };
 
