@@ -1,29 +1,29 @@
 
 
-## Plano: Remover ícone da coluna Projeto e otimizar larguras para tela 14"
+## Plano: Otimizar Edge Function `processar-procedimento` para evitar timeouts e 502s
 
-Uma tela de 14" tem ~1366px de largura. Com sidebar (~220px), sobram ~1146px para a tabela. As datas em `dd/MM/yyyy` precisam de ~85px mínimo. Atualmente Status/Início/Término estão com 5% (~57px), insuficiente.
+### Diagnóstico
 
-### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+A função faz 2 chamadas sequenciais à AI Gateway com até 50.000 caracteres de conteúdo. Isso causa:
+- **502 Server Error**: o gateway fecha a conexão por timeout
+- **Processamento lento**: o card fica eternamente em "Analisando documento..."
 
-**1. Remover ícone `FolderKanban` da célula Projeto** (linha 592) — exibir apenas o nome em `font-medium`, sem o `div flex items-center gap-2`.
+### Alterações em `supabase/functions/processar-procedimento/index.ts`
 
-**2. Redistribuir larguras para caber em ~1146px:**
+**1. Reduzir conteúdo enviado à IA** — de 50.000 para 15.000 caracteres. A IA precisa apenas do suficiente para entender o procedimento, não do documento inteiro.
 
-| Coluna | Atual | Nova | Motivo |
-|--------|-------|------|--------|
-| Projeto | 21% | 18% | Sem ícone, ganha espaço |
-| Produto | 17% | 14% | Texto quebra em linhas |
-| Serviço | 14% | 12% | Texto quebra em linhas |
-| Cliente | 13% | 11% | Truncate já aplicado |
-| Área | 10% | 8% | Textos curtos |
-| Equipe | 10% | 9% | Nomes abreviados |
-| Status | 5% | 7% | Badge precisa de espaço |
-| Início | 5% | 7% | `dd/MM/yyyy` precisa ~85px |
-| Término | 5% | 7% | `dd/MM/yyyy` precisa ~85px |
-| Ações | auto | 7% | 2 botões icon |
+**2. Usar tool calling para extração estruturada** — em vez de pedir JSON no prompt (propenso a erros de parsing), usar `tools` + `tool_choice` para forçar output estruturado. Isso elimina a necessidade de todo o bloco de repair/cleanup de JSON.
 
-**3. Datas em formato compacto** — trocar `dd/MM/yyyy` por `dd/MM/yy` para economizar ~20px por coluna.
+**3. Salvar resultado de texto ANTES de gerar imagem** — atualizar o registro com `status_geracao: 'gerado'` imediatamente após o parsing. A geração de capa vira uma etapa separada que atualiza apenas `ai_cover_url` depois. Se falhar, o procedimento já está disponível sem capa.
 
-**4. Aplicar `min-w-[1000px]`** na tabela (atualmente `min-w-[900px]`) para garantir legibilidade mínima antes do scroll horizontal.
+**4. Adicionar retry com backoff para 502** — se a gateway retorna 502, aguardar 5s e tentar novamente (máximo 2 tentativas).
+
+**5. Timeout na chamada fetch** — usar `AbortSignal.timeout(55000)` para não estourar o limite do edge runtime (~60s).
+
+### Resultado esperado
+
+- Processamento em ~10-20s em vez de timeout
+- Cards saem de "Analisando documento..." rapidamente
+- Imagem de capa aparece depois (ou não, sem bloquear)
+- Erros 502 transitórios são retentados automaticamente
 
