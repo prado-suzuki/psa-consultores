@@ -8,21 +8,69 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em documentação técnica tributária e fiscal brasileira.
-Analise o documento fornecido e retorne APENAS um JSON válido, sem texto adicional, no seguinte formato exato:
-{
-  "titulo": "título claro e objetivo do procedimento",
-  "resumo": "resumo executivo em até 3 linhas explicando o que esse procedimento resolve e quando usar",
-  "etapas": ["etapa-chave 1", "etapa-chave 2", "etapa-chave 3"],
-  "processos": ["EFD", "XMLs"],
-  "complexidade": "simples|intermediario|avancado",
-  "tags": ["tag1", "tag2", "tag3"]
-}
+Analise o documento fornecido e extraia as informações estruturadas solicitadas.`;
 
-Regras:
-- etapas: máximo 5 itens representando os grandes blocos do procedimento, não passos detalhados
-- processos: selecione apenas entre os valores [EFD, XMLs, PERDCOMP, Selic, IBS/CBS, Balancetes, PIS/COFINS, Cruzamento de Dados, Correções SPED] — estes são os processos executados dentro da área Dev
-- complexidade: simples = até 5 passos lineares sem ramificações; intermediario = envolve validações ou múltiplas etapas condicionais; avancado = envolve múltiplos sistemas ou validações cruzadas
-- tags: máximo 5, palavras-chave de busca relevantes para o procedimento`;
+const EXTRACT_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_procedimento",
+    description: "Extrai informações estruturadas de um documento de procedimento tributário/fiscal.",
+    parameters: {
+      type: "object",
+      properties: {
+        titulo: { type: "string", description: "Título claro e objetivo do procedimento" },
+        resumo: { type: "string", description: "Resumo executivo em até 3 linhas" },
+        etapas: {
+          type: "array",
+          items: { type: "string" },
+          description: "Máximo 5 etapas-chave representando os grandes blocos do procedimento",
+        },
+        processos: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["EFD", "XMLs", "PERDCOMP", "Selic", "IBS/CBS", "Balancetes", "PIS/COFINS", "Cruzamento de Dados", "Correções SPED"],
+          },
+          description: "Processos associados da área Dev",
+        },
+        complexidade: {
+          type: "string",
+          enum: ["simples", "intermediario", "avancado"],
+          description: "simples = até 5 passos lineares; intermediario = validações condicionais; avancado = múltiplos sistemas",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Máximo 5 palavras-chave de busca",
+        },
+      },
+      required: ["titulo", "resumo", "etapas", "processos", "complexidade", "tags"],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, { ...options, signal: AbortSignal.timeout(55000) });
+      if (res.status === 502 && attempt < maxRetries) {
+        console.log(`502 on attempt ${attempt + 1}, retrying in ${5 * (attempt + 1)}s...`);
+        await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < maxRetries && (err as Error).name === "TimeoutError") {
+        console.log(`Timeout on attempt ${attempt + 1}, retrying...`);
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,11 +90,13 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let procId: string | null = null;
+
   try {
     const { id } = await req.json();
+    procId = id;
     if (!id) throw new Error("Missing procedimento id");
 
-    // Fetch the procedimento record
     const { data: proc, error: fetchErr } = await supabase
       .from("procedimentos")
       .select("*")
@@ -55,33 +105,26 @@ serve(async (req) => {
 
     if (fetchErr || !proc) throw new Error("Procedimento not found");
 
+    // Step 1: Extract content (limited to 15k chars)
     let content = "";
+    const MAX_CONTENT = 15000;
 
-    // Step 1: Extract content
     if (proc.source_type === "link" && proc.source_url) {
-      try {
-        const res = await fetch(proc.source_url);
-        const html = await res.text();
-        content = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .substring(0, 50000);
-      } catch (e) {
-        throw new Error(`Failed to fetch URL: ${e.message}`);
-      }
+      const res = await fetch(proc.source_url, { signal: AbortSignal.timeout(15000) });
+      const html = await res.text();
+      content = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .substring(0, MAX_CONTENT);
     } else if ((proc.source_type === "pdf" || proc.source_type === "docx") && proc.arquivo_path) {
-      try {
-        const { data: fileData, error: dlErr } = await supabase.storage
-          .from("sop-documents")
-          .download(proc.arquivo_path);
-        if (dlErr || !fileData) throw new Error("Failed to download file from storage");
-        content = await fileData.text();
-        content = content.substring(0, 50000);
-      } catch (e) {
-        throw new Error(`Failed to read file: ${e.message}`);
-      }
+      const { data: fileData, error: dlErr } = await supabase.storage
+        .from("sop-documents")
+        .download(proc.arquivo_path);
+      if (dlErr || !fileData) throw new Error("Failed to download file from storage");
+      content = (await fileData.text()).substring(0, MAX_CONTENT);
     } else {
       throw new Error("No valid source provided");
     }
@@ -90,80 +133,71 @@ serve(async (req) => {
       throw new Error("Content too short or empty to analyze");
     }
 
-    // Step 2: Call Lovable AI Gateway for text analysis
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Step 2: Call AI with tool calling for structured extraction
+    const aiResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Analise o seguinte documento e retorne o JSON estruturado:\n\n${content}` },
+          { role: "user", content: `Analise o seguinte documento e extraia as informações estruturadas:\n\n${content}` },
         ],
+        tools: [EXTRACT_TOOL],
+        tool_choice: { type: "function", function: { name: "extract_procedimento" } },
       }),
     });
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      throw new Error(`AI gateway error [${aiResponse.status}]: ${errText}`);
+      throw new Error(`AI gateway error [${aiResponse.status}]: ${errText.substring(0, 300)}`);
     }
 
-    const aiText = await aiResponse.text();
-    let aiData: any;
-    try {
-      aiData = JSON.parse(aiText);
-    } catch {
-      console.error("AI gateway returned non-JSON:", aiText.substring(0, 500));
-      throw new Error("AI gateway returned invalid JSON response");
-    }
-
-    const rawContent = aiData.choices?.[0]?.message?.content;
-    if (!rawContent) throw new Error("Empty AI response");
-
-    // Parse JSON from AI response (handle markdown code blocks)
-    let jsonStr = rawContent.trim();
-    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1].trim();
-    }
-
-    // Find JSON boundaries
-    const jsonStart = jsonStr.search(/[\{\[]/);
-    const jsonEnd = jsonStr.lastIndexOf(jsonStart !== -1 && jsonStr[jsonStart] === "[" ? "]" : "}");
-    if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
-      console.error("No JSON found in AI content:", jsonStr.substring(0, 500));
-      throw new Error("AI response does not contain valid JSON");
-    }
-    jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+    const aiData = await aiResponse.json();
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     let parsed: any;
-    try {
+    if (toolCall?.function?.arguments) {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } else {
+      // Fallback: try content as JSON
+      const rawContent = aiData.choices?.[0]?.message?.content || "";
+      let jsonStr = rawContent.trim();
+      const m = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (m) jsonStr = m[1].trim();
+      const s = jsonStr.indexOf("{");
+      const e = jsonStr.lastIndexOf("}");
+      if (s !== -1 && e > s) jsonStr = jsonStr.substring(s, e + 1);
       parsed = JSON.parse(jsonStr);
-    } catch {
-      // Fix common issues: trailing commas, control characters
-      jsonStr = jsonStr
-        .replace(/,\s*}/g, "}")
-        .replace(/,\s*]/g, "]")
-        .replace(/[\x00-\x1F\x7F]/g, "");
-      try {
-        parsed = JSON.parse(jsonStr);
-      } catch (e2) {
-        console.error("Failed to parse AI JSON after cleanup:", jsonStr.substring(0, 500));
-        throw new Error("AI returned malformed JSON that could not be repaired");
-      }
     }
 
-    // Step 3: Generate cover image using AI
-    let aiCoverUrl: string | null = null;
+    // Step 3: Save text results immediately (user sees "gerado" fast)
+    const { error: updateErr } = await supabase
+      .from("procedimentos")
+      .update({
+        ai_titulo: parsed.titulo || null,
+        ai_resumo: parsed.resumo || null,
+        ai_etapas: parsed.etapas || [],
+        ai_complexidade: parsed.complexidade || "intermediario",
+        ai_tags: parsed.tags || [],
+        processos_associados: parsed.processos || [],
+        status_geracao: "gerado",
+        erro_mensagem: null,
+      })
+      .eq("id", id);
+
+    if (updateErr) throw new Error(`Failed to update: ${updateErr.message}`);
+
+    // Step 4: Generate cover image (non-blocking — failures don't affect status)
     try {
       const titulo = parsed.titulo || "Procedimento tributário";
       const processosStr = (parsed.processos || []).join(", ");
       const imagePrompt = `Create a professional, clean cover illustration for a tax procedure document titled "${titulo}". Related areas: ${processosStr}. Style: modern flat illustration, professional blue and teal color tones, abstract geometric shapes representing data analysis and compliance, no text in the image, suitable as a card thumbnail.`;
 
-      const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const imageResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${lovableApiKey}`,
@@ -181,7 +215,6 @@ serve(async (req) => {
         const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
         if (base64Url && base64Url.startsWith("data:image/")) {
-          // Extract base64 data and upload to storage
           const base64Match = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
           if (base64Match) {
             const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
@@ -197,37 +230,17 @@ serve(async (req) => {
               });
 
             if (!uploadErr) {
-              aiCoverUrl = coverPath;
-            } else {
-              console.error("Cover upload error:", uploadErr);
+              await supabase
+                .from("procedimentos")
+                .update({ ai_cover_url: coverPath })
+                .eq("id", id);
             }
           }
         }
-      } else {
-        console.error("Image generation failed:", await imageResponse.text());
       }
     } catch (imgErr) {
-      console.error("Cover image generation error:", imgErr);
-      // Non-fatal: proceed without cover
+      console.error("Cover image generation error (non-fatal):", imgErr);
     }
-
-    // Step 4: Update record with success
-    const { error: updateErr } = await supabase
-      .from("procedimentos")
-      .update({
-        ai_titulo: parsed.titulo || null,
-        ai_resumo: parsed.resumo || null,
-        ai_etapas: parsed.etapas || [],
-        ai_complexidade: parsed.complexidade || "intermediario",
-        ai_tags: parsed.tags || [],
-        processos_associados: parsed.processos || [],
-        ai_cover_url: aiCoverUrl,
-        status_geracao: "gerado",
-        erro_mensagem: null,
-      })
-      .eq("id", id);
-
-    if (updateErr) throw new Error(`Failed to update: ${updateErr.message}`);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,16 +249,14 @@ serve(async (req) => {
     console.error("processar-procedimento error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-    // Try to update the record with error status
-    try {
-      const { id } = await req.clone().json().catch(() => ({ id: null }));
-      if (id) {
+    if (procId) {
+      try {
         await supabase
           .from("procedimentos")
           .update({ status_geracao: "erro", erro_mensagem: errorMessage })
-          .eq("id", id);
-      }
-    } catch { /* ignore update errors */ }
+          .eq("id", procId);
+      } catch { /* ignore */ }
+    }
 
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
