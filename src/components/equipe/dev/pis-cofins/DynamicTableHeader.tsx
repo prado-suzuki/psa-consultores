@@ -1,9 +1,11 @@
-import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableHead, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { HeaderColumn, HeaderBottomColumn } from "@/hooks/useTableHeaders";
+import type { StickyColumnConfig } from "./ApuracaoDataTable";
 
 interface DynamicTableHeaderProps {
-  firstColumns: { label: string }[];
+  stickyConfig: StickyColumnConfig[];
   headerRow1: HeaderColumn[];
   headerRow2: HeaderBottomColumn[];
   hasExpandedYear: boolean;
@@ -12,7 +14,7 @@ interface DynamicTableHeaderProps {
 }
 
 export function DynamicTableHeader({
-  firstColumns,
+  stickyConfig,
   headerRow1,
   headerRow2,
   hasExpandedYear,
@@ -20,10 +22,18 @@ export function DynamicTableHeader({
   setExpandedYear
 }: DynamicTableHeaderProps) {
   return (
-    <TableHeader className="bg-muted/50">
+    <thead className="bg-muted/50 sticky top-0 z-30 [&_tr]:border-b">
       <TableRow>
-        {firstColumns.map((col, i) => (
-          <TableHead key={i} className="font-bold uppercase text-xs text-muted-foreground border-r" rowSpan={headerRowsCount}>
+        {stickyConfig.map((col) => (
+          <TableHead
+            key={col.label}
+            className={cn(
+              "font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted/50",
+              col.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
+            )}
+            style={{ left: col.left, minWidth: col.width }}
+            rowSpan={headerRowsCount}
+          >
             {col.label}
           </TableHead>
         ))}
@@ -56,6 +66,6 @@ export function DynamicTableHeader({
           ))}
         </TableRow>
       )}
-    </TableHeader>
+    </thead>
   );
 }

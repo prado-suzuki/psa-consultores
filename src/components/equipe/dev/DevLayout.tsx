@@ -349,7 +349,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
         {/* Scrollable Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6 max-w-full overflow-x-hidden">{children}</div>
+          <div className="p-6 w-full min-w-0">{children}</div>
         </ScrollArea>
       </main>
     </div>
