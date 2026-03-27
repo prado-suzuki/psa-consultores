@@ -73,6 +73,13 @@ export default function ContribuintesTab({
       if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
       if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
     }
+    // Validar IEs do contribuinte em edição
+    const ieKey = editingEntityData._dbId || String(editingEntityId);
+    const editingIEs = inscricoesMap[ieKey] || [];
+    for (const ie of editingIEs) {
+      if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
+      if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
+    }
     setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
     setEditingEntityId(null);
     setEditingEntityData(null);
