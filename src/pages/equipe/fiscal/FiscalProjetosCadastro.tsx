@@ -564,7 +564,17 @@ const FiscalProjetosCadastro = () => {
             </SelectContent>
           </Select>
 
-          {hasActiveFilters && (
+          <Select value={groupBy} onValueChange={v => setGroupBy(v as 'none' | 'cliente' | 'area')}>
+            <SelectTrigger className="w-48">
+              <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Agrupar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem agrupamento</SelectItem>
+              <SelectItem value="cliente">Agrupar por Cliente</SelectItem>
+              <SelectItem value="area">Agrupar por Área</SelectItem>
+            </SelectContent>
+          </Select>
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
               <X className="h-4 w-4" />
               Limpar
