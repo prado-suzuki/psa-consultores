@@ -503,6 +503,7 @@ const CalculadoraIbsCbs = () => {
             data_fim: dataFim,
           }),
         },
+        300000, // 5 min timeout para streaming de arquivos grandes
       );
 
       if (!response.ok) {
