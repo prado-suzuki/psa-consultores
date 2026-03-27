@@ -1,51 +1,40 @@
 
 
-## Plano: Melhorias UX no Cadastro de Clientes
+## Plano: Corrigir Bugs de Validação no Cadastro de Contribuintes
 
-### 1. Reduzir mínimo de observações (ParticipantesTab.tsx)
+### 2.1 — IE: UF condicional (ContribuintesTab.tsx)
 
-**Linha 83:** Trocar `< 20` por `< 3` e atualizar mensagem de erro.
-
-### 2. Remover AlertDialog do "Aplicar" (3 arquivos)
-
-Substituir o bloco `<AlertDialog>...<AlertDialogTrigger><Button>Aplicar</Button></AlertDialogTrigger>...</AlertDialog>` por um `<Button onClick={saveHandler}>Aplicar</Button>` direto.
-
-| Arquivo | Linhas | Handler |
-|---------|--------|---------|
-| `ContribuintesTab.tsx` | 389-403 | `saveEditEntity` |
-| `ParticipantesTab.tsx` | 206-220 | `saveEditParticipant` |
-| `ContratosTab.tsx` | 383-389 | `saveEditContract` |
-
-Os `AlertDialog` dos botões "Remover" permanecem intactos.
-
-Após a remoção, os imports de `AlertDialog*` podem ser limpos nos arquivos onde só eram usados pelo "Aplicar" — **ParticipantesTab** ainda usa para "Remover", **ContribuintesTab** e **ContratosTab** também usam para "Remover**, então os imports ficam em todos.
-
-### 3. Cores semânticas + texto de ajuda (FaturamentoTab.tsx)
-
-Substituições de cores hardcoded:
-
-| De | Para |
-|----|------|
-| `text-gray-500` | `text-muted-foreground` |
-| `text-gray-900` | `text-foreground` |
-| `text-gray-300` | `text-muted-foreground/50` |
-| `bg-gray-50` | `bg-muted` |
-
-Adicionar no topo da seção (após o header), um parágrafo de ajuda:
+**Linha 98-99:** A validação `if (!ie.uf)` itera sobre todas as `draftInscricoes` sem checar `ie.situacao`. Corrigir para:
 
 ```tsx
-<p className="px-4 pt-3 text-xs text-muted-foreground italic">
-  Para alterar o contribuinte de faturamento, vá até a aba Contribuintes e ative o switch "Contribuinte de Faturamento" no contribuinte desejado.
-</p>
+for (const ie of draftInscricoes) {
+  if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
+  if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
+}
 ```
+
+Adicionalmente, verificar se ao trocar `situacao_inscricao_estadual` para "nao"/"isento" o array `draftInscricoes` já é limpo (a lógica existente na linha ~466 já faz isso — confirmarei a exatidão).
+
+### 2.2 — Paridade de validação no saveEditEntity (ContribuintesTab.tsx)
+
+**Linhas 61-70:** Atualmente só valida CEP. Replicar todas as validações do `addEntity()`:
+
+- CPF/CNPJ presente e com 11 ou 14 dígitos
+- Razão Social / Nome Completo não vazio
+- CEP, Logradouro, Bairro, Município, UF obrigatórios
+- Se PJ: CNAE e Simples Nacional obrigatórios
+
+### 2.3 — Remover "Indústria" hardcoded (constants.ts + ContribuintesTab.tsx)
+
+| Arquivo | Linha | Alteração |
+|---------|-------|-----------|
+| `constants.ts` | 173 | `setor: "Indústria"` → `setor: ""` |
+| `ContribuintesTab.tsx` | 115 | `setor: "Indústria"` → `setor: ""` (reset após adicionar) |
 
 ### Arquivos modificados
 
-| Arquivo | Alteração |
+| Arquivo | Alterações |
 |---------|-----------|
-| `src/components/equipe/client-form/ParticipantesTab.tsx` | Mínimo observações 20→3 |
-| `src/components/equipe/client-form/ParticipantesTab.tsx` | Remover AlertDialog do Aplicar |
-| `src/components/equipe/client-form/ContribuintesTab.tsx` | Remover AlertDialog do Aplicar |
-| `src/components/equipe/client-form/ContratosTab.tsx` | Remover AlertDialog do Aplicar |
-| `src/components/equipe/client-form/FaturamentoTab.tsx` | Cores semânticas + texto de ajuda |
+| `ContribuintesTab.tsx` | Validação IE condicional (L98-99), paridade saveEditEntity (L61-70), reset setor vazio (L115) |
+| `constants.ts` | Default setor vazio (L173) |
 
