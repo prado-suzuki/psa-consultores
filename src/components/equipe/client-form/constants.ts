@@ -170,7 +170,7 @@ export const createDefaultDraftEntity = (): Partial<import("@/types/clientForm")
   situacao_inscricao_estadual: "",
   inscricao_estadual: "",
   cod_cnae: "",
-  setor: "Indústria",
+  setor: "",
   simples_nacional: "",
   telefone: "",
   cep: "",
