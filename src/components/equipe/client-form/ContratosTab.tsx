@@ -18,6 +18,7 @@ import { createDefaultDraftContract } from "./constants";
 import DateFieldWithInput from "./DateFieldWithInput";
 import CurrencyField from "./CurrencyField";
 import FieldPair from "./FieldPair";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
 
@@ -168,7 +169,7 @@ function ProdutoContratadoBlock({
 
       {/* Add product */}
       <div>
-        <Label className="text-xs font-semibold uppercase text-muted-foreground">Adicionar Produto *</Label>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Adicionar Produto<RequiredMark /></Label>
         <div className="flex gap-2 mt-1">
           <Select value={addingProductId} onValueChange={setAddingProductId}>
             <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>

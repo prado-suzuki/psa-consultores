@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
 import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
+import { RequiredMark } from "@/components/ui/required-mark";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -250,7 +251,7 @@ export default function ContribuintesTab({
                         </div>
                         {/* CPF/CNPJ */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative">
                               <Input value={ed.cpf_cnpj || ""} onChange={(e) => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || "PJ") })} onBlur={(e) => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8 h-8" />
@@ -260,7 +261,7 @@ export default function ContribuintesTab({
                         </div>
                         {/* Razão Social */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ed.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ed.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
                           <div className="flex-1"><Input value={ed.nome_razao_social || ""} onChange={(e) => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} placeholder={ed.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
                         </div>
                         {ed.tipo_pessoa !== "PF" && (
@@ -338,7 +339,7 @@ export default function ContribuintesTab({
                         {/* CNAE */}
                         {ed.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE</Label>
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE<RequiredMark /></Label>
                             <div className="flex-1"><Input value={ed.cod_cnae || ""} onChange={(e) => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} className="h-8 max-w-[200px]" /></div>
                           </div>
                         )}
@@ -350,7 +351,7 @@ export default function ContribuintesTab({
                         )}
                         {ed.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
+                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional<RequiredMark /></Label>
                             <div className="flex-1">
                               <Select value={ed.simples_nacional || undefined} onValueChange={(v) => setEditingEntityData({ ...ed, simples_nacional: v })}>
                                 <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -361,7 +362,7 @@ export default function ContribuintesTab({
                         )}
                         {/* CEP */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP<RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative max-w-[160px]">
                               <Input value={ed.cep || ""} onChange={(e) => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={(e) => handleInlineCepBlur(e.target.value)} className="font-mono pr-8 h-8" />
@@ -370,19 +371,7 @@ export default function ContribuintesTab({
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF</Label>
-                          <div className="flex-1"><Input value={ed.uf || ""} onChange={(e) => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
-                        </div>
-                        <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município</Label>
-                          <div className="flex-1"><Input value={ed.municipio || ""} onChange={(e) => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" /></div>
-                        </div>
-                        <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro</Label>
-                          <div className="flex-1"><Input value={ed.bairro || ""} onChange={(e) => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" /></div>
-                        </div>
-                        <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro</Label>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro<RequiredMark /></Label>
                           <div className="flex-1"><Input value={ed.logradouro || ""} onChange={(e) => setEditingEntityData({ ...ed, logradouro: e.target.value })} className="h-8" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
@@ -392,6 +381,18 @@ export default function ContribuintesTab({
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
                           <div className="flex-1"><Input value={ed.complemento || ""} onChange={(e) => setEditingEntityData({ ...ed, complemento: e.target.value })} className="h-8" /></div>
+                        </div>
+                        <div className="flex flex-row items-center gap-4">
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro<RequiredMark /></Label>
+                          <div className="flex-1"><Input value={ed.bairro || ""} onChange={(e) => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" /></div>
+                        </div>
+                        <div className="flex flex-row items-center gap-4">
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município<RequiredMark /></Label>
+                          <div className="flex-1"><Input value={ed.municipio || ""} onChange={(e) => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" /></div>
+                        </div>
+                        <div className="flex flex-row items-center gap-4">
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF<RequiredMark /></Label>
+                          <div className="flex-1"><Input value={ed.uf || ""} onChange={(e) => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Contribuinte de Faturamento</Label>
@@ -437,7 +438,7 @@ export default function ContribuintesTab({
               </div>
               {/* CPF/CNPJ */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative">
                     <Input value={draftEntity.cpf_cnpj || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") })} onBlur={(e) => handleCnpjBlur(e.target.value)} placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"} className="font-mono pr-8 h-8" />
@@ -447,7 +448,7 @@ export default function ContribuintesTab({
               </div>
               {/* Razão Social */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{draftEntity.tipo_pessoa === "PF" ? "Nome completo *" : "Razão Social *"}</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{draftEntity.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
                 <div className="flex-1"><Input value={draftEntity.nome_razao_social || ""} onChange={(e) => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder={draftEntity.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
               </div>
               {draftEntity.tipo_pessoa !== "PF" && (
@@ -501,7 +502,7 @@ export default function ContribuintesTab({
               {/* CNAE */}
               {draftEntity.tipo_pessoa === "PJ" && (
                 <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE *</Label>
+                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE<RequiredMark /></Label>
                   <div className="flex-1"><Input value={draftEntity.cod_cnae || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" className="h-8 max-w-[200px]" /></div>
                 </div>
               )}
@@ -513,7 +514,7 @@ export default function ContribuintesTab({
               )}
               {draftEntity.tipo_pessoa === "PJ" && (
                 <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional *</Label>
+                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional<RequiredMark /></Label>
                   <div className="flex-1">
                     <Select value={draftEntity.simples_nacional || undefined} onValueChange={(v) => setDraftEntity({ ...draftEntity, simples_nacional: v })}>
                       <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -524,7 +525,7 @@ export default function ContribuintesTab({
               )}
               {/* CEP */}
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP<RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative max-w-[160px]">
                     <Input value={draftEntity.cep || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })} onBlur={(e) => handleCepBlur(e.target.value)} placeholder="00000-000" className="font-mono pr-8 h-8" />
@@ -533,19 +534,7 @@ export default function ContribuintesTab({
                 </div>
               </div>
               <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF *</Label>
-                <div className="flex-1"><Input value={draftEntity.uf || ""} onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município *</Label>
-                <div className="flex-1"><Input value={draftEntity.municipio || ""} onChange={(e) => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro *</Label>
-                <div className="flex-1"><Input value={draftEntity.bairro || ""} onChange={(e) => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro *</Label>
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro<RequiredMark /></Label>
                 <div className="flex-1"><Input value={draftEntity.logradouro || ""} onChange={(e) => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." className="h-8" /></div>
               </div>
               <div className="flex flex-row items-center gap-4">
@@ -555,6 +544,18 @@ export default function ContribuintesTab({
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
                 <div className="flex-1"><Input value={draftEntity.complemento || ""} onChange={(e) => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." className="h-8" /></div>
+              </div>
+              <div className="flex flex-row items-center gap-4">
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro<RequiredMark /></Label>
+                <div className="flex-1"><Input value={draftEntity.bairro || ""} onChange={(e) => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" /></div>
+              </div>
+              <div className="flex flex-row items-center gap-4">
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município<RequiredMark /></Label>
+                <div className="flex-1"><Input value={draftEntity.municipio || ""} onChange={(e) => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" /></div>
+              </div>
+              <div className="flex flex-row items-center gap-4">
+                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF<RequiredMark /></Label>
+                <div className="flex-1"><Input value={draftEntity.uf || ""} onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Contribuinte de Faturamento</Label>
