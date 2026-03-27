@@ -102,48 +102,63 @@ export interface TaskFilters {
          query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
        }
  
-       if (filters?.assignedTo === 'mine' && user) {
-         query = query.eq('assigned_to', user.id);
-       } else if (filters?.assignedTo && filters.assignedTo !== 'all') {
-         query = query.eq('assigned_to', filters.assignedTo);
-       }
- 
-       if (filters?.status && filters.status.length > 0) {
-         query = query.in('status', filters.status);
-       }
- 
-       if (filters?.priority && filters.priority.length > 0) {
-         query = query.in('priority', filters.priority);
-       }
- 
+        // assignedTo filter applied client-side to preserve parent-subtask hierarchy
 
-       if (filters?.projectId) {
-         query = query.eq('project_id', filters.projectId);
-       }
+        if (filters?.status && filters.status.length > 0) {
+          query = query.in('status', filters.status);
+        }
 
-       if (filters?.clientId) {
-         query = query.eq('client_id', filters.clientId);
-       }
+        if (filters?.priority && filters.priority.length > 0) {
+          query = query.in('priority', filters.priority);
+        }
 
-       if (filters?.contribuinteId) {
-         query = query.eq('contribuinte_id', filters.contribuinteId);
-       }
+        if (filters?.projectId) {
+          query = query.eq('project_id', filters.projectId);
+        }
 
-       if (filters?.startDate) {
+        if (filters?.clientId) {
+          query = query.eq('client_id', filters.clientId);
+        }
+
+        if (filters?.contribuinteId) {
+          query = query.eq('contribuinte_id', filters.contribuinteId);
+        }
+
+        if (filters?.startDate) {
           query = query.gte('due_date', filters.startDate);
         }
-  
+
         if (filters?.endDate) {
           query = query.lte('due_date', filters.endDate);
         }
- 
+
         const { data, error } = await query;
         if (error) throw error;
+
         // Guard against self-referencing parent_task_id
-        return (data || []).map(t => ({
+        let allTasks = (data || []).map(t => ({
           ...t,
           parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
         })) as FiscalTask[];
+
+        // Client-side assignedTo filter: shows parent tasks that have matching subtasks
+        if (filters?.assignedTo && filters.assignedTo !== 'all') {
+          const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
+          if (targetId) {
+            const matchingSubtaskParentIds = new Set(
+              allTasks
+                .filter(t => t.parent_task_id && t.assigned_to === targetId)
+                .map(t => t.parent_task_id)
+            );
+            allTasks = allTasks.filter(t =>
+              t.assigned_to === targetId ||
+              matchingSubtaskParentIds.has(t.id) ||
+              (t.parent_task_id && matchingSubtaskParentIds.has(t.parent_task_id))
+            );
+          }
+        }
+
+        return allTasks;
      },
    });
  };
