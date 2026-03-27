@@ -540,82 +540,92 @@ const AuditoriaFiscal = () => {
         throw new Error(errorData.detail || "Erro ao iniciar exportação");
       }
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
 
-      // Cache hit — arquivo pronto imediatamente
-      if (data.status === 'completed' && (data.url || data.download_url)) {
-        const downloadUrl = data.download_url || data.url;
-        const fileName = data.file_name || `DIFAL_export.xlsx`;
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setExportStatus('idle');
-        toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
-        return;
+      // Cache hit: JSON com URL
+      if (contentType.includes('json')) {
+        const data = await response.json();
+        const downloadUrl = data.url || data.download_url;
+
+        if (downloadUrl) {
+          const fileName = data.file_name || 'DIFAL_export.xlsx';
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = fileName;
+          a.click();
+          setExportStatus('idle');
+          toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
+          return;
+        }
+
+        // Fallback: job_id para polling (jobs antigos)
+        const jobId = data.job_id || data.id;
+        if (jobId) {
+          setExportStatus('processing');
+          setExportMessage('Processando arquivo...');
+          const controller = new AbortController();
+          abortRef.current = controller;
+          pollingRef.current = setInterval(async () => {
+            try {
+              const statusRes = await fetchWithAuth(
+                `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/status/${jobId}`,
+                { signal: controller.signal },
+              );
+              if (!statusRes.ok) { const errData = await statusRes.json().catch(() => ({})); throw new Error(errData.detail || `Erro ${statusRes.status}`); }
+              const statusData = await statusRes.json();
+              if (statusData.status === 'completed') {
+                if (pollingRef.current) clearInterval(pollingRef.current); pollingRef.current = null;
+                const dlUrl = statusData.download_url || statusData.url;
+                if (dlUrl) { const a = document.createElement('a'); a.href = dlUrl; a.download = statusData.file_name || 'DIFAL_export.xlsx'; a.click(); toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." }); }
+                setExportStatus('idle');
+              } else if (statusData.status === 'failed' || statusData.status === 'error') {
+                if (pollingRef.current) clearInterval(pollingRef.current); pollingRef.current = null;
+                toast({ title: "Erro na exportação", description: statusData.message || statusData.error || "Falha ao gerar o arquivo.", variant: "destructive" });
+                setExportStatus('idle');
+              }
+            } catch (err) { if ((err as Error).name === 'AbortError') return; console.error('[DIFAL Export] Polling error:', err); }
+          }, 2000);
+          return;
+        }
+
+        throw new Error("Resposta inesperada do servidor");
       }
 
-      // Job assíncrono — iniciar polling
-      const jobId = data.job_id || data.id;
-      if (!jobId) throw new Error("Resposta inesperada do servidor");
-
+      // Cache miss: streaming binário direto
       setExportStatus('processing');
-      setExportMessage('Processando arquivo...');
+      setExportMessage('Baixando arquivo...');
 
-      const controller = new AbortController();
-      abortRef.current = controller;
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
 
-      pollingRef.current = setInterval(async () => {
-        try {
-          const statusRes = await fetchWithAuth(
-            `${API_BASE_URL}/api/v1/ncm/calculo-difal/exportar/status/${jobId}`,
-            { signal: controller.signal },
-          );
-
-          if (!statusRes.ok) {
-            const errData = await statusRes.json().catch(() => ({}));
-            throw new Error(errData.detail || `Erro ${statusRes.status}`);
-          }
-
-          const statusData = await statusRes.json();
-
-          if (statusData.status === 'completed') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
-
-            const downloadUrl = statusData.download_url || statusData.url;
-            if (downloadUrl) {
-              const fileName = statusData.file_name || `DIFAL_export.xlsx`;
-              const a = document.createElement('a');
-              a.href = downloadUrl;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
-            } else {
-              toast({ title: "Erro", description: "URL de download não disponível.", variant: "destructive" });
-            }
-            setExportStatus('idle');
-          } else if (statusData.status === 'failed' || statusData.status === 'error') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
-            setExportStatus('error');
-            toast({
-              title: "Erro na exportação",
-              description: statusData.message || statusData.error || "Falha ao gerar o arquivo.",
-              variant: "destructive",
-            });
-            setExportStatus('idle');
-          }
-          // else still processing, continue polling
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') return;
-          console.error('[DIFAL Export] Polling error:', err);
+      let blob: Blob;
+      if (total && response.body) {
+        let loaded = 0;
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          setExportMessage(`Baixando... ${Math.round((loaded / total) * 100)}%`);
         }
-      }, 2000);
+        blob = new Blob(chunks, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      } else {
+        blob = await response.blob();
+      }
+
+      const url = URL.createObjectURL(blob);
+      const disposition = response.headers.get('content-disposition');
+      const fileName = disposition?.match(/filename="(.+)"/)?.[1] ?? 'DIFAL_export.xlsx';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setExportStatus('idle');
+      toast({ title: "Exportação concluída", description: "O download iniciará automaticamente." });
     } catch (error) {
       setExportStatus('idle');
       toast({

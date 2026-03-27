@@ -510,20 +510,43 @@ const CalculadoraIbsCbs = () => {
         throw new Error(errorData.detail || "Erro ao gerar exportação");
       }
 
+      const contentType = response.headers.get('content-type') || '';
+
+      // Cache hit: JSON com URL
+      if (contentType.includes('json')) {
+        const data = await response.json();
+        const downloadUrl = data.url || data.download_url;
+        if (downloadUrl) {
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = data.file_name || 'IBS_CBS_export.xlsx';
+          a.click();
+          toast({ title: "Exportação concluída", description: "O arquivo Excel foi baixado com sucesso." });
+          return;
+        }
+        throw new Error("Resposta inesperada do servidor");
+      }
+
+      // Cache miss: streaming binário direto
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
 
-      const contribuinteNome =
-        contribuintes?.find((c) => c.id === selectedContribuinte)?.nome_razao_social || "contribuinte";
-      const dataInicioFormatted = format(parse(dataInicio, "yyyy-MM-dd", new Date()), "ddMMyyyy");
-      const dataFimFormatted = format(parse(dataFim, "yyyy-MM-dd", new Date()), "ddMMyyyy");
-      a.download = `IBS_CBS_${contribuinteNome.replace(/\s+/g, "_")}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
+      const disposition = response.headers.get('content-disposition');
+      const fileNameFromHeader = disposition?.match(/filename="(.+)"/)?.[1];
 
-      document.body.appendChild(a);
+      if (fileNameFromHeader) {
+        a.download = fileNameFromHeader;
+      } else {
+        const contribuinteNome =
+          contribuintes?.find((c) => c.id === selectedContribuinte)?.nome_razao_social || "contribuinte";
+        const dataInicioFormatted = format(parse(dataInicio, "yyyy-MM-dd", new Date()), "ddMMyyyy");
+        const dataFimFormatted = format(parse(dataFim, "yyyy-MM-dd", new Date()), "ddMMyyyy");
+        a.download = `IBS_CBS_${contribuinteNome.replace(/\s+/g, "_")}_${dataInicioFormatted}_${dataFimFormatted}.xlsx`;
+      }
+
       a.click();
-      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
       toast({
