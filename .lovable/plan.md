@@ -1,18 +1,36 @@
 
 
-## Plano: Melhorar visualização dos itens CST no dropdown
+## Plano: Adicionar scrollbar horizontal nas tabelas da Apuração PIS/COFINS
 
-### Arquivo: `src/components/equipe/dev/pis-cofins/RegraFormSheet.tsx`
+### Problema
+O componente `Table` (ui/table.tsx) envolve a `<table>` em um `<div className="relative w-full overflow-auto">`. Porém `w-full` sem restrição de `max-width` faz o div expandir com o conteúdo. As tabelas com 60+ colunas estouram a largura da página.
 
-**1. Trigger (linha 156-166):** Aumentar altura do botão de `h-10` para `h-auto min-h-10 py-2` e trocar `truncate` por `whitespace-normal text-left line-clamp-2` para mostrar a descrição completa.
+### Solução
 
-**2. Itens da lista (linhas 183-193):** Remover `truncate` da descrição para mostrar texto completo com `whitespace-normal`. Adicionar `items-start py-2` ao `CommandItem` para alinhar bem com texto multi-linha. Adicionar `hover:text-white` ao código (`opt.code`) para ficar branco no hover igual à descrição.
+**1. `ApuracaoDataTable.tsx`** — O wrapper externo `<div className="rounded-md border bg-card overflow-hidden">` já existe com `overflow-hidden`, e o `<div className="overflow-x-auto">` interno também. O problema é que o `Table` component adiciona **outro** wrapper com `overflow-auto`. Para funcionar, o container externo precisa de uma largura máxima explícita.
 
-### Alterações específicas
+Alterar o wrapper externo de:
+```
+<div className="rounded-md border bg-card overflow-hidden">
+```
+para:
+```
+<div className="rounded-md border bg-card overflow-hidden max-w-full">
+```
 
-- Linha 160: `"w-full justify-between font-normal h-10 text-sm"` → `"w-full justify-between font-normal h-auto min-h-10 py-2 text-sm"`
-- Linha 162: `"truncate"` → `"whitespace-normal text-left line-clamp-2"`
-- Linha 187: `"text-xs"` → `"text-xs items-start py-2"`
-- Linha 190: `"font-mono mr-2 font-semibold text-foreground"` → `"font-mono mr-2 font-semibold text-foreground group-data-[highlighted]:text-white"`
-- Linha 191: `"truncate"` → `"whitespace-normal"`
+E remover o `<div className="overflow-x-auto">` intermediário redundante, deixando o scroll ser controlado pelo wrapper do próprio `Table`.
+
+**2. `ApuracaoPisCofins.tsx`** — Todas as tabelas inline (Apuração, Rateio, etc.) estão dentro de `<Card className="overflow-hidden"><div className="overflow-x-auto"><Table>`. O mesmo problema: o `Card` não restringe largura. Adicionar `max-w-full` ao `Card`.
+
+### Alterações concretas
+
+**`src/components/equipe/dev/pis-cofins/ApuracaoDataTable.tsx` (linha 72):**
+- `"rounded-md border bg-card overflow-hidden"` → `"rounded-md border bg-card overflow-x-auto max-w-full"`
+- Remover o `<div className="overflow-x-auto">` interno (linha 73 e 111) — deixar scroll no wrapper externo
+
+**`src/pages/equipe/dev/ApuracaoPisCofins.tsx`** — Em todas as ~10 ocorrências de `<Card className="overflow-hidden">`:
+- Trocar para `<Card className="overflow-x-auto max-w-full">`
+- Remover os `<div className="overflow-x-auto">` internos redundantes
+
+Isso garante um único ponto de scroll horizontal por tabela, com largura restrita ao container pai.
 
