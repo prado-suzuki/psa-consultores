@@ -333,8 +333,7 @@ const ApuracaoPisCofins = () => {
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo Após Isenções/Exclusões</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -347,7 +346,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -361,8 +359,7 @@ const ApuracaoPisCofins = () => {
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -375,14 +372,12 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Crédito do Mês</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -402,7 +397,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -413,8 +407,7 @@ const ApuracaoPisCofins = () => {
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -441,14 +434,12 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -479,14 +470,12 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -517,14 +506,12 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Isenções e Exclusões</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Conta' }, { label: 'Descrição' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -546,7 +533,6 @@ const ApuracaoPisCofins = () => {
                             )}
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -557,8 +543,7 @@ const ApuracaoPisCofins = () => {
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio</h2>
-                    <Card className="overflow-hidden">
-                      <div className="overflow-x-auto">
+                    <Card className="overflow-x-auto max-w-full">
                         <Table>
                           <DynamicTableHeader firstColumns={[{ label: 'Rateio das receitas' }]} headerRow1={headerRow1} headerRow2={headerRow2} hasExpandedYear={hasExpandedYear} headerRowsCount={headerRowsCount} setExpandedYear={setExpandedYear} />
                           <TableBody>
@@ -646,7 +631,6 @@ const ApuracaoPisCofins = () => {
                             ))}
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
