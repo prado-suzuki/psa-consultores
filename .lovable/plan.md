@@ -1,40 +1,28 @@
 
 
-## Plano: Corrigir Bugs de Validação no Cadastro de Contribuintes
+## Plano: Adicionar validação de IE no saveEditEntity
 
-### 2.1 — IE: UF condicional (ContribuintesTab.tsx)
+### Problema
+`saveEditEntity()` não valida Inscrições Estaduais. As IEs durante edição ficam no `inscricoesMap` (chave = `_dbId || _id`), não em `editingEntityData`.
 
-**Linha 98-99:** A validação `if (!ie.uf)` itera sobre todas as `draftInscricoes` sem checar `ie.situacao`. Corrigir para:
+### Alteração (ContribuintesTab.tsx, linha 75→76)
+
+Inserir após a validação de Simples Nacional (L74) e antes do `setEntities` (L76):
 
 ```tsx
-for (const ie of draftInscricoes) {
+// Validar IEs do contribuinte em edição
+const ieKey = editingEntityData._dbId || String(editingEntityId);
+const editingIEs = inscricoesMap[ieKey] || [];
+for (const ie of editingIEs) {
   if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
   if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
 }
 ```
 
-Adicionalmente, verificar se ao trocar `situacao_inscricao_estadual` para "nao"/"isento" o array `draftInscricoes` já é limpo (a lógica existente na linha ~466 já faz isso — confirmarei a exatidão).
+Nota: usa `inscricoesMap` (onde as IEs ficam durante edição inline) em vez de `editingEntityData.inscricoes_estaduais` que não existe nessa estrutura.
 
-### 2.2 — Paridade de validação no saveEditEntity (ContribuintesTab.tsx)
-
-**Linhas 61-70:** Atualmente só valida CEP. Replicar todas as validações do `addEntity()`:
-
-- CPF/CNPJ presente e com 11 ou 14 dígitos
-- Razão Social / Nome Completo não vazio
-- CEP, Logradouro, Bairro, Município, UF obrigatórios
-- Se PJ: CNAE e Simples Nacional obrigatórios
-
-### 2.3 — Remover "Indústria" hardcoded (constants.ts + ContribuintesTab.tsx)
-
-| Arquivo | Linha | Alteração |
-|---------|-------|-----------|
-| `constants.ts` | 173 | `setor: "Indústria"` → `setor: ""` |
-| `ContribuintesTab.tsx` | 115 | `setor: "Indústria"` → `setor: ""` (reset após adicionar) |
-
-### Arquivos modificados
-
-| Arquivo | Alterações |
+### Arquivo modificado
+| Arquivo | Alteração |
 |---------|-----------|
-| `ContribuintesTab.tsx` | Validação IE condicional (L98-99), paridade saveEditEntity (L61-70), reset setor vazio (L115) |
-| `constants.ts` | Default setor vazio (L173) |
+| `ContribuintesTab.tsx` | +6 linhas entre L75 e L76 |
 
