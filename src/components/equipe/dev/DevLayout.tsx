@@ -348,9 +348,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         <PendingTicketsAlert navigateTo="/equipe/chamados" />
 
         {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-6 w-full min-w-0">{children}</div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   );
