@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -95,6 +96,8 @@ const FiscalProjetosCadastro = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'area'>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
