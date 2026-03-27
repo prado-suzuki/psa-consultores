@@ -575,6 +575,8 @@ const FiscalProjetosCadastro = () => {
               <SelectItem value="area">Agrupar por Área</SelectItem>
             </SelectContent>
           </Select>
+
+          {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
               <X className="h-4 w-4" />
               Limpar
