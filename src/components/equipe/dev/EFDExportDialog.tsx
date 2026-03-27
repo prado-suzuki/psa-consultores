@@ -109,7 +109,7 @@ export function EFDExportDialog({
     updateProfile,
     deleteProfile,
     setDefaultProfile,
-  } = useExportProfiles(profileType);
+  } = useExportProfiles(resolvedProfileType);
   
   // AbortController para cancelar exportação
   const abortControllerRef = useRef<AbortController | null>(null);
