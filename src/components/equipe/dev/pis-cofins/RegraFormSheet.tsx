@@ -157,9 +157,9 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal h-10 text-sm"
+          className="w-full justify-between font-normal h-auto min-h-10 py-2 text-sm"
         >
-          <span className={cn("truncate", !displayValue && "text-muted-foreground")}>
+          <span className={cn("whitespace-normal text-left line-clamp-2", !displayValue && "text-muted-foreground")}>
             {displayValue || placeholder || 'Selecione...'}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -184,11 +184,11 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
                     key={opt.code}
                     value={opt.code}
                     onSelect={() => handleSelect(opt)}
-                    className="text-xs"
+                    className="text-xs items-start py-2"
                   >
                     <Check className={cn("mr-2 h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
-                    <span className="font-mono mr-2 font-semibold text-foreground">{opt.code}</span>
-                    <span className="truncate">{opt.description}</span>
+                    <span className="font-mono mr-2 font-semibold text-foreground group-data-[highlighted]:text-white">{opt.code}</span>
+                    <span className="whitespace-normal">{opt.description}</span>
                   </CommandItem>
                 );
               })}
