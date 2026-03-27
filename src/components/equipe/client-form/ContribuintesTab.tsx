@@ -60,9 +60,18 @@ export default function ContribuintesTab({
   };
   const saveEditEntity = () => {
     if (!editingEntityData || editingEntityId == null) return;
-    if (!editingEntityData.cep?.trim()) {
-      toast.error("CEP é obrigatório");
-      return;
+    if (!editingEntityData.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
+    const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
+    if (!cpfDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
+    if (!editingEntityData.cep?.trim()) { toast.error("CEP é obrigatório"); return; }
+    if (!editingEntityData.logradouro?.trim()) { toast.error("Logradouro é obrigatório"); return; }
+    if (!editingEntityData.bairro?.trim()) { toast.error("Bairro é obrigatório"); return; }
+    if (!editingEntityData.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
+    if (!editingEntityData.uf?.trim() || editingEntityData.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
+    if (editingEntityData.tipo_pessoa === "PJ") {
+      if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
+      if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
     }
     setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
     setEditingEntityId(null);
@@ -96,7 +105,7 @@ export default function ContribuintesTab({
     if (!draftEntity.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
     if (!draftEntity.uf?.trim() || draftEntity.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
     for (const ie of draftInscricoes) {
-      if (!ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
+      if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
       if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
     }
     if (draftEntity.tipo_pessoa === "PJ") {
@@ -112,7 +121,7 @@ export default function ContribuintesTab({
     }
     setDraftEntity({
       tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "",
-      situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "Indústria",
+      situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "",
       simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "",
       bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "",
     });
