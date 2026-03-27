@@ -173,6 +173,43 @@ const FiscalProjetosCadastro = () => {
   const hasActiveFilters = !!(filterCliente || filterProduto || filterStatus);
   const clearFilters = () => { setFilterCliente(''); setFilterProduto(''); setFilterStatus(''); };
 
+  // ── Agrupamento dinâmico ─────────────────────────────────────────────
+  const groupedProjects = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const map = new Map<string, { label: string; projects: TaxProject[] }>();
+    for (const p of filteredProjects) {
+      let key: string;
+      let label: string;
+      if (groupBy === 'cliente') {
+        key = p.external_client_id || '__none__';
+        label = p.external_client?.nome || 'Sem cliente';
+      } else {
+        key = p.estrutura_area_id || '__none__';
+        label = p.area_ref?.name || 'Sem área';
+      }
+      if (!map.has(key)) map.set(key, { label, projects: [] });
+      map.get(key)!.projects.push(p);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const aIsNone = a.label.startsWith('Sem ');
+      const bIsNone = b.label.startsWith('Sem ');
+      if (aIsNone !== bIsNone) return aIsNone ? 1 : -1;
+      return a.label.localeCompare(b.label, 'pt-BR');
+    });
+  }, [filteredProjects, groupBy]);
+
+  useEffect(() => {
+    setCollapsedGroups(new Set());
+  }, [groupBy]);
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) { next.delete(label); } else { next.add(label); }
+      return next;
+    });
+  };
+
   const statusLabelMap: Record<string, string> = {
     active: 'Ativo', completed: 'Concluído', on_hold: 'Pausado', cancelled: 'Cancelado',
   };
