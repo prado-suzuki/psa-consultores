@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
@@ -95,6 +96,8 @@ const FiscalProjetosCadastro = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'area'>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
@@ -169,6 +172,43 @@ const FiscalProjetosCadastro = () => {
 
   const hasActiveFilters = !!(filterCliente || filterProduto || filterStatus);
   const clearFilters = () => { setFilterCliente(''); setFilterProduto(''); setFilterStatus(''); };
+
+  // ── Agrupamento dinâmico ─────────────────────────────────────────────
+  const groupedProjects = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const map = new Map<string, { label: string; projects: TaxProject[] }>();
+    for (const p of filteredProjects) {
+      let key: string;
+      let label: string;
+      if (groupBy === 'cliente') {
+        key = p.external_client_id || '__none__';
+        label = p.external_client?.nome || 'Sem cliente';
+      } else {
+        key = p.estrutura_area_id || '__none__';
+        label = p.area_ref?.name || 'Sem área';
+      }
+      if (!map.has(key)) map.set(key, { label, projects: [] });
+      map.get(key)!.projects.push(p);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const aIsNone = a.label.startsWith('Sem ');
+      const bIsNone = b.label.startsWith('Sem ');
+      if (aIsNone !== bIsNone) return aIsNone ? 1 : -1;
+      return a.label.localeCompare(b.label, 'pt-BR');
+    });
+  }, [filteredProjects, groupBy]);
+
+  useEffect(() => {
+    setCollapsedGroups(new Set());
+  }, [groupBy]);
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) { next.delete(label); } else { next.add(label); }
+      return next;
+    });
+  };
 
   const statusLabelMap: Record<string, string> = {
     active: 'Ativo', completed: 'Concluído', on_hold: 'Pausado', cancelled: 'Cancelado',
@@ -524,6 +564,18 @@ const FiscalProjetosCadastro = () => {
             </SelectContent>
           </Select>
 
+          <Select value={groupBy} onValueChange={v => setGroupBy(v as 'none' | 'cliente' | 'area')}>
+            <SelectTrigger className="w-48">
+              <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Agrupar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem agrupamento</SelectItem>
+              <SelectItem value="cliente">Agrupar por Cliente</SelectItem>
+              <SelectItem value="area">Agrupar por Área</SelectItem>
+            </SelectContent>
+          </Select>
+
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
               <X className="h-4 w-4" />
@@ -533,133 +585,211 @@ const FiscalProjetosCadastro = () => {
         </div>
 
         {/* Projects Table */}
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table className="table-fixed min-w-[1000px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
-                    <div className="flex items-center">Projeto<SortIcon column="name" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
-                    <div className="flex items-center">Produto<SortIcon column="produto" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
-                    <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '11%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
-                    <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '8%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
-                    <div className="flex items-center">Área<SortIcon column="area" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '9%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
-                    <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '7%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
-                    <div className="flex items-center">Status<SortIcon column="status" /></div>
-                  </TableHead>
-                  <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Início</TableHead>
-                  <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Término</TableHead>
-                  <TableHead style={{ width: '7%' }} className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      Carregando projetos...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredProjects.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProjects.map((project: any) => {
-                    const executorName = project.responsible
-                      ? `${project.responsible.first_name} ${project.responsible.last_name}`
-                      : null;
-                    const liderName = project.leader
-                      ? `${project.leader.first_name} ${project.leader.last_name}`
-                      : null;
-                    return (
-                      <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
-                        <TableCell className="whitespace-normal break-words">
-                          <span className="font-medium">{project.name}</span>
-                        </TableCell>
-                        <TableCell className="whitespace-normal break-words">
-                          <span className="text-sm">{project.servico_contratado || '-'}</span>
-                        </TableCell>
-                        <TableCell className="whitespace-normal break-words">
-                          <span className="text-sm">{project.servico_nome || '-'}</span>
-                        </TableCell>
-                        <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
-                          {project.external_client ? (
-                            <div className="flex items-center gap-1.5 truncate">
-                              <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              <span className="text-sm truncate">{project.external_client.nome}</span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <span className="text-sm">{getAreaLabel(project)}</span>
-                        </TableCell>
-                        <TableCell
-                          title={[
-                            executorName ? `${executorName} (executor)` : null,
-                            liderName ? `${liderName} (líder)` : null,
-                          ].filter(Boolean).join(' / ')}
-                        >
-                          <div className="space-y-0.5">
-                            {executorName && project.responsible ? (
-                              <div className="flex items-center gap-1 text-sm">
-                                <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{`${project.responsible.first_name} ${project.responsible.last_name.charAt(0)}.`}</span>
-                              </div>
-                            ) : null}
-                            {liderName && liderName !== executorName && project.leader ? (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Crown className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{`${project.leader.first_name} ${project.leader.last_name.charAt(0)}.`}</span>
-                              </div>
-                            ) : null}
-                            {!executorName && !liderName && <span className="text-muted-foreground">-</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yy') : '-'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yy') : '-'}
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost" size="icon"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => setDeleteProjectId(project.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {(() => {
+          const renderTableHeader = () => (
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: '18%' }} className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  <div className="flex items-center">Projeto<SortIcon column="name" /></div>
+                </TableHead>
+                <TableHead style={{ width: '14%' }} className="cursor-pointer select-none" onClick={() => handleSort('produto')}>
+                  <div className="flex items-center">Produto<SortIcon column="produto" /></div>
+                </TableHead>
+                <TableHead style={{ width: '12%' }} className="cursor-pointer select-none" onClick={() => handleSort('servico')}>
+                  <div className="flex items-center">Serviço<SortIcon column="servico" /></div>
+                </TableHead>
+                <TableHead style={{ width: '11%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
+                  <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
+                </TableHead>
+                <TableHead style={{ width: '8%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
+                  <div className="flex items-center">Área<SortIcon column="area" /></div>
+                </TableHead>
+                <TableHead style={{ width: '9%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
+                  <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
+                </TableHead>
+                <TableHead style={{ width: '7%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
+                  <div className="flex items-center">Status<SortIcon column="status" /></div>
+                </TableHead>
+                <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Início</TableHead>
+                <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Término</TableHead>
+                <TableHead style={{ width: '7%' }} className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+          );
+
+          const renderProjectRow = (project: TaxProject) => {
+            const executorName = project.responsible
+              ? `${project.responsible.first_name} ${project.responsible.last_name}`
+              : null;
+            const liderName = project.leader
+              ? `${project.leader.first_name} ${project.leader.last_name}`
+              : null;
+            return (
+              <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
+                <TableCell className="whitespace-normal break-words">
+                  <span className="font-medium">{project.name}</span>
+                </TableCell>
+                <TableCell className="whitespace-normal break-words">
+                  <span className="text-sm">{project.servico_contratado || '-'}</span>
+                </TableCell>
+                <TableCell className="whitespace-normal break-words">
+                  <span className="text-sm">{project.servico_nome || '-'}</span>
+                </TableCell>
+                <TableCell className="truncate max-w-0" title={project.external_client?.nome || '-'}>
+                  {project.external_client ? (
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="text-sm truncate">{project.external_client.nome}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <span className="text-sm">{getAreaLabel(project)}</span>
+                </TableCell>
+                <TableCell
+                  title={[
+                    executorName ? `${executorName} (executor)` : null,
+                    liderName ? `${liderName} (líder)` : null,
+                  ].filter(Boolean).join(' / ')}
+                >
+                  <div className="space-y-0.5">
+                    {executorName && project.responsible ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{`${project.responsible.first_name} ${project.responsible.last_name.charAt(0)}.`}</span>
+                      </div>
+                    ) : null}
+                    {liderName && liderName !== executorName && project.leader ? (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Crown className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{`${project.leader.first_name} ${project.leader.last_name.charAt(0)}.`}</span>
+                      </div>
+                    ) : null}
+                    {!executorName && !liderName && <span className="text-muted-foreground">-</span>}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{getStatusBadge(project.status)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {project.start_date ? format(parseDate(project.start_date), 'dd/MM/yy') : '-'}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yy') : '-'}
+                </TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteProjectId(project.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          };
+
+          if (!groupedProjects) {
+            return (
+              <Card>
+                <CardContent className="p-0 overflow-x-auto">
+                  <Table className="table-fixed min-w-[1000px]">
+                    {renderTableHeader()}
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                            Carregando projetos...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredProjects.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                            {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredProjects.map(renderProjectRow)
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          // Grouped rendering
+          if (isLoading) {
+            return (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Carregando projetos...
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (groupedProjects.length === 0) {
+            return (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
+                </CardContent>
+              </Card>
+            );
+          }
+
+          return (
+            <div className="space-y-4">
+              {groupedProjects.map(group => {
+                const isCollapsed = collapsedGroups.has(group.label);
+                const completedCount = group.projects.filter(p => p.status === 'completed').length;
+                const progressPercent = group.projects.length > 0
+                  ? Math.round((completedCount / group.projects.length) * 100)
+                  : 0;
+
+                return (
+                  <div key={group.label}>
+                    <div
+                      className="bg-muted rounded-lg px-4 py-2.5 flex items-center gap-3 cursor-pointer select-none hover:bg-muted/80 transition-colors"
+                      onClick={() => toggleGroup(group.label)}
+                    >
+                      {isCollapsed
+                        ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                      <span className="font-semibold text-sm">{group.label}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}
+                      </Badge>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <span className="text-xs text-muted-foreground">{progressPercent}%</span>
+                        <Progress value={progressPercent} className="h-1.5 w-24" />
+                      </div>
+                    </div>
+                    {!isCollapsed && (
+                      <Card className="mt-1 border-t-0 rounded-t-none">
+                        <CardContent className="p-0 overflow-x-auto">
+                          <Table className="table-fixed min-w-[1000px]">
+                            {renderTableHeader()}
+                            <TableBody>
+                              {group.projects.map(renderProjectRow)}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Create/Edit Modal */}
