@@ -403,7 +403,7 @@ export function EFDExportDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ registros: registrosCodigos }),
         signal,
-      });
+      }, 300000); // 5 min timeout para streaming de arquivos grandes
 
       if (signal.aborted) return;
 
