@@ -187,7 +187,7 @@ const CstCombobox = ({ value, onChange, onSyncDesc, onSyncCode, mode, placeholde
                     className="text-xs"
                   >
                     <Check className={cn("mr-2 h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
-                    <span className="font-mono mr-2 text-muted-foreground">{opt.code}</span>
+                    <span className="font-mono mr-2 font-semibold text-foreground">{opt.code}</span>
                     <span className="truncate">{opt.description}</span>
                   </CommandItem>
                 );
