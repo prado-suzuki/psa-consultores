@@ -68,11 +68,13 @@ export function EFDExportDialog({
   blocosDisponiveis,
   disabled,
   tipo = 'contribuicoes',
-  profileType = 'efd',
+  profileType,
   externalOpen,
   onExternalOpenChange,
   hideTrigger = false,
 }: EFDExportDialogProps) {
+  // Derive profileType from tipo when not explicitly provided
+  const resolvedProfileType: ExportToolType = profileType ?? (tipo === 'contribuicoes' ? 'efd' : `efd_${tipo}` as ExportToolType);
   const { fetchWithAuth } = useApiAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   
