@@ -346,7 +346,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -373,7 +372,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
@@ -399,7 +397,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -437,7 +434,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
@@ -474,7 +470,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
@@ -511,7 +506,6 @@ const ApuracaoPisCofins = () => {
                             </TableRow>
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
 
@@ -539,7 +533,6 @@ const ApuracaoPisCofins = () => {
                             )}
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
@@ -638,7 +631,6 @@ const ApuracaoPisCofins = () => {
                             ))}
                           </TableBody>
                         </Table>
-                      </div>
                     </Card>
                   </section>
                 </div>
