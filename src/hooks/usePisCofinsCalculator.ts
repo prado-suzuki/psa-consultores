@@ -25,7 +25,7 @@ import {
   isItemIsencaoCredito,
   valorBaseBalancete,
 } from '@/lib/apuracaoPisCofins';
-import { buildPivotGeneric } from '@/lib/pisCofinsFilters';
+import { buildPivotGeneric, flattenContasToItens } from '@/lib/pisCofinsFilters';
 
 interface UseCalculatorParams {
   data: ApuracaoInput | null | undefined;
