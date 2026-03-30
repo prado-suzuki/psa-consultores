@@ -111,6 +111,12 @@ interface BalanceteTreeTableProps {
   periodoFechado?: boolean;
   /** Hide the section title and expand/collapse buttons (caller provides them) */
   hideTitle?: boolean;
+  /** Map of extra accounts added manually: cod_cta → "D" | "C" */
+  extraContas?: Map<string, "D" | "C">;
+  /** Called when user selects Débito or Crédito for a leaf account */
+  onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
+  /** Called when user clicks the badge to remove an extra account */
+  onRemoveExtra?: (codCta: string) => void;
 }
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
