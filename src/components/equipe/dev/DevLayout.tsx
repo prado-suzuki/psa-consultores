@@ -92,29 +92,26 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-12" : "w-64"} relative bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden`}
+        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} relative bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden`}
       >
-        {/* Menu button — always visible */}
-        <div className={`flex items-center ${collapsed ? "justify-center p-3" : "justify-between p-6"} border-b border-slate-200/60 flex-shrink-0`}>
-          {!collapsed && (
-            <div className="min-w-0">
-              <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
-              <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-slate-600 hover:text-slate-900 flex-shrink-0"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-
         {/* Sidebar content — only rendered when expanded */}
         {!collapsed && (
           <>
+            {/* Sidebar header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200/60 flex-shrink-0">
+              <div className="min-w-0">
+                <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
+                <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                onClick={() => setCollapsed(true)}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </div>
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
               {navItems.map((item) => (
@@ -225,7 +222,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   <User className="h-4 w-4 text-teal-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{user?.email?.split("@")[0] || "Usuário"}</p>
+                  <p className="text-sm font-medium text-slate-900 truncate">
+                    {user?.email?.split("@")[0] || "Usuário"}
+                  </p>
                   <p className="text-xs text-slate-500">Digital Dev</p>
                 </div>
               </div>
@@ -256,6 +255,16 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         {/* Header */}
         <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
+            {collapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                onClick={() => setCollapsed(false)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
             <div>
               <h1 className="text-xl font-bold text-slate-900">{title}</h1>
               {subtitle && (
