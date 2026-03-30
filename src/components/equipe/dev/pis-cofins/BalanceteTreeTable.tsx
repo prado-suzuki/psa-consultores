@@ -168,6 +168,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
           : "";
 
         const extraTipo = extraContas?.get(node.cod_cta);
+        const isInEfd = !isParent && efdContas?.has(node.cod_cta);
 
         rows.push(
           <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20 group", bgClass)}>
