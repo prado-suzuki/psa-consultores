@@ -423,22 +423,7 @@ const ApuracaoPisCofins = () => {
               </Tabs>
 
               {/* ══════════════ Tab: RESUMO ══════════════ */}
-              {activeTab === "resumo" && (() => {
-                const contaOptions = (() => {
-                  const seen = new Map<string, string>();
-                  tables.resumoData.forEach((r) => {
-                    if (!seen.has(r.cod_cta)) seen.set(r.cod_cta, r.descricao_conta);
-                  });
-                  return Array.from(seen.entries())
-                    .map(([value, desc]) => ({ value, label: `${value} - ${desc}` }))
-                    .sort((a, b) => a.value.localeCompare(b.value));
-                })();
-
-                const filteredResumo = selectedContas.length === 0
-                  ? tables.resumoData
-                  : tables.resumoData.filter((r) => selectedContas.includes(r.cod_cta));
-
-                return (
+              {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <div className="space-y-4">
                     <MultiSelectContas
@@ -449,14 +434,14 @@ const ApuracaoPisCofins = () => {
                     />
                     <ApuracaoDataTable
                       title="Resumo Geral"
-                      data={filteredResumo}
+                      data={filteredResumoData}
                       showCst
                       showBloco
                       {...dataTableProps}
                     />
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
               {/* ══════════════ Tab: DÉBITOS ══════════════ */}
               {activeTab === "debitos" && (
