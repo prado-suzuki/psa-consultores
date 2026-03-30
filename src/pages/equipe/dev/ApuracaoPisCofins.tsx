@@ -556,7 +556,13 @@ const ApuracaoPisCofins = () => {
                         onChange={setSelectedContas}
                         placeholder="Filtrar por conta..."
                       />
-                      <BalanceteTreeTable contasTree={filteredContasTree} periodoFechado={periodoFechado} />
+                      <BalanceteTreeTable
+                        contasTree={filteredContasTree}
+                        periodoFechado={periodoFechado}
+                        extraContas={new Map(Array.from(extraContas.entries()).map(([k, v]) => [k, v.tipo]))}
+                        onToggleExtra={handleToggleExtra}
+                        onRemoveExtra={handleRemoveExtra}
+                      />
                     </div>
                   ) : (
                     <div className="space-y-4">
