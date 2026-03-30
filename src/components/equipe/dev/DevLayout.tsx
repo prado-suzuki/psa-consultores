@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NotificationPopover } from "@/components/notifications/NotificationPopover";
 import { PendingTicketsAlert } from "@/components/notifications/PendingTicketsAlert";
@@ -14,9 +13,7 @@ import {
   ChevronRight,
   ChevronDown,
   Menu,
-  Code2,
   Plus,
-  Wrench,
   Database,
   ArrowLeft,
   FileText,
@@ -24,8 +21,6 @@ import {
   Calculator,
   FileSpreadsheet,
   Users,
-  BookOpen,
-  HandCoins,
   Layers,
   ScanSearch,
 } from "lucide-react";
@@ -47,7 +42,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Início", path: "/equipe/dev" },
   { icon: Plus, label: "Nova ferramenta", path: "/equipe/dev/nova-ferramenta" },
-  { icon: Wrench, label: "Consulta de XMLs", path: "/equipe/dev/consulta-xmls" },
+  { icon: LayoutDashboard, label: "Consulta de XMLs", path: "/equipe/dev/consulta-xmls" },
 ];
 
 const spedSubItems: NavItem[] = [
@@ -89,10 +84,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     pisCofinsSubItems.some((item) => location.pathname === item.path),
   );
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
+  const isActive = (path: string) => location.pathname === path;
   const isSpedActive = spedSubItems.some((item) => location.pathname === item.path);
   const isPisCofinsActive = pisCofinsSubItems.some((item) => location.pathname === item.path);
 
@@ -100,206 +92,171 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-16" : "w-64"} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0`}
+        className={`${collapsed ? "w-4" : "w-64"} relative bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0`}
       >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-200/60">
-          {collapsed ? (
-            <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-teal-600">DD</span>
+        {/* Floating expand button — visible only when collapsed */}
+        {collapsed && (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 h-6 w-6 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-colors"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        )}
+
+        {/* All sidebar content — only rendered when expanded */}
+        {!collapsed && (
+          <>
+            {/* Header */}
+            <div className="p-6 border-b border-slate-200/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
+                  <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
+                </div>
+                <button
+                  onClick={() => setCollapsed(true)}
+                  className="h-6 w-6 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-colors"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div>
-                <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
-                <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Toggle Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
-          style={{ "--sidebar-width": collapsed ? "64px" : "256px" } as React.CSSProperties}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </Button>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Button
-              key={item.path}
-              variant="ghost"
-              className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path)
-                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-              }`}
-              onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
-            >
-              {!collapsed && item.label}
-            </Button>
-          ))}
-
-          {/* Consulta SPED - Collapsible */}
-          {collapsed ? (
-            <Button
-              variant="ghost"
-              className={`w-full justify-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isSpedActive
-                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-              }`}
-              onClick={() => navigate("/equipe/dev/consulta-efd")}
-              title="Consulta SPED"
-            >
-              SPED
-            </Button>
-          ) : (
-            <Collapsible open={spedOpen} onOpenChange={setSpedOpen}>
-              <CollapsibleTrigger asChild>
+            {/* Navigation */}
+            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+              {navItems.map((item) => (
                 <Button
+                  key={item.path}
                   variant="ghost"
                   className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isSpedActive
+                    isActive(item.path)
                       ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
                       : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
+                  onClick={() => navigate(item.path)}
                 >
-                  <span className="flex-1 text-left">Consulta SPED</span>
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
-                  />
+                  {item.label}
                 </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                {spedSubItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive(item.path)
-                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
-                    }`}
-                    onClick={() => navigate(item.path)}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+              ))}
 
-          {/* Análise PIS/COFINS - Collapsible */}
-          {collapsed ? (
-            <Button
-              variant="ghost"
-              className={`w-full justify-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isPisCofinsActive
-                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-              }`}
-              onClick={() => navigate("/equipe/dev/apuracao-pis-cofins")}
-              title="Levantamento de Créditos"
-            >
-              LC
-            </Button>
-          ) : (
-            <Collapsible open={pisCofinsOpen} onOpenChange={setPisCofinsOpen}>
-              <CollapsibleTrigger asChild>
+              {/* Consulta SPED - Collapsible */}
+              <Collapsible open={spedOpen} onOpenChange={setSpedOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isSpedActive
+                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
+                    }`}
+                  >
+                    <span className="flex-1 text-left">Consulta SPED</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
+                  {spedSubItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant="ghost"
+                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+                      }`}
+                      onClick={() => navigate(item.path)}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Levantamento de Créditos - Collapsible */}
+              <Collapsible open={pisCofinsOpen} onOpenChange={setPisCofinsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isPisCofinsActive
+                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                        : "text-slate-700 hover:text-teal-600"
+                    }`}
+                  >
+                    <span className="flex-1 text-left">Levantamento de Créditos</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
+                  {pisCofinsSubItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant="ghost"
+                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+                      }`}
+                      onClick={() => navigate(item.path)}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {navItemsAfterSped.map((item) => (
                 <Button
+                  key={item.path}
                   variant="ghost"
                   className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isPisCofinsActive
+                    isActive(item.path)
                       ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                      : "text-slate-700 hover:text-teal-600"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
+                  onClick={() => navigate(item.path)}
                 >
-                  <span className="flex-1 text-left">Levantamento de Créditos</span>
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
-                  />
+                  {item.label}
                 </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                {pisCofinsSubItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive(item.path)
-                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
-                    }`}
-                    onClick={() => navigate(item.path)}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+              ))}
+            </nav>
 
-          {navItemsAfterSped.map((item) => (
-            <Button
-              key={item.path}
-              variant="ghost"
-              className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path)
-                  ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-              }`}
-              onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
-            >
-              {!collapsed && item.label}
-            </Button>
-          ))}
-        </nav>
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-slate-200/60 space-y-2">
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
+                <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-teal-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{user?.email?.split("@")[0] || "Usuário"}</p>
+                  <p className="text-xs text-slate-500">Digital Dev</p>
+                </div>
+              </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-200/60 space-y-2">
-          {/* User Card */}
-          {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-              <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-teal-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{user?.email?.split("@")[0] || "Usuário"}</p>
-                <p className="text-xs text-slate-500">Digital Dev</p>
-              </div>
+              <Button
+                variant="ghost"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors"
+                onClick={() => navigate("/equipe/digital")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-3" />
+                Voltar para Digital
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-3" />
+                Sair
+              </Button>
             </div>
-          )}
-
-          <Button
-            variant="ghost"
-            className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors`}
-            onClick={() => navigate("/equipe/digital")}
-            title={collapsed ? "Voltar para Digital" : undefined}
-          >
-            <ArrowLeft className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
-            {!collapsed && "Voltar para Digital"}
-          </Button>
-          <Button
-            variant="ghost"
-            className={`w-full ${collapsed ? "justify-center px-2" : "justify-start px-3"} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
-            onClick={handleSignOut}
-            title={collapsed ? "Sair" : undefined}
-          >
-            <LogOut className={`h-4 w-4 ${collapsed ? "" : "mr-3"}`} />
-            {!collapsed && "Sair"}
-          </Button>
-        </div>
+          </>
+        )}
       </aside>
 
       {/* Main Content */}
