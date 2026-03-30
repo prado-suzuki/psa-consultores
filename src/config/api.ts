@@ -7,11 +7,19 @@ const PRODUCTION_HOSTNAMES = [
   "www.psaconsultores.com.br"
 ];
 
+const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1"];
+
+const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
+
 export const isProductionEnvironment =
-  typeof window !== "undefined" && PRODUCTION_HOSTNAMES.includes(window.location.hostname);
+  PRODUCTION_HOSTNAMES.includes(currentHostname);
+
+export const isLocalEnvironment = LOCAL_HOSTNAMES.includes(currentHostname);
 
 // URLs da API por ambiente
 const API_URLS = {
+  // Ambiente local (frontend e API rodando na maquina do desenvolvedor)
+  local: "http://localhost:8000",
   // Ambiente de desenvolvimento (preview do Lovable)
   development: "https://psa-backend-api-456879351254.southamerica-east1.run.app",
   // Ambiente de produção (domínio publicado)
@@ -19,7 +27,11 @@ const API_URLS = {
 };
 
 // URL base da API (selecionada automaticamente)
-export const API_BASE_URL = isProductionEnvironment ? API_URLS.production : API_URLS.development;
+export const API_BASE_URL = isLocalEnvironment
+  ? API_URLS.local
+  : isProductionEnvironment
+    ? API_URLS.production
+    : API_URLS.development;
 
 // Helper para construir URLs completas
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
