@@ -260,7 +260,23 @@ const ApuracaoPisCofins = () => {
     toggleYear,
   };
 
-  // Shared header props for inline tables
+  // ── Conta filter options & filtered data for Resumo tab ──
+  const contaOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    tables.resumoData.forEach((r) => {
+      if (!seen.has(r.cod_cta)) seen.set(r.cod_cta, r.descricao_conta);
+    });
+    return Array.from(seen.entries())
+      .map(([value, desc]) => ({ value, label: `${value} - ${desc}` }))
+      .sort((a, b) => a.value.localeCompare(b.value));
+  }, [tables.resumoData]);
+
+  const filteredResumoData = useMemo(() => {
+    if (selectedContas.length === 0) return tables.resumoData;
+    return tables.resumoData.filter((r) => selectedContas.includes(r.cod_cta));
+  }, [tables.resumoData, selectedContas]);
+
+
   const inlineHeaderProps = {
     headerRow1,
     headerRow2,
