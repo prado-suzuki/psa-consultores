@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 import { ChevronRight, ChevronDown, ChevronsUpDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
