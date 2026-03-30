@@ -23,6 +23,7 @@ import { currentAmbiente } from "@/config/api";
 import { useQuery } from "@tanstack/react-query";
 import type { StickyColumnConfig } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import type { ResultadoPeriodo, RateioResultado } from "@/types/pisCofins";
+import { MultiSelectContas } from "@/components/equipe/dev/pis-cofins/MultiSelectContas";
 
 /* ── Formatters ── */
 const formatCurrency = (value: number) =>
