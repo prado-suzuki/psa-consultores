@@ -1,45 +1,48 @@
 
 
-## Plano: Sidebar minimalista no DevLayout
+## Plano: Mover botão Menu para dentro do painel lateral
 
-### Objetivo
-Transformar o estado recolhido da sidebar em uma faixa mínima (~16px) sem conteúdo visível, com apenas um botão flutuante de expansão na borda esquerda. Transição suave de largura.
+### Problema atual
+O botão ☰ (Menu) está fixo no header do `<main>`, fora do painel. O comportamento desejado é estilo Notion: o botão fica **dentro do painel** quando aberto, e **no canto superior esquerdo** (colado à borda) quando fechado.
 
-### Alterações em `src/components/equipe/dev/DevLayout.tsx`
+### Solução
 
-**1. Largura no estado collapsed**
-- Trocar `w-16` por `w-4` (16px) no `<aside>`
-- Manter `w-64` quando expandido
+**Arquivo: `src/components/equipe/dev/DevLayout.tsx`**
 
-**2. Esconder todo conteúdo no collapsed**
-- Envolver o header da sidebar, navegação e footer em `{!collapsed && (...)}` — nada renderiza quando recolhido
-- Remover os blocos condicionais internos que mostravam "DD", "SPED", "LC" no collapsed
+1. **Remover o botão Menu do header do `<main>`** (linhas 251-258)
 
-**3. Botão flutuante de expansão**
-- Substituir o botão toggle atual por um botão `absolute` posicionado na borda esquerda (`left-1 top-1/2 -translate-y-1/2`) visível apenas quando `collapsed`
-- Quando expandido, manter um botão de recolher no canto superior direito da sidebar (como já existe)
+2. **Adicionar o botão Menu dentro do `<aside>`**, fora do bloco condicional `{!collapsed && ...}`, para que ele sempre apareça:
+   - Quando **expandido**: renderizado no topo da sidebar (dentro do header, ao lado de "Digital Dev"), alinhado à direita
+   - Quando **collapsed**: sidebar passa de `w-0` para `w-12` (48px) para acomodar apenas o botão, centralizado no topo
 
-**4. Transição suave**
-- Adicionar `transition-all duration-300 ease-in-out` no `<aside>` (já tem `transition-all duration-300`, basta confirmar)
+3. **Ajustar largura collapsed**: `w-0` → `w-12` para dar espaço ao botão sem mostrar texto
 
-**5. Conteúdo principal**
-- O `<main>` já usa `flex-1` — ao reduzir a sidebar para 16px, ele ocupa o espaço automaticamente sem gaps
+4. **Estrutura resultante do `<aside>`**:
+```text
+<aside w-12 | w-64>
+  <!-- Sempre visível -->
+  <div topo>
+    {collapsed ? <Menu centrado /> : <header "Digital Dev" + <Menu à direita>>}
+  </div>
+  
+  <!-- Só quando expandido -->
+  {!collapsed && <nav + footer>}
+</aside>
+```
 
 ### Resultado visual
 
 ```text
-Collapsed:          Expanded:
-┌──┬─────────┐      ┌────────────┬──────┐
-│▸ │ Content  │      │ Digital Dev│      │
-│  │          │      │ Início     │ Cont │
-│  │          │      │ XMLs       │      │
-│  │          │      │ SPED ▾     │      │
-│  │          │      │ ...        │      │
-└──┴─────────┘      └────────────┴──────┘
-16px                 256px
+Fechado:             Aberto:
+┌────┬───────────┐   ┌──────────────┬──────┐
+│ ☰  │ Title     │   │ Digital Dev ☰│Title │
+│    │ Content   │   │ Início       │Cont  │
+│    │           │   │ XMLs         │      │
+└────┴───────────┘   └──────────────┴──────┘
+48px                  256px
 ```
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `DevLayout.tsx` | Sidebar `w-4` quando collapsed, conteúdo condicional `{!collapsed && ...}`, botão flutuante chevron |
+| `DevLayout.tsx` | Mover botão Menu para `<aside>`, collapsed `w-12`, remover do header |
 
