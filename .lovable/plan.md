@@ -1,40 +1,31 @@
 
 
-## Plano: Multi-expansão de anos + diferenciação visual
+## Plano: Tooltip informativo no filtro "Tipo de análise"
 
-### Problema
-O estado `expandedYear` é `string | null` — só suporta um ano expandido por vez. Ao expandir outro, o anterior fecha.
+### Alteração (arquivo único: `ApuracaoPisCofins.tsx`)
 
-### Alterações
+Na label "Tipo de análise" (~L327-329), adicionar um ícone `Info` do Lucide com um `Tooltip` ao lado do texto, explicando:
+- **Cliente (EFD)**: Traz os dados do EFD Contribuições do cliente
+- **Prado (Balancete)**: Traz informações do Balancete do cliente
 
-**1. `ApuracaoPisCofins.tsx` — trocar estado de `string | null` para `Set<string>`**
-- `expandedYear: string | null` → `expandedYears: Set<string>`
-- `setExpandedYear` → função `toggleYear(year: string)` que adiciona/remove do Set
-- Reset continua limpando para `new Set()`
-- Atualizar `dataTableProps` e `headerProps` para passar `expandedYears` e `toggleYear`
+```tsx
+<label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+  Tipo de análise
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-xs text-xs">
+      <p><strong>Cliente:</strong> Traz os dados do EFD Contribuições do cliente.</p>
+      <p><strong>Prado:</strong> Traz informações do Balancete do cliente.</p>
+    </TooltipContent>
+  </Tooltip>
+</label>
+```
 
-**2. `useTableHeaders.ts` — aceitar `Set<string>` em vez de `string | null`**
-- Param `expandedYear: string | null` → `expandedYears: Set<string>`
-- Condição `expandedYear === year` → `expandedYears.has(year)`
-- `hasExpandedYear` → `expandedYears.size > 0`
-
-**3. `ApuracaoDataTable.tsx` — atualizar tipos das props**
-- `expandedYear: string | null` → `expandedYears: Set<string>`
-- `setExpandedYear: (year: string | null) => void` → `toggleYear: (year: string) => void`
-- Repassar para `useTableHeaders` e `DynamicTableHeader`
-
-**4. `DynamicTableHeader.tsx` — atualizar props + cores diferenciadas**
-- `setExpandedYear` → `toggleYear`
-- Botão de colapsar: `onClick={() => toggleYear(top.id)}` (em vez de `setExpandedYear(null)`)
-- Botão de expandir: `onClick={() => toggleYear(top.id)}`
-- Cor diferenciada suave: anos expandidos com `bg-primary/10` no header, meses (row2) com `bg-primary/5`; anos colapsados mantêm `bg-muted/50`
-
-### Arquivos modificados
+Garantir que os imports `Tooltip, TooltipTrigger, TooltipContent` e `Info` estejam presentes. Envolver com `TooltipProvider` se necessário (provavelmente já existe no layout).
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `ApuracaoPisCofins.tsx` | Estado `Set<string>`, função `toggleYear` |
-| `useTableHeaders.ts` | Param `Set<string>`, lógica `.has()` |
-| `ApuracaoDataTable.tsx` | Props atualizadas |
-| `DynamicTableHeader.tsx` | Props + toggle + cores diferenciadas |
+| `ApuracaoPisCofins.tsx` | Tooltip com ícone Info ao lado da label |
 
