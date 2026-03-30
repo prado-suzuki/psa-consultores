@@ -221,7 +221,7 @@ const ApuracaoPisCofins = () => {
   });
 
   // ── Calculator + Headers ──
-  const { resultados, totais, columnsData, tables, contasTree } = usePisCofinsCalculator({
+  const { resultados, totais, columnsData, tables, contasTree, efdContasSet } = usePisCofinsCalculator({
     data: apiData ?? null,
     tipoApuracao,
     periodoFechado,
