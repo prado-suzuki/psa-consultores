@@ -10,7 +10,7 @@ interface DynamicTableHeaderProps {
   headerRow2: HeaderBottomColumn[];
   hasExpandedYear: boolean;
   headerRowsCount: number;
-  setExpandedYear: (year: string | null) => void;
+  toggleYear: (year: string) => void;
 }
 
 export function DynamicTableHeader({
@@ -19,7 +19,7 @@ export function DynamicTableHeader({
   headerRow2,
   hasExpandedYear,
   headerRowsCount,
-  setExpandedYear
+  toggleYear
 }: DynamicTableHeaderProps) {
   return (
     <thead className="bg-muted/50 sticky top-0 z-30 [&_tr]:border-b">
@@ -40,17 +40,17 @@ export function DynamicTableHeader({
         
         {headerRow1.map(top => (
           top.isExpanded ? (
-            <TableHead key={top.id} colSpan={top.colSpan} className="text-center border-b border-r bg-muted font-bold uppercase text-xs text-muted-foreground">
+            <TableHead key={top.id} colSpan={top.colSpan} className="text-center border-b border-r bg-primary/10 font-bold uppercase text-xs text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 {top.label}
-                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => setExpandedYear(null)} title="Colapsar Ano">-</Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => toggleYear(top.id)} title="Colapsar Ano">-</Button>
               </div>
             </TableHead>
           ) : (
-            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground">
+            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted/50">
               <div className="flex items-center justify-end gap-2">
                 {top.label}
-                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => setExpandedYear(top.id)} title="Expandir Ano">+</Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => toggleYear(top.id)} title="Expandir Ano">+</Button>
               </div>
             </TableHead>
           )
@@ -60,7 +60,7 @@ export function DynamicTableHeader({
       {hasExpandedYear && (
         <TableRow>
           {headerRow2.map(bottom => (
-            <TableHead key={bottom.id} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted/20">
+            <TableHead key={bottom.id} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-primary/5">
               {bottom.label}
             </TableHead>
           ))}

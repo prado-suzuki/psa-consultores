@@ -29,8 +29,8 @@ interface ApuracaoDataTableProps {
   titleTooltip?: string;
   data: PivotRowGeneric[];
   columnsData: { periods: string[]; yearsMap: Map<string, string[]> };
-  expandedYear: string | null;
-  setExpandedYear: (year: string | null) => void;
+  expandedYears: Set<string>;
+  toggleYear: (year: string) => void;
   showCst?: boolean;
   showBloco?: boolean;
   showTotals?: boolean;
@@ -42,8 +42,8 @@ export function ApuracaoDataTable({
   titleTooltip,
   data,
   columnsData,
-  expandedYear,
-  setExpandedYear,
+  expandedYears,
+  toggleYear,
   showCst = false,
   showBloco = false,
   showTotals = false,
@@ -56,7 +56,7 @@ export function ApuracaoDataTable({
     hasExpandedYear,
     headerRowsCount,
     headerBottom
-  } = useTableHeaders({ columnsData, expandedYear });
+  } = useTableHeaders({ columnsData, expandedYears });
 
   const firstColumns: { label: string }[] = [];
   if (showCst) firstColumns.push({ label: 'CST' });
@@ -110,7 +110,7 @@ export function ApuracaoDataTable({
             headerRow2={headerRow2}
             hasExpandedYear={hasExpandedYear}
             headerRowsCount={headerRowsCount}
-            setExpandedYear={setExpandedYear}
+            toggleYear={toggleYear}
           />
           <TableBody>
             {data.length > 0 ? (
