@@ -52,6 +52,7 @@ export function ApuracaoDataTable({
   showTotals = false,
   emptyMessage = "Nenhum dado encontrado para o período."
 }: ApuracaoDataTableProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   
   const {
     headerRow1,
