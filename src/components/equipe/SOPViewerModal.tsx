@@ -96,7 +96,7 @@ function SOPContentBlock({
       )}
 
       {formattedContent && (
-        <div className="prose prose-sm max-w-none bg-muted/30 rounded-lg p-4 border">
+        <div className="prose prose-sm overflow-hidden bg-muted/30 rounded-lg p-4 border">
           {renderMarkdown(formattedContent)}
         </div>
       )}
