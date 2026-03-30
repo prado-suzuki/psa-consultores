@@ -92,18 +92,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-4" : "w-64"} relative bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0`}
+        className={`${collapsed ? "w-0" : "w-64"} relative bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden`}
       >
-        {/* Floating expand button — visible only when collapsed */}
-        {collapsed && (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 h-6 w-6 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-colors"
-          >
-            <ChevronRight className="h-3 w-3" />
-          </button>
-        )}
-
         {/* All sidebar content — only rendered when expanded */}
         {!collapsed && (
           <>
@@ -114,12 +104,6 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
                   <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
                 </div>
-                <button
-                  onClick={() => setCollapsed(true)}
-                  className="h-6 w-6 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-colors"
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                </button>
               </div>
             </div>
 
