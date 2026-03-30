@@ -11,6 +11,8 @@ import type {
   ResultadoPeriodo,
   TotaisApuracao,
   PivotRowGeneric,
+  ContaNode,
+  PisCofsinPeriodo,
 } from '@/types/pisCofins';
 import {
   calcTodosPeriodos,
