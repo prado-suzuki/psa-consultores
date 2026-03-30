@@ -442,21 +442,25 @@ const ApuracaoPisCofins = () => {
               {/* ══════════════ Tab: RESUMO ══════════════ */}
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <div className="space-y-4">
-                    <MultiSelectContas
-                      options={contaOptions}
-                      selected={selectedContas}
-                      onChange={setSelectedContas}
-                      placeholder="Filtrar por conta..."
-                    />
-                    <ApuracaoDataTable
-                      title="Resumo Geral"
-                      data={filteredResumoData}
-                      showCst
-                      showBloco
-                      {...dataTableProps}
-                    />
-                  </div>
+                  {tipoApuracao === "BALANCETE" && contasTree.length > 0 ? (
+                    <BalanceteTreeTable contasTree={contasTree} />
+                  ) : (
+                    <div className="space-y-4">
+                      <MultiSelectContas
+                        options={contaOptions}
+                        selected={selectedContas}
+                        onChange={setSelectedContas}
+                        placeholder="Filtrar por conta..."
+                      />
+                      <ApuracaoDataTable
+                        title="Resumo Geral"
+                        data={filteredResumoData}
+                        showCst
+                        showBloco
+                        {...dataTableProps}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
