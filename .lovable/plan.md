@@ -1,27 +1,59 @@
 
+## Plano: Fazer o X remover a tag sem abrir o filtro
 
-## Plano: Corrigir clique no X da tag abrindo o popover
-
-### Problema
-O `e.stopPropagation()` não é suficiente porque o `PopoverTrigger` usa `onPointerDown` internamente. O evento de pointer continua propagando e abre o popover.
-
-### Correção (`MultiSelectContas.tsx`)
-
-Adicionar `e.preventDefault()` junto ao `e.stopPropagation()` no handler do `X`, e também adicionar `onPointerDown={(e) => e.stopPropagation()}` no ícone `X` para interceptar o evento antes que o Radix Popover o capture.
+### Causa do problema
+O `X` está dentro de um `Button` do shadcn (`PopoverTrigger asChild`), e esse `Button` aplica a classe global:
 
 ```tsx
-<X
-  className="h-3 w-3 shrink-0 cursor-pointer hover:text-destructive"
-  onPointerDown={(e) => e.stopPropagation()}
-  onClick={(e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    remove(item.value);
-  }}
-/>
+[&_svg]:pointer-events-none
 ```
 
+Com isso, o SVG do ícone não recebe o clique de verdade. O evento cai no botão pai e o popover abre, em vez de remover a tag.
+
+### Correção
+Ajustar apenas `src/components/equipe/dev/pis-cofins/MultiSelectContas.tsx`:
+
+1. Substituir o `X` clicável direto por um wrapper clicável (ex.: `span`), para que o evento fique no wrapper e não no SVG.
+2. Mover os handlers `onPointerDown` e `onClick` para esse wrapper.
+3. Manter `stopPropagation()` + `preventDefault()` para bloquear a abertura do popover.
+4. Deixar o `X` apenas visual dentro do wrapper.
+5. Adicionar acessibilidade básica no wrapper (`role="button"`, `tabIndex={0}`, `aria-label`) e suporte a teclado (`Enter`/`Space`) para remover a tag também por teclado.
+
+### Estrutura esperada
+```tsx
+<span
+  role="button"
+  tabIndex={0}
+  aria-label={`Remover ${item.label}`}
+  className="inline-flex cursor-pointer items-center justify-center"
+  onPointerDown={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }}
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    remove(item.value);
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      remove(item.value);
+    }
+  }}
+>
+  <X className="h-3 w-3 shrink-0 hover:text-destructive" />
+</span>
+```
+
+### Arquivo
 | Arquivo | Alteração |
 |---------|-----------|
-| `MultiSelectContas.tsx` | Adicionar `onPointerDown` + `preventDefault` no ícone X |
+| `src/components/equipe/dev/pis-cofins/MultiSelectContas.tsx` | Trocar clique direto no SVG por wrapper clicável que intercepta o evento corretamente |
 
+### Resultado esperado
+- Clicar no `X` remove a tag imediatamente
+- O popover não abre ao remover
+- O botão “Limpar” continua funcionando
+- O restante do multi-select permanece igual
