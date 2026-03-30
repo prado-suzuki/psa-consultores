@@ -4,6 +4,7 @@ import { DynamicTableHeader } from "./DynamicTableHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { PivotRowGeneric } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
@@ -78,10 +79,15 @@ export function ApuracaoDataTable({
 
   const stickyCell = (config: StickyColumnConfig, extraClass?: string) =>
     cn(
-      "sticky z-10 bg-background",
+      "sticky z-10 bg-background cursor-copy",
       config.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
       extraClass
     );
+
+  const copyToClipboard = (value: string | number | undefined | null) => {
+    const text = value == null ? "" : String(value);
+    navigator.clipboard.writeText(text).then(() => toast.success("Copiado!"));
+  };
 
   return (
     <section>
@@ -122,6 +128,7 @@ export function ApuracaoDataTable({
                       <TableCell
                         className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
                         style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                        onDoubleClick={() => copyToClipboard(row.cst_pis)}
                       >
                         {row.cst_pis}
                       </TableCell>
@@ -129,6 +136,7 @@ export function ApuracaoDataTable({
                     <TableCell
                       className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
                       style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                      onDoubleClick={() => copyToClipboard(row.cod_cta)}
                     >
                       {row.cod_cta}
                     </TableCell>
@@ -136,6 +144,7 @@ export function ApuracaoDataTable({
                       className={stickyCell(stickyConfig[colIdx], "text-sm")}
                       style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx].width, maxWidth: stickyConfig[colIdx++].width }}
                       title={row.descricao_conta}
+                      onDoubleClick={() => copyToClipboard(row.descricao_conta)}
                     >
                       <span className="block truncate">{row.descricao_conta}</span>
                     </TableCell>
@@ -143,17 +152,21 @@ export function ApuracaoDataTable({
                       <TableCell
                         className={stickyCell(stickyConfig[colIdx], "font-mono text-xs")}
                         style={{ left: stickyConfig[colIdx].left, minWidth: stickyConfig[colIdx++].width }}
+                        onDoubleClick={() => copyToClipboard(row.bloco_efd)}
                       >
                         {row.bloco_efd}
                       </TableCell>
                     )}
                     
-                    {headerBottom.map((col) => (
-                      <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20">
-                        {formatCurrency(getColValue(row, col.dataKeys))}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l">
+                    {headerBottom.map((col) => {
+                      const val = getColValue(row, col.dataKeys);
+                      return (
+                        <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20 cursor-copy" onDoubleClick={() => copyToClipboard(val)}>
+                          {formatCurrency(val)}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l cursor-copy" onDoubleClick={() => copyToClipboard(row.total)}>
                       {formatCurrency(row.total)}
                     </TableCell>
                   </TableRow>
@@ -177,12 +190,15 @@ export function ApuracaoDataTable({
                     {i === (showCst ? 2 : 1) ? "Total" : ""}
                   </TableCell>
                 ))}
-                {headerBottom.map((col) => (
-                  <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20">
-                    {formatCurrency(data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0))}
-                  </TableCell>
-                ))}
-                <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l">
+                {headerBottom.map((col) => {
+                  const total = data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0);
+                  return (
+                    <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20 cursor-copy" onDoubleClick={() => copyToClipboard(total)}>
+                      {formatCurrency(total)}
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l cursor-copy" onDoubleClick={() => copyToClipboard(data.reduce((sum, row) => sum + row.total, 0))}>
                   {formatCurrency(data.reduce((sum, row) => sum + row.total, 0))}
                 </TableCell>
               </TableRow>
