@@ -134,16 +134,11 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
 
     const valueColumns: { key: string; label: string; accessor: (v: MergedNode["periodoValues"][string]) => number }[] = useMemo(() => {
-      const cols = [
-        { key: "credito", label: "Crédito", accessor: (v: MergedNode["periodoValues"][string]) => v.credito },
-        { key: "debito", label: "Débito", accessor: (v: MergedNode["periodoValues"][string]) => v.debito },
-      ];
       if (periodoFechado) {
-        cols.push({ key: "saldo_atual", label: "Saldo Atual", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_atual });
-      } else {
-        cols.push({ key: "saldo_periodo", label: "Saldo Período", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_periodo });
+        return [{ key: "saldo_atual", label: "Saldo Atual", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_atual }];
       }
-      return cols;
+
+      return [{ key: "saldo_periodo", label: "Saldo Período", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_periodo }];
     }, [periodoFechado]);
 
     const rows: JSX.Element[] = [];
