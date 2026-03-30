@@ -113,6 +113,7 @@ interface BalanceteTreeTableProps {
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
   function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false }, ref) {
+    const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
