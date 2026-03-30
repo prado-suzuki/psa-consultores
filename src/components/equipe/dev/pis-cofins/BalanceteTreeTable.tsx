@@ -122,7 +122,7 @@ interface BalanceteTreeTableProps {
 }
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
-  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, extraContas, onToggleExtra, onRemoveExtra }, ref) {
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
