@@ -284,6 +284,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
           </TableBody>
         </table>
       </Card>
+      <FloatingScrollbar targetRef={scrollRef} />
+      </>
     );
 
     if (hideTitle) return table;

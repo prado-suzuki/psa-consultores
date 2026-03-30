@@ -212,6 +212,7 @@ export function ApuracaoDataTable({
           </TableBody>
         </table>
       </div>
+      <FloatingScrollbar targetRef={scrollRef} />
     </section>
   );
 }
