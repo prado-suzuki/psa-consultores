@@ -1,41 +1,45 @@
 
 
-## Plano: Adaptar BalanceteEfdTab para formato hierárquico
+## Plano: Sidebar minimalista no DevLayout
 
-### Contexto
-O endpoint `efdc_balancete` agora retorna `{ periodos: [{ dt_ini, contas: ContaNode[] }] }` (mesma estrutura hierárquica do JSON enviado) em vez de `{ itens: BalanceteEfdItem[], metadata }`.
+### Objetivo
+Transformar o estado recolhido da sidebar em uma faixa mínima (~16px) sem conteúdo visível, com apenas um botão flutuante de expansão na borda esquerda. Transição suave de largura.
 
-### Alterações
+### Alterações em `src/components/equipe/dev/DevLayout.tsx`
 
-**1. `src/types/auditoriaCruzada.ts`** — Atualizar tipo de resposta
+**1. Largura no estado collapsed**
+- Trocar `w-16` por `w-4` (16px) no `<aside>`
+- Manter `w-64` quando expandido
 
-- Alterar `BalanceteEfdResponse` para `{ periodos: { dt_ini: string; contas: ContaNode[] }[] }` (reutilizando `ContaNode` de `pisCofins.ts`)
-- Manter os tipos antigos para não quebrar imports existentes
+**2. Esconder todo conteúdo no collapsed**
+- Envolver o header da sidebar, navegação e footer em `{!collapsed && (...)}` — nada renderiza quando recolhido
+- Remover os blocos condicionais internos que mostravam "DD", "SPED", "LC" no collapsed
 
-**2. `src/hooks/useBalanceteEfd.ts`** — Ajustar tipo de retorno
+**3. Botão flutuante de expansão**
+- Substituir o botão toggle atual por um botão `absolute` posicionado na borda esquerda (`left-1 top-1/2 -translate-y-1/2`) visível apenas quando `collapsed`
+- Quando expandido, manter um botão de recolher no canto superior direito da sidebar (como já existe)
 
-- Trocar o generic do `useQuery` para o novo `BalanceteEfdResponse`
+**4. Transição suave**
+- Adicionar `transition-all duration-300 ease-in-out` no `<aside>` (já tem `transition-all duration-300`, basta confirmar)
 
-**3. `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx`** — Reescrever
+**5. Conteúdo principal**
+- O `<main>` já usa `flex-1` — ao reduzir a sidebar para 16px, ele ocupa o espaço automaticamente sem gaps
 
-- Receber `periodos: { dt_ini: string; contas: ContaNode[] }[]` em vez de `itens[]` e `contas[]`
-- Manter os filtros existentes: busca por conta contábil, toggle "Período Fechado", e estados de loading/error/empty
-- Integrar `BalanceteTreeTable` do PIS/COFINS para renderizar a árvore hierárquica
-- Adicionar filtro de busca que filtra recursivamente os nós da árvore (match em `cod_cta` ou `descricao_conta`)
-- Toggle "Período Fechado" controla quais colunas de saldo são visíveis (já suportado pelo tree table)
-- Destacar divergências (vlr_efd vs saldo) em vermelho — delegado ao componente de árvore via prop ou lógica interna
-- Botões "Expandir Tudo" / "Colapsar Tudo" já existem no `BalanceteTreeTable`
+### Resultado visual
 
-**4. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** — Ajustar passagem de props
-
-- Passar `balanceteQuery.data?.periodos` em vez de `itens` e `contas`
-
-### Detalhes técnicos
+```text
+Collapsed:          Expanded:
+┌──┬─────────┐      ┌────────────┬──────┐
+│▸ │ Content  │      │ Digital Dev│      │
+│  │          │      │ Início     │ Cont │
+│  │          │      │ XMLs       │      │
+│  │          │      │ SPED ▾     │      │
+│  │          │      │ ...        │      │
+└──┴─────────┘      └────────────┴──────┘
+16px                 256px
+```
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `types/auditoriaCruzada.ts` | Novo tipo de resposta com `periodos[].contas: ContaNode[]` |
-| `hooks/useBalanceteEfd.ts` | Ajustar tipo genérico |
-| `auditoria/BalanceteEfdTab.tsx` | Reescrever para usar `BalanceteTreeTable` com filtros mantidos |
-| `AuditoriaCruzada.tsx` | Ajustar props passadas ao tab |
+| `DevLayout.tsx` | Sidebar `w-4` quando collapsed, conteúdo condicional `{!collapsed && ...}`, botão flutuante chevron |
 
