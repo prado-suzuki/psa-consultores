@@ -49,7 +49,7 @@ export function MultiSelectContas({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="min-w-[280px] justify-between h-auto min-h-[36px] py-1.5 font-normal"
+            className="min-w-[280px] justify-between h-auto min-h-[36px] py-1.5 font-normal hover:bg-background"
           >
             {selected.length === 0 ? (
               <span className="text-muted-foreground">{placeholder}</span>
