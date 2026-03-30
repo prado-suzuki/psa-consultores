@@ -28,7 +28,7 @@ export function DynamicTableHeader({
           <TableHead
             key={col.label}
             className={cn(
-              "font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted",
+              "!font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted",
               col.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
             )}
             style={{ left: col.left, minWidth: col.width }}
