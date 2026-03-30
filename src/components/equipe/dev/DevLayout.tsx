@@ -251,7 +251,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-slate-600"
+              className="text-slate-600 hover:text-slate-900"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
