@@ -114,7 +114,7 @@ export function ApuracaoDataTable({
           )}
         </h2>
       )}
-      <div className="rounded-md border bg-card overflow-x-auto max-w-full">
+      <div ref={scrollRef} className="rounded-md border bg-card overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
           <DynamicTableHeader 
             stickyConfig={stickyConfig}
