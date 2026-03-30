@@ -71,10 +71,14 @@ const TWO_COL_STICKY: StickyColumnConfig[] = [
 ];
 
 /* ── Inline table wrapper (single scroll container, no shadcn Table wrapper) ── */
-const InlineTableWrapper = ({ children }: { children: React.ReactNode }) => (
-  <Card className="overflow-x-auto max-w-full">
-    <table className="w-full caption-bottom text-sm min-w-max">{children}</table>
-  </Card>
+const InlineTableWrapper = forwardRef<HTMLDivElement, { children: React.ReactNode }>(
+  function InlineTableWrapper({ children }, ref) {
+    return (
+      <Card ref={ref} className="overflow-x-auto max-w-full">
+        <table className="w-full caption-bottom text-sm min-w-max">{children}</table>
+      </Card>
+    );
+  }
 );
 
 /* ── Sticky first cell helper ── */
