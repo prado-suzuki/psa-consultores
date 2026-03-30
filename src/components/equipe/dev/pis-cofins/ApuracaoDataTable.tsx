@@ -33,6 +33,7 @@ interface ApuracaoDataTableProps {
   setExpandedYear: (year: string | null) => void;
   showCst?: boolean;
   showBloco?: boolean;
+  showTotals?: boolean;
   emptyMessage?: string;
 }
 
@@ -45,6 +46,7 @@ export function ApuracaoDataTable({
   setExpandedYear,
   showCst = false,
   showBloco = false,
+  showTotals = false,
   emptyMessage = "Nenhum dado encontrado para o período."
 }: ApuracaoDataTableProps) {
   
@@ -161,6 +163,27 @@ export function ApuracaoDataTable({
               <TableRow>
                 <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">
                   {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+            {showTotals && data.length > 0 && (
+              <TableRow className="bg-muted/50 font-bold border-t-2 border-border">
+                {stickyConfig.map((cfg, i) => (
+                  <TableCell
+                    key={cfg.label}
+                    className={stickyCell(cfg, "text-sm bg-muted/50")}
+                    style={{ left: cfg.left, minWidth: cfg.width }}
+                  >
+                    {i === (showCst ? 2 : 1) ? "Total" : ""}
+                  </TableCell>
+                ))}
+                {headerBottom.map((col) => (
+                  <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20">
+                    {formatCurrency(data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0))}
+                  </TableCell>
+                ))}
+                <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l">
+                  {formatCurrency(data.reduce((sum, row) => sum + row.total, 0))}
                 </TableCell>
               </TableRow>
             )}
