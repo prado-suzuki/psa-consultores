@@ -332,8 +332,8 @@ const ApuracaoPisCofins = () => {
                   <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70" />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs text-xs">
-                  <p><strong>Cliente:</strong> Traz os dados do EFD Contribuições do cliente.</p>
-                  <p><strong>Prado:</strong> Traz informações do Balancete do cliente.</p>
+                  <p><strong>Cliente:</strong> Utiliza os registros do EFD Contribuições como base da análise.</p>
+                  <p><strong>Prado:</strong> Utiliza o balancete importado como base da análise.</p>
                 </TooltipContent>
               </Tooltip>
             </label>
