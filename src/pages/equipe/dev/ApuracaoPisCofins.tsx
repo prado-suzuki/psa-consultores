@@ -455,8 +455,8 @@ const ApuracaoPisCofins = () => {
                       {...dataTableProps}
                     />
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ══════════════ Tab: DÉBITOS ══════════════ */}
               {activeTab === "debitos" && (
