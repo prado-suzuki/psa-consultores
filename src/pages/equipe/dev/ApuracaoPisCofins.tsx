@@ -319,13 +319,13 @@ const ApuracaoPisCofins = () => {
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               Tipo de análise
             </label>
-            <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
+            <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "CLIENTE" | "PRADO")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="EFD">EFD Contribuições</SelectItem>
-                <SelectItem value="BALANCETE">Balancete</SelectItem>
+                <SelectItem value="CLIENTE">Cliente</SelectItem>
+                <SelectItem value="PRADO">Prado</SelectItem>
               </SelectContent>
             </Select>
           </div>
