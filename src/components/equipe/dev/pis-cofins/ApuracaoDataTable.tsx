@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
+import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
