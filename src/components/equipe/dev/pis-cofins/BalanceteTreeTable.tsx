@@ -113,6 +113,8 @@ interface BalanceteTreeTableProps {
   hideTitle?: boolean;
   /** Map of extra accounts added manually: cod_cta → "D" | "C" */
   extraContas?: Map<string, "D" | "C">;
+  /** Set of cod_cta that already have EFD lancamentos (in calculation) */
+  efdContas?: Set<string>;
   /** Called when user selects Débito or Crédito for a leaf account */
   onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
   /** Called when user clicks the badge to remove an extra account */
