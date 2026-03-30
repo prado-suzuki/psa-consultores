@@ -293,7 +293,24 @@ const ApuracaoPisCofins = () => {
     setSearchTriggered(false);
     setExpandedYears(new Set());
     setSelectedContas([]);
+    setExtraContas(new Map());
   };
+
+  const handleToggleExtra = useCallback((codCta: string, desc: string, tipo: "D" | "C") => {
+    setExtraContas(prev => {
+      const next = new Map(prev);
+      next.set(codCta, { tipo, desc });
+      return next;
+    });
+  }, []);
+
+  const handleRemoveExtra = useCallback((codCta: string) => {
+    setExtraContas(prev => {
+      const next = new Map(prev);
+      next.delete(codCta);
+      return next;
+    });
+  }, []);
 
   // Shared table props for data tables
   const dataTableProps = {
