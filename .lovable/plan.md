@@ -1,24 +1,34 @@
 
 
-## Plano: Reordenar tabelas de Apuração — PIS em cima, COFINS embaixo
+## Plano: Multi-select de contas na aba Resumo
 
-### Alteração (arquivo único: `ApuracaoPisCofins.tsx`)
+### Objetivo
+Adicionar um componente de seleção múltipla acima da tabela "Resumo Geral" para filtrar por contas (`cod_cta`). As contas selecionadas aparecem como tags com botão de remoção individual e botão de limpar tudo.
 
-Na aba "Apuração" (L574-843), as seções estão na ordem:
-1. Apuração (resumo PIS+COFINS) — L577-636
-2. Apuração do Débito de **COFINS** — L638-722
-3. Apuração do Débito de **PIS** — L724-800
-4. Isenções e Exclusões — L802-842
+### Alterações
 
-Trocar a ordem das seções 2 e 3 para que fique:
-1. Apuração (resumo)
-2. Apuração do Débito de **PIS** (atual L724-800)
-3. Apuração do Débito de **COFINS** (atual L638-722)
-4. Isenções e Exclusões
+**1. Criar componente `MultiSelectContas.tsx`** (`src/components/equipe/dev/pis-cofins/`)
 
-Apenas mover os blocos `<section>` — sem alteração de lógica ou estilo.
+Componente reutilizável com:
+- `Popover` + `Command` (shadcn) como dropdown de busca/seleção
+- Lista de contas disponíveis com checkbox visual
+- Tags/badges dentro do trigger mostrando `cod_cta - descricao_conta` (truncado)
+- Ícone `X` em cada tag para remover individualmente
+- Botão "Limpar" para resetar todas as seleções
+- Props: `options: {value: string, label: string}[]`, `selected: string[]`, `onChange: (selected: string[]) => void`, `placeholder?: string`
+
+**2. Alterar `ApuracaoPisCofins.tsx`**
+
+- Novo estado: `const [selectedContas, setSelectedContas] = useState<string[]>([])`
+- Derivar lista de contas únicas de `tables.resumoData` via `useMemo`: `{ value: cod_cta, label: "${cod_cta} - ${descricao_conta}" }`
+- Filtrar `tables.resumoData` por `selectedContas` (se vazio, mostrar tudo)
+- Renderizar `<MultiSelectContas>` acima do `<ApuracaoDataTable>` na aba Resumo
+- Resetar `selectedContas` ao limpar/trocar consulta
+
+### Arquivos
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `ApuracaoPisCofins.tsx` | Inverter ordem das seções PIS e COFINS na aba Apuração |
+| `src/components/equipe/dev/pis-cofins/MultiSelectContas.tsx` | Novo componente multi-select com tags |
+| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Estado, derivação de opções, filtro e renderização |
 
