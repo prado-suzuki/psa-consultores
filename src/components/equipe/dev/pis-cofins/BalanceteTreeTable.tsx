@@ -204,6 +204,15 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             >
               <div className="flex items-center gap-1.5">
                 <span className="block truncate flex-1">{node.descricao_conta}</span>
+                {!isParent && isInEfd && !extraTipo && (
+                  <Badge
+                    className="shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold bg-blue-500/15 text-blue-600 border-blue-500/30"
+                    variant="outline"
+                    title="Conta presente na EFD"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Badge>
+                )}
                 {!isParent && onToggleExtra && (
                   extraTipo ? (
                     <Badge

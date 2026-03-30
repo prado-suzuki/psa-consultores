@@ -573,6 +573,7 @@ const ApuracaoPisCofins = () => {
                         contasTree={filteredContasTree}
                         periodoFechado={periodoFechado}
                         extraContas={new Map(Array.from(extraContas.entries()).map(([k, v]) => [k, v.tipo]))}
+                        efdContas={efdContasSet}
                         onToggleExtra={handleToggleExtra}
                         onRemoveExtra={handleRemoveExtra}
                       />
