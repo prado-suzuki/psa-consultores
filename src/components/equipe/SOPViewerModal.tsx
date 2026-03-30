@@ -146,7 +146,7 @@ export function SOPViewerModal({
                   formattedContent={beforeContent}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <h3 className="text-sm font-semibold text-muted-foreground">✅ Como ficou (Depois)</h3>
                 <SOPContentBlock
                   sopLink={sopLink}
