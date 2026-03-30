@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
-import { ChevronRight, ChevronDown, ChevronsUpDown, Minus } from "lucide-react";
+import { ChevronRight, ChevronDown, ChevronsUpDown, Minus, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
