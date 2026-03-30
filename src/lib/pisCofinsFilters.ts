@@ -9,6 +9,7 @@ import type {
   PivotRow,
   PivotRowGeneric,
   ItemCredito,
+  ContaNode,
 } from '@/types/pisCofins';
 import {
   isItemOutrasSaidas as _isItemOutrasSaidas,
