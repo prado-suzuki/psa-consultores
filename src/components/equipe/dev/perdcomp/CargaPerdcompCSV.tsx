@@ -18,7 +18,7 @@ interface ParsedPer {
   tri_exercicio: number;
   dt_solicitada: string;
   tp_credito: string;
-  vlr_ressarcido: number;
+  vlr_credito: number;
   nr_proc_ret?: string;
   situacao?: string;
   dt_pagamento?: string;
@@ -183,7 +183,7 @@ export function CargaPerdcompCSV() {
         tri_exercicio: parseInt(row.tri_exercicio) || 1,
         dt_solicitada: dtSolicitada,
         tp_credito: row.tp_credito?.trim() || "",
-        vlr_ressarcido: parseNumber(row.vlr_credito),
+        vlr_credito: parseNumber(row.vlr_credito),
         nr_proc_ret: row.nr_proc_ret?.trim() || null,
       };
 
