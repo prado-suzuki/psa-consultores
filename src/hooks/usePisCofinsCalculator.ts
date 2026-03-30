@@ -11,6 +11,8 @@ import type {
   ResultadoPeriodo,
   TotaisApuracao,
   PivotRowGeneric,
+  ContaNode,
+  PisCofsinPeriodo,
 } from '@/types/pisCofins';
 import {
   calcTodosPeriodos,
@@ -23,7 +25,7 @@ import {
   isItemIsencaoCredito,
   valorBaseBalancete,
 } from '@/lib/apuracaoPisCofins';
-import { buildPivotGeneric } from '@/lib/pisCofinsFilters';
+import { buildPivotGeneric, flattenContasToItens } from '@/lib/pisCofinsFilters';
 
 interface UseCalculatorParams {
   data: ApuracaoInput | null | undefined;
@@ -49,18 +51,32 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
 
   const hasEfdRecord = (i: ItemCredito): boolean => i.vlr_efd !== 0;
 
-  // ── 0. Dados filtrados (EFD exclui itens sem registro) ──
-  const filteredData: ApuracaoInput | null = useMemo(() => {
+  // ── 0. Normalizar dados (achatar contas hierárquicas se necessário) ──
+  const normalizedData: ApuracaoInput | null = useMemo(() => {
     if (!data) return null;
-    if (tipoApuracao !== 'EFD') return data;
+    const needsFlatten = data.periodos.some(p => p.contas && p.contas.length > 0 && (!p.itens_credito || p.itens_credito.length === 0));
+    if (!needsFlatten) return data;
     return {
       ...data,
       periodos: data.periodos.map((p) => ({
         ...p,
+        itens_credito: p.contas ? flattenContasToItens(p.contas) : p.itens_credito ?? [],
+      })),
+    };
+  }, [data]);
+
+  // ── 0b. Dados filtrados (EFD exclui itens sem registro) ──
+  const filteredData: ApuracaoInput | null = useMemo(() => {
+    if (!normalizedData) return null;
+    if (tipoApuracao !== 'EFD') return normalizedData;
+    return {
+      ...normalizedData,
+      periodos: normalizedData.periodos.map((p) => ({
+        ...p,
         itens_credito: p.itens_credito.filter(hasEfdRecord),
       })),
     };
-  }, [data, tipoApuracao]);
+  }, [normalizedData, tipoApuracao]);
 
   // ── 1. Resultados de apuração por período ──
   const resultados: ResultadoPeriodo[] = useMemo(() => {
@@ -144,10 +160,19 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
     isencoesCreditoData,
   }), [resumoData, debitosData, isencoesData, outrasSaidasData, creditosData, isencoesCreditoData]);
 
+  // ── 5. Árvore hierárquica para o Resumo Prado ──
+  const contasTree: { dt_ini: string; contas: ContaNode[] }[] = useMemo(() => {
+    if (!data) return [];
+    return data.periodos
+      .filter(p => p.contas && p.contas.length > 0)
+      .map(p => ({ dt_ini: p.dt_ini, contas: p.contas! }));
+  }, [data]);
+
   return {
     resultados,
     totais,
     columnsData,
     tables,
+    contasTree,
   };
 }

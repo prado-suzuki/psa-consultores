@@ -4,6 +4,7 @@ import { usePisCofinsApuracao } from "@/hooks/usePisCofinsApuracao";
 import { usePisCofinsCalculator } from "@/hooks/usePisCofinsCalculator";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { ApuracaoDataTable } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
+import { BalanceteTreeTable } from "@/components/equipe/dev/pis-cofins/BalanceteTreeTable";
 import { DynamicTableHeader } from "@/components/equipe/dev/pis-cofins/DynamicTableHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -202,7 +203,7 @@ const ApuracaoPisCofins = () => {
   });
 
   // ── Calculator + Headers ──
-  const { resultados, totais, columnsData, tables } = usePisCofinsCalculator({
+  const { resultados, totais, columnsData, tables, contasTree } = usePisCofinsCalculator({
     data: apiData ?? null,
     tipoApuracao,
     periodoFechado,
@@ -441,21 +442,25 @@ const ApuracaoPisCofins = () => {
               {/* ══════════════ Tab: RESUMO ══════════════ */}
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <div className="space-y-4">
-                    <MultiSelectContas
-                      options={contaOptions}
-                      selected={selectedContas}
-                      onChange={setSelectedContas}
-                      placeholder="Filtrar por conta..."
-                    />
-                    <ApuracaoDataTable
-                      title="Resumo Geral"
-                      data={filteredResumoData}
-                      showCst
-                      showBloco
-                      {...dataTableProps}
-                    />
-                  </div>
+                  {tipoApuracao === "BALANCETE" && contasTree.length > 0 ? (
+                    <BalanceteTreeTable contasTree={contasTree} />
+                  ) : (
+                    <div className="space-y-4">
+                      <MultiSelectContas
+                        options={contaOptions}
+                        selected={selectedContas}
+                        onChange={setSelectedContas}
+                        placeholder="Filtrar por conta..."
+                      />
+                      <ApuracaoDataTable
+                        title="Resumo Geral"
+                        data={filteredResumoData}
+                        showCst
+                        showBloco
+                        {...dataTableProps}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

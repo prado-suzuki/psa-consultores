@@ -3,6 +3,21 @@
  *  Fonte única de verdade para hooks, lib e UI.
  * ══════════════════════════════════════════════════════════════ */
 
+// ── Nó hierárquico (árvore de contas do balancete) ──
+
+export interface ContaNode {
+  plano_conta: string;
+  cod_cta: string;
+  descricao_conta: string;
+  vlr_efd: number;
+  credito: number;
+  debito: number;
+  saldo_periodo: number;
+  saldo_atual: number;
+  lancamentos: PisCofinsItemCredito[];
+  children: ContaNode[];
+}
+
 // ── Item de crédito (linha da EFD) ──
 
 export interface PisCofinsItemCredito {
@@ -38,6 +53,7 @@ export type RateioReceitas = PisCofinsRateioReceitas;
 export interface PisCofsinPeriodo {
   dt_ini: string;
   itens_credito: PisCofinsItemCredito[];
+  contas?: ContaNode[];
   rateio_receitas: PisCofinsRateioReceitas | null;
 }
 
