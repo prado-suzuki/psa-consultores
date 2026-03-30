@@ -40,7 +40,7 @@ export function DynamicTableHeader({
         
         {headerRow1.map(top => (
           top.isExpanded ? (
-            <TableHead key={top.id} colSpan={top.colSpan} className="text-center border-b border-r bg-primary/10 font-bold uppercase text-xs text-muted-foreground">
+            <TableHead key={top.id} colSpan={top.colSpan} className="text-center border-b border-r bg-primary/10 !font-bold uppercase text-xs text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 {top.label}
                 <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => toggleYear(top.id)} title="Colapsar Ano">-</Button>
