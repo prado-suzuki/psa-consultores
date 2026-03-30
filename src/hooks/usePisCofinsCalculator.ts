@@ -160,10 +160,19 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
     isencoesCreditoData,
   }), [resumoData, debitosData, isencoesData, outrasSaidasData, creditosData, isencoesCreditoData]);
 
+  // ── 5. Árvore hierárquica para o Resumo Prado ──
+  const contasTree: { dt_ini: string; contas: ContaNode[] }[] = useMemo(() => {
+    if (!data) return [];
+    return data.periodos
+      .filter(p => p.contas && p.contas.length > 0)
+      .map(p => ({ dt_ini: p.dt_ini, contas: p.contas! }));
+  }, [data]);
+
   return {
     resultados,
     totais,
     columnsData,
     tables,
+    contasTree,
   };
 }
