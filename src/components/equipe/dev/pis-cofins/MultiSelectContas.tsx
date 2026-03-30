@@ -64,8 +64,10 @@ export function MultiSelectContas({
                     <span className="truncate">{item.label}</span>
                     <X
                       className="h-3 w-3 shrink-0 cursor-pointer hover:text-destructive"
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         remove(item.value);
                       }}
                     />
