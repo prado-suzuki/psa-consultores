@@ -84,8 +84,11 @@ export function ApuracaoDataTable({
       extraClass
     );
 
+  const formatBR = (v: number) =>
+    v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const copyToClipboard = (value: string | number | undefined | null) => {
-    const text = value == null ? "" : String(value);
+    const text = value == null ? "" : typeof value === "number" ? formatBR(value) : value;
     navigator.clipboard.writeText(text).then(() => toast.success("Copiado!"));
   };
 
