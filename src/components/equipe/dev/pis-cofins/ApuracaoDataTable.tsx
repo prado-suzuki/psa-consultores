@@ -78,7 +78,7 @@ export function ApuracaoDataTable({
 
   const stickyCell = (config: StickyColumnConfig, extraClass?: string) =>
     cn(
-      "sticky z-10 bg-card",
+      "sticky z-10 bg-background",
       config.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
       extraClass
     );
