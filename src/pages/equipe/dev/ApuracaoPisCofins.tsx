@@ -162,6 +162,7 @@ const ApuracaoPisCofins = () => {
   const [tipoApuracao, setTipoApuracao] = useState<"EFD" | "BALANCETE">("EFD");
   const [periodoFechado, setPeriodoFechado] = useState(false);
   const [selectedContas, setSelectedContas] = useState<string[]>([]);
+  const [extraContas, setExtraContas] = useState<Map<string, { tipo: "D" | "C"; desc: string }>>(new Map());
 
   // ── Queries de clientes e contribuintes ──
   const { data: clientes, isLoading: loadingClientes } = useQuery({
@@ -224,6 +225,7 @@ const ApuracaoPisCofins = () => {
     data: apiData ?? null,
     tipoApuracao,
     periodoFechado,
+    extraContas: tipoApuracao === "BALANCETE" ? extraContas : undefined,
   });
 
   const { headerRow1, headerRow2, hasExpandedYear, headerRowsCount, headerBottom } = useTableHeaders({
@@ -291,7 +293,24 @@ const ApuracaoPisCofins = () => {
     setSearchTriggered(false);
     setExpandedYears(new Set());
     setSelectedContas([]);
+    setExtraContas(new Map());
   };
+
+  const handleToggleExtra = useCallback((codCta: string, desc: string, tipo: "D" | "C") => {
+    setExtraContas(prev => {
+      const next = new Map(prev);
+      next.set(codCta, { tipo, desc });
+      return next;
+    });
+  }, []);
+
+  const handleRemoveExtra = useCallback((codCta: string) => {
+    setExtraContas(prev => {
+      const next = new Map(prev);
+      next.delete(codCta);
+      return next;
+    });
+  }, []);
 
   // Shared table props for data tables
   const dataTableProps = {
@@ -537,7 +556,13 @@ const ApuracaoPisCofins = () => {
                         onChange={setSelectedContas}
                         placeholder="Filtrar por conta..."
                       />
-                      <BalanceteTreeTable contasTree={filteredContasTree} periodoFechado={periodoFechado} />
+                      <BalanceteTreeTable
+                        contasTree={filteredContasTree}
+                        periodoFechado={periodoFechado}
+                        extraContas={new Map(Array.from(extraContas.entries()).map(([k, v]) => [k, v.tipo]))}
+                        onToggleExtra={handleToggleExtra}
+                        onRemoveExtra={handleRemoveExtra}
+                      />
                     </div>
                   ) : (
                     <div className="space-y-4">

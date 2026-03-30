@@ -25,12 +25,13 @@ import {
   isItemIsencaoCredito,
   valorBaseBalancete,
 } from '@/lib/apuracaoPisCofins';
-import { buildPivotGeneric, flattenContasToItens } from '@/lib/pisCofinsFilters';
+import { buildPivotGeneric, flattenContasToItens, extractLeafNodesByAccount } from '@/lib/pisCofinsFilters';
 
 interface UseCalculatorParams {
   data: ApuracaoInput | null | undefined;
   tipoApuracao: 'EFD' | 'BALANCETE';
   periodoFechado: boolean;
+  extraContas?: Map<string, { tipo: 'D' | 'C'; desc: string }>;
 }
 
 interface ColumnsData {
@@ -47,7 +48,7 @@ interface PivotTables {
   isencoesCreditoData: PivotRowGeneric[];
 }
 
-export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: UseCalculatorParams) {
+export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, extraContas }: UseCalculatorParams) {
 
   const hasEfdRecord = (i: ItemCredito): boolean => i.vlr_efd !== 0;
 
@@ -55,15 +56,46 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
   const normalizedData: ApuracaoInput | null = useMemo(() => {
     if (!data) return null;
     const needsFlatten = data.periodos.some(p => p.contas && p.contas.length > 0 && (!p.itens_credito || p.itens_credito.length === 0));
-    if (!needsFlatten) return data;
+    if (!needsFlatten && (!extraContas || extraContas.size === 0)) return data;
+
+    const extraSet = extraContas ? new Set(extraContas.keys()) : new Set<string>();
+
     return {
       ...data,
-      periodos: data.periodos.map((p) => ({
-        ...p,
-        itens_credito: p.contas ? flattenContasToItens(p.contas) : p.itens_credito ?? [],
-      })),
+      periodos: data.periodos.map((p) => {
+        let itens = needsFlatten && p.contas
+          ? flattenContasToItens(p.contas)
+          : [...(p.itens_credito ?? [])];
+
+        // Inject synthetic items for extra accounts
+        if (extraContas && extraContas.size > 0 && p.contas) {
+          const leafMap = extractLeafNodesByAccount(p.contas, extraSet);
+          for (const [codCta, { tipo, desc }] of extraContas) {
+            const leaf = leafMap.get(codCta);
+            if (!leaf) continue;
+            // Skip if this account already has items in the list
+            if (itens.some(i => i.cod_cta === codCta)) continue;
+            const value = leaf.saldo_periodo || leaf.saldo_atual || 0;
+            if (value === 0) continue;
+            itens.push({
+              cst_pis: tipo === 'D' ? '01' : '50',
+              aliq_pis: tipo === 'D' ? 0 : 1.65,
+              cod_cta: codCta,
+              descricao_conta: desc || leaf.descricao_conta,
+              bloco_efd: 'EXTRA',
+              vlr_efd: value,
+              credito: leaf.credito ?? 0,
+              debito: leaf.debito ?? 0,
+              saldo_periodo: leaf.saldo_periodo ?? 0,
+              saldo_atual: leaf.saldo_atual ?? 0,
+            });
+          }
+        }
+
+        return { ...p, itens_credito: itens };
+      }),
     };
-  }, [data]);
+  }, [data, extraContas]);
 
   // ── 0b. Dados filtrados (EFD exclui itens sem registro) ──
   const filteredData: ApuracaoInput | null = useMemo(() => {

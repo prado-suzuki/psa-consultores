@@ -117,6 +117,30 @@ export function flattenContasToItens(contas: ContaNode[]): PisCofinsItemCredito[
   return result;
 }
 
+/* ── Extração de nós-folha por cod_cta (para contas extras) ── */
+
+export function extractLeafNodesByAccount(
+  contas: ContaNode[],
+  codCtaSet: Set<string>,
+): Map<string, ContaNode> {
+  const result = new Map<string, ContaNode>();
+
+  function walk(nodes: ContaNode[]) {
+    for (const node of nodes) {
+      if (!node.children || node.children.length === 0) {
+        if (codCtaSet.has(node.cod_cta) && !result.has(node.cod_cta)) {
+          result.set(node.cod_cta, node);
+        }
+      } else {
+        walk(node.children);
+      }
+    }
+  }
+
+  walk(contas);
+  return result;
+}
+
 /* ── Pivot genérico parametrizável (Geração 2) ── */
 
 export function buildPivotGeneric(
