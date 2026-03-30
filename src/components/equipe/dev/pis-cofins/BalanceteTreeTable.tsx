@@ -207,8 +207,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                       className={cn(
                         "cursor-pointer shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold",
                         extraTipo === "D"
-                          ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25"
-                          : "bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/25",
+                          ? "bg-[#B84714]/15 text-[#B84714] border-[#B84714]/30 hover:bg-[#B84714]/25"
+                          : "bg-[#14B8A5]/15 text-[#14B8A5] border-[#14B8A5]/30 hover:bg-[#14B8A5]/25",
                       )}
                       variant="outline"
                       onClick={(e) => {
