@@ -1,24 +1,18 @@
 
 
-## Plano: Copiar valor ao dar duplo clique nas células das tabelas
+## Plano: Cabeçalhos em negrito em todas as tabelas
 
-### Alteração (arquivo único: `ApuracaoDataTable.tsx`)
+### Problema
+O componente base `TableHead` (em `src/components/ui/table.tsx`) aplica `font-medium` por padrão. Mesmo com `font-bold` no `DynamicTableHeader`, pode haver conflito de especificidade no Tailwind onde ambas as classes coexistem.
 
-Adicionar um handler `onDoubleClick` nas `TableCell` de valores (moeda e texto) que copia o conteúdo para a área de transferência e exibe um toast de confirmação.
+### Correção
 
-**Implementação:**
+**Arquivo: `src/components/ui/table.tsx`**
+- Linha 49: trocar `font-medium` por `font-bold` na classe base do `TableHead`
 
-1. Criar função utilitária `handleCellDoubleClick` no componente que recebe o valor (string ou número), copia via `navigator.clipboard.writeText()` e chama `toast("Copiado!")` com ícone.
-
-2. Aplicar `onDoubleClick` + `className="cursor-copy"` em:
-   - Células sticky (CST, Conta, Descrição, Bloco)
-   - Células de valores monetários (períodos)
-   - Célula de total
-   - Células da linha de totais gerais
-
-3. Importar `toast` de `sonner`.
+Isso garante que todos os `<th>` de todas as tabelas da aplicação sejam bold por padrão, sem necessidade de override individual.
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `ApuracaoDataTable.tsx` | Handler `onDoubleClick` em todas as `TableCell` + cursor copy + toast |
+| `src/components/ui/table.tsx` | `font-medium` → `font-bold` no `TableHead` |
 
