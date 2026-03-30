@@ -22,7 +22,7 @@ export function DynamicTableHeader({
   toggleYear
 }: DynamicTableHeaderProps) {
   return (
-    <thead className="bg-muted/50 sticky top-0 z-30 [&_tr]:border-b">
+    <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
       <TableRow>
         {stickyConfig.map((col) => (
           <TableHead
