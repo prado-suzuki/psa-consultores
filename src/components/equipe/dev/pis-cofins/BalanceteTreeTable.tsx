@@ -231,7 +231,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     }
 
     const table = (
-      <Card className="overflow-x-auto max-w-full">
+      <>
+      <Card ref={scrollRef} className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
           <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
             <TableRow>
