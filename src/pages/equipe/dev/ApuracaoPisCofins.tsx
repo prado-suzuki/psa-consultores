@@ -443,7 +443,7 @@ const ApuracaoPisCofins = () => {
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   {tipoApuracao === "BALANCETE" && contasTree.length > 0 ? (
-                    <BalanceteTreeTable contasTree={contasTree} />
+                    <BalanceteTreeTable contasTree={contasTree} periodoFechado={periodoFechado} />
                   ) : (
                     <div className="space-y-4">
                       <MultiSelectContas
