@@ -190,12 +190,15 @@ export function ApuracaoDataTable({
                     {i === (showCst ? 2 : 1) ? "Total" : ""}
                   </TableCell>
                 ))}
-                {headerBottom.map((col) => (
-                  <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20">
-                    {formatCurrency(data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0))}
-                  </TableCell>
-                ))}
-                <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l">
+                {headerBottom.map((col) => {
+                  const total = data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0);
+                  return (
+                    <TableCell key={col.id} className="text-right font-mono text-sm border-r border-border/20 cursor-copy" onDoubleClick={() => copyToClipboard(total)}>
+                      {formatCurrency(total)}
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="text-right font-mono font-bold text-sm bg-muted/30 border-l cursor-copy" onDoubleClick={() => copyToClipboard(data.reduce((sum, row) => sum + row.total, 0))}>
                   {formatCurrency(data.reduce((sum, row) => sum + row.total, 0))}
                 </TableCell>
               </TableRow>
