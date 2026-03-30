@@ -51,18 +51,32 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
 
   const hasEfdRecord = (i: ItemCredito): boolean => i.vlr_efd !== 0;
 
-  // ── 0. Dados filtrados (EFD exclui itens sem registro) ──
-  const filteredData: ApuracaoInput | null = useMemo(() => {
+  // ── 0. Normalizar dados (achatar contas hierárquicas se necessário) ──
+  const normalizedData: ApuracaoInput | null = useMemo(() => {
     if (!data) return null;
-    if (tipoApuracao !== 'EFD') return data;
+    const needsFlatten = data.periodos.some(p => p.contas && p.contas.length > 0 && (!p.itens_credito || p.itens_credito.length === 0));
+    if (!needsFlatten) return data;
     return {
       ...data,
       periodos: data.periodos.map((p) => ({
         ...p,
+        itens_credito: p.contas ? flattenContasToItens(p.contas) : p.itens_credito ?? [],
+      })),
+    };
+  }, [data]);
+
+  // ── 0b. Dados filtrados (EFD exclui itens sem registro) ──
+  const filteredData: ApuracaoInput | null = useMemo(() => {
+    if (!normalizedData) return null;
+    if (tipoApuracao !== 'EFD') return normalizedData;
+    return {
+      ...normalizedData,
+      periodos: normalizedData.periodos.map((p) => ({
+        ...p,
         itens_credito: p.itens_credito.filter(hasEfdRecord),
       })),
     };
-  }, [data, tipoApuracao]);
+  }, [normalizedData, tipoApuracao]);
 
   // ── 1. Resultados de apuração por período ──
   const resultados: ResultadoPeriodo[] = useMemo(() => {
