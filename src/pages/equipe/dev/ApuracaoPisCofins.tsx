@@ -325,8 +325,17 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Tipo de análise
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  <p><strong>Cliente:</strong> Traz os dados do EFD Contribuições do cliente.</p>
+                  <p><strong>Prado:</strong> Traz informações do Balancete do cliente.</p>
+                </TooltipContent>
+              </Tooltip>
             </label>
             <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
               <SelectTrigger>
