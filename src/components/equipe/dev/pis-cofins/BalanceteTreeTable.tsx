@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 import { ChevronRight, ChevronDown, ChevronsUpDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -112,6 +113,7 @@ interface BalanceteTreeTableProps {
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
   function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false }, ref) {
+    const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
@@ -229,7 +231,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     }
 
     const table = (
-      <Card className="overflow-x-auto max-w-full">
+      <>
+      <Card ref={scrollRef} className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
           <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
             <TableRow>
@@ -281,6 +284,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
           </TableBody>
         </table>
       </Card>
+      <FloatingScrollbar targetRef={scrollRef} />
+      </>
     );
 
     if (hideTitle) return table;

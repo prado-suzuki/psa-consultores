@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
+import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,6 +52,7 @@ export function ApuracaoDataTable({
   showTotals = false,
   emptyMessage = "Nenhum dado encontrado para o período."
 }: ApuracaoDataTableProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   
   const {
     headerRow1,
@@ -111,7 +114,7 @@ export function ApuracaoDataTable({
           )}
         </h2>
       )}
-      <div className="rounded-md border bg-card overflow-x-auto max-w-full">
+      <div ref={scrollRef} className="rounded-md border bg-card overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
           <DynamicTableHeader 
             stickyConfig={stickyConfig}
@@ -209,6 +212,7 @@ export function ApuracaoDataTable({
           </TableBody>
         </table>
       </div>
+      <FloatingScrollbar targetRef={scrollRef} />
     </section>
   );
 }
