@@ -171,7 +171,7 @@ export function ApuracaoDataTable({
                 {stickyConfig.map((cfg, i) => (
                   <TableCell
                     key={cfg.label}
-                    className={stickyCell(cfg, "text-sm bg-muted/50")}
+                    className={stickyCell(cfg, "text-sm bg-muted")}
                     style={{ left: cfg.left, minWidth: cfg.width }}
                   >
                     {i === (showCst ? 2 : 1) ? "Total" : ""}

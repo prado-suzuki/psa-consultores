@@ -47,7 +47,7 @@ export function DynamicTableHeader({
               </div>
             </TableHead>
           ) : (
-            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted/50">
+            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted">
               <div className="flex items-center justify-end gap-2">
                 {top.label}
                 <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => toggleYear(top.id)} title="Expandir Ano">+</Button>
