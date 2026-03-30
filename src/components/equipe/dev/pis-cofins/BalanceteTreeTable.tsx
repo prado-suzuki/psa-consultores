@@ -234,17 +234,17 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       <>
       <Card ref={scrollRef} className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
-          <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
+          <thead className="bg-[#14B8A6] sticky top-0 z-30 [&_tr]:border-b">
             <TableRow>
               <th
-                className="!font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted h-12 px-4 text-left align-middle"
+                className="!font-bold uppercase text-xs text-white border-r border-[#0B7A70] sticky z-40 bg-[#14B8A6] h-12 px-4 text-left align-middle"
                 style={{ left: 0, minWidth: 100 }}
                 rowSpan={2}
               >
                 Conta
               </th>
               <th
-                className="!font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] h-12 px-4 text-left align-middle"
+                className="!font-bold uppercase text-xs text-white border-r border-[#0B7A70] sticky z-40 bg-[#14B8A6] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] h-12 px-4 text-left align-middle"
                 style={{ left: 100, minWidth: 280 }}
                 rowSpan={2}
               >
@@ -254,7 +254,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                 <th
                   key={pk}
                   colSpan={valueColumns.length}
-                  className="text-center border-b border-r bg-primary/10 !font-bold uppercase text-xs text-muted-foreground h-12 px-4 align-middle"
+                  className="text-center border-b border-r border-[#0B7A70] bg-[#14B8A6] !font-bold uppercase text-xs text-white h-12 px-4 align-middle"
                 >
                   {pk.split("-").reverse().join("/")}
                 </th>
@@ -265,7 +265,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                 valueColumns.map(vc => (
                   <th
                     key={`${pk}-${vc.key}`}
-                    className="text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5 h-10 px-4 align-middle"
+                    className="text-right border-r border-[#0B7A70] !font-bold uppercase text-xs text-white bg-[#3fd8c7] h-10 px-4 align-middle"
                   >
                     {vc.label}
                   </th>
