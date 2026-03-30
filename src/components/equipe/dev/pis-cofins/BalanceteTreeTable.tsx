@@ -234,18 +234,18 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "D")}
+                          className="gap-1 text-[#14B8A5] border-[#14B8A5]/40 hover:bg-[#14B8A5]/10"
+                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "C")}
                         >
-                          Débito
+                          Crédito
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-50"
-                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "C")}
+                          className="gap-1 text-[#B84714] border-[#B84714]/40 hover:bg-[#B84714]/10"
+                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "D")}
                         >
-                          Crédito
+                          Débito
                         </Button>
                       </PopoverContent>
                     </Popover>
