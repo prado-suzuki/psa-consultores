@@ -250,6 +250,7 @@ const ApuracaoPisCofins = () => {
     setCommittedMesFim(null);
     setSearchTriggered(false);
     setExpandedYears(new Set());
+    setSelectedContas([]);
   };
 
   // Shared table props for data tables
