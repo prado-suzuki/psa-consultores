@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { StickyColumnConfig } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import type { ResultadoPeriodo, RateioResultado } from "@/types/pisCofins";
 import { MultiSelectContas } from "@/components/equipe/dev/pis-cofins/MultiSelectContas";
+import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 
 /* ── Formatters ── */
 const formatCurrency = (value: number) =>
