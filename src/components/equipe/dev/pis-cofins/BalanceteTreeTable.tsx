@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,7 +23,6 @@ interface MergedNode {
   plano_conta: string;
   cod_cta: string;
   descricao_conta: string;
-  /** Values per period key "YYYY-MM" */
   periodoValues: Record<string, { vlr_efd: number; credito: number; debito: number; saldo_periodo: number; saldo_atual: number }>;
   children: MergedNode[];
   depth: number;
@@ -36,7 +35,6 @@ function mergeContasTrees(
   const periods = periodTrees.map(pt => pt.dt_ini.substring(0, 7)).sort();
 
   function mergeLevel(nodesPerPeriod: { pk: string; nodes: ContaNode[] }[], depth: number): MergedNode[] {
-    // Collect all unique plano_conta at this level
     const allKeys = new Map<string, { cod_cta: string; descricao_conta: string }>();
     for (const { nodes } of nodesPerPeriod) {
       for (const n of nodes) {
@@ -99,142 +97,146 @@ function collectAllKeys(nodes: MergedNode[]): Set<string> {
   return keys;
 }
 
-interface BalanceteTreeTableProps {
-  contasTree: { dt_ini: string; contas: ContaNode[] }[];
+export interface BalanceteTreeTableHandle {
+  expandAll: () => void;
+  collapseAll: () => void;
 }
 
-export function BalanceteTreeTable({ contasTree }: BalanceteTreeTableProps) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+interface BalanceteTreeTableProps {
+  contasTree: { dt_ini: string; contas: ContaNode[] }[];
+  /** When true, show saldo_atual instead of saldo_periodo */
+  periodoFechado?: boolean;
+  /** Hide the section title and expand/collapse buttons (caller provides them) */
+  hideTitle?: boolean;
+}
 
-  const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
+export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false }, ref) {
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const toggleNode = useCallback((key: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
+    const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
 
-  const expandAll = useCallback(() => {
-    setExpanded(collectAllKeys(mergedTree));
-  }, [mergedTree]);
+    const toggleNode = useCallback((key: string) => {
+      setExpanded(prev => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    }, []);
 
-  const collapseAll = useCallback(() => setExpanded(new Set()), []);
+    const expandAll = useCallback(() => {
+      setExpanded(collectAllKeys(mergedTree));
+    }, [mergedTree]);
 
-  const valueColumns: { key: string; label: string; accessor: (v: MergedNode["periodoValues"][string]) => number }[] = [
-    { key: "credito", label: "Crédito", accessor: v => v.credito },
-    { key: "debito", label: "Débito", accessor: v => v.debito },
-    { key: "saldo_periodo", label: "Saldo Período", accessor: v => v.saldo_periodo },
-    { key: "saldo_atual", label: "Saldo Atual", accessor: v => v.saldo_atual },
-  ];
+    const collapseAll = useCallback(() => setExpanded(new Set()), []);
 
-  const rows: JSX.Element[] = [];
+    useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
 
-  function renderRows(nodes: MergedNode[]) {
-    for (const node of nodes) {
-      const isExpanded = expanded.has(node.plano_conta);
-      const isParent = node.hasChildren;
-      const depth = node.depth;
+    const valueColumns: { key: string; label: string; accessor: (v: MergedNode["periodoValues"][string]) => number }[] = useMemo(() => {
+      const cols = [
+        { key: "credito", label: "Crédito", accessor: (v: MergedNode["periodoValues"][string]) => v.credito },
+        { key: "debito", label: "Débito", accessor: (v: MergedNode["periodoValues"][string]) => v.debito },
+      ];
+      if (periodoFechado) {
+        cols.push({ key: "saldo_atual", label: "Saldo Atual", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_atual });
+      } else {
+        cols.push({ key: "saldo_periodo", label: "Saldo Período", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_periodo });
+      }
+      return cols;
+    }, [periodoFechado]);
 
-      const bgClass = isParent
-        ? depth === 0
-          ? "bg-muted/60 font-semibold"
-          : "bg-muted/30 font-medium"
-        : "";
+    const rows: JSX.Element[] = [];
 
-      rows.push(
-        <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20", bgClass)}>
-          {/* Conta */}
-          <TableCell
-            className="sticky left-0 z-10 bg-inherit font-mono text-xs cursor-copy whitespace-nowrap"
-            style={{ minWidth: 100 }}
-            onDoubleClick={() => copyToClipboard(node.cod_cta)}
-          >
-            <div className="flex items-center" style={{ paddingLeft: depth * 20 }}>
-              {isParent ? (
-                <button
-                  onClick={() => toggleNode(node.plano_conta)}
-                  className="mr-1 p-0.5 rounded hover:bg-muted-foreground/20 shrink-0"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </button>
-              ) : (
-                <Minus className="h-3.5 w-3.5 text-muted-foreground/40 mr-1 shrink-0" />
-              )}
-              {node.cod_cta}
-            </div>
-          </TableCell>
+    function renderRows(nodes: MergedNode[]) {
+      for (const node of nodes) {
+        const isExpanded = expanded.has(node.plano_conta);
+        const isParent = node.hasChildren;
+        const depth = node.depth;
 
-          {/* Descrição */}
-          <TableCell
-            className="sticky left-[100px] z-10 bg-inherit text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
-            style={{ minWidth: 280, maxWidth: 280 }}
-            title={node.descricao_conta}
-            onDoubleClick={() => copyToClipboard(node.descricao_conta)}
-          >
-            <span className="block truncate">{node.descricao_conta}</span>
-          </TableCell>
+        const bgClass = isParent
+          ? depth === 0
+            ? "bg-muted/60 font-semibold"
+            : "bg-muted/30 font-medium"
+          : "";
 
-          {/* Value columns per period */}
-          {periods.map(pk =>
-            valueColumns.map(vc => {
-              const val = node.periodoValues[pk] ? vc.accessor(node.periodoValues[pk]) : 0;
-              return (
-                <TableCell
-                  key={`${pk}-${vc.key}`}
-                  className="text-right font-mono text-sm border-r border-border/20 cursor-copy"
-                  onDoubleClick={() => copyToClipboard(val)}
-                >
-                  {formatCurrency(val)}
-                </TableCell>
-              );
-            })
-          )}
-        </TableRow>,
-      );
+        rows.push(
+          <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20", bgClass)}>
+            <TableCell
+              className="sticky left-0 z-10 bg-inherit font-mono text-xs cursor-copy whitespace-nowrap"
+              style={{ minWidth: 100 }}
+              onDoubleClick={() => copyToClipboard(node.cod_cta)}
+            >
+              <div className="flex items-center" style={{ paddingLeft: depth * 20 }}>
+                {isParent ? (
+                  <button
+                    onClick={() => toggleNode(node.plano_conta)}
+                    className="mr-1 p-0.5 rounded hover:bg-muted-foreground/20 shrink-0"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                ) : (
+                  <Minus className="h-3.5 w-3.5 text-muted-foreground/40 mr-1 shrink-0" />
+                )}
+                {node.cod_cta}
+              </div>
+            </TableCell>
 
-      if (isParent && isExpanded) {
-        renderRows(node.children);
+            <TableCell
+              className="sticky left-[100px] z-10 bg-inherit text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
+              style={{ minWidth: 280, maxWidth: 280 }}
+              title={node.descricao_conta}
+              onDoubleClick={() => copyToClipboard(node.descricao_conta)}
+            >
+              <span className="block truncate">{node.descricao_conta}</span>
+            </TableCell>
+
+            {periods.map(pk =>
+              valueColumns.map(vc => {
+                const val = node.periodoValues[pk] ? vc.accessor(node.periodoValues[pk]) : 0;
+                return (
+                  <TableCell
+                    key={`${pk}-${vc.key}`}
+                    className="text-right font-mono text-sm border-r border-border/20 cursor-copy"
+                    onDoubleClick={() => copyToClipboard(val)}
+                  >
+                    {formatCurrency(val)}
+                  </TableCell>
+                );
+              })
+            )}
+          </TableRow>,
+        );
+
+        if (isParent && isExpanded) {
+          renderRows(node.children);
+        }
       }
     }
-  }
 
-  renderRows(mergedTree);
+    renderRows(mergedTree);
 
-  if (contasTree.length === 0) {
-    return (
-      <section>
-        <h2 className="text-lg font-bold uppercase mb-4 text-primary">Resumo Hierárquico</h2>
-        <Card className="p-8 text-center text-muted-foreground italic">
-          Nenhum dado hierárquico disponível.
-        </Card>
-      </section>
-    );
-  }
+    if (contasTree.length === 0) {
+      return hideTitle ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
+      ) : (
+        <section>
+          <h2 className="text-lg font-bold uppercase mb-4 text-primary">Resumo Hierárquico</h2>
+          <Card className="p-8 text-center text-muted-foreground italic">
+            Nenhum dado hierárquico disponível.
+          </Card>
+        </section>
+      );
+    }
 
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold uppercase text-primary">Resumo Hierárquico</h2>
-        <div className="flex gap-1">
-          <Button variant="outline" size="sm" onClick={expandAll} className="gap-1 text-xs">
-            <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir Tudo
-          </Button>
-          <Button variant="outline" size="sm" onClick={collapseAll} className="gap-1 text-xs">
-            <Minus className="h-3.5 w-3.5" /> Colapsar Tudo
-          </Button>
-        </div>
-      </div>
+    const table = (
       <Card className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
           <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
-            {/* Header row 1: Conta | Descrição | per period group */}
             <TableRow>
               <th
                 className="!font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted h-12 px-4 text-left align-middle"
@@ -260,7 +262,6 @@ export function BalanceteTreeTable({ contasTree }: BalanceteTreeTableProps) {
                 </th>
               ))}
             </TableRow>
-            {/* Header row 2: sub-columns per period */}
             <TableRow>
               {periods.map(pk =>
                 valueColumns.map(vc => (
@@ -285,6 +286,25 @@ export function BalanceteTreeTable({ contasTree }: BalanceteTreeTableProps) {
           </TableBody>
         </table>
       </Card>
-    </section>
-  );
-}
+    );
+
+    if (hideTitle) return table;
+
+    return (
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold uppercase text-primary">Resumo Hierárquico</h2>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" onClick={expandAll} className="gap-1 text-xs">
+              <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir Tudo
+            </Button>
+            <Button variant="outline" size="sm" onClick={collapseAll} className="gap-1 text-xs">
+              <Minus className="h-3.5 w-3.5" /> Colapsar Tudo
+            </Button>
+          </div>
+        </div>
+        {table}
+      </section>
+    );
+  }
+);

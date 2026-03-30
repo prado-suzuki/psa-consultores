@@ -135,8 +135,7 @@ const AuditoriaCruzadaContent = () => {
 
           <TabsContent value="balancete-efd">
             <BalanceteEfdTab
-              itens={balanceteQuery.data?.itens}
-              contas={balanceteQuery.data?.metadata?.contas}
+              periodos={balanceteQuery.data?.periodos}
               isLoading={balanceteQuery.isLoading}
               error={balanceteQuery.error as Error | null}
             />

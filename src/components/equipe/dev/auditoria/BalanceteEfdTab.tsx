@@ -1,34 +1,51 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { Search, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, AlertCircle, ChevronsUpDown, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
-import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { BalanceteEfdItem } from '@/types/auditoriaCruzada';
+import { BalanceteTreeTable } from '@/components/equipe/dev/pis-cofins/BalanceteTreeTable';
+import type { BalanceteEfdPeriodo } from '@/types/auditoriaCruzada';
+import type { ContaNode } from '@/types/pisCofins';
 
 interface BalanceteEfdTabProps {
-  itens?: BalanceteEfdItem[];
-  contas?: string[];
+  periodos?: BalanceteEfdPeriodo[];
   isLoading: boolean;
   error?: Error | null;
 }
 
-const formatBRL = (value: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+/** Recursively filter tree nodes matching search term on cod_cta or descricao_conta */
+function filterContasTree(nodes: ContaNode[], term: string): ContaNode[] {
+  const result: ContaNode[] = [];
+  for (const node of nodes) {
+    const selfMatch =
+      (node.cod_cta ?? '').toLowerCase().includes(term) ||
+      (node.descricao_conta ?? '').toLowerCase().includes(term);
 
-const BalanceteEfdTab = ({ itens = [], contas = [], isLoading, error }: BalanceteEfdTabProps) => {
+    const filteredChildren = node.children?.length
+      ? filterContasTree(node.children, term)
+      : [];
+
+    if (selfMatch || filteredChildren.length > 0) {
+      result.push({
+        ...node,
+        children: selfMatch ? (node.children ?? []) : filteredChildren,
+      });
+    }
+  }
+  return result;
+}
+
+const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabProps) => {
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(0);
   const [periodoFechado, setPeriodoFechado] = useState(false);
-  const [tipoFilter, setTipoFilter] = useState<string>('all');
+  const treeRef = useRef<{ expandAll: () => void; collapseAll: () => void }>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -39,26 +56,13 @@ const BalanceteEfdTab = ({ itens = [], contas = [], isLoading, error }: Balancet
     if (error) toast.error('Falha ao carregar os dados do Balancete. Tente novamente.');
   }, [error]);
 
-  const filteredItens = useMemo(() => {
-    let result = itens;
-    if (tipoFilter !== 'all') {
-      result = result.filter((i) => i.desc_tipo === tipoFilter);
-    }
-    if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase();
-      result = result.filter(
-        (i) =>
-          (i.cod_cta ?? '').toLowerCase().includes(term) ||
-          (i.descricao_conta ?? '').toLowerCase().includes(term)
-      );
-    }
-    return result;
-  }, [itens, debouncedSearch, tipoFilter]);
-
-  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, itens, tipoFilter]);
-
-  const totalPages = Math.ceil(filteredItens.length / PAGE_SIZE);
-  const pagedItens = filteredItens.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const filteredPeriodos = useMemo(() => {
+    if (!debouncedSearch) return periodos;
+    const term = debouncedSearch.toLowerCase();
+    return periodos
+      .map(p => ({ ...p, contas: filterContasTree(p.contas, term) }))
+      .filter(p => p.contas.length > 0);
+  }, [periodos, debouncedSearch]);
 
   if (!hasQueried) {
     return (
@@ -109,77 +113,26 @@ const BalanceteEfdTab = ({ itens = [], contas = [], isLoading, error }: Balancet
               />
             </div>
           </div>
-          {contas.length > 0 && (
-            <div className="space-y-1 min-w-[180px]">
-              <Label className="text-xs">Tipo</Label>
-              <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {contas.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <div className="flex items-center gap-2 pb-0.5">
             <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
             <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">Período Fechado</Label>
           </div>
+          <div className="flex gap-1 pb-0.5">
+            <Button variant="outline" size="sm" onClick={() => treeRef.current?.expandAll()} className="gap-1 text-xs">
+              <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir Tudo
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => treeRef.current?.collapseAll()} className="gap-1 text-xs">
+              <Minus className="h-3.5 w-3.5" /> Colapsar Tudo
+            </Button>
+          </div>
         </div>
 
-        {filteredItens.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
-        ) : (
-          <>
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Data</TableHead>
-                     <TableHead className="text-xs">Tipo</TableHead>
-                     <TableHead className="text-xs">Conta Contábil</TableHead>
-                    <TableHead className="text-xs text-right">Valor EFD</TableHead>
-                    <TableHead className="text-xs text-right">Débito</TableHead>
-                    <TableHead className="text-xs text-right">Crédito</TableHead>
-                    <TableHead className="text-xs text-right">{periodoFechado ? 'Saldo Atual' : 'Saldo Período'}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pagedItens.map((item, idx) => {
-                    const saldoComparacao = periodoFechado ? item.saldo_atual : item.saldo_periodo;
-                    const isDivergente = Math.abs(item.vlr_efd - saldoComparacao) > 0.05;
-                    return (
-                      <TableRow
-                        key={`${item.cod_cta}-${currentPage}-${idx}`}
-                        className={isDivergente ? 'bg-red-50 hover:bg-red-100' : ''}
-                      >
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {new Date(item.dt_ini + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.desc_tipo}</TableCell>
-                        <TableCell className="text-xs">{item.cod_cta} - {item.descricao_conta}</TableCell>
-                        <TableCell className="text-xs text-right font-medium">{formatBRL(item.vlr_efd)}</TableCell>
-                        <TableCell className="text-xs text-right">{formatBRL(item.debito)}</TableCell>
-                        <TableCell className="text-xs text-right">{formatBRL(item.credito)}</TableCell>
-                        <TableCell className="text-xs text-right font-medium">{formatBRL(saldoComparacao)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <TablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredItens.length}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
+        <BalanceteTreeTable
+          ref={treeRef}
+          contasTree={filteredPeriodos}
+          periodoFechado={periodoFechado}
+          hideTitle
+        />
       </CardContent>
     </Card>
   );
