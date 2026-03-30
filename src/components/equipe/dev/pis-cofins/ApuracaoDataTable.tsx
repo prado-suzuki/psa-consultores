@@ -79,10 +79,15 @@ export function ApuracaoDataTable({
 
   const stickyCell = (config: StickyColumnConfig, extraClass?: string) =>
     cn(
-      "sticky z-10 bg-background",
+      "sticky z-10 bg-background cursor-copy",
       config.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
       extraClass
     );
+
+  const copyToClipboard = (value: string | number | undefined | null) => {
+    const text = value == null ? "" : String(value);
+    navigator.clipboard.writeText(text).then(() => toast.success("Copiado!"));
+  };
 
   return (
     <section>
