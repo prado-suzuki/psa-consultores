@@ -48,7 +48,7 @@ interface PivotTables {
   isencoesCreditoData: PivotRowGeneric[];
 }
 
-export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: UseCalculatorParams) {
+export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, extraContas }: UseCalculatorParams) {
 
   const hasEfdRecord = (i: ItemCredito): boolean => i.vlr_efd !== 0;
 
