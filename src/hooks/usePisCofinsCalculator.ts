@@ -73,10 +73,15 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
           for (const [codCta, { tipo, desc }] of extraContas) {
             const leaf = leafMap.get(codCta);
             if (!leaf) continue;
-            // Skip if this account already has items in the list
-            if (itens.some(i => i.cod_cta === codCta)) continue;
+
+            const alreadyInjected = itens.some(
+              (i) => i.bloco_efd === 'EXTRA' && i.cod_cta === codCta,
+            );
+            if (alreadyInjected) continue;
+
             const value = leaf.saldo_periodo || leaf.saldo_atual || 0;
             if (value === 0) continue;
+
             itens.push({
               cst_pis: tipo === 'D' ? '01' : '50',
               aliq_pis: tipo === 'D' ? 0 : 1.65,
