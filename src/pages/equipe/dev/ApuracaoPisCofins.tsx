@@ -1086,47 +1086,6 @@ const ApuracaoPisCofins = () => {
                     </InlineTableWrapper>
                   </section>
 
-                  <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Isenções e Exclusões</h2>
-                    <InlineTableWrapper>
-                      <DynamicTableHeader stickyConfig={TWO_COL_STICKY} {...inlineStyledHeaderProps} />
-                      <TableBody>
-                        {[...tables.isencoesData, ...tables.isencoesCreditoData].length > 0 ? (
-                          [...tables.isencoesData, ...tables.isencoesCreditoData].map((row) => (
-                            <TableRow key={row.key}>
-                              <StickyCell config={TWO_COL_STICKY[0]} className="font-mono text-xs">
-                                {row.cod_cta}
-                              </StickyCell>
-                              <StickyCell config={TWO_COL_STICKY[1]} className="text-sm">
-                                <span className="block truncate" style={{ maxWidth: 250 }} title={row.descricao_conta}>
-                                  {row.descricao_conta}
-                                </span>
-                              </StickyCell>
-                              {headerBottom.map((col) => (
-                                <TableCell
-                                  key={col.id}
-                                  className={cn("text-right font-mono text-sm border-r border-border/30", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}
-                                >
-                                  {formatCurrency(
-                                    col.dataKeys.reduce((sum, key) => sum + ((row[key] as number) || 0), 0),
-                                  )}
-                                </TableCell>
-                              ))}
-                              <TableCell className="text-right font-mono font-bold text-sm bg-muted/30">
-                                {formatCurrency(row.total)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={99} className="text-center text-muted-foreground p-8 italic">
-                              Nenhuma isenção/exclusão encontrada.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </InlineTableWrapper>
-                  </section>
                 </div>
               )}
 
