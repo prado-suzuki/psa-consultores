@@ -56,7 +56,7 @@ export function ApuracaoDataTable({
     hasExpandedYear,
     headerRowsCount,
     headerBottom
-  } = useTableHeaders({ columnsData, expandedYear });
+  } = useTableHeaders({ columnsData, expandedYears });
 
   const firstColumns: { label: string }[] = [];
   if (showCst) firstColumns.push({ label: 'CST' });
