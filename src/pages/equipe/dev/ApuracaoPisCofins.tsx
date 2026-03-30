@@ -602,67 +602,6 @@ const ApuracaoPisCofins = () => {
               {activeTab === "apuracao" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração</h2>
-                    <InlineTableWrapper>
-                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
-                      <TableBody>
-                        <TableRow className="bg-muted/50 font-bold">
-                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">
-                            Valor Devido PIS
-                          </StickyCellMuted>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisDue),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold bg-muted/30">
-                            {formatCurrency(totais.pisDue)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow className="bg-muted/50 font-bold">
-                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">
-                            Valor Devido COFINS
-                          </StickyCellMuted>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsDue),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold bg-muted/30">
-                            {formatCurrency(totais.cofinsDue)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-sm">
-                          <TableCell
-                            className="font-bold text-primary sticky left-0 z-10 bg-primary/5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
-                            style={{ minWidth: 250 }}
-                          >
-                            Total Devido
-                          </TableCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono font-bold text-primary">
-                              {formatCurrency(
-                                getResultadoColValue(
-                                  resultados,
-                                  col.dataKeys,
-                                  (r) => Math.max(0, r.resultado.pisDue) + Math.max(0, r.resultado.cofinsDue),
-                                ),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold text-primary bg-primary/10">
-                            {formatCurrency(Math.max(0, totais.pisDue) + Math.max(0, totais.cofinsDue))}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </InlineTableWrapper>
-                  </section>
-
-                  <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
                     <InlineTableWrapper>
                       <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
