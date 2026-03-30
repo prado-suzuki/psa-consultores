@@ -162,6 +162,7 @@ const ApuracaoPisCofins = () => {
   const [tipoApuracao, setTipoApuracao] = useState<"EFD" | "BALANCETE">("EFD");
   const [periodoFechado, setPeriodoFechado] = useState(false);
   const [selectedContas, setSelectedContas] = useState<string[]>([]);
+  const [extraContas, setExtraContas] = useState<Map<string, { tipo: "D" | "C"; desc: string }>>(new Map());
 
   // ── Queries de clientes e contribuintes ──
   const { data: clientes, isLoading: loadingClientes } = useQuery({
