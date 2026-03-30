@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
-import { ChevronRight, ChevronDown, ChevronsUpDown, Minus } from "lucide-react";
+import { ChevronRight, ChevronDown, ChevronsUpDown, Minus, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -113,6 +113,8 @@ interface BalanceteTreeTableProps {
   hideTitle?: boolean;
   /** Map of extra accounts added manually: cod_cta → "D" | "C" */
   extraContas?: Map<string, "D" | "C">;
+  /** Set of cod_cta that already have EFD lancamentos (in calculation) */
+  efdContas?: Set<string>;
   /** Called when user selects Débito or Crédito for a leaf account */
   onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
   /** Called when user clicks the badge to remove an extra account */
@@ -120,7 +122,7 @@ interface BalanceteTreeTableProps {
 }
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
-  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, extraContas, onToggleExtra, onRemoveExtra }, ref) {
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -166,6 +168,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
           : "";
 
         const extraTipo = extraContas?.get(node.cod_cta);
+        const isInEfd = !isParent && efdContas?.has(node.cod_cta);
 
         rows.push(
           <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20 group", bgClass)}>
@@ -201,6 +204,15 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             >
               <div className="flex items-center gap-1.5">
                 <span className="block truncate flex-1">{node.descricao_conta}</span>
+                {!isParent && isInEfd && !extraTipo && (
+                  <Badge
+                    className="shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold bg-blue-500/15 text-blue-600 border-blue-500/30"
+                    variant="outline"
+                    title="Conta presente na EFD"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Badge>
+                )}
                 {!isParent && onToggleExtra && (
                   extraTipo ? (
                     <Badge
