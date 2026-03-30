@@ -80,8 +80,12 @@ export interface SaldoCarryforward {
 export interface ResultadoApuracao {
   pisContribuicaoBruta: number;
   cofinsContribuicaoBruta: number;
+  pisContribuicaoBrutaAliquotaReduzida: number;
+  cofinsContribuicaoBrutaAliquotaReduzida: number;
   pisCreditoMes: number;
   cofinsCreditoMes: number;
+  pisCreditoMesAliquotaReduzida: number;
+  cofinsCreditoMesAliquotaReduzida: number;
   pisCreditoAnterior: number;
   cofinsCreditoAnterior: number;
   pisDue: number;
@@ -135,10 +139,14 @@ export interface TotaisApuracao {
   receitaBruta: number;
   baseCredito: number;
   pisContribuicaoBruta: number;
+  pisContribuicaoBrutaAliquotaReduzida: number;
   pisCreditoMes: number;
+  pisCreditoMesAliquotaReduzida: number;
   pisDue: number;
   cofinsContribuicaoBruta: number;
+  cofinsContribuicaoBrutaAliquotaReduzida: number;
   cofinsCreditoMes: number;
+  cofinsCreditoMesAliquotaReduzida: number;
   cofinsDue: number;
 }
 

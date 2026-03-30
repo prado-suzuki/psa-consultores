@@ -50,6 +50,15 @@ const getResultadoColValue = (
   return resultados.filter((r) => dataKeys.includes(r.dt_ini.substring(0, 7))).reduce((sum, r) => sum + accessor(r), 0);
 };
 
+const getResultadoLiquidoColValue = (
+  resultados: ResultadoPeriodo[],
+  dataKeys: string[],
+  totalAccessor: (r: ResultadoPeriodo) => number,
+  reducedAccessor: (r: ResultadoPeriodo) => number,
+): number => {
+  return getResultadoColValue(resultados, dataKeys, (r) => totalAccessor(r) - reducedAccessor(r));
+};
+
 const getRateioReceitasColValue = (
   resultados: ResultadoPeriodo[],
   dataKeys: string[],
@@ -652,6 +661,95 @@ const ApuracaoPisCofins = () => {
                       </TableBody>
                     </InlineTableWrapper>
                   </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Débitos do Mês</h2>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader
+                        stickyConfig={SINGLE_STICKY}
+                        {...inlineHeaderProps}
+                        headerClassName={INLINE_HEADER_HIGHLIGHT_CLASS}
+                        stickyHeaderClassName={INLINE_HEADER_HIGHLIGHT_CLASS}
+                        expandedHeaderClassName={INLINE_HEADER_HIGHLIGHT_CLASS}
+                        monthHeaderClassName={INLINE_MONTH_HEADER_HIGHLIGHT_CLASS}
+                        collapsedHeaderClassName={INLINE_HEADER_HIGHLIGHT_CLASS}
+                        totalHeaderClassName={INLINE_HEADER_HIGHLIGHT_CLASS}
+                        headerButtonClassName={INLINE_HEADER_BUTTON_CLASS}
+                      />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            PIS
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", NEGATIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoLiquidoColValue(
+                                  resultados,
+                                  col.dataKeys,
+                                  (r) => r.resultado.pisContribuicaoBruta,
+                                  (r) => r.resultado.pisContribuicaoBrutaAliquotaReduzida,
+                                ),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", NEGATIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.pisContribuicaoBruta - totais.pisContribuicaoBrutaAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            COFINS
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", NEGATIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoLiquidoColValue(
+                                  resultados,
+                                  col.dataKeys,
+                                  (r) => r.resultado.cofinsContribuicaoBruta,
+                                  (r) => r.resultado.cofinsContribuicaoBrutaAliquotaReduzida,
+                                ),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", NEGATIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.cofinsContribuicaoBruta - totais.cofinsContribuicaoBrutaAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            PIS - Alíquota Reduzida
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", NEGATIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisContribuicaoBrutaAliquotaReduzida),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", NEGATIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.pisContribuicaoBrutaAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            COFINS - Alíquota Reduzida
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", NEGATIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsContribuicaoBrutaAliquotaReduzida),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", NEGATIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.cofinsContribuicaoBrutaAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
+                  </section>
                 </div>
               )}
 
@@ -732,12 +830,17 @@ const ApuracaoPisCofins = () => {
                           {headerBottom.map((col) => (
                             <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
                               {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoMes),
+                                getResultadoLiquidoColValue(
+                                  resultados,
+                                  col.dataKeys,
+                                  (r) => r.resultado.pisCreditoMes,
+                                  (r) => r.resultado.pisCreditoMesAliquotaReduzida,
+                                ),
                               )}
                             </TableCell>
                           ))}
                           <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
-                            {formatCurrency(totais.pisCreditoMes)}
+                            {formatCurrency(totais.pisCreditoMes - totais.pisCreditoMesAliquotaReduzida)}
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -747,12 +850,47 @@ const ApuracaoPisCofins = () => {
                           {headerBottom.map((col) => (
                             <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
                               {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsCreditoMes),
+                                getResultadoLiquidoColValue(
+                                  resultados,
+                                  col.dataKeys,
+                                  (r) => r.resultado.cofinsCreditoMes,
+                                  (r) => r.resultado.cofinsCreditoMesAliquotaReduzida,
+                                ),
                               )}
                             </TableCell>
                           ))}
                           <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
-                            {formatCurrency(totais.cofinsCreditoMes)}
+                            {formatCurrency(totais.cofinsCreditoMes - totais.cofinsCreditoMesAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            PIS - Alíquota Reduzida
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoMesAliquotaReduzida),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.pisCreditoMesAliquotaReduzida)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            COFINS - Alíquota Reduzida
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsCreditoMesAliquotaReduzida),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
+                            {formatCurrency(totais.cofinsCreditoMesAliquotaReduzida)}
                           </TableCell>
                         </TableRow>
                       </TableBody>

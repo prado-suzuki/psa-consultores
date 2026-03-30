@@ -29,6 +29,11 @@ export const isItemSuspenso = (i: ItemCredito): boolean => {
   return !isNaN(n) && n >= 4 && n <= 9;
 };
 
+const ALIQ_PIS_REDUZIDA = 1.2375;
+
+const hasAliquotaPis = (i: ItemCredito, aliquota: number): boolean =>
+  Math.abs(i.aliq_pis - aliquota) < 0.000001;
+
 export const isItemOutrasSaidas = (i: ItemCredito): boolean =>
   ['49', '99'].includes(i.cst_pis);
 
@@ -111,6 +116,7 @@ export function aliqCofins(aliqPis: number): number {
 
 export function calcValoresCredito(itens: ItemCredito[]) {
   const elegiveis = itens.filter(isItemCredito);
+  const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
@@ -122,7 +128,33 @@ export function calcValoresCredito(itens: ItemCredito[]) {
     0,
   );
 
-  return { creditoPis, creditoCofins };
+  const creditoPisAliquotaReduzida = elegiveisAliquotaReduzida.reduce(
+    (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsAliquotaReduzida = elegiveisAliquotaReduzida.reduce(
+    (sum, i) => sum + i.vlr_efd * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
+  return {
+    creditoPis,
+    creditoCofins,
+    creditoPisAliquotaReduzida,
+    creditoCofinsAliquotaReduzida,
+  };
+}
+
+export function calcValoresDebito(itens: ItemCredito[]) {
+  const baseAliquotaReduzida = itens
+    .filter((i) => isItemReceita(i) && !isItemSuspenso(i) && hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + i.vlr_efd, 0);
+
+  return {
+    pisContribuicaoBrutaAliquotaReduzida: baseAliquotaReduzida * (ALIQ_PIS_REDUZIDA / 100),
+    cofinsContribuicaoBrutaAliquotaReduzida: baseAliquotaReduzida * (aliqCofins(ALIQ_PIS_REDUZIDA) / 100),
+  };
 }
 
 // ── Seção 4 — Apuração do Valor Devido ──
@@ -130,6 +162,12 @@ export function calcValoresCredito(itens: ItemCredito[]) {
 export function calcApuracao(
   baseDebito: { baseNormal: number; baseDiferenciada: number },
   baseCredito: { baseTotal: number },
+  valoresSeparados: {
+    pisContribuicaoBrutaAliquotaReduzida: number;
+    cofinsContribuicaoBrutaAliquotaReduzida: number;
+    creditoPisAliquotaReduzida: number;
+    creditoCofinsAliquotaReduzida: number;
+  },
   anterior: SaldoCarryforward,
 ): ResultadoApuracao {
   const pisContribuicaoBruta =
@@ -151,8 +189,12 @@ export function calcApuracao(
   return {
     pisContribuicaoBruta,
     cofinsContribuicaoBruta,
+    pisContribuicaoBrutaAliquotaReduzida: valoresSeparados.pisContribuicaoBrutaAliquotaReduzida,
+    cofinsContribuicaoBrutaAliquotaReduzida: valoresSeparados.cofinsContribuicaoBrutaAliquotaReduzida,
     pisCreditoMes,
     cofinsCreditoMes,
+    pisCreditoMesAliquotaReduzida: valoresSeparados.creditoPisAliquotaReduzida,
+    cofinsCreditoMesAliquotaReduzida: valoresSeparados.creditoCofinsAliquotaReduzida,
     pisCreditoAnterior: anterior.pis,
     cofinsCreditoAnterior: anterior.cofins,
     pisDue,
@@ -171,8 +213,19 @@ export function calcTodosPeriodos(
   return input.periodos.map((periodo) => {
     const baseDebito = calcBaseDebito(periodo.itens_credito);
     const baseCredito = calcBaseCredito(periodo.itens_credito);
+    const valoresDebito = calcValoresDebito(periodo.itens_credito);
     const valoresCredito = calcValoresCredito(periodo.itens_credito);
-    const resultado = calcApuracao(baseDebito, baseCredito, saldoAnterior);
+    const resultado = calcApuracao(
+      baseDebito,
+      baseCredito,
+      {
+        pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
+        cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
+        creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+      },
+      saldoAnterior,
+    );
     const rateio = calcRateio(
       periodo.rateio_receitas,
       valoresCredito.creditoPis,
@@ -230,20 +283,32 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       receitaBruta: acc.receitaBruta + r.baseDebito.baseNormal + r.baseDebito.baseDiferenciada,
       baseCredito: acc.baseCredito + r.baseCredito.baseTotal,
       pisContribuicaoBruta: acc.pisContribuicaoBruta + r.resultado.pisContribuicaoBruta,
+      pisContribuicaoBrutaAliquotaReduzida:
+        acc.pisContribuicaoBrutaAliquotaReduzida + r.resultado.pisContribuicaoBrutaAliquotaReduzida,
       pisCreditoMes: acc.pisCreditoMes + r.resultado.pisCreditoMes,
+      pisCreditoMesAliquotaReduzida:
+        acc.pisCreditoMesAliquotaReduzida + r.resultado.pisCreditoMesAliquotaReduzida,
       pisDue: acc.pisDue + r.resultado.pisDue,
       cofinsContribuicaoBruta: acc.cofinsContribuicaoBruta + r.resultado.cofinsContribuicaoBruta,
+      cofinsContribuicaoBrutaAliquotaReduzida:
+        acc.cofinsContribuicaoBrutaAliquotaReduzida + r.resultado.cofinsContribuicaoBrutaAliquotaReduzida,
       cofinsCreditoMes: acc.cofinsCreditoMes + r.resultado.cofinsCreditoMes,
+      cofinsCreditoMesAliquotaReduzida:
+        acc.cofinsCreditoMesAliquotaReduzida + r.resultado.cofinsCreditoMesAliquotaReduzida,
       cofinsDue: acc.cofinsDue + r.resultado.cofinsDue,
     }),
     {
       receitaBruta: 0,
       baseCredito: 0,
       pisContribuicaoBruta: 0,
+      pisContribuicaoBrutaAliquotaReduzida: 0,
       pisCreditoMes: 0,
+      pisCreditoMesAliquotaReduzida: 0,
       pisDue: 0,
       cofinsContribuicaoBruta: 0,
+      cofinsContribuicaoBrutaAliquotaReduzida: 0,
       cofinsCreditoMes: 0,
+      cofinsCreditoMesAliquotaReduzida: 0,
       cofinsDue: 0,
     },
   );
@@ -290,6 +355,7 @@ export function calcValoresCreditoBalancete(
   periodoFechado: boolean,
 ) {
   const elegiveis = itens.filter(isItemCredito);
+  const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
@@ -301,7 +367,22 @@ export function calcValoresCreditoBalancete(
     0,
   );
 
-  return { creditoPis, creditoCofins };
+  const creditoPisAliquotaReduzida = elegiveisAliquotaReduzida.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsAliquotaReduzida = elegiveisAliquotaReduzida.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
+  return {
+    creditoPis,
+    creditoCofins,
+    creditoPisAliquotaReduzida,
+    creditoCofinsAliquotaReduzida,
+  };
 }
 
 export function calcTodosPeriodosBalancete(
@@ -314,7 +395,19 @@ export function calcTodosPeriodosBalancete(
   return input.periodos.map((periodo) => {
     const baseDebito = calcBaseDebito(periodo.itens_credito);
     const baseCredito = calcBaseCreditoBalancete(periodo.itens_credito, periodoFechado);
-    const resultado = calcApuracao(baseDebito, baseCredito, saldoAnterior);
+    const valoresDebito = calcValoresDebito(periodo.itens_credito);
+    const valoresCredito = calcValoresCreditoBalancete(periodo.itens_credito, periodoFechado);
+    const resultado = calcApuracao(
+      baseDebito,
+      baseCredito,
+      {
+        pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
+        cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
+        creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+      },
+      saldoAnterior,
+    );
 
     saldoAnterior = {
       pis: resultado.pisSaldoAcumulado,
