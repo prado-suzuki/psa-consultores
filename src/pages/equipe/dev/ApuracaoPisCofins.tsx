@@ -590,7 +590,7 @@ const ApuracaoPisCofins = () => {
                             {formatCurrency(totais.cofinsDue)}
                           </TableCell>
                         </TableRow>
-                        <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-lg">
+                        <TableRow className="bg-primary/5 hover:bg-primary/10 font-bold text-sm">
                           <TableCell
                             className="font-bold text-primary sticky left-0 z-10 bg-primary/5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
                             style={{ minWidth: 250 }}
