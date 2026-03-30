@@ -1,3 +1,5 @@
+import type { ContaNode } from '@/types/pisCofins';
+
 export interface BalanceteEfdItem {
   dt_ini: string;
   cod_cta: string;
@@ -16,7 +18,11 @@ export interface BalanceteEfdMetadata {
   contas: string[];
 }
 
+export interface BalanceteEfdPeriodo {
+  dt_ini: string;
+  contas: ContaNode[];
+}
+
 export interface BalanceteEfdResponse {
-  itens: BalanceteEfdItem[];
-  metadata: BalanceteEfdMetadata;
+  periodos: BalanceteEfdPeriodo[];
 }
