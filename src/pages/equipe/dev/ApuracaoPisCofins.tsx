@@ -324,8 +324,8 @@ const ApuracaoPisCofins = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="EFD">EFD</SelectItem>
-                <SelectItem value="BALANCETE">Balancete</SelectItem>
+                <SelectItem value="EFD">Cliente</SelectItem>
+                <SelectItem value="BALANCETE">Prado</SelectItem>
               </SelectContent>
             </Select>
           </div>
