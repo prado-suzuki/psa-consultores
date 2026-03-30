@@ -53,6 +53,7 @@ export type RateioReceitas = PisCofinsRateioReceitas;
 export interface PisCofsinPeriodo {
   dt_ini: string;
   itens_credito: PisCofinsItemCredito[];
+  contas?: ContaNode[];
   rateio_receitas: PisCofinsRateioReceitas | null;
 }
 

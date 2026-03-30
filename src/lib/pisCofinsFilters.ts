@@ -84,6 +84,39 @@ export function buildPivot(
   return { rows, periodos: periodKeys };
 }
 
+/* ── Achatamento da árvore hierárquica para itens planos ── */
+
+export function flattenContasToItens(contas: ContaNode[]): PisCofinsItemCredito[] {
+  const result: PisCofinsItemCredito[] = [];
+
+  function walk(nodes: ContaNode[]) {
+    for (const node of nodes) {
+      // Extrair lançamentos das folhas (nós sem children)
+      if (!node.children || node.children.length === 0) {
+        for (const lanc of node.lancamentos) {
+          result.push({
+            cst_pis: lanc.cst_pis ?? '',
+            aliq_pis: lanc.aliq_pis ?? 0,
+            cod_cta: lanc.cod_cta ?? node.cod_cta,
+            descricao_conta: node.descricao_conta.trim(),
+            bloco_efd: lanc.bloco_efd ?? '',
+            vlr_efd: lanc.vlr_efd ?? 0,
+            credito: lanc.credito ?? 0,
+            debito: lanc.debito ?? 0,
+            saldo_periodo: lanc.saldo_periodo ?? 0,
+            saldo_atual: lanc.saldo_atual ?? 0,
+          });
+        }
+      } else {
+        walk(node.children);
+      }
+    }
+  }
+
+  walk(contas);
+  return result;
+}
+
 /* ── Pivot genérico parametrizável (Geração 2) ── */
 
 export function buildPivotGeneric(
