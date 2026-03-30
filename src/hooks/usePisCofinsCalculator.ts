@@ -31,6 +31,7 @@ interface UseCalculatorParams {
   data: ApuracaoInput | null | undefined;
   tipoApuracao: 'EFD' | 'BALANCETE';
   periodoFechado: boolean;
+  extraContas?: Map<string, { tipo: 'D' | 'C'; desc: string }>;
 }
 
 interface ColumnsData {
