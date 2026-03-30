@@ -530,7 +530,15 @@ const ApuracaoPisCofins = () => {
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   {tipoApuracao === "BALANCETE" && contasTree.length > 0 ? (
-                    <BalanceteTreeTable contasTree={contasTree} periodoFechado={periodoFechado} />
+                    <div className="space-y-4">
+                      <MultiSelectContas
+                        options={contaOptionsBalancete}
+                        selected={selectedContas}
+                        onChange={setSelectedContas}
+                        placeholder="Filtrar por conta..."
+                      />
+                      <BalanceteTreeTable contasTree={filteredContasTree} periodoFechado={periodoFechado} />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <MultiSelectContas
