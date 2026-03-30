@@ -15,7 +15,8 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, Eraser, AlertCircle } from "lucide-react";
+import { Search, Loader2, Eraser, AlertCircle, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { currentAmbiente } from "@/config/api";
@@ -324,8 +325,17 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Tipo de análise
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  <p><strong>Cliente:</strong> Traz os dados do EFD Contribuições do cliente.</p>
+                  <p><strong>Prado:</strong> Traz informações do Balancete do cliente.</p>
+                </TooltipContent>
+              </Tooltip>
             </label>
             <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
               <SelectTrigger>
