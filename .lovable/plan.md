@@ -1,14 +1,13 @@
 
 
-## Plano: Esconder tabela "Outras Saídas" quando vazia
+## Plano: Renomear "Isenções e Exclusões do Crédito" → "Adições e Exclusões do Crédito"
 
 ### Alteração (arquivo único: `ApuracaoPisCofins.tsx`)
 
-Envolver o bloco `<ApuracaoDataTable>` de "Outras Saídas" (~L435) com uma condicional `{tables.outrasSaidasData.length > 0 && (...)}` para que a tabela inteira (incluindo título) não seja renderizada quando não há dados.
+Na aba de Créditos (~L483), alterar:
+- `title` de `"Isenções e Exclusões do Crédito"` → `"Adições e Exclusões do Crédito"`
+- `titleTooltip` de `"Para isenções e exclusões de crédito..."` → `"Para adições e exclusões de crédito..."`
+- `emptyMessage` de `"Nenhuma isenção/exclusão de crédito encontrada."` → `"Nenhuma adição/exclusão de crédito encontrada."`
 
-### Arquivo modificado
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `ApuracaoPisCofins.tsx` | Condicional `length > 0` no bloco Outras Saídas |
+Apenas mudança de texto — sem alteração de lógica.
 
