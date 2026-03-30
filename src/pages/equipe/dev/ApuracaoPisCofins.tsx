@@ -316,6 +316,43 @@ const ApuracaoPisCofins = () => {
     return tables.resumoData.filter((r) => selectedContas.includes(r.cod_cta));
   }, [tables.resumoData, selectedContas]);
 
+  // ── Conta filter options from hierarchical tree (Prado/BALANCETE) ──
+  const contaOptionsBalancete = useMemo(() => {
+    if (!contasTree.length) return [];
+    const seen = new Map<string, string>();
+    function walk(nodes: typeof contasTree[0]["contas"]) {
+      for (const n of nodes) {
+        if (!seen.has(n.cod_cta)) seen.set(n.cod_cta, n.descricao_conta);
+        if (n.children?.length) walk(n.children);
+      }
+    }
+    contasTree.forEach((p) => walk(p.contas));
+    return Array.from(seen.entries())
+      .map(([value, desc]) => ({ value, label: `${value} - ${desc}` }))
+      .sort((a, b) => a.value.localeCompare(b.value));
+  }, [contasTree]);
+
+  // ── Filtered tree for BALANCETE mode ──
+  const filteredContasTree = useMemo(() => {
+    if (selectedContas.length === 0) return contasTree;
+    type N = typeof contasTree[0]["contas"][0];
+    function pruneNodes(nodes: N[]): N[] {
+      const result: N[] = [];
+      for (const n of nodes) {
+        if (selectedContas.includes(n.cod_cta)) {
+          result.push(n);
+        } else if (n.children?.length) {
+          const pruned = pruneNodes(n.children);
+          if (pruned.length) result.push({ ...n, children: pruned });
+        }
+      }
+      return result;
+    }
+    return contasTree
+      .map((p) => ({ ...p, contas: pruneNodes(p.contas) }))
+      .filter((p) => p.contas.length > 0);
+  }, [contasTree, selectedContas]);
+
 
   const inlineHeaderProps = {
     headerRow1,
@@ -493,7 +530,15 @@ const ApuracaoPisCofins = () => {
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   {tipoApuracao === "BALANCETE" && contasTree.length > 0 ? (
-                    <BalanceteTreeTable contasTree={contasTree} periodoFechado={periodoFechado} />
+                    <div className="space-y-4">
+                      <MultiSelectContas
+                        options={contaOptionsBalancete}
+                        selected={selectedContas}
+                        onChange={setSelectedContas}
+                        placeholder="Filtrar por conta..."
+                      />
+                      <BalanceteTreeTable contasTree={filteredContasTree} periodoFechado={periodoFechado} />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <MultiSelectContas
