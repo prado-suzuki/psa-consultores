@@ -78,7 +78,7 @@ export function ApuracaoDataTable({
 
   const stickyCell = (config: StickyColumnConfig, extraClass?: string) =>
     cn(
-      "sticky z-10 bg-card",
+      "sticky z-10 bg-background",
       config.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
       extraClass
     );
@@ -167,11 +167,11 @@ export function ApuracaoDataTable({
               </TableRow>
             )}
             {showTotals && data.length > 0 && (
-              <TableRow className="bg-muted/50 font-bold border-t-2 border-border">
+              <TableRow className="bg-muted font-bold border-t-2 border-border">
                 {stickyConfig.map((cfg, i) => (
                   <TableCell
                     key={cfg.label}
-                    className={stickyCell(cfg, "text-sm bg-muted/50")}
+                    className={stickyCell(cfg, "text-sm bg-muted")}
                     style={{ left: cfg.left, minWidth: cfg.width }}
                   >
                     {i === (showCst ? 2 : 1) ? "Total" : ""}

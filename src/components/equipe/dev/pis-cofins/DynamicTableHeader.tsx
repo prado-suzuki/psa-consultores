@@ -22,13 +22,13 @@ export function DynamicTableHeader({
   toggleYear
 }: DynamicTableHeaderProps) {
   return (
-    <thead className="bg-muted/50 sticky top-0 z-30 [&_tr]:border-b">
+    <thead className="bg-muted sticky top-0 z-30 [&_tr]:border-b">
       <TableRow>
         {stickyConfig.map((col) => (
           <TableHead
             key={col.label}
             className={cn(
-              "font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted/50",
+              "font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted",
               col.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
             )}
             style={{ left: col.left, minWidth: col.width }}
@@ -47,7 +47,7 @@ export function DynamicTableHeader({
               </div>
             </TableHead>
           ) : (
-            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted/50">
+            <TableHead key={top.id} rowSpan={headerRowsCount} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-muted">
               <div className="flex items-center justify-end gap-2">
                 {top.label}
                 <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted-foreground/20" onClick={() => toggleYear(top.id)} title="Expandir Ano">+</Button>
