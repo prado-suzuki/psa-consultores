@@ -225,6 +225,7 @@ const ApuracaoPisCofins = () => {
     data: apiData ?? null,
     tipoApuracao,
     periodoFechado,
+    extraContas: tipoApuracao === "BALANCETE" ? extraContas : undefined,
   });
 
   const { headerRow1, headerRow2, hasExpandedYear, headerRowsCount, headerBottom } = useTableHeaders({
