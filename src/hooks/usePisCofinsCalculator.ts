@@ -200,11 +200,24 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
       .map(p => ({ dt_ini: p.dt_ini, contas: p.contas! }));
   }, [data]);
 
+  // ── 6. Set of cod_cta that have EFD items (non-EXTRA) in the calculation ──
+  const efdContasSet: Set<string> = useMemo(() => {
+    if (!normalizedData) return new Set<string>();
+    const set = new Set<string>();
+    for (const p of normalizedData.periodos) {
+      for (const item of p.itens_credito) {
+        if (item.bloco_efd !== 'EXTRA') set.add(item.cod_cta);
+      }
+    }
+    return set;
+  }, [normalizedData]);
+
   return {
     resultados,
     totais,
     columnsData,
     tables,
     contasTree,
+    efdContasSet,
   };
 }

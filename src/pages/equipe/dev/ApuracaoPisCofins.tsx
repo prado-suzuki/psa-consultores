@@ -221,7 +221,7 @@ const ApuracaoPisCofins = () => {
   });
 
   // ── Calculator + Headers ──
-  const { resultados, totais, columnsData, tables, contasTree } = usePisCofinsCalculator({
+  const { resultados, totais, columnsData, tables, contasTree, efdContasSet } = usePisCofinsCalculator({
     data: apiData ?? null,
     tipoApuracao,
     periodoFechado,
@@ -351,18 +351,6 @@ const ApuracaoPisCofins = () => {
       .sort((a, b) => a.value.localeCompare(b.value));
   }, [contasTree]);
 
-  // ── Set of cod_cta that have EFD lancamentos ──
-  const efdContasSet = useMemo(() => {
-    const set = new Set<string>();
-    function walk(nodes: typeof contasTree[0]["contas"]) {
-      for (const n of nodes) {
-        if (n.lancamentos?.length > 0) set.add(n.cod_cta);
-        if (n.children?.length) walk(n.children);
-      }
-    }
-    contasTree.forEach((p) => walk(p.contas));
-    return set;
-  }, [contasTree]);
 
   // ── Filtered tree for BALANCETE mode ──
   const filteredContasTree = useMemo(() => {
