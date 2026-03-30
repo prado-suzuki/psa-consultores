@@ -595,7 +595,7 @@ const ApuracaoPisCofins = () => {
                     {...dataTableProps}
                   />
                   <ApuracaoDataTable
-                    title="Adições e Exclusões do Crédito"
+                    title="Operações não geradoras de Crédito"
                     titleTooltip="Para adições e exclusões de crédito são considerados itens de CST 70 a 99."
                     data={tables.isencoesCreditoData}
                     emptyMessage="Nenhuma adição/exclusão de crédito encontrada."
