@@ -165,8 +165,10 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             : "bg-muted/30 font-medium"
           : "";
 
+        const extraTipo = extraContas?.get(node.cod_cta);
+
         rows.push(
-          <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20", bgClass)}>
+          <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20 group", bgClass)}>
             <TableCell
               className="sticky left-0 z-10 bg-inherit font-mono text-xs cursor-copy whitespace-nowrap"
               style={{ minWidth: 100 }}
@@ -197,7 +199,59 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
               title={node.descricao_conta}
               onDoubleClick={() => copyToClipboard(node.descricao_conta)}
             >
-              <span className="block truncate">{node.descricao_conta}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="block truncate flex-1">{node.descricao_conta}</span>
+                {!isParent && onToggleExtra && (
+                  extraTipo ? (
+                    <Badge
+                      className={cn(
+                        "cursor-pointer shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold",
+                        extraTipo === "D"
+                          ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25"
+                          : "bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/25",
+                      )}
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveExtra?.(node.cod_cta);
+                      }}
+                      title={`Clique para remover (${extraTipo === "D" ? "Débito" : "Crédito"})`}
+                    >
+                      {extraTipo}
+                    </Badge>
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-5 w-5 rounded bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center text-xs font-bold"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Adicionar conta ao cálculo"
+                        >
+                          +
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2 flex gap-2" align="start" sideOffset={4}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "D")}
+                        >
+                          Débito
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-50"
+                          onClick={() => onToggleExtra(node.cod_cta, node.descricao_conta, "C")}
+                        >
+                          Crédito
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
+                  )
+                )}
+              </div>
             </TableCell>
 
             {periods.map(pk =>
