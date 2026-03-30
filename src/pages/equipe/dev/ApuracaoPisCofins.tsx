@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { usePisCofinsApuracao } from "@/hooks/usePisCofinsApuracao";
 import { usePisCofinsCalculator } from "@/hooks/usePisCofinsCalculator";
@@ -23,6 +23,7 @@ import { currentAmbiente } from "@/config/api";
 import { useQuery } from "@tanstack/react-query";
 import type { StickyColumnConfig } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import type { ResultadoPeriodo, RateioResultado } from "@/types/pisCofins";
+import { MultiSelectContas } from "@/components/equipe/dev/pis-cofins/MultiSelectContas";
 
 /* ── Formatters ── */
 const formatCurrency = (value: number) =>
@@ -142,6 +143,7 @@ const ApuracaoPisCofins = () => {
   }, []);
   const [tipoApuracao, setTipoApuracao] = useState<"EFD" | "BALANCETE">("EFD");
   const [periodoFechado, setPeriodoFechado] = useState(false);
+  const [selectedContas, setSelectedContas] = useState<string[]>([]);
 
   // ── Queries de clientes e contribuintes ──
   const { data: clientes, isLoading: loadingClientes } = useQuery({
@@ -248,6 +250,7 @@ const ApuracaoPisCofins = () => {
     setCommittedMesFim(null);
     setSearchTriggered(false);
     setExpandedYears(new Set());
+    setSelectedContas([]);
   };
 
   // Shared table props for data tables
@@ -257,7 +260,23 @@ const ApuracaoPisCofins = () => {
     toggleYear,
   };
 
-  // Shared header props for inline tables
+  // ── Conta filter options & filtered data for Resumo tab ──
+  const contaOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    tables.resumoData.forEach((r) => {
+      if (!seen.has(r.cod_cta)) seen.set(r.cod_cta, r.descricao_conta);
+    });
+    return Array.from(seen.entries())
+      .map(([value, desc]) => ({ value, label: `${value} - ${desc}` }))
+      .sort((a, b) => a.value.localeCompare(b.value));
+  }, [tables.resumoData]);
+
+  const filteredResumoData = useMemo(() => {
+    if (selectedContas.length === 0) return tables.resumoData;
+    return tables.resumoData.filter((r) => selectedContas.includes(r.cod_cta));
+  }, [tables.resumoData, selectedContas]);
+
+
   const inlineHeaderProps = {
     headerRow1,
     headerRow2,
@@ -422,13 +441,21 @@ const ApuracaoPisCofins = () => {
               {/* ══════════════ Tab: RESUMO ══════════════ */}
               {activeTab === "resumo" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
-                  <ApuracaoDataTable
-                    title="Resumo Geral"
-                    data={tables.resumoData}
-                    showCst
-                    showBloco
-                    {...dataTableProps}
-                  />
+                  <div className="space-y-4">
+                    <MultiSelectContas
+                      options={contaOptions}
+                      selected={selectedContas}
+                      onChange={setSelectedContas}
+                      placeholder="Filtrar por conta..."
+                    />
+                    <ApuracaoDataTable
+                      title="Resumo Geral"
+                      data={filteredResumoData}
+                      showCst
+                      showBloco
+                      {...dataTableProps}
+                    />
+                  </div>
                 </div>
               )}
 
