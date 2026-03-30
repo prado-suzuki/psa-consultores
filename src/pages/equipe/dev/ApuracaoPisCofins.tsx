@@ -636,6 +636,84 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
+                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
+                    <InlineTableWrapper>
+                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
+                      <TableBody>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            Contribuição Bruta (Débito)
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono text-destructive">
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisContribuicaoBruta),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">
+                            {formatCurrency(totais.pisContribuicaoBruta)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            Crédito do Mês
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono text-green-600">
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoMes),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">
+                            {formatCurrency(totais.pisCreditoMes)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            Crédito Anterior (Carryforward)
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono text-green-600">
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoAnterior),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">
+                            Valor Devido
+                          </StickyCellMuted>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisDue),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">
+                            {formatCurrency(totais.pisDue)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow className="text-muted-foreground">
+                          <StickyCell config={SINGLE_STICKY[0]}>Saldo Acumulado p/ Próximo Mês</StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className="text-right font-mono">
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisSaldoAcumulado),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </InlineTableWrapper>
+                  </section>
+
+                  <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
                     <InlineTableWrapper>
                       <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
@@ -712,84 +790,6 @@ const ApuracaoPisCofins = () => {
                             <TableCell key={col.id} className="text-right font-mono">
                               {formatCurrency(
                                 getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsSaldoAcumulado),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono bg-muted/30">-</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </InlineTableWrapper>
-                  </section>
-
-                  <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
-                    <InlineTableWrapper>
-                      <DynamicTableHeader stickyConfig={SINGLE_STICKY} {...inlineHeaderProps} />
-                      <TableBody>
-                        <TableRow>
-                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            Contribuição Bruta (Débito)
-                          </StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono text-destructive">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisContribuicaoBruta),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold text-destructive bg-muted/30">
-                            {formatCurrency(totais.pisContribuicaoBruta)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            Crédito do Mês
-                          </StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono text-green-600">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoMes),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">
-                            {formatCurrency(totais.pisCreditoMes)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            Crédito Anterior (Carryforward)
-                          </StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono text-green-600">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoAnterior),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold text-green-600 bg-muted/30">-</TableCell>
-                        </TableRow>
-                        <TableRow className="bg-muted/50 font-bold">
-                          <StickyCellMuted config={SINGLE_STICKY[0]} className="font-bold">
-                            Valor Devido
-                          </StickyCellMuted>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisDue),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right font-mono font-bold bg-muted/30">
-                            {formatCurrency(totais.pisDue)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow className="text-muted-foreground">
-                          <StickyCell config={SINGLE_STICKY[0]}>Saldo Acumulado p/ Próximo Mês</StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className="text-right font-mono">
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisSaldoAcumulado),
                               )}
                             </TableCell>
                           ))}
