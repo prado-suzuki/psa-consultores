@@ -1,66 +1,41 @@
 
 
-## Plano: Adaptar dados hierárquicos da API de Apuração PIS/COFINS
+## Plano: Adaptar BalanceteEfdTab para formato hierárquico
 
 ### Contexto
-
-O endpoint `pis_cofins/apuracao` agora retorna `contas` (árvore hierárquica com `children` e `lancamentos`) em vez de `itens_credito` (lista plana). A estrutura é:
-
-```text
-periodo
-├── contas[]
-│   ├── plano_conta, cod_cta, descricao_conta
-│   ├── vlr_efd, credito, debito, saldo_periodo, saldo_atual
-│   ├── lancamentos[] (itens com cst_pis, aliq_pis, bloco_efd...)
-│   └── children[] (recursivo)
-└── rateio_receitas (mantido igual)
-```
-
-### Estratégia
-
-- **Modo Cliente (EFD)**: Achatar a árvore extraindo todos os `lancamentos` como `itens_credito`, mantendo toda a lógica de cálculo e pivot existente intacta.
-- **Modo Prado (BALANCETE) - Resumo**: Novo componente de tabela em árvore que exibe as contas hierarquicamente com expand/collapse, mostrando `credito`, `debito`, `saldo_periodo` e `saldo_atual` por período.
+O endpoint `efdc_balancete` agora retorna `{ periodos: [{ dt_ini, contas: ContaNode[] }] }` (mesma estrutura hierárquica do JSON enviado) em vez de `{ itens: BalanceteEfdItem[], metadata }`.
 
 ### Alterações
 
-**1. `src/types/pisCofins.ts`** — Novos tipos para estrutura hierárquica
+**1. `src/types/auditoriaCruzada.ts`** — Atualizar tipo de resposta
 
-- Adicionar `ContaNode` (nó da árvore: `plano_conta`, `cod_cta`, `descricao_conta`, valores numéricos, `lancamentos[]`, `children[]`)
-- Atualizar `PisCofsinPeriodo` para incluir `contas?: ContaNode[]` (campo opcional, coexistindo com `itens_credito` para retrocompatibilidade)
+- Alterar `BalanceteEfdResponse` para `{ periodos: { dt_ini: string; contas: ContaNode[] }[] }` (reutilizando `ContaNode` de `pisCofins.ts`)
+- Manter os tipos antigos para não quebrar imports existentes
 
-**2. `src/lib/pisCofinsFilters.ts`** — Função de achatamento
+**2. `src/hooks/useBalanceteEfd.ts`** — Ajustar tipo de retorno
 
-- Criar `flattenContasToItens(contas: ContaNode[]): ItemCredito[]` — percorre recursivamente a árvore, extrai todos os `lancamentos` das folhas (contas sem children ou com children vazios)
-- Isso alimenta o pipeline existente de cálculo/pivot sem alterá-lo
+- Trocar o generic do `useQuery` para o novo `BalanceteEfdResponse`
 
-**3. `src/hooks/usePisCofinsCalculator.ts`** — Adaptador de dados
+**3. `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx`** — Reescrever
 
-- No `filteredData` memo, se `data.periodos[].contas` existir e `itens_credito` não, achatar automaticamente usando `flattenContasToItens`
-- Expor os dados brutos hierárquicos (`contasTree`) para o componente de árvore do Resumo Prado
-- Agregar valores por período para a árvore (cross-period tree com valores pivotados)
+- Receber `periodos: { dt_ini: string; contas: ContaNode[] }[]` em vez de `itens[]` e `contas[]`
+- Manter os filtros existentes: busca por conta contábil, toggle "Período Fechado", e estados de loading/error/empty
+- Integrar `BalanceteTreeTable` do PIS/COFINS para renderizar a árvore hierárquica
+- Adicionar filtro de busca que filtra recursivamente os nós da árvore (match em `cod_cta` ou `descricao_conta`)
+- Toggle "Período Fechado" controla quais colunas de saldo são visíveis (já suportado pelo tree table)
+- Destacar divergências (vlr_efd vs saldo) em vermelho — delegado ao componente de árvore via prop ou lógica interna
+- Botões "Expandir Tudo" / "Colapsar Tudo" já existem no `BalanceteTreeTable`
 
-**4. `src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx`** — Novo componente
+**4. `src/pages/equipe/dev/AuditoriaCruzada.tsx`** — Ajustar passagem de props
 
-- Tabela com linhas aninhadas (indentação visual por nível)
-- Cada conta-pai é expansível/colapsável (ícone ChevronRight/Down)
-- Colunas: `Conta`, `Descrição`, e para cada período: `Crédito`, `Débito`, `Saldo Período`, `Saldo Atual`
-- Contas-pai exibem seus próprios valores agregados
-- Estado de expansão local (`Set<string>` de `plano_conta`)
-- Botões "Expandir Tudo" / "Colapsar Tudo"
-- Reutiliza `DynamicTableHeader` para os cabeçalhos de período com agrupamento por ano
-
-**5. `src/pages/equipe/dev/ApuracaoPisCofins.tsx`** — Integração
-
-- Na aba Resumo, quando `tipoApuracao === 'BALANCETE'`: renderizar `BalanceteTreeTable` com os dados hierárquicos em vez do `ApuracaoDataTable` flat
-- Quando `tipoApuracao === 'EFD'`: manter o comportamento atual (tabela flat com pivot)
+- Passar `balanceteQuery.data?.periodos` em vez de `itens` e `contas`
 
 ### Detalhes técnicos
 
-| Arquivo | Tipo | Alteração |
-|---------|------|-----------|
-| `types/pisCofins.ts` | Edição | Adicionar `ContaNode`, campo `contas?` em `PisCofsinPeriodo` |
-| `lib/pisCofinsFilters.ts` | Edição | Adicionar `flattenContasToItens()` |
-| `hooks/usePisCofinsCalculator.ts` | Edição | Adaptar para novo formato + expor árvore |
-| `pis-cofins/BalanceteTreeTable.tsx` | **Novo** | Componente de tabela em árvore |
-| `ApuracaoPisCofins.tsx` | Edição | Condicional Resumo EFD vs BALANCETE |
+| Arquivo | Alteração |
+|---------|-----------|
+| `types/auditoriaCruzada.ts` | Novo tipo de resposta com `periodos[].contas: ContaNode[]` |
+| `hooks/useBalanceteEfd.ts` | Ajustar tipo genérico |
+| `auditoria/BalanceteEfdTab.tsx` | Reescrever para usar `BalanceteTreeTable` com filtros mantidos |
+| `AuditoriaCruzada.tsx` | Ajustar props passadas ao tab |
 
