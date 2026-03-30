@@ -17,17 +17,17 @@ export interface HeaderBottomColumn {
 
 interface UseTableHeadersParams {
   columnsData: { periods: string[]; yearsMap: Map<string, string[]> };
-  expandedYear: string | null;
+  expandedYears: Set<string>;
 }
 
-export function useTableHeaders({ columnsData, expandedYear }: UseTableHeadersParams) {
+export function useTableHeaders({ columnsData, expandedYears }: UseTableHeadersParams) {
   return useMemo(() => {
     const headerRow1: HeaderColumn[] = [];
     const headerRow2: HeaderBottomColumn[] = [];
 
     if (columnsData?.yearsMap) {
       Array.from(columnsData.yearsMap.entries()).forEach(([year, months]) => {
-        if (expandedYear === year) {
+        if (expandedYears.has(year)) {
           headerRow1.push({ label: year, id: year, colSpan: months.length, isExpanded: true, dataKeys: months });
           months.forEach(m => {
             headerRow2.push({ label: m.split('-').reverse().join('/'), id: m, colSpan: 1, dataKeys: [m] });
@@ -38,7 +38,7 @@ export function useTableHeaders({ columnsData, expandedYear }: UseTableHeadersPa
       });
     }
 
-    const hasExpandedYear = expandedYear !== null;
+    const hasExpandedYear = expandedYears.size > 0;
     const headerRowsCount = hasExpandedYear ? 2 : 1;
 
     const headerBottom: HeaderBottomColumn[] = hasExpandedYear
@@ -54,5 +54,5 @@ export function useTableHeaders({ columnsData, expandedYear }: UseTableHeadersPa
       headerRowsCount,
       headerBottom,
     };
-  }, [columnsData, expandedYear]);
+  }, [columnsData, expandedYears]);
 }

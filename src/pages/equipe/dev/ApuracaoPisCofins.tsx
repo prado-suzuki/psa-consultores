@@ -130,7 +130,15 @@ const ApuracaoPisCofins = () => {
 
   // New UI state
   const [activeTab, setActiveTab] = useState<"resumo" | "debitos" | "creditos" | "apuracao" | "rateio">("resumo");
-  const [expandedYear, setExpandedYear] = useState<string | null>(null);
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
+  const toggleYear = useCallback((year: string) => {
+    setExpandedYears(prev => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  }, []);
   const [tipoApuracao, setTipoApuracao] = useState<"EFD" | "BALANCETE">("EFD");
   const [periodoFechado, setPeriodoFechado] = useState(false);
 
@@ -199,7 +207,7 @@ const ApuracaoPisCofins = () => {
 
   const { headerRow1, headerRow2, hasExpandedYear, headerRowsCount, headerBottom } = useTableHeaders({
     columnsData,
-    expandedYear,
+    expandedYears,
   });
 
   const hasData = resultados.length > 0;
@@ -238,14 +246,14 @@ const ApuracaoPisCofins = () => {
     setCommittedMesInicio(null);
     setCommittedMesFim(null);
     setSearchTriggered(false);
-    setExpandedYear(null);
+    setExpandedYears(new Set());
   };
 
   // Shared table props for data tables
   const dataTableProps = {
     columnsData,
-    expandedYear,
-    setExpandedYear,
+    expandedYears,
+    toggleYear,
   };
 
   // Shared header props for inline tables
@@ -254,7 +262,7 @@ const ApuracaoPisCofins = () => {
     headerRow2,
     hasExpandedYear,
     headerRowsCount,
-    setExpandedYear,
+    toggleYear,
   };
 
   return (
