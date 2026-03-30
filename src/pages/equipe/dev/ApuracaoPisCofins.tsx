@@ -421,6 +421,7 @@ const ApuracaoPisCofins = () => {
                     title="Débitos"
                     titleTooltip="Para débitos são considerados itens de CST 01 a 10."
                     data={tables.debitosData}
+                    showTotals
                     {...dataTableProps}
                   />
                   <ApuracaoDataTable
@@ -428,12 +429,14 @@ const ApuracaoPisCofins = () => {
                     titleTooltip="Para isenções e exclusões de débito são considerados itens de CST 04 a 09."
                     data={tables.isencoesData}
                     emptyMessage="Nenhuma isenção/exclusão encontrada."
+                    showTotals
                     {...dataTableProps}
                   />
                   <ApuracaoDataTable
                     title="Outras Saídas"
                     data={tables.outrasSaidasData}
                     emptyMessage="Nenhuma outra saída encontrada."
+                    showTotals
                     {...dataTableProps}
                   />
 
@@ -472,6 +475,7 @@ const ApuracaoPisCofins = () => {
                     title="Créditos"
                     titleTooltip="Para créditos são considerados itens de CST 50 a 66."
                     data={tables.creditosData}
+                    showTotals
                     {...dataTableProps}
                   />
                   <ApuracaoDataTable
@@ -479,6 +483,7 @@ const ApuracaoPisCofins = () => {
                     titleTooltip="Para isenções e exclusões de crédito são considerados itens de CST 70 a 99."
                     data={tables.isencoesCreditoData}
                     emptyMessage="Nenhuma isenção/exclusão de crédito encontrada."
+                    showTotals
                     {...dataTableProps}
                   />
 
