@@ -1,48 +1,39 @@
 
 
-## Plano: Mover botão Menu para dentro do painel lateral
+## Plano: Scroll horizontal flutuante fixo no rodapé
 
-### Problema atual
-O botão ☰ (Menu) está fixo no header do `<main>`, fora do painel. O comportamento desejado é estilo Notion: o botão fica **dentro do painel** quando aberto, e **no canto superior esquerdo** (colado à borda) quando fechado.
+### Problema
+As tabelas de apuração PIS/COFINS são muito largas. O usuário precisa rolar até o final vertical da tabela para acessar o scrollbar horizontal. Isso dificulta a navegação.
 
 ### Solução
+Criar um componente `FloatingScrollbar` que renderiza uma barra de scroll horizontal **fixa na parte inferior da viewport** (`position: fixed; bottom: 0`), sincronizada bidirecionalmente com o container real da tabela.
 
-**Arquivo: `src/components/equipe/dev/DevLayout.tsx`**
+### Alterações
 
-1. **Remover o botão Menu do header do `<main>`** (linhas 251-258)
+**1. Novo componente `src/components/ui/floating-scrollbar.tsx`**
+- Recebe uma `ref` do container scrollável (o `div` com `overflow-x-auto`)
+- Renderiza um `div` fixo no bottom da tela com `overflow-x: auto` contendo um div-filho cuja largura espelha o `scrollWidth` do container real
+- Sincroniza scroll bidirecional via `onScroll` em ambos (com guard para evitar loop)
+- Usa `ResizeObserver` para atualizar a largura do conteúdo interno
+- Esconde-se automaticamente quando o scrollbar nativo do container já está visível no viewport (via `IntersectionObserver`)
+- Alinha horizontalmente com o container real (calcula `left` e `width` baseado no `getBoundingClientRect` do container)
 
-2. **Adicionar o botão Menu dentro do `<aside>`**, fora do bloco condicional `{!collapsed && ...}`, para que ele sempre apareça:
-   - Quando **expandido**: renderizado no topo da sidebar (dentro do header, ao lado de "Digital Dev"), alinhado à direita
-   - Quando **collapsed**: sidebar passa de `w-0` para `w-12` (48px) para acomodar apenas o botão, centralizado no topo
+**2. Editar `ApuracaoDataTable.tsx`**
+- Adicionar `ref` ao `div.overflow-x-auto` do container da tabela
+- Renderizar `<FloatingScrollbar targetRef={scrollRef} />` após o container
 
-3. **Ajustar largura collapsed**: `w-0` → `w-12` para dar espaço ao botão sem mostrar texto
+**3. Editar `BalanceteTreeTable.tsx`**
+- Mesma lógica: `ref` no container scrollável + `<FloatingScrollbar />`
 
-4. **Estrutura resultante do `<aside>`**:
-```text
-<aside w-12 | w-64>
-  <!-- Sempre visível -->
-  <div topo>
-    {collapsed ? <Menu centrado /> : <header "Digital Dev" + <Menu à direita>>}
-  </div>
-  
-  <!-- Só quando expandido -->
-  {!collapsed && <nav + footer>}
-</aside>
-```
+**4. Editar `ApuracaoPisCofins.tsx`**
+- Para as tabelas inline (Apuração, Rateio) que usam `InlineTableWrapper` e `Card`: adicionar ref + `FloatingScrollbar` no wrapper
 
-### Resultado visual
-
-```text
-Fechado:             Aberto:
-┌────┬───────────┐   ┌──────────────┬──────┐
-│ ☰  │ Title     │   │ Digital Dev ☰│Title │
-│    │ Content   │   │ Início       │Cont  │
-│    │           │   │ XMLs         │      │
-└────┴───────────┘   └──────────────┴──────┘
-48px                  256px
-```
+### Detalhes técnicos
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `DevLayout.tsx` | Mover botão Menu para `<aside>`, collapsed `w-12`, remover do header |
+| `src/components/ui/floating-scrollbar.tsx` | **Novo** — componente de scrollbar flutuante |
+| `ApuracaoDataTable.tsx` | Adicionar ref + FloatingScrollbar |
+| `BalanceteTreeTable.tsx` | Adicionar ref + FloatingScrollbar |
+| `ApuracaoPisCofins.tsx` | Adicionar ref + FloatingScrollbar nas tabelas inline |
 
