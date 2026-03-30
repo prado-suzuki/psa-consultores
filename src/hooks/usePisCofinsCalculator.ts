@@ -47,22 +47,37 @@ interface PivotTables {
 
 export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: UseCalculatorParams) {
 
+  const hasEfdRecord = (i: ItemCredito): boolean => i.vlr_efd !== 0;
+
+  // ── 0. Dados filtrados (EFD exclui itens sem registro) ──
+  const filteredData: ApuracaoInput | null = useMemo(() => {
+    if (!data) return null;
+    if (tipoApuracao !== 'EFD') return data;
+    return {
+      ...data,
+      periodos: data.periodos.map((p) => ({
+        ...p,
+        itens_credito: p.itens_credito.filter(hasEfdRecord),
+      })),
+    };
+  }, [data, tipoApuracao]);
+
   // ── 1. Resultados de apuração por período ──
   const resultados: ResultadoPeriodo[] = useMemo(() => {
-    if (!data) return [];
+    if (!filteredData) return [];
     return tipoApuracao === 'EFD'
-      ? calcTodosPeriodos(data)
-      : calcTodosPeriodosBalancete(data, periodoFechado);
-  }, [data, tipoApuracao, periodoFechado]);
+      ? calcTodosPeriodos(filteredData)
+      : calcTodosPeriodosBalancete(filteredData, periodoFechado);
+  }, [filteredData, tipoApuracao, periodoFechado]);
 
   // ── 2. Totais acumulados ──
   const totais: TotaisApuracao = useMemo(() => calcTotais(resultados), [resultados]);
 
   // ── 3. Colunas (períodos e agrupamento por ano) ──
   const columnsData: ColumnsData = useMemo(() => {
-    if (!data) return { periods: [], yearsMap: new Map<string, string[]>() };
+    if (!filteredData) return { periods: [], yearsMap: new Map<string, string[]>() };
 
-    const periods = data.periodos.map((p) => p.dt_ini.substring(0, 7)).sort();
+    const periods = filteredData.periodos.map((p) => p.dt_ini.substring(0, 7)).sort();
     const yearsMap = new Map<string, string[]>();
 
     periods.forEach((p) => {
@@ -72,7 +87,7 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
     });
 
     return { periods, yearsMap };
-  }, [data]);
+  }, [filteredData]);
 
   // ── Helpers para valueFn baseados no tipo de apuração ──
   const valueFnEfdOrBal = useMemo(() => {
@@ -84,7 +99,7 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado }: U
 
   const valueFnEfd = useMemo(() => (i: ItemCredito) => i.vlr_efd, []);
 
-  const periodos = data?.periodos;
+  const periodos = filteredData?.periodos;
 
   // ── 4. Tabelas pivotadas com dependências granulares ──
 
