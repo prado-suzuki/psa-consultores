@@ -4,6 +4,7 @@ import { DynamicTableHeader } from "./DynamicTableHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { PivotRowGeneric } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
