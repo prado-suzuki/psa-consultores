@@ -1,34 +1,27 @@
 
 
-## Plano: Multi-select de contas na aba Resumo
+## Plano: Corrigir clique no X da tag abrindo o popover
 
-### Objetivo
-Adicionar um componente de seleção múltipla acima da tabela "Resumo Geral" para filtrar por contas (`cod_cta`). As contas selecionadas aparecem como tags com botão de remoção individual e botão de limpar tudo.
+### Problema
+O `e.stopPropagation()` não é suficiente porque o `PopoverTrigger` usa `onPointerDown` internamente. O evento de pointer continua propagando e abre o popover.
 
-### Alterações
+### Correção (`MultiSelectContas.tsx`)
 
-**1. Criar componente `MultiSelectContas.tsx`** (`src/components/equipe/dev/pis-cofins/`)
+Adicionar `e.preventDefault()` junto ao `e.stopPropagation()` no handler do `X`, e também adicionar `onPointerDown={(e) => e.stopPropagation()}` no ícone `X` para interceptar o evento antes que o Radix Popover o capture.
 
-Componente reutilizável com:
-- `Popover` + `Command` (shadcn) como dropdown de busca/seleção
-- Lista de contas disponíveis com checkbox visual
-- Tags/badges dentro do trigger mostrando `cod_cta - descricao_conta` (truncado)
-- Ícone `X` em cada tag para remover individualmente
-- Botão "Limpar" para resetar todas as seleções
-- Props: `options: {value: string, label: string}[]`, `selected: string[]`, `onChange: (selected: string[]) => void`, `placeholder?: string`
-
-**2. Alterar `ApuracaoPisCofins.tsx`**
-
-- Novo estado: `const [selectedContas, setSelectedContas] = useState<string[]>([])`
-- Derivar lista de contas únicas de `tables.resumoData` via `useMemo`: `{ value: cod_cta, label: "${cod_cta} - ${descricao_conta}" }`
-- Filtrar `tables.resumoData` por `selectedContas` (se vazio, mostrar tudo)
-- Renderizar `<MultiSelectContas>` acima do `<ApuracaoDataTable>` na aba Resumo
-- Resetar `selectedContas` ao limpar/trocar consulta
-
-### Arquivos
+```tsx
+<X
+  className="h-3 w-3 shrink-0 cursor-pointer hover:text-destructive"
+  onPointerDown={(e) => e.stopPropagation()}
+  onClick={(e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    remove(item.value);
+  }}
+/>
+```
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/equipe/dev/pis-cofins/MultiSelectContas.tsx` | Novo componente multi-select com tags |
-| `src/pages/equipe/dev/ApuracaoPisCofins.tsx` | Estado, derivação de opções, filtro e renderização |
+| `MultiSelectContas.tsx` | Adicionar `onPointerDown` + `preventDefault` no ícone X |
 
