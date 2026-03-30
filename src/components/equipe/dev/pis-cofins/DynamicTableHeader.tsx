@@ -60,7 +60,7 @@ export function DynamicTableHeader({
       {hasExpandedYear && (
         <TableRow>
           {headerRow2.map(bottom => (
-            <TableHead key={bottom.id} className="text-right border-r font-bold uppercase text-xs text-muted-foreground bg-primary/5">
+            <TableHead key={bottom.id} className="text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5">
               {bottom.label}
             </TableHead>
           ))}
