@@ -62,15 +62,17 @@ export function MultiSelectContas({
                     className="text-xs font-normal max-w-[200px] truncate gap-1"
                   >
                     <span className="truncate">{item.label}</span>
-                    <X
-                      className="h-3 w-3 shrink-0 cursor-pointer hover:text-destructive"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        remove(item.value);
-                      }}
-                    />
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Remover ${item.label}`}
+                      className="inline-flex cursor-pointer items-center justify-center"
+                      onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); remove(item.value); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); remove(item.value); } }}
+                    >
+                      <X className="h-3 w-3 shrink-0 hover:text-destructive" />
+                    </span>
                   </Badge>
                 ))}
               </div>
