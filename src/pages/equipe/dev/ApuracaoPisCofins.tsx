@@ -432,13 +432,14 @@ const ApuracaoPisCofins = () => {
                     showTotals
                     {...dataTableProps}
                   />
-                  <ApuracaoDataTable
-                    title="Outras Saídas"
-                    data={tables.outrasSaidasData}
-                    emptyMessage="Nenhuma outra saída encontrada."
-                    showTotals
-                    {...dataTableProps}
-                  />
+                   {tables.outrasSaidasData.length > 0 && (
+                     <ApuracaoDataTable
+                       title="Outras Saídas"
+                       data={tables.outrasSaidasData}
+                       showTotals
+                       {...dataTableProps}
+                     />
+                   )}
 
                   <section>
                     <h2 className="text-lg font-bold uppercase mb-4 text-primary">
