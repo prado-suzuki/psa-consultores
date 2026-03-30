@@ -138,7 +138,7 @@ export function SOPViewerModal({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <h3 className="text-sm font-semibold text-muted-foreground">📋 Como era (Antes)</h3>
                 <SOPContentBlock
                   sopLink={beforeLink}
