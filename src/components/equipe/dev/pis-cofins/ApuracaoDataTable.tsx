@@ -167,7 +167,7 @@ export function ApuracaoDataTable({
               </TableRow>
             )}
             {showTotals && data.length > 0 && (
-              <TableRow className="bg-muted/50 font-bold border-t-2 border-border">
+              <TableRow className="bg-muted font-bold border-t-2 border-border">
                 {stickyConfig.map((cfg, i) => (
                   <TableCell
                     key={cfg.label}
