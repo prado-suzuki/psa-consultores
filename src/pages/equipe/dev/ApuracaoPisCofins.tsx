@@ -319,7 +319,7 @@ const ApuracaoPisCofins = () => {
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               Tipo de análise
             </label>
-            <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "Cliente" | "Prado")}>
+            <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
