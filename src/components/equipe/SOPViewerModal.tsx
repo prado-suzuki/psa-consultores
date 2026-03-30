@@ -96,7 +96,7 @@ function SOPContentBlock({
       )}
 
       {formattedContent && (
-        <div className="prose prose-sm max-w-none bg-muted/30 rounded-lg p-4 border">
+        <div className="prose prose-sm overflow-hidden bg-muted/30 rounded-lg p-4 border">
           {renderMarkdown(formattedContent)}
         </div>
       )}
@@ -138,7 +138,7 @@ export function SOPViewerModal({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <h3 className="text-sm font-semibold text-muted-foreground">📋 Como era (Antes)</h3>
                 <SOPContentBlock
                   sopLink={beforeLink}
@@ -146,7 +146,7 @@ export function SOPViewerModal({
                   formattedContent={beforeContent}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <h3 className="text-sm font-semibold text-muted-foreground">✅ Como ficou (Depois)</h3>
                 <SOPContentBlock
                   sopLink={sopLink}
