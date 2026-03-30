@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 import { ChevronRight, ChevronDown, ChevronsUpDown, Minus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { ContaNode } from "@/types/pisCofins";
