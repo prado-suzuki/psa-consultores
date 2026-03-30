@@ -1,39 +1,22 @@
 
 
-## Plano: Scroll horizontal flutuante fixo no rodapé
+## Plano: Adicionar filtro de contas no modo Prado (BALANCETE)
 
 ### Problema
-As tabelas de apuração PIS/COFINS são muito largas. O usuário precisa rolar até o final vertical da tabela para acessar o scrollbar horizontal. Isso dificulta a navegação.
+O modo "Cliente" (EFD) na aba Resumo possui o `MultiSelectContas` para filtrar por conta contábil, mas o modo "Prado" (BALANCETE) não tem esse filtro.
 
-### Solução
-Criar um componente `FloatingScrollbar` que renderiza uma barra de scroll horizontal **fixa na parte inferior da viewport** (`position: fixed; bottom: 0`), sincronizada bidirecionalmente com o container real da tabela.
+### Alteração em `src/pages/equipe/dev/ApuracaoPisCofins.tsx`
 
-### Alterações
+1. **Extrair opções de conta da árvore hierárquica** — Criar um `useMemo` que percorre recursivamente `contasTree` coletando pares únicos `cod_cta + descricao_conta` para alimentar o `MultiSelectContas`
 
-**1. Novo componente `src/components/ui/floating-scrollbar.tsx`**
-- Recebe uma `ref` do container scrollável (o `div` com `overflow-x-auto`)
-- Renderiza um `div` fixo no bottom da tela com `overflow-x: auto` contendo um div-filho cuja largura espelha o `scrollWidth` do container real
-- Sincroniza scroll bidirecional via `onScroll` em ambos (com guard para evitar loop)
-- Usa `ResizeObserver` para atualizar a largura do conteúdo interno
-- Esconde-se automaticamente quando o scrollbar nativo do container já está visível no viewport (via `IntersectionObserver`)
-- Alinha horizontalmente com o container real (calcula `left` e `width` baseado no `getBoundingClientRect` do container)
+2. **Filtrar a árvore por contas selecionadas** — Criar um `useMemo` com função recursiva que poda a árvore mantendo apenas nós cujo `cod_cta` está na seleção (ou que têm descendentes selecionados). Quando nenhuma conta é selecionada, exibir tudo.
 
-**2. Editar `ApuracaoDataTable.tsx`**
-- Adicionar `ref` ao `div.overflow-x-auto` do container da tabela
-- Renderizar `<FloatingScrollbar targetRef={scrollRef} />` após o container
+3. **Renderizar o filtro antes do `BalanceteTreeTable`** — No bloco `tipoApuracao === "BALANCETE"` (linha ~495), envolver em `<div className="space-y-4">` com `<MultiSelectContas>` acima, passando a árvore filtrada ao componente
 
-**3. Editar `BalanceteTreeTable.tsx`**
-- Mesma lógica: `ref` no container scrollável + `<FloatingScrollbar />`
-
-**4. Editar `ApuracaoPisCofins.tsx`**
-- Para as tabelas inline (Apuração, Rateio) que usam `InlineTableWrapper` e `Card`: adicionar ref + `FloatingScrollbar` no wrapper
-
-### Detalhes técnicos
+### Resultado
+O estado `selectedContas` já existe e é compartilhado entre ambos os modos. O filtro aparecerá identicamente nos dois tipos de análise.
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/ui/floating-scrollbar.tsx` | **Novo** — componente de scrollbar flutuante |
-| `ApuracaoDataTable.tsx` | Adicionar ref + FloatingScrollbar |
-| `BalanceteTreeTable.tsx` | Adicionar ref + FloatingScrollbar |
-| `ApuracaoPisCofins.tsx` | Adicionar ref + FloatingScrollbar nas tabelas inline |
+| `ApuracaoPisCofins.tsx` | Adicionar extração de opções da árvore, filtro recursivo, e `MultiSelectContas` no bloco BALANCETE |
 
