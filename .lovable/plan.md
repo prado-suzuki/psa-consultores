@@ -1,19 +1,24 @@
 
 
-## Plano: Ajustes visuais no filtro de contas + remoção da tabela resumo de Apuração
+## Plano: Corrigir opacidade das colunas congeladas (sticky)
 
-### 1. MultiSelectContas — remover hover verde (`MultiSelectContas.tsx`)
+### Problema
+As colunas sticky usam `bg-card` e os headers sticky usam `bg-muted/50` — ambas permitem que o conteúdo rolado apareça por baixo como "fantasma", dificultando a leitura.
 
-O `CommandItem` do shadcn aplica `hover:bg-accent` (que é verde neste tema). Adicionar classe para forçar hover branco/transparente nos itens do dropdown e no botão trigger.
+### Correção
 
-Na `Button` (L48-52), adicionar `hover:bg-background` para manter fundo branco ao passar o mouse.
+**Arquivo: `ApuracaoDataTable.tsx`**
+- Linha 81: trocar `bg-card` por `bg-background` nas células sticky do body (função `stickyCell`)
+- Linha 174: trocar `bg-muted/50` por `bg-muted` na linha de totais sticky
 
-### 2. Remover primeira tabela da aba Apuração (`ApuracaoPisCofins.tsx`)
+**Arquivo: `DynamicTableHeader.tsx`**
+- Headers sticky: trocar `bg-muted/50` por `bg-muted` (opacidade total) nas `TableHead` sticky
+- Manter as cores diferenciadas dos anos expandidos/colapsados
 
-Remover a `<section>` das linhas ~604-663 que contém a tabela com "Valor Devido PIS", "Valor Devido COFINS" e "Total Devido". Manter as seções subsequentes (Apuração do Débito de PIS, COFINS, e Adições/Exclusões).
+Todas as mudanças garantem que as colunas congeladas tenham fundo 100% opaco, bloqueando completamente a visualização do conteúdo que passa por baixo.
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `MultiSelectContas.tsx` | Adicionar `hover:bg-background` no Button trigger |
-| `ApuracaoPisCofins.tsx` | Remover seção "Apuração" (L604-663) |
+| `ApuracaoDataTable.tsx` | `bg-card` → `bg-background`, `bg-muted/50` → `bg-muted` nas sticky cells |
+| `DynamicTableHeader.tsx` | `bg-muted/50` → `bg-muted` nos headers sticky |
 
