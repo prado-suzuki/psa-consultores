@@ -1192,32 +1192,6 @@ const ApuracaoPisCofins = () => {
                             <TableCell className="text-right font-mono font-bold bg-muted/30" />
                           </TableRow>
                         ))}
-                        <TableRow className="bg-[#14B8A6] text-white uppercase text-xs hover:!bg-[#3fd8c7]">
-                          <StickyCellMuted config={RATEIO_STICKY[0]} className="font-bold text-right bg-[#14B8A6] text-white">
-                            Total % Apurado
-                          </StickyCellMuted>
-                          {headerBottom.map((col) => {
-                            const total = getRateioReceitasColValue(resultados, col.dataKeys, (r) => r.rec_bru_total);
-                            const trib = getRateioReceitasColValue(
-                              resultados,
-                              col.dataKeys,
-                              (r) => r.rec_bru_ncum_trib_mi,
-                            );
-                            const naoTrib = getRateioReceitasColValue(
-                              resultados,
-                              col.dataKeys,
-                              (r) => r.rec_bru_ncum_nt_mi,
-                            );
-                            const exp = getRateioReceitasColValue(resultados, col.dataKeys, (r) => r.rec_bru_ncum_exp);
-                            const perc = total > 0 ? (trib + naoTrib + exp) / total : 0;
-                            return (
-                              <TableCell key={col.id} className={cn("text-right font-mono font-bold", isExpandedMonthColumn(col.dataKeys) ? "bg-[rgba(255,255,255,0.08)] text-white" : "text-white", getExpandedMonthEdgeClass(col.id))}>
-                                {(perc * 100).toFixed(2)}%
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-right font-mono font-bold bg-[#14B8A6] text-white" />
-                        </TableRow>
 
                         <TableRow className="bg-transparent border-none hover:bg-transparent">
                           <TableCell colSpan={headerBottom.length + 2} className="p-2" />
