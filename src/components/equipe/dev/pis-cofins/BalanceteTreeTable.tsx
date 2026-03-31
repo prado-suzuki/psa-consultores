@@ -369,7 +369,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     return (
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold uppercase text-primary">Resumo Hierárquico</h2>
+          <h2 className="text-lg font-bold uppercase text-primary">{sectionTitle}</h2>
           <div className="flex gap-1">
             <Button variant="outline" size="sm" onClick={expandAll} className="gap-1 text-xs">
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir Tudo
