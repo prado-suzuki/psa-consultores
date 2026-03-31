@@ -8,6 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTableHeaders } from "@/hooks/useTableHeaders";
+import { DynamicTableHeader } from "./DynamicTableHeader";
+import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
 
 const formatCurrency = (value: number) =>
@@ -123,10 +126,20 @@ interface BalanceteTreeTableProps {
   onRemoveExtra?: (codCta: string) => void;
 }
 
+const STICKY_COLS: StickyColumnConfig[] = [
+  { label: "Conta", width: 100, left: 0, isLast: false },
+  { label: "Descrição", width: 280, left: 100, isLast: true },
+];
+
+const HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-[#0B7A70]";
+const MONTH_HIGHLIGHT = "bg-[#3fd8c7] text-white border-[#0B7A70]";
+const HEADER_BTN = "text-white hover:bg-white/10 hover:text-white";
+
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
   function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
 
     const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
 
@@ -139,6 +152,15 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       });
     }, []);
 
+    const toggleYear = useCallback((year: string) => {
+      setExpandedYears(prev => {
+        const next = new Set(prev);
+        if (next.has(year)) next.delete(year);
+        else next.add(year);
+        return next;
+      });
+    }, []);
+
     const expandAll = useCallback(() => {
       setExpanded(collectAllKeys(mergedTree));
     }, [mergedTree]);
@@ -147,13 +169,38 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
 
     useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
 
-    const valueColumns: { key: string; label: string; accessor: (v: MergedNode["periodoValues"][string]) => number }[] = useMemo(() => {
+    const valueAccessor = useMemo(() => {
       if (periodoFechado) {
-        return [{ key: "saldo_atual", label: "Saldo Atual", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_atual }];
+        return (v: MergedNode["periodoValues"][string]) => v.saldo_atual;
       }
-
-      return [{ key: "saldo_periodo", label: "Saldo Período", accessor: (v: MergedNode["periodoValues"][string]) => v.saldo_periodo }];
+      return (v: MergedNode["periodoValues"][string]) => v.saldo_periodo;
     }, [periodoFechado]);
+
+    // Build columnsData for useTableHeaders
+    const columnsData = useMemo(() => {
+      const yearsMap = new Map<string, string[]>();
+      for (const p of periods) {
+        const year = p.substring(0, 4);
+        if (!yearsMap.has(year)) yearsMap.set(year, []);
+        yearsMap.get(year)!.push(p);
+      }
+      return { periods, yearsMap };
+    }, [periods]);
+
+    const {
+      headerRow1,
+      headerRow2,
+      hasExpandedYear,
+      headerRowsCount,
+      headerBottom,
+    } = useTableHeaders({ columnsData, expandedYears });
+
+    const getColValue = (node: MergedNode, dataKeys: string[]) => {
+      return dataKeys.reduce((sum, key) => {
+        const pv = node.periodoValues[key];
+        return sum + (pv ? valueAccessor(pv) : 0);
+      }, 0);
+    };
 
     const rows: JSX.Element[] = [];
 
@@ -268,20 +315,18 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
               </div>
             </TableCell>
 
-            {periods.map(pk =>
-              valueColumns.map(vc => {
-                const val = node.periodoValues[pk] ? vc.accessor(node.periodoValues[pk]) : 0;
-                return (
-                  <TableCell
-                    key={`${pk}-${vc.key}`}
-                    className="text-right font-mono text-sm border-r border-border/20 cursor-copy"
-                    onDoubleClick={() => copyToClipboard(val)}
-                  >
-                    {formatCurrency(val)}
-                  </TableCell>
-                );
-              })
-            )}
+            {headerBottom.map(col => {
+              const val = getColValue(node, col.dataKeys);
+              return (
+                <TableCell
+                  key={col.id}
+                  className="text-right font-mono text-sm border-r border-border/20 cursor-copy"
+                  onDoubleClick={() => copyToClipboard(val)}
+                >
+                  {formatCurrency(val)}
+                </TableCell>
+              );
+            })}
           </TableRow>,
         );
 
@@ -310,45 +355,21 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       <>
       <Card ref={scrollRef} className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
-          <thead className="bg-[#14B8A6] sticky top-0 z-30 [&_tr]:border-b">
-            <TableRow>
-              <th
-                className="!font-bold uppercase text-xs text-white border-r border-[#0B7A70] sticky z-40 bg-[#14B8A6] h-12 px-4 text-left align-middle"
-                style={{ left: 0, minWidth: 100 }}
-                rowSpan={2}
-              >
-                Conta
-              </th>
-              <th
-                className="!font-bold uppercase text-xs text-white border-r border-[#0B7A70] sticky z-40 bg-[#14B8A6] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] h-12 px-4 text-left align-middle"
-                style={{ left: 100, minWidth: 280 }}
-                rowSpan={2}
-              >
-                Descrição
-              </th>
-              {periods.map(pk => (
-                <th
-                  key={pk}
-                  colSpan={valueColumns.length}
-                  className="text-center border-b border-r border-[#0B7A70] bg-[#14B8A6] !font-bold uppercase text-xs text-white h-12 px-4 align-middle"
-                >
-                  {pk.split("-").reverse().join("/")}
-                </th>
-              ))}
-            </TableRow>
-            <TableRow>
-              {periods.map(pk =>
-                valueColumns.map(vc => (
-                  <th
-                    key={`${pk}-${vc.key}`}
-                    className="text-right border-r border-[#0B7A70] !font-bold uppercase text-xs text-white bg-[#3fd8c7] h-10 px-4 align-middle"
-                  >
-                    {vc.label}
-                  </th>
-                ))
-              )}
-            </TableRow>
-          </thead>
+          <DynamicTableHeader
+            stickyConfig={STICKY_COLS}
+            headerRow1={headerRow1}
+            headerRow2={headerRow2}
+            hasExpandedYear={hasExpandedYear}
+            headerRowsCount={headerRowsCount}
+            toggleYear={toggleYear}
+            headerClassName={HEADER_HIGHLIGHT}
+            stickyHeaderClassName={HEADER_HIGHLIGHT}
+            expandedHeaderClassName={HEADER_HIGHLIGHT}
+            monthHeaderClassName={MONTH_HIGHLIGHT}
+            collapsedHeaderClassName={HEADER_HIGHLIGHT}
+            headerButtonClassName={HEADER_BTN}
+            showTotal={false}
+          />
           <TableBody>
             {rows.length > 0 ? rows : (
               <TableRow>

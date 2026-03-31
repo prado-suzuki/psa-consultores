@@ -19,6 +19,7 @@ interface DynamicTableHeaderProps {
   totalHeaderClassName?: string;
   headerButtonClassName?: string;
   renderHeaderExtra?: (label: string) => React.ReactNode;
+  showTotal?: boolean;
 }
 
 export function DynamicTableHeader({
@@ -36,6 +37,7 @@ export function DynamicTableHeader({
   totalHeaderClassName,
   headerButtonClassName,
   renderHeaderExtra,
+  showTotal = true,
 }: DynamicTableHeaderProps) {
   return (
     <thead className={cn("bg-muted sticky top-0 z-30 [&_tr]:border-b", headerClassName)}>
@@ -75,7 +77,7 @@ export function DynamicTableHeader({
             </TableHead>
           )
         ))}
-        <TableHead className={cn("text-right !font-bold uppercase text-xs text-muted-foreground border-l", totalHeaderClassName)} rowSpan={headerRowsCount}>Total</TableHead>
+        {showTotal && <TableHead className={cn("text-right !font-bold uppercase text-xs text-muted-foreground border-l", totalHeaderClassName)} rowSpan={headerRowsCount}>Total</TableHead>}
       </TableRow>
       {hasExpandedYear && (
         <TableRow>
