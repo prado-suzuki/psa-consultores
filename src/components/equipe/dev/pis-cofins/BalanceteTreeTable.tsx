@@ -111,6 +111,8 @@ interface BalanceteTreeTableProps {
   periodoFechado?: boolean;
   /** Hide the section title and expand/collapse buttons (caller provides them) */
   hideTitle?: boolean;
+  /** Custom section title (defaults to "Resumo Hierárquico") */
+  sectionTitle?: string;
   /** Map of extra accounts added manually: cod_cta → "D" | "C" */
   extraContas?: Map<string, "D" | "C">;
   /** Set of cod_cta that already have EFD lancamentos (in calculation) */
