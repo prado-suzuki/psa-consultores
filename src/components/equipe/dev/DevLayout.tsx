@@ -175,9 +175,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                         : "text-slate-700 hover:text-teal-600"
                     }`}
                   >
-                    <span className="flex-1 text-left">Levantamento de PIS/COFINS</span>
+                    <span className="flex-1 text-left truncate">Levantamento de PIS/COFINS</span>
                     <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
+                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
                     />
                   </Button>
                 </CollapsibleTrigger>
