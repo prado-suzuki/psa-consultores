@@ -368,6 +368,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             monthHeaderClassName={MONTH_HIGHLIGHT}
             collapsedHeaderClassName={HEADER_HIGHLIGHT}
             headerButtonClassName={HEADER_BTN}
+            showTotal={false}
           />
           <TableBody>
             {rows.length > 0 ? rows : (
