@@ -18,6 +18,7 @@ interface DynamicTableHeaderProps {
   collapsedHeaderClassName?: string;
   totalHeaderClassName?: string;
   headerButtonClassName?: string;
+  renderHeaderExtra?: (label: string) => React.ReactNode;
 }
 
 export function DynamicTableHeader({
