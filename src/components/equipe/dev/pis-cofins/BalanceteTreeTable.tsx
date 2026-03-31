@@ -133,6 +133,7 @@ const STICKY_COLS: StickyColumnConfig[] = [
 
 const HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-[#0B7A70]";
 const STICKY_HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-r-[#0B7A70]";
+const MONTH_HIGHLIGHT = "bg-[#3fd8c7] text-white border-[#0B7A70]";
 const HEADER_BTN = "text-white hover:bg-white/10 hover:text-white";
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
