@@ -111,6 +111,8 @@ interface BalanceteTreeTableProps {
   periodoFechado?: boolean;
   /** Hide the section title and expand/collapse buttons (caller provides them) */
   hideTitle?: boolean;
+  /** Custom section title (defaults to "Resumo Hierárquico") */
+  sectionTitle?: string;
   /** Map of extra accounts added manually: cod_cta → "D" | "C" */
   extraContas?: Map<string, "D" | "C">;
   /** Set of cod_cta that already have EFD lancamentos (in calculation) */
@@ -122,7 +124,7 @@ interface BalanceteTreeTableProps {
 }
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
-  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -296,7 +298,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
         <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
       ) : (
         <section>
-          <h2 className="text-lg font-bold uppercase mb-4 text-primary">Resumo Hierárquico</h2>
+          <h2 className="text-lg font-bold uppercase mb-4 text-primary">{sectionTitle}</h2>
           <Card className="p-8 text-center text-muted-foreground italic">
             Nenhum dado hierárquico disponível.
           </Card>
@@ -367,7 +369,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     return (
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold uppercase text-primary">Resumo Hierárquico</h2>
+          <h2 className="text-lg font-bold uppercase text-primary">{sectionTitle}</h2>
           <div className="flex gap-1">
             <Button variant="outline" size="sm" onClick={expandAll} className="gap-1 text-xs">
               <ChevronsUpDown className="h-3.5 w-3.5" /> Expandir Tudo
