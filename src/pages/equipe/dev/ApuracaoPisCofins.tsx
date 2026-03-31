@@ -767,7 +767,7 @@ const ApuracaoPisCofins = () => {
                   />
                   <ApuracaoDataTable
                     title="Operações não geradoras de Crédito"
-                    titleTooltip="Para adições e exclusões de crédito são considerados itens de CST 70 a 99."
+                    titleTooltip="Para operações não geradoras de crédito são considerados itens de CST 70 a 99."
                     data={tables.isencoesCreditoData}
                     emptyMessage="Nenhuma adição/exclusão de crédito encontrada."
                     showTotals
