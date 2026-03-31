@@ -54,7 +54,7 @@ const toolGroups: ToolGroup[] = [
     ],
   },
   {
-    label: 'Levantamento de Créditos',
+    label: 'Levantamento de PIS/COFINS',
     tools: [
       {
         name: 'Mapa NCM (PIS/COFINS)',
