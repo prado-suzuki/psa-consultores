@@ -56,7 +56,7 @@ const pisCofinsSubItems: NavItem[] = [
   { icon: Layers, label: "Mapa de NCMs", path: "/equipe/dev/mapa-ncm-pis-cofins" },
   { icon: Calculator, label: "Apuração Tributária", path: "/equipe/dev/apuracao-pis-cofins" },
   { icon: ScanSearch, label: "Análise Cruzada", path: "/equipe/dev/cruzamento-dados" },
-  { icon: FileText, label: "Revisão de Registros do EFD", path: "/equipe/dev/correcoes-sped" },
+  { icon: FileText, label: "Revisão de Registros EFD", path: "/equipe/dev/correcoes-sped" },
 ];
 
 const navItemsAfterSped: NavItem[] = [
