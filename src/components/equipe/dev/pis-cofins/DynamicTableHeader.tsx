@@ -35,6 +35,7 @@ export function DynamicTableHeader({
   collapsedHeaderClassName,
   totalHeaderClassName,
   headerButtonClassName,
+  renderHeaderExtra,
 }: DynamicTableHeaderProps) {
   return (
     <thead className={cn("bg-muted sticky top-0 z-30 [&_tr]:border-b", headerClassName)}>
