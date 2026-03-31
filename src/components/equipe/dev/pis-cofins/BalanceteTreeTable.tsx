@@ -222,7 +222,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
         rows.push(
           <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20 group", bgClass)}>
             <TableCell
-              className="sticky left-0 z-10 bg-inherit font-mono text-xs cursor-copy whitespace-nowrap"
+              className="sticky left-0 z-10 bg-background font-mono text-xs cursor-copy whitespace-nowrap"
               style={{ minWidth: 100 }}
               onDoubleClick={() => copyToClipboard(node.cod_cta)}
             >
