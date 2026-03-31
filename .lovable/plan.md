@@ -1,51 +1,36 @@
 
 
-## Plano: Botão "+" para adicionar contas extras ao cálculo (modo Prado)
+## Plan: Excel-style Filter/Sort Dropdowns for CST, Conta, Bloco Columns
 
-### Contexto
-No modo BALANCETE, apenas contas com `lancamentos` (vindos da EFD) entram no cálculo. Contas que existem no balancete mas não na EFD ficam de fora. O usuário quer poder incluí-las manualmente como Débito ou Crédito.
+### Overview
+Add Excel-style filter/sort dropdown menus to the sticky columns (CST, Conta, Bloco) in the `ApuracaoDataTable` component. Each column header gets a clickable filter icon that opens a popover with sort buttons and checkbox-based value filtering.
 
-### Alterações
+### New Component
+**`src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx`**
+- Popover-based dropdown anchored to a filter icon button in the column header
+- Two sections inside:
+  1. **Sort**: "Crescente" / "Decrescente" buttons (highlight active)
+  2. **Filter**: Scrollable checkbox list of unique values, with "Selecionar tudo" and "Limpar" actions, and a "Confirmar" button
+- Props: `columnKey`, `uniqueValues: string[]`, `activeSort`, `activeFilter: Set<string> | null`, `onSort`, `onFilter`
+- Filter icon uses a distinct color (e.g. `text-primary`) when sort or filter is active on that column
 
-**1. `BalanceteTreeTable.tsx` — UI do botão "+" e badge D/C**
-- Novas props: `extraContas: Map<string, "D" | "C">`, `onToggleExtra: (codCta: string, desc: string, tipo: "D" | "C") => void`, `onRemoveExtra: (codCta: string) => void`
-- Na célula de descrição dos nós folha (`!isParent`):
-  - Se a conta NÃO está em `extraContas`: no hover do `<TableRow>`, exibir botão "+" inline (usando `group` / `group-hover` do Tailwind). Ao clicar, abrir um `Popover` com dois botões: "Débito" e "Crédito"
-  - Se a conta JÁ está em `extraContas`: exibir um badge fixo "D" ou "C" (verde para débito, azul para crédito) clicável para remover
+### Changes to `ApuracaoDataTable.tsx`
+- Add internal state:
+  - `sortConfig: { key: string; direction: 'asc' | 'desc' } | null` — only one column sorted at a time
+  - `columnFilters: Record<string, Set<string>>` — multiple columns can have active filters
+- Compute filtered + sorted data via `useMemo`:
+  1. Apply filters from all columns (intersection/AND logic)
+  2. Compute unique values per filterable column from data filtered by *other* columns (cascading filter)
+  3. Apply sort
+- Render `ColumnFilterDropdown` inside the sticky header cells for CST, Conta, Bloco (only when `showCst`/`showBloco` are true respectively; Conta is always shown)
+- The `Descrição` column does NOT get a filter dropdown
+- Totals row recalculates based on filtered data
 
-**2. `ApuracaoPisCofins.tsx` — Estado das contas extras**
-- Novo estado: `const [extraContas, setExtraContas] = useState<Map<string, { tipo: "D" | "C"; desc: string }>>(new Map())`
-- Handlers `handleToggleExtra` e `handleRemoveExtra`
-- Passar props para `BalanceteTreeTable`
-
-**3. `usePisCofinsCalculator.ts` — Injeção no cálculo**
-- Nova prop opcional: `extraContas: Map<string, { tipo: "D" | "C"; desc: string }>`
-- No passo de normalização (BALANCETE), após o flatten, injetar itens sintéticos para cada conta extra encontrada na árvore:
-  - Tipo "D" → CST `01`, aliq_pis `0` (entra como receita/débito)
-  - Tipo "C" → CST `50`, aliq_pis `1.65` (entra como crédito)
-  - Valor = `saldo_periodo` ou `saldo_atual` do nó folha correspondente
-
-**4. `pisCofinsFilters.ts` — Função auxiliar**
-- Nova função `extractLeafNodesByAccount(contas, codCtaSet)` que percorre a árvore e retorna nós folha que correspondem às contas extras, para gerar os itens sintéticos
-
-### Resultado visual
-
-```text
-Antes (hover):
-│ 1.01.02 │ Receitas de Serviço          [+] │ R$ 1.000 │
-
-Após clicar "+" e escolher "Débito":
-│ 1.01.02 │ Receitas de Serviço          [D] │ R$ 1.000 │
-```
-
-O badge [D] ou [C] é clicável para remover a conta extra.
-
-### Arquivos
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `BalanceteTreeTable.tsx` | Botão "+", Popover D/C, badge |
-| `ApuracaoPisCofins.tsx` | Estado `extraContas`, handlers, props |
-| `usePisCofinsCalculator.ts` | Injeção de itens sintéticos |
-| `pisCofinsFilters.ts` | Helper para extrair nós folha por conta |
+### Technical Details
+- Uses existing `Popover`/`PopoverTrigger`/`PopoverContent` from Radix
+- Uses existing `Checkbox` component for the value list
+- `Filter` icon from `lucide-react` for the header button
+- Cascading filters: unique values for column X are derived from data filtered by all columns *except* X
+- Sort is exclusive across columns (setting sort on one clears others)
+- Filter state is internal to `ApuracaoDataTable` (resets when `data` prop changes)
 
