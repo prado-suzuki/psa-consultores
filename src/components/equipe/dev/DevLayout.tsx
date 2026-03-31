@@ -169,13 +169,13 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
                       isPisCofinsActive
                         ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
                         : "text-slate-700 hover:text-teal-600"
                     }`}
                   >
-                    <span className="flex-1 text-left truncate">Levantamento de PIS/COFINS</span>
+                    <span className="flex-1 text-left">Levantamento de PIS/COFINS</span>
                     <ChevronDown
                       className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
                     />
