@@ -298,7 +298,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
         <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
       ) : (
         <section>
-          <h2 className="text-lg font-bold uppercase mb-4 text-primary">Resumo Hierárquico</h2>
+          <h2 className="text-lg font-bold uppercase mb-4 text-primary">{sectionTitle}</h2>
           <Card className="p-8 text-center text-muted-foreground italic">
             Nenhum dado hierárquico disponível.
           </Card>
