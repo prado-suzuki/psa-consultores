@@ -18,6 +18,7 @@ interface DynamicTableHeaderProps {
   collapsedHeaderClassName?: string;
   totalHeaderClassName?: string;
   headerButtonClassName?: string;
+  renderHeaderExtra?: (label: string) => React.ReactNode;
 }
 
 export function DynamicTableHeader({
@@ -34,6 +35,7 @@ export function DynamicTableHeader({
   collapsedHeaderClassName,
   totalHeaderClassName,
   headerButtonClassName,
+  renderHeaderExtra,
 }: DynamicTableHeaderProps) {
   return (
     <thead className={cn("bg-muted sticky top-0 z-30 [&_tr]:border-b", headerClassName)}>
@@ -49,7 +51,10 @@ export function DynamicTableHeader({
             style={{ left: col.left, minWidth: col.width }}
             rowSpan={headerRowsCount}
           >
-            {col.label}
+            <span className="inline-flex items-center">
+              {col.label}
+              {renderHeaderExtra?.(col.label)}
+            </span>
           </TableHead>
         ))}
         
