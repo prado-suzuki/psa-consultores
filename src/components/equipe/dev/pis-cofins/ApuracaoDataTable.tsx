@@ -318,7 +318,7 @@ export function ApuracaoDataTable({
                 </TableCell>
               </TableRow>
             )}
-            {showTotals && data.length > 0 && (
+            {showTotals && processedData.length > 0 && (
               <TableRow className={footerRowClass}>
                 {stickyConfig.map((cfg, i) => (
                   <TableCell
@@ -330,15 +330,15 @@ export function ApuracaoDataTable({
                   </TableCell>
                 ))}
                 {headerBottom.map((col) => {
-                  const total = data.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0);
+                  const total = processedData.reduce((sum, row) => sum + getColValue(row, col.dataKeys), 0);
                   return (
                     <TableCell key={col.id} className={cn("text-right font-mono text-sm border-r border-border/20 cursor-copy", highlightHeaderFooter && "border-r-[#0B7A70] text-white", isExpandedMonthColumn(col.dataKeys) && "bg-[rgba(255,255,255,0.08)]", getExpandedMonthEdgeClass(col.id))} onDoubleClick={() => copyToClipboard(total)}>
                       {formatCurrency(total)}
                     </TableCell>
                   );
                 })}
-                <TableCell className={cn("text-right font-mono font-bold text-sm border-l cursor-copy", footerTotalCellClass)} onDoubleClick={() => copyToClipboard(data.reduce((sum, row) => sum + row.total, 0))}>
-                  {formatCurrency(data.reduce((sum, row) => sum + row.total, 0))}
+                <TableCell className={cn("text-right font-mono font-bold text-sm border-l cursor-copy", footerTotalCellClass)} onDoubleClick={() => copyToClipboard(processedData.reduce((sum, row) => sum + row.total, 0))}>
+                  {formatCurrency(processedData.reduce((sum, row) => sum + row.total, 0))}
                 </TableCell>
               </TableRow>
             )}
