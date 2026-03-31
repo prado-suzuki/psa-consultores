@@ -63,6 +63,93 @@ export function ApuracaoDataTable({
   highlightHeaderFooter = false,
 }: ApuracaoDataTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /* ── Filter / Sort state ── */
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+
+  const handleSort = useCallback((key: string, direction: "asc" | "desc") => {
+    setSortConfig((prev) =>
+      prev?.key === key && prev.direction === direction ? null : { key, direction },
+    );
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      const next = { ...prev };
+      if (values == null) {
+        delete next[key];
+      } else {
+        next[key] = values;
+      }
+      return next;
+    });
+  }, []);
+
+  const FILTERABLE_KEYS = useMemo(() => {
+    const keys: { key: string; label: string }[] = [];
+    if (showCst) keys.push({ key: "cst_pis", label: "CST" });
+    keys.push({ key: "cod_cta", label: "Conta" });
+    if (showBloco) keys.push({ key: "bloco_efd", label: "Bloco" });
+    return keys;
+  }, [showCst, showBloco]);
+
+  const rowAccessor = (row: PivotRowGeneric, key: string): string =>
+    String((row as Record<string, unknown>)[key] ?? "");
+
+  /* filtered + sorted data */
+  const processedData = useMemo(() => {
+    let rows = data;
+    // Apply filters
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      rows = rows.filter((r) => allowed.has(rowAccessor(r, key)));
+    }
+    // Sort
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      rows = [...rows].sort((a, b) => {
+        const va = rowAccessor(a, key);
+        const vb = rowAccessor(b, key);
+        const cmp = va.localeCompare(vb, "pt-BR");
+        return direction === "asc" ? cmp : -cmp;
+      });
+    }
+    return rows;
+  }, [data, columnFilters, sortConfig]);
+
+  /* Cascading unique values: for column X, compute from data filtered by all OTHER columns */
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of FILTERABLE_KEYS) {
+      let subset = data;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) {
+          subset = subset.filter((r) => allowed.has(rowAccessor(r, fk)));
+        }
+      }
+      const vals = [...new Set(subset.map((r) => rowAccessor(r, key)))];
+      result[key] = vals;
+    }
+    return result;
+  }, [data, columnFilters, FILTERABLE_KEYS]);
+
+  const renderHeaderExtra = useCallback(
+    (label: string) => {
+      const entry = FILTERABLE_KEYS.find((f) => f.label === label);
+      if (!entry) return null;
+      return (
+        <ColumnFilterDropdown
+          columnKey={entry.key}
+          uniqueValues={cascadingUniqueValues[entry.key] || []}
+          activeSort={sortConfig}
+          activeFilter={columnFilters[entry.key] ?? null}
+          onSort={handleSort}
+          onFilter={handleFilter}
+        />
+      );
+    },
+    [FILTERABLE_KEYS, cascadingUniqueValues, sortConfig, columnFilters, handleSort, handleFilter],
+  );
   
   const {
     headerRow1,
