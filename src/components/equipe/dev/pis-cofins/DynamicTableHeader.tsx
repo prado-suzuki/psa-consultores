@@ -77,7 +77,7 @@ export function DynamicTableHeader({
             </TableHead>
           )
         ))}
-        <TableHead className={cn("text-right !font-bold uppercase text-xs text-muted-foreground border-l", totalHeaderClassName)} rowSpan={headerRowsCount}>Total</TableHead>
+        {showTotal && <TableHead className={cn("text-right !font-bold uppercase text-xs text-muted-foreground border-l", totalHeaderClassName)} rowSpan={headerRowsCount}>Total</TableHead>}
       </TableRow>
       {hasExpandedYear && (
         <TableRow>
