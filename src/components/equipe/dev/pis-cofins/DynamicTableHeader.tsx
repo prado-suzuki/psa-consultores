@@ -51,7 +51,10 @@ export function DynamicTableHeader({
             style={{ left: col.left, minWidth: col.width }}
             rowSpan={headerRowsCount}
           >
-            {col.label}
+            <span className="inline-flex items-center">
+              {col.label}
+              {renderHeaderExtra?.(col.label)}
+            </span>
           </TableHead>
         ))}
         
