@@ -19,6 +19,7 @@ interface DynamicTableHeaderProps {
   totalHeaderClassName?: string;
   headerButtonClassName?: string;
   renderHeaderExtra?: (label: string) => React.ReactNode;
+  showTotal?: boolean;
 }
 
 export function DynamicTableHeader({
