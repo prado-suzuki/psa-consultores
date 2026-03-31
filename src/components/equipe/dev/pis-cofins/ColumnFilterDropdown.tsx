@@ -90,7 +90,7 @@ export function ColumnFilterDropdown({
               className="flex-1 text-xs h-7"
               onClick={() => { onSort(columnKey, "asc"); setOpen(false); }}
             >
-              <ArrowUpNarrowWide className="h-3.5 w-3.5 mr-1" /> Crescente
+              <ArrowUpNarrowWide className="h-3.5 w-3.5 mr-1" /> Asc
             </Button>
             <Button
               size="sm"
@@ -98,7 +98,7 @@ export function ColumnFilterDropdown({
               className="flex-1 text-xs h-7"
               onClick={() => { onSort(columnKey, "desc"); setOpen(false); }}
             >
-              <ArrowDownNarrowWide className="h-3.5 w-3.5 mr-1" /> Decrescente
+              <ArrowDownNarrowWide className="h-3.5 w-3.5 mr-1" /> Desc
             </Button>
           </div>
         </div>
