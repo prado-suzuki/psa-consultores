@@ -258,8 +258,8 @@ export function ApuracaoDataTable({
             renderHeaderExtra={renderHeaderExtra}
           />
           <TableBody>
-            {data.length > 0 ? (
-              data.map((row) => {
+            {processedData.length > 0 ? (
+              processedData.map((row) => {
                 let colIdx = 0;
                 return (
                   <TableRow key={row.key} className="hover:bg-muted/30">
