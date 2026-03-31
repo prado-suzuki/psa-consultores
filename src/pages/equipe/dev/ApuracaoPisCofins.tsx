@@ -584,7 +584,7 @@ const ApuracaoPisCofins = () => {
                         placeholder="Filtrar por conta..."
                       />
                       <ApuracaoDataTable
-                        title="Resumo Geral"
+                        title={`Base da Apuração - ${tipoApuracao === "EFD" ? "EFD Contribuições" : "Balancete"}`}
                         data={filteredResumoData}
                         showCst
                         showBloco
