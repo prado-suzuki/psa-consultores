@@ -94,7 +94,7 @@ const MapaNCMPisCofins = () => {
   };
 
   return (
-    <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM">
+    <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM e segmento do negócio">
       {/* Filters */}
       <div className="bg-slate-50 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[200px]">
