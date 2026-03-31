@@ -569,6 +569,7 @@ const ApuracaoPisCofins = () => {
                       <BalanceteTreeTable
                         contasTree={filteredContasTree}
                         periodoFechado={periodoFechado}
+                        sectionTitle="Base da Apuração - Balancete"
                         extraContas={new Map(Array.from(extraContas.entries()).map(([k, v]) => [k, v.tipo]))}
                         efdContas={efdContasSet}
                         onToggleExtra={handleToggleExtra}
