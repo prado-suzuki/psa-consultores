@@ -255,6 +255,7 @@ export function ApuracaoDataTable({
             collapsedHeaderClassName={highlightClass}
             totalHeaderClassName={highlightClass}
             headerButtonClassName={highlightHeaderFooter ? HEADER_FOOTER_BUTTON_CLASS : undefined}
+            renderHeaderExtra={renderHeaderExtra}
           />
           <TableBody>
             {data.length > 0 ? (
