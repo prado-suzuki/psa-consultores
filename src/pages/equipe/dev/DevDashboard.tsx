@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ExternalLink,
 } from 'lucide-react';
+import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
 
 interface ToolEntry {
   name: string;
@@ -25,28 +26,28 @@ interface ToolGroup {
 
 const toolGroups: ToolGroup[] = [
   {
-    label: 'Consulta SPED',
+    label: DEV_NAV_LABELS.consultaSped,
     tools: [
       {
-        name: 'EFD Contribuições',
+        name: DEV_NAV_LABELS.efdContribuicoes,
         description: 'Consulta e análise de escrituração fiscal digital',
         path: '/equipe/dev/consulta-efd',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
       },
       {
-        name: 'EFD ICMS/IPI',
+        name: DEV_NAV_LABELS.efdIcms + '/IPI',
         description: 'Consulta de EFD ICMS/IPI por contribuinte',
         path: '/equipe/dev/consulta-efd-icms',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
       },
       {
-        name: 'ECD',
+        name: DEV_NAV_LABELS.ecd,
         description: 'Consulta de Escrituração Contábil Digital',
         path: '/equipe/dev/consulta-ecd',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
       },
       {
-        name: 'ECF',
+        name: DEV_NAV_LABELS.ecf,
         description: 'Consulta de Escrituração Contábil Fiscal',
         path: '/equipe/dev/consulta-ecf',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
@@ -54,35 +55,35 @@ const toolGroups: ToolGroup[] = [
     ],
   },
   {
-    label: 'Levantamento de PIS/COFINS',
+    label: DEV_NAV_LABELS.levantamentoPisCofins,
     tools: [
       {
-        name: 'Mapa NCM (PIS/COFINS)',
+        name: DEV_NAV_LABELS.mapaNCMs,
         description: 'Regras de crédito por NCM para PIS e COFINS',
         path: '/equipe/dev/mapa-ncm-pis-cofins',
       },
       {
-        name: 'Apuração PIS/COFINS',
+        name: DEV_NAV_LABELS.apuracaoTributaria,
         description: 'Cálculo de apuração do cliente',
         path: '/equipe/dev/apuracao-pis-cofins',
       },
       {
-        name: 'Auditoria Cruzada',
+        name: DEV_NAV_LABELS.analiseCruzada,
         description: 'Cruzamento de dados fiscais e contábeis',
         path: '/equipe/dev/cruzamento-dados',
       },
       {
-        name: 'Revisão de Registros',
+        name: DEV_NAV_LABELS.revisaoRegistrosEfd,
         description: 'Revisão e correção de registros SPED',
         path: '/equipe/dev/correcoes-sped',
       },
     ],
   },
   {
-    label: 'DIFAL Inteligente',
+    label: DEV_NAV_LABELS.difalInteligente,
     tools: [
       {
-        name: 'DIFAL Inteligente',
+        name: DEV_NAV_LABELS.difalInteligente,
         description: 'Auditoria automatizada de DIFAL por NCM',
         path: '/equipe/dev/auditoria-fiscal',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
@@ -93,13 +94,13 @@ const toolGroups: ToolGroup[] = [
     label: 'Outros',
     tools: [
       {
-        name: 'Consulta de XMLs',
+        name: DEV_NAV_LABELS.consultaXmls,
         description: 'Busque e visualize documentos fiscais eletrônicos',
         path: '/equipe/dev/consulta-xmls',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
       },
       {
-        name: 'Calculadora IBS/CBS',
+        name: DEV_NAV_LABELS.calculadoraIbsCbs,
         description: 'Simulador de cálculo da reforma tributária',
         path: '/equipe/dev/calculadora-ibs-cbs',
       },

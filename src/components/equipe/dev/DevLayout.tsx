@@ -24,6 +24,7 @@ import {
   Layers,
   ScanSearch,
 } from "lucide-react";
+import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 
 interface DevLayoutProps {
   children: React.ReactNode;
@@ -40,32 +41,32 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Início", path: "/equipe/dev" },
-  { icon: Plus, label: "Nova ferramenta", path: "/equipe/dev/nova-ferramenta" },
-  { icon: LayoutDashboard, label: "Consulta de XMLs", path: "/equipe/dev/consulta-xmls" },
+  { icon: LayoutDashboard, label: DEV_NAV_LABELS.inicio, path: "/equipe/dev" },
+  { icon: Plus, label: DEV_NAV_LABELS.novaFerramenta, path: "/equipe/dev/nova-ferramenta" },
+  { icon: LayoutDashboard, label: DEV_NAV_LABELS.consultaXmls, path: "/equipe/dev/consulta-xmls" },
 ];
 
 const spedSubItems: NavItem[] = [
-  { icon: FileText, label: "EFD Contribuições", path: "/equipe/dev/consulta-efd" },
-  { icon: FileText, label: "EFD ICMS", path: "/equipe/dev/consulta-efd-icms" },
-  { icon: FileText, label: "ECD", path: "/equipe/dev/consulta-ecd" },
-  { icon: FileText, label: "ECF", path: "/equipe/dev/consulta-ecf" },
+  { icon: FileText, label: DEV_NAV_LABELS.efdContribuicoes, path: "/equipe/dev/consulta-efd" },
+  { icon: FileText, label: DEV_NAV_LABELS.efdIcms, path: "/equipe/dev/consulta-efd-icms" },
+  { icon: FileText, label: DEV_NAV_LABELS.ecd, path: "/equipe/dev/consulta-ecd" },
+  { icon: FileText, label: DEV_NAV_LABELS.ecf, path: "/equipe/dev/consulta-ecf" },
 ];
 
 const pisCofinsSubItems: NavItem[] = [
-  { icon: Layers, label: "Mapa de NCMs", path: "/equipe/dev/mapa-ncm-pis-cofins" },
-  { icon: Calculator, label: "Apuração Tributária", path: "/equipe/dev/apuracao-pis-cofins" },
-  { icon: ScanSearch, label: "Análise Cruzada", path: "/equipe/dev/cruzamento-dados" },
-  { icon: FileText, label: "Revisão de Registros EFD", path: "/equipe/dev/correcoes-sped" },
+  { icon: Layers, label: DEV_NAV_LABELS.mapaNCMs, path: "/equipe/dev/mapa-ncm-pis-cofins" },
+  { icon: Calculator, label: DEV_NAV_LABELS.apuracaoTributaria, path: "/equipe/dev/apuracao-pis-cofins" },
+  { icon: ScanSearch, label: DEV_NAV_LABELS.analiseCruzada, path: "/equipe/dev/cruzamento-dados" },
+  { icon: FileText, label: DEV_NAV_LABELS.revisaoRegistrosEfd, path: "/equipe/dev/correcoes-sped" },
 ];
 
 const navItemsAfterSped: NavItem[] = [
-  { icon: Calculator, label: "DIFAL Inteligente", path: "/equipe/dev/auditoria-fiscal" },
-  { icon: Calculator, label: "Calculadora IBS/CBS", path: "/equipe/dev/calculadora-ibs-cbs" },
-  { icon: FileSpreadsheet, label: "Controle PERDCOMP", path: "/equipe/dev/controle-perdcomp" },
-  { icon: FileText, label: "Controle Balancetes", path: "/equipe/dev/controle-balancetes" },
-  { icon: Users, label: "Procedimentos", path: "/equipe/dev/procedimentos" },
-  { icon: Database, label: "Gerenciar dados", path: "/equipe/dev/gerenciar-dados" },
+  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/auditoria-fiscal" },
+  { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
+  { icon: FileSpreadsheet, label: DEV_NAV_LABELS.controlePerdcomp, path: "/equipe/dev/controle-perdcomp" },
+  { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
+  { icon: Users, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
+  { icon: Database, label: DEV_NAV_LABELS.gerenciarDados, path: "/equipe/dev/gerenciar-dados" },
 ];
 
 export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
@@ -140,7 +141,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                         : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                   >
-                    <span className="flex-1 text-left">Consulta SPED</span>
+                    <span className="flex-1 text-left">{DEV_NAV_LABELS.consultaSped}</span>
                     <ChevronDown
                       className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
                     />
@@ -175,7 +176,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                         : "text-slate-700 hover:text-teal-600"
                     }`}
                   >
-                    <span className="flex-1 text-left">Levantamento PIS/COFINS</span>
+                    <span className="flex-1 text-left">{DEV_NAV_LABELS.levantamentoPisCofins}</span>
                     <ChevronDown
                       className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
                     />
