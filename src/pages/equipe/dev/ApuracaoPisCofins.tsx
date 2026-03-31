@@ -403,7 +403,7 @@ const ApuracaoPisCofins = () => {
   };
 
   return (
-    <DevLayout title="Apuração PIS/COFINS" subtitle="Auditoria e cruzamento de apurações tributárias">
+    <DevLayout title="Apuração PIS/COFINS" subtitle="Apuração de tributos do cliente com base nos documentos fornecidos">
       {/* Filters */}
       <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
         {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
