@@ -246,7 +246,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             </TableCell>
 
             <TableCell
-              className="sticky left-[100px] z-10 bg-inherit text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
+              className="sticky left-[100px] z-10 bg-background text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
               style={{ minWidth: 280, maxWidth: 280 }}
               title={node.descricao_conta}
               onDoubleClick={() => copyToClipboard(node.descricao_conta)}
