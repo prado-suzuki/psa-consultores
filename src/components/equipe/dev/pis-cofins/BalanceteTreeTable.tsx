@@ -222,7 +222,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
         rows.push(
           <TableRow key={node.plano_conta} className={cn("hover:bg-muted/20 group", bgClass)}>
             <TableCell
-              className="sticky left-0 z-10 bg-inherit font-mono text-xs cursor-copy whitespace-nowrap"
+              className="sticky left-0 z-10 bg-background font-mono text-xs cursor-copy whitespace-nowrap"
               style={{ minWidth: 100 }}
               onDoubleClick={() => copyToClipboard(node.cod_cta)}
             >
@@ -246,7 +246,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             </TableCell>
 
             <TableCell
-              className="sticky left-[100px] z-10 bg-inherit text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
+              className="sticky left-[100px] z-10 bg-background text-sm shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] cursor-copy"
               style={{ minWidth: 280, maxWidth: 280 }}
               title={node.descricao_conta}
               onDoubleClick={() => copyToClipboard(node.descricao_conta)}
