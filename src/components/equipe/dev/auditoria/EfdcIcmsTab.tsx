@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { EfdcIcmsNota } from '@/types/efdcIcms';
 
 interface EfdcIcmsTabProps {
@@ -19,11 +20,24 @@ interface EfdcIcmsTabProps {
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+type FilterKey = 'cfop_icms' | 'cta_icms' | 'cfop_contrib' | 'cta_contrib';
+
+const extractValue = (nota: EfdcIcmsNota, key: FilterKey): string => {
+  switch (key) {
+    case 'cfop_icms': return nota.EFD_ICMS.CFOP.join(', ');
+    case 'cta_icms': return nota.EFD_ICMS.COD_CTA.filter(Boolean).join(', ') || '(vazio)';
+    case 'cfop_contrib': return nota.EFD_CONTRIB.CFOP.length ? nota.EFD_CONTRIB.CFOP.join(', ') : '(sem EFD Contrib)';
+    case 'cta_contrib': return nota.EFD_CONTRIB.CFOP.length ? (nota.EFD_CONTRIB.COD_CTA.filter(Boolean).join(', ') || '(vazio)') : '(sem EFD Contrib)';
+  }
+};
+
 const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string> | null>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -34,16 +48,73 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
     if (error) toast.error('Falha ao carregar os dados EFD ICMS. Tente novamente.');
   }, [error]);
 
-  const filteredNotas = useMemo(() => {
-    if (!debouncedSearch) return notas;
-    const term = debouncedSearch.toLowerCase();
-    return notas.filter((n) => (n.CHV_NFE ?? '').toLowerCase().includes(term));
-  }, [notas, debouncedSearch]);
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
 
-  useEffect(() => { setCurrentPage(0); }, [debouncedSearch, notas]);
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
 
-  const totalPages = Math.ceil(filteredNotas.length / PAGE_SIZE);
-  const pagedNotas = filteredNotas.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const processedNotas = useMemo(() => {
+    let result = notas;
+
+    // Text search
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
+      result = result.filter((n) => (n.CHV_NFE ?? '').toLowerCase().includes(term));
+    }
+
+    // Column filters
+    const filterKeys: FilterKey[] = ['cfop_icms', 'cta_icms', 'cfop_contrib', 'cta_contrib'];
+    for (const key of filterKeys) {
+      const filterSet = columnFilters[key];
+      if (filterSet) {
+        result = result.filter((n) => filterSet.has(extractValue(n, key)));
+      }
+    }
+
+    // Sort
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      const mult = direction === 'asc' ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const va = extractValue(a, key as FilterKey);
+        const vb = extractValue(b, key as FilterKey);
+        return va.localeCompare(vb, 'pt-BR') * mult;
+      });
+    }
+
+    return result;
+  }, [notas, debouncedSearch, columnFilters, sortConfig]);
+
+  // Unique values per column (cascade-aware)
+  const uniqueValues = useMemo(() => {
+    const keys: FilterKey[] = ['cfop_icms', 'cta_icms', 'cfop_contrib', 'cta_contrib'];
+    const result: Record<string, string[]> = {};
+    for (const targetKey of keys) {
+      // Filter by all OTHER active filters to get cascaded unique values
+      let subset = notas;
+      if (debouncedSearch) {
+        const term = debouncedSearch.toLowerCase();
+        subset = subset.filter((n) => (n.CHV_NFE ?? '').toLowerCase().includes(term));
+      }
+      for (const otherKey of keys) {
+        if (otherKey === targetKey) continue;
+        const filterSet = columnFilters[otherKey];
+        if (filterSet) {
+          subset = subset.filter((n) => filterSet.has(extractValue(n, otherKey)));
+        }
+      }
+      result[targetKey] = [...new Set(subset.map((n) => extractValue(n, targetKey)))];
+    }
+    return result;
+  }, [notas, debouncedSearch, columnFilters]);
+
+  useEffect(() => { setCurrentPage(0); }, [processedNotas]);
+
+  const totalPages = Math.ceil(processedNotas.length / PAGE_SIZE);
+  const pagedNotas = processedNotas.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   if (!hasQueried) {
     return (
@@ -96,7 +167,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
           </div>
         </div>
 
-        {filteredNotas.length === 0 ? (
+        {processedNotas.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
         ) : (
           <>
@@ -110,11 +181,51 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                     <TableHead colSpan={2} className="text-xs text-center bg-muted/30">XML</TableHead>
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-xs">CFOP</TableHead>
-                    <TableHead className="text-xs">Conta Contábil</TableHead>
+                    <TableHead className="text-xs">
+                      CFOP
+                      <ColumnFilterDropdown
+                        columnKey="cfop_icms"
+                        uniqueValues={uniqueValues.cfop_icms ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.cfop_icms ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs">
+                      Conta Contábil
+                      <ColumnFilterDropdown
+                        columnKey="cta_icms"
+                        uniqueValues={uniqueValues.cta_icms ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.cta_icms ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
                     <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
-                    <TableHead className="text-xs">CFOP</TableHead>
-                    <TableHead className="text-xs">Conta Contábil</TableHead>
+                    <TableHead className="text-xs">
+                      CFOP
+                      <ColumnFilterDropdown
+                        columnKey="cfop_contrib"
+                        uniqueValues={uniqueValues.cfop_contrib ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.cfop_contrib ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs">
+                      Conta Contábil
+                      <ColumnFilterDropdown
+                        columnKey="cta_contrib"
+                        uniqueValues={uniqueValues.cta_contrib ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.cta_contrib ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
                     <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
                     <TableHead className="text-xs">CFOP</TableHead>
                     <TableHead className="text-xs text-right">Valor Doc</TableHead>
@@ -158,7 +269,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredNotas.length}
+              totalItems={processedNotas.length}
               onPageChange={setCurrentPage}
             />
           </>
