@@ -211,10 +211,11 @@ export function calcTodosPeriodos(
   let saldoAnterior = saldoInicial;
 
   return input.periodos.map((periodo) => {
-    const baseDebito = calcBaseDebito(periodo.itens_credito);
-    const baseCredito = calcBaseCredito(periodo.itens_credito);
-    const valoresDebito = calcValoresDebito(periodo.itens_credito);
-    const valoresCredito = calcValoresCredito(periodo.itens_credito);
+    const itens = periodo.itens_credito ?? [];
+    const baseDebito = calcBaseDebito(itens);
+    const baseCredito = calcBaseCredito(itens);
+    const valoresDebito = calcValoresDebito(itens);
+    const valoresCredito = calcValoresCredito(itens);
     const resultado = calcApuracao(
       baseDebito,
       baseCredito,
@@ -393,10 +394,11 @@ export function calcTodosPeriodosBalancete(
   let saldoAnterior = saldoInicial;
 
   return input.periodos.map((periodo) => {
-    const baseDebito = calcBaseDebito(periodo.itens_credito);
-    const baseCredito = calcBaseCreditoBalancete(periodo.itens_credito, periodoFechado);
-    const valoresDebito = calcValoresDebito(periodo.itens_credito);
-    const valoresCredito = calcValoresCreditoBalancete(periodo.itens_credito, periodoFechado);
+    const itens = periodo.itens_credito ?? [];
+    const baseDebito = calcBaseDebito(itens);
+    const baseCredito = calcBaseCreditoBalancete(itens, periodoFechado);
+    const valoresDebito = calcValoresDebito(itens);
+    const valoresCredito = calcValoresCreditoBalancete(itens, periodoFechado);
     const resultado = calcApuracao(
       baseDebito,
       baseCredito,

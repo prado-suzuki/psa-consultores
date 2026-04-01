@@ -56,7 +56,8 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
   const normalizedData: ApuracaoInput | null = useMemo(() => {
     if (!data) return null;
     const needsFlatten = data.periodos.some(p => p.contas && p.contas.length > 0 && (!p.itens_credito || p.itens_credito.length === 0));
-    if (!needsFlatten && (!extraContas || extraContas.size === 0)) return data;
+    const needsNormalize = needsFlatten || (extraContas && extraContas.size > 0) || data.periodos.some(p => !p.itens_credito);
+    if (!needsNormalize) return data;
 
     const extraSet = extraContas ? new Set(extraContas.keys()) : new Set<string>();
 
@@ -110,7 +111,7 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
       ...normalizedData,
       periodos: normalizedData.periodos.map((p) => ({
         ...p,
-        itens_credito: p.itens_credito.filter(hasEfdRecord),
+        itens_credito: (p.itens_credito ?? []).filter(hasEfdRecord),
       })),
     };
   }, [normalizedData, tipoApuracao]);

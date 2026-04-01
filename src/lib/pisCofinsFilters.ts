@@ -59,7 +59,7 @@ export function buildPivot(
 
   for (const periodo of periodos) {
     const pk = periodo.dt_ini.slice(0, 7);
-    for (const item of periodo.itens_credito) {
+    for (const item of (periodo.itens_credito ?? [])) {
       if (filterFn && !filterFn(item)) continue;
 
       const key = `${item.cst_pis}|${item.cod_cta}|${item.bloco_efd}`;
@@ -155,7 +155,7 @@ export function buildPivotGeneric(
 
   for (const periodo of periodos) {
     const month = periodo.dt_ini.substring(0, 7);
-    for (const item of periodo.itens_credito) {
+    for (const item of (periodo.itens_credito ?? [])) {
       if (!filterFn(item)) continue;
 
       const key = groupBy(item);
