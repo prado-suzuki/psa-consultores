@@ -557,7 +557,7 @@ export function PerFormModal({
 
             <FormField
               control={form.control}
-              name="numero_processo_per"
+              name="nr_per"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número do Processo <RequiredMark /></FormLabel>
