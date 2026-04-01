@@ -39,7 +39,7 @@ const CorrecoesSped = () => {
   const [hasQueried, setHasQueried] = useState(false);
 
   // Modals
-  const [selectedItem, setSelectedItem] = useState<ItemEfd | null>(null);
+  const [selectedItem, setSelectedItem] = useState<FlatItemEfd | null>(null);
   const [selectedNcm, setSelectedNcm] = useState<string | null>(null);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
