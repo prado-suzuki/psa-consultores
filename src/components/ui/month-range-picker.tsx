@@ -35,30 +35,38 @@ export function MonthRangePicker({
   className,
   disabled = false,
   minYear = 2020,
-  maxYear = new Date().getFullYear() + 1,
+  maxYear = new Date().getFullYear() + 5,
 }: MonthRangePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const [viewYear, setViewYear] = React.useState(value?.start?.year || new Date().getFullYear());
-  // Selection phase: null = nothing selected, 'start' = first click done awaiting second
-  const [pendingStart, setPendingStart] = React.useState<{ month: number; year: number } | null>(null);
+  const [viewYear, setViewYear] = React.useState(
+    value?.start?.year || new Date().getFullYear()
+  );
+  const [pendingStart, setPendingStart] = React.useState<{
+    month: number;
+    year: number;
+  } | null>(null);
+  const [mode, setMode] = React.useState<"months" | "years">("months");
+  const [yearGridStart, setYearGridStart] = React.useState(
+    Math.floor((value?.start?.year || new Date().getFullYear()) / 12) * 12
+  );
 
   React.useEffect(() => {
     if (value?.start?.year) setViewYear(value.start.year);
   }, [value?.start?.year]);
 
-  // Reset pending when popover opens
   React.useEffect(() => {
-    if (open) setPendingStart(null);
+    if (open) {
+      setPendingStart(null);
+      setMode("months");
+    }
   }, [open]);
 
   const handleMonthClick = (month: number) => {
     const clicked = { month, year: viewYear };
 
     if (!pendingStart) {
-      // First click — set start
       setPendingStart(clicked);
     } else {
-      // Second click — determine order
       const startKey = toKey(pendingStart.month, pendingStart.year);
       const endKey = toKey(clicked.month, clicked.year);
 
@@ -82,7 +90,10 @@ export function MonthRangePicker({
   const isInRange = (month: number) => {
     if (!value) return false;
     const key = toKey(month, viewYear);
-    return key >= toKey(value.start.month, value.start.year) && key <= toKey(value.end.month, value.end.year);
+    return (
+      key >= toKey(value.start.month, value.start.year) &&
+      key <= toKey(value.end.month, value.end.year)
+    );
   };
 
   const isStart = (month: number) =>
@@ -104,67 +115,153 @@ export function MonthRangePicker({
             className
           )}
         >
-          <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+          <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
           {formatDisplay() || <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0 pointer-events-auto" align="start">
+      <PopoverContent
+        className="w-[280px] p-0 pointer-events-auto"
+        align="start"
+      >
         <div className="p-3">
-          {/* Year navigation */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => viewYear > minYear && setViewYear(viewYear - 1)}
-              disabled={viewYear <= minYear}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold">{viewYear}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => viewYear < maxYear && setViewYear(viewYear + 1)}
-              disabled={viewYear >= maxYear}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {mode === "months" ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() =>
+                    viewYear > minYear && setViewYear(viewYear - 1)
+                  }
+                  disabled={viewYear <= minYear}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setYearGridStart(Math.floor(viewYear / 12) * 12);
+                    setMode("years");
+                  }}
+                  className="text-sm font-semibold hover:underline focus:outline-none"
+                >
+                  {viewYear}
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() =>
+                    viewYear < maxYear && setViewYear(viewYear + 1)
+                  }
+                  disabled={viewYear >= maxYear}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setYearGridStart((y) => y - 12)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-semibold">
+                  {yearGridStart} – {yearGridStart + 11}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setYearGridStart((y) => y + 12)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Hint */}
-          <p className="text-[10px] text-center text-muted-foreground mb-2">
-            {pendingStart
-              ? `Início: ${MONTHS[pendingStart.month]}/${pendingStart.year} — selecione o fim`
-              : "Selecione o mês de início"}
-          </p>
+          {mode === "months" && (
+            <p className="text-[10px] text-center text-gray-500 mb-2">
+              {pendingStart
+                ? `Início: ${MONTHS[pendingStart.month]}/${pendingStart.year} — selecione o fim`
+                : "Selecione o mês de início"}
+            </p>
+          )}
 
-          {/* Month grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {MONTHS.map((name, index) => {
-              const selected = isStart(index) || isEnd(index) || isPending(index);
-              const inRange = isInRange(index) && !selected;
-              const isCurrent = index === new Date().getMonth() && viewYear === new Date().getFullYear();
+          {/* Months grid */}
+          {mode === "months" && (
+            <div className="grid grid-cols-4 gap-2">
+              {MONTHS.map((name, index) => {
+                const selected =
+                  isStart(index) || isEnd(index) || isPending(index);
+                const inRange = isInRange(index) && !selected;
+                const isCurrent =
+                  index === new Date().getMonth() &&
+                  viewYear === new Date().getFullYear();
 
-              return (
-                <Button
-                  key={name}
-                  variant={selected ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-9 text-xs font-medium",
-                    selected && "bg-teal-600 text-white hover:bg-teal-700",
-                    inRange && "bg-teal-50 text-teal-700",
-                    isCurrent && !selected && !inRange && "bg-accent text-accent-foreground"
-                  )}
-                  onClick={() => handleMonthClick(index)}
-                >
-                  {name}
-                </Button>
-              );
-            })}
-          </div>
+                return (
+                  <Button
+                    key={name}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-9 text-xs font-medium",
+                      selected && "bg-gray-900 text-white hover:bg-gray-800",
+                      inRange && "bg-gray-100 text-gray-900",
+                      isCurrent &&
+                        !selected &&
+                        !inRange &&
+                        "bg-gray-50 border border-gray-300"
+                    )}
+                    onClick={() => handleMonthClick(index)}
+                  >
+                    {name}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Years grid */}
+          {mode === "years" && (
+            <div className="grid grid-cols-4 gap-2">
+              {Array.from({ length: 12 }, (_, i) => yearGridStart + i).map(
+                (y) => {
+                  const isCurrentYear = y === new Date().getFullYear();
+                  const isSelected = y === viewYear;
+                  return (
+                    <Button
+                      key={y}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-9 text-xs font-medium",
+                        isSelected &&
+                          "bg-gray-900 text-gray-50 hover:bg-gray-800",
+                        isCurrentYear &&
+                          !isSelected &&
+                          "bg-gray-100 text-gray-900 font-semibold"
+                      )}
+                      onClick={() => {
+                        setViewYear(y);
+                        setMode("months");
+                      }}
+                      disabled={y < minYear || y > maxYear}
+                    >
+                      {y}
+                    </Button>
+                  );
+                }
+              )}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -172,7 +269,9 @@ export function MonthRangePicker({
 }
 
 /** Convert a MonthRange to start/end date strings */
-export function monthRangeToDateStrings(range: MonthRange | null): { start: string; end: string } {
+export function monthRangeToDateStrings(
+  range: MonthRange | null
+): { start: string; end: string } {
   if (!range) return { start: "", end: "" };
   const { start, end } = range;
   const startStr = `${start.year}-${String(start.month + 1).padStart(2, "0")}-01`;
