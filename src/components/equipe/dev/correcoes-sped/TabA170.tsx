@@ -35,9 +35,9 @@ export default function TabA170({ data, isLoading, error, hasQueried, ncmFilter,
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.DESCR_ITEM.toLowerCase().includes(s) ||
+          (i.DESCR_COMPL ?? '').toLowerCase().includes(s) ||
           (i.CHV_NFSE && i.CHV_NFSE.includes(s)) ||
-          i.COD_CTA.includes(s)
+          (i.COD_CTA ?? '').includes(s)
       );
     }
     return items;
