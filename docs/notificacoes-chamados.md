@@ -3,12 +3,12 @@
 ## Visão Geral
 
 O sistema de notificações de chamados envia e-mails transacionais quando:
-1. **Novo chamado é criado** → notifica gestores/admins
+1. **Novo chamado é criado** → notifica o líder da Área Fiscal
 2. **Chamado é atribuído** → notifica o cliente e o responsável
-3. **Equipe responde** → notifica o cliente e admins
-4. **Cliente responde** → notifica o agente atribuído e admins
-5. **Prazo vencido** → notifica gestores/admins
-6. **Chamado resolvido** → notifica o cliente e admins
+3. **Equipe responde** → notifica o cliente, o responsável e o líder da Área Fiscal
+4. **Cliente responde** → notifica o responsável e o líder da Área Fiscal
+5. **Prazo vencido** → notifica o líder da Área Fiscal
+6. **Chamado resolvido** → notifica o cliente e o líder da Área Fiscal
 
 ## Arquitetura
 
@@ -30,6 +30,17 @@ Lógica:
 2. Determina destinatários com base no evento
 3. Busca nome e e-mail do cliente (uma única vez)
 4. Envia **um único POST** ao webhook n8n com todos os destinatários
+
+### Resolução dinâmica de gestores
+
+A função `getGestorRecipients` busca automaticamente os líderes da **Área Fiscal** (`estrutura_areas.name = 'Área Fiscal'`) através da tabela `estrutura_area_lideres`. Isso significa que:
+- Alterar o líder da Área Fiscal no EstruturaManager reflete automaticamente nas notificações
+- Apenas líderes da Área Fiscal recebem notificações de gestor (não todas as áreas TAX)
+
+Fluxo da query:
+1. `estrutura_areas` → filtra por `name = 'Área Fiscal'` e `is_active = true`
+2. `estrutura_area_lideres` → busca `user_id` dos líderes dessas áreas
+3. `profiles` → busca o e-mail de cada líder
 
 ### Workflow n8n
 
@@ -65,7 +76,12 @@ Lógica:
     {
       "email": "ana@psa.com",
       "role": "responsavel",
-      "ticket_url": "https://psa-consultores.lovable.app/equipe/chamados/UUID"
+      "ticket_url": "https://psaconsultores.com.br/equipe"
+    },
+    {
+      "email": "ricardo@psa.com",
+      "role": "gestor",
+      "ticket_url": "https://psa-consultores.lovable.app/gestao/chamados/UUID"
     }
   ]
 }
@@ -81,6 +97,14 @@ Lógica:
 | `recipients[].role` | Papel: `"cliente"`, `"responsavel"` ou `"gestor"` |
 | `recipients[].ticket_url` | Link específico para o portal do destinatário |
 
+### URLs por role
+
+| Role | URL |
+|---|---|
+| `cliente` | `https://psa-consultores.lovable.app/cliente/chamados/{id}` |
+| `responsavel` | `https://psaconsultores.com.br/equipe` |
+| `gestor` | `https://psa-consultores.lovable.app/gestao/chamados/{id}` |
+
 ## Configuração no n8n
 
 O workflow deve:
@@ -95,3 +119,12 @@ O workflow deve:
 | Secret | Descrição |
 |---|---|
 | `N8N_WEBHOOK_URL` | URL do webhook n8n para disparo de e-mails |
+
+## Dependências no banco
+
+| Tabela | Uso |
+|---|---|
+| `estrutura_areas` | Identifica a Área Fiscal pelo nome |
+| `estrutura_area_lideres` | Mapeia líder(es) da área → user_id |
+| `profiles` | Obtém e-mail dos líderes e dos clientes |
+| `tickets` | Dados do chamado (título, departamento, prioridade, etc.) |
