@@ -262,7 +262,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                         </TableRow>
                         {isExpanded && (
                           <TableRow key={`detail-${globalIdx}`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={7} className="p-0 pl-10 pr-4 py-2">
+                            <TableCell colSpan={8} className="p-0 pl-10 pr-4 py-2">
                               <Table>
                                 <TableHeader>
                                   <TableRow>
