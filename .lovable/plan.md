@@ -1,70 +1,88 @@
 
 
-## Plan: Atualização Estrutural — `per`, `dcomp` e view `per_with_contribuinte`
+## Plan: Sync responsible_id com tax_project_members + Fix silent RLS failure
 
-### Bloco 1 — Renomear coluna na tabela `per`
-```sql
-ALTER TABLE public.per RENAME COLUMN numero_processo_per TO nr_per;
+### Problema
+A função `buildMembersList` em `src/hooks/useTaxProjects.ts` insere apenas `leader` e `member` em `tax_project_members`, ignorando o `responsible_id`. Isso faz com que o Responsável Executor não seja reconhecido pelo RLS como membro do projeto, bloqueando silenciosamente updates em `fiscal_tasks`.
+
+---
+
+### Alteração 1 — `src/hooks/useTaxProjects.ts` → `buildMembersList`
+
+Adicionar o `responsible_id` à lista de membros com `role: 'responsible'`.
+
+Na função `buildMembersList` (linha 370), receber também o `responsible_id` e incluí-lo:
+
+```typescript
+function buildMembersList(projectId: string, data: TaxProjectFormData) {
+  const members: { project_id: string; user_id: string; role: string }[] = [];
+
+  // Responsible executor
+  if (data.responsible_id) {
+    members.push({ project_id: projectId, user_id: data.responsible_id, role: 'responsible' });
+  }
+
+  // Leaders
+  for (const uid of data.leader_ids) {
+    if (!members.some(m => m.user_id === uid)) {
+      members.push({ project_id: projectId, user_id: uid, role: 'leader' });
+    }
+  }
+
+  // Members
+  for (const uid of data.member_ids) {
+    if (!members.some(m => m.user_id === uid)) {
+      members.push({ project_id: projectId, user_id: uid, role: 'member' });
+    }
+  }
+
+  return members;
+}
 ```
 
-### Bloco 2 — Adicionar colunas na tabela `per`
-```sql
-ALTER TABLE public.per ADD COLUMN excluido CHAR(1);
-ALTER TABLE public.per ADD COLUMN nr_cancelamento TEXT;
+Na mutação `useUpdateTaxProject`, ao calcular `removedMembers`, garantir que o antigo `responsible_id` (se trocado) seja removido **apenas se o role era `'responsible'`** — ou seja, só remover se o user não tem outro role no projeto. A lógica atual de `removedMembers` já faz isso corretamente porque compara sets de `user_id` completos (o novo `buildMembersList` já incluirá o novo responsible). Se o responsible antigo não estiver mais em nenhum role, será removido naturalmente.
+
+---
+
+### Alteração 2 — `src/hooks/useFiscalTasks.ts` → `useUpdateFiscalTask`
+
+Após o `.maybeSingle()`, verificar se `data` é `null`. Se sim, lançar erro:
+
+```typescript
+if (!data) {
+  throw new Error('Sem permissão para atualizar esta tarefa. Verifique se você é membro do projeto.');
+}
 ```
 
-### Bloco 3 — Adicionar colunas na tabela `dcomp`
-```sql
-ALTER TABLE public.dcomp ADD COLUMN excluido CHAR(1);
-ALTER TABLE public.dcomp ADD COLUMN nr_cancelamento TEXT;
-```
+Isso impede a escrita do audit log falso e mostra toast de erro.
 
-### Bloco 4 — Recriar view `per_with_contribuinte`
+---
 
-A view existente usa `p.*`, então a renomeação de coluna é transparente. Porém, as novas colunas `excluido` e `nr_cancelamento` já fazem parte de `p.*` após os blocos anteriores — o problema é que a view atual já expõe `contribuinte_nome` e `contribuinte_ambiente` como colunas nomeadas. Adicionar colunas explícitas quebraria a ordem se colocadas no meio.
+### Alteração 3 — Migration SQL (backfill dados existentes)
 
-Solução: **DROP e CREATE** (não `CREATE OR REPLACE`), garantindo que `excluido` e `nr_cancelamento` fiquem no final.
+Inserir em `tax_project_members` todos os `responsible_id` de projetos existentes que ainda não são membros:
 
 ```sql
-DROP VIEW IF EXISTS public.per_with_contribuinte;
-
-CREATE VIEW public.per_with_contribuinte
-WITH (security_invoker = on) AS
-SELECT
-  p.nr_per,
-  p.exercicio,
-  p.tri_exercicio,
-  p.dt_solicitada,
-  p.tp_credito,
-  p.vlr_credito,
-  p.nr_proc_ret,
-  p.criado_em,
-  p.criado_por,
-  p.id_contribuinte,
-  p.atualizado_em,
-  p.atualizado_por,
-  p.vlr_ressarcido,
-  p.porcentagem_psa,
-  c.nome_razao_social AS contribuinte_nome,
-  c.ambiente AS contribuinte_ambiente,
-  p.excluido,
-  p.nr_cancelamento
-FROM public.per p
-LEFT JOIN public.contribuinte c ON c.id = p.id_contribuinte;
+INSERT INTO public.tax_project_members (project_id, user_id, role)
+SELECT tp.id, tp.responsible_id, 'responsible'
+FROM public.tax_projects tp
+WHERE tp.responsible_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM public.tax_project_members tpm
+    WHERE tpm.project_id = tp.id
+      AND tpm.user_id = tp.responsible_id
+  );
 ```
-
-As colunas `excluido` e `nr_cancelamento` ficam **após** `contribuinte_ambiente`, no final absoluto do SELECT.
 
 ---
 
 ### Resumo
 
-| Objeto | Operação |
-|---|---|
-| `per` | `RENAME COLUMN numero_processo_per → nr_per`, `ADD excluido CHAR(1)`, `ADD nr_cancelamento TEXT` |
-| `dcomp` | `ADD excluido CHAR(1)`, `ADD nr_cancelamento TEXT` |
-| `per_with_contribuinte` | `DROP` + `CREATE` com colunas soft-delete no final |
+| # | Arquivo | Alteração |
+|---|---------|-----------|
+| 1 | `src/hooks/useTaxProjects.ts` | `buildMembersList` inclui `responsible_id` com role `'responsible'` |
+| 2 | `src/hooks/useFiscalTasks.ts` | Throw se `.maybeSingle()` retorna null (RLS bloqueou) |
+| 3 | Migration SQL | Backfill de responsible_ids existentes em `tax_project_members` |
 
-### Arquivo
-- 1 migration SQL (4 blocos sequenciais)
+Nenhuma RLS policy alterada. Nenhuma tabela/coluna criada. Visual do modal inalterado.
 
