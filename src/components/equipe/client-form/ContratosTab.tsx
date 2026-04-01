@@ -85,8 +85,15 @@ function ProdutoContratadoBlock({
       toast.error("Este produto já foi adicionado a esta OS");
       return;
     }
-    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId }]);
+    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId, horas_contratadas: undefined }]);
     setAddingProductId("__none__");
+  };
+
+  const handleHorasChange = (idx: number, value: string) => {
+    const updated = [...produtos];
+    const num = parseFloat(value);
+    updated[idx] = { ...updated[idx], horas_contratadas: isNaN(num) ? undefined : num };
+    onChange(updated);
   };
 
   const handleRemove = (idx: number) => {
