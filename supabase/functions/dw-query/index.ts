@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 }
 
-const ALLOWED_TABLES = ['per', 'per_situacao', 'dcomp'] as const
+const ALLOWED_TABLES = ['per', 'per_situacao', 'dcomp', 'per_with_contribuinte'] as const
 type AllowedTable = typeof ALLOWED_TABLES[number]
 
 Deno.serve(async (req) => {
