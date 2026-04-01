@@ -86,7 +86,7 @@ const parseCurrencyToNumber = (value: string): number => {
 };
 
 const perSchema = z.object({
-  numero_processo_per: z.string().min(1, 'Número do processo é obrigatório'),
+  nr_per: z.string().min(1, 'Número do processo é obrigatório'),
   id_contribuinte: z.string().min(1, 'Contribuinte é obrigatório'),
   exercicio: z.coerce.number().min(2000).max(2100),
   tri_exercicio: z.coerce.number().min(1).max(4),
@@ -134,7 +134,7 @@ export function PerFormModal({
   const form = useForm<PerFormData>({
     resolver: zodResolver(perSchema),
     defaultValues: {
-      numero_processo_per: '',
+      nr_per: '',
       id_contribuinte: contribuinteId || '',
       exercicio: new Date().getFullYear(),
       tri_exercicio: 1,
@@ -189,15 +189,16 @@ export function PerFormModal({
     enabled: !!selectedClienteId,
   });
 
-  // Fetch existing PERs for the contribuinte (for rectification selection)
+  // Fetch existing PERs for the contribuinte (for rectification selection) — exclude soft-deleted
   const { data: persExistentes = [] } = useQuery({
     queryKey: ['pers-existentes', contribuinteId],
     queryFn: async () => {
       if (!contribuinteId) return [];
-      const { data, error } = await supabase
-        .from('per')
-        .select('numero_processo_per, exercicio, tri_exercicio, tp_credito')
+      const { data, error } = await (supabase
+        .from('per') as any)
+        .select('nr_per, exercicio, tri_exercicio, tp_credito')
         .eq('id_contribuinte', contribuinteId)
+        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -206,14 +207,14 @@ export function PerFormModal({
   });
 
   // Filter PERs based on search query
-  const filteredPersExistentes = persExistentes.filter(per => 
-    per.numero_processo_per.toLowerCase().includes(perSearchQuery.toLowerCase())
+  const filteredPersExistentes = persExistentes.filter((per: any) => 
+    per.nr_per.toLowerCase().includes(perSearchQuery.toLowerCase())
   );
 
   useEffect(() => {
     if (editData) {
       form.reset({
-        numero_processo_per: editData.numero_processo_per,
+        nr_per: editData.nr_per,
         id_contribuinte: editData.id_contribuinte,
         exercicio: editData.exercicio,
         tri_exercicio: editData.tri_exercicio,
@@ -238,7 +239,7 @@ export function PerFormModal({
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_credito || 0));
       } else {
         form.reset({
-          numero_processo_per: '',
+          nr_per: '',
           id_contribuinte: contribuinteId || '',
           exercicio: new Date().getFullYear(),
           tri_exercicio: 1,
@@ -266,10 +267,10 @@ export function PerFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
       // Verificar se já existe PER com este número
-      const { data: existing } = await supabase
-        .from('per')
-        .select('numero_processo_per')
-        .eq('numero_processo_per', data.numero_processo_per)
+      const { data: existing } = await (supabase
+        .from('per') as any)
+        .select('nr_per')
+        .eq('nr_per', data.nr_per)
         .maybeSingle();
 
       if (existing) {
@@ -277,8 +278,8 @@ export function PerFormModal({
       }
 
       // Insert PER with nr_proc_ret if retificadora
-      const { error: perError } = await supabase.from('per').insert([{
-        numero_processo_per: data.numero_processo_per,
+      const { error: perError } = await (supabase.from('per') as any).insert([{
+        nr_per: data.nr_per,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
         tri_exercicio: data.tri_exercicio,
@@ -292,7 +293,7 @@ export function PerFormModal({
 
       // Automatically create initial situação as "Analisado"
       const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
-        nr_proc_per: data.numero_processo_per,
+        nr_proc_per: data.nr_per,
         situacao: 'Analisado',
       }).select().single();
       if (situacaoError) {
@@ -321,7 +322,7 @@ export function PerFormModal({
 
       // Sync fire-and-forget
       const perRecord = {
-        numero_processo_per: result.perData.numero_processo_per,
+        nr_per: result.perData.nr_per,
         id_contribuinte: result.perData.id_contribuinte,
         exercicio: result.perData.exercicio,
         tri_exercicio: result.perData.tri_exercicio,
@@ -348,8 +349,8 @@ export function PerFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
-      const { error } = await supabase
-        .from('per')
+      const { error } = await (supabase
+        .from('per') as any)
         .update({
           id_contribuinte: data.id_contribuinte,
           exercicio: data.exercicio,
@@ -360,7 +361,7 @@ export function PerFormModal({
           nr_proc_ret: data.nr_proc_ret || null,
           porcentagem_psa: data.porcentagem_psa ?? null,
         })
-        .eq('numero_processo_per', editData?.numero_processo_per);
+        .eq('nr_per', editData?.nr_per);
       if (error) throw error;
       return data;
     },
@@ -372,7 +373,7 @@ export function PerFormModal({
 
       syncPerdcompToDW({
         per: [{
-          numero_processo_per: editData?.numero_processo_per,
+          nr_per: editData?.nr_per,
           id_contribuinte: data.id_contribuinte,
           exercicio: data.exercicio,
           tri_exercicio: data.tri_exercicio,
@@ -522,19 +523,19 @@ export function PerFormModal({
                       <CommandList>
                         <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
-                          {filteredPersExistentes.map((per) => (
+                          {filteredPersExistentes.map((per: any) => (
                             <CommandItem
-                              key={per.numero_processo_per}
-                              value={per.numero_processo_per}
+                              key={per.nr_per}
+                              value={per.nr_per}
                               onSelect={() => {
-                                setSelectedPerRetificado(per.numero_processo_per);
-                                form.setValue('nr_proc_ret', per.numero_processo_per);
+                                setSelectedPerRetificado(per.nr_per);
+                                form.setValue('nr_proc_ret', per.nr_per);
                                 setPerRetificadoOpen(false);
                                 setPerSearchQuery('');
                               }}
                             >
                               <div className="flex flex-col">
-                                <span className="font-mono text-sm">{per.numero_processo_per}</span>
+                                <span className="font-mono text-sm">{per.nr_per}</span>
                                 <span className="text-xs text-muted-foreground">
                                   {per.exercicio}/{per.tri_exercicio}T • {per.tp_credito}
                                 </span>
@@ -556,7 +557,7 @@ export function PerFormModal({
 
             <FormField
               control={form.control}
-              name="numero_processo_per"
+              name="nr_per"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número do Processo <RequiredMark /></FormLabel>
